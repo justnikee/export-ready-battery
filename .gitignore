@@ -1,0 +1,35 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/server
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# Dependency directories
+/vendor/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated QR codes (temporary)
+/tmp/
+/qrcodes/
