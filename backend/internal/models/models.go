@@ -24,13 +24,14 @@ type Batch struct {
 
 // BatchSpec holds the common specifications stored as JSONB
 type BatchSpec struct {
-	Chemistry       string  `json:"chemistry"`        // e.g., "Li-ion", "LiFePO4"
-	NominalVoltage  float64 `json:"nominal_voltage"`  // e.g., 3.7
-	Capacity        float64 `json:"capacity"`         // e.g., 2500 mAh
-	Weight          float64 `json:"weight"`           // in grams
-	CarbonFootprint float64 `json:"carbon_footprint"` // kg CO2e per kWh
-	Recyclable      bool    `json:"recyclable"`
-	CountryOfOrigin string  `json:"country_of_origin"`
+	Chemistry       string `json:"chemistry"`
+	NominalVoltage  string `json:"voltage"`          // Changed to string, json tag to matches frontend
+	Capacity        string `json:"capacity"`         // Changed to string
+	Manufacturer    string `json:"manufacturer"`     // Added field
+	Weight          string `json:"weight"`           // Changed to string
+	CarbonFootprint string `json:"carbon_footprint"` // Changed to string
+	Recyclable      bool   `json:"recyclable"`
+	CountryOfOrigin string `json:"country_of_origin"`
 }
 
 // Passport represents a single battery's digital passport

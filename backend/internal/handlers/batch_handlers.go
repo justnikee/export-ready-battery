@@ -147,3 +147,25 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to send ZIP: %v", err)
 	}
 }
+
+// GetBatchPassports handles GET /api/v1/batches/{id}/passports
+func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"passports": passports,
+		"count":     len(passports),
+	})
+}

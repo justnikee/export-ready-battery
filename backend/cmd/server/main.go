@@ -81,6 +81,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(http.HandlerFunc(h.UploadCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
+	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 
 	// ============================================
 	// PASSPORT ROUTES (Public - for QR code scanning)
