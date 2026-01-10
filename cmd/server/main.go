@@ -14,6 +14,8 @@ import (
 	"exportready-battery/internal/config"
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/handlers"
+	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/services"
 )
 
 func main() {
@@ -37,30 +39,53 @@ func main() {
 
 	log.Println("✅ Connected to PostgreSQL database")
 
-	// Initialize handlers with database and config
+	// Initialize services
+	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
+
+	// Initialize handlers
 	h := handlers.New(database, cfg.BaseURL)
+	authHandler := handlers.NewAuthHandler(database, authService)
+
+	// Initialize middleware
+	authMiddleware := middleware.NewAuth(authService)
 
 	// Setup routes
 	mux := http.NewServeMux()
 
-	// Health check endpoint
+	// Health check endpoint (public)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy","service":"exportready-battery"}`))
 	})
 
-	// Batch & CSV Upload routes
-	mux.HandleFunc("POST /api/v1/batches", h.CreateBatch)
-	mux.HandleFunc("GET /api/v1/batches", h.ListBatches)
-	mux.HandleFunc("GET /api/v1/batches/{id}", h.GetBatch)
-	mux.HandleFunc("POST /api/v1/batches/{id}/upload", h.UploadCSV)
+	// ============================================
+	// AUTH ROUTES (Public)
+	// ============================================
+	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 
-	// Passport routes
+	// ============================================
+	// AUTH ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/auth/me", authMiddleware.Protect(http.HandlerFunc(authHandler.Me)))
+
+	// ============================================
+	// BATCH ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.CreateBatch)))
+	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
+	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
+	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(http.HandlerFunc(h.UploadCSV)))
+	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
+
+	// ============================================
+	// PASSPORT ROUTES (Public - for QR code scanning)
+	// ============================================
 	mux.HandleFunc("GET /api/v1/passports/{uuid}", h.GetPassport)
-
-	// QR Code download
-	mux.HandleFunc("GET /api/v1/batches/{id}/download", h.DownloadQRCodes)
 
 	// Create HTTP server
 	server := &http.Server{

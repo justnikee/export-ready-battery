@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -46,20 +45,6 @@ func Connect(databaseURL string) (*DB, error) {
 	// Verify connection
 	if err := pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	// Debug: List available tables
-	rows, err := pool.Query(ctx, "SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public'")
-	if err != nil {
-		log.Printf("Debug: Failed to list tables: %v", err)
-	} else {
-		defer rows.Close()
-		log.Println("Debug: Available tables in public schema:")
-		for rows.Next() {
-			var schema, table string
-			rows.Scan(&schema, &table)
-			log.Printf("  - %s.%s", schema, table)
-		}
 	}
 
 	return &DB{Pool: pool}, nil

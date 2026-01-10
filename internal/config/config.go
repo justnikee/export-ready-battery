@@ -1,8 +1,8 @@
 package config
 
 import (
-	"log"
 	"os"
+	"time"
 )
 
 // Config holds all configuration for the application
@@ -10,21 +10,22 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 	BaseURL     string // For QR code URLs (e.g., https://app.com)
+
+	// JWT Configuration
+	JWTSecret     string
+	JWTExpiry     time.Duration
+	RefreshExpiry time.Duration
 }
 
 // Load reads configuration from environment variables
 func Load() *Config {
-	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable")
-
-	// Debug: Show which database we're connecting to (mask password)
-	if len(dbURL) > 50 {
-		log.Printf("Debug: DATABASE_URL (masked): %s...%s", dbURL[:30], dbURL[len(dbURL)-20:])
-	}
-
 	return &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: dbURL,
-		BaseURL:     getEnv("BASE_URL", "http://localhost:3000"),
+		Port:          getEnv("PORT", "8080"),
+		DatabaseURL:   getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable"),
+		BaseURL:       getEnv("BASE_URL", "http://localhost:3000"),
+		JWTSecret:     getEnv("JWT_SECRET", "your-super-secret-key-change-in-production"),
+		JWTExpiry:     parseDuration(getEnv("JWT_EXPIRY", "15m")),
+		RefreshExpiry: parseDuration(getEnv("REFRESH_EXPIRY", "168h")), // 7 days
 	}
 }
 
@@ -34,4 +35,13 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// parseDuration parses a duration string, returns default on error
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 15 * time.Minute // default
+	}
+	return d
 }

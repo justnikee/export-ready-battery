@@ -28,8 +28,7 @@ if (-not $databaseUrl) {
 }
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$migrationsPath = "file://$projectRoot/migrations"
-$migrationsPath = $migrationsPath -replace "\\", "/"
+$migrationsPath = "file://migrations"
 
 Write-Host "Running migration: $Action" -ForegroundColor Cyan
 Write-Host "Migrations path: $migrationsPath" -ForegroundColor Gray
