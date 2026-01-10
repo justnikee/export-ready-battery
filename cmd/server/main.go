@@ -9,12 +9,22 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"exportready-battery/internal/config"
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/handlers"
 )
 
 func main() {
+	// Load .env file from the current directory
+	// Using Overload to force .env values to override system environment variables
+	if err := godotenv.Overload(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	} else {
+		log.Println("✅ Loaded .env file (overriding system env vars)")
+	}
+
 	// Load configuration
 	cfg := config.Load()
 
@@ -27,8 +37,8 @@ func main() {
 
 	log.Println("✅ Connected to PostgreSQL database")
 
-	// Initialize handlers with database
-	h := handlers.New(database)
+	// Initialize handlers with database and config
+	h := handlers.New(database, cfg.BaseURL)
 
 	// Setup routes
 	mux := http.NewServeMux()

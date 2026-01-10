@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 )
 
@@ -13,9 +14,16 @@ type Config struct {
 
 // Load reads configuration from environment variables
 func Load() *Config {
+	dbURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable")
+
+	// Debug: Show which database we're connecting to (mask password)
+	if len(dbURL) > 50 {
+		log.Printf("Debug: DATABASE_URL (masked): %s...%s", dbURL[:30], dbURL[len(dbURL)-20:])
+	}
+
 	return &Config{
 		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable"),
+		DatabaseURL: dbURL,
 		BaseURL:     getEnv("BASE_URL", "http://localhost:3000"),
 	}
 }

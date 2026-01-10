@@ -33,3 +33,4 @@ Thumbs.db
 # Generated QR codes (temporary)
 /tmp/
 /qrcodes/
+testdata/*.zip
