@@ -7,8 +7,8 @@ param(
     [string]$Action
 )
 
-# Load .env file
-$envFile = Join-Path $PSScriptRoot "..\\.env"
+# Load .env file from backend directory
+$envFile = Join-Path $PSScriptRoot "..\\backend\\.env"
 if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
         if ($_ -match "^([^#][^=]+)=(.*)$") {
@@ -17,7 +17,7 @@ if (Test-Path $envFile) {
     }
 }
 else {
-    Write-Error ".env file not found!"
+    Write-Error ".env file not found in $envFile!"
     exit 1
 }
 
@@ -28,7 +28,9 @@ if (-not $databaseUrl) {
 }
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$migrationsPath = "file://migrations"
+# Migrations are now in db/migrations relative to the project root
+# Using file:// path relative to where the script is executed (usually project root)
+$migrationsPath = "file://db/migrations"
 
 Write-Host "Running migration: $Action" -ForegroundColor Cyan
 Write-Host "Migrations path: $migrationsPath" -ForegroundColor Gray

@@ -8,92 +8,101 @@ interface PassportViewProps {
 
 export function PassportView({ passport }: PassportViewProps) {
     const specs = passport.specs || {}
+    const passportData = passport.passport || {}
+    const batchName = passport.batch_name || "Unknown Batch"
 
     return (
-        <div className="space-y-6">
-            {/* Header Status Card */}
-            <Card className="border-t-4 border-t-green-500 shadow-md">
-                <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1 text-sm">
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            Verified Passport
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">ID: {passport.uuid.substring(0, 8)}...</span>
-                    </div>
-                    <CardTitle className="text-2xl mt-2">{specs.manufacturer || "Unknown Manufacturer"}</CardTitle>
-                    <p className="text-muted-foreground">{passport.batch_name}</p>
-                </CardHeader>
-            </Card>
+        <div className="space-y-8">
+            {/* Top Verification Status */}
+            <div className="flex flex-col items-center text-center space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">
+                    <CheckCircle className="h-4 w-4 fill-emerald-100" />
+                    Verified Authentic
+                </div>
 
-            {/* Technical Specs */}
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Battery className="h-5 w-5 text-blue-500" />
-                        Technical Specifications
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
-                        <div>
-                            <span className="text-muted-foreground block text-xs uppercase tracking-wider">Capacity</span>
-                            <span className="font-semibold">{specs.capacity || "-"}</span>
-                        </div>
-                        <div>
-                            <span className="text-muted-foreground block text-xs uppercase tracking-wider">Voltage</span>
-                            <span className="font-semibold">{specs.voltage || "-"}</span>
-                        </div>
-                        <div>
-                            <span className="text-muted-foreground block text-xs uppercase tracking-wider">Chemistry</span>
-                            <span className="font-semibold">{specs.chemistry || "-"}</span>
-                        </div>
-                        <div>
-                            <span className="text-muted-foreground block text-xs uppercase tracking-wider">Serial No.</span>
-                            <span className="font-mono">{passport.serial_number}</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                <div className="space-y-1">
+                    <h2 className="text-2xl font-bold text-slate-900">{specs.manufacturer || "Unknown Manufacturer"}</h2>
+                    <p className="text-slate-500 font-medium">{batchName}</p>
+                </div>
 
-            {/* History / Dates */}
-            <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-orange-500" />
-                        Lifecycle Events
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="relative border-l-2 border-slate-100 ml-3 pl-6 space-y-6 py-2">
+                <div className="w-full flex items-center justify-center py-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="text-center">
+                        <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">Serial Number</div>
+                        <code className="font-mono text-lg text-slate-700 px-2">{passportData.serial_number || "N/A"}</code>
+                    </div>
+                </div>
+            </div>
+
+            {/* Technical Specifications Grid */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-semibold border-b border-slate-100 pb-2">
+                    <Battery className="h-5 w-5 text-emerald-500" />
+                    <h3>Technical Specifications</h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-medium">Capacity</div>
+                        <div className="text-slate-900 font-semibold mt-0.5">{specs.capacity || "-"}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-medium">Voltage</div>
+                        <div className="text-slate-900 font-semibold mt-0.5">{specs.voltage || "-"}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-medium">Chemistry</div>
+                        <div className="text-slate-900 font-semibold mt-0.5">{specs.chemistry || "-"}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                        <div className="text-xs text-slate-400 uppercase font-medium">Weight</div>
+                        <div className="text-slate-900 font-semibold mt-0.5">{specs.weight || "-"}</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Lifecycle Timeline */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-semibold border-b border-slate-100 pb-2">
+                    <Calendar className="h-5 w-5 text-blue-500" />
+                    <h3>Lifecycle Events</h3>
+                </div>
+
+                <div className="pl-2">
+                    <div className="relative border-l-2 border-slate-100 pl-6 pb-6 space-y-6">
+                        {/* Event 1 */}
                         <div className="relative">
-                            <span className="absolute -left-[31px] bg-green-500 h-4 w-4 rounded-full border-2 border-white"></span>
-                            <p className="font-medium text-sm">Manufactured</p>
-                            <p className="text-xs text-muted-foreground">
-                                {new Date(passport.manufacture_date).toLocaleDateString(undefined, {
-                                    year: 'numeric', month: 'long', day: 'numeric'
-                                })}
-                            </p>
+                            <div className="absolute -left-[31px] bg-emerald-500 h-4 w-4 rounded-full border-[3px] border-white shadow-sm"></div>
+                            <div className="flex flex-col">
+                                <span className="text-slate-900 font-medium">Manufacturing Complete</span>
+                                <span className="text-sm text-slate-500">
+                                    {passportData.manufacture_date ? new Date(passportData.manufacture_date).toLocaleDateString(undefined, {
+                                        year: 'numeric', month: 'long', day: 'numeric'
+                                    }) : "-"}
+                                </span>
+                            </div>
                         </div>
+                        {/* Event 2 */}
                         <div className="relative">
-                            <span className="absolute -left-[31px] bg-blue-500 h-4 w-4 rounded-full border-2 border-white"></span>
-                            <p className="font-medium text-sm">Passport Issued</p>
-                            <p className="text-xs text-muted-foreground">
-                                {new Date(passport.created_at).toLocaleDateString(undefined, {
-                                    year: 'numeric', month: 'long', day: 'numeric'
-                                })}
-                            </p>
+                            <div className="absolute -left-[31px] bg-blue-500 h-4 w-4 rounded-full border-[3px] border-white shadow-sm"></div>
+                            <div className="flex flex-col">
+                                <span className="text-slate-900 font-medium">Passport Issued</span>
+                                <span className="text-sm text-slate-500">
+                                    {passportData.created_at ? new Date(passportData.created_at).toLocaleDateString(undefined, {
+                                        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    }) : "-"}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
-            <div className="text-center text-xs text-muted-foreground pt-4 pb-8">
-                <p className="flex items-center justify-center gap-1">
+            {/* Footer Action */}
+            <div className="pt-4 border-t border-slate-100 text-center">
+                <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
                     <Smartphone className="h-3 w-3" />
-                    Scan to verify authenticity
+                    Verify this passport by scanning the QR code
                 </p>
-                <p className="mt-1">© 2024 ExportReady Battery Passport</p>
             </div>
         </div>
     )

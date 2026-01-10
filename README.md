@@ -61,6 +61,11 @@
 
 4.  **Start the Server:**
     ```bash
+    # Run via Makefile (proxies to backend folder)
+    make run
+    
+    # OR manual
+    cd backend
     go run ./cmd/server
     ```
     The server will start on `http://localhost:8080`.
@@ -89,20 +94,17 @@
 
 ```
 exportready-battery/
-├── cmd/server/          # Main entry point
-├── internal/
-│   ├── config/          # Configuration loader
-│   ├── db/              # Database connection
-│   ├── handlers/        # HTTP Handlers (API Logic)
-│   │   ├── auth.go
-│   │   ├── batch.go
-│   │   └── ...
-│   ├── middleware/      # Auth & Logging Middleware
-│   ├── models/          # Data Structures
-│   ├── repository/      # Database Operations
-│   └── services/        # Business Logic (CSV, QR, Auth)
-├── migrations/          # SQL Migration files
-└── scripts/             # Utility scripts
+├── backend/             # Go Backend Code
+│   ├── cmd/server/      # Main entry point
+│   ├── internal/        # App Logic (Handlers, Services, DB)
+│   └── go.mod           # Go Module definition
+├── frontend/            # Next.js Frontend
+│   ├── app/             # App Router content
+│   └── components/      # UI Components
+├── db/                  # Database Assets
+│   └── migrations/      # SQL Migration files
+├── scripts/             # Utility scripts
+└── Makefile             # Task runner
 ```
 
 ## 🧪 Testing
