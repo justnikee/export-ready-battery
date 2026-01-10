@@ -107,9 +107,24 @@ exportready-battery/
 └── Makefile             # Task runner
 ```
 
+### Frontend Setup
+
+    The frontend is built with Next.js.
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+    The frontend will start on `http://localhost:3000`.
+
 ## 🧪 Testing
 
-Run the full test suite:
+Run the full backend test suite:
 ```bash
+# Via Makefile
+make test
+
+# Manual
+cd backend
 go test ./...
 ```
