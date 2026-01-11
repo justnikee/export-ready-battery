@@ -204,6 +204,112 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DownloadLabels handles GET /api/v1/batches/{id}/labels
+func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get batch info for filename
+	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Get passport count first
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Get all passports for this batch (no limit)
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+		return
+	}
+
+	// Extract serials
+	var serials []string
+	for _, p := range passports {
+		serials = append(serials, p.SerialNumber)
+	}
+
+	// Generate PDF
+	pdfBytes, err := h.pdfService.GenerateLabelSheet(batch.BatchName, serials)
+	if err != nil {
+		log.Printf("Failed to generate PDF labels: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate PDF labels")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_labels.pdf", batch.BatchName)
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+
+	// Write PDF to response
+	w.Write(pdfBytes)
+}
+
+// ExportBatchCSV handles GET /api/v1/batches/{id}/export
+func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get batch info for filename
+	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Get passport count
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Get all passports
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+		return
+	}
+
+	// Generate CSV
+	csvBytes, err := h.csvService.ExportPassports(passports)
+	if err != nil {
+		log.Printf("Failed to generate CSV: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate CSV export")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_serial_export.csv", batch.BatchName)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))
+
+	// Write CSV to response
+	w.Write(csvBytes)
+}
+
 // GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")

@@ -1,4 +1,5 @@
 import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, ExternalLink } from "lucide-react"
+import Link from "next/link"
 import clsx from "clsx"
 
 // Market region type
@@ -98,6 +99,7 @@ function MaterialPill({ element, value }: { element: string; value: number }) {
 export function PassportView({ passport }: PassportViewProps) {
     const specs = passport.specs || {}
     const passportData = passport.passport || {}
+    const tenant = passport.tenant || {}
     const batchName = passport.batch_name || "Battery Passport"
     const status = passportData.status || "ACTIVE"
 
@@ -410,23 +412,27 @@ export function PassportView({ passport }: PassportViewProps) {
                         <Factory className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                             <div className="text-xs uppercase text-slate-400 font-bold">Company</div>
-                            <div className="font-medium text-slate-700">{specs.manufacturer || "Not specified"}</div>
+                            <div className="font-medium text-slate-700">
+                                {specs.manufacturer || tenant.company_name || "Not specified"}
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                             <div className="text-xs uppercase text-slate-400 font-bold">Address</div>
-                            <div className="text-slate-600">{specs.manufacturer_address || "Not specified"}</div>
+                            <div className="text-slate-600">
+                                {specs.manufacturer_address || tenant.address || "Not specified"}
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-start gap-2">
                         <Mail className="h-4 w-4 text-blue-500 mt-0.5" />
                         <div>
                             <div className="text-xs uppercase text-slate-400 font-bold">Contact</div>
-                            {specs.manufacturer_email ? (
-                                <a href={`mailto:${specs.manufacturer_email}`} className="text-blue-600 hover:underline">
-                                    {specs.manufacturer_email}
+                            {(specs.manufacturer_email || tenant.support_email) ? (
+                                <a href={`mailto:${specs.manufacturer_email || tenant.support_email}`} className="text-blue-600 hover:underline">
+                                    {specs.manufacturer_email || tenant.support_email}
                                 </a>
                             ) : (
                                 <span className="text-slate-400">Not specified</span>
@@ -439,10 +445,14 @@ export function PassportView({ passport }: PassportViewProps) {
             {/* ═══════════════════════════════════════════════════════════════════
                 SECURITY FOOTER
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-100">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 pt-4 border-t border-slate-100 mt-8">
                 <div className="flex items-center gap-1.5">
                     <Smartphone className="h-3.5 w-3.5" />
                     <span>Secured by ExportReady™ Digital Passport System</span>
+                    <span className="mx-1">•</span>
+                    <Link href="/terms" className="hover:text-slate-600 hover:underline">Terms</Link>
+                    <span className="mx-1">•</span>
+                    <Link href="/privacy" className="hover:text-slate-600 hover:underline">Privacy</Link>
                 </div>
                 <div className="flex items-center gap-3">
                     {isEU && <CEMark className="h-6 text-slate-300" />}

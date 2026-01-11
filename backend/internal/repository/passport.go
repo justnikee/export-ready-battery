@@ -87,15 +87,22 @@ func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Pas
 func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error) {
 	query := `
 		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
-		       b.batch_name, b.specs
+		       b.batch_name, b.specs, b.market_region,
+		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, '')
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
+		JOIN public.tenants t ON b.tenant_id = t.id
 		WHERE p.uuid = $1
 	`
 
 	passport := &models.Passport{}
 	var batchName string
 	var specsJSON []byte
+	var marketRegion models.MarketRegion
+	tenant := &models.Tenant{}
+
+	// We only need public fields for the passport page
+	// Using COALESCE in SQL prevents scanning NULLs into strings
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
 		&passport.UUID,
@@ -106,6 +113,12 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&passport.CreatedAt,
 		&batchName,
 		&specsJSON,
+		&marketRegion,
+		&tenant.CompanyName,
+		&tenant.Address,
+		&tenant.LogoURL,
+		&tenant.SupportEmail,
+		&tenant.Website,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -115,14 +128,18 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 
 	specs := &models.BatchSpec{}
-	if err := json.Unmarshal(specsJSON, specs); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+	if len(specsJSON) > 0 {
+		if err := json.Unmarshal(specsJSON, specs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+		}
 	}
 
 	return &models.PassportWithSpecs{
-		Passport:  passport,
-		BatchName: batchName,
-		Specs:     specs,
+		Passport:     passport,
+		BatchName:    batchName,
+		Specs:        specs,
+		MarketRegion: marketRegion,
+		Tenant:       tenant,
 	}, nil
 }
 

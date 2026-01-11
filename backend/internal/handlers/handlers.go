@@ -16,6 +16,7 @@ type Handler struct {
 	csvService *services.CSVService
 	qrService  *services.QRService
 	geoService *services.GeoIPService
+	pdfService *services.PDFService
 }
 
 // New creates a new Handler with the given database connection
@@ -25,6 +26,7 @@ func New(database *db.DB, baseURL string, geoDBPath string) *Handler {
 		csvService: services.NewCSVService(),
 		qrService:  services.NewQRService(baseURL),
 		geoService: services.NewGeoIPService(geoDBPath),
+		pdfService: services.NewPDFService(),
 	}
 }
 

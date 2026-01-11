@@ -13,19 +13,23 @@ import (
 
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 )
 
 // AuthHandler handles authentication endpoints
 type AuthHandler struct {
 	db          *db.DB
+	repo        *repository.Repository
 	authService *services.AuthService
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(database *db.DB, authService *services.AuthService) *AuthHandler {
+func NewAuthHandler(database *db.DB, repo *repository.Repository, authService *services.AuthService) *AuthHandler {
 	return &AuthHandler{
 		db:          database,
+		repo:        repo,
 		authService: authService,
 	}
 }
@@ -358,6 +362,41 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// UpdateProfile handles PUT /api/v1/auth/profile
+func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return
+	}
+
+	var req models.UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.CompanyName == "" {
+		respondError(w, http.StatusBadRequest, "company_name is required")
+		return
+	}
+
+	updatedTenant, err := h.repo.UpdateTenantProfile(r.Context(), tenantID, req)
+	if err != nil {
+		log.Printf("Failed to update profile: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to update profile")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, updatedTenant)
+}
+
 // Me handles GET /api/v1/auth/me
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	tenantID := middleware.GetTenantID(r.Context())
@@ -372,15 +411,10 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var companyName, email string
-	var createdAt time.Time
-	var lastLogin *time.Time
-
-	err = h.db.Pool.QueryRow(r.Context(),
-		`SELECT company_name, email, created_at, last_login 
-		 FROM public.tenants WHERE id = $1`, id).Scan(&companyName, &email, &createdAt, &lastLogin)
+	// Use repository to get full tenant details including address/logo
+	tenant, err := h.repo.GetTenant(r.Context(), id)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err.Error() == "tenant not found" {
 			respondError(w, http.StatusNotFound, "Tenant not found")
 			return
 		}
@@ -389,12 +423,22 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch login email and last login
+	var loginEmail string
+	var lastLogin *time.Time
+	err = h.db.Pool.QueryRow(r.Context(), "SELECT email, last_login FROM public.tenants WHERE id = $1", id).Scan(&loginEmail, &lastLogin)
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"tenant_id":    tenantID,
-		"company_name": companyName,
-		"email":        email,
-		"created_at":   createdAt,
-		"last_login":   lastLogin,
+		"id":            tenant.ID,
+		"tenant_id":     tenant.ID.String(),
+		"company_name":  tenant.CompanyName,
+		"email":         loginEmail,
+		"address":       tenant.Address,
+		"logo_url":      tenant.LogoURL,
+		"support_email": tenant.SupportEmail,
+		"website":       tenant.Website,
+		"created_at":    tenant.CreatedAt,
+		"last_login":    lastLogin,
 	})
 }
 

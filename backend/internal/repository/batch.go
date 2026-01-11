@@ -115,7 +115,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	          COALESCE(domestic_value_add, 0), 
 	          cell_source, 
 	          materials 
-	          FROM public.batches WHERE id = $1`
+	          FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
 		&batch.ID,
@@ -167,7 +167,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
-	          WHERE b.tenant_id = $1
+	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
 	          GROUP BY b.id
 	          ORDER BY b.created_at DESC`
 
@@ -225,4 +225,14 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	}
 
 	return batches, nil
+}
+
+// DeleteBatch soft-deletes a batch
+func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE public.batches SET deleted_at = $1 WHERE id = $2`
+	_, err := r.db.Pool.Exec(ctx, query, time.Now(), id)
+	if err != nil {
+		return fmt.Errorf("failed to delete batch: %w", err)
+	}
+	return nil
 }

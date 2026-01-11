@@ -1,0 +1,6 @@
+serial_number,manufacture_date,chemistry,capacity_ah,voltage_v,weight_kg,domestic_value_add,cell_source,carbon_footprint,materials
+EU-EXP-NMC-2026-X01,2026-01-20,NMC,7500,52,15.0,,IMPORTED,45.2,"[{""element"": ""Cobalt"", ""percent"": 12}, {""element"": ""Lithium"", ""percent"": 8}, {""element"": ""Nickel"", ""percent"": 40}]"
+EU-EXP-NMC-2026-X02,2026-01-20,NMC,7500,52,15.0,,IMPORTED,44.8,"[{""element"": ""Cobalt"", ""percent"": 12}, {""element"": ""Lithium"", ""percent"": 8}, {""element"": ""Nickel"", ""percent"": 40}]"
+EU-EXP-NMC-2026-X03,2026-01-20,NMC,7500,52,15.0,,IMPORTED,45.5,"[{""element"": ""Cobalt"", ""percent"": 11}, {""element"": ""Lithium"", ""percent"": 9}, {""element"": ""Nickel"", ""percent"": 41}]"
+EU-EXP-NMC-2026-X04,2026-01-20,NMC,7500,52,15.0,,IMPORTED,45.2,"[{""element"": ""Cobalt"", ""percent"": 12}, {""element"": ""Lithium"", ""percent"": 8}, {""element"": ""Nickel"", ""percent"": 40}]"
+EU-EXP-NMC-2026-X05,2026-01-20,NMC,7500,52,15.0,,IMPORTED,46.0,"[{""element"": ""Cobalt"", ""percent"": 12}, {""element"": ""Lithium"", ""percent"": 8}, {""element"": ""Nickel"", ""percent"": 40}]"

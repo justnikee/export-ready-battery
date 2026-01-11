@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 
 // Market region type
@@ -98,6 +98,44 @@ export default function BatchDetailsPage() {
             }
         }
         download()
+    }
+
+    const handleDownloadLabels = async () => {
+        try {
+            const response = await api.get(`/batches/${params.id}/labels`, {
+                responseType: 'blob'
+            })
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_labels.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to download labels", error)
+            alert("Failed to download labels")
+        }
+    }
+
+    const handleExportCSV = async () => {
+        try {
+            const response = await api.get(`/batches/${params.id}/export`, {
+                responseType: 'blob'
+            })
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_serial_export.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error)
+            alert("Failed to export CSV")
+        }
     }
 
     // Determine compliance status
@@ -348,34 +386,39 @@ export default function BatchDetailsPage() {
                         <CardContent className="space-y-3">
                             <Button className="w-full" onClick={handleDownloadQR} variant="outline">
                                 <QrCode className="mr-2 h-4 w-4" />
-                                Download QR Codes
+                                Download QR Codes (ZIP)
                             </Button>
-                            <Button className="w-full" variant="secondary" disabled>
-                                Generate Report (Coming Soon)
+                            <Button className="w-full" onClick={handleDownloadLabels} variant="outline">
+                                <Printer className="mr-2 h-4 w-4" />
+                                Download PDF Labels
+                            </Button>
+                            <Button className="w-full" onClick={handleExportCSV} variant="outline">
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Export Serial List (CSV)
                             </Button>
                         </CardContent>
                     </Card>
 
                     <Card className={`${isIndia ? "bg-orange-50/50 border-orange-100" :
-                            isEU ? "bg-blue-50/50 border-blue-100" :
-                                "bg-green-50/50 border-green-100"
+                        isEU ? "bg-blue-50/50 border-blue-100" :
+                            "bg-green-50/50 border-green-100"
                         }`}>
                         <CardHeader>
                             <CardTitle className={`${isIndia ? "text-orange-900" :
-                                    isEU ? "text-blue-900" :
-                                        "text-green-900"
+                                isEU ? "text-blue-900" :
+                                    "text-green-900"
                                 }`}>Summary</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className={`text-3xl font-bold ${isIndia ? "text-orange-700" :
-                                    isEU ? "text-blue-700" :
-                                        "text-green-700"
+                                isEU ? "text-blue-700" :
+                                    "text-green-700"
                                 }`}>
                                 {passportCount.toLocaleString()}
                             </div>
                             <p className={`text-xs mt-1 ${isIndia ? "text-orange-600" :
-                                    isEU ? "text-blue-600" :
-                                        "text-green-600"
+                                isEU ? "text-blue-600" :
+                                    "text-green-600"
                                 }`}>
                                 {isIndia ? "Battery Aadhaar IDs" : isEU ? "EU Passports" : "Total Passports"} Generated
                             </p>

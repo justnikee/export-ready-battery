@@ -15,6 +15,7 @@ import (
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/handlers"
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 )
 
@@ -42,9 +43,12 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 
+	// Initialize repository
+	repo := repository.New(database)
+
 	// Initialize handlers
 	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb")
-	authHandler := handlers.NewAuthHandler(database, authService)
+	authHandler := handlers.NewAuthHandler(database, repo, authService)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
@@ -72,6 +76,7 @@ func main() {
 	// AUTH ROUTES (Protected)
 	// ============================================
 	mux.Handle("GET /api/v1/auth/me", authMiddleware.Protect(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("PUT /api/v1/auth/profile", authMiddleware.Protect(http.HandlerFunc(authHandler.UpdateProfile)))
 
 	// ============================================
 	// BATCH ROUTES (Protected)
@@ -83,6 +88,8 @@ func main() {
 	mux.Handle("POST /api/v1/batches/{id}/validate", authMiddleware.Protect(http.HandlerFunc(h.ValidateCSV)))
 	mux.Handle("POST /api/v1/batches/{id}/auto-generate", authMiddleware.Protect(http.HandlerFunc(h.AutoGeneratePassports)))
 	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
+	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
+	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 
 	// ============================================

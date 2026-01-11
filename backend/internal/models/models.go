@@ -35,9 +35,22 @@ func (m MarketRegion) IsValid() bool {
 
 // Tenant represents a company using the platform
 type Tenant struct {
-	ID          uuid.UUID `json:"id"`
-	CompanyName string    `json:"company_name"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID           uuid.UUID `json:"id"`
+	CompanyName  string    `json:"company_name"`
+	Address      string    `json:"address,omitempty"`
+	LogoURL      string    `json:"logo_url,omitempty"`
+	SupportEmail string    `json:"support_email,omitempty"`
+	Website      string    `json:"website,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// UpdateProfileRequest represents the payload for updating tenant profile
+type UpdateProfileRequest struct {
+	CompanyName  string `json:"company_name"`
+	Address      string `json:"address"`
+	LogoURL      string `json:"logo_url"`
+	SupportEmail string `json:"support_email"`
+	Website      string `json:"website"`
 }
 
 // ============================================================================
@@ -205,6 +218,7 @@ type PassportWithSpecs struct {
 	BatchName    string       `json:"batch_name"`
 	Specs        *BatchSpec   `json:"specs"`
 	MarketRegion MarketRegion `json:"market_region"` // For conditional UI rendering
+	Tenant       *Tenant      `json:"tenant"`        // Added for public profile display
 }
 
 // ============================================================================

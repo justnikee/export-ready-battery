@@ -8,6 +8,10 @@ interface User {
     tenant_id: string;
     email: string;
     company_name: string;
+    address?: string;
+    logo_url?: string;
+    support_email?: string;
+    website?: string;
 }
 
 interface AuthContextType {
@@ -15,6 +19,7 @@ interface AuthContextType {
     loading: boolean;
     login: (token: string, refreshToken: string, user: User) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,8 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/login');
     };
 
+    const refreshUser = async () => {
+        await checkAuth();
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

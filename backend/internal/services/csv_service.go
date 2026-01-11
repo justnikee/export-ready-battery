@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -174,4 +175,36 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 		Status:          models.PassportStatusActive,
 		CreatedAt:       time.Now(),
 	}, nil
+}
+
+// ExportPassports generates a CSV file from a list of passports
+func (s *CSVService) ExportPassports(passports []*models.Passport) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	// Write header
+	header := []string{"serial_number", "manufacture_date", "status", "uuid"}
+	if err := writer.Write(header); err != nil {
+		return nil, fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	// Write records
+	for _, p := range passports {
+		record := []string{
+			p.SerialNumber,
+			p.ManufactureDate.Format("2006-01-02"),
+			string(p.Status),
+			p.UUID.String(),
+		}
+		if err := writer.Write(record); err != nil {
+			return nil, fmt.Errorf("failed to write CSV record: %w", err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
