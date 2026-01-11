@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,9 +28,14 @@ func (r *Repository) CreateBatch(ctx context.Context, tenantID uuid.UUID, batchN
 		return nil, fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
+	// Debug: log the JSON being sent
+	log.Printf("DEBUG CreateBatch: specsJSON = %s", string(specsJSON))
+
+	// Use []byte for PostgreSQL JSONB column (same as template.go)
 	query := `INSERT INTO public.batches (id, tenant_id, batch_name, specs, created_at) VALUES ($1, $2, $3, $4, $5)`
 	_, err = r.db.Pool.Exec(ctx, query, batch.ID, batch.TenantID, batch.BatchName, specsJSON, batch.CreatedAt)
 	if err != nil {
+		log.Printf("DEBUG CreateBatch ERROR: %v", err)
 		return nil, fmt.Errorf("failed to create batch: %w", err)
 	}
 

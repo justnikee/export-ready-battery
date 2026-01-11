@@ -48,6 +48,21 @@ type BatchSpec struct {
 	CarbonFootprint string `json:"carbon_footprint"` // Changed to string
 	Recyclable      bool   `json:"recyclable"`
 	CountryOfOrigin string `json:"country_of_origin"`
+
+	// EU Regulatory Compliance Fields
+	MaterialComposition   *MaterialComposition `json:"material_composition,omitempty"`    // Critical raw materials %
+	Certifications        []string             `json:"certifications,omitempty"`          // CE, UL, IEC, etc.
+	ManufacturerAddress   string               `json:"manufacturer_address,omitempty"`    // Physical address
+	EURepresentative      string               `json:"eu_representative,omitempty"`       // EU contact name/company
+	EURepresentativeEmail string               `json:"eu_representative_email,omitempty"` // EU contact email
+}
+
+// MaterialComposition holds the critical raw material percentages (EU Battery Regulation)
+type MaterialComposition struct {
+	Cobalt  string `json:"cobalt,omitempty"`  // e.g., "12%"
+	Lithium string `json:"lithium,omitempty"` // e.g., "8%"
+	Nickel  string `json:"nickel,omitempty"`  // e.g., "15%"
+	Lead    string `json:"lead,omitempty"`    // e.g., "0%"
 }
 
 // Passport represents a single battery's digital passport
