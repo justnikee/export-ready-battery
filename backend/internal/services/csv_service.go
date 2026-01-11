@@ -47,6 +47,13 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 		return nil, fmt.Errorf("failed to read CSV header: %w", err)
 	}
 
+	// Strip BOM (Byte Order Mark) from first header field if present
+	// Windows/PowerShell often adds UTF-8 BOM (\ufeff) to files
+	if len(header) > 0 {
+		header[0] = strings.TrimPrefix(header[0], "\ufeff")
+		header[0] = strings.TrimPrefix(header[0], "\xef\xbb\xbf") // UTF-8 BOM bytes
+	}
+
 	// Validate and map headers
 	headerMap := make(map[string]int)
 	for i, h := range header {

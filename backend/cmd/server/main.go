@@ -43,7 +43,7 @@ func main() {
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb")
 	authHandler := handlers.NewAuthHandler(database, authService)
 
 	// Initialize middleware
@@ -97,6 +97,18 @@ func main() {
 	// UTILITY ROUTES (Public)
 	// ============================================
 	mux.HandleFunc("GET /api/v1/sample-csv", h.DownloadSampleCSV)
+
+	// ============================================
+	// DASHBOARD ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
+	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
+	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+
+	// ============================================
+	// SCAN ROUTES (Public - called from passport page)
+	// ============================================
+	mux.HandleFunc("POST /api/v1/scans/record", h.RecordScan)
 
 	// ============================================
 	// PASSPORT ROUTES (Public - for QR code scanning)

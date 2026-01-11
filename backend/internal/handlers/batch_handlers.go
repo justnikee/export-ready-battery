@@ -113,16 +113,18 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get all passports for this batch
-	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID)
-	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+	// Get passport count first
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
 		return
 	}
 
-	if len(passports) == 0 {
-		respondError(w, http.StatusNotFound, "No passports found for this batch")
+	// Get all passports for this batch (no limit for QR download)
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
@@ -148,7 +150,7 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetBatchPassports handles GET /api/v1/batches/{id}/passports
+// GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -157,15 +159,47 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID)
+	// Parse pagination params
+	limit := 50 // Default
+	page := 1
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, err := parseInt(limitStr); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if parsed, err := parseInt(pageStr); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	offset := (page - 1) * limit
+
+	// Get total count
+	totalCount, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, limit, offset)
 	if err != nil {
 		log.Printf("Failed to get passports: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
+	totalPages := (totalCount + limit - 1) / limit
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"passports": passports,
-		"count":     len(passports),
+		"passports":   passports,
+		"count":       len(passports),
+		"total":       totalCount,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"has_more":    page < totalPages,
 	})
+}
+
+// parseInt is a helper to parse string to int
+func parseInt(s string) (int, error) {
+	var n int
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
 }

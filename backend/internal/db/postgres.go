@@ -30,6 +30,11 @@ func Connect(databaseURL string) (*DB, error) {
 	config.MaxConnLifetime = time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
 
+	// CRITICAL: Disable statement caching for Supabase PgBouncer compatibility
+	// PgBouncer in transaction mode doesn't support prepared statements
+	// This fixes "prepared statement already exists" errors
+	config.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
 	// Set search_path to public schema after each connection
 	// This is required for Supabase session pooler
 	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {

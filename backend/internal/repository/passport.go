@@ -126,12 +126,12 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}, nil
 }
 
-// GetPassportsByBatch retrieves all passports for a batch
-func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.Passport, error) {
+// GetPassportsByBatch retrieves passports for a batch with pagination
+func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error) {
 	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at 
-	          FROM public.passports WHERE batch_id = $1 ORDER BY serial_number`
+	          FROM public.passports WHERE batch_id = $1 ORDER BY serial_number LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, batchID)
+	rows, err := r.db.Pool.Query(ctx, query, batchID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get passports: %w", err)
 	}

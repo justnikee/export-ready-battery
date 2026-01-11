@@ -21,6 +21,9 @@ export default function PublicPassportPage() {
                 // If logged in, the token is sent, which is fine too.
                 const response = await api.get(`/passports/${params.uuid}`)
                 setPassport(response.data)
+
+                // Record the scan for analytics (fire and forget)
+                recordScan(params.uuid as string)
             } catch (err: any) {
                 console.error("Failed to fetch passport", err)
                 setError(err.response?.status === 404
@@ -35,6 +38,20 @@ export default function PublicPassportPage() {
             fetchPassport()
         }
     }, [params.uuid])
+
+    // Record scan event (fire and forget, don't block page load)
+    const recordScan = async (passportId: string) => {
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/scans/record`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ passport_id: passportId })
+            })
+        } catch (e) {
+            // Silently fail - analytics shouldn't break the page
+            console.debug("Scan recording skipped", e)
+        }
+    }
 
     if (loading) {
         return (

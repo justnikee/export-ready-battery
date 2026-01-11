@@ -99,3 +99,47 @@ type PassportWithSpecs struct {
 	BatchName string     `json:"batch_name"`
 	Specs     *BatchSpec `json:"specs"`
 }
+
+// ScanEvent represents a QR code scan event
+type ScanEvent struct {
+	ID         uuid.UUID `json:"id"`
+	PassportID uuid.UUID `json:"passport_id"`
+	IPAddress  string    `json:"ip_address"`
+	City       string    `json:"city"`
+	Country    string    `json:"country"`
+	DeviceType string    `json:"device_type"`
+	UserAgent  string    `json:"user_agent"`
+	ScannedAt  time.Time `json:"scanned_at"`
+}
+
+// ScanFeedItem represents a scan event for the live feed
+type ScanFeedItem struct {
+	City         string    `json:"city"`
+	Country      string    `json:"country"`
+	DeviceType   string    `json:"device_type"`
+	ScannedAt    time.Time `json:"scanned_at"`
+	SerialNumber string    `json:"serial_number"`
+	BatchName    string    `json:"batch_name"`
+}
+
+// DashboardStats represents the overview statistics
+type DashboardStats struct {
+	TotalPassports       int     `json:"total_passports"`
+	TotalBatches         int     `json:"total_batches"`
+	QuotaUsed            int     `json:"quota_used"`
+	QuotaLimit           int     `json:"quota_limit"`
+	CarbonCompliancePct  float64 `json:"carbon_compliance_percentage"`
+	PassportsThisWeek    int     `json:"passports_this_week"`
+	PendingExportBatches int     `json:"pending_export_batches"`
+}
+
+// BatchSummary represents a batch for the recent batches list
+type BatchSummary struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	CreatedAt    string `json:"created_at"`
+	TotalUnits   int    `json:"total_units"`
+	Status       string `json:"status"`
+	DownloadURL  string `json:"download_url,omitempty"`
+	UsedTemplate bool   `json:"used_template"`
+}

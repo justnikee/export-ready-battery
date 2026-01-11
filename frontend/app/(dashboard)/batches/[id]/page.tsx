@@ -6,9 +6,17 @@ import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { PassportList } from "@/components/batches/passport-list"
+
+interface PaginationInfo {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasMore: boolean
+}
 
 export default function BatchDetailsPage() {
     const params = useParams()
@@ -17,6 +25,13 @@ export default function BatchDetailsPage() {
     const [passportCount, setPassportCount] = useState<number>(0)
     const [passports, setPassports] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 1,
+        limit: 50,
+        total: 0,
+        totalPages: 0,
+        hasMore: false
+    })
 
     const fetchBatch = async () => {
         try {
@@ -30,10 +45,17 @@ export default function BatchDetailsPage() {
         }
     }
 
-    const fetchPassports = async () => {
+    const fetchPassports = async (page = 1, limit = 50) => {
         try {
-            const response = await api.get(`/batches/${params.id}/passports`)
+            const response = await api.get(`/batches/${params.id}/passports?page=${page}&limit=${limit}`)
             setPassports(response.data.passports || [])
+            setPagination({
+                page: response.data.page || 1,
+                limit: response.data.limit || 50,
+                total: response.data.total || 0,
+                totalPages: response.data.total_pages || 0,
+                hasMore: response.data.has_more || false
+            })
         } catch (error) {
             console.error("Failed to fetch passports:", error)
         }
@@ -41,12 +63,16 @@ export default function BatchDetailsPage() {
 
     useEffect(() => {
         fetchBatch()
-        fetchPassports()
+        fetchPassports(1, 50)
     }, [params.id])
 
     const handleUploadComplete = () => {
         fetchBatch()
-        fetchPassports()
+        fetchPassports(1, 50)
+    }
+
+    const handlePageChange = (newPage: number) => {
+        fetchPassports(newPage, pagination.limit)
     }
 
     const handleDownloadQR = () => {
@@ -181,7 +207,7 @@ export default function BatchDetailsPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-3xl font-bold text-blue-700">
-                                {passportCount}
+                                {passportCount.toLocaleString()}
                             </div>
                             <p className="text-xs text-blue-600 mt-1">Total Passports Generated</p>
                         </CardContent>
@@ -189,10 +215,70 @@ export default function BatchDetailsPage() {
                 </div>
             </div>
 
-            {/* Passports List Table */}
+            {/* Passports List Table with Pagination */}
             <div className="mt-8">
-                <h2 className="text-xl font-semibold tracking-tight mb-4">Generated Passports</h2>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold tracking-tight">Generated Passports</h2>
+                    {pagination.total > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
+                        </p>
+                    )}
+                </div>
+
                 <PassportList passports={passports} />
+
+                {/* Pagination Controls */}
+                {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2 mt-6">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={pagination.page <= 1}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                            {/* Page numbers */}
+                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                let pageNum: number
+                                if (pagination.totalPages <= 5) {
+                                    pageNum = i + 1
+                                } else if (pagination.page <= 3) {
+                                    pageNum = i + 1
+                                } else if (pagination.page >= pagination.totalPages - 2) {
+                                    pageNum = pagination.totalPages - 4 + i
+                                } else {
+                                    pageNum = pagination.page - 2 + i
+                                }
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        variant={pageNum === pagination.page ? "default" : "ghost"}
+                                        size="sm"
+                                        className="w-8 h-8 p-0"
+                                        onClick={() => handlePageChange(pageNum)}
+                                    >
+                                        {pageNum}
+                                    </Button>
+                                )
+                            })}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={!pagination.hasMore}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     )
