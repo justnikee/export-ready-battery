@@ -8,11 +8,12 @@ import (
 	"net/http"
 
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
 
-// CreateBatch handles POST /api/v1/batches
+// CreateBatch handles POST /api/v1/batches with dual-mode validation
 func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -30,7 +31,60 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch, err := h.repo.CreateBatch(r.Context(), req.TenantID, req.BatchName, req.Specs)
+	// Default to GLOBAL if not specified
+	if req.MarketRegion == "" {
+		req.MarketRegion = models.MarketRegionGlobal
+	}
+
+	// Validate market region
+	if !req.MarketRegion.IsValid() {
+		respondError(w, http.StatusBadRequest, "Invalid market_region. Must be INDIA, EU, or GLOBAL")
+		return
+	}
+
+	// ===== DUAL-MODE VALIDATION =====
+
+	// EU Mode: Carbon Footprint is MANDATORY
+	if req.MarketRegion == models.MarketRegionEU {
+		if req.Specs.CarbonFootprint == "" {
+			respondError(w, http.StatusBadRequest, "EU compliance requires carbon_footprint")
+			return
+		}
+		// EU Mode: Certifications should include CE
+		hasCE := false
+		for _, cert := range req.Specs.Certifications {
+			if cert == "CE" {
+				hasCE = true
+				break
+			}
+		}
+		if !hasCE {
+			log.Printf("Warning: EU batch created without CE certification")
+		}
+	}
+
+	// India Mode: Validate cell_source if provided
+	if req.MarketRegion == models.MarketRegionIndia {
+		if req.CellSource != "" && req.CellSource != "IMPORTED" && req.CellSource != "DOMESTIC" {
+			respondError(w, http.StatusBadRequest, "cell_source must be IMPORTED or DOMESTIC")
+			return
+		}
+	}
+
+	// Create the batch
+	log.Printf("DEBUG Handler CreateBatch: TenantID=%s, BatchName=%s, MarketRegion=%s, Specs=%+v",
+		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
+
+	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
+		TenantID:         req.TenantID,
+		BatchName:        req.BatchName,
+		Specs:            req.Specs,
+		MarketRegion:     req.MarketRegion,
+		PLICompliant:     req.PLICompliant,
+		DomesticValueAdd: req.DomesticValueAdd,
+		CellSource:       req.CellSource,
+		Materials:        req.Materials,
+	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create batch")

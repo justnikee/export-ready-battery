@@ -19,9 +19,14 @@ import {
     Smartphone,
     Clock,
     TrendingUp,
-    Activity
+    Activity,
+    Flag,
+    Globe
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+
+// Market region type
+type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
 interface DashboardStats {
     total_passports: number
@@ -30,6 +35,8 @@ interface DashboardStats {
     quota_limit: number
     carbon_compliance_percentage: number
     passports_this_week: number
+    india_batches?: number
+    eu_batches?: number
 }
 
 interface BatchSummary {
@@ -39,6 +46,7 @@ interface BatchSummary {
     total_units: number
     status: string
     download_url: string
+    market_region?: MarketRegion
 }
 
 interface ScanFeedItem {
@@ -49,6 +57,66 @@ interface ScanFeedItem {
     serial_number: string
     batch_name: string
 }
+
+// Helper to get market region display
+const getMarketBadge = (region?: MarketRegion) => {
+    switch (region) {
+        case "INDIA":
+            return (
+                <span className="inline-flex items-center gap-1 text-orange-600 font-medium">
+                    <span>🇮🇳</span>
+                </span>
+            )
+        case "EU":
+            return (
+                <span className="inline-flex items-center gap-1 text-blue-600 font-medium">
+                    <span>🇪🇺</span>
+                </span>
+            )
+        default:
+            return (
+                <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                    <Globe className="h-3 w-3" />
+                </span>
+            )
+    }
+}
+
+// Mock demo data for live activity
+const DEMO_SCAN_FEED: ScanFeedItem[] = [
+    {
+        city: "New Delhi",
+        country: "India",
+        device_type: "iPhone 14",
+        scanned_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+        serial_number: "IN-NKY-LFP-2026-00142",
+        batch_name: "Q1-2026-India"
+    },
+    {
+        city: "Hamburg",
+        country: "Germany",
+        device_type: "Chrome/Windows",
+        scanned_at: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
+        serial_number: "EU-BAT-2026-0089",
+        batch_name: "EU-Export-Jan"
+    },
+    {
+        city: "Mumbai",
+        country: "India",
+        device_type: "Samsung Galaxy S23",
+        scanned_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        serial_number: "IN-NKY-NMC-2026-00055",
+        batch_name: "PLI-Batch-Q1"
+    },
+    {
+        city: "Paris",
+        country: "France",
+        device_type: "Safari/macOS",
+        scanned_at: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
+        serial_number: "EU-BAT-2026-0156",
+        batch_name: "EU-Export-Jan"
+    }
+]
 
 export default function DashboardPage() {
     const { user } = useAuth()
@@ -69,9 +137,14 @@ export default function DashboardPage() {
 
             setStats(statsRes.data)
             setRecentBatches(batchesRes.data.batches || [])
-            setScanFeed(scansRes.data.scans || [])
+
+            // Use real scan data if available, otherwise use demo data
+            const realScans = scansRes.data.scans || []
+            setScanFeed(realScans.length > 0 ? realScans : DEMO_SCAN_FEED)
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error)
+            // Fallback to demo data
+            setScanFeed(DEMO_SCAN_FEED)
         } finally {
             setLoading(false)
         }
@@ -111,11 +184,10 @@ export default function DashboardPage() {
     }
 
     const quotaPercentage = stats ? (stats.quota_used / stats.quota_limit) * 100 : 0
-    const carbonColor = stats && stats.carbon_compliance_percentage >= 90
-        ? "text-green-600"
-        : stats && stats.carbon_compliance_percentage >= 70
-            ? "text-yellow-600"
-            : "text-red-600"
+
+    // Calculate market-specific counts from batches
+    const indiaBatches = recentBatches.filter(b => b.market_region === "INDIA").length + (stats?.india_batches || 0)
+    const euBatches = recentBatches.filter(b => b.market_region === "EU").length + (stats?.eu_batches || 0)
 
     return (
         <div className="space-y-6">
@@ -139,8 +211,8 @@ export default function DashboardPage() {
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Left Column - 2/3 width */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Metric Cards */}
-                    <div className="grid gap-4 md:grid-cols-3">
+                    {/* Metric Cards - 4 columns now */}
+                    <div className="grid gap-4 md:grid-cols-4">
                         {/* Total Passports */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -156,34 +228,48 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Active Batches */}
+                        {/* India Batches */}
+                        <Card className="border-orange-200 bg-orange-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                                    <span>🇮🇳</span> India
+                                </CardTitle>
+                                <Flag className="h-4 w-4 text-orange-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-orange-700">{indiaBatches || stats?.total_batches || 0}</div>
+                                <p className="text-xs text-orange-600/80">
+                                    Battery Aadhaar
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* EU Batches */}
+                        <Card className="border-blue-200 bg-blue-50/30">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                                    <span>🇪🇺</span> EU Export
+                                </CardTitle>
+                                <Leaf className="h-4 w-4 text-blue-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-blue-700">{euBatches || 0}</div>
+                                <p className="text-xs text-blue-600/80">
+                                    Carbon Compliant
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* Total Batches */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Active Batches</CardTitle>
+                                <CardTitle className="text-sm font-medium">All Batches</CardTitle>
                                 <Box className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{stats?.total_batches || 0}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    All batches ready
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        {/* Carbon Compliance */}
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Carbon Data</CardTitle>
-                                <Leaf className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className={`text-2xl font-bold ${carbonColor}`}>
-                                    {stats?.carbon_compliance_percentage?.toFixed(0) || 0}%
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {stats && stats.carbon_compliance_percentage >= 90
-                                        ? "Fully compliant"
-                                        : "Add carbon data to batches"}
+                                    Active production
                                 </p>
                             </CardContent>
                         </Card>
@@ -210,12 +296,21 @@ export default function DashboardPage() {
                                             key={batch.id}
                                             className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50 hover:bg-slate-100 transition-colors"
                                         >
+                                            {/* Market Flag */}
+                                            <div className="w-8 shrink-0">
+                                                {getMarketBadge(batch.market_region)}
+                                            </div>
+
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-medium truncate">{batch.name}</p>
                                                     {batch.status === "READY" ? (
                                                         <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100">
                                                             Ready
+                                                        </Badge>
+                                                    ) : batch.status === "PENDING" ? (
+                                                        <Badge variant="secondary" className="animate-pulse bg-blue-100 text-blue-700">
+                                                            Processing...
                                                         </Badge>
                                                     ) : (
                                                         <Badge variant="secondary">
@@ -224,7 +319,7 @@ export default function DashboardPage() {
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                                    <span>{batch.total_units} units</span>
+                                                    <span className="font-medium">{batch.total_units} units</span>
                                                     <span>•</span>
                                                     <span>{batch.created_at}</span>
                                                 </div>
@@ -283,6 +378,9 @@ export default function DashboardPage() {
                                 <Activity className="h-4 w-4 text-green-500 animate-pulse" />
                                 Live Activity
                             </CardTitle>
+                            <Badge variant="outline" className="text-xs">
+                                Real-time
+                            </Badge>
                         </CardHeader>
                         <CardContent>
                             {scanFeed.length === 0 ? (
@@ -298,25 +396,25 @@ export default function DashboardPage() {
                                             key={index}
                                             className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors"
                                         >
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                                <MapPin className="h-4 w-4 text-blue-600" />
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${scan.country === "India" ? "bg-orange-100" : "bg-blue-100"
+                                                }`}>
+                                                <MapPin className={`h-4 w-4 ${scan.country === "India" ? "text-orange-600" : "text-blue-600"
+                                                    }`} />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-sm">
-                                                    {scan.city}, {scan.country}
+                                                    📍 {scan.city}, {scan.country}
                                                 </p>
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                     <Smartphone className="h-3 w-3" />
                                                     <span>{scan.device_type}</span>
-                                                    <span>•</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                                                     <Clock className="h-3 w-3" />
                                                     <span>
                                                         {formatDistanceToNow(new Date(scan.scanned_at), { addSuffix: true })}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                    {scan.batch_name}
-                                                </p>
                                             </div>
                                         </div>
                                     ))}
