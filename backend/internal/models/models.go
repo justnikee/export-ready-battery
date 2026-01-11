@@ -13,6 +13,22 @@ type Tenant struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+// Template represents a reusable batch specification template
+type Template struct {
+	ID        uuid.UUID `json:"id"`
+	TenantID  uuid.UUID `json:"tenant_id"`
+	Name      string    `json:"name"`
+	Specs     BatchSpec `json:"specs"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// CreateTemplateRequest is the request body for creating a template
+type CreateTemplateRequest struct {
+	TenantID uuid.UUID `json:"tenant_id"`
+	Name     string    `json:"name"`
+	Specs    BatchSpec `json:"specs"`
+}
+
 // Batch represents a production batch uploaded by a tenant
 type Batch struct {
 	ID        uuid.UUID `json:"id"`

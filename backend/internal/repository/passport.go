@@ -166,3 +166,41 @@ func (r *Repository) CountPassportsByBatch(ctx context.Context, batchID uuid.UUI
 	}
 	return count, nil
 }
+
+// DuplicateInfo represents info about an existing serial number
+type DuplicateInfo struct {
+	SerialNumber string `json:"serial_number"`
+	BatchID      string `json:"existing_batch_id"`
+	BatchName    string `json:"existing_batch"`
+}
+
+// FindDuplicateSerials checks if any of the provided serial numbers already exist
+func (r *Repository) FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error) {
+	if len(serials) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT p.serial_number, b.id, b.batch_name
+		FROM public.passports p
+		JOIN public.batches b ON p.batch_id = b.id
+		WHERE p.serial_number = ANY($1)
+	`
+
+	rows, err := r.db.Pool.Query(ctx, query, serials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find duplicates: %w", err)
+	}
+	defer rows.Close()
+
+	var duplicates []DuplicateInfo
+	for rows.Next() {
+		var dup DuplicateInfo
+		if err := rows.Scan(&dup.SerialNumber, &dup.BatchID, &dup.BatchName); err != nil {
+			return nil, fmt.Errorf("failed to scan duplicate: %w", err)
+		}
+		duplicates = append(duplicates, dup)
+	}
+
+	return duplicates, nil
+}
