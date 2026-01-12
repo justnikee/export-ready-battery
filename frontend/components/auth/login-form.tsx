@@ -43,7 +43,7 @@ export function LoginForm() {
     }
 
     return (
-        <Card className="w-[350px]">
+        <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-zinc-100">
             <CardHeader>
                 <CardTitle>Login</CardTitle>
                 <CardDescription>Enter your credentials to access your dashboard.</CardDescription>

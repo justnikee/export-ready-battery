@@ -9,7 +9,7 @@ import { CTAFooter } from "@/components/landing/CTAFooter"
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-white font-sans">
+    <div className="flex flex-col min-h-screen bg-black font-sans">
       <PublicHeader />
       <HeroSection />
       <TrustBar />

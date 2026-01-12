@@ -107,11 +107,11 @@ export default function BatchesPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Batches</h1>
-                    <p className="text-muted-foreground">Manage your production batches</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-white">Batches</h1>
+                    <p className="text-zinc-500">Manage your production batches</p>
                 </div>
                 <CreateBatchDialog onBatchCreated={fetchBatches} />
             </div>
@@ -148,7 +148,7 @@ export default function BatchesPage() {
             {/* Batches Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredBatches.length === 0 ? (
-                    <div className="col-span-full py-10 text-center text-muted-foreground">
+                    <div className="col-span-full py-10 text-center text-zinc-500">
                         {filter === "ALL"
                             ? "No batches found. Create your first batch to get started."
                             : `No ${filter === "INDIA" ? "India" : "EU"} batches found.`
@@ -158,16 +158,16 @@ export default function BatchesPage() {
                     filteredBatches.map((batch) => (
                         <Card
                             key={batch.id}
-                            className={`hover:shadow-md transition-all cursor-pointer ${batch.market_region === "INDIA"
-                                    ? "border-l-4 border-l-orange-400"
-                                    : batch.market_region === "EU"
-                                        ? "border-l-4 border-l-blue-400"
-                                        : "border-l-4 border-l-green-400"
+                            className={`hover:shadow-md transition-all cursor-pointer bg-zinc-900 border-zinc-800 ${batch.market_region === "INDIA"
+                                ? "border-l-4 border-l-orange-400"
+                                : batch.market_region === "EU"
+                                    ? "border-l-4 border-l-blue-400"
+                                    : "border-l-4 border-l-green-400"
                                 }`}
                         >
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                 <div className="space-y-1">
-                                    <CardTitle className="text-base font-semibold">
+                                    <CardTitle className="text-base font-semibold text-zinc-100">
                                         {batch.batch_name}
                                     </CardTitle>
                                     {getMarketBadge(batch.market_region)}
@@ -176,7 +176,7 @@ export default function BatchesPage() {
                             </CardHeader>
                             <CardContent>
                                 {/* Batch Info */}
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                                <div className="flex items-center gap-4 text-sm text-zinc-400 mt-2">
                                     <div className="flex items-center gap-1">
                                         <Battery className="h-4 w-4" />
                                         <span className="font-medium">{batch.total_passports || 0}</span> units
@@ -215,7 +215,7 @@ export default function BatchesPage() {
 
                                 <div className="mt-4 flex justify-end">
                                     <Link href={`/batches/${batch.id}`}>
-                                        <Button variant="outline" size="sm">
+                                        <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
                                             View Details
                                             <ArrowRight className="ml-2 h-4 w-4" />
                                         </Button>

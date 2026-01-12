@@ -17,9 +17,17 @@ export default function DashboardLayout({
         if (!loading) {
             if (!user) {
                 router.push("/login")
-            } else if (!user.address || !user.support_email) {
-                // Redirect to onboarding if profile is incomplete
-                router.push("/onboarding")
+            } else {
+                // Check if user has already completed onboarding
+                const onboardingCompleted = localStorage.getItem('onboarding_completed')
+                const profileIncomplete = !user.address || !user.support_email
+
+                // Only redirect to onboarding if:
+                // 1. Profile is incomplete AND
+                // 2. User hasn't already completed onboarding
+                if (profileIncomplete && !onboardingCompleted) {
+                    router.push("/onboarding")
+                }
             }
         }
     }, [user, loading, router])

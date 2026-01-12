@@ -229,7 +229,9 @@ export default function DashboardPage() {
                         title="Total Passports"
                         value={stats?.total_passports?.toLocaleString() || 0}
                         subtext={`+${stats?.passports_this_week || 0} this week`}
-                        trend="+26.7%"
+                        trend={stats?.passports_this_week && stats?.total_passports
+                            ? `+${((stats.passports_this_week / Math.max(stats.total_passports - stats.passports_this_week, 1)) * 100).toFixed(1)}%`
+                            : undefined}
                         isPositive={true}
                     />
                     <StatsCard

@@ -3,9 +3,9 @@
 import Link from "next/link"
 import { Check, X } from "lucide-react"
 import { clsx } from "clsx"
+import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface PricingCardProps {
     planName: string
@@ -37,37 +37,72 @@ export function PricingCard({
         : price
 
     return (
-        <Card className={clsx("shadow-sm hover:shadow-md transition-shadow relative bg-white", recommended ? "border-blue-200 shadow-lg md:-translate-y-4" : "border-slate-200")}>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className={clsx(
+                "relative rounded-2xl border p-1 transition-all duration-300",
+                recommended
+                    ? "bg-gradient-to-b from-purple-500/20 to-transparent border-purple-500/30 md:-translate-y-4"
+                    : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
+            )}
+        >
             {recommended && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1">Most Popular</Badge>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1 shadow-lg shadow-purple-500/25">
+                        Most Popular
+                    </Badge>
                 </div>
             )}
-            <CardHeader>
-                <CardTitle className={clsx("text-xl", recommended ? "text-blue-700" : "text-slate-700")}>{planName}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="text-4xl font-bold text-slate-900">
-                    ₹{displayPrice.toLocaleString('en-IN')} <span className="text-lg text-slate-500 font-normal">/mo</span>
+
+            <div className="bg-zinc-900 rounded-xl p-6 h-full">
+                <div className="mb-6">
+                    <h3 className={clsx(
+                        "text-xl font-semibold mb-1",
+                        recommended ? "text-purple-400" : "text-white"
+                    )}>
+                        {planName}
+                    </h3>
+                    <p className="text-sm text-zinc-500">{description}</p>
                 </div>
-                {billingPeriod === "yearly" && price > 0 && (
-                    <p className="text-xs text-emerald-600 font-medium -mt-4">
-                        Billed ₹{(displayPrice * 12).toLocaleString('en-IN')} yearly (Save 20%)
-                    </p>
-                )}
-                <div className="space-y-3">
+
+                <div className="mb-6">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold text-white">
+                            {price === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`}
+                        </span>
+                        {price > 0 && <span className="text-zinc-500">/mo</span>}
+                    </div>
+                    {billingPeriod === "yearly" && price > 0 && (
+                        <p className="text-xs text-emerald-400 font-medium mt-1">
+                            Billed ₹{(displayPrice * 12).toLocaleString('en-IN')} yearly (Save 20%)
+                        </p>
+                    )}
+                </div>
+
+                <div className="space-y-3 mb-8">
                     {features.map((feature, i) => (
                         <FeatureItem key={i} {...feature} />
                     ))}
                 </div>
-            </CardContent>
-            <CardFooter>
-                <Button asChild className={clsx("w-full", recommended && "bg-blue-600 hover:bg-blue-700 text-white h-11")} variant={ctaVariant}>
+
+                <Button
+                    asChild
+                    className={clsx(
+                        "w-full h-11 font-semibold rounded-lg",
+                        recommended
+                            ? "bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/25"
+                            : ctaVariant === "default"
+                                ? "bg-white hover:bg-zinc-200 text-black"
+                                : "bg-transparent border border-zinc-700 text-white hover:bg-zinc-800"
+                    )}
+                    variant={recommended ? "default" : ctaVariant}
+                >
                     <Link href={ctaLink}>{ctaText}</Link>
                 </Button>
-            </CardFooter>
-        </Card>
+            </div>
+        </motion.div>
     )
 }
 
@@ -75,11 +110,11 @@ function FeatureItem({ text, available = true, highlight = false }: { text: stri
     return (
         <div className="flex items-start gap-3">
             {available ? (
-                <Check className={clsx("h-5 w-5 shrink-0", highlight ? "text-blue-600" : "text-emerald-500")} />
+                <Check className={clsx("h-5 w-5 shrink-0 mt-0.5", highlight ? "text-purple-400" : "text-emerald-400")} />
             ) : (
-                <X className="h-5 w-5 shrink-0 text-slate-300" />
+                <X className="h-5 w-5 shrink-0 mt-0.5 text-zinc-600" />
             )}
-            <span className={clsx("text-sm", available ? "text-slate-700 font-medium" : "text-slate-400 line-through")}>
+            <span className={clsx("text-sm", available ? "text-zinc-300" : "text-zinc-600 line-through")}>
                 {text}
             </span>
         </div>
