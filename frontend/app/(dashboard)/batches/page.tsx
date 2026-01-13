@@ -57,42 +57,42 @@ export default function BatchesPage() {
     const indiaBatchCount = batches.filter(b => b.market_region === "INDIA").length
     const euBatchCount = batches.filter(b => b.market_region === "EU").length
 
-    // Helper to get market badge
+    // Helper to get market badge - DARK THEME OPTIMIZED
     const getMarketBadge = (region?: MarketRegion) => {
         switch (region) {
             case "INDIA":
                 return (
-                    <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-orange-200">
+                    <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30">
                         🇮🇳 India
                     </Badge>
                 )
             case "EU":
                 return (
-                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">
+                    <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30">
                         🇪🇺 EU Export
                     </Badge>
                 )
             default:
                 return (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
+                    <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30">
                         <Globe className="h-3 w-3 mr-1" /> Global
                     </Badge>
                 )
         }
     }
 
-    // Helper to get status badge
+    // Helper to get status badge - DARK THEME OPTIMIZED
     const getStatusBadge = (batch: Batch) => {
         const hasPassports = batch.total_passports && batch.total_passports > 0
         if (hasPassports) {
             return (
-                <Badge className="bg-green-500 text-white hover:bg-green-500">
+                <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">
                     Ready
                 </Badge>
             )
         }
         return (
-            <Badge variant="secondary" className="animate-pulse">
+            <Badge className="bg-zinc-700 text-zinc-300 hover:bg-zinc-600 animate-pulse">
                 Processing...
             </Badge>
         )
@@ -101,7 +101,7 @@ export default function BatchesPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
             </div>
         )
     }
@@ -111,7 +111,7 @@ export default function BatchesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white">Batches</h1>
-                    <p className="text-zinc-500">Manage your production batches</p>
+                    <p className="text-zinc-400">Manage your production batches</p>
                 </div>
                 <CreateBatchDialog onBatchCreated={fetchBatches} />
             </div>
@@ -122,7 +122,7 @@ export default function BatchesPage() {
                     variant={filter === "ALL" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("ALL")}
-                    className="rounded-full"
+                    className={`rounded-full ${filter === "ALL" ? "" : "border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"}`}
                 >
                     <Box className="h-4 w-4 mr-1.5" />
                     All ({batches.length})
@@ -131,7 +131,7 @@ export default function BatchesPage() {
                     variant={filter === "INDIA" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("INDIA")}
-                    className={`rounded-full ${filter === "INDIA" ? "bg-orange-500 hover:bg-orange-600" : "hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"}`}
+                    className={`rounded-full ${filter === "INDIA" ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-zinc-700 text-zinc-300 hover:bg-orange-500/20 hover:text-orange-400 hover:border-orange-500/50"}`}
                 >
                     🇮🇳 India ({indiaBatchCount})
                 </Button>
@@ -139,7 +139,7 @@ export default function BatchesPage() {
                     variant={filter === "EU" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setFilter("EU")}
-                    className={`rounded-full ${filter === "EU" ? "bg-blue-500 hover:bg-blue-600" : "hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"}`}
+                    className={`rounded-full ${filter === "EU" ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-zinc-700 text-zinc-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"}`}
                 >
                     🇪🇺 EU Export ({euBatchCount})
                 </Button>
@@ -158,16 +158,16 @@ export default function BatchesPage() {
                     filteredBatches.map((batch) => (
                         <Card
                             key={batch.id}
-                            className={`hover:shadow-md transition-all cursor-pointer bg-zinc-900 border-zinc-800 ${batch.market_region === "INDIA"
-                                ? "border-l-4 border-l-orange-400"
+                            className={`hover:shadow-lg hover:shadow-black/20 transition-all cursor-pointer bg-zinc-900/80 border-zinc-800 ${batch.market_region === "INDIA"
+                                ? "border-l-4 border-l-orange-500"
                                 : batch.market_region === "EU"
-                                    ? "border-l-4 border-l-blue-400"
-                                    : "border-l-4 border-l-green-400"
+                                    ? "border-l-4 border-l-blue-500"
+                                    : "border-l-4 border-l-emerald-500"
                                 }`}
                         >
                             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-base font-semibold text-zinc-100">
+                                <div className="space-y-2">
+                                    <CardTitle className="text-lg font-semibold text-white">
                                         {batch.batch_name}
                                     </CardTitle>
                                     {getMarketBadge(batch.market_region)}
@@ -179,33 +179,33 @@ export default function BatchesPage() {
                                 <div className="flex items-center gap-4 text-sm text-zinc-400 mt-2">
                                     <div className="flex items-center gap-1">
                                         <Battery className="h-4 w-4" />
-                                        <span className="font-medium">{batch.total_passports || 0}</span> units
+                                        <span className="font-medium text-zinc-300">{batch.total_passports || 0}</span> units
                                     </div>
-                                    <span>•</span>
+                                    <span className="text-zinc-600">•</span>
                                     <span>{format(new Date(batch.created_at), 'MMM d, yyyy')}</span>
                                 </div>
 
-                                {/* Specs Preview */}
+                                {/* Specs Preview - DARK THEME */}
                                 {batch.specs && (
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         {batch.specs.chemistry && (
-                                            <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">
+                                            <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-1 rounded border border-zinc-700">
                                                 {batch.specs.chemistry}
                                             </span>
                                         )}
                                         {batch.specs.capacity && (
-                                            <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">
+                                            <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-1 rounded border border-zinc-700">
                                                 {batch.specs.capacity}
                                             </span>
                                         )}
                                         {batch.market_region === "EU" && batch.specs.carbon_footprint && (
-                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded flex items-center gap-1 border border-emerald-500/30">
                                                 <Leaf className="h-3 w-3" />
                                                 {batch.specs.carbon_footprint}
                                             </span>
                                         )}
                                         {batch.market_region === "INDIA" && batch.pli_compliant && (
-                                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded flex items-center gap-1">
+                                            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded flex items-center gap-1 border border-orange-500/30">
                                                 <Flag className="h-3 w-3" />
                                                 PLI Ready
                                             </span>
@@ -215,7 +215,7 @@ export default function BatchesPage() {
 
                                 <div className="mt-4 flex justify-end">
                                     <Link href={`/batches/${batch.id}`}>
-                                        <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                                        <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
                                             View Details
                                             <ArrowRight className="ml-2 h-4 w-4" />
                                         </Button>

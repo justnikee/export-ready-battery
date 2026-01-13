@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
+import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -35,6 +36,7 @@ export default function BatchDetailsPage() {
         totalPages: 0,
         hasMore: false
     })
+    const [labelsDialogOpen, setLabelsDialogOpen] = useState(false)
 
     const fetchBatch = async () => {
         try {
@@ -138,14 +140,14 @@ export default function BatchDetailsPage() {
         }
     }
 
-    // Determine compliance status
+    // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
         const region = batch?.market_region as MarketRegion
         const specs = batch?.specs || {}
 
         if (region === "INDIA") {
             return (
-                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-300 text-sm px-3 py-1">
+                <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30 text-sm px-3 py-1">
                     🇮🇳 PLI Ready
                 </Badge>
             )
@@ -153,20 +155,20 @@ export default function BatchDetailsPage() {
             const hasCarbon = specs.carbon_footprint && specs.carbon_footprint !== ""
             if (hasCarbon) {
                 return (
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300 text-sm px-3 py-1">
+                    <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30 text-sm px-3 py-1">
                         🇪🇺 EU Compliant
                     </Badge>
                 )
             } else {
                 return (
-                    <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300 text-sm px-3 py-1">
+                    <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-sm px-3 py-1">
                         <AlertTriangle className="h-3 w-3 mr-1" /> Compliance Pending
                     </Badge>
                 )
             }
         } else {
             return (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300 text-sm px-3 py-1">
+                <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 text-sm px-3 py-1">
                     <Globe className="h-3 w-3 mr-1" /> Global
                 </Badge>
             )
@@ -175,29 +177,29 @@ export default function BatchDetailsPage() {
 
     if (loading) return (
         <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
         </div>
     )
-    if (!batch) return <div className="p-8">Batch not found</div>
+    if (!batch) return <div className="p-8 text-zinc-400">Batch not found</div>
 
     const region = batch.market_region as MarketRegion
     const isIndia = region === "INDIA"
     const isEU = region === "EU"
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto pb-10">
+        <div className="space-y-6 max-w-5xl mx-auto pb-10 px-4">
             {/* Header with Compliance Badge */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-zinc-400 hover:text-white hover:bg-zinc-800">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold tracking-tight">{batch.batch_name}</h1>
+                            <h1 className="text-2xl font-bold tracking-tight text-white">{batch.batch_name}</h1>
                             {getComplianceBadge()}
                         </div>
-                        <p className="text-muted-foreground text-sm">Created on {new Date(batch.created_at).toLocaleDateString()}</p>
+                        <p className="text-zinc-500 text-sm">Created on {new Date(batch.created_at).toLocaleDateString()}</p>
                     </div>
                 </div>
             </div>
@@ -205,87 +207,97 @@ export default function BatchDetailsPage() {
             <div className="grid gap-6 md:grid-cols-3">
                 {/* Main Info */}
                 <div className="md:col-span-2 space-y-6">
-                    {/* Common Specifications */}
-                    <Card>
+                    {/* Common Specifications - DARK THEME */}
+                    <Card className="bg-zinc-900/80 border-zinc-800">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Zap className="h-5 w-5 text-slate-600" />
+                            <CardTitle className="flex items-center gap-2 text-white">
+                                <div className="p-2 rounded-lg bg-blue-500/10">
+                                    <Battery className="h-5 w-5 text-blue-400" />
+                                </div>
                                 Core Specifications
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <dl className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Manufacturer</dt>
-                                    <dd className="font-medium">{batch.specs.manufacturer || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer</dt>
+                                    <dd className="font-semibold text-white">{batch.specs.manufacturer || 'N/A'}</dd>
                                 </div>
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Chemistry</dt>
-                                    <dd className="font-medium">{batch.specs.chemistry || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Chemistry</dt>
+                                    <dd className="font-semibold text-white">{batch.specs.chemistry || 'N/A'}</dd>
                                 </div>
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Capacity</dt>
-                                    <dd className="font-medium">{batch.specs.capacity || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Capacity</dt>
+                                    <dd className="font-semibold text-emerald-400">{batch.specs.capacity || 'N/A'}</dd>
                                 </div>
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Voltage</dt>
-                                    <dd className="font-medium">{batch.specs.voltage || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Voltage</dt>
+                                    <dd className="font-semibold text-white">{batch.specs.voltage || 'N/A'}</dd>
                                 </div>
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Weight</dt>
-                                    <dd className="font-medium">{batch.specs.weight || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Weight</dt>
+                                    <dd className="font-semibold text-white">{batch.specs.weight || 'N/A'}</dd>
                                 </div>
-                                <div>
-                                    <dt className="text-muted-foreground mb-1">Country of Origin</dt>
-                                    <dd className="font-medium">{batch.specs.country_of_origin || 'N/A'}</dd>
+                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
+                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Country of Origin</dt>
+                                    <dd className="font-semibold text-white">{batch.specs.country_of_origin || 'N/A'}</dd>
                                 </div>
                             </dl>
                         </CardContent>
                     </Card>
 
-                    {/* Market-Specific Compliance Card */}
+                    {/* Market-Specific Compliance Card - INDIA DARK THEME */}
                     {isIndia && (
-                        <Card className="border-orange-200 bg-orange-50/30">
+                        <Card className="bg-zinc-900/80 border-zinc-800 border-l-4 border-l-orange-500">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-orange-800">
-                                    <Flag className="h-5 w-5" />
+                                <CardTitle className="flex items-center gap-2 text-white">
+                                    <div className="p-2 rounded-lg bg-orange-500/10">
+                                        <Flag className="h-5 w-5 text-orange-400" />
+                                    </div>
                                     🇮🇳 India Compliance (Battery Aadhaar)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                                    <div>
-                                        <dt className="text-orange-700 mb-1">Domestic Value Add</dt>
-                                        <dd className="font-semibold text-orange-900">
-                                            {batch.domestic_value_add ? `${batch.domestic_value_add}%` : 'Not specified'}
+                                <dl className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                            <Scale className="h-3.5 w-3.5 text-orange-400" />
+                                            Domestic Value Add
+                                        </dt>
+                                        <dd className="font-bold text-2xl text-orange-400">
+                                            {batch.domestic_value_add ? `${batch.domestic_value_add}%` : 'N/A'}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-orange-700 mb-1">Cell Source</dt>
-                                        <dd className="font-semibold text-orange-900">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                            <Factory className="h-3.5 w-3.5 text-orange-400" />
+                                            Cell Source
+                                        </dt>
+                                        <dd className="font-semibold text-white">
                                             {batch.cell_source === "DOMESTIC" ? (
-                                                <span className="inline-flex items-center gap-1">
-                                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                                    Domestic
+                                                <span className="inline-flex items-center gap-2">
+                                                    <CheckCircle className="h-5 w-5 text-emerald-400" />
+                                                    <span className="text-emerald-400">Domestic</span>
                                                 </span>
                                             ) : batch.cell_source === "IMPORTED" ? (
                                                 "Imported"
                                             ) : 'Not specified'}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-orange-700 mb-1">PLI Subsidy Eligible</dt>
-                                        <dd className="font-semibold text-orange-900">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">PLI Subsidy Eligible</dt>
+                                        <dd className="font-semibold">
                                             {batch.pli_compliant ? (
-                                                <Badge className="bg-green-100 text-green-800">Yes</Badge>
+                                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Yes</Badge>
                                             ) : (
-                                                <Badge variant="secondary">No</Badge>
+                                                <Badge className="bg-zinc-700 text-zinc-400">No</Badge>
                                             )}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-orange-700 mb-1">Serial Format</dt>
-                                        <dd className="font-mono text-xs bg-orange-100 px-2 py-1 rounded text-orange-900">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Serial Format</dt>
+                                        <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 rounded-lg border border-orange-500/20 inline-block">
                                             IN-NKY-LFP-2026-XXXXX
                                         </dd>
                                     </div>
@@ -294,57 +306,68 @@ export default function BatchDetailsPage() {
                         </Card>
                     )}
 
+                    {/* Market-Specific Compliance Card - EU DARK THEME */}
                     {isEU && (
-                        <Card className="border-blue-200 bg-blue-50/30">
+                        <Card className="bg-zinc-900/80 border-zinc-800 border-l-4 border-l-blue-500">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-blue-800">
-                                    <Leaf className="h-5 w-5" />
+                                <CardTitle className="flex items-center gap-2 text-white">
+                                    <div className="p-2 rounded-lg bg-blue-500/10">
+                                        <Leaf className="h-5 w-5 text-blue-400" />
+                                    </div>
                                     🇪🇺 EU Compliance (Battery Passport)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                                    <div>
-                                        <dt className="text-blue-700 mb-1">Carbon Footprint</dt>
-                                        <dd className="font-semibold text-blue-900 flex items-center gap-2">
-                                            {batch.specs.carbon_footprint || 'Not specified'}
+                                <dl className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                            <Leaf className="h-3.5 w-3.5 text-emerald-400" />
+                                            Carbon Footprint
+                                        </dt>
+                                        <dd className="font-semibold text-white flex items-center gap-2">
+                                            <span className="text-xl text-emerald-400">{batch.specs.carbon_footprint || 'N/A'}</span>
                                             {batch.specs.carbon_footprint && (
-                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">
                                                     CO₂e Certified
                                                 </span>
                                             )}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-blue-700 mb-1">Recyclable</dt>
-                                        <dd className="font-semibold text-blue-900">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Recyclable</dt>
+                                        <dd className="font-semibold">
                                             {batch.specs.recyclable ? (
-                                                <Badge className="bg-green-100 text-green-800">♻️ Yes</Badge>
+                                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">♻️ Yes</Badge>
                                             ) : (
-                                                <Badge variant="secondary">No</Badge>
+                                                <Badge className="bg-zinc-700 text-zinc-400">No</Badge>
                                             )}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-blue-700 mb-1">Certifications</dt>
-                                        <dd className="flex gap-1 flex-wrap">
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Certifications</dt>
+                                        <dd className="flex gap-2 flex-wrap">
                                             {batch.specs.certifications?.length > 0 ? (
                                                 batch.specs.certifications.map((cert: string) => (
-                                                    <Badge key={cert} variant="outline" className="text-xs">
+                                                    <Badge key={cert} className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                                                         {cert}
                                                     </Badge>
                                                 ))
                                             ) : (
-                                                <Badge className="bg-blue-100 text-blue-700">CE</Badge>
+                                                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">CE</Badge>
                                             )}
                                         </dd>
                                     </div>
-                                    <div>
-                                        <dt className="text-blue-700 mb-1">Material Data</dt>
-                                        <dd className="font-semibold text-blue-900">
-                                            {batch.materials ? 'Available' : (
-                                                <span className="text-yellow-600 flex items-center gap-1">
-                                                    <AlertTriangle className="h-3 w-3" />
+                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                            <Atom className="h-3.5 w-3.5 text-purple-400" />
+                                            Material Data
+                                        </dt>
+                                        <dd className="font-semibold">
+                                            {batch.materials ? (
+                                                <span className="text-emerald-400">Available</span>
+                                            ) : (
+                                                <span className="text-amber-400 flex items-center gap-1.5">
+                                                    <AlertTriangle className="h-4 w-4" />
                                                     Pending
                                                 </span>
                                             )}
@@ -355,17 +378,19 @@ export default function BatchDetailsPage() {
                         </Card>
                     )}
 
-                    {/* Upload Section */}
-                    <Card>
+                    {/* Upload Section - DARK THEME */}
+                    <Card className="bg-zinc-900/80 border-zinc-800">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileSpreadsheet className="h-5 w-5" />
+                            <CardTitle className="flex items-center gap-2 text-white">
+                                <div className="p-2 rounded-lg bg-purple-500/10">
+                                    <FileSpreadsheet className="h-5 w-5 text-purple-400" />
+                                </div>
                                 Upload Data
                             </CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-zinc-500">
                                 Upload a CSV file containing passport data for this batch.
                                 {isIndia && (
-                                    <span className="block mt-1 text-orange-600 font-medium">
+                                    <span className="block mt-2 text-orange-400 font-medium">
                                         💡 Auto-generates BPAN format: IN-NKY-{batch.specs.chemistry}-2026-00001 to ...{passportCount || 'N'}
                                     </span>
                                 )}
@@ -377,65 +402,60 @@ export default function BatchDetailsPage() {
                     </Card>
                 </div>
 
-                {/* Actions Sidebar */}
+                {/* Actions Sidebar - DARK THEME */}
                 <div className="space-y-6">
-                    <Card>
+                    <Card className="bg-zinc-900/80 border-zinc-800">
                         <CardHeader>
-                            <CardTitle>Actions</CardTitle>
+                            <CardTitle className="text-white">Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <Button className="w-full" onClick={handleDownloadQR} variant="outline">
-                                <QrCode className="mr-2 h-4 w-4" />
+                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={handleDownloadQR}>
+                                <QrCode className="mr-2 h-4 w-4 text-emerald-400" />
                                 Download QR Codes (ZIP)
                             </Button>
-                            <Button className="w-full" onClick={handleDownloadLabels} variant="outline">
-                                <Printer className="mr-2 h-4 w-4" />
+                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={() => setLabelsDialogOpen(true)}>
+                                <Printer className="mr-2 h-4 w-4 text-blue-400" />
                                 Download PDF Labels
                             </Button>
-                            <Button className="w-full" onClick={handleExportCSV} variant="outline">
-                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={handleExportCSV}>
+                                <FileSpreadsheet className="mr-2 h-4 w-4 text-purple-400" />
                                 Export Serial List (CSV)
                             </Button>
                         </CardContent>
                     </Card>
 
-                    <Card className={`${isIndia ? "bg-orange-50/50 border-orange-100" :
-                        isEU ? "bg-blue-50/50 border-blue-100" :
-                            "bg-green-50/50 border-green-100"
+                    {/* Summary Card - DARK THEME */}
+                    <Card className={`bg-zinc-900/80 border-zinc-800 ${isIndia ? "border-l-4 border-l-orange-500" :
+                            isEU ? "border-l-4 border-l-blue-500" :
+                                "border-l-4 border-l-emerald-500"
                         }`}>
                         <CardHeader>
-                            <CardTitle className={`${isIndia ? "text-orange-900" :
-                                isEU ? "text-blue-900" :
-                                    "text-green-900"
-                                }`}>Summary</CardTitle>
+                            <CardTitle className="text-white">Summary</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-3xl font-bold ${isIndia ? "text-orange-700" :
-                                isEU ? "text-blue-700" :
-                                    "text-green-700"
+                            <div className={`text-4xl font-bold ${isIndia ? "text-orange-400" :
+                                    isEU ? "text-blue-400" :
+                                        "text-emerald-400"
                                 }`}>
                                 {passportCount.toLocaleString()}
                             </div>
-                            <p className={`text-xs mt-1 ${isIndia ? "text-orange-600" :
-                                isEU ? "text-blue-600" :
-                                    "text-green-600"
-                                }`}>
+                            <p className="text-sm mt-1 text-zinc-500">
                                 {isIndia ? "Battery Aadhaar IDs" : isEU ? "EU Passports" : "Total Passports"} Generated
                             </p>
                         </CardContent>
                     </Card>
 
-                    {/* Market Info Badge */}
-                    <Card>
+                    {/* Market Info Badge - DARK THEME */}
+                    <Card className="bg-zinc-900/80 border-zinc-800">
                         <CardContent className="pt-6">
                             <div className="text-center">
-                                <div className="text-4xl mb-2">
+                                <div className="text-5xl mb-3">
                                     {isIndia ? "🇮🇳" : isEU ? "🇪🇺" : "🌍"}
                                 </div>
-                                <p className="font-semibold">
+                                <p className="font-bold text-xl text-white">
                                     {isIndia ? "India Market" : isEU ? "EU Export" : "Global"}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-sm text-zinc-500 mt-1">
                                     {isIndia ? "Battery Aadhaar Compliant" : isEU ? "EU Battery Regulation" : "Multi-Market Ready"}
                                 </p>
                             </div>
@@ -447,9 +467,9 @@ export default function BatchDetailsPage() {
             {/* Passports List Table with Pagination */}
             <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold tracking-tight">Generated Passports</h2>
+                    <h2 className="text-xl font-semibold tracking-tight text-white">Generated Passports</h2>
                     {pagination.total > 0 && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-zinc-500">
                             Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
                         </p>
                     )}
@@ -465,6 +485,7 @@ export default function BatchDetailsPage() {
                             size="sm"
                             onClick={() => handlePageChange(pagination.page - 1)}
                             disabled={pagination.page <= 1}
+                            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
                         >
                             <ChevronLeft className="h-4 w-4 mr-1" />
                             Previous
@@ -488,7 +509,7 @@ export default function BatchDetailsPage() {
                                         key={pageNum}
                                         variant={pageNum === pagination.page ? "default" : "ghost"}
                                         size="sm"
-                                        className="w-8 h-8 p-0"
+                                        className={`w-8 h-8 p-0 ${pageNum === pagination.page ? "" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}
                                         onClick={() => handlePageChange(pageNum)}
                                     >
                                         {pageNum}
@@ -502,6 +523,7 @@ export default function BatchDetailsPage() {
                             size="sm"
                             onClick={() => handlePageChange(pagination.page + 1)}
                             disabled={!pagination.hasMore}
+                            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
                         >
                             Next
                             <ChevronRight className="h-4 w-4 ml-1" />
@@ -509,6 +531,14 @@ export default function BatchDetailsPage() {
                     </div>
                 )}
             </div>
+            {/* Labels Download Dialog */}
+            <DownloadLabelsDialog
+                open={labelsDialogOpen}
+                onOpenChange={setLabelsDialogOpen}
+                batchName={batch?.batch_name || ""}
+                passportCount={passportCount}
+                onDownload={handleDownloadLabels}
+            />
         </div>
     )
 }
