@@ -42,6 +42,11 @@ type Tenant struct {
 	SupportEmail string    `json:"support_email,omitempty"`
 	Website      string    `json:"website,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
+
+	// India Regulatory Compliance Fields (BWM Rules 2022 & BIS)
+	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
+	BISRNumber            string `json:"bis_r_number,omitempty"`            // BIS CRS registration (IS 16046)
+	IECCode               string `json:"iec_code,omitempty"`                // Import Export Code (for importers)
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile
@@ -51,6 +56,11 @@ type UpdateProfileRequest struct {
 	LogoURL      string `json:"logo_url"`
 	SupportEmail string `json:"support_email"`
 	Website      string `json:"website"`
+
+	// India Regulatory Fields
+	EPRRegistrationNumber string `json:"epr_registration_number"`
+	BISRNumber            string `json:"bis_r_number"`
+	IECCode               string `json:"iec_code"`
 }
 
 // ============================================================================
@@ -92,6 +102,11 @@ type Batch struct {
 	CellSource       string       `json:"cell_source,omitempty"` // IMPORTED or DOMESTIC
 	Materials        *Materials   `json:"materials,omitempty"`   // EU: Material composition
 	TotalPassports   int          `json:"total_passports"`       // Computed count of passports
+
+	// India Import/Customs Fields (Required when CellSource = IMPORTED)
+	BillOfEntryNo   string     `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
+	CountryOfOrigin string     `json:"country_of_origin,omitempty"` // Source country for imported cells
+	CustomsDate     *time.Time `json:"customs_date,omitempty"`      // Date of customs clearance
 }
 
 // Materials holds material composition percentages for EU compliance
@@ -197,6 +212,11 @@ type CreateBatchRequest struct {
 	DomesticValueAdd float64      `json:"domestic_value_add,omitempty"` // India only
 	CellSource       string       `json:"cell_source,omitempty"`        // India only
 	Materials        *Materials   `json:"materials,omitempty"`          // EU only
+
+	// India Import/Customs Fields (Required when MarketRegion=INDIA and CellSource=IMPORTED)
+	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
+	CountryOfOrigin string `json:"country_of_origin,omitempty"` // Source country
+	CustomsDate     string `json:"customs_date,omitempty"`      // Date in YYYY-MM-DD format
 }
 
 // CreateBatchResponse is the response after creating a batch
@@ -219,6 +239,10 @@ type PassportWithSpecs struct {
 	Specs        *BatchSpec   `json:"specs"`
 	MarketRegion MarketRegion `json:"market_region"` // For conditional UI rendering
 	Tenant       *Tenant      `json:"tenant"`        // Added for public profile display
+	// Added for Import/Domestic logic
+	CellSource      string `json:"cell_source,omitempty"`
+	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin string `json:"country_of_origin,omitempty"`
 }
 
 // ============================================================================

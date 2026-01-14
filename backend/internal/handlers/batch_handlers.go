@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
@@ -69,6 +70,34 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "cell_source must be IMPORTED or DOMESTIC")
 			return
 		}
+
+		// India Mode + IMPORTED: Require customs declaration fields
+		if req.CellSource == "IMPORTED" {
+			if req.BillOfEntryNo == "" || req.CountryOfOrigin == "" {
+				respondError(w, http.StatusBadRequest,
+					"Imported batches must include Bill of Entry and Country of Origin per Customs regulations")
+				return
+			}
+			// Auto-set Domestic Value Add to 0 for imports
+			req.DomesticValueAdd = 0
+		} else if req.CellSource == "DOMESTIC" {
+			// India Mode + DOMESTIC: Require value add > 0
+			if req.DomesticValueAdd <= 0 {
+				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%")
+				return
+			}
+		}
+	}
+
+	// Parse customs date if provided
+	var customsDate *time.Time
+	if req.CustomsDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.CustomsDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid customs_date format. Use YYYY-MM-DD")
+			return
+		}
+		customsDate = &parsedDate
 	}
 
 	// Create the batch
@@ -84,6 +113,9 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		DomesticValueAdd: req.DomesticValueAdd,
 		CellSource:       req.CellSource,
 		Materials:        req.Materials,
+		BillOfEntryNo:    req.BillOfEntryNo,
+		CountryOfOrigin:  req.CountryOfOrigin,
+		CustomsDate:      customsDate,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)

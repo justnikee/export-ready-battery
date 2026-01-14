@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag } from "lucide-react"
+import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator } from "lucide-react"
+import { DVACalculator } from "./dva-calculator"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -74,7 +75,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // Form states - India Specific
     const [pliCompliant, setPliCompliant] = useState(false)
     const [domesticValueAdd, setDomesticValueAdd] = useState("")
-    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")
+    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")    // Form states - India Import/Customs Declaration
+    const [billOfEntryNo, setBillOfEntryNo] = useState("")
+    const [cellCountryOfOrigin, setCellCountryOfOrigin] = useState("")
+    const [customsDate, setCustomsDate] = useState("")
 
     // Fetch templates when dialog opens
     useEffect(() => {
@@ -126,6 +130,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             return
         }
 
+        // India Import Validation
+        if (marketRegion === "INDIA" && cellSource === "IMPORTED") {
+            if (!billOfEntryNo || !cellCountryOfOrigin || !customsDate) {
+                toast.error("Imported batches require Bill of Entry, Country of Origin, and Customs Date")
+                return
+            }
+        }
+
         setIsLoading(true)
         try {
             // Build the request payload
@@ -153,6 +165,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 payload.pli_compliant = pliCompliant
                 payload.domestic_value_add = domesticValueAdd ? parseFloat(domesticValueAdd) : 0
                 payload.cell_source = cellSource || undefined
+                // Customs declaration for imported cells
+                if (cellSource === "IMPORTED") {
+                    payload.bill_of_entry_no = billOfEntryNo
+                    payload.country_of_origin = cellCountryOfOrigin
+                    payload.customs_date = customsDate
+                }
             }
 
             await api.post("/batches", payload)
@@ -200,6 +218,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setCertifications(["CE"])
         setManufacturerAddress("")
         setManufacturerEmail("")
+        // Reset customs fields
+        setBillOfEntryNo("")
+        setCellCountryOfOrigin("")
+        setCustomsDate("")
     }
 
     // Check if this is EU mode
@@ -445,7 +467,18 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="domesticValue">Domestic Value Add (%)</Label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Label htmlFor="domesticValue">Domestic Value Add (%)</Label>
+                                                <DVACalculator
+                                                    onApply={(val) => setDomesticValueAdd(val.toString())}
+                                                    trigger={
+                                                        <button type="button" className="text-[10px] text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                                                            <Calculator className="h-3 w-3" />
+                                                            Calculate
+                                                        </button>
+                                                    }
+                                                />
+                                            </div>
                                             <Input
                                                 id="domesticValue"
                                                 type="number"
@@ -483,6 +516,59 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             PLI Subsidy Eligible
                                         </Label>
                                     </div>
+
+                                    {/* Customs Declaration for Imported Cells */}
+                                    {cellSource === "IMPORTED" && (
+                                        <div className="mt-4 p-4 rounded-lg border-2 border-amber-300 bg-amber-50 space-y-4">
+                                            <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
+                                                <FileText className="h-4 w-4" />
+                                                Customs Declaration
+                                                <span className="text-xs bg-amber-200 px-2 py-0.5 rounded">Required</span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="billOfEntry">
+                                                        Bill of Entry No. <span className="text-red-500">*</span>
+                                                    </Label>
+                                                    <Input
+                                                        id="billOfEntry"
+                                                        value={billOfEntryNo}
+                                                        onChange={(e) => setBillOfEntryNo(e.target.value)}
+                                                        placeholder="e.g. 1234567"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="cellCountryOfOrigin">
+                                                        Cell Country of Origin <span className="text-red-500">*</span>
+                                                    </Label>
+                                                    <Input
+                                                        id="cellCountryOfOrigin"
+                                                        value={cellCountryOfOrigin}
+                                                        onChange={(e) => setCellCountryOfOrigin(e.target.value)}
+                                                        placeholder="e.g. China, South Korea"
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="customsDate" className="flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-amber-600" />
+                                                    Import Date <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    id="customsDate"
+                                                    type="date"
+                                                    value={customsDate}
+                                                    onChange={(e) => setCustomsDate(e.target.value)}
+                                                    required
+                                                    className="max-w-[200px]"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

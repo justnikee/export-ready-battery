@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText } from "lucide-react"
 
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth()
@@ -15,7 +15,11 @@ export default function SettingsPage() {
         address: "",
         support_email: "",
         website: "",
-        logo_url: ""
+        logo_url: "",
+        // India Regulatory Fields
+        epr_registration_number: "",
+        bis_r_number: "",
+        iec_code: ""
     })
 
     useEffect(() => {
@@ -25,7 +29,10 @@ export default function SettingsPage() {
                 address: user.address || "",
                 support_email: user.support_email || "",
                 website: user.website || "",
-                logo_url: user.logo_url || ""
+                logo_url: user.logo_url || "",
+                epr_registration_number: user.epr_registration_number || "",
+                bis_r_number: user.bis_r_number || "",
+                iec_code: user.iec_code || ""
             })
         }
     }, [user])
@@ -145,9 +152,78 @@ export default function SettingsPage() {
                         <p className="text-xs text-zinc-500">Provide a direct link to your company logo (PNG or SVG recommended).</p>
                     </div>
 
+                    {/* India Regulatory Details Section */}
+                    <div className="border-t border-zinc-800 pt-6 mt-6">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                                India Regulatory Details (BWM & BIS)
+                            </h3>
+                            <p className="text-xs text-zinc-500 mt-1">
+                                Required for compliance with Battery Waste Management Rules 2022 and BIS Safety Standards.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {/* EPR Registration Number */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none text-zinc-300">
+                                    EPR Registration Number
+                                </label>
+                                <div className="relative">
+                                    <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
+                                    <input
+                                        type="text"
+                                        className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="EPR/B/2024/XXXX"
+                                        value={formData.epr_registration_number}
+                                        onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
+                                    />
+                                </div>
+                                <p className="text-xs text-zinc-500">CPCB Extended Producer Responsibility registration.</p>
+                            </div>
+
+                            {/* BIS R-Number */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none text-zinc-300">
+                                    BIS R-Number (IS 16046)
+                                </label>
+                                <div className="relative">
+                                    <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
+                                    <input
+                                        type="text"
+                                        className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="R-12345678"
+                                        value={formData.bis_r_number}
+                                        onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
+                                    />
+                                </div>
+                                <p className="text-xs text-zinc-500">BIS CRS registration for IS 16046 safety standard.</p>
+                            </div>
+                        </div>
+
+                        {/* IEC Code */}
+                        <div className="space-y-2 mt-6">
+                            <label className="text-sm font-medium leading-none text-zinc-300">
+                                IEC Code (Import Export Code)
+                            </label>
+                            <div className="relative">
+                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-amber-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50 md:w-1/2"
+                                    placeholder="AAACT1234A"
+                                    value={formData.iec_code}
+                                    onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-zinc-500">Required for importers of battery cells.</p>
+                        </div>
+                    </div>
+
                     {/* Feedback Message */}
                     {message && (
-                        <div className={`rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                        <div className={`rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-red-900/50 text-red-400 border border-red-800'
                             }`}>
                             {message.text}
                         </div>

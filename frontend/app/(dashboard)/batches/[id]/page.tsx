@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 
@@ -281,7 +281,9 @@ export default function BatchDetailsPage() {
                                                     <span className="text-emerald-400">Domestic</span>
                                                 </span>
                                             ) : batch.cell_source === "IMPORTED" ? (
-                                                "Imported"
+                                                <span className="inline-flex items-center gap-2">
+                                                    <span className="text-amber-400">Imported</span>
+                                                </span>
                                             ) : 'Not specified'}
                                         </dd>
                                     </div>
@@ -302,6 +304,35 @@ export default function BatchDetailsPage() {
                                         </dd>
                                     </div>
                                 </dl>
+
+                                {/* Import Details Section (for IMPORTED cells) */}
+                                {batch.cell_source === "IMPORTED" && batch.bill_of_entry_no && (
+                                    <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <FileText className="h-4 w-4 text-amber-400" />
+                                            <span className="text-sm font-medium text-amber-400">Customs Declaration</span>
+                                        </div>
+                                        <dl className="grid grid-cols-3 gap-4 text-sm">
+                                            <div>
+                                                <dt className="text-zinc-500 mb-1 text-xs">Bill of Entry</dt>
+                                                <dd className="font-mono text-white">{batch.bill_of_entry_no}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-zinc-500 mb-1 text-xs">Cell Country of Origin</dt>
+                                                <dd className="font-semibold text-white">{batch.country_of_origin || 'N/A'}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-zinc-500 mb-1 text-xs">Customs Clearance Date</dt>
+                                                <dd className="font-semibold text-white">
+                                                    {batch.customs_date
+                                                        ? new Date(batch.customs_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                                                        : 'N/A'
+                                                    }
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
@@ -426,16 +457,16 @@ export default function BatchDetailsPage() {
 
                     {/* Summary Card - DARK THEME */}
                     <Card className={`bg-zinc-900/80 border-zinc-800 ${isIndia ? "border-l-4 border-l-orange-500" :
-                            isEU ? "border-l-4 border-l-blue-500" :
-                                "border-l-4 border-l-emerald-500"
+                        isEU ? "border-l-4 border-l-blue-500" :
+                            "border-l-4 border-l-emerald-500"
                         }`}>
                         <CardHeader>
                             <CardTitle className="text-white">Summary</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className={`text-4xl font-bold ${isIndia ? "text-orange-400" :
-                                    isEU ? "text-blue-400" :
-                                        "text-emerald-400"
+                                isEU ? "text-blue-400" :
+                                    "text-emerald-400"
                                 }`}>
                                 {passportCount.toLocaleString()}
                             </div>

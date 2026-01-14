@@ -88,6 +88,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	query := `
 		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
 		       b.batch_name, b.specs, b.market_region,
+		       COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, '')
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
@@ -99,6 +100,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var batchName string
 	var specsJSON []byte
 	var marketRegion models.MarketRegion
+	var cellSource, billOfEntry, countryOrigin string
 	tenant := &models.Tenant{}
 
 	// We only need public fields for the passport page
@@ -114,6 +116,9 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&batchName,
 		&specsJSON,
 		&marketRegion,
+		&cellSource,
+		&billOfEntry,
+		&countryOrigin,
 		&tenant.CompanyName,
 		&tenant.Address,
 		&tenant.LogoURL,
@@ -135,11 +140,14 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 
 	return &models.PassportWithSpecs{
-		Passport:     passport,
-		BatchName:    batchName,
-		Specs:        specs,
-		MarketRegion: marketRegion,
-		Tenant:       tenant,
+		Passport:        passport,
+		BatchName:       batchName,
+		Specs:           specs,
+		MarketRegion:    marketRegion,
+		Tenant:          tenant,
+		CellSource:      cellSource,
+		BillOfEntryNo:   billOfEntry,
+		CountryOfOrigin: countryOrigin,
 	}, nil
 }
 

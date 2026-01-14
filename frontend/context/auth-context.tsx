@@ -12,6 +12,10 @@ interface User {
     logo_url?: string;
     support_email?: string;
     website?: string;
+    // India Regulatory Compliance Fields
+    epr_registration_number?: string;
+    bis_r_number?: string;
+    iec_code?: string;
 }
 
 interface AuthContextType {

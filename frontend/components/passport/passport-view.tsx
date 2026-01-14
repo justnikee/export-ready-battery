@@ -1,6 +1,6 @@
 "use client"
 
-import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink } from "lucide-react"
+import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink, FileCheck, Truck, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
@@ -213,9 +213,17 @@ export function PassportView({ passport }: PassportViewProps) {
     const isIndia = marketRegion === "INDIA"
     const isEU = marketRegion === "EU"
 
-    const domesticValueAdd = passport.domestic_value_add || 65
+    // Fix: allow 0 to be a valid value for imported batches
+    const domesticValueAdd = passport.domestic_value_add !== undefined ? passport.domestic_value_add : 65
+
     const cellSource = passport.cell_source || "DOMESTIC"
     const materials = passport.materials || (isEU ? { cobalt: 12, lithium: 8, nickel: 15, lead: 0.1 } : null)
+
+    // India import/customs fields
+    const billOfEntryNo = passport.bill_of_entry_no || ""
+    const cellCountryOfOrigin = passport.country_of_origin || ""
+    const customsDate = passport.customs_date || ""
+    const isImported = cellSource === "IMPORTED"
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -303,10 +311,21 @@ export function PassportView({ passport }: PassportViewProps) {
                                 <MapPin className="h-5 w-5 text-emerald-400" />
                             </div>
                             <div>
-                                <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Country of Origin</div>
-                                <div className="text-white font-semibold mt-0.5">
-                                    {specs.country_of_origin ? `Made in ${specs.country_of_origin}` : "Made in India"}
-                                </div>
+                                {isImported ? (
+                                    <>
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Origin</div>
+                                        <div className="text-white font-semibold mt-0.5">
+                                            Imported from {cellCountryOfOrigin || specs.country_of_origin || "Unknown"}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Country of Origin</div>
+                                        <div className="text-white font-semibold mt-0.5">
+                                            Made in {specs.country_of_origin || "India"}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -337,13 +356,15 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <span className="text-sm font-medium text-slate-300">Domestic Value Add</span>
                                         <span className={clsx(
                                             "text-2xl font-bold",
-                                            domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400"
+                                            isImported ? "text-slate-400" : (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400")
                                         )}>
                                             {domesticValueAdd}%
                                         </span>
                                     </div>
-                                    <GlowProgress value={domesticValueAdd} color={domesticValueAdd >= 50 ? "emerald" : "orange"} />
-                                    <p className="text-xs text-slate-500 mt-2">PLI Requirement: ≥50%</p>
+                                    <GlowProgress value={isImported ? 0 : domesticValueAdd} color={isImported ? "blue" : (domesticValueAdd >= 50 ? "emerald" : "orange")} />
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        {isImported ? "Imported cells (0% DVA)" : "PLI Requirement: ≥50%"}
+                                    </p>
                                 </div>
 
                                 {/* Cell Source */}
@@ -362,16 +383,53 @@ export function PassportView({ passport }: PassportViewProps) {
                                     )}
                                 </div>
 
-                                {/* EPR */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Scale className="h-5 w-5 text-emerald-400" />
-                                    <div>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">EPR Registration</div>
-                                        <div className="font-semibold text-emerald-400 flex items-center gap-1.5 mt-0.5">
-                                            <CheckCircle className="h-4 w-4" /> Registered Producer
+                                {/* EPR with Registration Number */}
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <FileCheck className="h-5 w-5 text-emerald-400" />
+                                        <div className="flex-1">
+                                            <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">EPR Registration</div>
+                                            <div className="font-semibold text-emerald-400 flex items-center gap-1.5 mt-0.5">
+                                                <CheckCircle className="h-4 w-4" />
+                                                {tenant.epr_registration_number || "Registered Producer"}
+                                            </div>
                                         </div>
                                     </div>
+                                    {tenant.bis_r_number && (
+                                        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+                                            <BISMark />
+                                            <div>
+                                                <div className="text-xs text-slate-500">BIS R-Number (IS 16046)</div>
+                                                <div className="text-blue-400 text-sm font-mono">R-{tenant.bis_r_number}</div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Import Details for IMPORTED cells */}
+                                {isImported && billOfEntryNo && (
+                                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Truck className="h-4 w-4 text-amber-400" />
+                                            <span className="text-sm font-medium text-amber-400">Import Declaration</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <div className="text-xs text-slate-500">Imported from</div>
+                                                <div className="text-white font-medium">{cellCountryOfOrigin || "Foreign Origin"}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-500">Bill of Entry</div>
+                                                <div className="text-white font-mono text-sm">{billOfEntryNo}</div>
+                                            </div>
+                                        </div>
+                                        {customsDate && (
+                                            <div className="mt-2 text-xs text-slate-500">
+                                                Cleared: {new Date(customsDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </GlowCard>
@@ -470,6 +528,61 @@ export function PassportView({ passport }: PassportViewProps) {
                     </GlowCard>
                 )}
             </motion.div>
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                INDIA RECYCLING INSTRUCTIONS (BWM Compliance)
+            ═══════════════════════════════════════════════════════════════════ */}
+            {isIndia && (
+                <motion.div variants={itemVariants}>
+                    <GlowCard glowColor="emerald">
+                        <div className="p-5">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 rounded-lg bg-emerald-500/10">
+                                    <Recycle className="h-5 w-5 text-emerald-400" />
+                                </div>
+                                <h2 className="text-lg font-bold text-white">♻️ Recycling Instructions (BWM Rules 2022)</h2>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row items-center gap-6">
+                                {/* Crossed-out Wheeled Bin Symbol */}
+                                <div className="shrink-0">
+                                    <svg viewBox="0 0 100 120" className="h-24 w-auto text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3">
+                                        {/* Bin Body */}
+                                        <rect x="20" y="30" width="60" height="60" rx="4" />
+                                        {/* Bin Lid */}
+                                        <path d="M15 30 L85 30" strokeWidth="4" />
+                                        <rect x="35" y="22" width="30" height="8" rx="2" />
+                                        {/* Wheels */}
+                                        <circle cx="32" cy="95" r="5" fill="currentColor" />
+                                        <circle cx="68" cy="95" r="5" fill="currentColor" />
+                                        {/* Cross-out Line */}
+                                        <line x1="10" y1="110" x2="90" y2="20" strokeWidth="6" className="text-red-500" />
+                                    </svg>
+                                </div>
+
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                                        <p className="text-sm text-slate-300">
+                                            <strong className="text-white">Do not dispose in regular waste.</strong> This battery must be collected separately through authorized recyclers.
+                                        </p>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <p className="text-sm text-emerald-400">
+                                            📞 For collection, contact the manufacturer or visit <strong>eprregistration.cpcb.gov.in</strong> to locate your nearest recycler.
+                                        </p>
+                                    </div>
+                                    {tenant.support_email && (
+                                        <p className="text-xs text-slate-500">
+                                            Producer Responsibility: {tenant.company_name} • <a href={`mailto:${tenant.support_email}`} className="text-emerald-400 hover:underline">{tenant.support_email}</a>
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </GlowCard>
+                </motion.div>
+            )}
 
             {/* ═══════════════════════════════════════════════════════════════════
                 LIFECYCLE TIMELINE
@@ -579,6 +692,16 @@ export function PassportView({ passport }: PassportViewProps) {
                     <div className="flex items-center gap-3">
                         {isEU && <CEMark className="h-6 text-slate-600" />}
                         {isIndia && <BISMark />}
+                        {tenant.epr_registration_number && (
+                            <span className="text-[10px] text-slate-600 font-mono">
+                                EPR: {tenant.epr_registration_number}
+                            </span>
+                        )}
+                        {tenant.bis_r_number && (
+                            <span className="text-[10px] text-slate-600 font-mono">
+                                R-{tenant.bis_r_number}
+                            </span>
+                        )}
                     </div>
                 </div>
             </motion.div>

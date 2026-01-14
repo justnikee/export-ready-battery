@@ -54,6 +54,31 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// UPDATE BATCH METADATA IF DETECTED
+	if parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil {
+		var cellSource, billOfEntry, countryOrigin *string
+		if parseResult.DetectedCellSource != "" {
+			val := parseResult.DetectedCellSource
+			cellSource = &val
+		}
+		if parseResult.DetectedBillOfEntry != "" {
+			val := parseResult.DetectedBillOfEntry
+			billOfEntry = &val
+		}
+		if parseResult.DetectedCountryOfOrigin != "" {
+			val := parseResult.DetectedCountryOfOrigin
+			countryOrigin = &val
+		}
+
+		log.Printf("Detected metadata from CSV: Source=%v, Origin=%v, DVA=%v",
+			parseResult.DetectedCellSource, parseResult.DetectedCountryOfOrigin, parseResult.DetectedDomesticValue)
+
+		if err := h.repo.UpdateBatchMetadata(r.Context(), batchID, cellSource, billOfEntry, countryOrigin, parseResult.DetectedDomesticValue); err != nil {
+			log.Printf("Warning: Failed to update batch metadata from CSV: %v", err)
+			// Proceed with passport creation even if metadata update fails
+		}
+	}
+
 	// Check for parsing errors
 	if len(parseResult.Errors) > 0 && len(parseResult.Passports) == 0 {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{

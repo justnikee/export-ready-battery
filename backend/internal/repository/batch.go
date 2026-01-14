@@ -23,6 +23,11 @@ type CreateBatchRequest struct {
 	DomesticValueAdd float64
 	CellSource       string
 	Materials        *models.Materials
+
+	// India Import/Customs Fields
+	BillOfEntryNo   string
+	CountryOfOrigin string
+	CustomsDate     *time.Time
 }
 
 // CreateBatch creates a new batch with dual-mode support
@@ -44,6 +49,9 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		DomesticValueAdd: req.DomesticValueAdd,
 		CellSource:       req.CellSource,
 		Materials:        req.Materials,
+		BillOfEntryNo:    req.BillOfEntryNo,
+		CountryOfOrigin:  req.CountryOfOrigin,
+		CustomsDate:      req.CustomsDate,
 	}
 
 	specsJSON, err := json.Marshal(req.Specs)
@@ -72,13 +80,23 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 
 	// Use explicit ::jsonb cast and pass as string to avoid pgx []byte encoding issues
 	query := `INSERT INTO public.batches 
-		(id, tenant_id, batch_name, specs, created_at, market_region, pli_compliant, domestic_value_add, cell_source, materials) 
-		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10::jsonb)`
+		(id, tenant_id, batch_name, specs, created_at, market_region, pli_compliant, domestic_value_add, cell_source, materials,
+		 bill_of_entry_no, country_of_origin, customs_date) 
+		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13)`
 
 	// Convert materials to string if not nil
 	var materialsStr interface{}
 	if materialsParam != nil {
 		materialsStr = string(materialsParam.([]byte))
+	}
+
+	// Handle nullable import fields
+	var billOfEntry, countryOrigin interface{}
+	if req.BillOfEntryNo != "" {
+		billOfEntry = req.BillOfEntryNo
+	}
+	if req.CountryOfOrigin != "" {
+		countryOrigin = req.CountryOfOrigin
 	}
 
 	_, err = r.db.Pool.Exec(ctx, query,
@@ -92,6 +110,9 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.DomesticValueAdd,
 		cellSource,
 		materialsStr,
+		billOfEntry,
+		countryOrigin,
+		req.CustomsDate,
 	)
 	if err != nil {
 		log.Printf("DEBUG CreateBatch ERROR: %v", err)
@@ -108,13 +129,18 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	var materialsJSON []byte
 	var marketRegion string
 	var cellSource *string
+	var billOfEntry, countryOrigin *string
+	var customsDate *time.Time
 
 	query := `SELECT id, tenant_id, batch_name, specs, created_at, 
 	          COALESCE(market_region, 'GLOBAL') as market_region, 
 	          COALESCE(pli_compliant, false), 
 	          COALESCE(domestic_value_add, 0), 
 	          cell_source, 
-	          materials 
+	          materials,
+	          bill_of_entry_no,
+	          country_of_origin,
+	          customs_date
 	          FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -128,6 +154,9 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 		&batch.DomesticValueAdd,
 		&cellSource,
 		&materialsJSON,
+		&billOfEntry,
+		&countryOrigin,
+		&customsDate,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -146,12 +175,21 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 		batch.CellSource = *cellSource
 	}
 
-	if materialsJSON != nil && len(materialsJSON) > 0 {
+	if len(materialsJSON) > 0 {
 		batch.Materials = &models.Materials{}
 		if err := json.Unmarshal(materialsJSON, batch.Materials); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal materials: %w", err)
 		}
 	}
+
+	// Import fields
+	if billOfEntry != nil {
+		batch.BillOfEntryNo = *billOfEntry
+	}
+	if countryOrigin != nil {
+		batch.CountryOfOrigin = *countryOrigin
+	}
+	batch.CustomsDate = customsDate
 
 	return batch, nil
 }
@@ -164,6 +202,9 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	          COALESCE(b.domestic_value_add, 0), 
 	          b.cell_source, 
 	          b.materials,
+	          b.bill_of_entry_no,
+	          b.country_of_origin,
+	          b.customs_date,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
@@ -185,6 +226,8 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 		var materialsJSON []byte
 		var marketRegion string
 		var cellSource *string
+		var billOfEntry, countryOrigin *string
+		var customsDate *time.Time
 
 		if err := rows.Scan(
 			&batch.ID,
@@ -197,6 +240,9 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			&batch.DomesticValueAdd,
 			&cellSource,
 			&materialsJSON,
+			&billOfEntry,
+			&countryOrigin,
+			&customsDate,
 			&batch.TotalPassports,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan batch: %w", err)
@@ -214,12 +260,21 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			batch.CellSource = *cellSource
 		}
 
-		if materialsJSON != nil && len(materialsJSON) > 0 {
+		if len(materialsJSON) > 0 {
 			batch.Materials = &models.Materials{}
 			if err := json.Unmarshal(materialsJSON, batch.Materials); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal materials: %w", err)
 			}
 		}
+
+		// Import fields
+		if billOfEntry != nil {
+			batch.BillOfEntryNo = *billOfEntry
+		}
+		if countryOrigin != nil {
+			batch.CountryOfOrigin = *countryOrigin
+		}
+		batch.CustomsDate = customsDate
 
 		batches = append(batches, batch)
 	}
@@ -227,12 +282,28 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	return batches, nil
 }
 
-// DeleteBatch soft-deletes a batch
 func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE public.batches SET deleted_at = $1 WHERE id = $2`
 	_, err := r.db.Pool.Exec(ctx, query, time.Now(), id)
 	if err != nil {
 		return fmt.Errorf("failed to delete batch: %w", err)
+	}
+	return nil
+}
+
+// UpdateBatchMetadata updates the import/domestic fields of a batch
+// Used when CSV upload contains these details
+func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error {
+	query := `UPDATE public.batches SET 
+		cell_source = COALESCE($2, cell_source),
+		bill_of_entry_no = COALESCE($3, bill_of_entry_no),
+		country_of_origin = COALESCE($4, country_of_origin),
+		domestic_value_add = COALESCE($5, domestic_value_add)
+		WHERE id = $1`
+
+	_, err := r.db.Pool.Exec(ctx, query, id, cellSource, billOfEntry, countryOrigin, domesticValue)
+	if err != nil {
+		return fmt.Errorf("failed to update batch metadata: %w", err)
 	}
 	return nil
 }
