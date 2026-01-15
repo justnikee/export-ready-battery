@@ -43,6 +43,9 @@ type Tenant struct {
 	Website      string    `json:"website,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 
+	// Quota System (Monetization)
+	QuotaBalance int `json:"quota_balance"` // Batch activation slots available
+
 	// India Regulatory Compliance Fields (BWM Rules 2022 & BIS)
 	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
 	BISRNumber            string `json:"bis_r_number,omitempty"`            // BIS CRS registration (IS 16046)
@@ -94,6 +97,7 @@ type Batch struct {
 	BatchName string    `json:"batch_name"`
 	Specs     BatchSpec `json:"specs"`
 	CreatedAt time.Time `json:"created_at"`
+	Status    string    `json:"status"` // DRAFT, ACTIVE, ARCHIVED
 
 	// Dual-Mode Compliance Fields
 	MarketRegion     MarketRegion `json:"market_region"`         // INDIA, EU, or GLOBAL
@@ -189,6 +193,31 @@ const (
 	PassportEventRecycled      = "RECYCLED"
 	PassportEventEndOfLife     = "END_OF_LIFE"
 )
+
+// ============================================================================
+// BATCH STATUS (QUOTA SYSTEM)
+// ============================================================================
+
+// BatchStatus constants
+const (
+	BatchStatusDraft    = "DRAFT"    // Data entry mode, downloads disabled
+	BatchStatusActive   = "ACTIVE"   // Activated, downloads enabled
+	BatchStatusArchived = "ARCHIVED" // No longer in use
+)
+
+// ============================================================================
+// TRANSACTIONS (QUOTA LEDGER)
+// ============================================================================
+
+// Transaction represents a quota usage event
+type Transaction struct {
+	ID          uuid.UUID  `json:"id"`
+	TenantID    uuid.UUID  `json:"tenant_id"`
+	Description string     `json:"description"`
+	QuotaChange int        `json:"quota_change"` // Negative for usage, positive for top-up
+	BatchID     *uuid.UUID `json:"batch_id,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
 
 // ============================================================================
 // REQUEST/RESPONSE TYPES

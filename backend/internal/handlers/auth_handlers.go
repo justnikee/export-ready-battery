@@ -444,6 +444,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"website":                 tenant.Website,
 		"created_at":              tenant.CreatedAt,
 		"last_login":              lastLogin,
+		"quota_balance":           tenant.QuotaBalance,
 		"epr_registration_number": tenant.EPRRegistrationNumber,
 		"bis_r_number":            tenant.BISRNumber,
 		"iec_code":                tenant.IECCode,

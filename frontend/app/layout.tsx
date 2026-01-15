@@ -29,6 +29,8 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/@mona-sans/webfont@1.0.0/index.min.css"
         />
+        {/* Razorpay Checkout Script */}
+        <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
       </head>
       <body
         className={`${inter.variable} font-sans antialiased`}

@@ -11,7 +11,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, User } from "lucide-react"
+import { LogOut, Coins } from "lucide-react"
+import Link from "next/link"
 
 export function Header() {
     const { user, logout } = useAuth()
@@ -20,12 +21,26 @@ export function Header() {
         ? user.company_name.substring(0, 2).toUpperCase()
         : "U"
 
+    const quotaBalance = user?.quota_balance ?? 0
+    const isLowQuota = quotaBalance < 2
+
     return (
         <header className="flex h-14 items-center justify-between border-b bg-white px-6">
             <div className="font-medium">
                 {user?.company_name}
             </div>
             <div className="flex items-center gap-4">
+                {/* Quota Badge */}
+                <Link href="/billing">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer transition-colors ${isLowQuota
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}>
+                        <Coins className="h-4 w-4" />
+                        <span>{quotaBalance} Quota</span>
+                    </div>
+                </Link>
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="relative h-8 w-8 rounded-full">

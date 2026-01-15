@@ -12,6 +12,7 @@ interface User {
     logo_url?: string;
     support_email?: string;
     website?: string;
+    quota_balance?: number;
     // India Regulatory Compliance Fields
     epr_registration_number?: string;
     bis_r_number?: string;

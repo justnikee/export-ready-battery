@@ -253,6 +253,14 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get tenant for compliance fields (EPR, BIS, etc.)
+	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
+	if err != nil {
+		log.Printf("Failed to get tenant: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
+		return
+	}
+
 	// Get passport count first
 	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if count == 0 {
@@ -268,14 +276,8 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract serials
-	var serials []string
-	for _, p := range passports {
-		serials = append(serials, p.SerialNumber)
-	}
-
-	// Generate PDF
-	pdfBytes, err := h.pdfService.GenerateLabelSheet(batch.BatchName, serials)
+	// Generate PDF with enhanced service
+	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant)
 	if err != nil {
 		log.Printf("Failed to generate PDF labels: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate PDF labels")
@@ -286,10 +288,10 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	filename := fmt.Sprintf("%s_labels.pdf", batch.BatchName)
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", pdfBuffer.Len()))
 
 	// Write PDF to response
-	w.Write(pdfBytes)
+	w.Write(pdfBuffer.Bytes())
 }
 
 // ExportBatchCSV handles GET /api/v1/batches/{id}/export

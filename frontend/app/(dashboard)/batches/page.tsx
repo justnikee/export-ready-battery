@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { format } from "date-fns"
-import { ArrowRight, Box, Globe, Leaf, Flag, Battery } from "lucide-react"
+import { ArrowRight, Box, Globe, Leaf, Flag, Battery, Lock, Unlock } from "lucide-react"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -20,6 +20,7 @@ interface Batch {
     batch_name: string
     created_at: string
     specs: any
+    status?: string // DRAFT, ACTIVE, ARCHIVED
     market_region?: MarketRegion
     pli_compliant?: boolean
     total_passports?: number
@@ -83,17 +84,25 @@ export default function BatchesPage() {
 
     // Helper to get status badge - DARK THEME OPTIMIZED
     const getStatusBadge = (batch: Batch) => {
-        const hasPassports = batch.total_passports && batch.total_passports > 0
-        if (hasPassports) {
+        const status = batch.status || 'DRAFT'
+        if (status === 'ACTIVE') {
             return (
-                <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">
-                    Ready
+                <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30">
+                    <Unlock className="h-3 w-3 mr-1" />
+                    Active
+                </Badge>
+            )
+        } else if (status === 'ARCHIVED') {
+            return (
+                <Badge className="bg-zinc-600 text-zinc-300 hover:bg-zinc-500">
+                    Archived
                 </Badge>
             )
         }
         return (
-            <Badge className="bg-zinc-700 text-zinc-300 hover:bg-zinc-600 animate-pulse">
-                Processing...
+            <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30">
+                <Lock className="h-3 w-3 mr-1" />
+                Draft
             </Badge>
         )
     }

@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
+import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
+import { toast } from "sonner"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -25,7 +27,9 @@ interface PaginationInfo {
 export default function BatchDetailsPage() {
     const params = useParams()
     const router = useRouter()
+    const { refreshUser } = useAuth()
     const [batch, setBatch] = useState<any>(null)
+    const [activating, setActivating] = useState(false)
     const [passportCount, setPassportCount] = useState<number>(0)
     const [passports, setPassports] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -175,6 +179,54 @@ export default function BatchDetailsPage() {
         }
     }
 
+    // Batch status badge
+    const getStatusBadge = () => {
+        const status = batch?.status || 'DRAFT'
+        if (status === 'ACTIVE') {
+            return (
+                <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border-green-500/30 text-sm px-3 py-1">
+                    <Unlock className="h-3 w-3 mr-1" />
+                    Active
+                </Badge>
+            )
+        } else if (status === 'ARCHIVED') {
+            return (
+                <Badge className="bg-zinc-500/20 text-zinc-400 hover:bg-zinc-500/30 border-zinc-500/30 text-sm px-3 py-1">
+                    Archived
+                </Badge>
+            )
+        } else {
+            return (
+                <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-sm px-3 py-1">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Draft
+                </Badge>
+            )
+        }
+    }
+
+    const handleActivateBatch = async () => {
+        setActivating(true)
+        try {
+            const response = await api.post(`/batches/${params.id}/activate`)
+            toast.success('Batch activated successfully!')
+            await fetchBatch()
+            await refreshUser()
+        } catch (error: any) {
+            console.error('Failed to activate batch:', error)
+            if (error.response?.status === 402) {
+                toast.error('Insufficient quota. Please purchase more quota units.')
+                router.push('/billing')
+            } else {
+                toast.error(error.response?.data?.error || 'Failed to activate batch')
+            }
+        } finally {
+            setActivating(false)
+        }
+    }
+
+    const isDraft = batch?.status !== 'ACTIVE' && batch?.status !== 'ARCHIVED'
+
     if (loading) return (
         <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
@@ -197,12 +249,37 @@ export default function BatchDetailsPage() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-bold tracking-tight text-white">{batch.batch_name}</h1>
+                            {getStatusBadge()}
                             {getComplianceBadge()}
                         </div>
                         <p className="text-zinc-500 text-sm">Created on {new Date(batch.created_at).toLocaleDateString()}</p>
                     </div>
                 </div>
             </div>
+
+            {/* Draft Mode Banner */}
+            {isDraft && (
+                <Card className="bg-amber-500/10 border-amber-500/30">
+                    <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Lock className="h-5 w-5 text-amber-400" />
+                                <div>
+                                    <p className="font-medium text-amber-400">⚠️ Draft Mode - Downloads Locked</p>
+                                    <p className="text-sm text-amber-300/80">Activate this batch to unlock QR codes and label downloads.</p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={handleActivateBatch}
+                                disabled={activating}
+                                className="bg-amber-500 hover:bg-amber-600 text-black"
+                            >
+                                {activating ? 'Activating...' : 'Activate Batch (Uses 1 Quota)'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid gap-6 md:grid-cols-3">
                 {/* Main Info */}
@@ -440,17 +517,32 @@ export default function BatchDetailsPage() {
                             <CardTitle className="text-white">Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={handleDownloadQR}>
+                            <Button
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                onClick={handleDownloadQR}
+                                disabled={isDraft}
+                            >
                                 <QrCode className="mr-2 h-4 w-4 text-emerald-400" />
                                 Download QR Codes (ZIP)
+                                {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
                             </Button>
-                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={() => setLabelsDialogOpen(true)}>
+                            <Button
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                onClick={() => setLabelsDialogOpen(true)}
+                                disabled={isDraft}
+                            >
                                 <Printer className="mr-2 h-4 w-4 text-blue-400" />
                                 Download PDF Labels
+                                {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
                             </Button>
-                            <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700" onClick={handleExportCSV}>
+                            <Button
+                                className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                onClick={handleExportCSV}
+                                disabled={isDraft}
+                            >
                                 <FileSpreadsheet className="mr-2 h-4 w-4 text-purple-400" />
                                 Export Serial List (CSV)
+                                {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
                             </Button>
                         </CardContent>
                     </Card>

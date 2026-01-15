@@ -80,9 +80,9 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 
 	// Use explicit ::jsonb cast and pass as string to avoid pgx []byte encoding issues
 	query := `INSERT INTO public.batches 
-		(id, tenant_id, batch_name, specs, created_at, market_region, pli_compliant, domestic_value_add, cell_source, materials,
+		(id, tenant_id, batch_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source, materials,
 		 bill_of_entry_no, country_of_origin, customs_date) 
-		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13)`
+		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14)`
 
 	// Convert materials to string if not nil
 	var materialsStr interface{}
@@ -105,6 +105,7 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.BatchName,
 		string(specsJSON), // Pass as string, let PostgreSQL cast to jsonb
 		batch.CreatedAt,
+		models.BatchStatusDraft, // New batches start as DRAFT
 		string(marketRegion),
 		batch.PLICompliant,
 		batch.DomesticValueAdd,
@@ -133,6 +134,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	var customsDate *time.Time
 
 	query := `SELECT id, tenant_id, batch_name, specs, created_at, 
+	          COALESCE(status, 'DRAFT') as status,
 	          COALESCE(market_region, 'GLOBAL') as market_region, 
 	          COALESCE(pli_compliant, false), 
 	          COALESCE(domestic_value_add, 0), 
@@ -149,6 +151,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 		&batch.BatchName,
 		&specsJSON,
 		&batch.CreatedAt,
+		&batch.Status,
 		&marketRegion,
 		&batch.PLICompliant,
 		&batch.DomesticValueAdd,
@@ -197,6 +200,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 // ListBatches retrieves all batches for a tenant with dual-mode fields
 func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*models.Batch, error) {
 	query := `SELECT b.id, b.tenant_id, b.batch_name, b.specs, b.created_at, 
+	          COALESCE(b.status, 'DRAFT') as status,
 	          COALESCE(b.market_region::text, 'GLOBAL') as market_region, 
 	          COALESCE(b.pli_compliant, false), 
 	          COALESCE(b.domestic_value_add, 0), 
@@ -235,6 +239,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			&batch.BatchName,
 			&specsJSON,
 			&batch.CreatedAt,
+			&batch.Status,
 			&marketRegion,
 			&batch.PLICompliant,
 			&batch.DomesticValueAdd,
@@ -304,6 +309,16 @@ func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cell
 	_, err := r.db.Pool.Exec(ctx, query, id, cellSource, billOfEntry, countryOrigin, domesticValue)
 	if err != nil {
 		return fmt.Errorf("failed to update batch metadata: %w", err)
+	}
+	return nil
+}
+
+// SetBatchStatus updates batch status (for activation)
+func (r *Repository) SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error {
+	query := `UPDATE public.batches SET status = $2 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, batchID, status)
+	if err != nil {
+		return fmt.Errorf("failed to set batch status: %w", err)
 	}
 	return nil
 }

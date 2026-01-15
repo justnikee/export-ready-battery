@@ -47,7 +47,7 @@ func main() {
 	repo := repository.New(database)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb")
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
 	authHandler := handlers.NewAuthHandler(database, repo, authService)
 
 	// Initialize middleware
@@ -111,6 +111,19 @@ func main() {
 	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+
+	// ============================================
+	// BILLING ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/billing/balance", authMiddleware.Protect(http.HandlerFunc(h.GetBalance)))
+	mux.Handle("GET /api/v1/billing/transactions", authMiddleware.Protect(http.HandlerFunc(h.GetTransactions)))
+	mux.Handle("POST /api/v1/batches/{id}/activate", authMiddleware.Protect(http.HandlerFunc(h.ActivateBatch)))
+	mux.Handle("POST /api/v1/billing/top-up", authMiddleware.Protect(http.HandlerFunc(h.TopUpQuota)))
+
+	// Razorpay Payment Gateway
+	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
+	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
+	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
 
 	// ============================================
 	// SCAN ROUTES (Public - called from passport page)

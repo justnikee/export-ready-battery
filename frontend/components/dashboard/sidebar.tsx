@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Battery, Box, Home, Settings, LogOut } from "lucide-react"
+import { Battery, Box, Home, Settings, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
     { icon: Home, label: "Overview", href: "/dashboard" },
     { icon: Box, label: "Batches", href: "/batches" },
+    { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: Settings, label: "Settings", href: "/settings" },
 ]
 
