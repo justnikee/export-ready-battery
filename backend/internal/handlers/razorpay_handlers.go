@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/services"
 
@@ -57,7 +58,11 @@ func (h *Handler) CreateRazorpayOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
 
 	// Create Razorpay order
 	orderResp, err := h.razorpayService.CreateOrder(req.PackageID, tenantIDStr)
@@ -107,7 +112,11 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Get tenant ID
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid tenant ID")

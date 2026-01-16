@@ -18,6 +18,7 @@ export function TopNav() {
         { name: "Batches", href: "/batches" },
         { name: "Templates", href: "/templates" },
         { name: "Analytics", href: "/analytics" },
+        { name: "Billing", href: "/billing" },
         { name: "Settings", href: "/settings" },
     ]
 
