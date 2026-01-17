@@ -17,6 +17,14 @@ interface User {
     epr_registration_number?: string;
     bis_r_number?: string;
     iec_code?: string;
+    // Certificate Document Paths (Compliance Vault)
+    epr_certificate_path?: string;
+    bis_certificate_path?: string;
+    pli_certificate_path?: string;
+    // Document Verification Status (NOT_UPLOADED, PENDING, VERIFIED, REJECTED)
+    epr_status?: string;
+    bis_status?: string;
+    pli_status?: string;
 }
 
 interface AuthContextType {

@@ -448,6 +448,14 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"epr_registration_number": tenant.EPRRegistrationNumber,
 		"bis_r_number":            tenant.BISRNumber,
 		"iec_code":                tenant.IECCode,
+		// Certificate Document Paths
+		"epr_certificate_path": tenant.EPRCertificatePath,
+		"bis_certificate_path": tenant.BISCertificatePath,
+		"pli_certificate_path": tenant.PLICertificatePath,
+		// Document Verification Status
+		"epr_status": tenant.EPRStatus,
+		"bis_status": tenant.BISStatus,
+		"pli_status": tenant.PLIStatus,
 	})
 }
 

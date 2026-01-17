@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Coins, Zap, Crown, Clock, ArrowUpRight, ArrowDownLeft, CreditCard, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
+import { PricingCard } from "@/components/billing/pricing-card"
+import { LiveBalanceBanner } from "@/components/billing/live-balance-banner"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { HelpCircle, ArrowUpRight, ArrowDownRight, Receipt, Loader2 } from "lucide-react"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
+import { formatDistanceToNow } from "date-fns"
 
 // Declare Razorpay type for TypeScript
 declare global {
@@ -15,49 +18,103 @@ declare global {
     }
 }
 
+interface Package {
+    id: string
+    title: string
+    price: string
+    batchCount: number
+    pricePerBatch: string
+    features: string[]
+    description: string
+    isPopular?: boolean
+    isEnterprise?: boolean
+    quota_units?: number
+}
+
 interface Transaction {
     id: string
+    tenant_id: string
     description: string
-    quota_change: number
+    quota_change: number  // Negative for usage, positive for top-up
     batch_id?: string
     created_at: string
 }
 
-interface Package {
-    id: string
-    name: string
-    quota_units: number
-    price_paise: number
-    price_inr: number
-    description: string
-}
 
 const packages: Package[] = [
     {
         id: "starter",
-        name: "Starter License",
+        title: "Starter License",
+        price: "₹4,999",
+        batchCount: 10,
+        pricePerBatch: "₹499",
         quota_units: 10,
-        price_paise: 499900,
-        price_inr: 4999,
-        description: "10 Batch Activations",
+        description: "Perfect for pilot runs and small scale manufacturing.",
+        features: [
+            "10 Batch Activations",
+            "Standard PDF Label Generation",
+            "India Compliance (EPR/BIS)",
+            "Email Support",
+            "Basic Analytics"
+        ]
     },
     {
         id: "growth",
-        name: "Growth License",
+        title: "Growth License",
+        price: "₹19,999",
+        batchCount: 50,
+        pricePerBatch: "₹399",
         quota_units: 50,
-        price_paise: 1999900,
-        price_inr: 19999,
-        description: "50 Batch Activations",
+        isPopular: true,
+        description: "For high-volume production and export compliance.",
+        features: [
+            "Everything in Starter",
+            "50 Batch Activations",
+            "Priority Label Generation",
+            "Importer Mode (China/Korea)",
+            "WhatsApp Priority Support"
+        ]
     },
+    {
+        id: "enterprise",
+        title: "Enterprise License",
+        price: "Custom",
+        batchCount: 200,
+        pricePerBatch: "Contact Us",
+        quota_units: 200,
+        isEnterprise: true,
+        description: "Industrial scale solution for large manufacturers.",
+        features: [
+            "Everything in Growth",
+            "200+ Batch Activations",
+            "Custom Label Formats",
+            "Dedicated Account Manager",
+            "API Access & Custom Integrations"
+        ]
+    }
+
+]
+
+const faqs = [
+    {
+        question: "Do quota credits expire?",
+        answer: "No, your purchased batch activation licenses are valid forever. They never expire."
+    },
+    {
+        question: "What defines a 'batch'?",
+        answer: "A batch is defined as a single production run (up to 5,000 batteries) with unique manufacturing specifications."
+    },
+    {
+        question: "Can I top up later?",
+        answer: "Yes, you can purchase additional licenses at any time. They will be added to your existing balance immediately."
+    }
 ]
 
 export default function BillingPage() {
     const { user, refreshUser } = useAuth()
-    const [transactions, setTransactions] = useState<Transaction[]>([])
-    const [loading, setLoading] = useState(true)
     const [purchasing, setPurchasing] = useState<string | null>(null)
-
-    const quotaBalance = user?.quota_balance ?? 0
+    const [transactions, setTransactions] = useState<Transaction[]>([])
+    const [loadingTransactions, setLoadingTransactions] = useState(true)
 
     useEffect(() => {
         fetchTransactions()
@@ -70,11 +127,16 @@ export default function BillingPage() {
         } catch (error) {
             console.error("Failed to fetch transactions:", error)
         } finally {
-            setLoading(false)
+            setLoadingTransactions(false)
         }
     }
 
     const handleBuyPackage = async (pkg: Package) => {
+        if (pkg.isEnterprise) {
+            window.location.href = "mailto:sales@exportready.com?subject=Enterprise License Inquiry"
+            return
+        }
+
         setPurchasing(pkg.id)
 
         try {
@@ -106,7 +168,10 @@ export default function BillingPage() {
                         if (verifyResponse.data.success) {
                             toast.success(`Payment successful! Added ${pkg.quota_units} quota units.`)
                             await refreshUser()
-                            await fetchTransactions()
+                            // Dispatch event to update balance banner
+                            window.dispatchEvent(new Event('quota-updated'))
+                            // Refresh transactions
+                            fetchTransactions()
                         }
                     } catch (error: any) {
                         console.error("Payment verification failed:", error)
@@ -138,159 +203,119 @@ export default function BillingPage() {
         }
     }
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        })
+    const getTransactionIcon = (quotaChange: number) => {
+        if (quotaChange > 0) {
+            return <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+        }
+        return <ArrowDownRight className="h-4 w-4 text-orange-400" />
+    }
+
+    const getTransactionColor = (quotaChange: number) => {
+        if (quotaChange > 0) {
+            return 'text-emerald-400'
+        }
+        return 'text-orange-400'
     }
 
     return (
-        <div className="space-y-8 p-8">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold">Billing</h1>
-                <p className="text-muted-foreground">Manage your quota and purchase licenses</p>
-            </div>
-
-            {/* Current Balance */}
-            <Card className="border-2 border-primary/20 bg-linear-to-br from-primary/5 to-primary/10">
-                <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                        <div className={`p-4 rounded-full ${quotaBalance < 2 ? 'bg-red-100' : 'bg-green-100'}`}>
-                            <Coins className={`h-8 w-8 ${quotaBalance < 2 ? 'text-red-600' : 'text-green-600'}`} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">Current Balance</p>
-                            <p className="text-4xl font-bold">{quotaBalance} Quota</p>
-                        </div>
-                    </div>
-                    {quotaBalance < 2 && (
-                        <p className="mt-4 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                            ⚠️ Low quota! Purchase a license to continue activating batches.
+        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-12">
+                {/* Page Header */}
+                <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/50 p-8 md:p-12">
+                    <div className="absolute inset-0 bg-linear-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+                    <div className="relative z-10 max-w-2xl">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Production Capacity</h1>
+                        <p className="text-zinc-400 text-lg">
+                            Purchase licenses to activate batches and generate compliant labels.
+                            Scale your manufacturing with our flexible quota system.
                         </p>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* How It Works */}
-            <Card className="bg-zinc-900/50 border-zinc-800">
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-emerald-500" />
-                        How Licensing Works
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ul className="text-sm text-zinc-400 space-y-2">
-                        <li>✓ Create batches for <span className="text-white font-medium">FREE</span> (Draft Mode)</li>
-                        <li>✓ Activate a batch to unlock downloads (uses 1 quota)</li>
-                        <li>✓ Each quota = 1 batch activation</li>
-                        <li>✓ Payments are secured by Razorpay</li>
-                    </ul>
-                </CardContent>
-            </Card>
-
-            {/* Pricing Cards */}
-            <div>
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Purchase License
-                </h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                    {packages.map((pkg, index) => (
-                        <Card
-                            key={pkg.id}
-                            className={`relative ${index === 1 ? 'border-2 border-primary shadow-lg' : ''}`}
-                        >
-                            {index === 1 && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-                                        Best Value
-                                    </span>
-                                </div>
-                            )}
-                            <CardHeader>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/10 rounded-lg">
-                                        {index === 0 ? <Zap className="h-6 w-6 text-primary" /> : <Crown className="h-6 w-6 text-primary" />}
-                                    </div>
-                                    <div>
-                                        <CardTitle>{pkg.name}</CardTitle>
-                                        <CardDescription>{pkg.description}</CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div>
-                                        <span className="text-3xl font-bold">₹{pkg.price_inr.toLocaleString("en-IN")}</span>
-                                        <span className="text-muted-foreground ml-2">for {pkg.quota_units} batches</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        ₹{Math.round(pkg.price_inr / pkg.quota_units)} per batch activation
-                                    </p>
-                                    <Button
-                                        className="w-full"
-                                        size="lg"
-                                        variant={index === 1 ? "default" : "outline"}
-                                        onClick={() => handleBuyPackage(pkg)}
-                                        disabled={purchasing !== null}
-                                    >
-                                        {purchasing === pkg.id ? "Processing..." : "Buy Now"}
-                                    </Button>
-                                    <p className="text-xs text-center text-zinc-500">
-                                        Secured by Razorpay
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Transaction History */}
-            <div>
-                <h2 className="text-xl font-semibold mb-4">Transaction History</h2>
-                <Card>
-                    <CardContent className="pt-6">
-                        {loading ? (
-                            <p className="text-center text-muted-foreground py-8">Loading...</p>
+                {/* Live Balance */}
+                <LiveBalanceBanner />
+
+                {/* Transaction History */}
+                <Card className="bg-zinc-900 border-zinc-800">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                            <Receipt className="h-4 w-4" />
+                            Transaction History
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingTransactions ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                            </div>
                         ) : transactions.length === 0 ? (
-                            <p className="text-center text-muted-foreground py-8">No transactions yet</p>
+                            <div className="text-center py-8 text-zinc-500 text-sm">
+                                No transactions yet. Purchase a license to get started.
+                            </div>
                         ) : (
-                            <div className="space-y-4">
-                                {transactions.map((tx) => (
-                                    <div key={tx.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                            <div className="divide-y divide-zinc-800">
+                                {transactions.slice(0, 10).map((tx) => (
+                                    <div key={tx.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-full ${tx.quota_change > 0 ? 'bg-green-100' : 'bg-orange-100'}`}>
-                                                {tx.quota_change > 0 ? (
-                                                    <ArrowUpRight className="h-4 w-4 text-green-600" />
-                                                ) : (
-                                                    <ArrowDownLeft className="h-4 w-4 text-orange-600" />
-                                                )}
+                                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                                                {getTransactionIcon(tx.quota_change)}
                                             </div>
                                             <div>
-                                                <p className="font-medium">{tx.description}</p>
-                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Clock className="h-3 w-3" />
-                                                    <span>{formatDate(tx.created_at)}</span>
-                                                </div>
+                                                <p className="text-sm font-medium text-zinc-200">{tx.description}</p>
+                                                <p className="text-xs text-zinc-500">
+                                                    {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
+                                                </p>
                                             </div>
                                         </div>
-                                        <span className={`font-semibold ${tx.quota_change > 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                            {tx.quota_change > 0 ? '+' : ''}{tx.quota_change}
-                                        </span>
+                                        <div className="text-right">
+                                            <p className={`text-sm font-semibold ${getTransactionColor(tx.quota_change)}`}>
+                                                {tx.quota_change > 0 ? '+' : ''}{tx.quota_change} units
+                                            </p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </CardContent>
                 </Card>
+
+
+                {/* Pricing Grid */}
+                <div className="grid lg:grid-cols-3 gap-8">
+                    {packages.map((pkg) => (
+                        <PricingCard
+                            key={pkg.id}
+                            {...pkg}
+                            loading={purchasing === pkg.id}
+                            onAction={() => handleBuyPackage(pkg)}
+                            actionLabel={pkg.isEnterprise ? "Contact Sales" : "Buy License"}
+                        />
+                    ))}
+                </div>
+
+                {/* FAQ Section */}
+                <div className="pt-12 border-t border-zinc-900">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="text-center mb-10">
+                            <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-2">
+                                <HelpCircle className="h-6 w-6 text-zinc-500" />
+                                Frequently Asked Questions
+                            </h2>
+                        </div>
+                        <Accordion className="w-full">
+                            {faqs.map((faq, i) => (
+                                <AccordionItem key={i} value={`item-${i}`}>
+                                    <AccordionTrigger className="text-zinc-200">{faq.question}</AccordionTrigger>
+                                    <AccordionContent>
+                                        {faq.answer}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    </div>
+                </div>
             </div>
         </div>
     )
 }
+

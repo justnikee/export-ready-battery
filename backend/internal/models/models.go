@@ -50,6 +50,16 @@ type Tenant struct {
 	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
 	BISRNumber            string `json:"bis_r_number,omitempty"`            // BIS CRS registration (IS 16046)
 	IECCode               string `json:"iec_code,omitempty"`                // Import Export Code (for importers)
+
+	// Certificate Document Paths (Compliance Vault)
+	EPRCertificatePath string `json:"epr_certificate_path,omitempty"` // Path to EPR certificate PDF
+	BISCertificatePath string `json:"bis_certificate_path,omitempty"` // Path to BIS certificate PDF
+	PLICertificatePath string `json:"pli_certificate_path,omitempty"` // Path to PLI certificate PDF
+
+	// Document Verification Status (NOT_UPLOADED, PENDING, VERIFIED, REJECTED)
+	EPRStatus string `json:"epr_status,omitempty"` // EPR certificate verification status
+	BISStatus string `json:"bis_status,omitempty"` // BIS certificate verification status
+	PLIStatus string `json:"pli_status,omitempty"` // PLI certificate verification status
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile

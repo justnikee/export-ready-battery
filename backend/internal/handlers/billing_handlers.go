@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 
 	"github.com/google/uuid"
@@ -13,8 +14,13 @@ import (
 
 // GetBalance handles GET /api/v1/billing/balance
 func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
-	// Extract tenant ID from context (set by auth middleware)
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	// Extract tenant ID using helper
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
@@ -35,7 +41,12 @@ func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
 
 // GetTransactions handles GET /api/v1/billing/transactions
 func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
@@ -66,7 +77,11 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get tenant ID
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
@@ -163,7 +178,11 @@ func (h *Handler) TopUpQuota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantIDStr := r.Context().Value("tenant_id").(string)
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid tenant ID")

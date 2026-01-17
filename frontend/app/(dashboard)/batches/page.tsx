@@ -4,16 +4,47 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { CreateBatchDialog } from "@/components/batches/create-batch-dialog"
 import api from "@/lib/api"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { duplicateBatch } from "@/lib/api/batches"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { ArrowRight, Box, Globe, Leaf, Flag, Battery, Lock, Unlock } from "lucide-react"
+import {
+    MoreHorizontal,
+    Search,
+    Filter,
+    ArrowRight,
+    Download,
+    Copy,
+    Trash2,
+    Leaf,
+    Zap,
+    Globe,
+    Flag
+} from "lucide-react"
+import { toast } from "sonner"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
-type FilterType = "ALL" | "INDIA" | "EU"
+type FilterType = "ALL" | "DRAFT" | "ACTIVE"
 
 interface Batch {
     id: string
@@ -28,17 +59,24 @@ interface Batch {
 
 export default function BatchesPage() {
     const { user } = useAuth()
+    const router = useRouter()
     const [batches, setBatches] = useState<Batch[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<FilterType>("ALL")
+    const [searchQuery, setSearchQuery] = useState("")
 
     const fetchBatches = async () => {
         if (!user) return
         try {
             const response = await api.get(`/batches?tenant_id=${user.tenant_id}`)
-            setBatches(response.data.batches || [])
+            // Ensure we sort by newest first
+            const sorted = (response.data.batches || []).sort((a: Batch, b: Batch) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )
+            setBatches(sorted)
         } catch (error) {
             console.error("Failed to fetch batches:", error)
+            toast.error("Failed to load batches")
         } finally {
             setLoading(false)
         }
@@ -48,192 +86,283 @@ export default function BatchesPage() {
         fetchBatches()
     }, [user])
 
-    // Filter batches based on selected market
-    const filteredBatches = batches.filter(batch => {
-        if (filter === "ALL") return true
-        return batch.market_region === filter
-    })
-
-    // Get counts for filter pills
-    const indiaBatchCount = batches.filter(b => b.market_region === "INDIA").length
-    const euBatchCount = batches.filter(b => b.market_region === "EU").length
-
-    // Helper to get market badge - DARK THEME OPTIMIZED
-    const getMarketBadge = (region?: MarketRegion) => {
-        switch (region) {
-            case "INDIA":
-                return (
-                    <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30">
-                        🇮🇳 India
-                    </Badge>
-                )
-            case "EU":
-                return (
-                    <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30">
-                        🇪🇺 EU Export
-                    </Badge>
-                )
-            default:
-                return (
-                    <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30">
-                        <Globe className="h-3 w-3 mr-1" /> Global
-                    </Badge>
-                )
+    const handleDuplicate = async (batchId: string) => {
+        try {
+            await duplicateBatch(batchId)
+            toast.success("Batch duplicated successfully")
+            fetchBatches()
+        } catch (error) {
+            console.error("Duplicate failed:", error)
+            toast.error("Failed to duplicate batch")
         }
     }
 
-    // Helper to get status badge - DARK THEME OPTIMIZED
-    const getStatusBadge = (batch: Batch) => {
-        const status = batch.status || 'DRAFT'
+    const copyToClipboard = (text: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        navigator.clipboard.writeText(text)
+        toast.success("ID copied to clipboard")
+    }
+
+    // Filter batches based on search and status
+    const filteredBatches = batches.filter(batch => {
+        // Status Filter
+        if (filter !== "ALL") {
+            const status = batch.status || "DRAFT"
+            if (status !== filter) return false
+        }
+
+        // Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            return (
+                batch.batch_name.toLowerCase().includes(query) ||
+                batch.id.toLowerCase().includes(query)
+            )
+        }
+
+        return true
+    })
+
+    // Helper to get status dot
+    const getStatusIndicator = (status: string) => {
         if (status === 'ACTIVE') {
             return (
-                <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30">
-                    <Unlock className="h-3 w-3 mr-1" />
-                    Active
-                </Badge>
-            )
-        } else if (status === 'ARCHIVED') {
-            return (
-                <Badge className="bg-zinc-600 text-zinc-300 hover:bg-zinc-500">
-                    Archived
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/50" />
+                    <span className="text-emerald-400 font-medium">Active</span>
+                </div>
             )
         }
         return (
-            <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30">
-                <Lock className="h-3 w-3 mr-1" />
-                Draft
-            </Badge>
+            <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-zinc-500" />
+                <span className="text-zinc-500 font-medium">Draft</span>
+            </div>
         )
     }
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+            <div className="flex items-center justify-center min-h-screen text-zinc-500">
+                Loading batches...
             </div>
         )
     }
 
     return (
-        <div className="space-y-6 p-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white">Batches</h1>
-                    <p className="text-zinc-400">Manage your production batches</p>
-                </div>
-                <CreateBatchDialog onBatchCreated={fetchBatches} />
-            </div>
+        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+            <div className="max-w-[1600px] mx-auto space-y-6">
 
-            {/* Market Filter Pills */}
-            <div className="flex items-center gap-2">
-                <Button
-                    variant={filter === "ALL" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilter("ALL")}
-                    className={`rounded-full ${filter === "ALL" ? "" : "border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"}`}
-                >
-                    <Box className="h-4 w-4 mr-1.5" />
-                    All ({batches.length})
-                </Button>
-                <Button
-                    variant={filter === "INDIA" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilter("INDIA")}
-                    className={`rounded-full ${filter === "INDIA" ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-zinc-700 text-zinc-300 hover:bg-orange-500/20 hover:text-orange-400 hover:border-orange-500/50"}`}
-                >
-                    🇮🇳 India ({indiaBatchCount})
-                </Button>
-                <Button
-                    variant={filter === "EU" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilter("EU")}
-                    className={`rounded-full ${filter === "EU" ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-zinc-700 text-zinc-300 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/50"}`}
-                >
-                    🇪🇺 EU Export ({euBatchCount})
-                </Button>
-            </div>
-
-            {/* Batches Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredBatches.length === 0 ? (
-                    <div className="col-span-full py-10 text-center text-zinc-500">
-                        {filter === "ALL"
-                            ? "No batches found. Create your first batch to get started."
-                            : `No ${filter === "INDIA" ? "India" : "EU"} batches found.`
-                        }
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">Batches</h1>
+                        <p className="text-zinc-400 text-sm">Manage production runs and compliance data.</p>
                     </div>
-                ) : (
-                    filteredBatches.map((batch) => (
-                        <Card
-                            key={batch.id}
-                            className={`hover:shadow-lg hover:shadow-black/20 transition-all cursor-pointer bg-zinc-900/80 border-zinc-800 ${batch.market_region === "INDIA"
-                                ? "border-l-4 border-l-orange-500"
-                                : batch.market_region === "EU"
-                                    ? "border-l-4 border-l-blue-500"
-                                    : "border-l-4 border-l-emerald-500"
-                                }`}
-                        >
-                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                                <div className="space-y-2">
-                                    <CardTitle className="text-lg font-semibold text-white">
-                                        {batch.batch_name}
-                                    </CardTitle>
-                                    {getMarketBadge(batch.market_region)}
-                                </div>
-                                {getStatusBadge(batch)}
-                            </CardHeader>
-                            <CardContent>
-                                {/* Batch Info */}
-                                <div className="flex items-center gap-4 text-sm text-zinc-400 mt-2">
-                                    <div className="flex items-center gap-1">
-                                        <Battery className="h-4 w-4" />
-                                        <span className="font-medium text-zinc-300">{batch.total_passports || 0}</span> units
-                                    </div>
-                                    <span className="text-zinc-600">•</span>
-                                    <span>{format(new Date(batch.created_at), 'MMM d, yyyy')}</span>
-                                </div>
+                    <CreateBatchDialog onBatchCreated={fetchBatches} />
+                </div>
 
-                                {/* Specs Preview - DARK THEME */}
-                                {batch.specs && (
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        {batch.specs.chemistry && (
-                                            <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-1 rounded border border-zinc-700">
-                                                {batch.specs.chemistry}
-                                            </span>
-                                        )}
-                                        {batch.specs.capacity && (
-                                            <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-1 rounded border border-zinc-700">
-                                                {batch.specs.capacity}
-                                            </span>
-                                        )}
-                                        {batch.market_region === "EU" && batch.specs.carbon_footprint && (
-                                            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded flex items-center gap-1 border border-emerald-500/30">
-                                                <Leaf className="h-3 w-3" />
-                                                {batch.specs.carbon_footprint}
-                                            </span>
-                                        )}
-                                        {batch.market_region === "INDIA" && batch.pli_compliant && (
-                                            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded flex items-center gap-1 border border-orange-500/30">
-                                                <Flag className="h-3 w-3" />
-                                                PLI Ready
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
+                {/* Toolbar */}
+                <div className="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <Input
+                            placeholder="Search by name or ID..."
+                            className="bg-black/50 border-zinc-700 pl-9 focus:border-zinc-500 transition-colors"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
 
-                                <div className="mt-4 flex justify-end">
-                                    <Link href={`/batches/${batch.id}`}>
-                                        <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
-                                            View Details
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
+                    <div className="h-4 w-px bg-zinc-800 mx-2" />
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800">
+                                <Filter className="h-4 w-4 mr-2" />
+                                {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : "Draft"}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                            <DropdownMenuItem onClick={() => setFilter("ALL")}>All Status</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilter("DRAFT")}>Drafts</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setFilter("ACTIVE")}>Active</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                {/* Table */}
+                <div className="rounded-md border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-zinc-900 hover:bg-zinc-900">
+                            <TableRow className="border-zinc-800 hover:bg-zinc-900">
+                                <TableHead className="text-zinc-400 font-medium w-[300px]">Batch Details</TableHead>
+                                <TableHead className="text-zinc-400 font-medium">Market & Compliance</TableHead>
+                                <TableHead className="text-zinc-400 font-medium">Specs</TableHead>
+                                <TableHead className="text-zinc-400 font-medium">Volume</TableHead>
+                                <TableHead className="text-zinc-400 font-medium">Status</TableHead>
+                                <TableHead className="text-right text-zinc-400 font-medium">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredBatches.length === 0 ? (
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500 border-zinc-800">
+                                        No batches found.
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredBatches.map((batch) => (
+                                    <TableRow
+                                        key={batch.id}
+                                        className="border-zinc-800 hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                                        onClick={() => router.push(`/batches/${batch.id}`)}
+                                    >
+                                        {/* Column 1: Details */}
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-zinc-200 group-hover:text-white transition-colors text-base">
+                                                    {batch.batch_name}
+                                                </span>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs text-zinc-500 font-mono" title={batch.id}>
+                                                        {batch.id}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-4 w-4 text-zinc-600 hover:text-zinc-300 hover:bg-transparent p-0"
+                                                        onClick={(e) => copyToClipboard(batch.id, e)}
+                                                    >
+                                                        <Copy className="h-3 w-3" />
+                                                        <span className="sr-only">Copy ID</span>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Column 2: Market */}
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {batch.market_region === "INDIA" ? (
+                                                    <span className="text-xl" title="India">🇮🇳</span>
+                                                ) : batch.market_region === "EU" ? (
+                                                    <span className="text-xl" title="European Union">🇪🇺</span>
+                                                ) : (
+                                                    <Globe className="h-5 w-5 text-zinc-400" />
+                                                )}
+
+                                                {batch.pli_compliant && (
+                                                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 py-0 h-5 font-medium">
+                                                        PLI
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Column 3: Specs */}
+                                        <TableCell>
+                                            <div className="flex items-center gap-2 text-sm text-zinc-400 font-mono">
+                                                <span>{batch.specs?.chemistry || "N/A"}</span>
+                                                <span className="text-zinc-700">•</span>
+                                                <span>{batch.specs?.voltage ? `${batch.specs.voltage}V` : "N/A"}</span>
+                                                <span className="text-zinc-700">•</span>
+                                                <span>{batch.specs?.capacity || "N/A"}</span>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Column 4: Volume */}
+                                        <TableCell>
+                                            <div className="font-medium text-zinc-300">
+                                                {batch.total_passports || 0} Batteries
+                                            </div>
+                                        </TableCell>
+
+                                        {/* Column 5: Status */}
+                                        <TableCell>
+                                            {getStatusIndicator(batch.status || 'DRAFT')}
+                                        </TableCell>
+
+                                        {/* Column 6: Actions */}
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            router.push(`/batches/${batch.id}`)
+                                                        }}
+                                                        className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                    >
+                                                        <ArrowRight className="mr-2 h-4 w-4" /> View Details
+                                                    </DropdownMenuItem>
+
+                                                    {batch.status !== 'ACTIVE' && (
+                                                        <DropdownMenuItem
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation()
+                                                                try {
+                                                                    await api.post(`/batches/${batch.id}/activate`)
+                                                                    toast.success("Batch activated successfully")
+                                                                    fetchBatches()
+                                                                } catch (err: any) {
+                                                                    console.error(err)
+                                                                    toast.error(err.response?.data?.error || "Activation failed or insufficient quota")
+                                                                }
+                                                            }}
+                                                            className="cursor-pointer flex items-center text-amber-400 focus:text-amber-300 focus:bg-amber-400/10"
+                                                        >
+                                                            <Zap className="mr-2 h-4 w-4" /> Activate Batch
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    {batch.status === 'ACTIVE' && (
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+                                                                window.open(`${apiUrl}/batches/${batch.id}/labels?tenant_id=${user?.tenant_id}`, '_blank')
+                                                            }}
+                                                            className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                        >
+                                                            <Download className="mr-2 h-4 w-4" /> Download Labels
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleDuplicate(batch.id)
+                                                        }}
+                                                        className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                    >
+                                                        <Copy className="mr-2 h-4 w-4" /> Duplicate Batch
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator className="bg-zinc-800" />
+
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => e.stopPropagation()} // TODO: Implement delete
+                                                        className="text-red-400 focus:text-red-300 focus:bg-red-900/20 cursor-pointer flex items-center"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
     )

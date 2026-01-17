@@ -253,6 +253,12 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY CHECK: Batch must be ACTIVE to download labels
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be activated first. Please activate this batch using your quota to download labels.")
+		return
+	}
+
 	// Get tenant for compliance fields (EPR, BIS, etc.)
 	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
 	if err != nil {
@@ -388,6 +394,60 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 		"limit":       limit,
 		"total_pages": totalPages,
 		"has_more":    page < totalPages,
+	})
+}
+
+// DuplicateBatch handles POST /api/v1/batches/{id}/duplicate
+func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get original batch
+	originalBatch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		if err.Error() == "batch not found" {
+			respondError(w, http.StatusNotFound, "Batch not found")
+			return
+		}
+		log.Printf("Failed to get batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get batch")
+		return
+	}
+
+	// Create new batch request with copied fields
+	newBatchName := fmt.Sprintf("%s (Copy)", originalBatch.BatchName)
+
+	// Create the batch copy
+	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
+		TenantID:         originalBatch.TenantID,
+		BatchName:        newBatchName,
+		Specs:            originalBatch.Specs,
+		MarketRegion:     originalBatch.MarketRegion,
+		PLICompliant:     originalBatch.PLICompliant,
+		DomesticValueAdd: originalBatch.DomesticValueAdd,
+		CellSource:       originalBatch.CellSource,
+		Materials:        originalBatch.Materials,
+		BillOfEntryNo:    originalBatch.BillOfEntryNo,
+		CountryOfOrigin:  originalBatch.CountryOfOrigin,
+		CustomsDate:      originalBatch.CustomsDate,
+	})
+
+	if err != nil {
+		log.Printf("Failed to duplicate batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to duplicate batch")
+		return
+	}
+
+	log.Printf("Batch %s duplicated to %s", batchID, newBatch.ID)
+	respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"success":      true,
+		"new_batch_id": newBatch.ID,
+		"batch":        newBatch,
 	})
 }
 

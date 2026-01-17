@@ -9,8 +9,6 @@ import { clsx } from "clsx"
 import { Check, Sparkles } from "lucide-react"
 
 export default function PricingPage() {
-    const [billing, setBilling] = useState<"monthly" | "yearly">("monthly")
-
     return (
         <div className="min-h-screen bg-black">
             <PublicHeader />
@@ -23,53 +21,20 @@ export default function PricingPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center mb-16 space-y-6"
                     >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20">
-                            <Sparkles className="h-4 w-4 text-purple-400" />
-                            <span className="text-sm font-medium text-purple-300">Simple, transparent pricing</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
+                            <Sparkles className="h-4 w-4 text-amber-400" />
+                            <span className="text-sm font-medium text-amber-300">Simple, transparent pricing</span>
                         </div>
 
                         <h1 className="text-4xl md:text-5xl font-bold text-white">
-                            Compliance that costs less than{" "}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-                                ₹1 per battery
+                            Production Licenses for{" "}
+                            <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-orange-400">
+                                Every Scale
                             </span>
                         </h1>
-                        <p className="text-lg text-zinc-400">Choose the right plan for your production volume.</p>
-
-                        {/* Toggle */}
-                        <div className="flex justify-center items-center mt-8">
-                            <div
-                                className="relative bg-zinc-900 p-1 rounded-full flex items-center cursor-pointer border border-zinc-800"
-                                onClick={() => setBilling(billing === "monthly" ? "yearly" : "monthly")}
-                            >
-                                <motion.div
-                                    className="absolute left-1 top-1 bottom-1 w-[100px] bg-zinc-800 rounded-full"
-                                    animate={{ x: billing === "monthly" ? 0 : 100 }}
-                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                />
-                                <button className={clsx(
-                                    "relative z-10 w-[100px] py-2 text-sm font-semibold transition-colors",
-                                    billing === "monthly" ? "text-white" : "text-zinc-500"
-                                )}>
-                                    Monthly
-                                </button>
-                                <button className={clsx(
-                                    "relative z-10 w-[100px] py-2 text-sm font-semibold transition-colors",
-                                    billing === "yearly" ? "text-white" : "text-zinc-500"
-                                )}>
-                                    Yearly
-                                </button>
-                            </div>
-                            {billing === "yearly" && (
-                                <motion.span
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="ml-4 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20"
-                                >
-                                    Save 20%
-                                </motion.span>
-                            )}
-                        </div>
+                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                            Purchase batch activation quotas as detailed below. Licenses never expire and can be topped up at any time.
+                        </p>
                     </motion.div>
 
                     {/* Pricing Cards */}
@@ -79,16 +44,16 @@ export default function PricingPage() {
                         <PricingCard
                             planName="Starter"
                             description="For Pilot Testing and small batches."
-                            price={0}
-                            billingPeriod={billing}
-                            ctaText="Start for Free"
-                            ctaLink="/register"
+                            price={4999}
+                            priceSuffix="/ 10 batches"
+                            ctaText="Buy Starter License"
+                            ctaLink="/register?plan=starter"
                             features={[
-                                { text: "100 Passports / month" },
-                                { text: "India Mode Only (BPAN)" },
-                                { text: "Public Hosting (Standard Theme)" },
-                                { text: "PDF Sticker Printing", available: false },
-                                { text: "ExportReady Branding", available: false }
+                                { text: "10 Batch Activations" },
+                                { text: "Standard PDF Label Generation" },
+                                { text: "India Compliance (EPR/BIS)" },
+                                { text: "Email Support" },
+                                { text: "Basic Analytics" }
                             ]}
                         />
 
@@ -96,35 +61,36 @@ export default function PricingPage() {
                         <PricingCard
                             planName="Growth"
                             description="For Standard Production runs."
-                            price={4999}
-                            billingPeriod={billing}
+                            price={19999}
+                            priceSuffix="/ 50 batches"
                             recommended={true}
-                            ctaText="Get Started"
+                            ctaText="Buy Growth License"
                             ctaLink="/register?plan=growth"
                             ctaVariant="default"
                             features={[
-                                { text: "5,000 Passports / month", highlight: true },
-                                { text: "PDF Label Printing (A4 Sheets)", highlight: true },
-                                { text: "Custom Company Logo" },
-                                { text: "PLI Compliance Reports" },
-                                { text: "Standard Email Support" }
+                                { text: "50 Batch Activations", highlight: true },
+                                { text: "Priority Label Generation" },
+                                { text: "Importer Mode (China/Korea)" },
+                                { text: "WhatsApp Priority Support" },
+                                { text: "Everything in Starter" }
                             ]}
                         />
 
-                        {/* Exporter */}
+                        {/* Enterprise */}
                         <PricingCard
-                            planName="Exporter"
-                            description="For Global Brands & EU Exports."
-                            price={14999}
-                            billingPeriod={billing}
+                            planName="Enterprise"
+                            description="For Industrial Scale Manufacturing."
+                            price={49999}
+                            priceSuffix="/ 200 batches"
                             ctaText="Contact Sales"
                             ctaLink="/contact"
+                            ctaVariant="outline"
                             features={[
-                                { text: "25,000 Passports / month" },
-                                { text: "EU Mode Unlocked (Carbon/Materials)", highlight: true },
-                                { text: "API Access" },
-                                { text: "No 'ExportReady' Branding" },
-                                { text: "Priority Support" }
+                                { text: "200+ Batch Activations", highlight: true },
+                                { text: "Custom Label Formats" },
+                                { text: "Dedicated Account Manager" },
+                                { text: "API Access & Custom Integrations" },
+                                { text: "SLA Guarantees" }
                             ]}
                         />
 
@@ -137,13 +103,13 @@ export default function PricingPage() {
                         viewport={{ once: true }}
                         className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8"
                     >
-                        <h3 className="text-xl font-semibold text-white mb-6 text-center">All Plans Include</h3>
+                        <h3 className="text-xl font-semibold text-white mb-6 text-center">All Licenses Include</h3>
                         <div className="grid md:grid-cols-4 gap-6">
                             {[
                                 "Unlimited Users",
-                                "SSL Security",
+                                "Forever Validity",
                                 "99.9% Uptime SLA",
-                                "GDPR Compliant"
+                                "Secure Cloud Storage"
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-2 text-sm text-zinc-400">
                                     <Check className="h-4 w-4 text-emerald-400" />
@@ -156,7 +122,7 @@ export default function PricingPage() {
                     <div className="mt-12 text-center">
                         <p className="text-zinc-500">
                             Need a custom enterprise plan?{" "}
-                            <Link href="/contact" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors">
+                            <Link href="/contact" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">
                                 Contact us
                             </Link>
                             {" "}for volume discounts.

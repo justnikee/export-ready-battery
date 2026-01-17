@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button"
 interface PricingCardProps {
     planName: string
     description: string
-    price: number
-    billingPeriod: "monthly" | "yearly"
+    price: number | string // Allow string for custom pricing
+    billingPeriod?: "monthly" | "yearly"
     features: { text: string; available?: boolean; highlight?: boolean }[]
     recommended?: boolean
     ctaText: string
     ctaLink: string
     ctaVariant?: "default" | "outline"
+    priceSuffix?: string // e.g. "/batch" or nothing for one-time
 }
 
 export function PricingCard({
@@ -28,11 +29,12 @@ export function PricingCard({
     recommended,
     ctaText,
     ctaLink,
-    ctaVariant = "outline"
+    ctaVariant = "outline",
+    priceSuffix
 }: PricingCardProps) {
 
     // Calculate displayed price (20% off for yearly)
-    const displayPrice = billingPeriod === "yearly" && price > 0
+    const displayPrice = billingPeriod === "yearly" && typeof price === 'number' && price > 0
         ? Math.floor(price * 0.8)
         : price
 
@@ -44,7 +46,7 @@ export function PricingCard({
             className={clsx(
                 "relative rounded-2xl border p-1 transition-all duration-300",
                 recommended
-                    ? "bg-gradient-to-b from-purple-500/20 to-transparent border-purple-500/30 md:-translate-y-4"
+                    ? "bg-linear-to-b from-purple-500/20 to-transparent border-purple-500/30 md:-translate-y-4"
                     : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
             )}
         >
@@ -56,7 +58,7 @@ export function PricingCard({
                 </div>
             )}
 
-            <div className="bg-zinc-900 rounded-xl p-6 h-full">
+            <div className="bg-zinc-900 rounded-xl p-6 h-full flex flex-col">
                 <div className="mb-6">
                     <h3 className={clsx(
                         "text-xl font-semibold mb-1",
@@ -70,18 +72,21 @@ export function PricingCard({
                 <div className="mb-6">
                     <div className="flex items-baseline gap-1">
                         <span className="text-4xl font-bold text-white">
-                            {price === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`}
+                            {typeof displayPrice === 'number'
+                                ? (displayPrice === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`)
+                                : displayPrice}
                         </span>
-                        {price > 0 && <span className="text-zinc-500">/mo</span>}
+                        {priceSuffix && <span className="text-zinc-500">{priceSuffix}</span>}
+                        {billingPeriod && typeof price === 'number' && price > 0 && <span className="text-zinc-500">/mo</span>}
                     </div>
-                    {billingPeriod === "yearly" && price > 0 && (
+                    {billingPeriod === "yearly" && typeof price === 'number' && typeof displayPrice === 'number' && price > 0 && (
                         <p className="text-xs text-emerald-400 font-medium mt-1">
                             Billed ₹{(displayPrice * 12).toLocaleString('en-IN')} yearly (Save 20%)
                         </p>
                     )}
                 </div>
 
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-8 grow">
                     {features.map((feature, i) => (
                         <FeatureItem key={i} {...feature} />
                     ))}
@@ -90,7 +95,7 @@ export function PricingCard({
                 <Button
                     asChild
                     className={clsx(
-                        "w-full h-11 font-semibold rounded-lg",
+                        "w-full h-11 font-semibold rounded-lg mt-auto",
                         recommended
                             ? "bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/25"
                             : ctaVariant === "default"

@@ -33,7 +33,9 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	tenant := &models.Tenant{}
 	query := `SELECT id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
 	          COALESCE(quota_balance, 2),
-	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, '')
+	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
+	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
+	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED')
 	          FROM public.tenants WHERE id = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -48,6 +50,12 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 		&tenant.EPRRegistrationNumber,
 		&tenant.BISRNumber,
 		&tenant.IECCode,
+		&tenant.EPRCertificatePath,
+		&tenant.BISCertificatePath,
+		&tenant.PLICertificatePath,
+		&tenant.EPRStatus,
+		&tenant.BISStatus,
+		&tenant.PLIStatus,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -129,4 +137,52 @@ func (r *Repository) GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (i
 		return 0, fmt.Errorf("failed to get quota balance: %w", err)
 	}
 	return balance, nil
+}
+
+// UpdateCertificatePath updates a specific certificate path for a tenant and sets status to PENDING
+func (r *Repository) UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error {
+	var query string
+	switch docType {
+	case "epr":
+		query = `UPDATE public.tenants SET epr_certificate_path = $2, epr_status = 'PENDING' WHERE id = $1`
+	case "bis":
+		query = `UPDATE public.tenants SET bis_certificate_path = $2, bis_status = 'PENDING' WHERE id = $1`
+	case "pli":
+		query = `UPDATE public.tenants SET pli_certificate_path = $2, pli_status = 'PENDING' WHERE id = $1`
+	default:
+		return fmt.Errorf("invalid document type: %s", docType)
+	}
+
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, path)
+	if err != nil {
+		return fmt.Errorf("failed to update certificate path: %w", err)
+	}
+	return nil
+}
+
+// UpdateDocumentStatus updates the verification status of a document (for admin use)
+func (r *Repository) UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUID, docType string, status string) error {
+	// Validate status
+	validStatuses := map[string]bool{"NOT_UPLOADED": true, "PENDING": true, "VERIFIED": true, "REJECTED": true}
+	if !validStatuses[status] {
+		return fmt.Errorf("invalid status: %s", status)
+	}
+
+	var query string
+	switch docType {
+	case "epr":
+		query = `UPDATE public.tenants SET epr_status = $2 WHERE id = $1`
+	case "bis":
+		query = `UPDATE public.tenants SET bis_status = $2 WHERE id = $1`
+	case "pli":
+		query = `UPDATE public.tenants SET pli_status = $2 WHERE id = $1`
+	default:
+		return fmt.Errorf("invalid document type: %s", docType)
+	}
+
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, status)
+	if err != nil {
+		return fmt.Errorf("failed to update document status: %w", err)
+	}
+	return nil
 }

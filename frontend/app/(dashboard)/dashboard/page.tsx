@@ -121,32 +121,22 @@ export default function DashboardPage() {
 
             // Recent Batches (Top 5 from allBatches)
             const recent = sortedByDateDesc.slice(0, 5).map((b: any) => {
-                // Infer Status from Time
-                const createdAt = new Date(b.created_at).getTime()
-                const now = new Date().getTime()
-                const minsAgo = (now - createdAt) / (1000 * 60)
-
-                let status = 'COMPLETED'
-                let progress = 100
-
-                // If created less than 30 mins ago, assume Processing
-                if (minsAgo < 30) {
-                    status = 'PROCESSING'
-                    // varied progress based on ID/Name char codes
-                    const seed = (b.name || '').split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
-                    progress = 20 + (seed % 60) // 20-80%
-                }
-
                 return {
                     id: b.id,
                     name: b.batch_name || b.name,
                     units: b.total_passports || b.total_units || 0,
-                    status: status,
-                    progress: progress,
+                    status: b.status || 'DRAFT',
+                    specs: {
+                        chemistry: b.chemistry || b.battery_chemistry || 'Li-ion',
+                        voltage: b.voltage || b.nominal_voltage || '48',
+                        capacity: b.capacity || b.rated_capacity || ''
+                    },
+                    market_region: b.market_region || b.target_market,
                     created_at_relative: formatDistanceToNow(new Date(b.created_at), { addSuffix: true })
                 }
             })
             setRecentBatches(recent)
+
 
             // Activity Feed (Derived from Recent + Scans)
             const scans = (scansRes.data.scans || [])
@@ -218,9 +208,12 @@ export default function DashboardPage() {
             <div className="max-w-[1600px] mx-auto space-y-8">
 
                 {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-                    <p className="text-zinc-500 mt-1">Monitor your passport production and batch status</p>
+                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-blue-900/20 via-zinc-900 to-zinc-900 p-6">
+                    <div className="relative z-10">
+                        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+                        <p className="text-zinc-400 mt-1">Monitor your passport production and batch status</p>
+                    </div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
 
                 {/* Top Stats Row */}

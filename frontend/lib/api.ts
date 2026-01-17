@@ -22,11 +22,43 @@ api.interceptors.request.use(
 );
 
 // Add a response interceptor to handle 401 errors (token expired)
+// Add a response interceptor to handle 401 errors (token expired)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login if not already there
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If error is 401 and we haven't tried to refresh yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (refreshToken) {
+        try {
+          // Call refresh endpoint
+          // We use axios directly to avoid interceptors loop if this fails (though strict loop avoidance needs more care, this is a distinct call)
+          // Actually, using a separate instance or just avoiding the detailed interceptor logic is safer.
+          // But here, we just make a post call.
+          const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
+            refresh_token: refreshToken
+          });
+
+          if (response.data.token) {
+            // Update tokens
+            localStorage.setItem('token', response.data.token);
+            // Update defaults and original request
+            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+            originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
+
+            // Retry original request
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
+        }
+      }
+
+      // If refresh failed or no refresh token, logout
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {

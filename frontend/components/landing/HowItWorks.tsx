@@ -54,7 +54,7 @@ export function HowItWorks() {
                 <div className="max-w-4xl mx-auto">
                     <div className="relative">
                         {/* Connector Line */}
-                        <div className="hidden md:block absolute top-24 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
+                        {/* <div className="hidden md:block absolute top-24 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" /> */}
 
                         <div className="grid md:grid-cols-3 gap-8">
                             {steps.map((step, i) => (
@@ -67,9 +67,9 @@ export function HowItWorks() {
                                     className="text-center relative"
                                 >
                                     {/* Step number badge */}
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-800 text-zinc-400 text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center border border-zinc-700 z-10">
+                                    {/* <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-800 text-zinc-400 text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center border border-zinc-700 z-10">
                                         {i + 1}
-                                    </div>
+                                    </div> */}
 
                                     {/* Icon container */}
                                     <div className={`h-20 w-20 mx-auto ${step.bgColor} border ${step.borderColor} rounded-2xl flex items-center justify-center mb-6 relative`}>
@@ -80,11 +80,11 @@ export function HowItWorks() {
                                     <p className="text-zinc-500 text-sm leading-relaxed">{step.description}</p>
 
                                     {/* Arrow between steps */}
-                                    {i < steps.length - 1 && (
+                                    {/* {i < steps.length - 1 && (
                                         <div className="hidden md:flex absolute top-24 -right-4 transform translate-x-1/2">
                                             <ArrowRight className="h-4 w-4 text-zinc-600" />
                                         </div>
-                                    )}
+                                    )} */}
                                 </motion.div>
                             ))}
                         </div>

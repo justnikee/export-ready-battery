@@ -23,7 +23,7 @@ export function ProductionChart({ data }: ProductionChartProps) {
                 </div>
             </CardHeader>
             <CardContent className="pl-0">
-                <div className="h-[300px] w-full">
+                <div className="h-[435px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data}>
                             <defs>
@@ -34,7 +34,14 @@ export function ProductionChart({ data }: ProductionChartProps) {
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                             <XAxis dataKey="name" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                            <YAxis
+                                stroke="#52525b"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `${value}`}
+                                domain={[0, 'auto']}
+                            />
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a' }}
                                 itemStyle={{ color: '#e4e4e7' }}

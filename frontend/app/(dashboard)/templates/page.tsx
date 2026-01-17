@@ -93,101 +93,99 @@ export default function TemplatesPage() {
     }
 
     return (
-        <div className="p-6 md:p-8 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-purple-600/20">
-                            <FileText className="h-6 w-6 text-purple-400" />
+        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-purple-900/20 via-zinc-900 to-zinc-900 p-6">
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-white">Batch Templates</h1>
+                            <p className="text-zinc-400 mt-1">Save and reuse battery specifications for faster batch creation</p>
                         </div>
-                        Batch Templates
-                    </h1>
-                    <p className="text-zinc-400 mt-1">
-                        Save and reuse battery specifications for faster batch creation
-                    </p>
-                </div>
-                <Button
-                    onClick={() => setCreateDialogOpen(true)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Template
-                </Button>
-            </div>
-
-            {/* Search */}
-            {templates.length > 0 && (
-                <div className="relative mb-6 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input
-                        placeholder="Search templates..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 placeholder:text-zinc-600"
-                    />
-                </div>
-            )}
-
-            {/* Templates Grid */}
-            {filteredTemplates.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredTemplates.map((template) => (
-                        <TemplateCard
-                            key={template.id}
-                            template={template}
-                            onDelete={() => handleDeleteClick(template)}
-                            onUse={() => {
-                                // Navigate to batches with template pre-selected
-                                window.location.href = `/batches?template=${template.id}`
-                            }}
-                        />
-                    ))}
-                </div>
-            ) : templates.length === 0 ? (
-                /* Empty State */
-                <Card className="bg-zinc-900/50 border-zinc-800">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                        <div className="p-4 rounded-full bg-purple-600/10 mb-4">
-                            <Sparkles className="h-10 w-10 text-purple-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
-                            No templates yet
-                        </h3>
-                        <p className="text-zinc-400 text-center max-w-sm mb-6">
-                            Create templates to save your common battery specifications
-                            and speed up batch creation.
-                        </p>
                         <Button
                             onClick={() => setCreateDialogOpen(true)}
-                            className="bg-purple-600 hover:bg-purple-700"
+                            className="bg-purple-600 hover:bg-purple-500 text-white"
                         >
                             <Plus className="mr-2 h-4 w-4" />
-                            Create Your First Template
+                            Create Template
                         </Button>
-                    </CardContent>
-                </Card>
-            ) : (
-                /* No search results */
-                <div className="text-center py-12">
-                    <p className="text-zinc-400">No templates matching "{searchQuery}"</p>
+                    </div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
-            )}
 
-            {/* Create Template Dialog */}
-            <CreateTemplateDialog
-                open={createDialogOpen}
-                onOpenChange={setCreateDialogOpen}
-                onTemplateCreated={handleTemplateCreated}
-            />
+                {/* Search */}
+                {templates.length > 0 && (
+                    <div className="relative mb-6 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <Input
+                            placeholder="Search templates..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 placeholder:text-zinc-600"
+                        />
+                    </div>
+                )}
 
-            {/* Delete Confirmation Dialog */}
-            <DeleteTemplateDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
-                templateName={templateToDelete?.name || ""}
-                onConfirm={handleDeleteConfirm}
-            />
+                {/* Templates Grid */}
+                {filteredTemplates.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {filteredTemplates.map((template) => (
+                            <TemplateCard
+                                key={template.id}
+                                template={template}
+                                onDelete={() => handleDeleteClick(template)}
+                                onUse={() => {
+                                    // Navigate to batches with template pre-selected
+                                    window.location.href = `/batches?template=${template.id}`
+                                }}
+                            />
+                        ))}
+                    </div>
+                ) : templates.length === 0 ? (
+                    /* Empty State */
+                    <Card className="bg-zinc-900/50 border-zinc-800">
+                        <CardContent className="flex flex-col items-center justify-center py-16">
+                            <div className="p-4 rounded-full bg-purple-600/10 mb-4">
+                                <Sparkles className="h-10 w-10 text-purple-400" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                No templates yet
+                            </h3>
+                            <p className="text-zinc-400 text-center max-w-sm mb-6">
+                                Create templates to save your common battery specifications
+                                and speed up batch creation.
+                            </p>
+                            <Button
+                                onClick={() => setCreateDialogOpen(true)}
+                                className="bg-purple-600 hover:bg-purple-700"
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create Your First Template
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    /* No search results */
+                    <div className="text-center py-12">
+                        <p className="text-zinc-400">No templates matching "{searchQuery}"</p>
+                    </div>
+                )}
+
+                {/* Create Template Dialog */}
+                <CreateTemplateDialog
+                    open={createDialogOpen}
+                    onOpenChange={setCreateDialogOpen}
+                    onTemplateCreated={handleTemplateCreated}
+                />
+
+                {/* Delete Confirmation Dialog */}
+                <DeleteTemplateDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                    templateName={templateToDelete?.name || ""}
+                    onConfirm={handleDeleteConfirm}
+                />
+            </div>
         </div>
     )
 }
