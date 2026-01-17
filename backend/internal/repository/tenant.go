@@ -31,9 +31,32 @@ func (r *Repository) CreateTenant(ctx context.Context, companyName string) (*mod
 // GetTenant retrieves a tenant by ID
 func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error) {
 	tenant := &models.Tenant{}
-	query := `SELECT id, company_name, created_at FROM public.tenants WHERE id = $1`
+	query := `SELECT id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
+	          COALESCE(quota_balance, 2),
+	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
+	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
+	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED')
+	          FROM public.tenants WHERE id = $1`
 
-	err := r.db.Pool.QueryRow(ctx, query, id).Scan(&tenant.ID, &tenant.CompanyName, &tenant.CreatedAt)
+	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+		&tenant.ID,
+		&tenant.CompanyName,
+		&tenant.Address,
+		&tenant.LogoURL,
+		&tenant.SupportEmail,
+		&tenant.Website,
+		&tenant.CreatedAt,
+		&tenant.QuotaBalance,
+		&tenant.EPRRegistrationNumber,
+		&tenant.BISRNumber,
+		&tenant.IECCode,
+		&tenant.EPRCertificatePath,
+		&tenant.BISCertificatePath,
+		&tenant.PLICertificatePath,
+		&tenant.EPRStatus,
+		&tenant.BISStatus,
+		&tenant.PLIStatus,
+	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("tenant not found")
@@ -42,4 +65,124 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	}
 
 	return tenant, nil
+}
+
+// UpdateTenantProfile updates the tenant's profile information
+func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error) {
+	query := `
+		UPDATE public.tenants 
+		SET company_name = $2, address = $3, logo_url = $4, support_email = $5, website = $6,
+		    epr_registration_number = $7, bis_r_number = $8, iec_code = $9
+		WHERE id = $1 
+		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
+		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, '')`
+
+	tenant := &models.Tenant{}
+	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
+		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode).Scan(
+		&tenant.ID,
+		&tenant.CompanyName,
+		&tenant.Address,
+		&tenant.LogoURL,
+		&tenant.SupportEmail,
+		&tenant.Website,
+		&tenant.CreatedAt,
+		&tenant.EPRRegistrationNumber,
+		&tenant.BISRNumber,
+		&tenant.IECCode,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update tenant profile: %w", err)
+	}
+
+	return tenant, nil
+}
+
+// DeductQuota atomically decrements quota by 1 if balance > 0
+func (r *Repository) DeductQuota(ctx context.Context, tenantID uuid.UUID) error {
+	query := `
+		UPDATE public.tenants 
+		SET quota_balance = quota_balance - 1 
+		WHERE id = $1 AND quota_balance > 0
+		RETURNING quota_balance`
+
+	var newBalance int
+	err := r.db.Pool.QueryRow(ctx, query, tenantID).Scan(&newBalance)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return fmt.Errorf("insufficient quota")
+		}
+		return fmt.Errorf("failed to deduct quota: %w", err)
+	}
+
+	return nil
+}
+
+// AddQuota adds credits to tenant's quota balance
+func (r *Repository) AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error {
+	query := `UPDATE public.tenants SET quota_balance = quota_balance + $2 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, amount)
+	if err != nil {
+		return fmt.Errorf("failed to add quota: %w", err)
+	}
+	return nil
+}
+
+// GetQuotaBalance returns tenant's current quota balance
+func (r *Repository) GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (int, error) {
+	var balance int
+	query := `SELECT COALESCE(quota_balance, 2) FROM public.tenants WHERE id = $1`
+	err := r.db.Pool.QueryRow(ctx, query, tenantID).Scan(&balance)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get quota balance: %w", err)
+	}
+	return balance, nil
+}
+
+// UpdateCertificatePath updates a specific certificate path for a tenant and sets status to PENDING
+func (r *Repository) UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error {
+	var query string
+	switch docType {
+	case "epr":
+		query = `UPDATE public.tenants SET epr_certificate_path = $2, epr_status = 'PENDING' WHERE id = $1`
+	case "bis":
+		query = `UPDATE public.tenants SET bis_certificate_path = $2, bis_status = 'PENDING' WHERE id = $1`
+	case "pli":
+		query = `UPDATE public.tenants SET pli_certificate_path = $2, pli_status = 'PENDING' WHERE id = $1`
+	default:
+		return fmt.Errorf("invalid document type: %s", docType)
+	}
+
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, path)
+	if err != nil {
+		return fmt.Errorf("failed to update certificate path: %w", err)
+	}
+	return nil
+}
+
+// UpdateDocumentStatus updates the verification status of a document (for admin use)
+func (r *Repository) UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUID, docType string, status string) error {
+	// Validate status
+	validStatuses := map[string]bool{"NOT_UPLOADED": true, "PENDING": true, "VERIFIED": true, "REJECTED": true}
+	if !validStatuses[status] {
+		return fmt.Errorf("invalid status: %s", status)
+	}
+
+	var query string
+	switch docType {
+	case "epr":
+		query = `UPDATE public.tenants SET epr_status = $2 WHERE id = $1`
+	case "bis":
+		query = `UPDATE public.tenants SET bis_status = $2 WHERE id = $1`
+	case "pli":
+		query = `UPDATE public.tenants SET pli_status = $2 WHERE id = $1`
+	default:
+		return fmt.Errorf("invalid document type: %s", docType)
+	}
+
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, status)
+	if err != nil {
+		return fmt.Errorf("failed to update document status: %w", err)
+	}
+	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/handlers"
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 )
 
@@ -42,9 +43,12 @@ func main() {
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 
+	// Initialize repository
+	repo := repository.New(database)
+
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL)
-	authHandler := handlers.NewAuthHandler(database, authService)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
+	authHandler := handlers.NewAuthHandler(database, repo, authService)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
@@ -72,6 +76,7 @@ func main() {
 	// AUTH ROUTES (Protected)
 	// ============================================
 	mux.Handle("GET /api/v1/auth/me", authMiddleware.Protect(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("PUT /api/v1/auth/profile", authMiddleware.Protect(http.HandlerFunc(authHandler.UpdateProfile)))
 
 	// ============================================
 	// BATCH ROUTES (Protected)
@@ -80,8 +85,62 @@ func main() {
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(http.HandlerFunc(h.UploadCSV)))
+	mux.Handle("POST /api/v1/batches/{id}/validate", authMiddleware.Protect(http.HandlerFunc(h.ValidateCSV)))
+	mux.Handle("POST /api/v1/batches/{id}/auto-generate", authMiddleware.Protect(http.HandlerFunc(h.AutoGeneratePassports)))
 	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
+	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
+	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
+
+	// ============================================
+	// TEMPLATE ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.CreateTemplate)))
+	mux.Handle("GET /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.ListTemplates)))
+	mux.Handle("GET /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetTemplate)))
+	mux.Handle("DELETE /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteTemplate)))
+
+	// ============================================
+	// UTILITY ROUTES (Public)
+	// ============================================
+	mux.HandleFunc("GET /api/v1/sample-csv", h.DownloadSampleCSV)
+
+	// ============================================
+	// DASHBOARD ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
+	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
+	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+
+	// ============================================
+	// BILLING ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/billing/balance", authMiddleware.Protect(http.HandlerFunc(h.GetBalance)))
+	mux.Handle("GET /api/v1/billing/transactions", authMiddleware.Protect(http.HandlerFunc(h.GetTransactions)))
+	mux.Handle("POST /api/v1/batches/{id}/activate", authMiddleware.Protect(http.HandlerFunc(h.ActivateBatch)))
+	mux.Handle("POST /api/v1/batches/{id}/duplicate", authMiddleware.Protect(http.HandlerFunc(h.DuplicateBatch)))
+	mux.Handle("POST /api/v1/billing/top-up", authMiddleware.Protect(http.HandlerFunc(h.TopUpQuota)))
+
+	// Razorpay Payment Gateway
+	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
+	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
+	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
+
+	// ============================================
+	// DOCUMENT UPLOAD ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/settings/upload-document", authMiddleware.Protect(http.HandlerFunc(h.UploadDocument)))
+	mux.Handle("GET /api/v1/settings/documents/{type}", authMiddleware.Protect(http.HandlerFunc(h.ViewDocument)))
+
+	// ============================================
+	// ADMIN ROUTES (Secret - for document verification)
+	// ============================================
+	mux.Handle("POST /api/v1/admin/verify-doc", authMiddleware.Protect(http.HandlerFunc(h.AdminVerifyDocument)))
+
+	// ============================================
+	// SCAN ROUTES (Public - called from passport page)
+	// ============================================
+	mux.HandleFunc("POST /api/v1/scans/record", h.RecordScan)
 
 	// ============================================
 	// PASSPORT ROUTES (Public - for QR code scanning)

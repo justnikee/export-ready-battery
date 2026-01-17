@@ -6,13 +6,15 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
 
-// CreateBatch handles POST /api/v1/batches
+// CreateBatch handles POST /api/v1/batches with dual-mode validation
 func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -30,7 +32,91 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch, err := h.repo.CreateBatch(r.Context(), req.TenantID, req.BatchName, req.Specs)
+	// Default to GLOBAL if not specified
+	if req.MarketRegion == "" {
+		req.MarketRegion = models.MarketRegionGlobal
+	}
+
+	// Validate market region
+	if !req.MarketRegion.IsValid() {
+		respondError(w, http.StatusBadRequest, "Invalid market_region. Must be INDIA, EU, or GLOBAL")
+		return
+	}
+
+	// ===== DUAL-MODE VALIDATION =====
+
+	// EU Mode: Carbon Footprint is MANDATORY
+	if req.MarketRegion == models.MarketRegionEU {
+		if req.Specs.CarbonFootprint == "" {
+			respondError(w, http.StatusBadRequest, "EU compliance requires carbon_footprint")
+			return
+		}
+		// EU Mode: Certifications should include CE
+		hasCE := false
+		for _, cert := range req.Specs.Certifications {
+			if cert == "CE" {
+				hasCE = true
+				break
+			}
+		}
+		if !hasCE {
+			log.Printf("Warning: EU batch created without CE certification")
+		}
+	}
+
+	// India Mode: Validate cell_source if provided
+	if req.MarketRegion == models.MarketRegionIndia {
+		if req.CellSource != "" && req.CellSource != "IMPORTED" && req.CellSource != "DOMESTIC" {
+			respondError(w, http.StatusBadRequest, "cell_source must be IMPORTED or DOMESTIC")
+			return
+		}
+
+		// India Mode + IMPORTED: Require customs declaration fields
+		if req.CellSource == "IMPORTED" {
+			if req.BillOfEntryNo == "" || req.CountryOfOrigin == "" {
+				respondError(w, http.StatusBadRequest,
+					"Imported batches must include Bill of Entry and Country of Origin per Customs regulations")
+				return
+			}
+			// Auto-set Domestic Value Add to 0 for imports
+			req.DomesticValueAdd = 0
+		} else if req.CellSource == "DOMESTIC" {
+			// India Mode + DOMESTIC: Require value add > 0
+			if req.DomesticValueAdd <= 0 {
+				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%")
+				return
+			}
+		}
+	}
+
+	// Parse customs date if provided
+	var customsDate *time.Time
+	if req.CustomsDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.CustomsDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid customs_date format. Use YYYY-MM-DD")
+			return
+		}
+		customsDate = &parsedDate
+	}
+
+	// Create the batch
+	log.Printf("DEBUG Handler CreateBatch: TenantID=%s, BatchName=%s, MarketRegion=%s, Specs=%+v",
+		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
+
+	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
+		TenantID:         req.TenantID,
+		BatchName:        req.BatchName,
+		Specs:            req.Specs,
+		MarketRegion:     req.MarketRegion,
+		PLICompliant:     req.PLICompliant,
+		DomesticValueAdd: req.DomesticValueAdd,
+		CellSource:       req.CellSource,
+		Materials:        req.Materials,
+		BillOfEntryNo:    req.BillOfEntryNo,
+		CountryOfOrigin:  req.CountryOfOrigin,
+		CustomsDate:      customsDate,
+	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create batch")
@@ -113,16 +199,18 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get all passports for this batch
-	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID)
-	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+	// Get passport count first
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
 		return
 	}
 
-	if len(passports) == 0 {
-		respondError(w, http.StatusNotFound, "No passports found for this batch")
+	// Get all passports for this batch (no limit for QR download)
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
@@ -148,7 +236,121 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetBatchPassports handles GET /api/v1/batches/{id}/passports
+// DownloadLabels handles GET /api/v1/batches/{id}/labels
+func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get batch info for filename
+	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// SECURITY CHECK: Batch must be ACTIVE to download labels
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be activated first. Please activate this batch using your quota to download labels.")
+		return
+	}
+
+	// Get tenant for compliance fields (EPR, BIS, etc.)
+	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
+	if err != nil {
+		log.Printf("Failed to get tenant: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
+		return
+	}
+
+	// Get passport count first
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Get all passports for this batch (no limit)
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+		return
+	}
+
+	// Generate PDF with enhanced service
+	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant)
+	if err != nil {
+		log.Printf("Failed to generate PDF labels: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate PDF labels")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_labels.pdf", batch.BatchName)
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", pdfBuffer.Len()))
+
+	// Write PDF to response
+	w.Write(pdfBuffer.Bytes())
+}
+
+// ExportBatchCSV handles GET /api/v1/batches/{id}/export
+func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get batch info for filename
+	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Get passport count
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count == 0 {
+		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Get all passports
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		log.Printf("Failed to get passports: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
+		return
+	}
+
+	// Generate CSV
+	csvBytes, err := h.csvService.ExportPassports(passports)
+	if err != nil {
+		log.Printf("Failed to generate CSV: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate CSV export")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_serial_export.csv", batch.BatchName)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))
+
+	// Write CSV to response
+	w.Write(csvBytes)
+}
+
+// GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -157,15 +359,101 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID)
+	// Parse pagination params
+	limit := 50 // Default
+	page := 1
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, err := parseInt(limitStr); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if parsed, err := parseInt(pageStr); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	offset := (page - 1) * limit
+
+	// Get total count
+	totalCount, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, limit, offset)
 	if err != nil {
 		log.Printf("Failed to get passports: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
+	totalPages := (totalCount + limit - 1) / limit
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"passports": passports,
-		"count":     len(passports),
+		"passports":   passports,
+		"count":       len(passports),
+		"total":       totalCount,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"has_more":    page < totalPages,
 	})
+}
+
+// DuplicateBatch handles POST /api/v1/batches/{id}/duplicate
+func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Get original batch
+	originalBatch, err := h.repo.GetBatch(r.Context(), batchID)
+	if err != nil {
+		if err.Error() == "batch not found" {
+			respondError(w, http.StatusNotFound, "Batch not found")
+			return
+		}
+		log.Printf("Failed to get batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get batch")
+		return
+	}
+
+	// Create new batch request with copied fields
+	newBatchName := fmt.Sprintf("%s (Copy)", originalBatch.BatchName)
+
+	// Create the batch copy
+	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
+		TenantID:         originalBatch.TenantID,
+		BatchName:        newBatchName,
+		Specs:            originalBatch.Specs,
+		MarketRegion:     originalBatch.MarketRegion,
+		PLICompliant:     originalBatch.PLICompliant,
+		DomesticValueAdd: originalBatch.DomesticValueAdd,
+		CellSource:       originalBatch.CellSource,
+		Materials:        originalBatch.Materials,
+		BillOfEntryNo:    originalBatch.BillOfEntryNo,
+		CountryOfOrigin:  originalBatch.CountryOfOrigin,
+		CustomsDate:      originalBatch.CustomsDate,
+	})
+
+	if err != nil {
+		log.Printf("Failed to duplicate batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to duplicate batch")
+		return
+	}
+
+	log.Printf("Batch %s duplicated to %s", batchID, newBatch.ID)
+	respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"success":      true,
+		"new_batch_id": newBatch.ID,
+		"batch":        newBatch,
+	})
+}
+
+// parseInt is a helper to parse string to int
+func parseInt(s string) (int, error) {
+	var n int
+	_, err := fmt.Sscanf(s, "%d", &n)
+	return n, err
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -26,6 +27,12 @@ type CSVParseResult struct {
 	Passports []*models.Passport
 	Errors    []CSVRowError
 	RowCount  int
+
+	// Batch Metadata detected from CSV
+	DetectedCellSource      string
+	DetectedBillOfEntry     string
+	DetectedCountryOfOrigin string
+	DetectedDomesticValue   *float64
 }
 
 // CSVRowError represents an error in a specific row
@@ -36,7 +43,7 @@ type CSVRowError struct {
 
 // ParseCSV parses a CSV file and creates passport records
 // Expected CSV format: serial_number,manufacture_date
-// Uses goroutines for parallel validation
+// Optional columns: cell_source, bill_of_entry_no, country_of_origin, domestic_value_add
 func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseResult, error) {
 	csvReader := csv.NewReader(reader)
 	csvReader.TrimLeadingSpace = true
@@ -45,6 +52,12 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 	header, err := csvReader.Read()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CSV header: %w", err)
+	}
+
+	// Strip BOM (Byte Order Mark) from first header field if present
+	if len(header) > 0 {
+		header[0] = strings.TrimPrefix(header[0], "\ufeff")
+		header[0] = strings.TrimPrefix(header[0], "\xef\xbb\xbf") // UTF-8 BOM bytes
 	}
 
 	// Validate and map headers
@@ -60,6 +73,12 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 		return nil, fmt.Errorf("CSV must have 'serial_number' and 'manufacture_date' columns")
 	}
 
+	// Check for optional metadata columns
+	cellSourceIdx, hasCellSource := headerMap["cell_source"]
+	billEntryIdx, hasBillEntry := headerMap["bill_of_entry_no"]
+	originIdx, hasOrigin := headerMap["country_of_origin"]
+	dvaIdx, hasDVA := headerMap["domestic_value_add"]
+
 	// Read all rows
 	records, err := csvReader.ReadAll()
 	if err != nil {
@@ -70,6 +89,39 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 		Passports: make([]*models.Passport, 0, len(records)),
 		Errors:    make([]CSVRowError, 0),
 		RowCount:  len(records),
+	}
+
+	// EXTRACT BATCH METADATA FROM FIRST ROW
+	if len(records) > 0 {
+		firstRow := records[0]
+
+		if hasCellSource && len(firstRow) > cellSourceIdx {
+			val := strings.TrimSpace(firstRow[cellSourceIdx])
+			if val != "" {
+				result.DetectedCellSource = val
+			}
+		}
+		if hasBillEntry && len(firstRow) > billEntryIdx {
+			val := strings.TrimSpace(firstRow[billEntryIdx])
+			if val != "" {
+				result.DetectedBillOfEntry = val
+			}
+		}
+		if hasOrigin && len(firstRow) > originIdx {
+			val := strings.TrimSpace(firstRow[originIdx])
+			if val != "" {
+				result.DetectedCountryOfOrigin = val
+			}
+		}
+		if hasDVA && len(firstRow) > dvaIdx {
+			valStr := strings.TrimSpace(firstRow[dvaIdx])
+			if valStr != "" {
+				var dva float64
+				if _, err := fmt.Sscanf(valStr, "%f", &dva); err == nil {
+					result.DetectedDomesticValue = &dva
+				}
+			}
+		}
 	}
 
 	// Process rows in parallel using worker pool pattern
@@ -167,4 +219,36 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 		Status:          models.PassportStatusActive,
 		CreatedAt:       time.Now(),
 	}, nil
+}
+
+// ExportPassports generates a CSV file from a list of passports
+func (s *CSVService) ExportPassports(passports []*models.Passport) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	// Write header
+	header := []string{"serial_number", "manufacture_date", "status", "uuid"}
+	if err := writer.Write(header); err != nil {
+		return nil, fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	// Write records
+	for _, p := range passports {
+		record := []string{
+			p.SerialNumber,
+			p.ManufactureDate.Format("2006-01-02"),
+			string(p.Status),
+			p.UUID.String(),
+		}
+		if err := writer.Write(record); err != nil {
+			return nil, fmt.Errorf("failed to write CSV record: %w", err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }

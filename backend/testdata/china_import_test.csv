@@ -1,0 +1,4 @@
+serial_number,manufacture_date,chemistry,capacity_ah,voltage_v,weight_kg,domestic_value_add,cell_source,bill_of_entry_no,country_of_origin,import_date
+IMP-CN-LFP-001,2026-06-01,LFP,5000,48,12.5,0,IMPORTED,BE-882910,China,2026-05-20
+IMP-CN-LFP-002,2026-06-01,LFP,5000,48,12.5,0,IMPORTED,BE-882910,China,2026-05-20
+IMP-CN-LFP-003,2026-06-01,LFP,5000,48,12.5,0,IMPORTED,BE-882910,China,2026-05-20

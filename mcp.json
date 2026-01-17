@@ -1,0 +1,26 @@
+{
+  "servers": {
+    "filesystem": {
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    },
+    "railway": {
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "@railway/mcp-server"
+      ]
+    },
+    "puppeteer": {
+      "command": "npx.cmd",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ]
+    }
+  }
+}

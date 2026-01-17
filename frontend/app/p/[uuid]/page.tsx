@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import api from "@/lib/api"
 import { PassportView } from "@/components/passport/passport-view"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, Shield, Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function PublicPassportPage() {
     const params = useParams()
@@ -16,11 +16,10 @@ export default function PublicPassportPage() {
     useEffect(() => {
         const fetchPassport = async () => {
             try {
-                // Note: Public endpoint doesn't require auth token, but our axios instance might inject it.
-                // However, if the user isn't logged in, there's no token, so it works.
-                // If logged in, the token is sent, which is fine too.
                 const response = await api.get(`/passports/${params.uuid}`)
                 setPassport(response.data)
+                // Record the scan for analytics (fire and forget)
+                recordScan(params.uuid as string)
             } catch (err: any) {
                 console.error("Failed to fetch passport", err)
                 setError(err.response?.status === 404
@@ -36,60 +35,129 @@ export default function PublicPassportPage() {
         }
     }, [params.uuid])
 
+    // Record scan event (fire and forget)
+    const recordScan = async (passportId: string) => {
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/scans/record`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ passport_id: passportId })
+            })
+        } catch (e) {
+            console.debug("Scan recording skipped", e)
+        }
+    }
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-200 to-slate-200">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="relative h-16 w-16">
-                        <div className="absolute inset-0 border-t-4 border-slate-900 rounded-full animate-spin"></div>
-                        <div className="absolute inset-2 border-t-4 border-emerald-500 rounded-full animate-spin direction-reverse"></div>
-                    </div>
-                    <div className="text-slate-500 font-medium animate-pulse">Verifying Passport...</div>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                {/* Animated background */}
+                <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+                    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
                 </div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center gap-6 relative z-10"
+                >
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse" />
+                        <div className="relative h-16 w-16 flex items-center justify-center">
+                            <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-white font-semibold text-lg">Verifying Passport</p>
+                        <p className="text-slate-500 text-sm mt-1">Authenticating digital credentials...</p>
+                    </div>
+                </motion.div>
             </div>
         )
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
-                <Alert variant="destructive" className="max-w-md shadow-lg border-red-200 bg-red-50">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                    <AlertTitle className="text-red-700 font-semibold text-lg">Verification Failed</AlertTitle>
-                    <AlertDescription className="text-red-600 mt-1">{error}</AlertDescription>
-                </Alert>
+            <div className="min-h-screen bg-slate-950 p-6 flex items-center justify-center">
+                {/* Animated background */}
+                <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-md w-full relative z-10"
+                >
+                    <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-8 text-center">
+                        <div className="mx-auto w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
+                            <AlertCircle className="h-8 w-8 text-red-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-2">Verification Failed</h2>
+                        <p className="text-slate-400">{error}</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-6 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </motion.div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-900 to-slate-950 pb-12">
-            {/* Header / Brand */}
-            <div className="w-full h-48 bg-gradient-to-b from-emerald-500/10 to-transparent flex flex-col items-center justify-center pt-8 pb-16">
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                        <span className="font-bold text-lg">ER</span>
-                    </div>
-                    <span className="text-slate-200 font-semibold tracking-widest text-sm">EXPORTREADY</span>
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight drop-shadow-sm">
-                    Digital Battery Passport
-                </h1>
+        <div className="min-h-screen bg-slate-950 pb-12">
+            {/* Animated background gradients */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/3 rounded-full blur-3xl" />
             </div>
 
-            {/* Main Content Card */}
-            <div className="-mt-12 px-4 md:px-6">
-                <main className="max-w-xl mx-auto bg-white/95 backdrop-blur-sm shadow-2xl rounded-2xl overflow-hidden border border-white/20 ring-1 ring-black/5">
-                    <div className="p-1 h-2 bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500"></div>
-                    <div className="p-6 md:p-8">
-                        <PassportView passport={passport} />
+            {/* Header / Brand */}
+            <motion.header
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-10 w-full py-8 flex flex-col items-center justify-center"
+            >
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-lg" />
+                        <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
+                            <span className="font-bold text-lg">ER</span>
+                        </div>
                     </div>
+                    <span className="text-slate-300 font-semibold tracking-[0.2em] text-sm">EXPORTREADY</span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+                    Digital Battery Passport
+                </h1>
+                <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm">
+                    <Shield className="h-4 w-4" />
+                    Blockchain-verified authenticity
+                </p>
+            </motion.header>
+
+            {/* Main Content */}
+            <div className="relative z-10 px-4 md:px-6">
+                <main className="max-w-2xl mx-auto">
+                    <PassportView passport={passport} />
                 </main>
 
-                <div className="text-center mt-8 text-slate-500 text-sm">
-                    <p>Secured by ExportReady Blockchain</p>
-                    <p className="opacity-50 text-xs mt-1">ID: {params.uuid}</p>
-                </div>
+                {/* Footer ID */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-center mt-8"
+                >
+                    <p className="text-slate-600 text-xs">
+                        Passport ID: <code className="text-slate-500 font-mono">{params.uuid}</code>
+                    </p>
+                </motion.div>
             </div>
         </div>
     )

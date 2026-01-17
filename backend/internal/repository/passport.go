@@ -87,15 +87,24 @@ func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Pas
 func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error) {
 	query := `
 		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
-		       b.batch_name, b.specs
+		       b.batch_name, b.specs, b.market_region,
+		       COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
+		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, '')
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
+		JOIN public.tenants t ON b.tenant_id = t.id
 		WHERE p.uuid = $1
 	`
 
 	passport := &models.Passport{}
 	var batchName string
 	var specsJSON []byte
+	var marketRegion models.MarketRegion
+	var cellSource, billOfEntry, countryOrigin string
+	tenant := &models.Tenant{}
+
+	// We only need public fields for the passport page
+	// Using COALESCE in SQL prevents scanning NULLs into strings
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
 		&passport.UUID,
@@ -106,6 +115,15 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&passport.CreatedAt,
 		&batchName,
 		&specsJSON,
+		&marketRegion,
+		&cellSource,
+		&billOfEntry,
+		&countryOrigin,
+		&tenant.CompanyName,
+		&tenant.Address,
+		&tenant.LogoURL,
+		&tenant.SupportEmail,
+		&tenant.Website,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -115,23 +133,30 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 
 	specs := &models.BatchSpec{}
-	if err := json.Unmarshal(specsJSON, specs); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+	if len(specsJSON) > 0 {
+		if err := json.Unmarshal(specsJSON, specs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+		}
 	}
 
 	return &models.PassportWithSpecs{
-		Passport:  passport,
-		BatchName: batchName,
-		Specs:     specs,
+		Passport:        passport,
+		BatchName:       batchName,
+		Specs:           specs,
+		MarketRegion:    marketRegion,
+		Tenant:          tenant,
+		CellSource:      cellSource,
+		BillOfEntryNo:   billOfEntry,
+		CountryOfOrigin: countryOrigin,
 	}, nil
 }
 
-// GetPassportsByBatch retrieves all passports for a batch
-func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.Passport, error) {
+// GetPassportsByBatch retrieves passports for a batch with pagination
+func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error) {
 	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at 
-	          FROM public.passports WHERE batch_id = $1 ORDER BY serial_number`
+	          FROM public.passports WHERE batch_id = $1 ORDER BY serial_number LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, batchID)
+	rows, err := r.db.Pool.Query(ctx, query, batchID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get passports: %w", err)
 	}
@@ -165,4 +190,42 @@ func (r *Repository) CountPassportsByBatch(ctx context.Context, batchID uuid.UUI
 		return 0, fmt.Errorf("failed to count passports: %w", err)
 	}
 	return count, nil
+}
+
+// DuplicateInfo represents info about an existing serial number
+type DuplicateInfo struct {
+	SerialNumber string `json:"serial_number"`
+	BatchID      string `json:"existing_batch_id"`
+	BatchName    string `json:"existing_batch"`
+}
+
+// FindDuplicateSerials checks if any of the provided serial numbers already exist
+func (r *Repository) FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error) {
+	if len(serials) == 0 {
+		return nil, nil
+	}
+
+	query := `
+		SELECT p.serial_number, b.id, b.batch_name
+		FROM public.passports p
+		JOIN public.batches b ON p.batch_id = b.id
+		WHERE p.serial_number = ANY($1)
+	`
+
+	rows, err := r.db.Pool.Query(ctx, query, serials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find duplicates: %w", err)
+	}
+	defer rows.Close()
+
+	var duplicates []DuplicateInfo
+	for rows.Next() {
+		var dup DuplicateInfo
+		if err := rows.Scan(&dup.SerialNumber, &dup.BatchID, &dup.BatchName); err != nil {
+			return nil, fmt.Errorf("failed to scan duplicate: %w", err)
+		}
+		duplicates = append(duplicates, dup)
+	}
+
+	return duplicates, nil
 }

@@ -15,6 +15,12 @@
 
 # Dependency directories
 /vendor/
+node_modules/
+
+# Frontend build
+frontend/.next/
+frontend/out/
+frontend/build/
 
 # Environment files
 .env
@@ -23,6 +29,7 @@
 # IDE
 .idea/
 .vscode/
+!.vscode/mcp.json
 *.swp
 *.swo
 
