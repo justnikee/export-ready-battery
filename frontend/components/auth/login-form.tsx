@@ -10,6 +10,8 @@ import api from "@/lib/api"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import Link from "next/link"
+
 
 export function LoginForm() {
     const [email, setEmail] = useState("")
@@ -88,12 +90,12 @@ export function LoginForm() {
                         <Label htmlFor="password" className="text-zinc-300 text-sm font-medium">
                             Password
                         </Label>
-                        <button
-                            type="button"
+                        <Link
+                            href="/forgot-password"
                             className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
                         >
                             Forgot password?
-                        </button>
+                        </Link>
                     </div>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">

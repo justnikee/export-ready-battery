@@ -40,8 +40,8 @@ interface Transaction {
     created_at: string
 }
 
-
-const packages: Package[] = [
+// Default packages as fallback
+const defaultPackages: Package[] = [
     {
         id: "starter",
         title: "Starter License",
@@ -92,7 +92,6 @@ const packages: Package[] = [
             "API Access & Custom Integrations"
         ]
     }
-
 ]
 
 const faqs = [
@@ -110,15 +109,49 @@ const faqs = [
     }
 ]
 
+// Transform API response to frontend Package interface
+function transformApiPackage(apiPkg: any): Package {
+    return {
+        id: apiPkg.id,
+        title: apiPkg.name || apiPkg.title,
+        price: apiPkg.display_price || apiPkg.price,
+        batchCount: apiPkg.quota || apiPkg.batchCount,
+        pricePerBatch: apiPkg.price_per_batch || apiPkg.pricePerBatch,
+        quota_units: apiPkg.quota || apiPkg.quota_units,
+        description: apiPkg.description,
+        features: apiPkg.features || [],
+        isPopular: apiPkg.is_popular || apiPkg.isPopular,
+        isEnterprise: apiPkg.is_enterprise || apiPkg.isEnterprise
+    }
+}
+
 export default function BillingPage() {
     const { user, refreshUser } = useAuth()
     const [purchasing, setPurchasing] = useState<string | null>(null)
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [loadingTransactions, setLoadingTransactions] = useState(true)
+    const [packages, setPackages] = useState<Package[]>(defaultPackages)
+    const [loadingPackages, setLoadingPackages] = useState(true)
 
     useEffect(() => {
         fetchTransactions()
+        fetchPackages()
     }, [])
+
+    const fetchPackages = async () => {
+        try {
+            const response = await api.get("/billing/packages")
+            if (response.data.packages && response.data.packages.length > 0) {
+                const transformedPackages = response.data.packages.map(transformApiPackage)
+                setPackages(transformedPackages)
+            }
+        } catch (error) {
+            console.warn("Using default packages - API unavailable:", error)
+            // Keep using default packages
+        } finally {
+            setLoadingPackages(false)
+        }
+    }
 
     const fetchTransactions = async () => {
         try {
@@ -128,6 +161,7 @@ export default function BillingPage() {
             console.error("Failed to fetch transactions:", error)
         } finally {
             setLoadingTransactions(false)
+
         }
     }
 

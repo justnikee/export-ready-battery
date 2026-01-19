@@ -12,7 +12,80 @@ import (
 	"github.com/google/uuid"
 )
 
-// GetBalance handles GET /api/v1/billing/balance
+// Package represents a billing package for quota purchase
+type Package struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Price         int      `json:"price"`         // Price in paise (INR)
+	DisplayPrice  string   `json:"display_price"` // Formatted price string
+	Quota         int      `json:"quota"`         // Number of batch activations
+	PricePerBatch string   `json:"price_per_batch"`
+	Description   string   `json:"description"`
+	Features      []string `json:"features"`
+	IsPopular     bool     `json:"is_popular,omitempty"`
+	IsEnterprise  bool     `json:"is_enterprise,omitempty"`
+}
+
+// GetPackages handles GET /api/v1/billing/packages
+func (h *Handler) GetPackages(w http.ResponseWriter, r *http.Request) {
+	packages := []Package{
+		{
+			ID:            "starter",
+			Name:          "Starter License",
+			Price:         499900, // ₹4,999 in paise
+			DisplayPrice:  "₹4,999",
+			Quota:         10,
+			PricePerBatch: "₹499",
+			Description:   "Perfect for pilot runs and small scale manufacturing.",
+			Features: []string{
+				"10 Batch Activations",
+				"Standard PDF Label Generation",
+				"India Compliance (EPR/BIS)",
+				"Email Support",
+				"Basic Analytics",
+			},
+		},
+		{
+			ID:            "growth",
+			Name:          "Growth License",
+			Price:         1999900, // ₹19,999 in paise
+			DisplayPrice:  "₹19,999",
+			Quota:         50,
+			PricePerBatch: "₹399",
+			Description:   "For high-volume production and export compliance.",
+			IsPopular:     true,
+			Features: []string{
+				"Everything in Starter",
+				"50 Batch Activations",
+				"Priority Label Generation",
+				"Importer Mode (China/Korea)",
+				"WhatsApp Priority Support",
+			},
+		},
+		{
+			ID:            "enterprise",
+			Name:          "Enterprise License",
+			Price:         0, // Custom pricing
+			DisplayPrice:  "Custom",
+			Quota:         200,
+			PricePerBatch: "Contact Us",
+			Description:   "Industrial scale solution for large manufacturers.",
+			IsEnterprise:  true,
+			Features: []string{
+				"Everything in Growth",
+				"200+ Batch Activations",
+				"Custom Label Formats",
+				"Dedicated Account Manager",
+				"API Access & Custom Integrations",
+			},
+		},
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"packages": packages,
+	})
+}
+
 func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	// Extract tenant ID using helper
 	tenantIDStr := middleware.GetTenantID(r.Context())

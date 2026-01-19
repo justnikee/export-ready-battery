@@ -20,17 +20,19 @@ import (
 
 // AuthHandler handles authentication endpoints
 type AuthHandler struct {
-	db          *db.DB
-	repo        *repository.Repository
-	authService *services.AuthService
+	db           *db.DB
+	repo         *repository.Repository
+	authService  *services.AuthService
+	emailService *services.EmailService
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(database *db.DB, repo *repository.Repository, authService *services.AuthService) *AuthHandler {
+func NewAuthHandler(database *db.DB, repo *repository.Repository, authService *services.AuthService, emailService *services.EmailService) *AuthHandler {
 	return &AuthHandler{
-		db:          database,
-		repo:        repo,
-		authService: authService,
+		db:           database,
+		repo:         repo,
+		authService:  authService,
+		emailService: emailService,
 	}
 }
 
@@ -286,10 +288,11 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Send email with reset link
-	// For MVP, log the reset link
-	log.Printf("📧 Password reset requested for %s", req.Email)
-	log.Printf("🔗 Reset link: https://app.com/reset-password?token=%s", resetToken)
+	// Send password reset email (or log to console if not configured)
+	if err := h.emailService.SendPasswordResetEmail(req.Email, resetToken); err != nil {
+		log.Printf("Failed to send reset email: %v", err)
+		// Don't fail the request - still return success for security
+	}
 
 	respondJSON(w, http.StatusOK, map[string]string{
 		"message": "If the email exists, a reset link will be sent",

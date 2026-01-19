@@ -42,13 +42,14 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
+	emailService := services.NewEmailService(cfg.BaseURL)
 
 	// Initialize repository
 	repo := repository.New(database)
 
 	// Initialize handlers
 	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
-	authHandler := handlers.NewAuthHandler(database, repo, authService)
+	authHandler := handlers.NewAuthHandler(database, repo, authService, emailService)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
