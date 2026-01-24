@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import api from "@/lib/api"
 import { PassportView } from "@/components/passport/passport-view"
-import { AlertCircle, Shield, Loader2 } from "lucide-react"
+import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal"
+import { AlertCircle, Shield, Loader2, Wrench } from "lucide-react"
 import { motion } from "framer-motion"
 
 export default function PublicPassportPage() {
@@ -12,6 +13,7 @@ export default function PublicPassportPage() {
     const [passport, setPassport] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
+    const [showActionModal, setShowActionModal] = useState(false)
 
     useEffect(() => {
         const fetchPassport = async () => {
@@ -126,7 +128,7 @@ export default function PublicPassportPage() {
                 <div className="flex items-center gap-3 mb-4">
                     <div className="relative">
                         <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-lg" />
-                        <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
+                        <div className="relative h-12 w-12 rounded-xl bg-linear-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
                             <span className="font-bold text-lg">ER</span>
                         </div>
                     </div>
@@ -145,6 +147,25 @@ export default function PublicPassportPage() {
             <div className="relative z-10 px-4 md:px-6">
                 <main className="max-w-2xl mx-auto">
                     <PassportView passport={passport} />
+
+                    {/* Action Button */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="mt-8"
+                    >
+                        <button
+                            onClick={() => setShowActionModal(true)}
+                            className="w-full py-4 px-6 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-3"
+                        >
+                            <Wrench className="h-5 w-5" />
+                            Record Lifecycle Event
+                        </button>
+                        <p className="text-center text-slate-500 text-xs mt-3">
+                            Are you a mechanic, recycler, or logistics partner? Record your interaction with this battery.
+                        </p>
+                    </motion.div>
                 </main>
 
                 {/* Footer ID */}
@@ -159,6 +180,14 @@ export default function PublicPassportPage() {
                     </p>
                 </motion.div>
             </div>
+
+            {/* Magic Link Modal */}
+            {showActionModal && (
+                <RequestMagicLinkModal
+                    passportId={params.uuid as string}
+                    onClose={() => setShowActionModal(false)}
+                />
+            )}
         </div>
     )
 }

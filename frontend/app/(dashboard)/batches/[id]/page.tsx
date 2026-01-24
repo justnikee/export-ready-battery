@@ -537,7 +537,7 @@ export default function BatchDetailsPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <UploadCSV batchId={batch.id} onUploadComplete={handleUploadComplete} />
+                                <UploadCSV batchId={batch.id} marketRegion={region} onUploadComplete={handleUploadComplete} />
                             </CardContent>
                         </Card>
                     </div>

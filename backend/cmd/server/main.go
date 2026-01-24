@@ -53,6 +53,18 @@ func main() {
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
+	apiKeyService := services.NewAPIKeyService()
+	apiKeyMiddleware := middleware.NewAPIKeyAuth(repo, apiKeyService)
+
+	// Initialize lifecycle service and handler
+	lifecycleService := services.NewLifecycleService(repo)
+	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService)
+
+	// Initialize magic link handler
+	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, cfg.JWTSecret, cfg.BaseURL)
+
+	// Initialize trusted partner handler
+	trustedPartnerHandler := handlers.NewTrustedPartnerHandler(repo)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -72,6 +84,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
+	mux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
 
 	// ============================================
 	// AUTH ROUTES (Protected)
@@ -92,6 +105,21 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
+	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
+
+	// ============================================
+	// BULK OPERATIONS (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/passports/bulk/status", authMiddleware.Protect(http.HandlerFunc(h.BulkUpdateStatus)))
+	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(http.HandlerFunc(h.BulkDeletePassports)))
+	mux.Handle("POST /api/v1/passports/bulk/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports)))
+
+	// ============================================
+	// PASSPORT LIFECYCLE ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
+	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedTransitions)))
+	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
 
 	// ============================================
 	// TEMPLATE ROUTES (Protected)
@@ -148,6 +176,39 @@ func main() {
 	// ============================================
 	mux.HandleFunc("GET /api/v1/passports/{uuid}", h.GetPassport)
 
+	// ============================================
+	// MAGIC LINK PASSPORT ROUTES (Token Authenticated)
+	// ============================================
+	mux.HandleFunc("POST /api/v1/passport/{uuid}/transition", magicLinkHandler.TransitionWithMagicLink)
+	mux.HandleFunc("GET /api/v1/passport/{uuid}/action-info", magicLinkHandler.GetPassportForAction)
+
+	// ============================================
+	// API KEY MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/api-keys", authMiddleware.Protect(http.HandlerFunc(h.CreateAPIKey)))
+	mux.Handle("GET /api/v1/api-keys", authMiddleware.Protect(http.HandlerFunc(h.ListAPIKeys)))
+	mux.Handle("GET /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetAPIKey)))
+	mux.Handle("PATCH /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.UpdateAPIKey)))
+	mux.Handle("DELETE /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteAPIKey)))
+
+	// ============================================
+	// TRUSTED PARTNERS MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/partners/trusted", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreateTrustedPartner)))
+	mux.Handle("GET /api/v1/partners/trusted", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListTrustedPartners)))
+	mux.Handle("DELETE /api/v1/partners/trusted/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeleteTrustedPartner)))
+	mux.Handle("POST /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreatePartnerCode)))
+	mux.Handle("GET /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListPartnerCodes)))
+	mux.Handle("DELETE /api/v1/partners/codes/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeactivatePartnerCode)))
+
+	// ============================================
+	// EXTERNAL API (API Key Authenticated - ERP Integration)
+	// ============================================
+	mux.Handle("GET /api/v1/external/passports/{uuid}", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalGetPassport)))
+	mux.Handle("POST /api/v1/external/batches", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalCreateBatch)))
+	mux.Handle("POST /api/v1/external/batches/{id}/passports", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalCreatePassports)))
+	mux.Handle("GET /api/v1/external/batches/{id}/labels", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalDownloadLabels)))
+
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -197,8 +258,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)

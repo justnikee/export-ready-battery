@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator } from "lucide-react"
+import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator, Recycle, Shield, Activity, Users } from "lucide-react"
 import { DVACalculator } from "./dva-calculator"
 
 // Market region type
@@ -71,11 +71,30 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // Form states - EU Specific
     const [carbonFootprint, setCarbonFootprint] = useState("")
     const [certifications, setCertifications] = useState<string[]>(["CE"])
+    // New EU Compliance Fields
+    const [materialComposition, setMaterialComposition] = useState({
+        cobalt: "",
+        lithium: "",
+        nickel: "",
+        manganese: "",
+        lead: ""
+    })
+    const [recycledContent, setRecycledContent] = useState("")
+    const [hazardousSubstances, setHazardousSubstances] = useState({
+        lead: false,
+        mercury: false,
+        cadmium: false
+    })
+    const [euRepresentative, setEuRepresentative] = useState("")
+    const [euRepresentativeEmail, setEuRepresentativeEmail] = useState("")
+    const [expectedLifetime, setExpectedLifetime] = useState("")
+    const [warrantyMonths, setWarrantyMonths] = useState("")
 
     // Form states - India Specific
     const [pliCompliant, setPliCompliant] = useState(false)
     const [domesticValueAdd, setDomesticValueAdd] = useState("")
-    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")    // Form states - India Import/Customs Declaration
+    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")
+    // Form states - India Import/Customs Declaration
     const [billOfEntryNo, setBillOfEntryNo] = useState("")
     const [cellCountryOfOrigin, setCellCountryOfOrigin] = useState("")
     const [customsDate, setCustomsDate] = useState("")
@@ -153,11 +172,38 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     manufacturer_address: manufacturerAddress,
                     manufacturer_email: manufacturerEmail,
                     weight,
-                    carbon_footprint: carbonFootprint,
                     country_of_origin: countryOfOrigin,
                     recyclable,
-                    certifications: marketRegion === "EU" ? certifications : undefined,
                 }
+            }
+
+            // Add EU specific fields
+            if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+                payload.specs.carbon_footprint = carbonFootprint
+                payload.specs.certifications = certifications
+
+                // Add new EU fields
+                payload.specs.material_composition = {
+                    cobalt_pct: parseFloat(materialComposition.cobalt) || 0,
+                    lithium_pct: parseFloat(materialComposition.lithium) || 0,
+                    nickel_pct: parseFloat(materialComposition.nickel) || 0,
+                    manganese_pct: parseFloat(materialComposition.manganese) || 0,
+                    lead_pct: parseFloat(materialComposition.lead) || 0,
+                }
+
+                payload.specs.recycled_content_pct = parseFloat(recycledContent) || 0
+
+                payload.specs.hazardous_substances = {
+                    lead_present: hazardousSubstances.lead,
+                    mercury_present: hazardousSubstances.mercury,
+                    cadmium_present: hazardousSubstances.cadmium,
+                    declaration: "Compliant with Battery Regulation 2023/1542"
+                }
+
+                payload.specs.eu_representative = euRepresentative
+                payload.specs.eu_representative_email = euRepresentativeEmail
+                payload.specs.expected_lifetime_cycles = parseInt(expectedLifetime) || 0
+                payload.specs.warranty_months = parseInt(warrantyMonths) || 0
             }
 
             // Add India-specific fields
@@ -443,7 +489,123 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         />
                                     </div>
 
-                                    <div className="flex items-center space-x-2">
+                                    {/* Material Composition */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Activity className="h-3.5 w-3.5" />
+                                            Material Composition (%)
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {Object.entries(materialComposition).map(([key, value]) => (
+                                                <div key={key} className="grid gap-1">
+                                                    <Label htmlFor={key} className="text-xs capitalize text-zinc-400">{key}</Label>
+                                                    <Input
+                                                        id={key}
+                                                        type="number"
+                                                        value={value}
+                                                        onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                        placeholder="0.0"
+                                                        className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Responsible Supply Chain */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Users className="h-3.5 w-3.5" />
+                                            Responsible Supply Chain
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="euRep" className="text-xs text-zinc-400">EU Representative</Label>
+                                                <Input
+                                                    id="euRep"
+                                                    value={euRepresentative}
+                                                    onChange={(e) => setEuRepresentative(e.target.value)}
+                                                    placeholder="Company Name"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="euRepEmail" className="text-xs text-zinc-400">Rep Email</Label>
+                                                <Input
+                                                    id="euRepEmail"
+                                                    value={euRepresentativeEmail}
+                                                    onChange={(e) => setEuRepresentativeEmail(e.target.value)}
+                                                    placeholder="email@eu-rep.com"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="recycled" className="text-xs text-zinc-400">Recycled Content (%)</Label>
+                                                <Input
+                                                    id="recycled"
+                                                    type="number"
+                                                    value={recycledContent}
+                                                    onChange={(e) => setRecycledContent(e.target.value)}
+                                                    placeholder="0.0"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Sustainability & Safety */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Shield className="h-3.5 w-3.5" />
+                                            Sustainability & Safety
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="lifecycle" className="text-xs text-zinc-400">Lifetime (Cycles)</Label>
+                                                <Input
+                                                    id="lifecycle"
+                                                    type="number"
+                                                    value={expectedLifetime}
+                                                    onChange={(e) => setExpectedLifetime(e.target.value)}
+                                                    placeholder="e.g. 1000"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="warranty" className="text-xs text-zinc-400">Warranty (Months)</Label>
+                                                <Input
+                                                    id="warranty"
+                                                    type="number"
+                                                    value={warrantyMonths}
+                                                    onChange={(e) => setWarrantyMonths(e.target.value)}
+                                                    placeholder="e.g. 24"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-2 pt-1">
+                                            <Label className="text-xs text-zinc-400">Hazardous Substances (Check if present)</Label>
+                                            <div className="flex gap-4">
+                                                {Object.entries(hazardousSubstances).map(([key, checked]) => (
+                                                    <div key={key} className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`haz-${key}`}
+                                                            checked={checked}
+                                                            onChange={(e) => setHazardousSubstances(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                            className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
+                                                        />
+                                                        <Label htmlFor={`haz-${key}`} className="text-xs capitalize font-normal cursor-pointer text-zinc-300">
+                                                            {key}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 pt-2 border-t border-blue-500/20">
                                         <input
                                             type="checkbox"
                                             id="recyclable"

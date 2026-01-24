@@ -87,6 +87,22 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+
+		// PLI Compliance Warning: If PLI is claimed but DVA < 50%
+		if req.PLICompliant && req.DomesticValueAdd < 50 {
+			log.Printf("WARNING: Batch %s claims PLI compliance but Domestic Value Add is %.2f%% (< 50%%). PLI requires minimum 50%% DVA.",
+				req.BatchName, req.DomesticValueAdd)
+		}
+	}
+
+	// Validate IEC Code format if provided (India: 10 digits)
+	tenantID := req.TenantID
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err == nil && tenant.IECCode != "" {
+		if len(tenant.IECCode) != 10 {
+			log.Printf("WARNING: Tenant %s has invalid IEC Code format (should be 10 digits): %s",
+				tenant.CompanyName, tenant.IECCode)
+		}
 	}
 
 	// Parse customs date if provided
@@ -112,10 +128,10 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		PLICompliant:     req.PLICompliant,
 		DomesticValueAdd: req.DomesticValueAdd,
 		CellSource:       req.CellSource,
-		Materials:        req.Materials,
 		BillOfEntryNo:    req.BillOfEntryNo,
 		CountryOfOrigin:  req.CountryOfOrigin,
 		CustomsDate:      customsDate,
+		HSNCode:          req.HSNCode,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
@@ -431,10 +447,10 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 		PLICompliant:     originalBatch.PLICompliant,
 		DomesticValueAdd: originalBatch.DomesticValueAdd,
 		CellSource:       originalBatch.CellSource,
-		Materials:        originalBatch.Materials,
 		BillOfEntryNo:    originalBatch.BillOfEntryNo,
 		CountryOfOrigin:  originalBatch.CountryOfOrigin,
 		CustomsDate:      originalBatch.CustomsDate,
+		HSNCode:          originalBatch.HSNCode,
 	})
 
 	if err != nil {

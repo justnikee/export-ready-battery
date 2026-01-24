@@ -112,23 +112,17 @@ type Batch struct {
 	// Dual-Mode Compliance Fields
 	MarketRegion     MarketRegion `json:"market_region"`         // INDIA, EU, or GLOBAL
 	PLICompliant     bool         `json:"pli_compliant"`         // India: PLI subsidy eligibility
-	DomesticValueAdd float64      `json:"domestic_value_add"`    // India: % of local value
+	DomesticValueAdd float64      `json:"domestic_value_add"`    // India: % of local value (stored as literal: 45.5 = 45.5%)
 	CellSource       string       `json:"cell_source,omitempty"` // IMPORTED or DOMESTIC
-	Materials        *Materials   `json:"materials,omitempty"`   // EU: Material composition
 	TotalPassports   int          `json:"total_passports"`       // Computed count of passports
 
 	// India Import/Customs Fields (Required when CellSource = IMPORTED)
 	BillOfEntryNo   string     `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
 	CountryOfOrigin string     `json:"country_of_origin,omitempty"` // Source country for imported cells
 	CustomsDate     *time.Time `json:"customs_date,omitempty"`      // Date of customs clearance
-}
 
-// Materials holds material composition percentages for EU compliance
-type Materials struct {
-	Cobalt  float64 `json:"cobalt"`  // % of Cobalt
-	Lithium float64 `json:"lithium"` // % of Lithium
-	Nickel  float64 `json:"nickel"`  // % of Nickel
-	Lead    float64 `json:"lead"`    // % of Lead
+	// India Compliance Fields
+	HSNCode string `json:"hsn_code,omitempty"` // Harmonized System Nomenclature code (e.g., "8507.60")
 }
 
 // BatchSpec holds the common specifications stored as JSONB
@@ -139,23 +133,37 @@ type BatchSpec struct {
 	Manufacturer    string `json:"manufacturer"`
 	Weight          string `json:"weight"`           // String for flexibility (e.g., "500g")
 	CarbonFootprint string `json:"carbon_footprint"` // e.g., "10 kg CO2e"
-	Recyclable      bool   `json:"recyclable"`
 	CountryOfOrigin string `json:"country_of_origin"`
 
-	// EU Regulatory Compliance Fields
-	MaterialComposition   *MaterialComposition `json:"material_composition,omitempty"`    // Critical raw materials %
-	Certifications        []string             `json:"certifications,omitempty"`          // CE, UL, IEC, etc.
-	ManufacturerAddress   string               `json:"manufacturer_address,omitempty"`    // Physical address
-	EURepresentative      string               `json:"eu_representative,omitempty"`       // EU contact name/company
-	EURepresentativeEmail string               `json:"eu_representative_email,omitempty"` // EU contact email
+	// EU Battery Regulation 2023/1542 - MANDATORY FIELDS
+	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`     // Critical raw materials %
+	Certifications         []string             `json:"certifications,omitempty"`           // CE, UL, IEC, etc.
+	ManufacturerAddress    string               `json:"manufacturer_address,omitempty"`     // Physical address
+	EURepresentative       string               `json:"eu_representative,omitempty"`        // EU contact name/company
+	EURepresentativeEmail  string               `json:"eu_representative_email,omitempty"`  // EU contact email
+	ExpectedLifetimeCycles int                  `json:"expected_lifetime_cycles,omitempty"` // Expected charge cycles (e.g., 1000)
+	WarrantyMonths         int                  `json:"warranty_months,omitempty"`          // Warranty period in months
+	RecycledContentPct     float64              `json:"recycled_content_pct,omitempty"`     // % recycled content (stored as literal: 15.5 = 15.5%)
+	HazardousSubstances    *HazardousSubstances `json:"hazardous_substances,omitempty"`     // REACH/RoHS compliance
 }
 
 // MaterialComposition holds the critical raw material percentages (EU Battery Regulation)
+// All values stored as literal percentages: 12.5 means 12.5%
 type MaterialComposition struct {
-	Cobalt  string `json:"cobalt,omitempty"`  // e.g., "12%"
-	Lithium string `json:"lithium,omitempty"` // e.g., "8%"
-	Nickel  string `json:"nickel,omitempty"`  // e.g., "15%"
-	Lead    string `json:"lead,omitempty"`    // e.g., "0%"
+	CobaltPct    float64 `json:"cobalt_pct,omitempty"`    // e.g., 12.5 = 12.5%
+	LithiumPct   float64 `json:"lithium_pct,omitempty"`   // e.g., 8.0 = 8%
+	NickelPct    float64 `json:"nickel_pct,omitempty"`    // e.g., 15.0 = 15%
+	LeadPct      float64 `json:"lead_pct,omitempty"`      // e.g., 0 = 0%
+	ManganesePct float64 `json:"manganese_pct,omitempty"` // Common in LFP batteries
+}
+
+// HazardousSubstances holds REACH/RoHS compliance declarations
+type HazardousSubstances struct {
+	LeadPresent    bool   `json:"lead_present"`          // Does product contain lead?
+	MercuryPresent bool   `json:"mercury_present"`       // Does product contain mercury?
+	CadmiumPresent bool   `json:"cadmium_present"`       // Does product contain cadmium?
+	Declaration    string `json:"declaration,omitempty"` // Compliance statement
+	Exemptions     string `json:"exemptions,omitempty"`  // Any RoHS exemptions claimed
 }
 
 // ============================================================================
@@ -168,17 +176,65 @@ type Passport struct {
 	BatchID         uuid.UUID `json:"batch_id"`
 	SerialNumber    string    `json:"serial_number"` // Supports BPAN: IN-NKY-LFP-2026-00001
 	ManufactureDate time.Time `json:"manufacture_date"`
-	Status          string    `json:"status"` // ACTIVE, RECALLED, RECYCLED, END_OF_LIFE
+	Status          string    `json:"status"` // CREATED, SHIPPED, IN_SERVICE, RETURNED, RECALLED, RECYCLED, END_OF_LIFE
 	CreatedAt       time.Time `json:"created_at"`
+
+	// Lifecycle tracking fields
+	ShippedAt   *time.Time `json:"shipped_at,omitempty"`   // When battery left factory
+	InstalledAt *time.Time `json:"installed_at,omitempty"` // When installed in device/vehicle
+	ReturnedAt  *time.Time `json:"returned_at,omitempty"`  // When returned for warranty/recycling
+
+	// Dynamic compliance field (updated over battery lifetime)
+	StateOfHealth float64 `json:"state_of_health"` // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+
+	// Ownership tracking
+	OwnerID *uuid.UUID `json:"owner_id,omitempty"` // Current owner (distributor, retailer, end user)
 }
 
-// PassportStatus constants
+// PassportStatus constants - lifecycle states
 const (
-	PassportStatusActive    = "ACTIVE"
-	PassportStatusRecalled  = "RECALLED"
-	PassportStatusRecycled  = "RECYCLED"
-	PassportStatusEndOfLife = "END_OF_LIFE"
+	PassportStatusCreated   = "CREATED"     // Initial state after passport generation
+	PassportStatusShipped   = "SHIPPED"     // Battery left factory/warehouse
+	PassportStatusInService = "IN_SERVICE"  // Installed in device/vehicle
+	PassportStatusReturned  = "RETURNED"    // Returned for warranty or recycling
+	PassportStatusRecalled  = "RECALLED"    // Manufacturer recall
+	PassportStatusRecycled  = "RECYCLED"    // End of second life
+	PassportStatusEndOfLife = "END_OF_LIFE" // Final state
+
+	// Legacy alias for backward compatibility
+	PassportStatusActive = "CREATED" // Deprecated: use PassportStatusCreated
 )
+
+// ValidPassportTransitions defines which status transitions are allowed
+// Key = current status, Value = list of allowed next statuses
+var ValidPassportTransitions = map[string][]string{
+	PassportStatusCreated:   {PassportStatusShipped},
+	PassportStatusShipped:   {PassportStatusInService, PassportStatusReturned, PassportStatusRecalled},
+	PassportStatusInService: {PassportStatusReturned, PassportStatusRecalled},
+	PassportStatusReturned:  {PassportStatusRecycled, PassportStatusInService}, // Can go back to service after repair
+	PassportStatusRecalled:  {PassportStatusRecycled},
+	PassportStatusRecycled:  {PassportStatusEndOfLife},
+	PassportStatusEndOfLife: {}, // Terminal state
+}
+
+// IsValidTransition checks if a status transition is allowed
+func IsValidTransition(from, to string) bool {
+	allowed, exists := ValidPassportTransitions[from]
+	if !exists {
+		return false
+	}
+	for _, status := range allowed {
+		if status == to {
+			return true
+		}
+	}
+	return false
+}
+
+// GetAllowedTransitions returns the list of valid next statuses for a given current status
+func GetAllowedTransitions(currentStatus string) []string {
+	return ValidPassportTransitions[currentStatus]
+}
 
 // ============================================================================
 // PASSPORT EVENTS (LIFECYCLE AUDIT LOG)
@@ -199,6 +255,9 @@ const (
 	PassportEventCreated       = "CREATED"
 	PassportEventStatusChanged = "STATUS_CHANGED"
 	PassportEventScanned       = "SCANNED"
+	PassportEventShipped       = "SHIPPED"   // NEW: battery left factory
+	PassportEventInstalled     = "INSTALLED" // NEW: installed in device
+	PassportEventReturned      = "RETURNED"  // NEW: warranty return
 	PassportEventRecalled      = "RECALLED"
 	PassportEventRecycled      = "RECYCLED"
 	PassportEventEndOfLife     = "END_OF_LIFE"
@@ -248,14 +307,14 @@ type CreateBatchRequest struct {
 	// Dual-Mode Fields
 	MarketRegion     MarketRegion `json:"market_region"`                // INDIA, EU, or GLOBAL
 	PLICompliant     bool         `json:"pli_compliant,omitempty"`      // India only
-	DomesticValueAdd float64      `json:"domestic_value_add,omitempty"` // India only
+	DomesticValueAdd float64      `json:"domestic_value_add,omitempty"` // India only (stored as literal: 45.5 = 45.5%)
 	CellSource       string       `json:"cell_source,omitempty"`        // India only
-	Materials        *Materials   `json:"materials,omitempty"`          // EU only
 
 	// India Import/Customs Fields (Required when MarketRegion=INDIA and CellSource=IMPORTED)
 	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
 	CountryOfOrigin string `json:"country_of_origin,omitempty"` // Source country
 	CustomsDate     string `json:"customs_date,omitempty"`      // Date in YYYY-MM-DD format
+	HSNCode         string `json:"hsn_code,omitempty"`          // India: HSN code (e.g., "8507.60")
 }
 
 // CreateBatchResponse is the response after creating a batch
@@ -282,6 +341,13 @@ type PassportWithSpecs struct {
 	CellSource      string `json:"cell_source,omitempty"`
 	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin string `json:"country_of_origin,omitempty"`
+	// India compliance fields - needed for passport view
+	DomesticValueAdd float64    `json:"domestic_value_add,omitempty"` // Stored as literal: 45.5 = 45.5%
+	PLICompliant     bool       `json:"pli_compliant,omitempty"`
+	CustomsDate      *time.Time `json:"customs_date,omitempty"`
+	HSNCode          string     `json:"hsn_code,omitempty"`
+	// EU fields from specs are already in BatchSpec
+	// Materials composition is in specs.material_composition
 }
 
 // ============================================================================

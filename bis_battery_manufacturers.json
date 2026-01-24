@@ -1,0 +1,199 @@
+[
+    {
+        "company_name": "Artek Energy Pvt Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Noida/Gurgaon, UP/HR",
+        "product": "Lithium-ion, LiFePO4, Polymer Batteries",
+        "website": "https://artekgroup.in",
+        "contact": {
+            "email": "info@artekgroup.in",
+            "phone": "+91 93544 43010"
+        },
+        "specialization": "Solar energy storage, automotive, industrial machinery, EVs, IoT devices"
+    },
+    {
+        "company_name": "Future Hi-Tech Batteries Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046) - India's First Li-ion Cell Manufacturer",
+        "location": "Mohali, Punjab",
+        "product": "Lithium-ion Cells & Battery Packs",
+        "website": "https://futurehitechbatteries.com",
+        "contact": {
+            "email": "care@fhtbl.com",
+            "phone": "+91 172 4670013"
+        },
+        "address": "C-183, Phase-VIII-B, Industrial Focal Point, S.A.S. Nagar, Mohali",
+        "specialization": "EVs, solar lighting, energy storage, medical devices, defense"
+    },
+    {
+        "company_name": "Coslight India Telecom Pvt Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Gurugram, Haryana",
+        "product": "Lithium-ion Batteries",
+        "website": "http://www.coslight.in",
+        "contact": {
+            "email": "corporate@coslight.in",
+            "phone": "(0124) 4222982, 4222985"
+        },
+        "address": "Plot No-122, IMT Manesar, Sector-4, Gurugram, Haryana 122050",
+        "specialization": "Defense, EVs, industrial, railways, solar, telecommunications"
+    },
+    {
+        "company_name": "Servotech Power Systems Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "New Delhi, Delhi",
+        "product": "Lithium-ion Batteries, EV Chargers",
+        "website": "https://www.servotech.in",
+        "contact": {
+            "email": "servotech@servotechindia.com",
+            "phone": "+91-124-4987 400",
+            "customer_care": "customercare@servotechindia.com"
+        },
+        "address": "806, 8th Floor, Crown Heights, Hotel Crown Plaza, Sector-10, Rohini, New Delhi - 110085",
+        "specialization": "2/3/4 wheelers, power backup systems, EV charging infrastructure"
+    },
+    {
+        "company_name": "Livguard Energy Technologies Pvt Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Gurgaon, Haryana",
+        "product": "Lithium-ion Batteries for EVs, Solar, Inverter",
+        "website": "https://www.livguard.com",
+        "contact": {
+            "email": "marketing@livguard.com",
+            "phone": "+91 18001025551",
+            "office": "+91-124-4987 400"
+        },
+        "address": "Plot No. 221, Phase-I, Udyog Vihar, Gurgaon 122016, Haryana",
+        "specialization": "Automotive, inverter, solar, lithium-ion for EV applications"
+    },
+    {
+        "company_name": "Amara Raja Energy & Mobility Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Tirupati, Andhra Pradesh / Telangana",
+        "product": "Lithium-ion Cells & Battery Packs (16 GWh capacity)",
+        "website": "https://www.amararaja.com",
+        "contact": {
+            "note": "Contact via website - major listed company"
+        },
+        "specialization": "EV batteries, solar storage, telecom, UPS - India's largest li-ion manufacturer"
+    },
+    {
+        "company_name": "Exide Energy Solutions Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Kolkata, WB / Prantij, Gujarat",
+        "product": "Lithium-ion Batteries for EVs",
+        "website": "https://www.exideindustries.com",
+        "contact": {
+            "note": "Contact via website - listed company"
+        },
+        "specialization": "EV battery packs for automotive OEMs"
+    },
+    {
+        "company_name": "Okaya Power Group",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "New Delhi / Greater Noida, UP",
+        "product": "Lithium-ion Batteries",
+        "website": "https://www.okaya.in",
+        "contact": {
+            "email": "care@okaya.in",
+            "phone": "+91 9818909090"
+        },
+        "address": "D-7, 3rd & 4th Floor, Rohtak Rd, Udyog Nagar, Mangolpuri, New Delhi - 110041",
+        "specialization": "EVs, solar batteries, energy storage systems, power backup"
+    },
+    {
+        "company_name": "Tata AutoComp Gotion Green Energy Solutions",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Pune, Maharashtra",
+        "product": "EV Battery Packs",
+        "website": "https://www.tataautocomp.com",
+        "contact": {
+            "note": "Contact via website - Tata Group JV"
+        },
+        "specialization": "OEM battery solutions for electric vehicles"
+    },
+    {
+        "company_name": "Trontek Electronics Pvt Ltd",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "New Delhi / Pune",
+        "product": "Lithium-ion Batteries",
+        "website": "https://trontekgroup.com",
+        "contact": {
+            "note": "Contact via website"
+        },
+        "specialization": "EV batteries, energy storage"
+    },
+    {
+        "company_name": "TDS Lithium-Ion Battery Gujarat Pvt Ltd (TDSG)",
+        "bis_reg_number": "BIS Certified (IS 16046) - JV of Toshiba, Denso, Suzuki",
+        "location": "Mandal, Gujarat",
+        "product": "Lithium-ion Batteries for Hybrid Vehicles",
+        "website": "https://www.tds-g.co.in",
+        "contact": {
+            "email": "grievance@tdsgj.co.in",
+            "phone": "+91 02715 665101"
+        },
+        "address": "Maruti Suzuki Supplier Park, Plot No. 1, 2 & 3, Hansalpur, Mandal, Ahmedabad- 382130",
+        "specialization": "Automotive lithium-ion batteries"
+    },
+    {
+        "company_name": "Micronix Group (Micronix Energy Pvt Ltd)",
+        "bis_reg_number": "BIS Certified (IS 16046)",
+        "location": "Bangalore, Karnataka",
+        "product": "Lithium-ion Batteries",
+        "website": "https://www.micronixgroup.com",
+        "contact": {
+            "email": "sales@micronixgroup.com",
+            "phone": "+91 8095004200"
+        },
+        "address": "No. 25, 19th Cross, Doddanna Industrial Estate, Peenya 2nd Stage, Bangalore 560091",
+        "specialization": "EV scooters, solar lighting, inverters, custom applications"
+    },
+    {
+        "company_name": "Batteryinc",
+        "bis_reg_number": "BIS Verified (IS 16046)",
+        "location": "Bangalore, Karnataka",
+        "product": "Lithium-ion Batteries",
+        "website": "https://batteryinc.in",
+        "contact": {
+            "email": "sales@batteryinc.in",
+            "note": "Contact via website"
+        },
+        "specialization": "Electric scooters, e-rickshaws, energy storage"
+    },
+    {
+        "company_name": "Bentork Industries LLP",
+        "bis_reg_number": "ISO Certified (ISO 9001:2015)",
+        "location": "Pune, Maharashtra",
+        "product": "Lithium-ion & LiFePO4 Battery Packs",
+        "website": "https://www.bentorkbatteries.com",
+        "contact": {
+            "note": "Contact via website / IndiaMART listing"
+        },
+        "address": "Sr No. 24/2 Jadhavrao Industrial Estate, Nanded City, Sinhgad Road, Pune-411041",
+        "specialization": "EV battery packs, solar energy storage"
+    },
+    {
+        "company_name": "Lithium India",
+        "bis_reg_number": "Registered Manufacturer",
+        "location": "Pune, Maharashtra",
+        "product": "EV & Lithium-ion Battery Packs",
+        "website": "https://lithiumindia.in",
+        "contact": {
+            "phone": "08043855270"
+        },
+        "address": "1st Floor, Office No. 106, B Wing, Opulent Central Park, Shewalewadi, Manjari, Pune - 412307",
+        "specialization": "Electric vehicle battery packs"
+    },
+    {
+        "company_name": "Accurate Ampere",
+        "bis_reg_number": "Registered Manufacturer",
+        "location": "Pune, Maharashtra",
+        "product": "Lithium-ion Batteries",
+        "website": "https://www.accurateampere.co.in",
+        "contact": {
+            "proprietor": "Hussain Khushnuma"
+        },
+        "address": "1st Floor, Khushnuma Building, Survey No. 42, Mithanagar, Kondhwa, Pune - 411048",
+        "specialization": "Lithium-ion batteries for various applications"
+    }
+]
