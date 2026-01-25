@@ -1,6 +1,6 @@
 "use client"
 
-import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink, FileCheck, Truck, AlertTriangle } from "lucide-react"
+import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink, FileCheck, Truck, AlertTriangle, Activity, Info } from "lucide-react"
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
@@ -33,11 +33,18 @@ function GlowCard({ children, className, glowColor = "emerald" }: { children: Re
 
 // Status badge with animated pulse
 function StatusBadge({ status }: { status: string }) {
-    const config = {
+    const configs: Record<string, { bg: string; ring: string; dot: string; text: string; label: string }> = {
+        MANUFACTURED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Manufactured" },
         ACTIVE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400", text: "text-emerald-400", label: "Active" },
+        SHIPPED: { bg: "bg-blue-500/20", ring: "ring-blue-500/50", dot: "bg-blue-400", text: "text-blue-400", label: "Shipped" },
+        IN_SERVICE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-400", label: "In Service" },
+        RETURN_REQUESTED: { bg: "bg-orange-500/20", ring: "ring-orange-500/50", dot: "bg-orange-400 animate-pulse", text: "text-orange-400", label: "Return Requested" },
+        RETURNED: { bg: "bg-amber-500/20", ring: "ring-amber-500/50", dot: "bg-amber-400", text: "text-amber-400", label: "Returned" },
         RECALLED: { bg: "bg-red-500/20", ring: "ring-red-500/50", dot: "bg-red-400 animate-pulse", text: "text-red-400", label: "Recalled" },
-        RECYCLED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Recycled" },
-    }[status] || { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400", text: "text-emerald-400", label: "Active" }
+        RECYCLED: { bg: "bg-purple-500/20", ring: "ring-purple-500/50", dot: "bg-purple-400", text: "text-purple-400", label: "Recycled" },
+    }
+
+    const config = configs[status] || configs.ACTIVE
 
     return (
         <motion.div
@@ -303,6 +310,58 @@ export function PassportView({ passport }: PassportViewProps) {
                             <SpecCard icon={Zap} label="Capacity" value={specs.capacity || "-"} color="emerald" />
                             <SpecCard icon={ThermometerSun} label="Voltage" value={specs.voltage || "-"} color="blue" />
                             <SpecCard icon={Weight} label="Weight" value={specs.weight || "-"} color="orange" />
+                        </div>
+
+                        {/* State of Health */}
+                        <div className="mt-4 p-4 rounded-xl bg-linear-to-br from-emerald-500/10 to-teal-500/10 border border-white/5">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-emerald-500/10">
+                                        <Activity className="h-5 w-5 text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">State of Health</div>
+                                        <div className="text-white font-semibold mt-0.5 flex items-center gap-2">
+                                            {(() => {
+                                                const soh = specs.state_of_health
+                                                const hasLiveTelemetry = specs.telemetry_source === "LIVE" || specs.has_bms_integration
+
+                                                // If SOH is 100, null, or undefined AND no live telemetry, show static EU compliance
+                                                if ((soh === null || soh === undefined || soh === 100) && !hasLiveTelemetry) {
+                                                    return (
+                                                        <>
+                                                            <span className="text-emerald-400">100%</span>
+                                                            <span className="text-xs text-slate-500">(Initial Rated Capacity)</span>
+                                                            <div className="group relative">
+                                                                <Info className="h-4 w-4 text-blue-400 cursor-help animate-pulse" />
+                                                                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 border border-blue-500/30 rounded-lg shadow-xl z-10">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Shield className="h-4 w-4 text-blue-400" />
+                                                                        <p className="text-xs font-semibold text-blue-400">EU Safe Harbor Declaration</p>
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-300 leading-relaxed">
+                                                                        Static declaration based on factory rating (Annex VII). Live telemetry not available. This passport contains manufacturing data only.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )
+                                                }
+
+                                                // Otherwise show actual SOH with percentage
+                                                return (
+                                                    <>
+                                                        <span className="text-emerald-400 text-xl">{soh}%</span>
+                                                        {hasLiveTelemetry && (
+                                                            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-medium">Live</span>
+                                                        )}
+                                                    </>
+                                                )
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Origin */}

@@ -55,6 +55,12 @@ interface Batch {
     market_region?: MarketRegion
     pli_compliant?: boolean
     total_passports?: number
+    // India compliance fields
+    domestic_value_add?: number
+    cell_source?: 'IMPORTED' | 'DOMESTIC'
+    hsn_code?: string
+    bill_of_entry_no?: string
+    country_of_origin?: string
 }
 
 export default function BatchesPage() {
@@ -243,19 +249,28 @@ export default function BatchesPage() {
 
                                         {/* Column 2: Market */}
                                         <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {batch.market_region === "INDIA" ? (
-                                                    <span className="text-xl" title="India">🇮🇳</span>
-                                                ) : batch.market_region === "EU" ? (
-                                                    <span className="text-xl" title="European Union">🇪🇺</span>
-                                                ) : (
-                                                    <Globe className="h-5 w-5 text-zinc-400" />
-                                                )}
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    {batch.market_region === "INDIA" ? (
+                                                        <span className="text-xl" title="India">🇮🇳</span>
+                                                    ) : batch.market_region === "EU" ? (
+                                                        <span className="text-xl" title="European Union">🇪🇺</span>
+                                                    ) : (
+                                                        <Globe className="h-5 w-5 text-zinc-400" />
+                                                    )}
 
-                                                {batch.pli_compliant && (
-                                                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 py-0 h-5 font-medium">
-                                                        PLI
-                                                    </Badge>
+                                                    {batch.pli_compliant && (
+                                                        <Badge variant="secondary" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 py-0 h-5 font-medium">
+                                                            PLI
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                {/* Show DVA for India batches */}
+                                                {batch.market_region === "INDIA" && batch.domestic_value_add !== undefined && (
+                                                    <span className={`text-[10px] font-medium ${batch.domestic_value_add >= 50 ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                                                        DVA: {batch.domestic_value_add.toFixed(1)}%
+                                                        {batch.cell_source && <span className="ml-1">({batch.cell_source === 'DOMESTIC' ? '🏭' : '📦'})</span>}
+                                                    </span>
                                                 )}
                                             </div>
                                         </TableCell>

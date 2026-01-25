@@ -26,8 +26,9 @@ func NewLifecycleService(repo *repository.Repository) *LifecycleService {
 type TransitionRequest struct {
 	PassportID uuid.UUID              `json:"passport_id"`
 	ToStatus   string                 `json:"to_status"`
-	Actor      string                 `json:"actor"`              // Who is making this change: user email, system, API key name
-	Metadata   map[string]interface{} `json:"metadata,omitempty"` // Additional context: "carrier": "FedEx", "mechanic": "John Doe"
+	Actor      string                 `json:"actor"`                // Who is making this change: user email, system, API key name
+	ActorRole  string                 `json:"actor_role,omitempty"` // Role: MANUFACTURER, LOGISTICS, TECHNICIAN, RECYCLER
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`   // Additional context: "carrier": "FedEx", "mechanic": "John Doe"
 }
 
 // TransitionResult contains the result of a status transition
@@ -53,7 +54,7 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 
 	previousStatus := passport.Status
 
-	// Validate transition
+	// Validate transition is allowed by state machine
 	if !models.IsValidTransition(previousStatus, req.ToStatus) {
 		allowed := models.GetAllowedTransitions(previousStatus)
 		return &TransitionResult{
@@ -61,6 +62,18 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 			PreviousStatus: previousStatus,
 			Error:          fmt.Sprintf("Invalid transition from %s to %s. Allowed: %v", previousStatus, req.ToStatus, allowed),
 		}, errors.New("invalid status transition")
+	}
+
+	// Validate role-based permission (if ActorRole is provided)
+	if req.ActorRole != "" && req.ActorRole != "MANUFACTURER" {
+		// Non-manufacturers must have specific permission for this transition
+		if !models.IsValidRoleTransition(req.ActorRole, previousStatus, req.ToStatus) {
+			return &TransitionResult{
+				Success:        false,
+				PreviousStatus: previousStatus,
+				Error:          fmt.Sprintf("Role %s is not permitted to transition from %s to %s", req.ActorRole, previousStatus, req.ToStatus),
+			}, errors.New("role not permitted for this transition")
+		}
 	}
 
 	// Set appropriate timestamp based on target status
@@ -197,6 +210,8 @@ func (s *LifecycleService) getEventTypeForStatus(status string) string {
 		return models.PassportEventInstalled
 	case models.PassportStatusReturned:
 		return models.PassportEventReturned
+	case models.PassportStatusReturnRequested:
+		return "RETURN_REQUESTED" // Should align with a constant, but string literal for now or add const
 	case models.PassportStatusRecalled:
 		return models.PassportEventRecalled
 	case models.PassportStatusRecycled:

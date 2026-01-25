@@ -121,6 +121,10 @@ export interface BatchSpec {
     warranty_months?: number;          // e.g., 24
     recycled_content_pct?: number;     // stored as literal: 15.5 = 15.5%
     hazardous_substances?: HazardousSubstances;
+
+    // India PLI Compliance Fields - Financial data for DVA calculation
+    sale_price_inr?: number;   // Sale price in INR for DVA calculation
+    import_cost_inr?: number;  // Import material cost in INR
 }
 
 export interface Batch {

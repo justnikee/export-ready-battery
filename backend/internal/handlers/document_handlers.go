@@ -176,3 +176,102 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s_certificate.pdf\"", documentType))
 	http.ServeFile(w, r, certPath)
 }
+
+// UploadLogo handles POST /api/v1/settings/upload-logo
+// Accepts multipart form with 'file' (PNG/JPEG image, max 2MB)
+func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
+	// Get tenant ID from context
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return
+	}
+
+	// Parse multipart form (max 2MB for images)
+	maxLogoSize := int64(2 << 20) // 2MB
+	if err := r.ParseMultipartForm(maxLogoSize); err != nil {
+		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 2MB")
+		return
+	}
+
+	// Get the uploaded file
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "No file uploaded. Use 'file' field in multipart form")
+		return
+	}
+	defer file.Close()
+
+	// Validate file size
+	if header.Size > maxLogoSize {
+		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 2MB")
+		return
+	}
+
+	// Validate file type (must be PNG or JPEG)
+	contentType := header.Header.Get("Content-Type")
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+
+	var allowedExt string
+	switch {
+	case contentType == "image/png" || ext == ".png":
+		allowedExt = ".png"
+	case contentType == "image/jpeg" || ext == ".jpg" || ext == ".jpeg":
+		allowedExt = ".jpg"
+	default:
+		respondError(w, http.StatusBadRequest, "Only PNG and JPEG images are allowed")
+		return
+	}
+
+	// Create uploads directory structure: ./uploads/{tenant_id}/
+	uploadDir := filepath.Join(".", "uploads", tenantID.String())
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		log.Printf("Failed to create upload directory: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to process upload")
+		return
+	}
+
+	// Save file as logo.{ext}
+	filename := fmt.Sprintf("logo%s", allowedExt)
+	filePath := filepath.Join(uploadDir, filename)
+
+	// Create destination file
+	dst, err := os.Create(filePath)
+	if err != nil {
+		log.Printf("Failed to create file: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to save file")
+		return
+	}
+	defer dst.Close()
+
+	// Copy file contents
+	if _, err := io.Copy(dst, file); err != nil {
+		log.Printf("Failed to write file: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to save file")
+		return
+	}
+
+	log.Printf("Saved logo for tenant %s at %s", tenantID, filePath)
+
+	// Generate the public URL for the logo
+	logoURL := fmt.Sprintf("/api/v1/uploads/%s/%s", tenantID.String(), filename)
+
+	// Update tenant record with logo URL
+	if err := h.repo.UpdateLogoURL(r.Context(), tenantID, logoURL); err != nil {
+		log.Printf("Failed to update tenant logo URL: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to update record")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":  true,
+		"logo_url": logoURL,
+		"message":  "Logo uploaded successfully",
+	})
+}

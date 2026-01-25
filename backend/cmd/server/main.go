@@ -60,11 +60,17 @@ func main() {
 	lifecycleService := services.NewLifecycleService(repo)
 	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService)
 
-	// Initialize magic link handler
-	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, cfg.JWTSecret, cfg.BaseURL)
+	// Initialize reward service
+	rewardService := services.NewRewardService(repo)
+
+	// Initialize magic link handler (with reward service for scan-to-earn)
+	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, cfg.JWTSecret, cfg.BaseURL)
 
 	// Initialize trusted partner handler
 	trustedPartnerHandler := handlers.NewTrustedPartnerHandler(repo)
+
+	// Initialize reward handler
+	rewardHandler := handlers.NewRewardHandler(rewardService, cfg.JWTSecret)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -160,6 +166,13 @@ func main() {
 	// ============================================
 	mux.Handle("POST /api/v1/settings/upload-document", authMiddleware.Protect(http.HandlerFunc(h.UploadDocument)))
 	mux.Handle("GET /api/v1/settings/documents/{type}", authMiddleware.Protect(http.HandlerFunc(h.ViewDocument)))
+	mux.Handle("POST /api/v1/settings/upload-logo", authMiddleware.Protect(http.HandlerFunc(h.UploadLogo)))
+
+	// ============================================
+	// STATIC UPLOADS (Public - for serving logos)
+	// ============================================
+	uploadsFS := http.FileServer(http.Dir("./uploads"))
+	mux.Handle("GET /api/v1/uploads/", http.StripPrefix("/api/v1/uploads/", uploadsFS))
 
 	// ============================================
 	// ADMIN ROUTES (Secret - for document verification)
@@ -200,6 +213,13 @@ func main() {
 	mux.Handle("POST /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreatePartnerCode)))
 	mux.Handle("GET /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListPartnerCodes)))
 	mux.Handle("DELETE /api/v1/partners/codes/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeactivatePartnerCode)))
+
+	// ============================================
+	// REWARDS/GAMIFICATION ROUTES (Magic Link Authenticated)
+	// ============================================
+	mux.HandleFunc("GET /api/v1/rewards/balance", rewardHandler.GetBalance)
+	mux.HandleFunc("GET /api/v1/rewards/leaderboard", rewardHandler.GetLeaderboard)
+	mux.HandleFunc("GET /api/v1/rewards/history", rewardHandler.GetHistory)
 
 	// ============================================
 	// EXTERNAL API (API Key Authenticated - ERP Integration)

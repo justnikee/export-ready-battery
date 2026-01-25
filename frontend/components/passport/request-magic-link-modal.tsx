@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
     Truck, Wrench, RotateCcw, Recycle, X,
     Mail, Loader2, CheckCircle, AlertCircle,
-    Key, ArrowRight
+    Key, ArrowRight, Package
 } from "lucide-react"
 
 interface RequestMagicLinkModalProps {
@@ -27,6 +27,13 @@ const ACTIONS = [
         icon: Wrench,
         color: "emerald",
         role: "TECHNICIAN"
+    },
+    {
+        status: "RETURN_REQUESTED",
+        label: "I'm requesting a return",
+        icon: Package,
+        color: "orange",
+        role: "CUSTOMER"
     },
     {
         status: "RETURNED",
@@ -200,13 +207,18 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                 )}
 
                                 {!showPartnerCode && !requiresCode && (
-                                    <button
-                                        onClick={() => setShowPartnerCode(true)}
-                                        className="text-slate-400 text-sm hover:text-white flex items-center gap-1"
-                                    >
-                                        <Key className="h-4 w-4" />
-                                        I have a partner code
-                                    </button>
+                                    <div className="pt-2 border-t border-slate-800">
+                                        <button
+                                            onClick={() => setShowPartnerCode(true)}
+                                            className="text-emerald-400 text-sm hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
+                                        >
+                                            <Key className="h-4 w-4" />
+                                            I have a partner access code
+                                        </button>
+                                        <p className="text-slate-600 text-xs mt-1 ml-6">
+                                            For mechanics, logistics, and recycling partners
+                                        </p>
+                                    </div>
                                 )}
 
                                 {error && (

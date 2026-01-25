@@ -19,15 +19,17 @@ import (
 type MagicLinkHandler struct {
 	repo             *repository.Repository
 	lifecycleService *services.LifecycleService
+	rewardService    *services.RewardService
 	jwtSecret        string
 	baseURL          string
 }
 
 // NewMagicLinkHandler creates a new magic link handler
-func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services.LifecycleService, jwtSecret, baseURL string) *MagicLinkHandler {
+func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, jwtSecret, baseURL string) *MagicLinkHandler {
 	return &MagicLinkHandler{
 		repo:             repo,
 		lifecycleService: lifecycleService,
+		rewardService:    rewardService,
 		jwtSecret:        jwtSecret,
 		baseURL:          baseURL,
 	}
@@ -244,6 +246,36 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		log.Printf("Warning: Failed to mark token as used: %v", err)
 	}
 
+	// ===== REWARD TRIGGER =====
+	// Award points based on the transition (non-blocking)
+	pointsAwarded := 0
+	if h.rewardService != nil {
+		var awardResult *services.AwardPointsResult
+		var awardErr error
+
+		switch req.ToStatus {
+		case models.PassportStatusInService:
+			// Installation = 50 points
+			awardResult, awardErr = h.rewardService.AwardInstallPoints(r.Context(), uuid.Nil, claims.Email, passportID)
+		case models.PassportStatusReturnRequested:
+			// Return request = 20 points
+			awardResult, awardErr = h.rewardService.AwardReturnPoints(r.Context(), uuid.Nil, claims.Email, passportID)
+		case models.PassportStatusRecycled:
+			// Recycling = 100 points
+			awardResult, awardErr = h.rewardService.AwardRecyclePoints(r.Context(), uuid.Nil, claims.Email, passportID)
+		}
+
+		if awardErr != nil {
+			// Log error but don't fail the transition
+			log.Printf("Warning: Failed to award points: %v", awardErr)
+		} else if awardResult != nil && awardResult.Success {
+			pointsAwarded = awardResult.PointsEarned
+			log.Printf("🏆 Awarded %d points to %s for %s (Total: %d, Level: %s)",
+				awardResult.PointsEarned, claims.Email, req.ToStatus,
+				awardResult.TotalPoints, awardResult.LoyaltyLevel)
+		}
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":         true,
 		"previous_status": result.PreviousStatus,
@@ -251,6 +283,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		"actor":           claims.Email,
 		"role":            claims.Role,
 		"event_id":        result.EventID,
+		"points_awarded":  pointsAwarded,
 	})
 }
 

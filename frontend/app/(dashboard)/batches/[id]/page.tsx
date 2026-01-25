@@ -375,8 +375,11 @@ export default function BatchDetailsPage() {
                                                 Domestic Value Add
                                             </dt>
                                             <dd className="font-bold text-2xl text-orange-400">
-                                                {batch.domestic_value_add ? `${batch.domestic_value_add}%` : 'N/A'}
+                                                {batch.domestic_value_add ? `${batch.domestic_value_add.toFixed(1)}%` : 'N/A'}
                                             </dd>
+                                            {batch.domestic_value_add >= 50 && (
+                                                <span className="text-xs text-emerald-400 mt-1 block">✓ PLI Eligible</span>
+                                            )}
                                         </div>
                                         <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
                                             <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
@@ -397,6 +400,12 @@ export default function BatchDetailsPage() {
                                             </dd>
                                         </div>
                                         <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">HSN Code</dt>
+                                            <dd className="font-mono text-lg text-white">
+                                                {batch.hsn_code || 'N/A'}
+                                            </dd>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
                                             <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">PLI Subsidy Eligible</dt>
                                             <dd className="font-semibold">
                                                 {batch.pli_compliant ? (
@@ -406,10 +415,27 @@ export default function BatchDetailsPage() {
                                                 )}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Serial Format</dt>
+                                        {/* Financial Data for DVA Calculation */}
+                                        {(batch.specs?.sale_price_inr || batch.specs?.import_cost_inr) && (
+                                            <>
+                                                <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                    <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Sale Price</dt>
+                                                    <dd className="font-semibold text-white">
+                                                        ₹{batch.specs.sale_price_inr?.toLocaleString('en-IN') || '0'}
+                                                    </dd>
+                                                </div>
+                                                <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                    <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Import Material Cost</dt>
+                                                    <dd className="font-semibold text-white">
+                                                        ₹{batch.specs.import_cost_inr?.toLocaleString('en-IN') || '0'}
+                                                    </dd>
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className="col-span-2 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Serial Format (BPAN)</dt>
                                             <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 rounded-lg border border-orange-500/20 inline-block">
-                                                IN-NKY-LFP-2026-XXXXX
+                                                IN-NKY-{batch.specs?.chemistry || 'LFP'}-2026-XXXXX
                                             </dd>
                                         </div>
                                     </dl>

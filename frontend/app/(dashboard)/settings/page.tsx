@@ -159,6 +159,90 @@ function DocumentUpload({
     )
 }
 
+// Logo Upload Component
+function LogoUpload({
+    currentLogoUrl,
+    onUploadSuccess
+}: {
+    currentLogoUrl: string
+    onUploadSuccess: (newUrl: string) => void
+}) {
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        const validTypes = ["image/png", "image/jpeg", "image/jpg"]
+        if (!validTypes.includes(file.type)) {
+            toast.error("Only PNG and JPEG images are allowed")
+            return
+        }
+
+        // Validate file size (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB")
+            return
+        }
+
+        setUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+
+            const response = await api.post("/settings/upload-logo", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            })
+
+            toast.success("Logo uploaded successfully")
+            onUploadSuccess(response.data.logo_url)
+        } catch (error: any) {
+            console.error("Upload failed:", error)
+            toast.error(error.response?.data?.error || "Failed to upload logo")
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleUpload}
+                className="hidden"
+                disabled={uploading}
+            />
+            <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600 transition-colors disabled:opacity-50"
+            >
+                {uploading ? (
+                    <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Uploading...
+                    </>
+                ) : (
+                    <>
+                        <Upload className="h-3 w-3" />
+                        {currentLogoUrl ? "Change Logo" : "Upload Logo"}
+                    </>
+                )}
+            </button>
+        </div>
+    )
+}
+
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth()
     const [loading, setLoading] = useState(false)
@@ -329,22 +413,42 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        {/* Logo URL */}
+                        {/* Logo Upload */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Logo URL
+                                Company Logo
                             </label>
-                            <div className="relative">
-                                <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-                                <input
-                                    type="url"
-                                    className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="https://acme.com/logo.png"
-                                    value={formData.logo_url}
-                                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                                />
+                            <div className="flex items-start gap-4">
+                                {/* Logo Preview */}
+                                <div className="h-20 w-20 rounded-lg border border-zinc-700 bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                                    {formData.logo_url ? (
+                                        <img
+                                            src={formData.logo_url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${formData.logo_url}` : formData.logo_url}
+                                            alt="Company logo"
+                                            className="h-full w-full object-contain"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div className={`flex flex-col items-center justify-center text-zinc-500 ${formData.logo_url ? 'hidden' : ''}`}>
+                                        <ImageIcon className="h-8 w-8" />
+                                    </div>
+                                </div>
+
+                                {/* Upload Controls */}
+                                <div className="flex-1 space-y-2">
+                                    <LogoUpload
+                                        currentLogoUrl={formData.logo_url}
+                                        onUploadSuccess={async (newUrl) => {
+                                            setFormData({ ...formData, logo_url: newUrl })
+                                            await refreshUser()
+                                        }}
+                                    />
+                                    <p className="text-xs text-zinc-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
+                                </div>
                             </div>
-                            <p className="text-xs text-zinc-500">Provide a direct link to your company logo (PNG or SVG recommended).</p>
                         </div>
 
                         {/* India Regulatory Details Section */}

@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import {
     Loader2, CheckCircle, AlertCircle, ArrowRight,
     Truck, Wrench, RotateCcw, Recycle, Shield,
-    User, Building2
+    User, Building2, Trophy, Package
 } from "lucide-react"
 
 interface PassportInfo {
@@ -34,6 +34,12 @@ const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; d
         icon: Wrench,
         color: "emerald",
         description: "Battery has been installed in a device or vehicle"
+    },
+    RETURN_REQUESTED: {
+        label: "Request Return",
+        icon: Package,
+        color: "orange",
+        description: "Flag this battery for warranty return or service"
     },
     RETURNED: {
         label: "Mark as Returned",
@@ -70,6 +76,8 @@ export default function PassportActionPage() {
     const [metadata, setMetadata] = useState<Record<string, string>>({})
     const [submitting, setSubmitting] = useState(false)
     const [success, setSuccess] = useState(false)
+    const [pointsAwarded, setPointsAwarded] = useState(0)
+    const [partnerCode, setPartnerCode] = useState("")
 
     useEffect(() => {
         if (!token) {
@@ -103,24 +111,43 @@ export default function PassportActionPage() {
     const handleTransition = async () => {
         if (!selectedStatus || !token) return
 
+        // Check if UNVERIFIED user needs partner code
+        if (info?.actor?.role === "UNVERIFIED" && !partnerCode.trim()) {
+            setError("Partner code is required for unverified accounts")
+            return
+        }
+
         setSubmitting(true)
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+
+            // Build payload with optional partner_code
+            const payload: any = {
+                to_status: selectedStatus,
+                metadata: metadata
+            }
+            if (partnerCode.trim()) {
+                payload.partner_code = partnerCode.trim()
+            }
+
             const response = await fetch(`${apiUrl}/passport/${passportId}/transition`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    to_status: selectedStatus,
-                    metadata: metadata
-                })
+                body: JSON.stringify(payload)
             })
 
+            const data = await response.json()
+
             if (!response.ok) {
-                const data = await response.json()
                 throw new Error(data.error || "Transition failed")
+            }
+
+            // Capture points awarded from response
+            if (data.points_awarded) {
+                setPointsAwarded(data.points_awarded)
             }
 
             setSuccess(true)
@@ -178,6 +205,17 @@ export default function PassportActionPage() {
     // Success state
     if (success) {
         const config = STATUS_CONFIG[selectedStatus || ""] || { color: "emerald", icon: CheckCircle }
+
+        // Trigger confetti
+        import('canvas-confetti').then((confetti) => {
+            confetti.default({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#10b981', '#3b82f6', '#f59e0b']
+            })
+        })
+
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
                 <motion.div
@@ -190,11 +228,30 @@ export default function PassportActionPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">Status Updated!</h2>
                     <p className="text-slate-400 mb-2">
-                        Battery status changed to <span className="text-emerald-400 font-semibold">{selectedStatus}</span>
+                        Battery status changed to <span className="text-emerald-400 font-semibold">{config.label}</span>
                     </p>
-                    <p className="text-slate-500 text-sm mb-6">
+                    <p className="text-slate-500 text-sm mb-4">
                         This action has been recorded to the audit trail.
                     </p>
+
+                    {/* Gamification Reward Display */}
+                    {pointsAwarded > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6"
+                        >
+                            <div className="flex items-center justify-center gap-3">
+                                <Trophy className="w-8 h-8 text-amber-500" />
+                                <div className="text-left">
+                                    <h3 className="font-bold text-amber-400 text-lg">Warranty Registered! +{pointsAwarded} Partner Points</h3>
+                                    <p className="text-sm text-amber-600/80">Battery Installed! Warranty Activated.</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     <button
                         onClick={() => router.push(`/p/${passportId}`)}
                         className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors"
@@ -288,8 +345,8 @@ export default function PassportActionPage() {
                                     key={status}
                                     onClick={() => setSelectedStatus(status)}
                                     className={`w-full p-4 rounded-xl border transition-all text-left ${isSelected
-                                            ? `bg-${config.color}-500/10 border-${config.color}-500/50`
-                                            : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                                        ? `bg-${config.color}-500/10 border-${config.color}-500/50`
+                                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -339,6 +396,16 @@ export default function PassportActionPage() {
                             />
                         )}
 
+                        {selectedStatus === "RETURN_REQUESTED" && (
+                            <input
+                                type="text"
+                                placeholder="Reason (e.g. Warranty, Defect, End of Life)"
+                                value={metadata.return_reason || ""}
+                                onChange={(e) => setMetadata({ ...metadata, return_reason: e.target.value })}
+                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                            />
+                        )}
+
                         {selectedStatus === "RETURNED" && (
                             <input
                                 type="text"
@@ -359,6 +426,23 @@ export default function PassportActionPage() {
                             />
                         )}
 
+                        {/* Partner Code Gate for UNVERIFIED users */}
+                        {info?.actor?.role === "UNVERIFIED" && (
+                            <div className="mt-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                                <p className="text-amber-400 text-sm mb-3 flex items-center gap-2">
+                                    <Shield className="h-4 w-4" />
+                                    Public email detected. Please enter your shop&apos;s partner code.
+                                </p>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Partner Access Code"
+                                    value={partnerCode}
+                                    onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
+                                    className="w-full px-4 py-3 bg-slate-800/50 border border-amber-500/30 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono uppercase"
+                                />
+                            </div>
+                        )}
+
                         <textarea
                             placeholder="Additional notes..."
                             value={metadata.notes || ""}
@@ -377,8 +461,8 @@ export default function PassportActionPage() {
                     onClick={handleTransition}
                     disabled={!selectedStatus || submitting}
                     className={`w-full py-4 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${selectedStatus
-                            ? "bg-emerald-600 hover:bg-emerald-500"
-                            : "bg-slate-800 cursor-not-allowed"
+                        ? "bg-emerald-600 hover:bg-emerald-500"
+                        : "bg-slate-800 cursor-not-allowed"
                         }`}
                 >
                     {submitting ? (

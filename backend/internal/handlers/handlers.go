@@ -12,12 +12,13 @@ import (
 
 // Handler holds dependencies for HTTP handlers
 type Handler struct {
-	repo            *repository.Repository
-	csvService      *services.CSVService
-	qrService       *services.QRService
-	geoService      *services.GeoIPService
-	pdfService      *services.PDFService
-	razorpayService *services.RazorpayService
+	repo              *repository.Repository
+	csvService        *services.CSVService
+	qrService         *services.QRService
+	geoService        *services.GeoIPService
+	pdfService        *services.PDFService
+	razorpayService   *services.RazorpayService
+	validationService *services.ValidationService // India compliance validation
 }
 
 // New creates a new Handler with the given database connection
@@ -28,12 +29,13 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 	}
 
 	return &Handler{
-		repo:            repository.New(database),
-		csvService:      services.NewCSVService(),
-		qrService:       services.NewQRService(baseURL),
-		geoService:      services.NewGeoIPService(geoDBPath),
-		pdfService:      services.NewPDFService(baseURL),
-		razorpayService: razorpayService,
+		repo:              repository.New(database),
+		csvService:        services.NewCSVService(),
+		qrService:         services.NewQRService(baseURL),
+		geoService:        services.NewGeoIPService(geoDBPath),
+		pdfService:        services.NewPDFService(baseURL),
+		razorpayService:   razorpayService,
+		validationService: services.NewValidationService(),
 	}
 }
 

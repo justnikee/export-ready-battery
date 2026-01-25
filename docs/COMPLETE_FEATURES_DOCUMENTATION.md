@@ -1,7 +1,7 @@
 # ExportReady-Battery: Complete Features Documentation
 
 > **Comprehensive Technical Reference**
-> *Version 2.0 | January 15, 2026*
+> *Version 3.0 | January 25, 2026*
 
 ---
 
@@ -13,10 +13,15 @@
 4. [UI Pages & Routes](#4-ui-pages--routes)
 5. [Dialogs & Popups](#5-dialogs--popups)
 6. [User Flows](#6-user-flows)
-7. [India Compliance (NEW)](#7-india-compliance-new)
-8. [DVA Calculator (NEW)](#8-dva-calculator-new)
-9. [Public Battery Passport](#9-public-battery-passport)
-10. [Dashboard Components](#10-dashboard-components)
+7. [India Compliance](#7-india-compliance)
+8. [DVA Calculator](#8-dva-calculator)
+9. [Quota System & Batch Activation](#9-quota-system--batch-activation)
+10. [Lifecycle Management](#10-lifecycle-management)
+11. [Magic Link Authentication](#11-magic-link-authentication)
+12. [Rewards & Gamification](#12-rewards--gamification)
+13. [Public Battery Passport](#13-public-battery-passport)
+14. [Developer API & API Keys](#14-developer-api--api-keys)
+15. [Dashboard Components](#15-dashboard-components)
 
 ---
 
@@ -188,7 +193,90 @@ graph TB
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| `GET` | `/api/v1/passport/{uuid}` | Get public passport data | ❌ |
+| `GET` | `/api/v1/passports/{uuid}` | Get public passport data | ❌ |
+
+---
+
+### 2.7 Lifecycle Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/v1/passports/{uuid}/transitions` | Get allowed status transitions | ✅ |
+| `POST` | `/api/v1/passports/{uuid}/transition` | Transition passport status | ✅ |
+| `POST` | `/api/v1/passports/bulk/transition` | Bulk status transition | ✅ |
+| `GET` | `/api/v1/passports/{uuid}/events` | Get passport audit trail | ✅ |
+
+#### Transition Request
+```json
+{
+  "to_status": "SHIPPED",
+  "metadata": {
+    "carrier": "FedEx",
+    "tracking": "1234567890"
+  }
+}
+```
+
+---
+
+### 2.8 Magic Link Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/api/v1/auth/magic-link` | Request magic link for lifecycle action | ❌ |
+| `GET` | `/api/v1/passport/{uuid}/action-info` | Get action info (with token) | Token |
+| `POST` | `/api/v1/passport/{uuid}/transition` | Complete transition via magic link | Token |
+
+#### Magic Link Request
+```json
+{
+  "passport_id": "uuid",
+  "email": "mechanic@company.com",
+  "role": "TECHNICIAN",
+  "partner_code": "INSTALL-2026"
+}
+```
+
+---
+
+### 2.9 Batch Activation Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `POST` | `/api/v1/batches/{id}/activate` | Activate batch (consumes quota) | ✅ |
+| `GET` | `/api/v1/batches/{id}/labels` | Download PDF labels (active only) | ✅ |
+
+---
+
+### 2.10 Partner Management Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/v1/partners/domains` | List trusted domains | ✅ |
+| `POST` | `/api/v1/partners/domains` | Add trusted domain | ✅ |
+| `DELETE` | `/api/v1/partners/domains/{id}` | Remove trusted domain | ✅ |
+| `GET` | `/api/v1/partners/codes` | List partner codes | ✅ |
+| `POST` | `/api/v1/partners/codes` | Generate partner code | ✅ |
+| `DELETE` | `/api/v1/partners/codes/{id}` | Revoke partner code | ✅ |
+
+---
+
+### 2.11 Developer API Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/v1/api-keys` | List API keys | ✅ |
+| `POST` | `/api/v1/api-keys` | Create API key | ✅ |
+| `DELETE` | `/api/v1/api-keys/{id}` | Revoke API key | ✅ |
+
+---
+
+### 2.12 Rewards Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/api/v1/rewards/leaderboard` | Get points leaderboard | ✅ |
+| `GET` | `/api/v1/rewards/balance` | Get user's reward balance | Token |
 
 ---
 
@@ -266,8 +354,16 @@ type Passport struct {
     BatchID         uuid.UUID
     SerialNumber    string     // Supports BPAN: IN-NKY-LFP-2026-00001
     ManufactureDate time.Time
-    Status          string     // ACTIVE, RECALLED, RECYCLED, END_OF_LIFE
+    Status          string     // CREATED, SHIPPED, IN_SERVICE, RETURN_REQUESTED, RETURNED, RECALLED, RECYCLED, END_OF_LIFE
     CreatedAt       time.Time
+    
+    // Lifecycle tracking
+    ShippedAt   *time.Time  // When battery left factory
+    InstalledAt *time.Time  // When installed in device
+    ReturnedAt  *time.Time  // When returned
+    
+    StateOfHealth float64    // 0-100%
+    OwnerID       *uuid.UUID // Current owner
 }
 ```
 
@@ -293,6 +389,73 @@ type Template struct {
     Name      string
     Specs     BatchSpec
     CreatedAt time.Time
+}
+```
+
+#### PassportEvent Model (Lifecycle Audit)
+```go
+type PassportEvent struct {
+    ID         uuid.UUID
+    PassportID uuid.UUID
+    EventType  string  // CREATED, SHIPPED, INSTALLED, RETURN_REQUESTED, RETURNED, RECALLED, RECYCLED
+    Actor      string  // Email of person who triggered
+    Metadata   map[string]interface{}
+    CreatedAt  time.Time
+}
+```
+
+#### TrustedDomain Model (Tier A Partners)
+```go
+type TrustedDomain struct {
+    ID          uuid.UUID
+    TenantID    uuid.UUID
+    Domain      string  // e.g., "tatamotors.com"
+    Role        string  // LOGISTICS, TECHNICIAN, RECYCLER
+    Description string
+    IsActive    bool
+    CreatedAt   time.Time
+}
+```
+
+#### PartnerCode Model (Tier B Access)
+```go
+type PartnerCode struct {
+    ID        uuid.UUID
+    TenantID  uuid.UUID
+    Code      string    // e.g., "INSTALL-2026"
+    Role      string
+    MaxUses   int
+    UsedCount int
+    ExpiresAt time.Time
+    IsActive  bool
+}
+```
+
+#### RewardLedger Model (Gamification)
+```go
+type RewardLedger struct {
+    ID             uuid.UUID
+    TenantID       uuid.UUID
+    RecipientEmail string
+    PassportUUID   *uuid.UUID
+    ActionType     string  // SCAN_INSTALL, SCAN_RECYCLE, SCAN_RETURN
+    PointsEarned   int
+    Metadata       map[string]interface{}
+    CreatedAt      time.Time
+}
+```
+
+#### APIKey Model
+```go
+type APIKey struct {
+    ID          uuid.UUID
+    TenantID    uuid.UUID
+    KeyPrefix   string    // e.g., "sk_live_abc123"
+    KeyHash     string    // Hashed secret
+    Description string
+    IsActive    bool
+    CreatedAt   time.Time
+    LastUsedAt  *time.Time
 }
 ```
 
@@ -544,7 +707,7 @@ flowchart TD
 
 ---
 
-## 7. India Compliance (NEW)
+## 7. India Compliance
 
 ### 7.1 Tenant-Level Fields
 
@@ -560,8 +723,9 @@ flowchart TD
 |-------|-------------|----------|
 | Market Region | INDIA / EU / GLOBAL | ✅ |
 | PLI Compliant | PLI subsidy eligibility | ❌ |
-| Domestic Value Add | % of local value | ❌ |
+| Domestic Value Add | % of local value (calculated server-side) | ❌ |
 | Cell Source | IMPORTED / DOMESTIC | ❌ |
+| HSN Code | Harmonized System code (e.g., `8507.60`) | ✅ (India) |
 | Bill of Entry No. | Customs entry number | ✅ (if Imported) |
 | Country of Origin | Source country | ✅ (if Imported) |
 | Customs Date | Clearance date | ✅ (if Imported) |
@@ -579,7 +743,7 @@ For India batches, the public passport shows:
 
 ---
 
-## 8. DVA Calculator (NEW)
+## 8. DVA Calculator
 
 ### 8.1 Purpose
 Help Indian battery manufacturers calculate their Domestic Value Addition (DVA) percentage for PLI scheme compliance.
@@ -589,24 +753,197 @@ Help Indian battery manufacturers calculate their Domestic Value Addition (DVA) 
 DVA = ((Sale Price - Imported Cost) / Sale Price) × 100
 ```
 
-### 8.3 Usage
-1. Open Create Batch dialog
-2. Select "India" as target market
-3. Click "Calculate" button next to DVA field
-4. Enter Ex-Factory Sale Price (₹)
-5. Enter Cost of Imported Materials (₹)
-6. View calculated DVA %
-7. Click "Apply to Batch"
+### 8.3 Server-Side Calculation
+DVA is now calculated server-side to prevent client tampering. The backend validates:
+- `sale_price_inr` and `import_cost_inr` in batch specs
+- Automatically computes DVA on batch creation
+- Enforces PLI eligibility rules (DVA ≥ 50% required for PLI claim)
 
-### 8.4 PLI Eligibility
-- **DVA ≥ 50%**: Eligible for PLI subsidy
-- **DVA < 50%**: Not eligible
+### 8.4 HSN Code Validation
+For India batches, HSN codes must follow format: `XXXX.XX` or `XXXXXXXX` (e.g., `8507.60`)
+
+### 8.5 PLI Eligibility
+- **DVA ≥ 50%**: Eligible for PLI subsidy ✅
+- **DVA < 50%**: Not eligible ❌
 
 ---
 
-## 9. Public Battery Passport
+## 9. Quota System & Batch Activation
 
-### 9.1 Dynamic Market-Based Rendering
+### 9.1 Overview
+Batches have three states: **DRAFT** → **ACTIVE** → **ARCHIVED**
+
+| Status | Description | Downloads |
+|--------|-------------|-----------|
+| `DRAFT` | Data entry mode, free | 🔒 Locked |
+| `ACTIVE` | Activated, consumes quota | ✅ Enabled |
+| `ARCHIVED` | No longer in use | ✅ Enabled |
+
+### 9.2 Activation Flow
+1. Create batch (starts as DRAFT)
+2. Upload CSV with serial numbers
+3. Click "Activate Batch"
+4. Quota deducted (1 quota per batch)
+5. QR codes and labels become downloadable
+
+### 9.3 Quota Balance
+Tenants have a `quota_balance` field. Each activation consumes 1 quota unit.
+- Initial quota: 5 (free tier)
+- Purchase more via billing page
+
+---
+
+## 10. Lifecycle Management
+
+### 10.1 Status States
+
+```mermaid
+stateDiagram-v2
+    [*] --> CREATED
+    CREATED --> SHIPPED
+    SHIPPED --> IN_SERVICE
+    SHIPPED --> RETURN_REQUESTED
+    SHIPPED --> RECALLED
+    IN_SERVICE --> RETURN_REQUESTED
+    IN_SERVICE --> RECALLED
+    IN_SERVICE --> RECYCLED
+    RETURN_REQUESTED --> RETURNED
+    RETURN_REQUESTED --> IN_SERVICE
+    RETURNED --> RECYCLED
+    RETURNED --> SHIPPED
+    RECALLED --> RECYCLED
+    RECYCLED --> END_OF_LIFE
+    END_OF_LIFE --> [*]
+```
+
+### 10.2 Valid Transitions
+
+| From Status | Allowed Transitions |
+|-------------|---------------------|
+| `CREATED` | SHIPPED |
+| `SHIPPED` | IN_SERVICE, RETURN_REQUESTED, RECALLED |
+| `IN_SERVICE` | RETURN_REQUESTED, RECALLED, RECYCLED |
+| `RETURN_REQUESTED` | RETURNED, IN_SERVICE |
+| `RETURNED` | RECYCLED, SHIPPED |
+| `RECALLED` | RECYCLED |
+| `RECYCLED` | END_OF_LIFE |
+
+### 10.3 Role-Based Permissions
+
+| Role | Allowed Transitions |
+|------|---------------------|
+| `MANUFACTURER` | CREATED→SHIPPED, RETURNED→RECYCLED/SHIPPED |
+| `LOGISTICS` | SHIPPED→IN_SERVICE |
+| `TECHNICIAN` | SHIPPED→IN_SERVICE, IN_SERVICE→RETURN_REQUESTED |
+| `RECYCLER` | Any→RECYCLED |
+
+### 10.4 Event Logging
+Every transition creates an immutable `PassportEvent`:
+```go
+type PassportEvent struct {
+    ID         uuid.UUID
+    PassportID uuid.UUID
+    EventType  string    // SHIPPED, INSTALLED, RETURN_REQUESTED, etc.
+    Actor      string    // Email of person who made change
+    Metadata   map[string]interface{}
+    CreatedAt  time.Time
+}
+```
+
+---
+
+## 11. Magic Link Authentication
+
+### 11.1 Purpose
+Allow external partners (mechanics, recyclers, logistics) to update battery status without full accounts.
+
+### 11.2 Tiered Verification
+
+```mermaid
+flowchart TD
+    A[User scans QR] --> B[Clicks Record Event]
+    B --> C[Enters email & role]
+    C --> D{Email domain known?}
+    D -->|Yes| E[Tier A: Auto-approve]
+    D -->|No| F{Has partner code?}
+    F -->|Yes| G[Tier B: Code-approve]
+    F -->|No| H[Rejected - Request code]
+    E --> I[Magic link sent]
+    G --> I
+    I --> J[User clicks link]
+    J --> K[Action page with token]
+    K --> L[Select new status]
+    L --> M[Confirm transition]
+    M --> N[🎉 Confetti + Points!]
+```
+
+### 11.3 Trusted Domains (Tier A)
+Pre-registered email domains that auto-approve:
+```json
+{
+  "domain": "tatamotors.com",
+  "role": "TECHNICIAN",
+  "description": "Tata Motors Fleet"
+}
+```
+
+### 11.4 Partner Codes (Tier B)
+One-time or limited-use codes for unknown emails:
+```json
+{
+  "code": "INSTALL-2026",
+  "role": "TECHNICIAN",
+  "max_uses": 100,
+  "expires_at": "2026-12-31"
+}
+```
+
+### 11.5 Public Action Page
+**Route:** `/p/[uuid]/action?token=...`
+
+Features:
+- Shows allowed transitions based on current status
+- Partner code input for unverified users
+- Metadata fields (VIN, tracking number, reason)
+- Confetti celebration on success 🎉
+- Points display for gamification
+
+---
+
+## 12. Rewards & Gamification
+
+### 12.1 Purpose
+Incentivize mechanics and partners to update battery lifecycle data.
+
+### 12.2 Points System
+
+| Action | Points |
+|--------|--------|
+| Install battery (`IN_SERVICE`) | +50 |
+| Return request (`RETURN_REQUESTED`) | +20 |
+| Recycle battery (`RECYCLED`) | +100 |
+
+### 12.3 Loyalty Levels
+
+| Level | Points Required |
+|-------|-----------------|
+| Level 1 - Starter | 0 |
+| Level 2 - Intermediate | 50 |
+| Level 3 - Advanced | 200 |
+| Level 4 - Senior | 500 |
+| Level 5 - Expert | 1000 |
+
+### 12.4 Leaderboard
+Dashboard shows top contributors by company with:
+- Total points
+- Install/Recycle/Return counts
+- Loyalty level badge
+
+---
+
+## 13. Public Battery Passport
+
+### 13.1 Dynamic Market-Based Rendering
 
 **File:** `frontend/components/passport/passport-view.tsx`
 
@@ -632,7 +969,7 @@ The passport view dynamically renders based on market region:
 - Standard specifications
 - Sustainability data
 
-### 9.2 UI Components
+### 13.2 UI Components
 
 | Component | Purpose |
 |-----------|---------|
@@ -649,9 +986,37 @@ The passport view dynamically renders based on market region:
 
 ---
 
-## 10. Dashboard Components
+## 14. Developer API & API Keys
 
-### 10.1 Component List
+### 14.1 Overview
+Tenants can create API keys for programmatic access to their data.
+
+### 14.2 Key Features
+- Multiple keys per tenant
+- Key prefix visible (`sk_...`), secret shown once
+- Revocation support
+- Usage tracking
+
+### 14.3 API Key Authentication
+```http
+Authorization: Bearer sk_live_xxxxxxxxxxxx
+```
+
+### 14.4 Developer Page
+**Route:** `/developer`
+
+Features:
+- Create new API keys with description
+- View key list with creation dates
+- Copy key to clipboard
+- Revoke keys
+- API documentation links
+
+---
+
+## 15. Dashboard Components
+
+### 15.1 Component List
 
 | Component | File | Purpose |
 |-----------|------|---------|
@@ -665,7 +1030,7 @@ The passport view dynamically renders based on market region:
 | Header | `header.tsx` | Top bar with user menu |
 | TopNav | `TopNav.tsx` | Navigation tabs |
 
-### 10.2 Dashboard Stats
+### 15.2 Dashboard Stats
 
 ```go
 type DashboardStats struct {
@@ -681,9 +1046,9 @@ type DashboardStats struct {
 
 ---
 
-## 11. Backend Services
+## 16. Backend Services
 
-### 11.1 Service Overview
+### 16.1 Service Overview
 
 | Service | File | Purpose |
 |---------|------|---------|
@@ -693,7 +1058,7 @@ type DashboardStats struct {
 | PDF Service | `pdf_service.go` | PDF label generation |
 | Geo Service | `geo_service.go` | IP geolocation for scans |
 
-### 11.2 Key Features
+### 16.2 Key Features
 
 **QR Service:**
 - 256x256 PNG QR codes
@@ -714,7 +1079,7 @@ type DashboardStats struct {
 
 ---
 
-## 12. Environment Variables
+## 17. Environment Variables
 
 ```env
 # Database
@@ -733,7 +1098,7 @@ QR_BASE_URL=https://your-domain.com
 
 ---
 
-## 13. Commands Reference
+## 18. Commands Reference
 
 ### Backend
 ```bash
@@ -754,5 +1119,6 @@ npm run start         # Production server
 
 ---
 
-*Document generated: January 15, 2026*
-*Version: 2.0*
+*Document generated: January 25, 2026*
+*Version: 3.0*
+

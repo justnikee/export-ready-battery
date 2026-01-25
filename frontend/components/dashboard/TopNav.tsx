@@ -23,7 +23,9 @@ export function TopNav() {
     const navItems = [
         { name: "Overview", href: "/dashboard" },
         { name: "Batches", href: "/batches" },
-        { name: "Analytics", href: "/analytics" },
+        { name: "Dispatch", href: "/dashboard/dispatch" },
+        { name: "Partners", href: "/partners" },
+        { name: "Rewards", href: "/rewards" },
         { name: "Billing", href: "/billing" },
         { name: "Settings", href: "/settings" },
     ]
