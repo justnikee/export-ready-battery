@@ -10,6 +10,7 @@ import (
 
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
+	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -71,6 +72,88 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// ===== SECURITY: FORCE OVERRIDES FOR IMPORTED CELLS =====
+		// Prevent API manipulation of PLI flags for imported battery cells
+		if req.CellSource == "IMPORTED" {
+			// Force all imported cells to be PLI ineligible
+			if req.PLICompliant {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced PLICompliant=false for IMPORTED cells (TenantID=%s, BatchName=%s)",
+					req.TenantID, req.BatchName)
+				req.PLICompliant = false
+			}
+
+			// Force DVA to zero for imports (no domestic value addition)
+			if req.DomesticValueAdd > 0 {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced DomesticValueAdd=0 for IMPORTED cells (was %.2f%%, TenantID=%s)",
+					req.DomesticValueAdd, req.TenantID)
+				req.DomesticValueAdd = 0
+			}
+
+			// Block audited DVA certificates for imported cells
+			if req.AuditedDomesticValueAdd != nil {
+				log.Printf("⚠️ SECURITY OVERRIDE: Blocked AuditedDVA upload for IMPORTED cells (TenantID=%s)", req.TenantID)
+				req.AuditedDomesticValueAdd = nil
+			}
+
+			// Force DVA source to ESTIMATED (no CA audits for imports)
+			if req.DVASource != "" && req.DVASource != services.DVASourceEstimated {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced DVASource=ESTIMATED for IMPORTED cells (was %s, TenantID=%s)",
+					req.DVASource, req.TenantID)
+			}
+			req.DVASource = services.DVASourceEstimated
+		}
+
+		// ===== SECURITY: STRICT PLI VALIDATION FOR DOMESTIC CELLS =====
+		// Enforce PLI scheme minimum DVA requirement
+		if req.CellSource == "DOMESTIC" && req.PLICompliant {
+			// PLI Scheme requires minimum 50% DVA
+			if req.DomesticValueAdd < 50 {
+				respondError(w, http.StatusBadRequest,
+					fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Current DVA: %.2f%%", req.DomesticValueAdd))
+				return
+			}
+			log.Printf("✅ PLI Eligibility Check Passed: DVA=%.2f%% (TenantID=%s)", req.DomesticValueAdd, req.TenantID)
+		}
+
+		// Validate DVA source
+		dvaSourceResult := h.validationService.ValidateDVASource(req.DVASource)
+		if !dvaSourceResult.Valid {
+			respondError(w, http.StatusBadRequest, dvaSourceResult.Message)
+			return
+		}
+
+		// Default to ESTIMATED if not provided
+		if req.DVASource == "" {
+			req.DVASource = services.DVASourceEstimated
+		}
+
+		// Calculate DVA based on source
+		var calculatedDVA float64
+		if req.DVASource == services.DVASourceAudited {
+			// AUDITED: Use provided audited value, skip calculation
+			if req.AuditedDomesticValueAdd != nil {
+				calculatedDVA = *req.AuditedDomesticValueAdd
+				req.DomesticValueAdd = calculatedDVA
+			} else {
+				respondError(w, http.StatusBadRequest, "Audited DVA mode requires audited_domestic_value_add value")
+				return
+			}
+			log.Printf("DVA AUDITED Mode: AuditedDVA=%.2f%%", calculatedDVA)
+		} else {
+			// ESTIMATED: Calculate DVA server-side from specs financial fields
+			// Never trust client-provided domestic_value_add to prevent PLI fraud
+			if req.Specs.SalePriceINR > 0 {
+				calculatedDVA = ((req.Specs.SalePriceINR - req.Specs.ImportCostINR) / req.Specs.SalePriceINR) * 100
+				if calculatedDVA < 0 {
+					calculatedDVA = 0
+				}
+			}
+			// Override any client-provided DVA with server-calculated value
+			req.DomesticValueAdd = calculatedDVA
+			log.Printf("DVA ESTIMATED Mode: SalePrice=%.2f, ImportCost=%.2f, Calculated DVA=%.2f%%",
+				req.Specs.SalePriceINR, req.Specs.ImportCostINR, calculatedDVA)
+		}
+
 		// India Mode + IMPORTED: Require customs declaration fields
 		if req.CellSource == "IMPORTED" {
 			if req.BillOfEntryNo == "" || req.CountryOfOrigin == "" {
@@ -78,14 +161,52 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 					"Imported batches must include Bill of Entry and Country of Origin per Customs regulations")
 				return
 			}
-			// Auto-set Domestic Value Add to 0 for imports
-			req.DomesticValueAdd = 0
+			// For pure imports with no local value add (ESTIMATED mode only)
+			if req.DVASource == services.DVASourceEstimated {
+				if req.Specs.SalePriceINR == 0 || req.Specs.ImportCostINR >= req.Specs.SalePriceINR {
+					req.DomesticValueAdd = 0
+				}
+			}
 		} else if req.CellSource == "DOMESTIC" {
 			// India Mode + DOMESTIC: Require value add > 0
 			if req.DomesticValueAdd <= 0 {
-				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%")
+				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%. Please enter Sale Price and Import Cost.")
 				return
 			}
+		}
+
+		// PLI Compliance Validation using validation service
+		if err := h.validationService.ValidatePLICompliance(req.DVASource, req.AuditedDomesticValueAdd, req.DomesticValueAdd, req.PLICompliant); err != nil {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	// Validate IEC Code format if provided (India: 10 digits)
+	tenantID := req.TenantID
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err == nil && tenant.IECCode != "" {
+		iecResult := h.validationService.ValidateIECCode(tenant.IECCode)
+		if !iecResult.Valid {
+			log.Printf("WARNING: Tenant %s has invalid IEC Code format: %s - %s",
+				tenant.CompanyName, tenant.IECCode, iecResult.Message)
+		}
+	}
+
+	// For IMPORTED cells, ensure tenant has valid IEC
+	if req.MarketRegion == models.MarketRegionIndia && req.CellSource == "IMPORTED" {
+		if err == nil && tenant.IECCode == "" {
+			respondError(w, http.StatusBadRequest, "IEC Code is required in Organization Settings for importing battery cells")
+			return
+		}
+	}
+
+	// Validate HSN Code for India market
+	if req.MarketRegion == models.MarketRegionIndia {
+		hsnResult := h.validationService.ValidateHSNCode(req.HSNCode)
+		if !hsnResult.Valid {
+			respondError(w, http.StatusBadRequest, hsnResult.Message)
+			return
 		}
 	}
 
@@ -105,17 +226,19 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
 
 	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:         req.TenantID,
-		BatchName:        req.BatchName,
-		Specs:            req.Specs,
-		MarketRegion:     req.MarketRegion,
-		PLICompliant:     req.PLICompliant,
-		DomesticValueAdd: req.DomesticValueAdd,
-		CellSource:       req.CellSource,
-		Materials:        req.Materials,
-		BillOfEntryNo:    req.BillOfEntryNo,
-		CountryOfOrigin:  req.CountryOfOrigin,
-		CustomsDate:      customsDate,
+		TenantID:          req.TenantID,
+		BatchName:         req.BatchName,
+		Specs:             req.Specs,
+		MarketRegion:      req.MarketRegion,
+		PLICompliant:      req.PLICompliant,
+		DomesticValueAdd:  req.DomesticValueAdd,
+		CellSource:        req.CellSource,
+		BillOfEntryNo:     req.BillOfEntryNo,
+		CountryOfOrigin:   req.CountryOfOrigin,
+		CustomsDate:       customsDate,
+		HSNCode:           req.HSNCode,
+		DVASource:         req.DVASource,
+		PLICertificateURL: req.PLICertificateURL,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
@@ -431,10 +554,10 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 		PLICompliant:     originalBatch.PLICompliant,
 		DomesticValueAdd: originalBatch.DomesticValueAdd,
 		CellSource:       originalBatch.CellSource,
-		Materials:        originalBatch.Materials,
 		BillOfEntryNo:    originalBatch.BillOfEntryNo,
 		CountryOfOrigin:  originalBatch.CountryOfOrigin,
 		CustomsDate:      originalBatch.CustomsDate,
+		HSNCode:          originalBatch.HSNCode,
 	})
 
 	if err != nil {

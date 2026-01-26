@@ -40,8 +40,8 @@ interface Transaction {
     created_at: string
 }
 
-
-const packages: Package[] = [
+// Default packages as fallback
+const defaultPackages: Package[] = [
     {
         id: "starter",
         title: "Starter License",
@@ -92,7 +92,6 @@ const packages: Package[] = [
             "API Access & Custom Integrations"
         ]
     }
-
 ]
 
 const faqs = [
@@ -110,15 +109,49 @@ const faqs = [
     }
 ]
 
+// Transform API response to frontend Package interface
+function transformApiPackage(apiPkg: any): Package {
+    return {
+        id: apiPkg.id,
+        title: apiPkg.name || apiPkg.title,
+        price: apiPkg.display_price || apiPkg.price,
+        batchCount: apiPkg.quota || apiPkg.batchCount,
+        pricePerBatch: apiPkg.price_per_batch || apiPkg.pricePerBatch,
+        quota_units: apiPkg.quota || apiPkg.quota_units,
+        description: apiPkg.description,
+        features: apiPkg.features || [],
+        isPopular: apiPkg.is_popular || apiPkg.isPopular,
+        isEnterprise: apiPkg.is_enterprise || apiPkg.isEnterprise
+    }
+}
+
 export default function BillingPage() {
     const { user, refreshUser } = useAuth()
     const [purchasing, setPurchasing] = useState<string | null>(null)
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [loadingTransactions, setLoadingTransactions] = useState(true)
+    const [packages, setPackages] = useState<Package[]>(defaultPackages)
+    const [loadingPackages, setLoadingPackages] = useState(true)
 
     useEffect(() => {
         fetchTransactions()
+        fetchPackages()
     }, [])
+
+    const fetchPackages = async () => {
+        try {
+            const response = await api.get("/billing/packages")
+            if (response.data.packages && response.data.packages.length > 0) {
+                const transformedPackages = response.data.packages.map(transformApiPackage)
+                setPackages(transformedPackages)
+            }
+        } catch (error) {
+            console.warn("Using default packages - API unavailable:", error)
+            // Keep using default packages
+        } finally {
+            setLoadingPackages(false)
+        }
+    }
 
     const fetchTransactions = async () => {
         try {
@@ -128,6 +161,7 @@ export default function BillingPage() {
             console.error("Failed to fetch transactions:", error)
         } finally {
             setLoadingTransactions(false)
+
         }
     }
 
@@ -218,14 +252,14 @@ export default function BillingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
-            <div className="max-w-7xl mx-auto space-y-12">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-10">
                 {/* Page Header */}
-                <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/50 p-8 md:p-12">
+                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 p-8 md:p-12">
                     <div className="absolute inset-0 bg-linear-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
                     <div className="relative z-10 max-w-2xl">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Production Capacity</h1>
-                        <p className="text-zinc-400 text-lg">
+                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">Production Capacity</h1>
+                        <p className="text-slate-400 text-lg">
                             Purchase licenses to activate batches and generate compliant labels.
                             Scale your manufacturing with our flexible quota system.
                         </p>
@@ -236,9 +270,9 @@ export default function BillingPage() {
                 <LiveBalanceBanner />
 
                 {/* Transaction History */}
-                <Card className="bg-zinc-900 border-zinc-800">
+                <Card className="bg-slate-900/50 border-slate-800">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider flex items-center gap-2">
                             <Receipt className="h-4 w-4" />
                             Transaction History
                         </CardTitle>
@@ -246,23 +280,23 @@ export default function BillingPage() {
                     <CardContent>
                         {loadingTransactions ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
                             </div>
                         ) : transactions.length === 0 ? (
-                            <div className="text-center py-8 text-zinc-500 text-sm">
+                            <div className="text-center py-8 text-slate-500 text-sm">
                                 No transactions yet. Purchase a license to get started.
                             </div>
                         ) : (
-                            <div className="divide-y divide-zinc-800">
+                            <div className="divide-y divide-slate-800">
                                 {transactions.slice(0, 10).map((tx) => (
                                     <div key={tx.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                                            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center">
                                                 {getTransactionIcon(tx.quota_change)}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-zinc-200">{tx.description}</p>
-                                                <p className="text-xs text-zinc-500">
+                                                <p className="text-sm font-medium text-slate-200">{tx.description}</p>
+                                                <p className="text-xs text-slate-500">
                                                     {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                                                 </p>
                                             </div>
@@ -294,18 +328,18 @@ export default function BillingPage() {
                 </div>
 
                 {/* FAQ Section */}
-                <div className="pt-12 border-t border-zinc-900">
+                <div className="pt-10 border-t border-slate-800">
                     <div className="max-w-3xl mx-auto">
                         <div className="text-center mb-10">
                             <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-2">
-                                <HelpCircle className="h-6 w-6 text-zinc-500" />
+                                <HelpCircle className="h-6 w-6 text-slate-500" />
                                 Frequently Asked Questions
                             </h2>
                         </div>
                         <Accordion className="w-full">
                             {faqs.map((faq, i) => (
                                 <AccordionItem key={i} value={`item-${i}`}>
-                                    <AccordionTrigger className="text-zinc-200">{faq.question}</AccordionTrigger>
+                                    <AccordionTrigger className="text-slate-200">{faq.question}</AccordionTrigger>
                                     <AccordionContent>
                                         {faq.answer}
                                     </AccordionContent>

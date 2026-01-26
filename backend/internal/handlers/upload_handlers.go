@@ -184,12 +184,36 @@ func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
 // DownloadSampleCSV handles GET /api/v1/sample-csv
 // Returns a sample CSV file for users to use as a template
 func (h *Handler) DownloadSampleCSV(w http.ResponseWriter, r *http.Request) {
-	sampleCSV := `serial_number,manufacture_date
-BAT-2026-001,2026-01-15
-BAT-2026-002,2026-01-15
-BAT-2026-003,2026-01-16
-BAT-2026-004,2026-01-16
-BAT-2026-005,2026-01-17`
+	// Get market_region from query param to provide appropriate sample
+	marketRegion := r.URL.Query().Get("market")
+
+	var sampleCSV string
+
+	if marketRegion == "INDIA" {
+		// India-specific sample with BPAN format and optional import fields
+		sampleCSV = `serial_number,manufacture_date,cell_source,bill_of_entry_no,country_of_origin,domestic_value_add
+IN-MFG-LFP-2026-00001,2026-01-15,DOMESTIC,,,65.5
+IN-MFG-LFP-2026-00002,2026-01-15,DOMESTIC,,,65.5
+IN-MFG-NMC-2026-00003,2026-01-16,IMPORTED,BOE-2026-1234,China,0
+IN-MFG-NMC-2026-00004,2026-01-16,IMPORTED,BOE-2026-1234,South Korea,0
+IN-MFG-LFP-2026-00005,2026-01-17,DOMESTIC,,,72.0`
+	} else if marketRegion == "EU" {
+		// EU-specific sample
+		sampleCSV = `serial_number,manufacture_date
+EU-BAT-2026-001,2026-01-15
+EU-BAT-2026-002,2026-01-15
+EU-BAT-2026-003,2026-01-16
+EU-BAT-2026-004,2026-01-16
+EU-BAT-2026-005,2026-01-17`
+	} else {
+		// Generic sample with all optional columns shown
+		sampleCSV = `serial_number,manufacture_date,cell_source,bill_of_entry_no,country_of_origin,domestic_value_add
+BAT-2026-001,2026-01-15,,,,
+BAT-2026-002,2026-01-15,,,,
+BAT-2026-003,2026-01-16,,,,
+BAT-2026-004,2026-01-16,,,,
+BAT-2026-005,2026-01-17,,,,`
+	}
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename=\"sample_passports.csv\"")

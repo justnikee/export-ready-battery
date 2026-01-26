@@ -23,7 +23,9 @@ export function TopNav() {
     const navItems = [
         { name: "Overview", href: "/dashboard" },
         { name: "Batches", href: "/batches" },
-        { name: "Analytics", href: "/analytics" },
+        { name: "Dispatch", href: "/dashboard/dispatch" },
+        { name: "Partners", href: "/partners" },
+        { name: "Rewards", href: "/rewards" },
         { name: "Billing", href: "/billing" },
         { name: "Settings", href: "/settings" },
     ]
@@ -36,11 +38,11 @@ export function TopNav() {
         : user?.email?.substring(0, 2).toUpperCase() || "U"
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950 text-zinc-100">
+        <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950">
             <div className="flex h-14 items-center justify-between px-6">
                 {/* Left: Logo */}
                 <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-                    <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center">
                         <Battery className="h-4 w-4 text-white" />
                     </div>
                     <span className="font-semibold text-white text-lg hidden sm:block">ExportReady</span>
@@ -59,8 +61,8 @@ export function TopNav() {
                                 className={clsx(
                                     "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                                     isActive
-                                        ? "bg-zinc-800 text-white"
-                                        : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                                        ? "text-white border-b-2 border-teal-500 rounded-none pb-4"
+                                        : "text-slate-400 hover:text-white pb-4"
                                 )}
                             >
                                 {item.name}
@@ -87,7 +89,7 @@ export function TopNav() {
                     {/* User Avatar Dropdown */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-zinc-800">
+                            <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-slate-800">
                                 <Avatar className="h-8 w-8 border border-zinc-700">
                                     <AvatarImage src={user?.logo_url} />
                                     <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs font-medium">
@@ -96,7 +98,7 @@ export function TopNav() {
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-zinc-900 border-zinc-800 text-zinc-100" align="end" forceMount>
+                        <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-100" align="end" forceMount>
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
                                     <p className="text-sm font-medium leading-none text-white">{user?.company_name || 'Account'}</p>

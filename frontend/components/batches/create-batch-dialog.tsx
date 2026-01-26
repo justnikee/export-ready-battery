@@ -16,8 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator } from "lucide-react"
-import { DVACalculator } from "./dva-calculator"
+import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator, Recycle, Shield, Activity, Users, FileCheck } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -71,14 +71,50 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // Form states - EU Specific
     const [carbonFootprint, setCarbonFootprint] = useState("")
     const [certifications, setCertifications] = useState<string[]>(["CE"])
+    // New EU Compliance Fields
+    const [materialComposition, setMaterialComposition] = useState({
+        cobalt: "",
+        lithium: "",
+        nickel: "",
+        manganese: "",
+        graphite: "",
+        lead: ""
+    })
+    const [recycledContent, setRecycledContent] = useState("")
+    const [hazardousSubstances, setHazardousSubstances] = useState({
+        lead: false,
+        mercury: false,
+        cadmium: false
+    })
+    const [euRepresentative, setEuRepresentative] = useState("")
+    const [euRepresentativeEmail, setEuRepresentativeEmail] = useState("")
+    const [expectedLifetime, setExpectedLifetime] = useState("")
+    const [warrantyMonths, setWarrantyMonths] = useState("")
 
     // Form states - India Specific
     const [pliCompliant, setPliCompliant] = useState(false)
-    const [domesticValueAdd, setDomesticValueAdd] = useState("")
-    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")    // Form states - India Import/Customs Declaration
+    // New Enterprise Fields for India
+    const [hsnCode, setHsnCode] = useState("")
+    const [salePrice, setSalePrice] = useState("")
+    const [importCost, setImportCost] = useState("")
+
+    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")
+    // Form states - India Import/Customs Declaration
     const [billOfEntryNo, setBillOfEntryNo] = useState("")
     const [cellCountryOfOrigin, setCellCountryOfOrigin] = useState("")
     const [customsDate, setCustomsDate] = useState("")
+
+    // DVA Audit Compliance
+    const [dvaSource, setDvaSource] = useState<"ESTIMATED" | "AUDITED">("ESTIMATED")
+    const [auditedDva, setAuditedDva] = useState("")
+
+    // File Upload State
+    const [uploadProgress, setUploadProgress] = useState(0)
+    const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
+    const [isUploading, setIsUploading] = useState(false)
+
+    // IEC Validation State
+    const [iecError, setIecError] = useState(false)
 
     // Fetch templates when dialog opens
     useEffect(() => {
@@ -86,6 +122,23 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             fetchTemplates()
         }
     }, [open, user])
+
+    // Auto-disable PLI and validate IEC for IMPORTED cells
+    useEffect(() => {
+        if (cellSource === "IMPORTED") {
+            // Auto-disable PLI compliance for imported cells
+            setPliCompliant(false)
+
+            // Check IEC code
+            if (!user?.iec_code) {
+                setIecError(true)
+            } else {
+                setIecError(false)
+            }
+        } else {
+            setIecError(false)
+        }
+    }, [cellSource, user?.iec_code])
 
     const fetchTemplates = async () => {
         if (!user) return
@@ -120,11 +173,71 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         }
     }
 
+    const handleCertificateUpload = async (file: File) => {
+        if (!user) return
+
+        setIsUploading(true)
+        setUploadProgress(0)
+
+        try {
+            // Generate unique file path
+            const timestamp = Date.now()
+            const sanitizedBatchName = batchName.replace(/[^a-zA-Z0-9-]/g, '_') || 'unnamed'
+            const filePath = `certificates/${user.tenant_id}/${sanitizedBatchName}_${timestamp}.pdf`
+
+            // Simulate progress (Supabase doesn't provide real-time progress)
+            setUploadProgress(30)
+
+            // Upload to Supabase Storage
+            const { data, error } = await supabase.storage
+                .from('compliance-docs')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false  // Prevent overwriting
+                })
+
+            if (error) throw error
+
+            setUploadProgress(70)
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('compliance-docs')
+                .getPublicUrl(filePath)
+
+            setUploadProgress(100)
+            setUploadedFileUrl(publicUrl)
+            toast.success('Certificate uploaded successfully')
+
+        } catch (error: any) {
+            console.error('Upload error:', error)
+            toast.error(error.message || 'Upload failed')
+        } finally {
+            setIsUploading(false)
+            setTimeout(() => setUploadProgress(0), 1000)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user) return
 
         // ===== DUAL-MODE VALIDATION =====
+
+        // India Mode: Cell Source is MANDATORY
+        if (marketRegion === "INDIA" && !cellSource) {
+            toast.error("Please specify Cell Source (Domestic/Imported) for India compliance")
+            return
+        }
+
+        // India Mode + IMPORTED: IEC Code is MANDATORY
+        if (marketRegion === "INDIA" && cellSource === "IMPORTED") {
+            if (!user.iec_code) {
+                toast.error("IEC Code is required for importing battery cells. Please add it in Organization Settings.")
+                return
+            }
+        }
+
         if (marketRegion === "EU" && !carbonFootprint) {
             toast.error("Carbon Footprint is required for EU exports")
             return
@@ -153,17 +266,72 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     manufacturer_address: manufacturerAddress,
                     manufacturer_email: manufacturerEmail,
                     weight,
-                    carbon_footprint: carbonFootprint,
                     country_of_origin: countryOfOrigin,
                     recyclable,
-                    certifications: marketRegion === "EU" ? certifications : undefined,
                 }
+            }
+
+            // Add EU specific fields
+            if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+                payload.specs.carbon_footprint = carbonFootprint
+                payload.specs.certifications = certifications
+
+                // Add new EU fields
+                payload.specs.material_composition = {
+                    cobalt_pct: parseFloat(materialComposition.cobalt) || 0,
+                    lithium_pct: parseFloat(materialComposition.lithium) || 0,
+                    nickel_pct: parseFloat(materialComposition.nickel) || 0,
+                    manganese_pct: parseFloat(materialComposition.manganese) || 0,
+                    graphite_pct: parseFloat((materialComposition as any).graphite) || 0,
+                    lead_pct: parseFloat(materialComposition.lead) || 0,
+                }
+
+                payload.specs.recycled_content_pct = parseFloat(recycledContent) || 0
+
+                payload.specs.hazardous_substances = {
+                    lead_present: hazardousSubstances.lead,
+                    mercury_present: hazardousSubstances.mercury,
+                    cadmium_present: hazardousSubstances.cadmium,
+                    declaration: "Compliant with Battery Regulation 2023/1542"
+                }
+
+                payload.specs.eu_representative = euRepresentative
+                payload.specs.eu_representative_email = euRepresentativeEmail
+                payload.specs.expected_lifetime_cycles = parseInt(expectedLifetime) || 0
+                payload.specs.warranty_months = parseInt(warrantyMonths) || 0
             }
 
             // Add India-specific fields
             if (marketRegion === "INDIA") {
+                // PLI Compliant flag
                 payload.pli_compliant = pliCompliant
-                payload.domestic_value_add = domesticValueAdd ? parseFloat(domesticValueAdd) : 0
+                payload.hsn_code = hsnCode
+                payload.dva_source = dvaSource
+
+                if (dvaSource === "AUDITED") {
+                    // Audited Mode - require certificate upload
+                    if (!uploadedFileUrl) {
+                        toast.error("Please upload the CA certificate before submitting")
+                        setIsLoading(false)
+                        return
+                    }
+
+                    const auditedVal = parseFloat(auditedDva) || 0
+                    payload.audited_domestic_value_add = auditedVal
+                    payload.pli_certificate_url = uploadedFileUrl
+                } else {
+                    // Estimated Mode (Legacy DVA)
+                    const sale = parseFloat(salePrice) || 0
+                    const cost = parseFloat(importCost) || 0
+                    // Add Financials to Specs (Backend JSONB)
+                    payload.specs.sale_price_inr = sale
+                    payload.specs.import_cost_inr = cost
+
+                    // We still send domestic_value_add but backend recalculates it for security in Estimated mode
+                    const calculatedDva = sale > 0 ? ((sale - cost) / sale * 100) : 0
+                    payload.domestic_value_add = Math.max(0, calculatedDva)
+                }
+
                 payload.cell_source = cellSource || undefined
                 // Customs declaration for imported cells
                 if (cellSource === "IMPORTED") {
@@ -213,7 +381,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setTemplateName("")
         setMarketRegion("GLOBAL")
         setPliCompliant(false)
-        setDomesticValueAdd("")
+        // Reset India Enterprise Fields
+        setHsnCode("")
+        setSalePrice("")
+        setImportCost("")
         setCellSource("")
         setCertifications(["CE"])
         setManufacturerAddress("")
@@ -222,6 +393,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setBillOfEntryNo("")
         setCellCountryOfOrigin("")
         setCustomsDate("")
+        // Reset Audit fields
+        setDvaSource("ESTIMATED")
+        setAuditedDva("")
+        setUploadedFileUrl(null)
+        setUploadProgress(0)
+        setIsUploading(false)
     }
 
     // Check if this is EU mode
@@ -280,8 +457,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     type="button"
                                     onClick={() => setMarketRegion("GLOBAL")}
                                     className={`p-3 rounded-lg border-2 text-center transition-all ${marketRegion === "GLOBAL"
-                                        ? "border-purple-500 bg-purple-500/10 text-purple-400"
-                                        : "border-zinc-700 hover:border-zinc-600 text-zinc-400"
+                                        ? "border-teal-500 bg-teal-500/10 text-teal-400"
+                                        : "border-slate-700 hover:border-slate-600 text-slate-400"
                                         }`}
                                 >
                                     <Globe className="h-5 w-5 mx-auto mb-1" />
@@ -302,7 +479,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     id="template"
                                     value={selectedTemplate}
                                     onChange={(e) => handleTemplateSelect(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                    className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                                 >
                                     <option value="">-- Select a template --</option>
                                     {templates.map((template) => (
@@ -327,7 +504,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         </div>
 
                         {/* Form fields with animation */}
-                        <div className={`space-y-6 transition-all duration-300 ${fieldsAnimating ? 'bg-purple-500/10 rounded-lg p-4 -m-4' : ''}`}>
+                        <div className={`space-y-6 transition-all duration-300 ${fieldsAnimating ? 'bg-teal-500/10 rounded-lg p-4 -m-4' : ''}`}>
                             {/* Row 2: Manufacturer & Chemistry */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
@@ -443,7 +620,126 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         />
                                     </div>
 
-                                    <div className="flex items-center space-x-2">
+                                    {/* Material Composition */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Activity className="h-3.5 w-3.5" />
+                                            Chemistry Breakdown (%)
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {["lithium", "cobalt", "graphite", "nickel", "manganese"].map((key) => (
+                                                <div key={key} className="grid gap-1">
+                                                    <Label htmlFor={key} className="text-xs capitalize text-zinc-400">{key} %</Label>
+                                                    <Input
+                                                        id={key}
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.1"
+                                                        value={(materialComposition as any)[key]}
+                                                        onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                        placeholder="0.0"
+                                                        className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Responsible Supply Chain */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Users className="h-3.5 w-3.5" />
+                                            Responsible Supply Chain
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="euRep" className="text-xs text-zinc-400">EU Representative</Label>
+                                                <Input
+                                                    id="euRep"
+                                                    value={euRepresentative}
+                                                    onChange={(e) => setEuRepresentative(e.target.value)}
+                                                    placeholder="Company Name"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="euRepEmail" className="text-xs text-zinc-400">Rep Email</Label>
+                                                <Input
+                                                    id="euRepEmail"
+                                                    value={euRepresentativeEmail}
+                                                    onChange={(e) => setEuRepresentativeEmail(e.target.value)}
+                                                    placeholder="email@eu-rep.com"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="recycled" className="text-xs text-zinc-400">Recycled Content (%)</Label>
+                                                <Input
+                                                    id="recycled"
+                                                    type="number"
+                                                    value={recycledContent}
+                                                    onChange={(e) => setRecycledContent(e.target.value)}
+                                                    placeholder="0.0"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Sustainability & Safety */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-blue-400 font-semibold text-xs border-b border-blue-500/20 pb-1">
+                                            <Shield className="h-3.5 w-3.5" />
+                                            Sustainability & Safety
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="lifecycle" className="text-xs text-zinc-400">Lifetime (Cycles)</Label>
+                                                <Input
+                                                    id="lifecycle"
+                                                    type="number"
+                                                    value={expectedLifetime}
+                                                    onChange={(e) => setExpectedLifetime(e.target.value)}
+                                                    placeholder="e.g. 1000"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="warranty" className="text-xs text-zinc-400">Warranty (Months)</Label>
+                                                <Input
+                                                    id="warranty"
+                                                    type="number"
+                                                    value={warrantyMonths}
+                                                    onChange={(e) => setWarrantyMonths(e.target.value)}
+                                                    placeholder="e.g. 24"
+                                                    className="h-8 text-xs bg-zinc-800 border-zinc-700"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-2 pt-1">
+                                            <Label className="text-xs text-zinc-400">Hazardous Substances (Check if present)</Label>
+                                            <div className="flex gap-4">
+                                                {Object.entries(hazardousSubstances).map(([key, checked]) => (
+                                                    <div key={key} className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`haz-${key}`}
+                                                            checked={checked}
+                                                            onChange={(e) => setHazardousSubstances(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                            className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
+                                                        />
+                                                        <Label htmlFor={`haz-${key}`} className="text-xs capitalize font-normal cursor-pointer text-zinc-300">
+                                                            {key}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 pt-2 border-t border-blue-500/20">
                                         <input
                                             type="checkbox"
                                             id="recyclable"
@@ -466,57 +762,294 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         India Compliance Fields
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <Label htmlFor="domesticValue" className="text-zinc-300">Domestic Value Add (%)</Label>
-                                                <DVACalculator
-                                                    onApply={(val) => setDomesticValueAdd(val.toString())}
-                                                    trigger={
-                                                        <button type="button" className="text-[10px] text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30">
-                                                            <Calculator className="h-3 w-3" />
-                                                            Calculate
-                                                        </button>
-                                                    }
-                                                />
+                                    {/* IEC ERROR BANNER for IMPORTED cells */}
+                                    {iecError && cellSource === "IMPORTED" && (
+                                        <div className="p-3 rounded-lg border-2 border-red-500/50 bg-red-500/20 space-y-2">
+                                            <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+                                                <Shield className="h-5 w-5" />
+                                                ⛔ IEC Code Required
                                             </div>
-                                            <Input
-                                                id="domesticValue"
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                value={domesticValueAdd}
-                                                onChange={(e) => setDomesticValueAdd(e.target.value)}
-                                                placeholder="e.g. 45"
-                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="cellSource" className="text-zinc-300">Cell Source</Label>
-                                            <select
-                                                id="cellSource"
-                                                value={cellSource}
-                                                onChange={(e) => setCellSource(e.target.value as any)}
-                                                className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
+                                            <p className="text-xs text-red-300">
+                                                Your Organization is missing an IEC Code. You cannot create IMPORTED batches until you add it in Settings.
+                                            </p>
+                                            <a
+                                                href="/settings"
+                                                target="_blank"
+                                                className="inline-block text-xs px-3 py-1.5 bg-red-500/30 text-red-200 rounded hover:bg-red-500/40 transition-colors font-medium"
                                             >
-                                                <option value="">-- Select --</option>
-                                                <option value="DOMESTIC">Domestic</option>
-                                                <option value="IMPORTED">Imported</option>
-                                            </select>
+                                                → Go to Organization Settings
+                                            </a>
                                         </div>
+                                    )}
+
+                                    {/* Compliance Details */}
+                                    <div className="grid gap-2 mb-4">
+                                        <Label htmlFor="hsnCode" className="text-zinc-300">HSN Code <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            id="hsnCode"
+                                            value={hsnCode}
+                                            onChange={(e) => setHsnCode(e.target.value)}
+                                            placeholder="e.g. 85076000"
+                                            className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                            maxLength={8}
+                                        />
+                                        <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
                                     </div>
 
-                                    <div className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id="pliCompliant"
-                                            checked={pliCompliant}
-                                            onChange={(e) => setPliCompliant(e.target.checked)}
-                                            className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500"
-                                        />
-                                        <Label htmlFor="pliCompliant" className="font-normal cursor-pointer text-zinc-300">
-                                            PLI Subsidy Eligible
+                                    {/* DVA Calculation Section - HIDE for IMPORTED cells */}
+                                    {cellSource !== "IMPORTED" && (
+                                        <>
+                                            {/* DVA Calculation Method Selection */}
+                                            <div className="flex items-center justify-between mb-4 bg-zinc-800/50 p-3 rounded-lg border border-zinc-700">
+                                                <Label htmlFor="auditedMode" className="cursor-pointer flex items-center gap-2">
+                                                    <Shield className={`h-4 w-4 ${dvaSource === "AUDITED" ? "text-emerald-400" : "text-zinc-400"}`} />
+                                                    <span>I have an Audited CA Certificate</span>
+                                                </Label>
+                                                <input
+                                                    type="checkbox"
+                                                    id="auditedMode"
+                                                    checked={dvaSource === "AUDITED"}
+                                                    onChange={(e) => setDvaSource(e.target.checked ? "AUDITED" : "ESTIMATED")}
+                                                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500"
+                                                />
+                                            </div>
+
+                                            {dvaSource === "AUDITED" ? (
+                                                // AUDITED Mode UI
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 space-y-2">
+                                                        <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
+                                                            <Shield className="h-4 w-4" />
+                                                            Audited Compliance Mode
+                                                        </div>
+                                                        <p className="text-xs text-emerald-300/80">
+                                                            Enter the final DVA percentage certified by your Chartered Accountant.
+                                                            This value overrides estimated calculations.
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="auditedDva" className="text-zinc-300">
+                                                            Audited DVA % <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            id="auditedDva"
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="0.1"
+                                                            value={auditedDva}
+                                                            onChange={(e) => setAuditedDva(e.target.value)}
+                                                            placeholder="e.g. 55.5"
+                                                            className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label className="text-zinc-300">Upload CA Certificate (PDF)</Label>
+
+                                                        {/* Upload Zone */}
+                                                        {!uploadedFileUrl ? (
+                                                            <div className="flex items-center justify-center w-full">
+                                                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading
+                                                                    ? 'border-emerald-500 bg-emerald-500/5'
+                                                                    : 'border-zinc-700 bg-zinc-800 hover:bg-zinc-700'
+                                                                    }`}>
+                                                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                                        {isUploading ? (
+                                                                            <>
+                                                                                <div className="w-full px-8 mb-3">
+                                                                                    <div className="w-full bg-zinc-700 rounded-full h-2">
+                                                                                        <div
+                                                                                            className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                                                                            style={{ width: `${uploadProgress}%` }}
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <p className="text-sm text-emerald-400">Uploading... ({uploadProgress}%)</p>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <FileText className="w-8 h-8 mb-3 text-zinc-400" />
+                                                                                <p className="text-sm text-zinc-400">
+                                                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                                                </p>
+                                                                                <p className="text-xs text-zinc-500">PDF only (MAX. 5MB)</p>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    <input
+                                                                        type="file"
+                                                                        className="hidden"
+                                                                        accept=".pdf"
+                                                                        disabled={isUploading}
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0]
+                                                                            if (file) {
+                                                                                if (file.size > 5242880) {
+                                                                                    toast.error('File size must be less than 5MB')
+                                                                                    return
+                                                                                }
+                                                                                if (file.type !== 'application/pdf') {
+                                                                                    toast.error('Only PDF files are allowed')
+                                                                                    return
+                                                                                }
+                                                                                handleCertificateUpload(file)
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        ) : (
+                                                            /* Uploaded State */
+                                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <FileCheck className="h-5 w-5 text-emerald-400" />
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-emerald-400">Certificate Uploaded</p>
+                                                                            <p className="text-xs text-emerald-300/70">Ready for submission</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <a
+                                                                            href={uploadedFileUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-xs px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
+                                                                        >
+                                                                            View File
+                                                                        </a>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setUploadedFileUrl(null)}
+                                                                            className="text-xs px-3 py-1 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition-colors"
+                                                                        >
+                                                                            Replace
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // ESTIMATED Mode UI (Original Calculator)
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                                                        <Calculator className="h-4 w-4 text-indigo-400" />
+                                                        Indicative DVA Estimator
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="salePrice" className="text-zinc-300">Sale Price (₹)</Label>
+                                                            <Input
+                                                                id="salePrice"
+                                                                type="number"
+                                                                min="0"
+                                                                value={salePrice}
+                                                                onChange={(e) => setSalePrice(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                            />
+                                                        </div>
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="importCost" className="text-zinc-300">Imp. Material Cost (₹)</Label>
+                                                            <Input
+                                                                id="importCost"
+                                                                type="number"
+                                                                min="0"
+                                                                value={importCost}
+                                                                onChange={(e) => setImportCost(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Calculated DVA Display */}
+                                                    {(salePrice && importCost) && (
+                                                        <div className="space-y-2">
+                                                            <div className={`p-3 rounded border text-center text-sm font-semibold ${((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50
+                                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                                                : "bg-red-500/10 border-red-500/30 text-red-400"
+                                                                }`}>
+                                                                Estimated DVA: {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100)).toFixed(1)}%
+                                                                <span className="ml-1 opacity-80">
+                                                                    {((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Legal Warning Banner */}
+                                                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-200/80 text-xs flex gap-2 items-start">
+                                                                <Activity className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                                                                <span>
+                                                                    <strong>Note:</strong> This is an estimated value based on raw material costs.
+                                                                    Final PLI eligibility requires certification by a Chartered Accountant.
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Cell Source Selection */}
+                                    <div className="grid gap-2 pt-2">
+                                        <Label htmlFor="cellSource" className="text-zinc-300">
+                                            Cell Source <span className="text-red-500">*</span>
                                         </Label>
+                                        <select
+                                            id="cellSource"
+                                            value={cellSource}
+                                            onChange={(e) => setCellSource(e.target.value as any)}
+                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
+                                                ? "border-red-500/50 bg-zinc-800"
+                                                : "border-zinc-700 bg-zinc-800"
+                                                }`}
+                                            required
+                                        >
+                                            <option value="">-- Select Cell Source --</option>
+                                            <option value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</option>
+                                            <option value="IMPORTED">📦 Imported (Requires IEC Code)</option>
+                                        </select>
+                                        <p className="text-[10px] text-zinc-500">
+                                            Required for India compliance. Determines customs and PLI eligibility.
+                                        </p>
+                                    </div>
+
+                                    {/* PLI Checkbox with Auto-Disable for IMPORTED */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="pliCompliant"
+                                                checked={pliCompliant}
+                                                onChange={(e) => setPliCompliant(e.target.checked)}
+                                                disabled={cellSource === "IMPORTED"}
+                                                className={`h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500 ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""
+                                                    }`}
+                                            />
+                                            <Label
+                                                htmlFor="pliCompliant"
+                                                className={`font-normal cursor-pointer text-zinc-300 ${cellSource === "IMPORTED" ? "opacity-50" : ""
+                                                    }`}
+                                            >
+                                                PLI Subsidy Eligible
+                                            </Label>
+                                        </div>
+
+                                        {/* Warning for IMPORTED cells */}
+                                        {cellSource === "IMPORTED" && (
+                                            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-amber-200/90 text-xs flex gap-2 items-start">
+                                                <Activity className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                                <span>
+                                                    ⚠️ Imported cells typically constitute &gt;60% of cost, making the batch ineligible for PLI (Requires ≥50% Local Value Add).
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Customs Declaration for Imported Cells */}
@@ -575,6 +1108,54 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     )}
                                 </div>
                             )}
+
+                            {/* ===== CHEMISTRY BREAKDOWN (Global) ===== */}
+                            <div className="p-4 rounded-lg border border-teal-500/30 bg-teal-500/10 space-y-4">
+                                <div className="flex items-center justify-between border-b border-teal-500/20 pb-2">
+                                    <div className="flex items-center gap-2 text-teal-400 font-semibold text-sm">
+                                        <Activity className="h-4 w-4" />
+                                        🧪 Material Composition (Chemistry Breakdown)
+                                    </div>
+                                    <div className={`text-xs font-mono font-bold ${Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0) > 100
+                                        ? "text-red-400"
+                                        : "text-teal-300"
+                                        }`}>
+                                        Total: {Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0).toFixed(1)}%
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-5 gap-2">
+                                    {[
+                                        { key: "lithium", label: "Lithium" },
+                                        { key: "graphite", label: "Graphite" },
+                                        { key: "cobalt", label: "Cobalt" },
+                                        { key: "nickel", label: "Nickel" },
+                                        { key: "manganese", label: "Manganese" }
+                                    ].map(({ key, label }) => (
+                                        <div key={key} className="grid gap-1">
+                                            <Label htmlFor={key} className="text-[10px] uppercase text-zinc-400 truncate" title={label}>
+                                                {label} %
+                                            </Label>
+                                            <Input
+                                                id={key}
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                                value={(materialComposition as any)[key]}
+                                                onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                placeholder="0.0"
+                                                className="h-8 text-xs bg-zinc-800 border-zinc-700 px-2"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                {Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0) > 100 && (
+                                    <p className="text-[10px] text-red-400 mt-1">
+                                        ⚠️ Total percentage cannot exceed 100%. Please adjust values.
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         {/* Save as Template Section */}
@@ -585,7 +1166,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     id="saveTemplate"
                                     checked={saveAsTemplate}
                                     onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-purple-500 focus:ring-purple-500"
+                                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-teal-500 focus:ring-teal-500"
                                 />
                                 <Label htmlFor="saveTemplate" className="font-normal cursor-pointer flex items-center gap-2 text-zinc-300">
                                     <Save className="h-4 w-4 text-zinc-500" />
@@ -605,12 +1186,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading || iecError}>
                             {isLoading ? "Creating..." : "Create Batch"}
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }

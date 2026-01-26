@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Source_Sans_3 } from "next/font/google";
 import "./globals.css";
+import "flag-icons/css/flag-icons.min.css";
 
-// Inter - Clean body font
-const inter = Inter({
+// Source Sans 3 - Clean, professional body font
+const sourceSans = Source_Sans_3({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-source-sans",
   display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 import { Providers } from "@/components/providers";
@@ -24,16 +26,25 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        {/* Mona Sans - GitHub's custom variable font for headings */}
+        {/* Lexend - Trust & Authority heading font */}
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <link
           rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@mona-sans/webfont@1.0.0/index.min.css"
+          href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
         />
         {/* Razorpay Checkout Script */}
         <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased`}
+        className={`${sourceSans.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

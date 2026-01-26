@@ -21,6 +21,7 @@ import {
 
 interface UploadCSVProps {
     batchId: string
+    marketRegion?: 'INDIA' | 'EU' | 'GLOBAL'
     onUploadComplete: () => void
 }
 
@@ -40,7 +41,7 @@ interface ValidationResult {
     ready_to_import: boolean
 }
 
-export function UploadCSV({ batchId, onUploadComplete }: UploadCSVProps) {
+export function UploadCSV({ batchId, marketRegion = 'GLOBAL', onUploadComplete }: UploadCSVProps) {
     // CSV Upload State
     const [file, setFile] = useState<File | null>(null)
     const [isValidating, setIsValidating] = useState(false)
@@ -49,9 +50,10 @@ export function UploadCSV({ batchId, onUploadComplete }: UploadCSVProps) {
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
     const [uploadResult, setUploadResult] = useState<any>(null)
 
-    // Auto-Generate State
+    // Auto-Generate State - Default prefix based on market region
+    const defaultPrefix = marketRegion === 'INDIA' ? 'IN-MFG-LFP-2026-' : marketRegion === 'EU' ? 'EU-BAT-2026-' : 'BAT-2026-'
     const [quantity, setQuantity] = useState("100")
-    const [prefix, setPrefix] = useState("BAT-2026-")
+    const [prefix, setPrefix] = useState(defaultPrefix)
     const [startNumber, setStartNumber] = useState("1")
     const [manufactureDate, setManufactureDate] = useState(new Date().toISOString().split('T')[0])
     const [isGenerating, setIsGenerating] = useState(false)
@@ -72,15 +74,16 @@ export function UploadCSV({ batchId, onUploadComplete }: UploadCSVProps) {
 
     const handleDownloadSample = async () => {
         try {
-            const response = await api.get('/sample-csv', { responseType: 'blob' })
+            // Pass market region to get appropriate sample format
+            const response = await api.get(`/sample-csv?market=${marketRegion}`, { responseType: 'blob' })
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const link = document.createElement('a')
             link.href = url
-            link.setAttribute('download', 'sample_passports.csv')
+            link.setAttribute('download', `sample_passports_${marketRegion.toLowerCase()}.csv`)
             document.body.appendChild(link)
             link.click()
             link.remove()
-            toast.success("Sample CSV downloaded")
+            toast.success(`Sample ${marketRegion} CSV downloaded`)
         } catch (error) {
             toast.error("Failed to download sample CSV")
         }
@@ -301,14 +304,14 @@ export function UploadCSV({ batchId, onUploadComplete }: UploadCSVProps) {
                                     <div className="max-h-40 overflow-y-auto bg-white rounded border text-sm mb-3">
                                         {validationResult.errors.map((err, i) => (
                                             <div key={`err-${i}`} className="flex items-center gap-2 p-2 border-b last:border-0">
-                                                <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                                <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
                                                 <span className="text-muted-foreground">Row {err.row}:</span>
                                                 <span>{err.message}</span>
                                             </div>
                                         ))}
                                         {validationResult.duplicates.map((dup, i) => (
                                             <div key={`dup-${i}`} className="flex items-center gap-2 p-2 border-b last:border-0">
-                                                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
                                                 <span className="text-muted-foreground">Duplicate:</span>
                                                 <span>{dup.serial_number} (exists in {dup.existing_batch})</span>
                                             </div>

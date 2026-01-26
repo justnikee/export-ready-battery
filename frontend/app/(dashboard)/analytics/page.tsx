@@ -109,7 +109,7 @@ export default function AnalyticsPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             </div>
         )
     }
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
                         </div>
                         Scan Analytics
                     </h1>
-                    <p className="text-zinc-400 mt-1">
+                    <p className="text-slate-400 mt-1">
                         Track QR code scans and passport verifications
                     </p>
                 </div>
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
                     onClick={() => fetchAnalytics(true)}
                     disabled={refreshing}
                     variant="outline"
-                    className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
                 >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                     Refresh
@@ -146,8 +146,8 @@ export default function AnalyticsPage() {
                     icon={<Activity className="h-5 w-5" />}
                     label="Total Scans"
                     value={data.totalScans}
-                    iconColor="text-purple-400"
-                    bgColor="bg-purple-600/20"
+                    iconColor="text-teal-400"
+                    bgColor="bg-teal-600/20"
                 />
                 <ScanStatsCard
                     icon={<BarChart3 className="h-5 w-5" />}
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
                 {/* Charts Column */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Country Chart */}
-                    <Card className="bg-zinc-900/50 border-zinc-800">
+                    <Card className="bg-slate-900/50 border-slate-800">
                         <CardHeader>
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Globe className="h-5 w-5 text-blue-400" />
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
                             {data.countryBreakdown.length > 0 ? (
                                 <CountryChart data={data.countryBreakdown} />
                             ) : (
-                                <div className="text-center py-8 text-zinc-500">
+                                <div className="text-center py-8 text-slate-500">
                                     No scan data available yet
                                 </div>
                             )}
@@ -196,7 +196,7 @@ export default function AnalyticsPage() {
                     </Card>
 
                     {/* Device Chart */}
-                    <Card className="bg-zinc-900/50 border-zinc-800">
+                    <Card className="bg-slate-900/50 border-slate-800">
                         <CardHeader>
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Smartphone className="h-5 w-5 text-orange-400" />
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
                             {data.deviceBreakdown.length > 0 ? (
                                 <DeviceChart data={data.deviceBreakdown} />
                             ) : (
-                                <div className="text-center py-8 text-zinc-500">
+                                <div className="text-center py-8 text-slate-500">
                                     No scan data available yet
                                 </div>
                             )}
@@ -217,7 +217,7 @@ export default function AnalyticsPage() {
 
                 {/* Live Feed Column */}
                 <div>
-                    <Card className="bg-zinc-900/50 border-zinc-800 h-full">
+                    <Card className="bg-slate-900/50 border-slate-800 h-full">
                         <CardHeader>
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Activity className="h-5 w-5 text-emerald-400" />

@@ -186,3 +186,13 @@ func (r *Repository) UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUI
 	}
 	return nil
 }
+
+// UpdateLogoURL updates the logo URL for a tenant
+func (r *Repository) UpdateLogoURL(ctx context.Context, tenantID uuid.UUID, logoURL string) error {
+	query := `UPDATE public.tenants SET logo_url = $2 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, logoURL)
+	if err != nil {
+		return fmt.Errorf("failed to update logo URL: %w", err)
+	}
+	return nil
+}

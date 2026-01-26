@@ -1,11 +1,4 @@
-serial_number,manufacture_date
-BAT-001,2026-01-10
-BAT-002,2026-01-10
-BAT-003,2026-01-10
-BAT-004,2026-01-10
-BAT-005,2026-01-10
-BAT-006,2026-01-09
-BAT-007,2026-01-09
-BAT-008,2026-01-08
-BAT-009,2026-01-08
-BAT-010,2026-01-07
+batch_name,description,chemistry,capacity_kwh,weight_kg,hsn_code,pli_compliant,sale_price_inr,import_cost_inr,lithium_pct,graphite_pct,cobalt_pct,nickel_pct,manganese_pct,warranty_months,cycle_life
+"IND-LFP-2026-A","Tata Tiago EV Pack (Standard)","LFP",19.2,220.5,"85076000","true",350000,120000,4.5,18.2,0.0,0.0,15.5,96,3000
+"IND-LFP-2026-B","Ola S1 Pro Battery Module","LFP",4.0,45.0,"85076000","true",65000,28000,4.2,17.8,0.0,0.0,16.0,60,2500
+"IND-NMC-2026-C","Export Grade High Performance","NMC",75.0,450.0,"85076000","false",1200000,800000,6.1,22.0,12.5,45.0,0.0,120,1500

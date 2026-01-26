@@ -67,12 +67,12 @@ export function RegisterForm() {
                     transition={{ delay: 0.1 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="company" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="company" className="text-slate-300 text-sm font-medium">
                         Company name
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Building2 className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Building2 className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="company"
@@ -80,7 +80,7 @@ export function RegisterForm() {
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
                             required
-                            className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                     </div>
                 </motion.div>
@@ -92,12 +92,12 @@ export function RegisterForm() {
                     transition={{ delay: 0.15 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="email" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="email" className="text-slate-300 text-sm font-medium">
                         Work email
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Mail className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="email"
@@ -106,7 +106,7 @@ export function RegisterForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                     </div>
                 </motion.div>
@@ -118,12 +118,12 @@ export function RegisterForm() {
                     transition={{ delay: 0.2 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="password" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
                         Password
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Lock className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="password"
@@ -132,12 +132,12 @@ export function RegisterForm() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             minLength={8}
-                            className="pl-10 pr-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 pr-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -155,9 +155,9 @@ export function RegisterForm() {
                                     {check.valid ? (
                                         <Check className="h-3 w-3 text-green-500" />
                                     ) : (
-                                        <X className="h-3 w-3 text-zinc-600" />
+                                        <X className="h-3 w-3 text-slate-600" />
                                     )}
-                                    <span className={check.valid ? "text-green-500" : "text-zinc-500"}>
+                                    <span className={check.valid ? "text-green-500" : "text-slate-500"}>
                                         {check.label}
                                     </span>
                                 </div>
@@ -176,7 +176,7 @@ export function RegisterForm() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full h-12 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all duration-200"
+                        className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
                     >
                         {isLoading ? (
                             <>
@@ -194,14 +194,14 @@ export function RegisterForm() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="text-xs text-center text-zinc-500"
+                    className="text-xs text-center text-slate-500"
                 >
                     By creating an account, you agree to our{" "}
-                    <a href="#" className="text-purple-400 hover:text-purple-300 transition-colors">
+                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
                         Terms of Service
                     </a>{" "}
                     and{" "}
-                    <a href="#" className="text-purple-400 hover:text-purple-300 transition-colors">
+                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
                         Privacy Policy
                     </a>
                 </motion.p>

@@ -10,6 +10,8 @@ import api from "@/lib/api"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import Link from "next/link"
+
 
 export function LoginForm() {
     const [email, setEmail] = useState("")
@@ -58,12 +60,12 @@ export function LoginForm() {
                     transition={{ delay: 0.1 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="email" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="email" className="text-slate-300 text-sm font-medium">
                         Email address
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Mail className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="email"
@@ -72,7 +74,7 @@ export function LoginForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                     </div>
                 </motion.div>
@@ -85,19 +87,19 @@ export function LoginForm() {
                     className="space-y-2"
                 >
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="password" className="text-zinc-300 text-sm font-medium">
+                        <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
                             Password
                         </Label>
-                        <button
-                            type="button"
-                            className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                        <Link
+                            href="/forgot-password"
+                            className="text-xs text-teal-400 hover:text-teal-300 transition-colors"
                         >
                             Forgot password?
-                        </button>
+                        </Link>
                     </div>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Lock className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="password"
@@ -105,12 +107,12 @@ export function LoginForm() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="pl-10 pr-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 pr-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -126,7 +128,7 @@ export function LoginForm() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full h-12 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all duration-200"
+                        className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
                     >
                         {isLoading ? (
                             <>
@@ -142,10 +144,10 @@ export function LoginForm() {
                 {/* Divider */}
                 <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-zinc-800" />
+                        <div className="w-full border-t border-slate-800" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-black px-2 text-zinc-500">or continue with</span>
+                        <span className="bg-[#0F172A] px-2 text-slate-500">or continue with</span>
                     </div>
                 </div>
 
@@ -159,7 +161,7 @@ export function LoginForm() {
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-11 bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all"
+                        className="h-11 bg-slate-900/50 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
                         disabled
                     >
                         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -185,7 +187,7 @@ export function LoginForm() {
                     <Button
                         type="button"
                         variant="outline"
-                        className="h-11 bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all"
+                        className="h-11 bg-slate-900/50 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
                         disabled
                     >
                         <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">

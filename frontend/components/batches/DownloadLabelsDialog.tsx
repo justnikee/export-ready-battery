@@ -45,22 +45,22 @@ export function DownloadLabelsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] bg-zinc-900 border-zinc-800 text-zinc-100">
+            <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800 text-slate-100">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-white">
-                        <Printer className="h-5 w-5 text-purple-400" />
+                        <Printer className="h-5 w-5 text-teal-400" />
                         Download PDF Labels
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-slate-400">
                         Generate printable label sheets for batch "{batchName}"
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
                     {/* Label Preview */}
-                    <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-                        <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center gap-2">
-                            <Grid3X3 className="h-4 w-4 text-zinc-500" />
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                        <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                            <Grid3X3 className="h-4 w-4 text-slate-500" />
                             Label Format Preview
                         </h4>
 
@@ -78,40 +78,40 @@ export function DownloadLabelsDialog({
                             </div>
                         </div>
 
-                        <p className="text-center text-xs text-zinc-500 mt-2">
+                        <p className="text-center text-xs text-slate-500 mt-2">
                             3 × 7 grid layout per A4 page
                         </p>
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-3 gap-4">
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                             <p className="text-2xl font-bold text-white">
                                 {passportCount.toLocaleString()}
                             </p>
-                            <p className="text-xs text-zinc-500">Total Labels</p>
+                            <p className="text-xs text-slate-500">Total Labels</p>
                         </div>
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
-                            <p className="text-2xl font-bold text-purple-400">
+                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                            <p className="text-2xl font-bold text-teal-400">
                                 {totalPages}
                             </p>
-                            <p className="text-xs text-zinc-500">Pages</p>
+                            <p className="text-xs text-slate-500">Pages</p>
                         </div>
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
-                            <p className="text-2xl font-bold text-zinc-300">
+                        <div className="text-center p-3 bg-slate-800/50 rounded-lg">
+                            <p className="text-2xl font-bold text-slate-300">
                                 A4
                             </p>
-                            <p className="text-xs text-zinc-500">Paper Size</p>
+                            <p className="text-xs text-slate-500">Paper Size</p>
                         </div>
                     </div>
 
                     {/* Label Content Info */}
-                    <div className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-800">
-                        <h4 className="text-sm font-medium text-zinc-300 mb-2 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-zinc-500" />
+                    <div className="bg-slate-800/30 rounded-lg p-3 border border-slate-800">
+                        <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-slate-500" />
                             Each Label Contains
                         </h4>
-                        <ul className="text-xs text-zinc-400 space-y-1 ml-6 list-disc">
+                        <ul className="text-xs text-slate-400 space-y-1 ml-6 list-disc">
                             <li>QR Code (links to digital passport)</li>
                             <li>Batch name: {batchName}</li>
                             <li>Serial number</li>
@@ -124,14 +124,14 @@ export function DownloadLabelsDialog({
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="text-zinc-400 hover:text-white"
+                        className="text-slate-400 hover:text-white"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleDownload}
                         disabled={isDownloading || passportCount === 0}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className="bg-teal-600 hover:bg-teal-700"
                     >
                         {isDownloading ? (
                             <>

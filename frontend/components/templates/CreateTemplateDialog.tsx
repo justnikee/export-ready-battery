@@ -93,13 +93,13 @@ export function CreateTemplateDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[550px] bg-zinc-900 border-zinc-800 text-zinc-100">
+            <DialogContent className="sm:max-w-[550px] bg-slate-900 border-slate-800 text-slate-100">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-white">
-                        <Sparkles className="h-5 w-5 text-purple-400" />
+                        <Sparkles className="h-5 w-5 text-teal-400" />
                         Create New Template
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-slate-400">
                         Save battery specifications as a reusable template for faster batch creation.
                     </DialogDescription>
                 </DialogHeader>
@@ -108,7 +108,7 @@ export function CreateTemplateDialog({
                     <div className="grid gap-5 py-4">
                         {/* Template Name */}
                         <div className="grid gap-2">
-                            <Label htmlFor="name" className="text-zinc-300">
+                            <Label htmlFor="name" className="text-slate-300">
                                 Template Name <span className="text-red-400">*</span>
                             </Label>
                             <Input
@@ -116,7 +116,7 @@ export function CreateTemplateDialog({
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g., E-Bike Standard Pack"
-                                className="bg-zinc-800 border-zinc-700 text-white"
+                                className="bg-slate-800 border-slate-700 text-white"
                                 required
                             />
                         </div>
@@ -124,7 +124,7 @@ export function CreateTemplateDialog({
                         {/* Chemistry & Voltage */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="chemistry" className="text-zinc-300">
+                                <Label htmlFor="chemistry" className="text-slate-300">
                                     Chemistry
                                 </Label>
                                 <Input
@@ -132,7 +132,7 @@ export function CreateTemplateDialog({
                                     value={chemistry}
                                     onChange={(e) => setChemistry(e.target.value)}
                                     placeholder="e.g., Li-ion NMC"
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-slate-800 border-slate-700 text-white"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -144,7 +144,7 @@ export function CreateTemplateDialog({
                                     value={voltage}
                                     onChange={(e) => setVoltage(e.target.value)}
                                     placeholder="e.g., 48V"
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-slate-800 border-slate-700 text-white"
                                 />
                             </div>
                         </div>
@@ -229,7 +229,7 @@ export function CreateTemplateDialog({
                                         id="recyclable"
                                         checked={recyclable}
                                         onChange={(e) => setRecyclable(e.target.checked)}
-                                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-purple-600 focus:ring-purple-500"
+                                        className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-teal-600 focus:ring-teal-500"
                                     />
                                     <Label htmlFor="recyclable" className="text-zinc-300 cursor-pointer">
                                         Recyclable materials
@@ -244,14 +244,14 @@ export function CreateTemplateDialog({
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="text-zinc-400 hover:text-white"
+                            className="text-slate-400 hover:text-white"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-purple-600 hover:bg-purple-700"
+                            className="bg-teal-600 hover:bg-teal-700"
                         >
                             {isLoading ? "Creating..." : "Create Template"}
                         </Button>

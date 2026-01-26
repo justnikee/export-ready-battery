@@ -155,11 +155,3 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 		"quota_balance": newBalance,
 	})
 }
-
-// GetPackages handles GET /api/v1/billing/packages
-func (h *Handler) GetPackages(w http.ResponseWriter, r *http.Request) {
-	packages := services.GetAllPackages()
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"packages": packages,
-	})
-}

@@ -24,17 +24,17 @@ const steps = [
         icon: Printer,
         title: "Print Labels",
         description: "Download sticker-ready PDF sheets (3x7) or separate QR codes instantly.",
-        color: "text-purple-400",
-        bgColor: "bg-purple-500/10",
-        borderColor: "border-purple-500/30"
+        color: "text-teal-400",
+        bgColor: "bg-teal-500/10",
+        borderColor: "border-teal-500/30"
     }
 ]
 
 export function HowItWorks() {
     return (
-        <section className="py-24 bg-zinc-900/50 relative overflow-hidden">
+        <section className="py-24 bg-slate-900/50 relative overflow-hidden">
             {/* Background gradient */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-3xl" />
 
             <div className="container mx-auto px-4 relative">
                 <motion.div
@@ -46,7 +46,7 @@ export function HowItWorks() {
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                         Compliance in 3 Simple Steps
                     </h2>
-                    <p className="text-zinc-500 max-w-xl mx-auto">
+                    <p className="text-slate-500 max-w-xl mx-auto">
                         From spreadsheet to sticker in less than 2 minutes.
                     </p>
                 </motion.div>
@@ -77,7 +77,7 @@ export function HowItWorks() {
                                     </div>
 
                                     <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-                                    <p className="text-zinc-500 text-sm leading-relaxed">{step.description}</p>
+                                    <p className="text-slate-500 text-sm leading-relaxed">{step.description}</p>
 
                                     {/* Arrow between steps */}
                                     {/* {i < steps.length - 1 && (

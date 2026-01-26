@@ -117,7 +117,7 @@ function DocumentUpload({
                     <button
                         type="button"
                         onClick={handleViewDocument}
-                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                        className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
                     >
                         <ExternalLink className="h-3 w-3" />
                         View
@@ -140,7 +140,7 @@ function DocumentUpload({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:border-zinc-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50"
                 >
                     {uploading ? (
                         <>
@@ -155,6 +155,90 @@ function DocumentUpload({
                     )}
                 </button>
             )}
+        </div>
+    )
+}
+
+// Logo Upload Component
+function LogoUpload({
+    currentLogoUrl,
+    onUploadSuccess
+}: {
+    currentLogoUrl: string
+    onUploadSuccess: (newUrl: string) => void
+}) {
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        const validTypes = ["image/png", "image/jpeg", "image/jpg"]
+        if (!validTypes.includes(file.type)) {
+            toast.error("Only PNG and JPEG images are allowed")
+            return
+        }
+
+        // Validate file size (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB")
+            return
+        }
+
+        setUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append("file", file)
+
+            const response = await api.post("/settings/upload-logo", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            })
+
+            toast.success("Logo uploaded successfully")
+            onUploadSuccess(response.data.logo_url)
+        } catch (error: any) {
+            console.error("Upload failed:", error)
+            toast.error(error.response?.data?.error || "Failed to upload logo")
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleUpload}
+                className="hidden"
+                disabled={uploading}
+            />
+            <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50"
+            >
+                {uploading ? (
+                    <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Uploading...
+                    </>
+                ) : (
+                    <>
+                        <Upload className="h-3 w-3" />
+                        {currentLogoUrl ? "Change Logo" : "Upload Logo"}
+                    </>
+                )}
+            </button>
         </div>
     )
 }
@@ -232,23 +316,23 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+        <div className="min-h-screen bg-[#0F172A] text-slate-100 p-8 font-sans">
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Page Header */}
-                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-purple-900/20 via-zinc-900 to-zinc-900 p-6">
+                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-linear-to-r from-teal-900/20 via-slate-900 to-slate-900 p-6">
                     <div className="relative z-10">
                         <h1 className="text-3xl font-bold text-white">Organization Settings</h1>
-                        <p className="text-zinc-400 mt-1">Manage your company profile and compliance documents</p>
+                        <p className="text-slate-400 mt-1">Manage your company profile and compliance documents</p>
                     </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
 
                 {/* Company Profile Card */}
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur overflow-hidden">
-                    <div className="border-b border-zinc-800 bg-zinc-900 px-6 py-4">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur overflow-hidden">
+                    <div className="border-b border-slate-800 bg-slate-900 px-6 py-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-purple-500/10">
-                                <Building2 className="h-5 w-5 text-purple-400" />
+                            <div className="p-2 rounded-lg bg-teal-500/10">
+                                <Building2 className="h-5 w-5 text-teal-400" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-white">Company Profile</h2>
@@ -267,7 +351,7 @@ export default function SettingsPage() {
                                 <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Acme Battery Co."
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -284,7 +368,7 @@ export default function SettingsPage() {
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
                                 <textarea
-                                    className="flex min-h-[80px] w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 pl-9 text-sm text-zinc-100 shadow-sm placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 pl-9 text-sm text-slate-100 shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="123 Industrial Park, Energy City, Country"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -303,7 +387,7 @@ export default function SettingsPage() {
                                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
                                     <input
                                         type="email"
-                                        className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="support@acme.com"
                                         value={formData.support_email}
                                         onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
@@ -320,7 +404,7 @@ export default function SettingsPage() {
                                     <Globe className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
                                     <input
                                         type="url"
-                                        className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="https://acme.com"
                                         value={formData.website}
                                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -329,22 +413,42 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        {/* Logo URL */}
+                        {/* Logo Upload */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                Logo URL
+                                Company Logo
                             </label>
-                            <div className="relative">
-                                <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-                                <input
-                                    type="url"
-                                    className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                    placeholder="https://acme.com/logo.png"
-                                    value={formData.logo_url}
-                                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                                />
+                            <div className="flex items-start gap-4">
+                                {/* Logo Preview */}
+                                <div className="h-20 w-20 rounded-lg border border-zinc-700 bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                                    {formData.logo_url ? (
+                                        <img
+                                            src={formData.logo_url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${formData.logo_url}` : formData.logo_url}
+                                            alt="Company logo"
+                                            className="h-full w-full object-contain"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div className={`flex flex-col items-center justify-center text-zinc-500 ${formData.logo_url ? 'hidden' : ''}`}>
+                                        <ImageIcon className="h-8 w-8" />
+                                    </div>
+                                </div>
+
+                                {/* Upload Controls */}
+                                <div className="flex-1 space-y-2">
+                                    <LogoUpload
+                                        currentLogoUrl={formData.logo_url}
+                                        onUploadSuccess={async (newUrl) => {
+                                            setFormData({ ...formData, logo_url: newUrl })
+                                            await refreshUser()
+                                        }}
+                                    />
+                                    <p className="text-xs text-zinc-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
+                                </div>
                             </div>
-                            <p className="text-xs text-zinc-500">Provide a direct link to your company logo (PNG or SVG recommended).</p>
                         </div>
 
                         {/* India Regulatory Details Section */}
@@ -466,7 +570,7 @@ export default function SettingsPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="inline-flex items-center justify-center rounded-lg bg-linear-to-r from-purple-600 to-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 hover:from-purple-500 hover:to-purple-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:pointer-events-none disabled:opacity-50 transition-all duration-200"
+                                className="inline-flex items-center justify-center rounded-lg bg-linear-to-r from-teal-600 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 hover:from-teal-500 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50 transition-all duration-200"
                             >
                                 {loading ? (
                                     <>

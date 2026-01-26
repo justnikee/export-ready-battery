@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -89,7 +90,9 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
 		       b.batch_name, b.specs, b.market_region,
 		       COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
-		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, '')
+		       b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''),
+		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
+		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, '')
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
@@ -100,11 +103,11 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var batchName string
 	var specsJSON []byte
 	var marketRegion models.MarketRegion
-	var cellSource, billOfEntry, countryOrigin string
+	var cellSource, billOfEntry, countryOrigin, hsnCode string
+	var domesticValueAdd float64
+	var pliCompliant bool
+	var customsDate *time.Time
 	tenant := &models.Tenant{}
-
-	// We only need public fields for the passport page
-	// Using COALESCE in SQL prevents scanning NULLs into strings
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
 		&passport.UUID,
@@ -119,11 +122,17 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&cellSource,
 		&billOfEntry,
 		&countryOrigin,
+		&domesticValueAdd,
+		&pliCompliant,
+		&customsDate,
+		&hsnCode,
 		&tenant.CompanyName,
 		&tenant.Address,
 		&tenant.LogoURL,
 		&tenant.SupportEmail,
 		&tenant.Website,
+		&tenant.EPRRegistrationNumber,
+		&tenant.BISRNumber,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -140,14 +149,18 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 
 	return &models.PassportWithSpecs{
-		Passport:        passport,
-		BatchName:       batchName,
-		Specs:           specs,
-		MarketRegion:    marketRegion,
-		Tenant:          tenant,
-		CellSource:      cellSource,
-		BillOfEntryNo:   billOfEntry,
-		CountryOfOrigin: countryOrigin,
+		Passport:         passport,
+		BatchName:        batchName,
+		Specs:            specs,
+		MarketRegion:     marketRegion,
+		Tenant:           tenant,
+		CellSource:       cellSource,
+		BillOfEntryNo:    billOfEntry,
+		CountryOfOrigin:  countryOrigin,
+		DomesticValueAdd: domesticValueAdd,
+		PLICompliant:     pliCompliant,
+		CustomsDate:      customsDate,
+		HSNCode:          hsnCode,
 	}, nil
 }
 
@@ -228,4 +241,108 @@ func (r *Repository) FindDuplicateSerials(ctx context.Context, serials []string)
 	}
 
 	return duplicates, nil
+}
+
+// ============================================================================
+// LIFECYCLE METHODS
+// ============================================================================
+
+// GetPassportByUUID retrieves a passport by UUID (alias for lifecycle service)
+func (r *Repository) GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error) {
+	return r.GetPassport(ctx, id)
+}
+
+// UpdatePassportStatus updates a passport's status
+func (r *Repository) UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error {
+	query := `UPDATE public.passports SET status = $1 WHERE uuid = $2`
+	_, err := r.db.Pool.Exec(ctx, query, status, id)
+	if err != nil {
+		return fmt.Errorf("failed to update passport status: %w", err)
+	}
+	return nil
+}
+
+// UpdatePassportLifecycle updates lifecycle-specific fields
+func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error {
+	query := `UPDATE public.passports 
+	          SET status = $1, shipped_at = $2, installed_at = $3, returned_at = $4, 
+	              state_of_health = $5, owner_id = $6
+	          WHERE uuid = $7`
+	_, err := r.db.Pool.Exec(ctx, query,
+		passport.Status,
+		passport.ShippedAt,
+		passport.InstalledAt,
+		passport.ReturnedAt,
+		passport.StateOfHealth,
+		passport.OwnerID,
+		passport.UUID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update passport lifecycle: %w", err)
+	}
+	return nil
+}
+
+// CreatePassportEvent logs a lifecycle event
+func (r *Repository) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
+	query := `INSERT INTO public.passport_events (id, passport_id, event_type, actor, metadata, created_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6)`
+
+	metadataJSON, err := json.Marshal(event.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event metadata: %w", err)
+	}
+
+	_, err = r.db.Pool.Exec(ctx, query,
+		event.ID,
+		event.PassportID,
+		event.EventType,
+		event.Actor,
+		metadataJSON,
+		event.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create passport event: %w", err)
+	}
+	return nil
+}
+
+// GetPassportEvents retrieves all events for a passport
+func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) {
+	query := `SELECT id, passport_id, event_type, actor, metadata, created_at 
+	          FROM public.passport_events 
+	          WHERE passport_id = $1 
+	          ORDER BY created_at DESC`
+
+	rows, err := r.db.Pool.Query(ctx, query, passportID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get passport events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []*models.PassportEvent
+	for rows.Next() {
+		event := &models.PassportEvent{}
+		var metadataJSON []byte
+		if err := rows.Scan(
+			&event.ID,
+			&event.PassportID,
+			&event.EventType,
+			&event.Actor,
+			&metadataJSON,
+			&event.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
+		}
+
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &event.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal event metadata: %w", err)
+			}
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }

@@ -39,8 +39,8 @@ const features = [
         icon: QrCode,
         title: "Smart QR Codes",
         description: "Dynamic QR codes that link to live passport data. Track scans and access patterns in real-time.",
-        gradient: "from-purple-500 to-violet-500",
-        bgGlow: "bg-purple-500/10"
+        gradient: "from-teal-500 to-cyan-500",
+        bgGlow: "bg-teal-500/10"
     },
     {
         icon: FileCheck,
@@ -60,7 +60,7 @@ const features = [
 
 export function FeatureGrid() {
     return (
-        <section className="py-24 bg-black relative overflow-hidden">
+        <section className="py-24 bg-[#0F172A] relative overflow-hidden">
             {/* Subtle grid pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
 
@@ -74,7 +74,7 @@ export function FeatureGrid() {
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                         Everything you need for battery compliance
                     </h2>
-                    <p className="text-zinc-500 max-w-2xl mx-auto">
+                    <p className="text-slate-500 max-w-2xl mx-auto">
                         From India's BPAN requirements to EU export regulations, we've got you covered.
                     </p>
                 </motion.div>
@@ -93,12 +93,12 @@ export function FeatureGrid() {
                             className="group relative"
                         >
                             <div className={`absolute inset-0 ${feature.bgGlow} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                            <div className="relative h-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-all duration-300 backdrop-blur-sm">
+                            <div className="relative h-full bg-slate-900/50 border border-slate-800 rounded-2xl p-6 hover:border-slate-700 transition-all duration-300 backdrop-blur-sm">
                                 <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg`}>
                                     <feature.icon className="h-6 w-6 text-white" />
                                 </div>
                                 <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-                                <p className="text-zinc-400 leading-relaxed text-sm">{feature.description}</p>
+                                <p className="text-slate-400 leading-relaxed text-sm">{feature.description}</p>
                             </div>
                         </motion.div>
                     ))}
