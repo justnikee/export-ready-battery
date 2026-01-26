@@ -28,6 +28,10 @@ type CreateBatchRequest struct {
 	CountryOfOrigin string
 	CustomsDate     *time.Time
 	HSNCode         string // India: Harmonized System Nomenclature code
+
+	// DVA Audit Mode Fields
+	DVASource         string // "ESTIMATED" or "AUDITED"
+	PLICertificateURL string // URL to CA certificate (Supabase Storage)
 }
 
 // CreateBatch creates a new batch with dual-mode support
@@ -39,19 +43,21 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	}
 
 	batch := &models.Batch{
-		ID:               uuid.New(),
-		TenantID:         req.TenantID,
-		BatchName:        req.BatchName,
-		Specs:            req.Specs,
-		CreatedAt:        time.Now(),
-		MarketRegion:     marketRegion,
-		PLICompliant:     req.PLICompliant,
-		DomesticValueAdd: req.DomesticValueAdd,
-		CellSource:       req.CellSource,
-		BillOfEntryNo:    req.BillOfEntryNo,
-		CountryOfOrigin:  req.CountryOfOrigin,
-		CustomsDate:      req.CustomsDate,
-		HSNCode:          req.HSNCode,
+		ID:                uuid.New(),
+		TenantID:          req.TenantID,
+		BatchName:         req.BatchName,
+		Specs:             req.Specs,
+		CreatedAt:         time.Now(),
+		MarketRegion:      marketRegion,
+		PLICompliant:      req.PLICompliant,
+		DomesticValueAdd:  req.DomesticValueAdd,
+		CellSource:        req.CellSource,
+		BillOfEntryNo:     req.BillOfEntryNo,
+		CountryOfOrigin:   req.CountryOfOrigin,
+		CustomsDate:       req.CustomsDate,
+		HSNCode:           req.HSNCode,
+		DVASource:         req.DVASource,
+		PLICertificateURL: req.PLICertificateURL,
 	}
 
 	specsJSON, err := json.Marshal(req.Specs)
@@ -68,11 +74,11 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	// Debug logging
 	log.Printf("DEBUG CreateBatch: specsJSON=%s, marketRegion=%s", string(specsJSON), marketRegion)
 
-	// Updated query to include hsn_code and remove materials
+	// Updated query to include hsn_code, dva_source, and pli_certificate_url
 	query := `INSERT INTO public.batches 
 		(id, tenant_id, batch_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
-		 bill_of_entry_no, country_of_origin, customs_date, hsn_code) 
-		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url) 
+		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 
 	// Handle nullable import fields
 	var billOfEntry, countryOrigin, hsnCode interface{}
@@ -84,6 +90,15 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	}
 	if req.HSNCode != "" {
 		hsnCode = req.HSNCode
+	}
+
+	// Handle nullable DVA audit fields
+	var dvaSource, pliCertURL interface{}
+	if req.DVASource != "" {
+		dvaSource = req.DVASource
+	}
+	if req.PLICertificateURL != "" {
+		pliCertURL = req.PLICertificateURL
 	}
 
 	_, err = r.db.Pool.Exec(ctx, query,
@@ -101,6 +116,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		countryOrigin,
 		req.CustomsDate,
 		hsnCode,
+		dvaSource,
+		pliCertURL,
 	)
 	if err != nil {
 		log.Printf("DEBUG CreateBatch ERROR: %v", err)
@@ -118,6 +135,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	var cellSource *string
 	var billOfEntry, countryOrigin, hsnCode *string
 	var customsDate *time.Time
+	var dvaSource, pliCertURL *string
 
 	query := `SELECT id, tenant_id, batch_name, specs, created_at, 
 	          COALESCE(status, 'DRAFT') as status,
@@ -128,7 +146,9 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	          bill_of_entry_no,
 	          country_of_origin,
 	          customs_date,
-	          hsn_code
+	          hsn_code,
+	          dva_source,
+	          pli_certificate_url
 	          FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -146,6 +166,8 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 		&countryOrigin,
 		&customsDate,
 		&hsnCode,
+		&dvaSource,
+		&pliCertURL,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -176,6 +198,14 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	}
 	batch.CustomsDate = customsDate
 
+	// DVA audit fields
+	if dvaSource != nil {
+		batch.DVASource = *dvaSource
+	}
+	if pliCertURL != nil {
+		batch.PLICertificateURL = *pliCertURL
+	}
+
 	return batch, nil
 }
 
@@ -191,11 +221,16 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	          b.country_of_origin,
 	          b.customs_date,
 	          b.hsn_code,
+	          b.dva_source,
+	          b.pli_certificate_url,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
 	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
-	          GROUP BY b.id
+	          GROUP BY b.id, b.tenant_id, b.batch_name, b.specs, b.created_at, b.status, 
+	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
+	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
+	                   b.dva_source, b.pli_certificate_url
 	          ORDER BY b.created_at DESC`
 
 	rows, err := r.db.Pool.Query(ctx, query, tenantID)
@@ -213,6 +248,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 		var cellSource *string
 		var billOfEntry, countryOrigin, hsnCode *string
 		var customsDate *time.Time
+		var dvaSource, pliCertURL *string
 
 		if err := rows.Scan(
 			&batch.ID,
@@ -229,6 +265,8 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			&countryOrigin,
 			&customsDate,
 			&hsnCode,
+			&dvaSource,
+			&pliCertURL,
 			&batch.TotalPassports,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan batch: %w", err)
@@ -257,6 +295,14 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			batch.HSNCode = *hsnCode
 		}
 		batch.CustomsDate = customsDate
+
+		// DVA audit fields
+		if dvaSource != nil {
+			batch.DVASource = *dvaSource
+		}
+		if pliCertURL != nil {
+			batch.PLICertificateURL = *pliCertURL
+		}
 
 		batches = append(batches, batch)
 	}

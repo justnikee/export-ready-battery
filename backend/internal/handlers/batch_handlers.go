@@ -183,17 +183,19 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
 
 	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:         req.TenantID,
-		BatchName:        req.BatchName,
-		Specs:            req.Specs,
-		MarketRegion:     req.MarketRegion,
-		PLICompliant:     req.PLICompliant,
-		DomesticValueAdd: req.DomesticValueAdd,
-		CellSource:       req.CellSource,
-		BillOfEntryNo:    req.BillOfEntryNo,
-		CountryOfOrigin:  req.CountryOfOrigin,
-		CustomsDate:      customsDate,
-		HSNCode:          req.HSNCode,
+		TenantID:          req.TenantID,
+		BatchName:         req.BatchName,
+		Specs:             req.Specs,
+		MarketRegion:      req.MarketRegion,
+		PLICompliant:      req.PLICompliant,
+		DomesticValueAdd:  req.DomesticValueAdd,
+		CellSource:        req.CellSource,
+		BillOfEntryNo:     req.BillOfEntryNo,
+		CountryOfOrigin:   req.CountryOfOrigin,
+		CustomsDate:       customsDate,
+		HSNCode:           req.HSNCode,
+		DVASource:         req.DVASource,
+		PLICertificateURL: req.PLICertificateURL,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)

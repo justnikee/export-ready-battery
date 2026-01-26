@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
@@ -352,6 +352,28 @@ export default function BatchDetailsPage() {
                                         <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Country of Origin</dt>
                                         <dd className="font-semibold text-white">{batch.specs.country_of_origin || 'N/A'}</dd>
                                     </div>
+
+                                    {/* Manufacturer Contact Info - Full Width */}
+                                    {(batch.specs.manufacturer_address || batch.specs.manufacturer_email) && (
+                                        <>
+                                            {batch.specs.manufacturer_address && (
+                                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 col-span-2">
+                                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
+                                                    <dd className="font-semibold text-white text-sm">{batch.specs.manufacturer_address}</dd>
+                                                </div>
+                                            )}
+                                            {batch.specs.manufacturer_email && (
+                                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 col-span-2">
+                                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Email</dt>
+                                                    <dd className="font-semibold text-blue-400">
+                                                        <a href={`mailto:${batch.specs.manufacturer_email}`} className="hover:underline">
+                                                            {batch.specs.manufacturer_email}
+                                                        </a>
+                                                    </dd>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </dl>
                             </CardContent>
                         </Card>
@@ -374,11 +396,41 @@ export default function BatchDetailsPage() {
                                                 <Scale className="h-3.5 w-3.5 text-orange-400" />
                                                 Domestic Value Add
                                             </dt>
-                                            <dd className="font-bold text-2xl text-orange-400">
+
+                                            {/* DVA Value Display */}
+                                            <dd className="font-bold text-2xl text-orange-400 flex items-center gap-2">
                                                 {batch.domestic_value_add ? `${batch.domestic_value_add.toFixed(1)}%` : 'N/A'}
+
+                                                {/* Source Badge */}
+                                                {batch.dva_source === "AUDITED" ? (
+                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-2">
+                                                        <Shield className="h-3 w-3 mr-1" /> CA Verified
+                                                    </Badge>
+                                                ) : batch.dva_source === "ESTIMATED" ? (
+                                                    <Badge variant="outline" className="text-zinc-500 text-[10px] px-2">
+                                                        Estimated
+                                                    </Badge>
+                                                ) : null}
                                             </dd>
+
+                                            {/* PLI Status */}
                                             {batch.domestic_value_add >= 50 && (
                                                 <span className="text-xs text-emerald-400 mt-1 block">✓ PLI Eligible</span>
+                                            )}
+
+                                            {/* Certificate Download Link */}
+                                            {batch.dva_source === "AUDITED" && batch.pli_certificate_url && (
+                                                <div className="mt-3 pt-3 border-t border-zinc-700/50">
+                                                    <a
+                                                        href={batch.pli_certificate_url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-xs flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
+                                                    >
+                                                        <FileCheck className="h-3.5 w-3.5" />
+                                                        View Auditor Certificate
+                                                    </a>
+                                                </div>
                                             )}
                                         </div>
                                         <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
@@ -539,6 +591,128 @@ export default function BatchDetailsPage() {
                                                 )}
                                             </dd>
                                         </div>
+
+                                        {/* EU Representative */}
+                                        {batch.specs.eu_representative && (
+                                            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">EU Representative</dt>
+                                                <dd className="font-semibold text-white">{batch.specs.eu_representative}</dd>
+                                                {batch.specs.eu_representative_email && (
+                                                    <dd className="text-xs text-blue-400 mt-1">
+                                                        <a href={`mailto:${batch.specs.eu_representative_email}`} className="hover:underline">
+                                                            {batch.specs.eu_representative_email}
+                                                        </a>
+                                                    </dd>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Warranty & Lifetime */}
+                                        {(batch.specs.warranty_months || batch.specs.expected_lifetime_cycles) && (
+                                            <>
+                                                {batch.specs.warranty_months && (
+                                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
+                                                        <dd className="font-semibold text-white">{batch.specs.warranty_months} months</dd>
+                                                    </div>
+                                                )}
+                                                {batch.specs.expected_lifetime_cycles && (
+                                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
+                                                        <dd className="font-semibold text-white">{batch.specs.expected_lifetime_cycles.toLocaleString()} cycles</dd>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* Recycled Content */}
+                                        {batch.specs.recycled_content_pct !== undefined && batch.specs.recycled_content_pct > 0 && (
+                                            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
+                                                <dd className="font-semibold text-emerald-400">{batch.specs.recycled_content_pct}%</dd>
+                                            </div>
+                                        )}
+
+                                        {/* Material Composition - Full Width */}
+                                        {batch.specs.material_composition && (
+                                            <div className="col-span-2 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                                                <dt className="text-zinc-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
+                                                    <Atom className="h-3.5 w-3.5 text-purple-400" />
+                                                    Material Composition
+                                                </dt>
+                                                <dd className="grid grid-cols-3 gap-3 text-xs">
+                                                    {batch.specs.material_composition.cobalt_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Cobalt</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.cobalt_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                    {batch.specs.material_composition.lithium_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Lithium</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.lithium_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                    {batch.specs.material_composition.nickel_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Nickel</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.nickel_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                    {batch.specs.material_composition.manganese_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Manganese</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.manganese_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                    {batch.specs.material_composition.graphite_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Graphite</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.graphite_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                    {batch.specs.material_composition.lead_pct > 0 && (
+                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
+                                                            <span className="text-zinc-400">Lead</span>
+                                                            <span className="font-semibold text-white">{batch.specs.material_composition.lead_pct}%</span>
+                                                        </div>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                        )}
+
+                                        {/* Hazardous Substances Declaration - Full Width */}
+                                        {batch.specs.hazardous_substances && (
+                                            <div className="col-span-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                                <dt className="text-zinc-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
+                                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                                                    Hazardous Substances Declaration
+                                                </dt>
+                                                <dd className="space-y-2">
+                                                    <div className="flex flex-wrap gap-2 mb-2">
+                                                        {batch.specs.hazardous_substances.lead_present && (
+                                                            <Badge variant="outline" className="text-amber-400 border-amber-500/30">Lead</Badge>
+                                                        )}
+                                                        {batch.specs.hazardous_substances.mercury_present && (
+                                                            <Badge variant="outline" className="text-amber-400 border-amber-500/30">Mercury</Badge>
+                                                        )}
+                                                        {batch.specs.hazardous_substances.cadmium_present && (
+                                                            <Badge variant="outline" className="text-amber-400 border-amber-500/30">Cadmium</Badge>
+                                                        )}
+                                                        {!batch.specs.hazardous_substances.lead_present &&
+                                                            !batch.specs.hazardous_substances.mercury_present &&
+                                                            !batch.specs.hazardous_substances.cadmium_present && (
+                                                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                                                    No hazardous substances detected
+                                                                </Badge>
+                                                            )}
+                                                    </div>
+                                                    {batch.specs.hazardous_substances.declaration && (
+                                                        <p className="text-xs text-zinc-400 italic">{batch.specs.hazardous_substances.declaration}</p>
+                                                    )}
+                                                </dd>
+                                            </div>
+                                        )}
                                     </dl>
                                 </CardContent>
                             </Card>
@@ -721,6 +895,6 @@ export default function BatchDetailsPage() {
                     onDownload={handleDownloadLabels}
                 />
             </div>
-        </div>
+        </div >
     )
 }

@@ -113,12 +113,32 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
     const [isUploading, setIsUploading] = useState(false)
 
+    // IEC Validation State
+    const [iecError, setIecError] = useState(false)
+
     // Fetch templates when dialog opens
     useEffect(() => {
         if (open && user) {
             fetchTemplates()
         }
     }, [open, user])
+
+    // Auto-disable PLI and validate IEC for IMPORTED cells
+    useEffect(() => {
+        if (cellSource === "IMPORTED") {
+            // Auto-disable PLI compliance for imported cells
+            setPliCompliant(false)
+
+            // Check IEC code
+            if (!user?.iec_code) {
+                setIecError(true)
+            } else {
+                setIecError(false)
+            }
+        } else {
+            setIecError(false)
+        }
+    }, [cellSource, user?.iec_code])
 
     const fetchTemplates = async () => {
         if (!user) return
@@ -203,6 +223,21 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         if (!user) return
 
         // ===== DUAL-MODE VALIDATION =====
+
+        // India Mode: Cell Source is MANDATORY
+        if (marketRegion === "INDIA" && !cellSource) {
+            toast.error("Please specify Cell Source (Domestic/Imported) for India compliance")
+            return
+        }
+
+        // India Mode + IMPORTED: IEC Code is MANDATORY
+        if (marketRegion === "INDIA" && cellSource === "IMPORTED") {
+            if (!user.iec_code) {
+                toast.error("IEC Code is required for importing battery cells. Please add it in Organization Settings.")
+                return
+            }
+        }
+
         if (marketRegion === "EU" && !carbonFootprint) {
             toast.error("Carbon Footprint is required for EU exports")
             return
@@ -727,6 +762,26 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         India Compliance Fields
                                     </div>
 
+                                    {/* IEC ERROR BANNER for IMPORTED cells */}
+                                    {iecError && cellSource === "IMPORTED" && (
+                                        <div className="p-3 rounded-lg border-2 border-red-500/50 bg-red-500/20 space-y-2">
+                                            <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
+                                                <Shield className="h-5 w-5" />
+                                                ⛔ IEC Code Required
+                                            </div>
+                                            <p className="text-xs text-red-300">
+                                                Your Organization is missing an IEC Code. You cannot create IMPORTED batches until you add it in Settings.
+                                            </p>
+                                            <a
+                                                href="/settings"
+                                                target="_blank"
+                                                className="inline-block text-xs px-3 py-1.5 bg-red-500/30 text-red-200 rounded hover:bg-red-500/40 transition-colors font-medium"
+                                            >
+                                                → Go to Organization Settings
+                                            </a>
+                                        </div>
+                                    )}
+
                                     {/* Compliance Details */}
                                     <div className="grid gap-2 mb-4">
                                         <Label htmlFor="hsnCode" className="text-zinc-300">HSN Code <span className="text-red-500">*</span></Label>
@@ -741,226 +796,260 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
                                     </div>
 
-                                    {/* DVA Calculation Method Selection */}
-                                    <div className="flex items-center justify-between mb-4 bg-zinc-800/50 p-3 rounded-lg border border-zinc-700">
-                                        <Label htmlFor="auditedMode" className="cursor-pointer flex items-center gap-2">
-                                            <Shield className={`h-4 w-4 ${dvaSource === "AUDITED" ? "text-emerald-400" : "text-zinc-400"}`} />
-                                            <span>I have an Audited CA Certificate</span>
-                                        </Label>
-                                        <input
-                                            type="checkbox"
-                                            id="auditedMode"
-                                            checked={dvaSource === "AUDITED"}
-                                            onChange={(e) => setDvaSource(e.target.checked ? "AUDITED" : "ESTIMATED")}
-                                            className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500"
-                                        />
-                                    </div>
-
-                                    {dvaSource === "AUDITED" ? (
-                                        // AUDITED Mode UI
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 space-y-2">
-                                                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
-                                                    <Shield className="h-4 w-4" />
-                                                    Audited Compliance Mode
-                                                </div>
-                                                <p className="text-xs text-emerald-300/80">
-                                                    Enter the final DVA percentage certified by your Chartered Accountant.
-                                                    This value overrides estimated calculations.
-                                                </p>
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="auditedDva" className="text-zinc-300">
-                                                    Audited DVA % <span className="text-red-500">*</span>
+                                    {/* DVA Calculation Section - HIDE for IMPORTED cells */}
+                                    {cellSource !== "IMPORTED" && (
+                                        <>
+                                            {/* DVA Calculation Method Selection */}
+                                            <div className="flex items-center justify-between mb-4 bg-zinc-800/50 p-3 rounded-lg border border-zinc-700">
+                                                <Label htmlFor="auditedMode" className="cursor-pointer flex items-center gap-2">
+                                                    <Shield className={`h-4 w-4 ${dvaSource === "AUDITED" ? "text-emerald-400" : "text-zinc-400"}`} />
+                                                    <span>I have an Audited CA Certificate</span>
                                                 </Label>
-                                                <Input
-                                                    id="auditedDva"
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    step="0.1"
-                                                    value={auditedDva}
-                                                    onChange={(e) => setAuditedDva(e.target.value)}
-                                                    placeholder="e.g. 55.5"
-                                                    className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                <input
+                                                    type="checkbox"
+                                                    id="auditedMode"
+                                                    checked={dvaSource === "AUDITED"}
+                                                    onChange={(e) => setDvaSource(e.target.checked ? "AUDITED" : "ESTIMATED")}
+                                                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500"
                                                 />
                                             </div>
 
-                                            <div className="grid gap-2">
-                                                <Label className="text-zinc-300">Upload CA Certificate (PDF)</Label>
-
-                                                {/* Upload Zone */}
-                                                {!uploadedFileUrl ? (
-                                                    <div className="flex items-center justify-center w-full">
-                                                        <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading
-                                                                ? 'border-emerald-500 bg-emerald-500/5'
-                                                                : 'border-zinc-700 bg-zinc-800 hover:bg-zinc-700'
-                                                            }`}>
-                                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                                {isUploading ? (
-                                                                    <>
-                                                                        <div className="w-full px-8 mb-3">
-                                                                            <div className="w-full bg-zinc-700 rounded-full h-2">
-                                                                                <div
-                                                                                    className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-                                                                                    style={{ width: `${uploadProgress}%` }}
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                        <p className="text-sm text-emerald-400">Uploading... ({uploadProgress}%)</p>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <FileText className="w-8 h-8 mb-3 text-zinc-400" />
-                                                                        <p className="text-sm text-zinc-400">
-                                                                            <span className="font-semibold">Click to upload</span> or drag and drop
-                                                                        </p>
-                                                                        <p className="text-xs text-zinc-500">PDF only (MAX. 5MB)</p>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                            <input
-                                                                type="file"
-                                                                className="hidden"
-                                                                accept=".pdf"
-                                                                disabled={isUploading}
-                                                                onChange={(e) => {
-                                                                    const file = e.target.files?.[0]
-                                                                    if (file) {
-                                                                        if (file.size > 5242880) {
-                                                                            toast.error('File size must be less than 5MB')
-                                                                            return
-                                                                        }
-                                                                        if (file.type !== 'application/pdf') {
-                                                                            toast.error('Only PDF files are allowed')
-                                                                            return
-                                                                        }
-                                                                        handleCertificateUpload(file)
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </label>
+                                            {dvaSource === "AUDITED" ? (
+                                                // AUDITED Mode UI
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 space-y-2">
+                                                        <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
+                                                            <Shield className="h-4 w-4" />
+                                                            Audited Compliance Mode
+                                                        </div>
+                                                        <p className="text-xs text-emerald-300/80">
+                                                            Enter the final DVA percentage certified by your Chartered Accountant.
+                                                            This value overrides estimated calculations.
+                                                        </p>
                                                     </div>
-                                                ) : (
-                                                    /* Uploaded State */
-                                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <FileCheck className="h-5 w-5 text-emerald-400" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-emerald-400">Certificate Uploaded</p>
-                                                                    <p className="text-xs text-emerald-300/70">Ready for submission</p>
+
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="auditedDva" className="text-zinc-300">
+                                                            Audited DVA % <span className="text-red-500">*</span>
+                                                        </Label>
+                                                        <Input
+                                                            id="auditedDva"
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            step="0.1"
+                                                            value={auditedDva}
+                                                            onChange={(e) => setAuditedDva(e.target.value)}
+                                                            placeholder="e.g. 55.5"
+                                                            className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label className="text-zinc-300">Upload CA Certificate (PDF)</Label>
+
+                                                        {/* Upload Zone */}
+                                                        {!uploadedFileUrl ? (
+                                                            <div className="flex items-center justify-center w-full">
+                                                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading
+                                                                    ? 'border-emerald-500 bg-emerald-500/5'
+                                                                    : 'border-zinc-700 bg-zinc-800 hover:bg-zinc-700'
+                                                                    }`}>
+                                                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                                        {isUploading ? (
+                                                                            <>
+                                                                                <div className="w-full px-8 mb-3">
+                                                                                    <div className="w-full bg-zinc-700 rounded-full h-2">
+                                                                                        <div
+                                                                                            className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                                                                                            style={{ width: `${uploadProgress}%` }}
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <p className="text-sm text-emerald-400">Uploading... ({uploadProgress}%)</p>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <FileText className="w-8 h-8 mb-3 text-zinc-400" />
+                                                                                <p className="text-sm text-zinc-400">
+                                                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                                                </p>
+                                                                                <p className="text-xs text-zinc-500">PDF only (MAX. 5MB)</p>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    <input
+                                                                        type="file"
+                                                                        className="hidden"
+                                                                        accept=".pdf"
+                                                                        disabled={isUploading}
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0]
+                                                                            if (file) {
+                                                                                if (file.size > 5242880) {
+                                                                                    toast.error('File size must be less than 5MB')
+                                                                                    return
+                                                                                }
+                                                                                if (file.type !== 'application/pdf') {
+                                                                                    toast.error('Only PDF files are allowed')
+                                                                                    return
+                                                                                }
+                                                                                handleCertificateUpload(file)
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        ) : (
+                                                            /* Uploaded State */
+                                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <FileCheck className="h-5 w-5 text-emerald-400" />
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-emerald-400">Certificate Uploaded</p>
+                                                                            <p className="text-xs text-emerald-300/70">Ready for submission</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <a
+                                                                            href={uploadedFileUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-xs px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
+                                                                        >
+                                                                            View File
+                                                                        </a>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setUploadedFileUrl(null)}
+                                                                            className="text-xs px-3 py-1 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition-colors"
+                                                                        >
+                                                                            Replace
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex gap-2">
-                                                                <a
-                                                                    href={uploadedFileUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-xs px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition-colors"
-                                                                >
-                                                                    View File
-                                                                </a>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setUploadedFileUrl(null)}
-                                                                    className="text-xs px-3 py-1 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition-colors"
-                                                                >
-                                                                    Replace
-                                                                </button>
-                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // ESTIMATED Mode UI (Original Calculator)
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                                                        <Calculator className="h-4 w-4 text-indigo-400" />
+                                                        Indicative DVA Estimator
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="salePrice" className="text-zinc-300">Sale Price (₹)</Label>
+                                                            <Input
+                                                                id="salePrice"
+                                                                type="number"
+                                                                min="0"
+                                                                value={salePrice}
+                                                                onChange={(e) => setSalePrice(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                            />
+                                                        </div>
+                                                        <div className="grid gap-2">
+                                                            <Label htmlFor="importCost" className="text-zinc-300">Imp. Material Cost (₹)</Label>
+                                                            <Input
+                                                                id="importCost"
+                                                                type="number"
+                                                                min="0"
+                                                                value={importCost}
+                                                                onChange={(e) => setImportCost(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                                            />
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        // ESTIMATED Mode UI (Original Calculator)
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
-                                                <Calculator className="h-4 w-4 text-indigo-400" />
-                                                Indicative DVA Estimator
-                                            </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="salePrice" className="text-zinc-300">Sale Price (₹)</Label>
-                                                    <Input
-                                                        id="salePrice"
-                                                        type="number"
-                                                        min="0"
-                                                        value={salePrice}
-                                                        onChange={(e) => setSalePrice(e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="bg-zinc-800 border-zinc-700 text-zinc-100"
-                                                    />
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="importCost" className="text-zinc-300">Imp. Material Cost (₹)</Label>
-                                                    <Input
-                                                        id="importCost"
-                                                        type="number"
-                                                        min="0"
-                                                        value={importCost}
-                                                        onChange={(e) => setImportCost(e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="bg-zinc-800 border-zinc-700 text-zinc-100"
-                                                    />
-                                                </div>
-                                            </div>
+                                                    {/* Calculated DVA Display */}
+                                                    {(salePrice && importCost) && (
+                                                        <div className="space-y-2">
+                                                            <div className={`p-3 rounded border text-center text-sm font-semibold ${((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50
+                                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                                                                : "bg-red-500/10 border-red-500/30 text-red-400"
+                                                                }`}>
+                                                                Estimated DVA: {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100)).toFixed(1)}%
+                                                                <span className="ml-1 opacity-80">
+                                                                    {((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
+                                                                </span>
+                                                            </div>
 
-                                            {/* Calculated DVA Display */}
-                                            {(salePrice && importCost) && (
-                                                <div className="space-y-2">
-                                                    <div className={`p-3 rounded border text-center text-sm font-semibold ${((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50
-                                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                                                        : "bg-red-500/10 border-red-500/30 text-red-400"
-                                                        }`}>
-                                                        Estimated DVA: {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100)).toFixed(1)}%
-                                                        <span className="ml-1 opacity-80">
-                                                            {((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice) * 100) >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Legal Warning Banner */}
-                                                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-200/80 text-xs flex gap-2 items-start">
-                                                        <Activity className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                                                        <span>
-                                                            <strong>Note:</strong> This is an estimated value based on raw material costs.
-                                                            Final PLI eligibility requires certification by a Chartered Accountant.
-                                                        </span>
-                                                    </div>
+                                                            {/* Legal Warning Banner */}
+                                                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-200/80 text-xs flex gap-2 items-start">
+                                                                <Activity className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                                                                <span>
+                                                                    <strong>Note:</strong> This is an estimated value based on raw material costs.
+                                                                    Final PLI eligibility requires certification by a Chartered Accountant.
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                        </div>
+                                        </>
                                     )}
 
+                                    {/* Cell Source Selection */}
                                     <div className="grid gap-2 pt-2">
-                                        <Label htmlFor="cellSource" className="text-zinc-300">Cell Source</Label>
+                                        <Label htmlFor="cellSource" className="text-zinc-300">
+                                            Cell Source <span className="text-red-500">*</span>
+                                        </Label>
                                         <select
                                             id="cellSource"
                                             value={cellSource}
                                             onChange={(e) => setCellSource(e.target.value as any)}
-                                            className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
+                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
+                                                ? "border-red-500/50 bg-zinc-800"
+                                                : "border-zinc-700 bg-zinc-800"
+                                                }`}
+                                            required
                                         >
-                                            <option value="">-- Select --</option>
-                                            <option value="DOMESTIC">Domestic</option>
-                                            <option value="IMPORTED">Imported</option>
+                                            <option value="">-- Select Cell Source --</option>
+                                            <option value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</option>
+                                            <option value="IMPORTED">📦 Imported (Requires IEC Code)</option>
                                         </select>
+                                        <p className="text-[10px] text-zinc-500">
+                                            Required for India compliance. Determines customs and PLI eligibility.
+                                        </p>
                                     </div>
 
-                                    <div className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id="pliCompliant"
-                                            checked={pliCompliant}
-                                            onChange={(e) => setPliCompliant(e.target.checked)}
-                                            className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500"
-                                        />
-                                        <Label htmlFor="pliCompliant" className="font-normal cursor-pointer text-zinc-300">
-                                            PLI Subsidy Eligible
-                                        </Label>
+                                    {/* PLI Checkbox with Auto-Disable for IMPORTED */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id="pliCompliant"
+                                                checked={pliCompliant}
+                                                onChange={(e) => setPliCompliant(e.target.checked)}
+                                                disabled={cellSource === "IMPORTED"}
+                                                className={`h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-orange-500 focus:ring-orange-500 ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""
+                                                    }`}
+                                            />
+                                            <Label
+                                                htmlFor="pliCompliant"
+                                                className={`font-normal cursor-pointer text-zinc-300 ${cellSource === "IMPORTED" ? "opacity-50" : ""
+                                                    }`}
+                                            >
+                                                PLI Subsidy Eligible
+                                            </Label>
+                                        </div>
+
+                                        {/* Warning for IMPORTED cells */}
+                                        {cellSource === "IMPORTED" && (
+                                            <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded text-amber-200/90 text-xs flex gap-2 items-start">
+                                                <Activity className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                                <span>
+                                                    ⚠️ Imported cells typically constitute &gt;60% of cost, making the batch ineligible for PLI (Requires ≥50% Local Value Add).
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Customs Declaration for Imported Cells */}
@@ -1097,12 +1186,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading || iecError}>
                             {isLoading ? "Creating..." : "Create Batch"}
                         </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }
