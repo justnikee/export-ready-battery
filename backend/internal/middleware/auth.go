@@ -31,21 +31,26 @@ func NewAuth(authService *services.AuthService) *Auth {
 // Protect returns a middleware that requires valid JWT authentication
 func (a *Auth) Protect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get token from Authorization header
+		// Get token from Authorization header or Query Param
+		var tokenString string
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, `{"error":"missing authorization header"}`, http.StatusUnauthorized)
-			return
+
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+				tokenString = parts[1]
+			}
 		}
 
-		// Extract Bearer token
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			http.Error(w, `{"error":"invalid authorization header format"}`, http.StatusUnauthorized)
-			return
+		// Fallback to query parameter (needed for window.open / pdf viewing)
+		if tokenString == "" {
+			tokenString = r.URL.Query().Get("token")
 		}
 
-		tokenString := parts[1]
+		if tokenString == "" {
+			http.Error(w, `{"error":"missing authorization header or token"}`, http.StatusUnauthorized)
+			return
+		}
 
 		// Validate token
 		claims, err := a.authService.ValidateToken(tokenString)

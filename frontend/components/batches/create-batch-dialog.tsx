@@ -457,8 +457,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     type="button"
                                     onClick={() => setMarketRegion("GLOBAL")}
                                     className={`p-3 rounded-lg border-2 text-center transition-all ${marketRegion === "GLOBAL"
-                                        ? "border-purple-500 bg-purple-500/10 text-purple-400"
-                                        : "border-zinc-700 hover:border-zinc-600 text-zinc-400"
+                                        ? "border-teal-500 bg-teal-500/10 text-teal-400"
+                                        : "border-slate-700 hover:border-slate-600 text-slate-400"
                                         }`}
                                 >
                                     <Globe className="h-5 w-5 mx-auto mb-1" />
@@ -479,7 +479,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     id="template"
                                     value={selectedTemplate}
                                     onChange={(e) => handleTemplateSelect(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                    className="flex h-10 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                                 >
                                     <option value="">-- Select a template --</option>
                                     {templates.map((template) => (
@@ -504,7 +504,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         </div>
 
                         {/* Form fields with animation */}
-                        <div className={`space-y-6 transition-all duration-300 ${fieldsAnimating ? 'bg-purple-500/10 rounded-lg p-4 -m-4' : ''}`}>
+                        <div className={`space-y-6 transition-all duration-300 ${fieldsAnimating ? 'bg-teal-500/10 rounded-lg p-4 -m-4' : ''}`}>
                             {/* Row 2: Manufacturer & Chemistry */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
@@ -1110,15 +1110,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             )}
 
                             {/* ===== CHEMISTRY BREAKDOWN (Global) ===== */}
-                            <div className="p-4 rounded-lg border border-purple-500/30 bg-purple-500/10 space-y-4">
-                                <div className="flex items-center justify-between border-b border-purple-500/20 pb-2">
-                                    <div className="flex items-center gap-2 text-purple-400 font-semibold text-sm">
+                            <div className="p-4 rounded-lg border border-teal-500/30 bg-teal-500/10 space-y-4">
+                                <div className="flex items-center justify-between border-b border-teal-500/20 pb-2">
+                                    <div className="flex items-center gap-2 text-teal-400 font-semibold text-sm">
                                         <Activity className="h-4 w-4" />
                                         🧪 Material Composition (Chemistry Breakdown)
                                     </div>
                                     <div className={`text-xs font-mono font-bold ${Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0) > 100
                                         ? "text-red-400"
-                                        : "text-purple-300"
+                                        : "text-teal-300"
                                         }`}>
                                         Total: {Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0).toFixed(1)}%
                                     </div>
@@ -1166,7 +1166,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     id="saveTemplate"
                                     checked={saveAsTemplate}
                                     onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                                    className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-purple-500 focus:ring-purple-500"
+                                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-teal-500 focus:ring-teal-500"
                                 />
                                 <Label htmlFor="saveTemplate" className="font-normal cursor-pointer flex items-center gap-2 text-zinc-300">
                                     <Save className="h-4 w-4 text-zinc-500" />

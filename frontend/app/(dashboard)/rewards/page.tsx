@@ -30,7 +30,7 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }>
     SILVER: { bg: "bg-slate-400/10", text: "text-slate-300", border: "border-slate-400/20" },
     GOLD: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
     PLATINUM: { bg: "bg-cyan-500/10", text: "text-cyan-400", border: "border-cyan-500/20" },
-    DIAMOND: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/20" },
+    DIAMOND: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/20" },
 }
 
 const RANK_ICONS = [Crown, Medal, Award]
@@ -82,7 +82,7 @@ export default function RewardsPage() {
     const totalParticipants = data?.count || 0
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
@@ -194,8 +194,8 @@ export default function RewardsPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                            <span className="text-purple-400 font-bold">100</span>
+                        <div className="h-10 w-10 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                            <span className="text-teal-400 font-bold">100</span>
                         </div>
                         <div>
                             <p className="text-white font-medium">Recycling</p>

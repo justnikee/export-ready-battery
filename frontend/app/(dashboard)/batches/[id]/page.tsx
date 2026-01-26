@@ -198,7 +198,7 @@ export default function BatchDetailsPage() {
             )
         } else if (status === 'ARCHIVED') {
             return (
-                <Badge className="bg-zinc-500/20 text-zinc-400 hover:bg-zinc-500/30 border-zinc-500/30 text-sm px-3 py-1">
+                <Badge className="bg-slate-500/20 text-slate-400 hover:bg-slate-500/30 border-slate-500/30 text-sm px-3 py-1">
                     Archived
                 </Badge>
             )
@@ -239,20 +239,20 @@ export default function BatchDetailsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
         </div>
     )
-    if (!batch) return <div className="p-8 text-zinc-400">Batch not found</div>
+    if (!batch) return <div className="p-8 text-slate-400">Batch not found</div>
 
     const region = batch.market_region as MarketRegion
     const isIndia = region === "INDIA"
     const isEU = region === "EU"
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header with Compliance Badge */}
-                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-emerald-900/20 via-zinc-900 to-zinc-900 p-6">
+                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-linear-to-r from-emerald-900/20 via-slate-900 to-slate-900 p-6">
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="icon" onClick={() => router.push('/batches')} className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" onClick={() => router.push('/batches')} className="text-slate-400 hover:text-white hover:bg-slate-800">
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                             <div>
@@ -262,7 +262,7 @@ export default function BatchDetailsPage() {
                                 </div>
                                 <div className="flex items-center gap-2 mt-2">
                                     {getComplianceBadge()}
-                                    <span className="text-zinc-500 text-sm flex items-center gap-1">
+                                    <span className="text-slate-500 text-sm flex items-center gap-1">
                                         <Clock className="h-3 w-3" />
                                         Created {new Date(batch.created_at).toLocaleDateString()}
                                     </span>
@@ -294,14 +294,14 @@ export default function BatchDetailsPage() {
                                     <Button
                                         variant="outline"
                                         onClick={() => setLabelsDialogOpen(true)}
-                                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                                        className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
                                     >
                                         <Printer className="mr-2 h-4 w-4" />
                                         Print Labels
                                     </Button>
                                     <Button
                                         onClick={handleDownloadQR}
-                                        className="bg-zinc-100 text-zinc-900 hover:bg-white"
+                                        className="bg-slate-100 text-slate-900 hover:bg-white"
                                     >
                                         <Download className="mr-2 h-4 w-4" />
                                         Download QR Codes
@@ -317,7 +317,7 @@ export default function BatchDetailsPage() {
                     {/* Main Info */}
                     <div className="md:col-span-2 space-y-6">
                         {/* Common Specifications - DARK THEME */}
-                        <Card className="bg-zinc-900/80 border-zinc-800">
+                        <Card className="bg-slate-900/80 border-slate-800">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-white">
                                     <div className="p-2 rounded-lg bg-blue-500/10">
@@ -328,28 +328,28 @@ export default function BatchDetailsPage() {
                             </CardHeader>
                             <CardContent>
                                 <dl className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Manufacturer</dt>
                                         <dd className="font-semibold text-white">{batch.specs.manufacturer || 'N/A'}</dd>
                                     </div>
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Chemistry</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Chemistry</dt>
                                         <dd className="font-semibold text-white">{batch.specs.chemistry || 'N/A'}</dd>
                                     </div>
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Capacity</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Capacity</dt>
                                         <dd className="font-semibold text-emerald-400">{batch.specs.capacity || 'N/A'}</dd>
                                     </div>
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Voltage</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Voltage</dt>
                                         <dd className="font-semibold text-white">{batch.specs.voltage || 'N/A'}</dd>
                                     </div>
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Weight</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Weight</dt>
                                         <dd className="font-semibold text-white">{batch.specs.weight || 'N/A'}</dd>
                                     </div>
-                                    <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50">
-                                        <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Country of Origin</dt>
+                                    <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                        <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Country of Origin</dt>
                                         <dd className="font-semibold text-white">{batch.specs.country_of_origin || 'N/A'}</dd>
                                     </div>
 
@@ -357,14 +357,14 @@ export default function BatchDetailsPage() {
                                     {(batch.specs.manufacturer_address || batch.specs.manufacturer_email) && (
                                         <>
                                             {batch.specs.manufacturer_address && (
-                                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 col-span-2">
-                                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
+                                                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 col-span-2">
+                                                    <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
                                                     <dd className="font-semibold text-white text-sm">{batch.specs.manufacturer_address}</dd>
                                                 </div>
                                             )}
                                             {batch.specs.manufacturer_email && (
-                                                <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700/50 col-span-2">
-                                                    <dt className="text-zinc-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Email</dt>
+                                                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 col-span-2">
+                                                    <dt className="text-slate-500 mb-1 text-xs uppercase tracking-wider">Manufacturer Email</dt>
                                                     <dd className="font-semibold text-blue-400">
                                                         <a href={`mailto:${batch.specs.manufacturer_email}`} className="hover:underline">
                                                             {batch.specs.manufacturer_email}
@@ -380,7 +380,7 @@ export default function BatchDetailsPage() {
 
                         {/* Market-Specific Compliance Card - INDIA DARK THEME */}
                         {isIndia && (
-                            <Card className="bg-zinc-900/80 border-zinc-800 border-l-4 border-l-orange-500">
+                            <Card className="bg-slate-900/80 border-slate-800 border-l-4 border-l-orange-500">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-white">
                                         <div className="p-2 rounded-lg bg-orange-500/10">
@@ -391,8 +391,8 @@ export default function BatchDetailsPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <dl className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
                                                 <Scale className="h-3.5 w-3.5 text-orange-400" />
                                                 Domestic Value Add
                                             </dt>
@@ -407,7 +407,7 @@ export default function BatchDetailsPage() {
                                                         <Shield className="h-3 w-3 mr-1" /> CA Verified
                                                     </Badge>
                                                 ) : batch.dva_source === "ESTIMATED" ? (
-                                                    <Badge variant="outline" className="text-zinc-500 text-[10px] px-2">
+                                                    <Badge variant="outline" className="text-slate-500 text-[10px] px-2">
                                                         Estimated
                                                     </Badge>
                                                 ) : null}
@@ -420,7 +420,7 @@ export default function BatchDetailsPage() {
 
                                             {/* Certificate Download Link */}
                                             {batch.dva_source === "AUDITED" && batch.pli_certificate_url && (
-                                                <div className="mt-3 pt-3 border-t border-zinc-700/50">
+                                                <div className="mt-3 pt-3 border-t border-slate-700/50">
                                                     <a
                                                         href={batch.pli_certificate_url}
                                                         target="_blank"
@@ -433,8 +433,8 @@ export default function BatchDetailsPage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
                                                 <Factory className="h-3.5 w-3.5 text-orange-400" />
                                                 Cell Source
                                             </dt>
@@ -451,41 +451,41 @@ export default function BatchDetailsPage() {
                                                 ) : 'Not specified'}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">HSN Code</dt>
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">HSN Code</dt>
                                             <dd className="font-mono text-lg text-white">
                                                 {batch.hsn_code || 'N/A'}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">PLI Subsidy Eligible</dt>
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">PLI Subsidy Eligible</dt>
                                             <dd className="font-semibold">
                                                 {batch.pli_compliant ? (
                                                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Yes</Badge>
                                                 ) : (
-                                                    <Badge className="bg-zinc-700 text-zinc-400">No</Badge>
+                                                    <Badge className="bg-slate-700 text-slate-400">No</Badge>
                                                 )}
                                             </dd>
                                         </div>
                                         {/* Financial Data for DVA Calculation */}
                                         {(batch.specs?.sale_price_inr || batch.specs?.import_cost_inr) && (
                                             <>
-                                                <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                    <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Sale Price</dt>
+                                                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                    <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Sale Price</dt>
                                                     <dd className="font-semibold text-white">
                                                         ₹{batch.specs.sale_price_inr?.toLocaleString('en-IN') || '0'}
                                                     </dd>
                                                 </div>
-                                                <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                    <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Import Material Cost</dt>
+                                                <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                    <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Import Material Cost</dt>
                                                     <dd className="font-semibold text-white">
                                                         ₹{batch.specs.import_cost_inr?.toLocaleString('en-IN') || '0'}
                                                     </dd>
                                                 </div>
                                             </>
                                         )}
-                                        <div className="col-span-2 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Serial Format (BPAN)</dt>
+                                        <div className="col-span-2 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Serial Format (BPAN)</dt>
                                             <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 rounded-lg border border-orange-500/20 inline-block">
                                                 IN-NKY-{batch.specs?.chemistry || 'LFP'}-2026-XXXXX
                                             </dd>
@@ -501,15 +501,15 @@ export default function BatchDetailsPage() {
                                             </div>
                                             <dl className="grid grid-cols-3 gap-4 text-sm">
                                                 <div>
-                                                    <dt className="text-zinc-500 mb-1 text-xs">Bill of Entry</dt>
+                                                    <dt className="text-slate-500 mb-1 text-xs">Bill of Entry</dt>
                                                     <dd className="font-mono text-white">{batch.bill_of_entry_no}</dd>
                                                 </div>
                                                 <div>
-                                                    <dt className="text-zinc-500 mb-1 text-xs">Cell Country of Origin</dt>
+                                                    <dt className="text-slate-500 mb-1 text-xs">Cell Country of Origin</dt>
                                                     <dd className="font-semibold text-white">{batch.country_of_origin || 'N/A'}</dd>
                                                 </div>
                                                 <div>
-                                                    <dt className="text-zinc-500 mb-1 text-xs">Customs Clearance Date</dt>
+                                                    <dt className="text-slate-500 mb-1 text-xs">Customs Clearance Date</dt>
                                                     <dd className="font-semibold text-white">
                                                         {batch.customs_date
                                                             ? new Date(batch.customs_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -526,7 +526,7 @@ export default function BatchDetailsPage() {
 
                         {/* Market-Specific Compliance Card - EU DARK THEME */}
                         {isEU && (
-                            <Card className="bg-zinc-900/80 border-zinc-800 border-l-4 border-l-blue-500">
+                            <Card className="bg-slate-900/80 border-slate-800 border-l-4 border-l-blue-500">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 text-white">
                                         <div className="p-2 rounded-lg bg-blue-500/10">
@@ -537,8 +537,8 @@ export default function BatchDetailsPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <dl className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
                                                 <Leaf className="h-3.5 w-3.5 text-emerald-400" />
                                                 Carbon Footprint
                                             </dt>
@@ -551,18 +551,18 @@ export default function BatchDetailsPage() {
                                                 )}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Recyclable</dt>
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Recyclable</dt>
                                             <dd className="font-semibold">
                                                 {batch.specs.recyclable ? (
                                                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">♻️ Yes</Badge>
                                                 ) : (
-                                                    <Badge className="bg-zinc-700 text-zinc-400">No</Badge>
+                                                    <Badge className="bg-slate-700 text-slate-400">No</Badge>
                                                 )}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Certifications</dt>
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Certifications</dt>
                                             <dd className="flex gap-2 flex-wrap">
                                                 {batch.specs.certifications?.length > 0 ? (
                                                     batch.specs.certifications.map((cert: string) => (
@@ -575,9 +575,9 @@ export default function BatchDetailsPage() {
                                                 )}
                                             </dd>
                                         </div>
-                                        <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                            <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
-                                                <Atom className="h-3.5 w-3.5 text-purple-400" />
+                                        <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                            <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
+                                                <Atom className="h-3.5 w-3.5 text-teal-400" />
                                                 Material Data
                                             </dt>
                                             <dd className="font-semibold">
@@ -594,8 +594,8 @@ export default function BatchDetailsPage() {
 
                                         {/* EU Representative */}
                                         {batch.specs.eu_representative && (
-                                            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">EU Representative</dt>
+                                            <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">EU Representative</dt>
                                                 <dd className="font-semibold text-white">{batch.specs.eu_representative}</dd>
                                                 {batch.specs.eu_representative_email && (
                                                     <dd className="text-xs text-blue-400 mt-1">
@@ -611,14 +611,14 @@ export default function BatchDetailsPage() {
                                         {(batch.specs.warranty_months || batch.specs.expected_lifetime_cycles) && (
                                             <>
                                                 {batch.specs.warranty_months && (
-                                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
+                                                    <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                        <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
                                                         <dd className="font-semibold text-white">{batch.specs.warranty_months} months</dd>
                                                     </div>
                                                 )}
                                                 {batch.specs.expected_lifetime_cycles && (
-                                                    <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                        <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
+                                                    <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                        <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
                                                         <dd className="font-semibold text-white">{batch.specs.expected_lifetime_cycles.toLocaleString()} cycles</dd>
                                                     </div>
                                                 )}
@@ -627,53 +627,53 @@ export default function BatchDetailsPage() {
 
                                         {/* Recycled Content */}
                                         {batch.specs.recycled_content_pct !== undefined && batch.specs.recycled_content_pct > 0 && (
-                                            <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                <dt className="text-zinc-500 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
+                                            <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                <dt className="text-slate-500 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
                                                 <dd className="font-semibold text-emerald-400">{batch.specs.recycled_content_pct}%</dd>
                                             </div>
                                         )}
 
                                         {/* Material Composition - Full Width */}
                                         {batch.specs.material_composition && (
-                                            <div className="col-span-2 p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                                                <dt className="text-zinc-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
-                                                    <Atom className="h-3.5 w-3.5 text-purple-400" />
+                                            <div className="col-span-2 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                                                <dt className="text-slate-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
+                                                    <Atom className="h-3.5 w-3.5 text-teal-400" />
                                                     Material Composition
                                                 </dt>
                                                 <dd className="grid grid-cols-3 gap-3 text-xs">
                                                     {batch.specs.material_composition.cobalt_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Cobalt</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Cobalt</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.cobalt_pct}%</span>
                                                         </div>
                                                     )}
                                                     {batch.specs.material_composition.lithium_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Lithium</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Lithium</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.lithium_pct}%</span>
                                                         </div>
                                                     )}
                                                     {batch.specs.material_composition.nickel_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Nickel</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Nickel</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.nickel_pct}%</span>
                                                         </div>
                                                     )}
                                                     {batch.specs.material_composition.manganese_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Manganese</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Manganese</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.manganese_pct}%</span>
                                                         </div>
                                                     )}
                                                     {batch.specs.material_composition.graphite_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Graphite</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Graphite</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.graphite_pct}%</span>
                                                         </div>
                                                     )}
                                                     {batch.specs.material_composition.lead_pct > 0 && (
-                                                        <div className="flex justify-between items-center p-2 bg-zinc-900/50 rounded">
-                                                            <span className="text-zinc-400">Lead</span>
+                                                        <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded">
+                                                            <span className="text-slate-400">Lead</span>
                                                             <span className="font-semibold text-white">{batch.specs.material_composition.lead_pct}%</span>
                                                         </div>
                                                     )}
@@ -684,7 +684,7 @@ export default function BatchDetailsPage() {
                                         {/* Hazardous Substances Declaration - Full Width */}
                                         {batch.specs.hazardous_substances && (
                                             <div className="col-span-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                                                <dt className="text-zinc-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
+                                                <dt className="text-slate-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
                                                     <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
                                                     Hazardous Substances Declaration
                                                 </dt>
@@ -708,7 +708,7 @@ export default function BatchDetailsPage() {
                                                             )}
                                                     </div>
                                                     {batch.specs.hazardous_substances.declaration && (
-                                                        <p className="text-xs text-zinc-400 italic">{batch.specs.hazardous_substances.declaration}</p>
+                                                        <p className="text-xs text-slate-400 italic">{batch.specs.hazardous_substances.declaration}</p>
                                                     )}
                                                 </dd>
                                             </div>
@@ -719,15 +719,15 @@ export default function BatchDetailsPage() {
                         )}
 
                         {/* Upload Section - DARK THEME */}
-                        <Card className="bg-zinc-900/80 border-zinc-800">
+                        <Card className="bg-slate-900/80 border-slate-800">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-white">
-                                    <div className="p-2 rounded-lg bg-purple-500/10">
-                                        <FileSpreadsheet className="h-5 w-5 text-purple-400" />
+                                    <div className="p-2 rounded-lg bg-teal-500/10">
+                                        <FileSpreadsheet className="h-5 w-5 text-teal-400" />
                                     </div>
                                     Upload Data
                                 </CardTitle>
-                                <CardDescription className="text-zinc-500">
+                                <CardDescription className="text-slate-500">
                                     Upload a CSV file containing passport data for this batch.
                                     {isIndia && (
                                         <span className="block mt-2 text-orange-400 font-medium">
@@ -744,43 +744,43 @@ export default function BatchDetailsPage() {
 
                     {/* Actions Sidebar - DARK THEME */}
                     <div className="space-y-6">
-                        <Card className="bg-zinc-900/80 border-zinc-800">
+                        <Card className="bg-slate-900/80 border-slate-800">
                             <CardHeader>
                                 <CardTitle className="text-white">Actions</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <Button
-                                    className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                    className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 disabled:opacity-50"
                                     onClick={handleDownloadQR}
                                     disabled={isDraft}
                                 >
                                     <QrCode className="mr-2 h-4 w-4 text-emerald-400" />
                                     Download QR Codes (ZIP)
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
+                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
                                 </Button>
                                 <Button
-                                    className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                    className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 disabled:opacity-50"
                                     onClick={() => setLabelsDialogOpen(true)}
                                     disabled={isDraft}
                                 >
                                     <Printer className="mr-2 h-4 w-4 text-blue-400" />
                                     Download PDF Labels
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
+                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
                                 </Button>
                                 <Button
-                                    className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 disabled:opacity-50"
+                                    className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 disabled:opacity-50"
                                     onClick={handleExportCSV}
                                     disabled={isDraft}
                                 >
-                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-purple-400" />
+                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-teal-400" />
                                     Export Serial List (CSV)
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-zinc-500" />}
+                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
                                 </Button>
                             </CardContent>
                         </Card>
 
                         {/* Summary Card - DARK THEME */}
-                        <Card className={`bg-zinc-900/80 border-zinc-800 ${isIndia ? "border-l-4 border-l-orange-500" :
+                        <Card className={`bg-slate-900/80 border-slate-800 ${isIndia ? "border-l-4 border-l-orange-500" :
                             isEU ? "border-l-4 border-l-blue-500" :
                                 "border-l-4 border-l-emerald-500"
                             }`}>
@@ -794,14 +794,14 @@ export default function BatchDetailsPage() {
                                     }`}>
                                     {passportCount.toLocaleString()}
                                 </div>
-                                <p className="text-sm mt-1 text-zinc-500">
+                                <p className="text-sm mt-1 text-slate-500">
                                     {isIndia ? "Battery Aadhaar IDs" : isEU ? "EU Passports" : "Total Passports"} Generated
                                 </p>
                             </CardContent>
                         </Card>
 
                         {/* Market Info Badge - DARK THEME */}
-                        <Card className="bg-zinc-900/80 border-zinc-800">
+                        <Card className="bg-slate-900/80 border-slate-800">
                             <CardContent className="pt-6">
                                 <div className="text-center">
                                     <div className="text-5xl mb-3">
@@ -810,7 +810,7 @@ export default function BatchDetailsPage() {
                                     <p className="font-bold text-xl text-white">
                                         {isIndia ? "India Market" : isEU ? "EU Export" : "Global"}
                                     </p>
-                                    <p className="text-sm text-zinc-500 mt-1">
+                                    <p className="text-sm text-slate-500 mt-1">
                                         {isIndia ? "Battery Aadhaar Compliant" : isEU ? "EU Battery Regulation" : "Multi-Market Ready"}
                                     </p>
                                 </div>
@@ -824,7 +824,7 @@ export default function BatchDetailsPage() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold tracking-tight text-white">Generated Passports</h2>
                         {pagination.total > 0 && (
-                            <p className="text-sm text-zinc-500">
+                            <p className="text-sm text-slate-500">
                                 Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
                             </p>
                         )}
@@ -840,7 +840,7 @@ export default function BatchDetailsPage() {
                                 size="sm"
                                 onClick={() => handlePageChange(pagination.page - 1)}
                                 disabled={pagination.page <= 1}
-                                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                                className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" />
                                 Previous
@@ -864,7 +864,7 @@ export default function BatchDetailsPage() {
                                             key={pageNum}
                                             variant={pageNum === pagination.page ? "default" : "ghost"}
                                             size="sm"
-                                            className={`w-8 h-8 p-0 ${pageNum === pagination.page ? "" : "text-zinc-400 hover:text-white hover:bg-zinc-800"}`}
+                                            className={`w-8 h-8 p-0 ${pageNum === pagination.page ? "" : "text-slate-400 hover:text-white hover:bg-slate-800"}`}
                                             onClick={() => handlePageChange(pageNum)}
                                         >
                                             {pageNum}
@@ -878,7 +878,7 @@ export default function BatchDetailsPage() {
                                 size="sm"
                                 onClick={() => handlePageChange(pagination.page + 1)}
                                 disabled={!pagination.hasMore}
-                                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                                className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4 ml-1" />

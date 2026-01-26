@@ -42,11 +42,11 @@ function QuickStartCard({
                         group-hover:bg-${color}-500/30 transition-colors`}>
                     {icon}
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-indigo-400 transition-colors">
+                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
                     {title}
                 </h3>
                 <p className="text-gray-400 text-sm leading-relaxed mb-4">{description}</p>
-                <span className="inline-flex items-center gap-1 text-sm text-indigo-400 group-hover:gap-2 transition-all">
+                <span className="inline-flex items-center gap-1 text-sm text-blue-400 group-hover:gap-2 transition-all">
                     Learn more <ArrowRight className="w-4 h-4" />
                 </span>
             </motion.div>
@@ -75,14 +75,14 @@ export default function DocsPage() {
                     transition={{ duration: 0.5 }}
                 >
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full 
-                        bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-sm mb-4">
+                        bg-blue-500/20 border border-blue-500/30 text-blue-400 text-sm mb-4">
                         <Zap className="w-3.5 h-3.5" />
                         <span>v2.0 Documentation</span>
                     </div>
 
                     <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
                         ExportReady-Battery
-                        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                        <span className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-teal-400">
                             Documentation
                         </span>
                     </h1>
@@ -117,7 +117,7 @@ export default function DocsPage() {
             {/* Quick Start Section */}
             <section>
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                    <Rocket className="w-6 h-6 text-indigo-400" />
+                    <Rocket className="w-6 h-6 text-blue-400" />
                     Quick Start
                 </h2>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -136,20 +136,20 @@ export default function DocsPage() {
                         color="blue"
                     />
                     <QuickStartCard
-                        icon={<Sparkles className="w-6 h-6 text-purple-400" />}
+                        icon={<Sparkles className="w-6 h-6 text-teal-400" />}
                         title="Features"
                         description="Discover powerful features like QR generation, CSV upload, and DVA calculator."
                         href="/docs/features"
-                        color="purple"
+                        color="teal"
                     />
                 </div>
             </section>
 
             {/* Key Features Section */}
             <section className="grid md:grid-cols-2 gap-8">
-                <div className="p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-transparent">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-4">
-                        <Battery className="w-6 h-6 text-indigo-400" />
+                <div className="p-6 rounded-2xl border border-white/10 bg-linear-to-br from-blue-500/10 to-transparent">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
+                        <Battery className="w-6 h-6 text-blue-400" />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-3">Digital Battery Passports</h3>
                     <ul className="space-y-3">
@@ -180,7 +180,7 @@ export default function DocsPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                     {[
                         {
-                            icon: <Shield className="w-5 h-5 text-violet-400" />,
+                            icon: <Shield className="w-5 h-5 text-blue-400" />,
                             title: 'Compliance',
                             desc: 'India & EU regulatory requirements',
                             href: '/docs/compliance'
@@ -198,7 +198,7 @@ export default function DocsPage() {
                             href: '/docs/deployment'
                         },
                         {
-                            icon: <FileText className="w-5 h-5 text-pink-400" />,
+                            icon: <FileText className="w-5 h-5 text-teal-400" />,
                             title: 'API Reference',
                             desc: 'Complete endpoint documentation',
                             href: '/docs/api-reference'
@@ -208,7 +208,7 @@ export default function DocsPage() {
                             <motion.div
                                 whileHover={{ x: 4 }}
                                 className="flex items-center gap-4 p-4 rounded-xl border border-white/10 
-                          bg-white/5 hover:border-indigo-500/50 transition-all cursor-pointer"
+                          bg-white/5 hover:border-blue-500/50 transition-all cursor-pointer"
                             >
                                 <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
                                     {item.icon}

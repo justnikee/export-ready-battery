@@ -72,6 +72,49 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// ===== SECURITY: FORCE OVERRIDES FOR IMPORTED CELLS =====
+		// Prevent API manipulation of PLI flags for imported battery cells
+		if req.CellSource == "IMPORTED" {
+			// Force all imported cells to be PLI ineligible
+			if req.PLICompliant {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced PLICompliant=false for IMPORTED cells (TenantID=%s, BatchName=%s)",
+					req.TenantID, req.BatchName)
+				req.PLICompliant = false
+			}
+
+			// Force DVA to zero for imports (no domestic value addition)
+			if req.DomesticValueAdd > 0 {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced DomesticValueAdd=0 for IMPORTED cells (was %.2f%%, TenantID=%s)",
+					req.DomesticValueAdd, req.TenantID)
+				req.DomesticValueAdd = 0
+			}
+
+			// Block audited DVA certificates for imported cells
+			if req.AuditedDomesticValueAdd != nil {
+				log.Printf("⚠️ SECURITY OVERRIDE: Blocked AuditedDVA upload for IMPORTED cells (TenantID=%s)", req.TenantID)
+				req.AuditedDomesticValueAdd = nil
+			}
+
+			// Force DVA source to ESTIMATED (no CA audits for imports)
+			if req.DVASource != "" && req.DVASource != services.DVASourceEstimated {
+				log.Printf("⚠️ SECURITY OVERRIDE: Forced DVASource=ESTIMATED for IMPORTED cells (was %s, TenantID=%s)",
+					req.DVASource, req.TenantID)
+			}
+			req.DVASource = services.DVASourceEstimated
+		}
+
+		// ===== SECURITY: STRICT PLI VALIDATION FOR DOMESTIC CELLS =====
+		// Enforce PLI scheme minimum DVA requirement
+		if req.CellSource == "DOMESTIC" && req.PLICompliant {
+			// PLI Scheme requires minimum 50% DVA
+			if req.DomesticValueAdd < 50 {
+				respondError(w, http.StatusBadRequest,
+					fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Current DVA: %.2f%%", req.DomesticValueAdd))
+				return
+			}
+			log.Printf("✅ PLI Eligibility Check Passed: DVA=%.2f%% (TenantID=%s)", req.DomesticValueAdd, req.TenantID)
+		}
+
 		// Validate DVA source
 		dvaSourceResult := h.validationService.ValidateDVASource(req.DVASource)
 		if !dvaSourceResult.Valid {

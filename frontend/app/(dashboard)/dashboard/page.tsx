@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import { QuotaCard } from "@/components/dashboard/QuotaCard"
 import { RecentBatchesTable } from "@/components/dashboard/RecentBatchesTable"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 import { formatDistanceToNow, format, parseISO } from "date-fns"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
@@ -177,43 +178,30 @@ export default function DashboardPage() {
     }, [user])
 
     if (loading) {
-        return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading Dashboard...</div>
+        return <DashboardSkeleton />
     }
 
-    // Calculate Dynamic Status Counts
-    let readyCount = 0
-    let processingCount = 0
-    let completedCount = 0
+    // Calculate Dynamic Status Counts from REAL data
+    let readyCount = 0      // Drafts
+    let processingCount = 0 // Active
+    let completedCount = 0  // Completed/Archived
 
     batches.forEach(b => {
-        // Use same time-based logic as Recent Batches
-        const createdAt = new Date(b.created_at).getTime()
-        const now = new Date().getTime()
-        const minsAgo = (now - createdAt) / (1000 * 60)
-
-        if (minsAgo < 30) {
-            processingCount++
-        } else {
-            completedCount++
-        }
+        const s = b.status?.toUpperCase() || 'DRAFT'
+        if (s === 'DRAFT') readyCount++
+        else if (s === 'ACTIVE') processingCount++
+        else if (s === 'COMPLETED' || s === 'ARCHIVED') completedCount++
+        else readyCount++ // Default to ready/draft
     })
 
-    // Fallback if no batches found (visual fix)
-    if (batches.length > 0 && readyCount === 0 && processingCount === 0 && completedCount === 0) {
-        completedCount = batches.length
-    }
-
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
             <div className="max-w-[1600px] mx-auto space-y-8">
 
-                {/* Header */}
-                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-blue-900/20 via-zinc-900 to-zinc-900 p-6">
-                    <div className="relative z-10">
-                        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-                        <p className="text-zinc-400 mt-1">Monitor your passport production and batch status</p>
-                    </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                {/* Header - Industrial Style (no blur) */}
+                <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6">
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
+                    <p className="text-slate-400 mt-1 leading-relaxed">Monitor your passport production and batch status</p>
                 </div>
 
                 {/* Top Stats Row */}
@@ -239,8 +227,10 @@ export default function DashboardPage() {
                     />
                     <StatsCard
                         title="Active Batches"
-                        value={processingCount} // Use our dynamic count
+                        value={processingCount}
                         subtext="Processing"
+                        trend="Live"
+                        isPositive={true}
                     />
                 </div>
 

@@ -50,11 +50,11 @@ export function ForgotPasswordForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <p className="text-zinc-300">
+                        <p className="text-slate-300">
                             If an account exists for <span className="font-medium text-white">{email}</span>,
                             you'll receive an email with instructions to reset your password.
                         </p>
-                        <p className="text-zinc-500 text-sm">
+                        <p className="text-slate-500 text-sm">
                             Didn't receive an email? Check your spam folder or try again.
                         </p>
                     </div>
@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
                         <Button
                             onClick={() => setIsSubmitted(false)}
                             variant="outline"
-                            className="w-full h-11 bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                            className="w-full h-11 bg-slate-900/50 border-slate-800 text-slate-300 hover:bg-slate-800"
                         >
                             Try another email
                         </Button>
@@ -71,7 +71,7 @@ export function ForgotPasswordForm() {
                         <Link href="/login" className="w-full">
                             <Button
                                 variant="ghost"
-                                className="w-full h-11 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                                className="w-full h-11 text-teal-400 hover:text-teal-300 hover:bg-teal-500/10"
                             >
                                 <ArrowLeft className="mr-2 h-4 w-4" />
                                 Back to login
@@ -97,12 +97,12 @@ export function ForgotPasswordForm() {
                     transition={{ delay: 0.1 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="email" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="email" className="text-slate-300 text-sm font-medium">
                         Email address
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+                            <Mail className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="email"
@@ -111,7 +111,7 @@ export function ForgotPasswordForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-purple-500 focus:ring-purple-500/20 transition-all"
+                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                     </div>
                 </motion.div>
@@ -125,7 +125,7 @@ export function ForgotPasswordForm() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full h-12 bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all duration-200"
+                        className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
                     >
                         {isLoading ? (
                             <>
@@ -147,7 +147,7 @@ export function ForgotPasswordForm() {
                 >
                     <Link
                         href="/login"
-                        className="inline-flex items-center text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                        className="inline-flex items-center text-sm text-teal-400 hover:text-teal-300 transition-colors"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to login

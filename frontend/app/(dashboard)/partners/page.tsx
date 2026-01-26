@@ -222,7 +222,7 @@ export default function PartnersPage() {
     }
 
     return (
-        <div className="p-6 max-w-6xl mx-auto">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-slate-100">Partner Management</h1>
@@ -261,8 +261,8 @@ export default function PartnersPage() {
                 <button
                     onClick={() => setActiveTab("trusted")}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "trusted"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                            : "bg-slate-800 text-slate-400 hover:text-white"
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        : "bg-slate-800 text-slate-400 hover:text-white"
                         }`}
                 >
                     <Building2 className="h-4 w-4" />
@@ -271,8 +271,8 @@ export default function PartnersPage() {
                 <button
                     onClick={() => setActiveTab("codes")}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "codes"
-                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                            : "bg-slate-800 text-slate-400 hover:text-white"
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        : "bg-slate-800 text-slate-400 hover:text-white"
                         }`}
                 >
                     <Key className="h-4 w-4" />

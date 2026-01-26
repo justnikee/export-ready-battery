@@ -9,7 +9,7 @@ interface BatchStatusChartProps {
     completed: number
 }
 
-const COLORS = ['#10b981', '#8b5cf6', '#64748b'];
+const COLORS = ['#10b981', '#f59e0b', '#64748b'];
 
 export function BatchStatusChart({ ready, processing, completed }: BatchStatusChartProps) {
     const data = [
@@ -22,7 +22,7 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
     const activeData = data.filter(d => d.value > 0);
 
     return (
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100">
+        <Card className="bg-slate-900 border-slate-800 text-slate-100">
             <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold">Batch Status</CardTitle>
             </CardHeader>
@@ -46,8 +46,8 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                                 ))}
                             </Pie>
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
-                                itemStyle={{ color: '#e4e4e7' }}
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px' }}
+                                itemStyle={{ color: '#e2e8f0' }}
                             />
                         </PieChart>
                     </ResponsiveContainer>
@@ -63,9 +63,9 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                         <div key={item.name} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[index] }} />
-                                <span className="text-zinc-400 truncate">{item.name}</span>
+                                <span className="text-slate-400 truncate">{item.name}</span>
                             </div>
-                            <span className="font-bold text-zinc-200">{item.value}</span>
+                            <span className="font-bold text-slate-200">{item.value}</span>
                         </div>
                     ))}
                 </div>

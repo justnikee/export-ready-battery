@@ -46,27 +46,27 @@ export function PricingCard({
             className={clsx(
                 "relative rounded-2xl border p-1 transition-all duration-300",
                 recommended
-                    ? "bg-linear-to-b from-purple-500/20 to-transparent border-purple-500/30 md:-translate-y-4"
-                    : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
+                    ? "bg-linear-to-b from-teal-500/20 to-transparent border-teal-500/30 md:-translate-y-4"
+                    : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
             )}
         >
             {recommended && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1 shadow-lg shadow-purple-500/25">
+                    <Badge className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1 shadow-lg shadow-teal-500/25">
                         Most Popular
                     </Badge>
                 </div>
             )}
 
-            <div className="bg-zinc-900 rounded-xl p-6 h-full flex flex-col">
+            <div className="bg-slate-900 rounded-xl p-6 h-full flex flex-col">
                 <div className="mb-6">
                     <h3 className={clsx(
                         "text-xl font-semibold mb-1",
-                        recommended ? "text-purple-400" : "text-white"
+                        recommended ? "text-teal-400" : "text-white"
                     )}>
                         {planName}
                     </h3>
-                    <p className="text-sm text-zinc-500">{description}</p>
+                    <p className="text-sm text-slate-500">{description}</p>
                 </div>
 
                 <div className="mb-6">
@@ -76,8 +76,8 @@ export function PricingCard({
                                 ? (displayPrice === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`)
                                 : displayPrice}
                         </span>
-                        {priceSuffix && <span className="text-zinc-500">{priceSuffix}</span>}
-                        {billingPeriod && typeof price === 'number' && price > 0 && <span className="text-zinc-500">/mo</span>}
+                        {priceSuffix && <span className="text-slate-500">{priceSuffix}</span>}
+                        {billingPeriod && typeof price === 'number' && price > 0 && <span className="text-slate-500">/mo</span>}
                     </div>
                     {billingPeriod === "yearly" && typeof price === 'number' && typeof displayPrice === 'number' && price > 0 && (
                         <p className="text-xs text-emerald-400 font-medium mt-1">
@@ -97,10 +97,10 @@ export function PricingCard({
                     className={clsx(
                         "w-full h-11 font-semibold rounded-lg mt-auto",
                         recommended
-                            ? "bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/25"
+                            ? "bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-500/25"
                             : ctaVariant === "default"
-                                ? "bg-white hover:bg-zinc-200 text-black"
-                                : "bg-transparent border border-zinc-700 text-white hover:bg-zinc-800"
+                                ? "bg-white hover:bg-slate-200 text-slate-900"
+                                : "bg-transparent border border-slate-700 text-white hover:bg-slate-800"
                     )}
                     variant={recommended ? "default" : ctaVariant}
                 >
@@ -115,11 +115,11 @@ function FeatureItem({ text, available = true, highlight = false }: { text: stri
     return (
         <div className="flex items-start gap-3">
             {available ? (
-                <Check className={clsx("h-5 w-5 shrink-0 mt-0.5", highlight ? "text-purple-400" : "text-emerald-400")} />
+                <Check className={clsx("h-5 w-5 shrink-0 mt-0.5", highlight ? "text-teal-400" : "text-emerald-400")} />
             ) : (
-                <X className="h-5 w-5 shrink-0 mt-0.5 text-zinc-600" />
+                <X className="h-5 w-5 shrink-0 mt-0.5 text-slate-600" />
             )}
-            <span className={clsx("text-sm", available ? "text-zinc-300" : "text-zinc-600 line-through")}>
+            <span className={clsx("text-sm", available ? "text-slate-300" : "text-slate-600 line-through")}>
                 {text}
             </span>
         </div>

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
@@ -39,9 +40,14 @@ type CreateTrustedPartnerRequest struct {
 // CreateTrustedPartner handles POST /api/v1/partners/trusted
 func (h *TrustedPartnerHandler) CreateTrustedPartner(w http.ResponseWriter, r *http.Request) {
 	// Get tenant ID from context (set by auth middleware)
-	tenantID, ok := r.Context().Value("tenant_id").(uuid.UUID)
+	tenantIDStr, ok := r.Context().Value(middleware.TenantIDKey).(string)
 	if !ok {
 		respondError(w, http.StatusUnauthorized, "Tenant ID not found in context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Invalid tenant ID format in context")
 		return
 	}
 
@@ -102,9 +108,14 @@ func (h *TrustedPartnerHandler) CreateTrustedPartner(w http.ResponseWriter, r *h
 
 // ListTrustedPartners handles GET /api/v1/partners/trusted
 func (h *TrustedPartnerHandler) ListTrustedPartners(w http.ResponseWriter, r *http.Request) {
-	tenantID, ok := r.Context().Value("tenant_id").(uuid.UUID)
+	tenantIDStr, ok := r.Context().Value(middleware.TenantIDKey).(string)
 	if !ok {
 		respondError(w, http.StatusUnauthorized, "Tenant ID not found in context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Invalid tenant ID format in context")
 		return
 	}
 
@@ -165,9 +176,14 @@ type CreatePartnerCodeRequest struct {
 
 // CreatePartnerCode handles POST /api/v1/partners/codes
 func (h *TrustedPartnerHandler) CreatePartnerCode(w http.ResponseWriter, r *http.Request) {
-	tenantID, ok := r.Context().Value("tenant_id").(uuid.UUID)
+	tenantIDStr, ok := r.Context().Value(middleware.TenantIDKey).(string)
 	if !ok {
 		respondError(w, http.StatusUnauthorized, "Tenant ID not found in context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Invalid tenant ID format in context")
 		return
 	}
 
@@ -226,9 +242,14 @@ func (h *TrustedPartnerHandler) CreatePartnerCode(w http.ResponseWriter, r *http
 
 // ListPartnerCodes handles GET /api/v1/partners/codes
 func (h *TrustedPartnerHandler) ListPartnerCodes(w http.ResponseWriter, r *http.Request) {
-	tenantID, ok := r.Context().Value("tenant_id").(uuid.UUID)
+	tenantIDStr, ok := r.Context().Value(middleware.TenantIDKey).(string)
 	if !ok {
 		respondError(w, http.StatusUnauthorized, "Tenant ID not found in context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Invalid tenant ID format in context")
 		return
 	}
 

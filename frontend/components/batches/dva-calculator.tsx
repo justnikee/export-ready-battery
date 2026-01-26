@@ -48,18 +48,18 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {trigger || (
-                    <button type="button" className="p-2 text-zinc-400 hover:text-white transition-colors">
+                    <button type="button" className="p-2 text-slate-400 hover:text-white transition-colors">
                         <Calculator className="h-4 w-4" />
                     </button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800 text-zinc-100">
+            <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        <Calculator className="h-5 w-5 text-purple-500" />
+                        <Calculator className="h-5 w-5 text-teal-500" />
                         PLI DVA Calculator
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-slate-400">
                         Calculate Domestic Value Addition per MHI formulas for PLI compliance.
                     </DialogDescription>
                 </DialogHeader>
@@ -68,29 +68,29 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
                     {/* Input Fields */}
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">Ex-Factory Sale Price (₹)</label>
+                            <label className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Ex-Factory Sale Price (₹)</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={salePrice}
                                 onChange={(e) => setSalePrice(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="flex h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
                                 placeholder="e.g 15000"
                             />
-                            <p className="text-[10px] text-zinc-500">Net selling price of battery excluding GST.</p>
+                            <p className="text-[10px] text-slate-500">Net selling price of battery excluding GST.</p>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">Cost of Imported Materials (₹)</label>
+                            <label className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Cost of Imported Materials (₹)</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={importedCost}
                                 onChange={(e) => setImportedCost(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                className="flex h-10 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
                                 placeholder="e.g 6000"
                             />
-                            <p className="text-[10px] text-zinc-500">CIF value of all imported cells, electronics, and potential raw materials.</p>
+                            <p className="text-[10px] text-slate-500">CIF value of all imported cells, electronics, and potential raw materials.</p>
                         </div>
                     </div>
 
@@ -100,7 +100,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
                         : "bg-red-950/20 border-red-900/50"
                         }`}>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-zinc-400 text-sm font-medium">Calculated DVA</span>
+                            <span className="text-slate-400 text-sm font-medium">Calculated DVA</span>
                             {isEligible ? (
                                 <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-900">
                                     <CheckCircle2 className="h-3 w-3" />
@@ -118,7 +118,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
                                 }`}>
                                 {dva.toFixed(1)}%
                             </span>
-                            <span className="text-zinc-500 text-sm">value addition</span>
+                            <span className="text-slate-500 text-sm">value addition</span>
                         </div>
                         <div className="mt-3 h-2 w-full bg-black/40 rounded-full overflow-hidden">
                             <div
@@ -131,7 +131,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
                     <button
                         onClick={handleApply}
                         disabled={parseFloat(salePrice) <= 0}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white text-black px-4 py-2.5 text-sm font-medium hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-400 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-white text-slate-900 px-4 py-2.5 text-sm font-medium hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                     >
                         Apply to Batch
                         <ArrowRight className="h-4 w-4" />

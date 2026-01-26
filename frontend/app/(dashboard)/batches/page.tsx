@@ -8,6 +8,7 @@ import { duplicateBatch } from "@/lib/api/batches"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Table,
     TableBody,
@@ -24,9 +25,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { format } from "date-fns"
 import {
     MoreHorizontal,
     Search,
@@ -35,14 +34,16 @@ import {
     Download,
     Copy,
     Trash2,
-    Leaf,
     Zap,
     Globe,
-    Flag
+    ChevronLeft,
+    ChevronRight,
+    Battery,
+    Package
 } from "lucide-react"
 import { toast } from "sonner"
 
-// Market region type
+// Types
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 type FilterType = "ALL" | "DRAFT" | "ACTIVE"
 
@@ -51,17 +52,18 @@ interface Batch {
     batch_name: string
     created_at: string
     specs: any
-    status?: string // DRAFT, ACTIVE, ARCHIVED
+    status?: string
     market_region?: MarketRegion
     pli_compliant?: boolean
     total_passports?: number
-    // India compliance fields
     domestic_value_add?: number
     cell_source?: 'IMPORTED' | 'DOMESTIC'
     hsn_code?: string
     bill_of_entry_no?: string
     country_of_origin?: string
 }
+
+const ITEMS_PER_PAGE = 10
 
 export default function BatchesPage() {
     const { user } = useAuth()
@@ -70,12 +72,14 @@ export default function BatchesPage() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<FilterType>("ALL")
     const [searchQuery, setSearchQuery] = useState("")
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [currentPage, setCurrentPage] = useState(1)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const fetchBatches = async () => {
         if (!user) return
         try {
             const response = await api.get(`/batches?tenant_id=${user.tenant_id}`)
-            // Ensure we sort by newest first
             const sorted = (response.data.batches || []).sort((a: Batch, b: Batch) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )
@@ -91,6 +95,78 @@ export default function BatchesPage() {
     useEffect(() => {
         fetchBatches()
     }, [user])
+
+    // Filter batches
+    const filteredBatches = batches.filter(batch => {
+        if (filter !== "ALL") {
+            const status = batch.status || "DRAFT"
+            if (status !== filter) return false
+        }
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            return (
+                batch.batch_name.toLowerCase().includes(query) ||
+                batch.id.toLowerCase().includes(query)
+            )
+        }
+        return true
+    })
+
+    // Pagination
+    const totalPages = Math.ceil(filteredBatches.length / ITEMS_PER_PAGE)
+    const paginatedBatches = filteredBatches.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    )
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [filter, searchQuery])
+
+    // Selection handlers
+    const toggleSelect = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        const newSelected = new Set(selectedIds)
+        if (newSelected.has(id)) {
+            newSelected.delete(id)
+        } else {
+            newSelected.add(id)
+        }
+        setSelectedIds(newSelected)
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === paginatedBatches.length) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(paginatedBatches.map(b => b.id)))
+        }
+    }
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return
+
+        const confirmed = window.confirm(`Are you sure you want to delete ${selectedIds.size} batch(es)? This action cannot be undone.`)
+        if (!confirmed) return
+
+        setIsDeleting(true)
+        try {
+            // Delete one by one (or implement bulk endpoint if available)
+            const deletePromises = Array.from(selectedIds).map(id =>
+                api.delete(`/batches/${id}`)
+            )
+            await Promise.all(deletePromises)
+            toast.success(`Successfully deleted ${selectedIds.size} batch(es)`)
+            setSelectedIds(new Set())
+            fetchBatches()
+        } catch (error) {
+            console.error("Delete failed:", error)
+            toast.error("Failed to delete some batches")
+        } finally {
+            setIsDeleting(false)
+        }
+    }
 
     const handleDuplicate = async (batchId: string) => {
         try {
@@ -109,212 +185,276 @@ export default function BatchesPage() {
         toast.success("ID copied to clipboard")
     }
 
-    // Filter batches based on search and status
-    const filteredBatches = batches.filter(batch => {
-        // Status Filter
-        if (filter !== "ALL") {
-            const status = batch.status || "DRAFT"
-            if (status !== filter) return false
-        }
-
-        // Search Filter
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase()
-            return (
-                batch.batch_name.toLowerCase().includes(query) ||
-                batch.id.toLowerCase().includes(query)
-            )
-        }
-
-        return true
-    })
-
-    // Helper to get status dot
-    const getStatusIndicator = (status: string) => {
+    const getStatusBadge = (status: string) => {
         if (status === 'ACTIVE') {
             return (
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/50" />
-                    <span className="text-emerald-400 font-medium">Active</span>
-                </div>
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-medium px-3 py-1">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_6px] shadow-emerald-500/50" />
+                    Active
+                </Badge>
             )
         }
         return (
-            <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-zinc-500" />
-                <span className="text-zinc-500 font-medium">Draft</span>
-            </div>
+            <Badge variant="outline" className="text-slate-400 border-slate-600 font-medium px-3 py-1">
+                <div className="h-2 w-2 rounded-full bg-slate-500 mr-2" />
+                Draft
+            </Badge>
         )
     }
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen text-zinc-500">
-                Loading batches...
+            <div className="flex items-center justify-center min-h-screen bg-slate-950">
+                <div className="flex items-center gap-3 text-slate-400">
+                    <div className="animate-spin h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full" />
+                    Loading batches...
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
             <div className="max-w-[1600px] mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Batches</h1>
-                        <p className="text-zinc-400 text-sm">Manage production runs and compliance data.</p>
+                <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                                <Battery className="h-7 w-7 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold text-white tracking-tight">Production Batches</h1>
+                                <p className="text-slate-400 mt-1">Manage battery production runs and passport generation</p>
+                            </div>
+                        </div>
+                        <CreateBatchDialog onBatchCreated={fetchBatches} />
                     </div>
-                    <CreateBatchDialog onBatchCreated={fetchBatches} />
+                </div>
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center">
+                            <Package className="h-6 w-6 text-slate-400" />
+                        </div>
+                        <div>
+                            <p className="text-3xl font-bold text-white">{batches.length}</p>
+                            <p className="text-sm text-slate-500">Total Batches</p>
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                            <div className="h-4 w-4 rounded-full bg-emerald-500 shadow-[0_0_10px] shadow-emerald-500/60" />
+                        </div>
+                        <div>
+                            <p className="text-3xl font-bold text-emerald-400">{batches.filter(b => b.status === 'ACTIVE').length}</p>
+                            <p className="text-sm text-slate-500">Active</p>
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center">
+                            <div className="h-4 w-4 rounded-full bg-slate-500" />
+                        </div>
+                        <div>
+                            <p className="text-3xl font-bold text-slate-300">{batches.filter(b => b.status !== 'ACTIVE').length}</p>
+                            <p className="text-sm text-slate-500">Drafts</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Toolbar */}
-                <div className="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                        <Input
-                            placeholder="Search by name or ID..."
-                            className="bg-black/50 border-zinc-700 pl-9 focus:border-zinc-500 transition-colors"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                <div className="flex items-center justify-between gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex-1 min-w-[300px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                            <Input
+                                placeholder="Search batches..."
+                                className="bg-slate-900 border-slate-700 pl-10 h-10 focus:border-emerald-500/50"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 h-10">
+                                    <Filter className="h-4 w-4 mr-2" />
+                                    {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : "Draft"}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="bg-slate-900 border-slate-800 text-slate-200">
+                                <DropdownMenuItem onClick={() => setFilter("ALL")}>All Status</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilter("DRAFT")}>Drafts Only</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setFilter("ACTIVE")}>Active Only</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
-                    <div className="h-4 w-px bg-zinc-800 mx-2" />
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800">
-                                <Filter className="h-4 w-4 mr-2" />
-                                {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : "Draft"}
+                    {/* Bulk Actions */}
+                    {selectedIds.size > 0 && (
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm text-slate-400">
+                                {selectedIds.size} selected
+                            </span>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleBulkDelete}
+                                disabled={isDeleting}
+                                className="bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {isDeleting ? "Deleting..." : "Delete Selected"}
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-200">
-                            <DropdownMenuItem onClick={() => setFilter("ALL")}>All Status</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setFilter("DRAFT")}>Drafts</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setFilter("ACTIVE")}>Active</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </div>
+                    )}
                 </div>
 
                 {/* Table */}
-                <div className="rounded-md border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
                     <Table>
-                        <TableHeader className="bg-zinc-900 hover:bg-zinc-900">
-                            <TableRow className="border-zinc-800 hover:bg-zinc-900">
-                                <TableHead className="text-zinc-400 font-medium w-[300px]">Batch Details</TableHead>
-                                <TableHead className="text-zinc-400 font-medium">Market & Compliance</TableHead>
-                                <TableHead className="text-zinc-400 font-medium">Specs</TableHead>
-                                <TableHead className="text-zinc-400 font-medium">Volume</TableHead>
-                                <TableHead className="text-zinc-400 font-medium">Status</TableHead>
-                                <TableHead className="text-right text-zinc-400 font-medium">Actions</TableHead>
+                        <TableHeader>
+                            <TableRow className="border-slate-800 bg-slate-900/80 hover:bg-slate-900/80">
+                                <TableHead className="w-12 pl-4">
+                                    <Checkbox
+                                        checked={paginatedBatches.length > 0 && selectedIds.size === paginatedBatches.length}
+                                        onCheckedChange={toggleSelectAll}
+                                        className="border-slate-600 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                    />
+                                </TableHead>
+                                <TableHead className="text-slate-300 font-semibold text-sm py-4">Batch Name</TableHead>
+                                <TableHead className="text-slate-300 font-semibold text-sm py-4">Market</TableHead>
+                                <TableHead className="text-slate-300 font-semibold text-sm py-4">Specifications</TableHead>
+                                <TableHead className="text-slate-300 font-semibold text-sm py-4">Passports</TableHead>
+                                <TableHead className="text-slate-300 font-semibold text-sm py-4">Status</TableHead>
+                                <TableHead className="text-right text-slate-300 font-semibold text-sm py-4 pr-4">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredBatches.length === 0 ? (
+                            {paginatedBatches.length === 0 ? (
                                 <TableRow className="hover:bg-transparent">
-                                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500 border-zinc-800">
-                                        No batches found.
+                                    <TableCell colSpan={7} className="h-32 text-center text-slate-500 border-slate-800">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Package className="h-8 w-8 text-slate-600" />
+                                            <span>No batches found</span>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredBatches.map((batch) => (
+                                paginatedBatches.map((batch) => (
                                     <TableRow
                                         key={batch.id}
-                                        className="border-zinc-800 hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                                        className={`border-slate-800 hover:bg-slate-800/50 transition-colors group cursor-pointer ${selectedIds.has(batch.id) ? 'bg-emerald-500/5' : ''
+                                            }`}
                                         onClick={() => router.push(`/batches/${batch.id}`)}
                                     >
-                                        {/* Column 1: Details */}
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-zinc-200 group-hover:text-white transition-colors text-base">
+                                        {/* Checkbox */}
+                                        <TableCell className="pl-4 py-5" onClick={(e) => toggleSelect(batch.id, e)}>
+                                            <Checkbox
+                                                checked={selectedIds.has(batch.id)}
+                                                className="border-slate-600 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                            />
+                                        </TableCell>
+
+                                        {/* Batch Name */}
+                                        <TableCell className="py-5">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-semibold text-white text-base group-hover:text-emerald-400 transition-colors">
                                                     {batch.batch_name}
                                                 </span>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs text-zinc-500 font-mono" title={batch.id}>
-                                                        {batch.id}
-                                                    </span>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs text-slate-500 font-mono bg-slate-800/50 px-2 py-0.5 rounded">
+                                                        {batch.id.substring(0, 8)}...
+                                                    </code>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-4 w-4 text-zinc-600 hover:text-zinc-300 hover:bg-transparent p-0"
+                                                        className="h-5 w-5 text-slate-500 hover:text-slate-300 hover:bg-slate-800"
                                                         onClick={(e) => copyToClipboard(batch.id, e)}
                                                     >
                                                         <Copy className="h-3 w-3" />
-                                                        <span className="sr-only">Copy ID</span>
                                                     </Button>
                                                 </div>
                                             </div>
                                         </TableCell>
 
-                                        {/* Column 2: Market */}
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    {batch.market_region === "INDIA" ? (
-                                                        <span className="text-xl" title="India">🇮🇳</span>
-                                                    ) : batch.market_region === "EU" ? (
-                                                        <span className="text-xl" title="European Union">🇪🇺</span>
-                                                    ) : (
-                                                        <Globe className="h-5 w-5 text-zinc-400" />
-                                                    )}
-
+                                        {/* Market */}
+                                        <TableCell className="py-5">
+                                            <div className="flex items-center gap-3">
+                                                {/* SVG Flag Icons */}
+                                                {batch.market_region === "INDIA" ? (
+                                                    <span className="fi fi-in text-2xl rounded shadow-sm" title="India" />
+                                                ) : batch.market_region === "EU" ? (
+                                                    <span className="fi fi-eu text-2xl rounded shadow-sm" title="European Union" />
+                                                ) : (
+                                                    <Globe className="h-6 w-6 text-slate-400" />
+                                                )}
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm text-white font-medium">
+                                                        {batch.market_region === "INDIA" ? "India" :
+                                                            batch.market_region === "EU" ? "European Union" : "Global"}
+                                                    </span>
                                                     {batch.pli_compliant && (
-                                                        <Badge variant="secondary" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] px-1.5 py-0 h-5 font-medium">
-                                                            PLI
+                                                        <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/25 text-xs px-2 py-0 h-5 w-fit mt-1">
+                                                            PLI Eligible
                                                         </Badge>
                                                     )}
+                                                    {batch.domestic_value_add !== undefined && batch.market_region === "INDIA" && (
+                                                        <span className={`text-xs mt-1 ${batch.domestic_value_add >= 50 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                            DVA: {batch.domestic_value_add.toFixed(1)}%
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                {/* Show DVA for India batches */}
-                                                {batch.market_region === "INDIA" && batch.domestic_value_add !== undefined && (
-                                                    <span className={`text-[10px] font-medium ${batch.domestic_value_add >= 50 ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                                                        DVA: {batch.domestic_value_add.toFixed(1)}%
-                                                        {batch.cell_source && <span className="ml-1">({batch.cell_source === 'DOMESTIC' ? '🏭' : '📦'})</span>}
-                                                    </span>
-                                                )}
                                             </div>
                                         </TableCell>
 
-                                        {/* Column 3: Specs */}
-                                        <TableCell>
-                                            <div className="flex items-center gap-2 text-sm text-zinc-400 font-mono">
-                                                <span>{batch.specs?.chemistry || "N/A"}</span>
-                                                <span className="text-zinc-700">•</span>
-                                                <span>{batch.specs?.voltage ? `${batch.specs.voltage}V` : "N/A"}</span>
-                                                <span className="text-zinc-700">•</span>
-                                                <span>{batch.specs?.capacity || "N/A"}</span>
+                                        {/* Specs */}
+                                        <TableCell className="py-5">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-sm text-white font-medium">
+                                                    {batch.specs?.chemistry || "N/A"}
+                                                </span>
+                                                <span className="text-xs text-slate-400">
+                                                    {batch.specs?.voltage ? `${batch.specs.voltage}V` : ""}
+                                                    {batch.specs?.voltage && batch.specs?.capacity ? " • " : ""}
+                                                    {batch.specs?.capacity || ""}
+                                                </span>
                                             </div>
                                         </TableCell>
 
-                                        {/* Column 4: Volume */}
-                                        <TableCell>
-                                            <div className="font-medium text-zinc-300">
-                                                {batch.total_passports || 0} Batteries
+                                        {/* Passports */}
+                                        <TableCell className="py-5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-bold text-white">
+                                                    {(batch.total_passports || 0).toLocaleString()}
+                                                </span>
+                                                <span className="text-sm text-slate-500">units</span>
                                             </div>
                                         </TableCell>
 
-                                        {/* Column 5: Status */}
-                                        <TableCell>
-                                            {getStatusIndicator(batch.status || 'DRAFT')}
+                                        {/* Status */}
+                                        <TableCell className="py-5">
+                                            {getStatusBadge(batch.status || 'DRAFT')}
                                         </TableCell>
 
-                                        {/* Column 6: Actions */}
-                                        <TableCell className="text-right">
+                                        {/* Actions */}
+                                        <TableCell className="text-right pr-4 py-5">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    <Button variant="ghost" className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-slate-800">
+                                                        <MoreHorizontal className="h-5 w-5" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800 text-zinc-200">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800 text-slate-200 min-w-[180px]">
+                                                    <DropdownMenuLabel className="text-slate-400">Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             router.push(`/batches/${batch.id}`)
                                                         }}
-                                                        className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                        className="cursor-pointer focus:bg-slate-800"
                                                     >
                                                         <ArrowRight className="mr-2 h-4 w-4" /> View Details
                                                     </DropdownMenuItem>
@@ -325,16 +465,15 @@ export default function BatchesPage() {
                                                                 e.stopPropagation()
                                                                 try {
                                                                     await api.post(`/batches/${batch.id}/activate`)
-                                                                    toast.success("Batch activated successfully")
+                                                                    toast.success("Batch activated!")
                                                                     fetchBatches()
                                                                 } catch (err: any) {
-                                                                    console.error(err)
-                                                                    toast.error(err.response?.data?.error || "Activation failed or insufficient quota")
+                                                                    toast.error(err.response?.data?.error || "Activation failed")
                                                                 }
                                                             }}
-                                                            className="cursor-pointer flex items-center text-amber-400 focus:text-amber-300 focus:bg-amber-400/10"
+                                                            className="cursor-pointer text-emerald-400 focus:text-emerald-300 focus:bg-emerald-500/10"
                                                         >
-                                                            <Zap className="mr-2 h-4 w-4" /> Activate Batch
+                                                            <Zap className="mr-2 h-4 w-4" /> Activate
                                                         </DropdownMenuItem>
                                                     )}
 
@@ -345,7 +484,7 @@ export default function BatchesPage() {
                                                                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
                                                                 window.open(`${apiUrl}/batches/${batch.id}/labels?tenant_id=${user?.tenant_id}`, '_blank')
                                                             }}
-                                                            className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                            className="cursor-pointer focus:bg-slate-800"
                                                         >
                                                             <Download className="mr-2 h-4 w-4" /> Download Labels
                                                         </DropdownMenuItem>
@@ -356,16 +495,27 @@ export default function BatchesPage() {
                                                             e.stopPropagation()
                                                             handleDuplicate(batch.id)
                                                         }}
-                                                        className="cursor-pointer flex items-center focus:bg-zinc-800 focus:text-white"
+                                                        className="cursor-pointer focus:bg-slate-800"
                                                     >
-                                                        <Copy className="mr-2 h-4 w-4" /> Duplicate Batch
+                                                        <Copy className="mr-2 h-4 w-4" /> Duplicate
                                                     </DropdownMenuItem>
 
-                                                    <DropdownMenuSeparator className="bg-zinc-800" />
+                                                    <DropdownMenuSeparator className="bg-slate-800" />
 
                                                     <DropdownMenuItem
-                                                        onClick={(e) => e.stopPropagation()} // TODO: Implement delete
-                                                        className="text-red-400 focus:text-red-300 focus:bg-red-900/20 cursor-pointer flex items-center"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation()
+                                                            if (confirm("Delete this batch?")) {
+                                                                try {
+                                                                    await api.delete(`/batches/${batch.id}`)
+                                                                    toast.success("Batch deleted")
+                                                                    fetchBatches()
+                                                                } catch (err) {
+                                                                    toast.error("Failed to delete batch")
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer"
                                                     >
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                     </DropdownMenuItem>
@@ -378,6 +528,67 @@ export default function BatchesPage() {
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-2">
+                        <p className="text-sm text-slate-500">
+                            Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredBatches.length)} of {filteredBatches.length}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Previous
+                            </Button>
+
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i
+                                    } else {
+                                        pageNum = currentPage - 2 + i
+                                    }
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={pageNum === currentPage ? "default" : "ghost"}
+                                            size="sm"
+                                            className={`w-9 h-9 p-0 ${pageNum === currentPage
+                                                ? "bg-emerald-500 hover:bg-emerald-600"
+                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                                }`}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    )
+                                })}
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

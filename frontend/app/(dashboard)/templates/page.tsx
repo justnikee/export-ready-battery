@@ -87,30 +87,30 @@ export default function TemplatesPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-black text-zinc-100 p-8 font-sans">
+        <div className="min-h-screen bg-[#0F172A] text-slate-100 p-8 font-sans">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-linear-to-r from-purple-900/20 via-zinc-900 to-zinc-900 p-6">
+                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-linear-to-r from-teal-900/20 via-slate-900 to-slate-900 p-6">
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-bold text-white">Batch Templates</h1>
-                            <p className="text-zinc-400 mt-1">Save and reuse battery specifications for faster batch creation</p>
+                            <p className="text-slate-400 mt-1">Save and reuse battery specifications for faster batch creation</p>
                         </div>
                         <Button
                             onClick={() => setCreateDialogOpen(true)}
-                            className="bg-purple-600 hover:bg-purple-500 text-white"
+                            className="bg-teal-600 hover:bg-teal-500 text-white"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             Create Template
                         </Button>
                     </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
 
                 {/* Search */}
@@ -121,7 +121,7 @@ export default function TemplatesPage() {
                             placeholder="Search templates..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 placeholder:text-zinc-600"
+                            className="pl-10 bg-slate-900/50 border-slate-800 text-slate-100 placeholder:text-slate-600"
                         />
                     </div>
                 )}
@@ -143,21 +143,21 @@ export default function TemplatesPage() {
                     </div>
                 ) : templates.length === 0 ? (
                     /* Empty State */
-                    <Card className="bg-zinc-900/50 border-zinc-800">
+                    <Card className="bg-slate-900/50 border-slate-800">
                         <CardContent className="flex flex-col items-center justify-center py-16">
-                            <div className="p-4 rounded-full bg-purple-600/10 mb-4">
-                                <Sparkles className="h-10 w-10 text-purple-400" />
+                            <div className="p-4 rounded-full bg-teal-600/10 mb-4">
+                                <Sparkles className="h-10 w-10 text-teal-400" />
                             </div>
                             <h3 className="text-xl font-semibold text-white mb-2">
                                 No templates yet
                             </h3>
-                            <p className="text-zinc-400 text-center max-w-sm mb-6">
+                            <p className="text-slate-400 text-center max-w-sm mb-6">
                                 Create templates to save your common battery specifications
                                 and speed up batch creation.
                             </p>
                             <Button
                                 onClick={() => setCreateDialogOpen(true)}
-                                className="bg-purple-600 hover:bg-purple-700"
+                                className="bg-teal-600 hover:bg-teal-700"
                             >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create Your First Template
@@ -167,7 +167,7 @@ export default function TemplatesPage() {
                 ) : (
                     /* No search results */
                     <div className="text-center py-12">
-                        <p className="text-zinc-400">No templates matching "{searchQuery}"</p>
+                        <p className="text-slate-400">No templates matching "{searchQuery}"</p>
                     </div>
                 )}
 

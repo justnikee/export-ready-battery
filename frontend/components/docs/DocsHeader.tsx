@@ -28,7 +28,7 @@ export function DocsHeader() {
                     <button
                         onClick={() => setSearchOpen(true)}
                         className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border border-white/10 
-                       bg-white/5 text-gray-400 text-sm hover:border-indigo-500/50 transition-all"
+                       bg-white/5 text-gray-400 text-sm hover:border-blue-500/50 transition-all"
                     >
                         <Search className="w-4 h-4" />
                         <span className="flex-1 text-left">Search documentation...</span>
@@ -53,7 +53,7 @@ export function DocsHeader() {
                     <Link
                         href="/dashboard"
                         className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg 
-                       bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium
+                       bg-linear-to-r from-blue-500 to-teal-500 text-white text-sm font-medium
                        hover:opacity-90 transition-opacity"
                     >
                         Dashboard

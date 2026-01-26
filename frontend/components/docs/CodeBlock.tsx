@@ -82,7 +82,7 @@ export function MethodBadge({ method }: { method: 'GET' | 'POST' | 'PUT' | 'DELE
         POST: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         PUT: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
         DELETE: 'bg-red-500/20 text-red-400 border-red-500/30',
-        PATCH: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        PATCH: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
     };
 
     return (
@@ -110,7 +110,7 @@ export function ApiEndpoint({ method, path, description, auth = false, requestBo
                 <MethodBadge method={method} />
                 <code className="text-sm text-white font-mono">{path}</code>
                 {auth && (
-                    <span className="ml-auto px-2 py-0.5 text-xs rounded bg-violet-500/20 text-violet-400 border border-violet-500/30">
+                    <span className="ml-auto px-2 py-0.5 text-xs rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                         🔐 Auth Required
                     </span>
                 )}
