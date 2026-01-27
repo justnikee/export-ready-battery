@@ -209,8 +209,23 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	return batch, nil
 }
 
-// ListBatches retrieves all batches for a tenant with dual-mode fields
-func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*models.Batch, error) {
+// ListBatches retrieves batches for a tenant with dual-mode fields and pagination
+func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.Batch, int, error) {
+	// Default limit if not specified
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200 // Cap at 200
+	}
+
+	// Get total count first
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND deleted_at IS NULL`
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID).Scan(&totalCount); err != nil {
+		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
+	}
+
 	query := `SELECT b.id, b.tenant_id, b.batch_name, b.specs, b.created_at, 
 	          COALESCE(b.status, 'DRAFT') as status,
 	          COALESCE(b.market_region::text, 'GLOBAL') as market_region, 
@@ -231,12 +246,13 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
 	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
 	                   b.dva_source, b.pli_certificate_url
-	          ORDER BY b.created_at DESC`
+	          ORDER BY b.created_at DESC
+	          LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset)
 	if err != nil {
 		log.Printf("ListBatches Query Error: %v", err)
-		return nil, fmt.Errorf("failed to list batches: %w\n", err)
+		return nil, 0, fmt.Errorf("failed to list batches: %w\n", err)
 	}
 	defer rows.Close()
 
@@ -269,12 +285,12 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			&pliCertURL,
 			&batch.TotalPassports,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan batch: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan batch: %w", err)
 		}
 
 		if len(specsJSON) > 0 {
 			if err := json.Unmarshal(specsJSON, &batch.Specs); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+				return nil, 0, fmt.Errorf("failed to unmarshal specs: %w", err)
 			}
 		}
 
@@ -307,7 +323,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID) ([]*mo
 		batches = append(batches, batch)
 	}
 
-	return batches, nil
+	return batches, totalCount, nil
 }
 
 func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
