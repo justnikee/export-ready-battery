@@ -16,7 +16,7 @@ type DB struct {
 
 // Connect establishes a connection pool to PostgreSQL
 func Connect(databaseURL string) (*DB, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	config, err := pgxpool.ParseConfig(databaseURL)
