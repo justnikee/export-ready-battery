@@ -63,7 +63,7 @@ interface Batch {
     country_of_origin?: string
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 50 // Server-side pagination limit
 
 export default function BatchesPage() {
     const { user } = useAuth()
@@ -75,15 +75,17 @@ export default function BatchesPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [currentPage, setCurrentPage] = useState(1)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [totalCount, setTotalCount] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
 
-    const fetchBatches = async () => {
+    const fetchBatches = async (page = 1) => {
         if (!user) return
         try {
-            const response = await api.get(`/batches?tenant_id=${user.tenant_id}`)
-            const sorted = (response.data.batches || []).sort((a: Batch, b: Batch) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )
-            setBatches(sorted)
+            setLoading(true)
+            const response = await api.get(`/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`)
+            setBatches(response.data.batches || [])
+            setTotalCount(response.data.total || 0)
+            setTotalPages(response.data.total_pages || 1)
         } catch (error) {
             console.error("Failed to fetch batches:", error)
             toast.error("Failed to load batches")
@@ -93,10 +95,10 @@ export default function BatchesPage() {
     }
 
     useEffect(() => {
-        fetchBatches()
-    }, [user?.tenant_id])
+        fetchBatches(currentPage)
+    }, [user?.tenant_id, currentPage])
 
-    // Filter batches
+    // Filter batches client-side for search (server already sorts by created_at DESC)
     const filteredBatches = batches.filter(batch => {
         if (filter !== "ALL") {
             const status = batch.status || "DRAFT"
@@ -112,12 +114,8 @@ export default function BatchesPage() {
         return true
     })
 
-    // Pagination
-    const totalPages = Math.ceil(filteredBatches.length / ITEMS_PER_PAGE)
-    const paginatedBatches = filteredBatches.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    )
+    // Use server-provided pagination, client filtering is just for search within current page
+    const paginatedBatches = filteredBatches
 
     // Reset page when filter changes
     useEffect(() => {
