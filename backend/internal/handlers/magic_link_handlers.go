@@ -20,16 +20,18 @@ type MagicLinkHandler struct {
 	repo             *repository.Repository
 	lifecycleService *services.LifecycleService
 	rewardService    *services.RewardService
+	emailService     *services.EmailService
 	jwtSecret        string
 	baseURL          string
 }
 
 // NewMagicLinkHandler creates a new magic link handler
-func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, jwtSecret, baseURL string) *MagicLinkHandler {
+func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, emailService *services.EmailService, jwtSecret, baseURL string) *MagicLinkHandler {
 	return &MagicLinkHandler{
 		repo:             repo,
 		lifecycleService: lifecycleService,
 		rewardService:    rewardService,
+		emailService:     emailService,
 		jwtSecret:        jwtSecret,
 		baseURL:          baseURL,
 	}
@@ -146,19 +148,35 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	// Generate the magic link URL
 	magicLink := fmt.Sprintf("%s/passport/%s/action?token=%s", h.baseURL, req.PassportID, token.Token)
 
-	// For MVP: Log to console
-	log.Printf("🔗 Magic Link Generated for %s (%s, Tier %s):\n%s", req.Email, role, verification.Tier, magicLink)
+	// Send email with magic link
+	if h.emailService != nil && h.emailService.IsEnabled() {
+		if err := h.emailService.SendMagicLink(req.Email, req.PassportID, token.Token, role, req.Role); err != nil {
+			log.Printf("⚠️ Failed to send magic link email: %v", err)
+			// Continue anyway - we'll return the link for testing
+		} else {
+			log.Printf("📧 Magic link email sent to %s (Tier %s)", req.Email, verification.Tier)
+		}
+	} else {
+		// Fallback: Log to console for development
+		log.Printf("🔗 Magic Link Generated for %s (%s, Tier %s):\n%s", req.Email, role, verification.Tier, magicLink)
+	}
 
-	respondJSON(w, http.StatusOK, map[string]interface{}{
+	response := map[string]interface{}{
 		"success":      true,
 		"message":      fmt.Sprintf("Magic link sent to %s", req.Email),
 		"expires_at":   token.ExpiresAt,
 		"verified_via": verification.Tier,
 		"company":      verification.CompanyName,
 		"role":         role,
-		// Include link in response for MVP/testing (remove in production)
-		"link": magicLink,
-	})
+	}
+
+	// Include link in response for development/testing (when email is disabled)
+	if h.emailService == nil || !h.emailService.IsEnabled() {
+		response["link"] = magicLink
+		response["dev_mode"] = true
+	}
+
+	respondJSON(w, http.StatusOK, response)
 }
 
 // MagicTransitionRequest is the request body for transitioning with a magic link

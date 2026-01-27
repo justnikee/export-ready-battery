@@ -92,7 +92,9 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
 		       b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
-		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, '')
+		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, ''),
+		       COALESCE(t.epr_certificate_path, ''), COALESCE(t.bis_certificate_path, ''), COALESCE(t.pli_certificate_path, ''),
+		       t.id
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
@@ -133,6 +135,10 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&tenant.Website,
 		&tenant.EPRRegistrationNumber,
 		&tenant.BISRNumber,
+		&tenant.EPRCertificatePath,
+		&tenant.BISCertificatePath,
+		&tenant.PLICertificatePath,
+		&tenant.ID,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

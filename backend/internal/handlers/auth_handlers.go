@@ -385,9 +385,6 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// DEBUG LOGGING
-	log.Printf("DEBUG UpdateProfile Received: EPR=%s, BIS=%s, IEC=%s", req.EPRRegistrationNumber, req.BISRNumber, req.IECCode)
-
 	if req.CompanyName == "" {
 		respondError(w, http.StatusBadRequest, "company_name is required")
 		return
@@ -428,8 +425,6 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Failed to get user info")
 		return
 	}
-	// DEBUG LOGGING
-	log.Printf("DEBUG Me Fetched: EPR=%s, BIS=%s, IEC=%s", tenant.EPRRegistrationNumber, tenant.BISRNumber, tenant.IECCode)
 
 	// Fetch login email and last login
 	var loginEmail string

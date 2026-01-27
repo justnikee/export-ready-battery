@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Access - ExportReady</title>
+</head>
+
+<body
+    style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #e2e8f0; margin: 0; padding: 40px 20px;">
+    <div
+        style="max-width: 600px; margin: 0 auto; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 32px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; color: white;">🔗 Partner Access Verification</h1>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 32px;">
+            <p style="font-size: 16px; line-height: 1.6; color: #94a3b8; margin-bottom: 24px;">
+                You've been granted <strong style="color: #a5f3fc;">{{.Role}}</strong> access to {{.CompanyName}}'s
+                battery passport system. Click below to verify your email and gain access:
+            </p>
+
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{{.MagicLink}}"
+                    style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 48px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                    Verify Access
+                </a>
+            </div>
+
+            <div style="background-color: #1e293b; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b;">Your Role Permissions:</p>
+                <p style="margin: 0; font-size: 16px; color: #e2e8f0;">{{.RolePermissions}}</p>
+            </div>
+
+            <p style="font-size: 14px; color: #64748b; line-height: 1.6;">
+                This magic link will expire in 24 hours. If you didn't request access, please ignore this email.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #334155; margin: 24px 0;">
+
+            <p style="font-size: 12px; color: #475569; line-height: 1.6;">
+                If the button doesn't work, copy and paste this link:<br>
+                <a href="{{.MagicLink}}" style="color: #8b5cf6; word-break: break-all;">{{.MagicLink}}</a>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 24px; text-align: center; background-color: #0a0f1a;">
+            <p style="margin: 0; font-size: 12px; color: #475569;">
+                © 2026 ExportReady Battery. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -35,7 +35,8 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	          COALESCE(quota_balance, 2),
 	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
 	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
-	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED')
+	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED'),
+	          COALESCE(onboarding_completed, FALSE)
 	          FROM public.tenants WHERE id = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -56,6 +57,7 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 		&tenant.EPRStatus,
 		&tenant.BISStatus,
 		&tenant.PLIStatus,
+		&tenant.OnboardingCompleted,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -69,17 +71,21 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 
 // UpdateTenantProfile updates the tenant's profile information
 func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error) {
+	// Set onboarding_completed = TRUE when address and support_email are provided
+	onboardingComplete := req.Address != "" && req.SupportEmail != ""
+
 	query := `
 		UPDATE public.tenants 
 		SET company_name = $2, address = $3, logo_url = $4, support_email = $5, website = $6,
-		    epr_registration_number = $7, bis_r_number = $8, iec_code = $9
+		    epr_registration_number = $7, bis_r_number = $8, iec_code = $9,
+		    onboarding_completed = $10
 		WHERE id = $1 
 		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
-		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, '')`
+		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''), onboarding_completed`
 
 	tenant := &models.Tenant{}
 	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
-		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode).Scan(
+		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode, onboardingComplete).Scan(
 		&tenant.ID,
 		&tenant.CompanyName,
 		&tenant.Address,
@@ -90,6 +96,7 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		&tenant.EPRRegistrationNumber,
 		&tenant.BISRNumber,
 		&tenant.IECCode,
+		&tenant.OnboardingCompleted,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update tenant profile: %w", err)
