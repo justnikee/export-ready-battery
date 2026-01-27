@@ -175,7 +175,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchDashboardData()
-    }, [user])
+    }, [user?.tenant_id])
 
     if (loading) {
         return <DashboardSkeleton />

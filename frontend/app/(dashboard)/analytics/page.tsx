@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
         // Auto-refresh every 30 seconds
         const interval = setInterval(() => fetchAnalytics(), 30000)
         return () => clearInterval(interval)
-    }, [user])
+    }, [user?.tenant_id])
 
     // Calculate unique countries
     const uniqueCountries = data.countryBreakdown.length

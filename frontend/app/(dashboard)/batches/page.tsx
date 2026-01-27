@@ -94,7 +94,7 @@ export default function BatchesPage() {
 
     useEffect(() => {
         fetchBatches()
-    }, [user])
+    }, [user?.tenant_id])
 
     // Filter batches
     const filteredBatches = batches.filter(batch => {
