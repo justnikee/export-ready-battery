@@ -1,6 +1,7 @@
 "use client"
 
 import { CheckCircle, Leaf, Recycle, Shield, Factory, Zap, AlertTriangle, Truck, FileCheck, Globe, Award, Clock, Mail, Phone, MapPin, Download, FileText } from "lucide-react"
+import { getBaseUrl } from "@/lib/api"
 import clsx from "clsx"
 
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -299,7 +300,7 @@ export function CertificateView({ passport }: CertificateViewProps) {
                         <div className="space-y-2">
                             {tenant.bis_certificate_path && tenant.bis_certificate_path.trim() ? (
                                 <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${tenant.bis_certificate_path}`}
+                                    href={`${getBaseUrl()}${tenant.bis_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-sm text-slate-700 transition-colors"
@@ -315,7 +316,7 @@ export function CertificateView({ passport }: CertificateViewProps) {
                             )}
                             {tenant.epr_certificate_path && tenant.epr_certificate_path.trim() ? (
                                 <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${tenant.epr_certificate_path}`}
+                                    href={`${getBaseUrl()}${tenant.epr_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-sm text-slate-700 transition-colors"
@@ -331,7 +332,7 @@ export function CertificateView({ passport }: CertificateViewProps) {
                             )}
                             {pliCompliant && tenant.pli_certificate_path && tenant.pli_certificate_path.trim() && (
                                 <a
-                                    href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${tenant.pli_certificate_path}`}
+                                    href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-sm text-slate-700 transition-colors"

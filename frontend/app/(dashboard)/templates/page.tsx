@@ -52,7 +52,7 @@ export default function TemplatesPage() {
 
     useEffect(() => {
         fetchTemplates()
-    }, [user])
+    }, [user?.tenant_id])
 
     const handleDeleteClick = (template: Template) => {
         setTemplateToDelete(template)

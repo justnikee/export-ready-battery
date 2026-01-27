@@ -21,9 +21,7 @@ export function LiveBalanceBanner() {
 
     const fetchBalance = async () => {
         try {
-            console.log("Fetching balance...")
             const response = await api.get("/billing/balance")
-            console.log("Balance response:", response.data)
 
             if (response.data && typeof response.data.quota_balance === 'number') {
                 setBalance(response.data.quota_balance)

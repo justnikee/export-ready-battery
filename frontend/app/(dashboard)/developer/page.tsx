@@ -76,7 +76,7 @@ export default function DeveloperPage() {
 
     const fetchAPIKeys = async () => {
         try {
-            const response = await api.get("/api/v1/api-keys")
+            const response = await api.get("/api-keys")
             setApiKeys(response.data.api_keys || [])
         } catch (error) {
             console.error("Failed to fetch API keys:", error)
@@ -94,7 +94,7 @@ export default function DeveloperPage() {
 
         setCreating(true)
         try {
-            const response = await api.post("/api/v1/api-keys", {
+            const response = await api.post("/api-keys", {
                 name: keyName,
                 scope: keyScope,
                 rate_limit_tier: keyTier,
@@ -120,7 +120,7 @@ export default function DeveloperPage() {
         if (!deleteTarget) return
 
         try {
-            await api.delete(`/api/v1/api-keys/${deleteTarget.id}`)
+            await api.delete(`/api-keys/${deleteTarget.id}`)
             toast.success("API key deleted")
             fetchAPIKeys()
         } catch (error: any) {

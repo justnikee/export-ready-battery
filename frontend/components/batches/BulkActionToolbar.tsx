@@ -56,7 +56,7 @@ export function BulkActionToolbar({
 
         setIsUpdating(true)
         try {
-            const response = await api.post("/api/v1/passports/bulk/status", {
+            const response = await api.post("/passports/bulk/status", {
                 passport_ids: selectedIds,
                 status: pendingStatus,
             })
@@ -75,7 +75,7 @@ export function BulkActionToolbar({
     const handleDelete = async () => {
         setIsDeleting(true)
         try {
-            const response = await api.post("/api/v1/passports/bulk/delete", {
+            const response = await api.post("/passports/bulk/delete", {
                 passport_ids: selectedIds,
             })
 
