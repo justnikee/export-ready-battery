@@ -25,8 +25,8 @@ func Connect(databaseURL string) (*DB, error) {
 	}
 
 	// Connection pool settings
-	config.MaxConns = 25
-	config.MinConns = 5
+	config.MaxConns = 4
+	config.MinConns = 1
 	config.MaxConnLifetime = time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
 
