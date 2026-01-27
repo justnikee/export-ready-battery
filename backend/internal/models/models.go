@@ -63,6 +63,9 @@ type Tenant struct {
 
 	// Partner Access (Tier B Magic Link Verification)
 	PartnerAccessCode string `json:"partner_access_code,omitempty"` // Secret code for external partner verification
+
+	// Onboarding Status
+	OnboardingCompleted bool `json:"onboarding_completed"` // Whether user completed profile setup
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile

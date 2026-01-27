@@ -24,7 +24,7 @@ export function ForgotPasswordForm() {
             await api.post("/auth/forgot-password", { email })
             setIsSubmitted(true)
             toast.success("Reset instructions sent to your email")
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Always show success for security (don't reveal if email exists)
             setIsSubmitted(true)
             toast.success("If the email exists, reset instructions will be sent")

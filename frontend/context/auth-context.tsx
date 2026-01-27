@@ -25,6 +25,8 @@ interface User {
     epr_status?: string;
     bis_status?: string;
     pli_status?: string;
+    // Onboarding status from DB
+    onboarding_completed?: boolean;
 }
 
 interface AuthContextType {
@@ -68,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = (token: string, refreshToken: string, newUser: User) => {
         localStorage.setItem('token', token);
         localStorage.setItem('refresh_token', refreshToken);
+        // Set cookie for middleware auth check (edge-level protection)
+        document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         setUser(newUser);
         router.push('/dashboard');
     };
@@ -76,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('onboarding_completed');
+        // Clear auth cookie for middleware
+        document.cookie = 'auth_token=; path=/; max-age=0';
         setUser(null);
         router.push('/login');
     };

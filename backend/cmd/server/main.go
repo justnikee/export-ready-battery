@@ -14,6 +14,7 @@ import (
 	"exportready-battery/internal/config"
 	"exportready-battery/internal/db"
 	"exportready-battery/internal/handlers"
+	"exportready-battery/internal/logger"
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
@@ -27,6 +28,9 @@ func main() {
 	} else {
 		log.Println("✅ Loaded .env file (overriding system env vars)")
 	}
+
+	// Initialize structured logger
+	logger.Init()
 
 	// Load configuration
 	cfg := config.Load()
@@ -42,14 +46,15 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
-	emailService := services.NewEmailService(cfg.BaseURL)
+	authEmailService := services.NewEmailService(cfg.BaseURL)
+	magicLinkEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
 
 	// Initialize repository
 	repo := repository.New(database)
 
 	// Initialize handlers
 	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
-	authHandler := handlers.NewAuthHandler(database, repo, authService, emailService)
+	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
@@ -63,8 +68,8 @@ func main() {
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
 
-	// Initialize magic link handler (with reward service for scan-to-earn)
-	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, cfg.JWTSecret, cfg.BaseURL)
+	// Initialize magic link handler (with reward service for scan-to-earn and email service)
+	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, magicLinkEmailService, cfg.JWTSecret, cfg.BaseURL)
 
 	// Initialize trusted partner handler
 	trustedPartnerHandler := handlers.NewTrustedPartnerHandler(repo)
