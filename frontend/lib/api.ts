@@ -8,6 +8,12 @@ const api = axios.create({
   timeout: 30000, // 30 second timeout to prevent infinite loading
 });
 
+// Helper to get base URL without /api/v1 suffix (for static files like uploads)
+export const getBaseUrl = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  return apiUrl.replace(/\/api\/v1\/?$/, '');
+};
+
 // Add a request interceptor to include the auth token
 api.interceptors.request.use(
   (config) => {

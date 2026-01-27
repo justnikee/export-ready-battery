@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/context/auth-context"
-import api from "@/lib/api"
+import api, { getBaseUrl } from "@/lib/api"
 import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -68,7 +68,7 @@ function DocumentUpload({
     const handleViewDocument = () => {
         // Open in new tab
         const token = localStorage.getItem("token")
-        window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/settings/documents/${documentType}?token=${token}`, "_blank")
+        window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/settings/documents/${documentType}?token=${token}`, "_blank")
     }
 
     // Render status badge based on verification state
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                                 <div className="h-20 w-20 rounded-lg border border-zinc-700 bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
                                     {formData.logo_url ? (
                                         <img
-                                            src={formData.logo_url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}${formData.logo_url}` : formData.logo_url}
+                                            src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
                                             alt="Company logo"
                                             className="h-full w-full object-contain"
                                             onError={(e) => {
