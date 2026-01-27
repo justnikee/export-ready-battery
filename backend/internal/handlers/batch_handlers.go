@@ -15,6 +15,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// Maximum passports allowed in a single PDF/QR download to prevent memory exhaustion
+const maxDownloadLimit = 500
+
 // CreateBatch handles POST /api/v1/batches with dual-mode validation
 func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBatchRequest
@@ -249,7 +252,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, models.CreateBatchResponse{Batch: batch})
 }
 
-// ListBatches handles GET /api/v1/batches?tenant_id=xxx
+// ListBatches handles GET /api/v1/batches?tenant_id=xxx&page=1&limit=50
 func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := r.URL.Query().Get("tenant_id")
 	if tenantIDStr == "" {
@@ -263,16 +266,38 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batches, err := h.repo.ListBatches(r.Context(), tenantID)
+	// Parse pagination params
+	limit := 50 // Default
+	page := 1
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, err := parseInt(limitStr); err == nil && parsed > 0 && parsed <= 200 {
+			limit = parsed
+		}
+	}
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if parsed, err := parseInt(pageStr); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	offset := (page - 1) * limit
+
+	batches, totalCount, err := h.repo.ListBatches(r.Context(), tenantID, limit, offset)
 	if err != nil {
 		log.Printf("Failed to list batches: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list batches")
 		return
 	}
 
+	totalPages := (totalCount + limit - 1) / limit
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"batches": batches,
-		"count":   len(batches),
+		"batches":     batches,
+		"count":       len(batches),
+		"total":       totalCount,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"has_more":    page < totalPages,
 	})
 }
 
@@ -326,6 +351,14 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if count == 0 {
 		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Enforce max limit to prevent memory exhaustion
+	if count > maxDownloadLimit {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf(
+			"Batch too large for download (%d passports). Maximum is %d. Please contact support for bulk exports.",
+			count, maxDownloadLimit))
 		return
 	}
 
@@ -394,6 +427,14 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if count == 0 {
 		respondError(w, http.StatusNotFound, "No passports found for this batch")
+		return
+	}
+
+	// Enforce max limit to prevent memory exhaustion
+	if count > maxDownloadLimit {
+		respondError(w, http.StatusBadRequest, fmt.Sprintf(
+			"Batch too large for label download (%d passports). Maximum is %d. Please contact support for bulk exports.",
+			count, maxDownloadLimit))
 		return
 	}
 
