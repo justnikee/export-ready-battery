@@ -454,6 +454,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"epr_status": tenant.EPRStatus,
 		"bis_status": tenant.BISStatus,
 		"pli_status": tenant.PLIStatus,
+		// Onboarding Status
+		"onboarding_completed": tenant.OnboardingCompleted,
 	})
 }
 

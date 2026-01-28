@@ -255,6 +255,9 @@ var RoleTransitionPermissions = map[string]map[string][]string{
 		PassportStatusReturnRequested: {PassportStatusRecycled}, // Recycle after return request
 		PassportStatusReturned:        {PassportStatusRecycled}, // Standard recycling
 	},
+	"CUSTOMER": {
+		PassportStatusInService: {PassportStatusReturnRequested}, // Allow customers to request returns
+	},
 }
 
 // IsValidRoleTransition checks if a role can perform a specific transition

@@ -146,7 +146,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Generate the magic link URL
-	magicLink := fmt.Sprintf("%s/passport/%s/action?token=%s", h.baseURL, req.PassportID, token.Token)
+	magicLink := fmt.Sprintf("%s/p/%s/action?token=%s", h.baseURL, req.PassportID, token.Token)
 
 	// Send email with magic link
 	if h.emailService != nil && h.emailService.IsEnabled() {
@@ -244,6 +244,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		PassportID: passportID,
 		ToStatus:   req.ToStatus,
 		Actor:      claims.Email, // Use email from magic link token
+		ActorRole:  claims.Role,  // CRITICAL: Pass role for RBAC enforcement
 		Metadata:   metadata,
 	})
 
@@ -349,8 +350,15 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Get allowed transitions
-	allowed := models.GetAllowedTransitions(passport.Status)
+	// Get allowed transitions filtered by role
+	// This ensures users only see transitions they're permitted to perform
+	allTransitions := models.GetAllowedTransitions(passport.Status)
+	allowedForRole := []string{}
+	for _, targetStatus := range allTransitions {
+		if models.IsValidRoleTransition(claims.Role, passport.Status, targetStatus) {
+			allowedForRole = append(allowedForRole, targetStatus)
+		}
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"passport": map[string]interface{}{
@@ -362,6 +370,6 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 			"email": claims.Email,
 			"role":  claims.Role,
 		},
-		"allowed_transitions": allowed,
+		"allowed_transitions": allowedForRole,
 	})
 }

@@ -147,7 +147,7 @@ func (e *EmailService) SendMagicLink(toEmail, passportID, token, role, action st
 		return nil
 	}
 
-	magicLink := fmt.Sprintf("%s/passport/%s/action?token=%s", e.baseURL, passportID, token)
+	magicLink := fmt.Sprintf("%s/p/%s/action?token=%s", e.baseURL, passportID, token)
 
 	// Get action-specific content
 	actionTitle, actionDescription, actionColor := getActionContent(action)

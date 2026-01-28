@@ -13,16 +13,11 @@ export default function DashboardLayout({
     const { user, loading } = useAuth()
     const router = useRouter()
 
-    // Onboarding check - uses DB state (user.onboarding_completed)
-    // Auth redirect is handled by middleware.ts
+    // Onboarding check - uses DB state only (no localStorage)
     useEffect(() => {
         if (!loading && user) {
-            // Use DB onboarding state, fallback to localStorage for backward compatibility
-            const onboardingFromDB = user.onboarding_completed
-            const onboardingFromLocal = localStorage.getItem('onboarding_completed')
-            const profileIncomplete = !user.address || !user.support_email
-
-            if (profileIncomplete && !onboardingFromDB && !onboardingFromLocal) {
+            // Only check DB state - no localStorage fallback needed
+            if (!user.onboarding_completed) {
                 router.push("/onboarding")
             }
         }
