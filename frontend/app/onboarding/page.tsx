@@ -89,8 +89,8 @@ export default function OnboardingPage() {
 
         try {
             console.log("Submitting profile update...", {
-                company_name: companyName,
-                ...formData
+                ...formData,
+                company_name: companyName, // Override with validated companyName
             })
 
             const response = await api.put("/auth/profile", {
