@@ -44,7 +44,8 @@ type Tenant struct {
 	CreatedAt    time.Time `json:"created_at"`
 
 	// Quota System (Monetization)
-	QuotaBalance int `json:"quota_balance"` // Batch activation slots available
+	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
+	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
 
 	// India Regulatory Compliance Fields (BWM Rules 2022 & BIS)
 	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
@@ -205,6 +206,10 @@ type Passport struct {
 
 	// Ownership tracking
 	OwnerID *uuid.UUID `json:"owner_id,omitempty"` // Current owner (distributor, retailer, end user)
+
+	// CSV Traceability
+	CSVSourceFilename string `json:"csv_source_filename,omitempty"`
+	CSVRowIndex       int    `json:"csv_row_index,omitempty"`
 }
 
 // PassportStatus constants - lifecycle states

@@ -233,3 +233,38 @@ export interface BlogFormData {
     seo_title?: string;
     seo_description?: string;
 }
+// ============================================================================
+// TEAM MANAGEMENT
+// ============================================================================
+
+export type TeamRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+export type TeamStatus = 'PENDING' | 'ACTIVE' | 'REVOKED';
+
+export interface TeamMember {
+    id: string;
+    tenant_id: string;
+    email: string;
+    role: TeamRole;
+    status: TeamStatus;
+    user_id?: string;
+    created_at: string;
+    accepted_at?: string;
+}
+
+export interface InviteUserRequest {
+    email: string;
+    role: TeamRole;
+}
+
+export interface TeamListResponse {
+    members: TeamMember[];
+    seat_count: number;
+    seat_limit: number;
+    plan_type: string;
+}
+
+export interface SeatLimitError {
+    error: 'seat_limit_reached';
+    message: string;
+    upgrade_url: string;
+}

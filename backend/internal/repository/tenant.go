@@ -203,3 +203,26 @@ func (r *Repository) UpdateLogoURL(ctx context.Context, tenantID uuid.UUID, logo
 	}
 	return nil
 }
+
+// GetTenantByEmail retrieves a tenant by email
+func (r *Repository) GetTenantByEmail(ctx context.Context, email string) (*models.Tenant, error) {
+	tenant := &models.Tenant{}
+	query := `SELECT id, company_name, email FROM public.tenants WHERE email = $1`
+
+	// Note: We might need to select more fields depending on usage,
+	// but for now ID is the most critical for checking existence.
+	// Since Tenant model structure in GetTenant selects many fields,
+	// let's stick to a minimal selection or ensure the struct supports partial population.
+	// Re-using the full selection query would be safer but heavier.
+	// For "linking" purposes, we just need ID.
+
+	err := r.db.Pool.QueryRow(ctx, query, email).Scan(&tenant.ID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("tenant not found")
+		}
+		return nil, fmt.Errorf("failed to get tenant by email: %w", err)
+	}
+
+	return tenant, nil
+}

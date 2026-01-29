@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
@@ -185,10 +186,30 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate IEC Code format if provided (India: 10 digits)
+	// Fetch tenant details for validation
 	tenantID := req.TenantID
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
-	if err == nil && tenant.IECCode != "" {
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+
+	// MANDATORY DOCUMENT VALIDATION (P0 Audit Fix)
+	if req.MarketRegion == models.MarketRegionIndia {
+		// 1. Validate BIS Certificate
+		if tenant.BISCertificatePath == "" {
+			respondError(w, http.StatusForbidden, "Compliance Error: BIS Certificate is mandatory for India market. Please upload it in Organization Settings.")
+			return
+		}
+		// 2. Validate EPR Certificate
+		if tenant.EPRCertificatePath == "" {
+			respondError(w, http.StatusForbidden, "Compliance Error: EPR Certificate is mandatory for India market. Please upload it in Organization Settings.")
+			return
+		}
+	}
+
+	// Validate IEC Code format if provided (India: 10 digits)
+	if tenant.IECCode != "" {
 		iecResult := h.validationService.ValidateIECCode(tenant.IECCode)
 		if !iecResult.Valid {
 			log.Printf("WARNING: Tenant %s has invalid IEC Code format: %s - %s",
@@ -198,7 +219,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// For IMPORTED cells, ensure tenant has valid IEC
 	if req.MarketRegion == models.MarketRegionIndia && req.CellSource == "IMPORTED" {
-		if err == nil && tenant.IECCode == "" {
+		if tenant.IECCode == "" {
 			respondError(w, http.StatusBadRequest, "IEC Code is required in Organization Settings for importing battery cells")
 			return
 		}
@@ -303,6 +324,14 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 
 // GetBatch handles GET /api/v1/batches/{id}
 func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -310,7 +339,7 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batch, err := h.repo.GetBatch(r.Context(), id)
+	batch, err := h.repo.GetBatch(r.Context(), id, tenantID)
 	if err != nil {
 		if err.Error() == "batch not found" {
 			respondError(w, http.StatusNotFound, "Batch not found")
@@ -332,6 +361,14 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 
 // DownloadQRCodes handles GET /api/v1/batches/{id}/download
 func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -341,7 +378,7 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get batch info for filename
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -394,6 +431,14 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 
 // DownloadLabels handles GET /api/v1/batches/{id}/labels
 func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -403,7 +448,7 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get batch info for filename
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -466,6 +511,14 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 
 // ExportBatchCSV handles GET /api/v1/batches/{id}/export
 func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -475,7 +528,7 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get batch info for filename
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -563,6 +616,14 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 
 // DuplicateBatch handles POST /api/v1/batches/{id}/duplicate
 func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -572,7 +633,7 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get original batch
-	originalBatch, err := h.repo.GetBatch(r.Context(), batchID)
+	originalBatch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		if err.Error() == "batch not found" {
 			respondError(w, http.StatusNotFound, "Batch not found")

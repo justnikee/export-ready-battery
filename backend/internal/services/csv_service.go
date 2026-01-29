@@ -44,7 +44,7 @@ type CSVRowError struct {
 // ParseCSV parses a CSV file and creates passport records
 // Expected CSV format: serial_number,manufacture_date
 // Optional columns: cell_source, bill_of_entry_no, country_of_origin, domestic_value_add
-func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseResult, error) {
+func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID, filename string) (*CSVParseResult, error) {
 	csvReader := csv.NewReader(reader)
 	csvReader.TrimLeadingSpace = true
 
@@ -79,10 +79,25 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 	originIdx, hasOrigin := headerMap["country_of_origin"]
 	dvaIdx, hasDVA := headerMap["domestic_value_add"]
 
-	// Read all rows
-	records, err := csvReader.ReadAll()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV: %w", err)
+	// SECURITY: Read rows one-by-one with a limit to prevent CSV memory bomb attacks
+	const maxRows = 10000
+	records := make([][]string, 0, 100) // Initial capacity, will grow as needed
+
+	for {
+		record, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CSV row: %w", err)
+		}
+
+		// SECURITY: Enforce row limit
+		if len(records) >= maxRows {
+			return nil, fmt.Errorf("CSV exceeds maximum allowed rows (%d). Please split into smaller files", maxRows)
+		}
+
+		records = append(records, record)
 	}
 
 	result := &CSVParseResult{
@@ -146,7 +161,7 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 		go func() {
 			defer wg.Done()
 			for row := range rowsChan {
-				passport, rowErr := s.parseRow(row.idx, row.record, serialIdx, dateIdx, batchID)
+				passport, rowErr := s.parseRow(row.idx, row.record, serialIdx, dateIdx, batchID, filename)
 				resultsChan <- rowResult{passport: passport, err: rowErr}
 			}
 		}()
@@ -180,7 +195,7 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID) (*CSVParseRes
 }
 
 // parseRow validates and parses a single CSV row
-func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx int, batchID uuid.UUID) (*models.Passport, *CSVRowError) {
+func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx int, batchID uuid.UUID, filename string) (*models.Passport, *CSVRowError) {
 	// Validate row has enough columns
 	maxIdx := serialIdx
 	if dateIdx > maxIdx {
@@ -212,12 +227,14 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 	}
 
 	return &models.Passport{
-		UUID:            uuid.New(),
-		BatchID:         batchID,
-		SerialNumber:    serialNumber,
-		ManufactureDate: manufactureDate,
-		Status:          models.PassportStatusActive,
-		CreatedAt:       time.Now(),
+		UUID:              uuid.New(),
+		BatchID:           batchID,
+		SerialNumber:      serialNumber,
+		ManufactureDate:   manufactureDate,
+		Status:            models.PassportStatusActive,
+		CreatedAt:         time.Now(),
+		CSVSourceFilename: filename,
+		CSVRowIndex:       rowNum,
 	}, nil
 }
 

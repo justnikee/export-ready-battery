@@ -123,6 +123,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check and link pending team invitations
+	pendingInvites, err := h.repo.GetPendingInvitesByEmail(r.Context(), req.Email)
+	if err == nil {
+		for _, invite := range pendingInvites {
+			// Activate the team member and link to the new user
+			// We pass the new tenantID as the userID
+			if err := h.repo.UpdateTeamMemberStatus(r.Context(), invite.ID, models.TeamStatusActive, &tenantID); err != nil {
+				log.Printf("Failed to activate pending invite for team %s: %v", invite.TenantID, err)
+			}
+		}
+	} else {
+		log.Printf("Failed to check pending invites: %v", err)
+	}
+
 	// Generate tokens
 	token, err := h.authService.GenerateToken(tenantID.String(), req.Email)
 	if err != nil {

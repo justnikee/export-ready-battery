@@ -40,6 +40,7 @@ export function RegisterForm() {
             const { token, refresh_token, tenant_id } = response.data
 
             login(token, refresh_token, {
+                id: tenant_id,
                 tenant_id,
                 email,
                 company_name: companyName,
@@ -177,7 +178,7 @@ export function RegisterForm() {
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
+                        className="w-full h-12 bg-linear-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
                     >
                         {isLoading ? (
                             <>

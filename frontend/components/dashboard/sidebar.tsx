@@ -12,6 +12,7 @@ const navItems = [
     { icon: Trophy, label: "Rewards", href: "/rewards" },
     { icon: CreditCard, label: "Billing", href: "/billing" },
     { icon: Code, label: "Developer", href: "/developer" },
+    { icon: Users, label: "Team", href: "/team" },
     { icon: Settings, label: "Settings", href: "/settings" },
 ]
 

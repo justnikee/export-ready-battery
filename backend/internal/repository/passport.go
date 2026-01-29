@@ -14,8 +14,8 @@ import (
 
 // CreatePassport creates a single passport
 func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passport) error {
-	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6)`
+	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at, csv_source_filename, csv_row_index) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := r.db.Pool.Exec(ctx, query,
 		passport.UUID,
@@ -24,6 +24,8 @@ func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passpo
 		passport.ManufactureDate,
 		passport.Status,
 		passport.CreatedAt,
+		passport.CSVSourceFilename,
+		passport.CSVRowIndex,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create passport: %w", err)
@@ -39,11 +41,11 @@ func (r *Repository) CreatePassportsBatch(ctx context.Context, passports []*mode
 	}
 
 	// Use CopyFrom for bulk insert (much faster than individual inserts)
-	columns := []string{"uuid", "batch_id", "serial_number", "manufacture_date", "status", "created_at"}
+	columns := []string{"uuid", "batch_id", "serial_number", "manufacture_date", "status", "created_at", "csv_source_filename", "csv_row_index"}
 
 	rows := make([][]interface{}, len(passports))
 	for i, p := range passports {
-		rows[i] = []interface{}{p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt}
+		rows[i] = []interface{}{p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt, p.CSVSourceFilename, p.CSVRowIndex}
 	}
 
 	copyCount, err := r.db.Pool.CopyFrom(

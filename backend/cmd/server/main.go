@@ -60,6 +60,7 @@ func main() {
 	authMiddleware := middleware.NewAuth(authService)
 	apiKeyService := services.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyAuth(repo, apiKeyService)
+	authRateLimiter := middleware.NewAuthRateLimiter()
 
 	// Initialize lifecycle service and handler
 	lifecycleService := services.NewLifecycleService(repo)
@@ -88,14 +89,17 @@ func main() {
 	})
 
 	// ============================================
-	// AUTH ROUTES (Public)
+	// AUTH ROUTES (Public but rate-limited)
 	// ============================================
-	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
-	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
-	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
-	mux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	authMux := http.NewServeMux()
+	authMux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	authMux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	authMux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	authMux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
+	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
+	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	// Apply rate limiting to all auth routes
+	mux.Handle("/api/v1/auth/", authRateLimiter.Limit(authMux))
 
 	// ============================================
 	// AUTH ROUTES (Protected)
@@ -139,6 +143,15 @@ func main() {
 	mux.Handle("GET /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.ListTemplates)))
 	mux.Handle("GET /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetTemplate)))
 	mux.Handle("DELETE /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteTemplate)))
+
+	// ============================================
+	// TEAM MANAGEMENT ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/team", authMiddleware.Protect(http.HandlerFunc(h.ListTeamMembers)))
+	mux.Handle("POST /api/v1/team/invite", authMiddleware.Protect(http.HandlerFunc(h.InviteUser)))
+	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(http.HandlerFunc(h.RemoveTeamMember)))
+	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(http.HandlerFunc(h.UpdateTeamMemberRole)))
+	mux.HandleFunc("POST /api/v1/team/accept", h.AcceptInvite) // Public for invite links
 
 	// ============================================
 	// UTILITY ROUTES (Public)
@@ -237,7 +250,7 @@ func main() {
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      corsMiddleware(loggingMiddleware(mux)),
+		Handler:      corsMiddleware(cfg.CORSOrigins)(loggingMiddleware(mux)),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 60 * time.Second, // Longer timeout for ZIP downloads
 		IdleTimeout:  60 * time.Second,
@@ -280,17 +293,33 @@ func loggingMiddleware(next http.Handler) http.Handler {
 }
 
 // corsMiddleware adds CORS headers for Next.js frontend
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+// SECURITY: Uses whitelist instead of wildcard
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	// Build origin lookup map for O(1) checks
+	originMap := make(map[string]bool)
+	for _, o := range allowedOrigins {
+		originMap[o] = true
+	}
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
 
-		next.ServeHTTP(w, r)
-	})
+			// Check if origin is allowed
+			if origin != "" && originMap[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

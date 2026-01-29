@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 interface User {
+    id: string;
     tenant_id: string;
     email: string;
     company_name: string;

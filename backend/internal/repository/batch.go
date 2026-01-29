@@ -128,7 +128,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 }
 
 // GetBatch retrieves a batch by ID with all dual-mode fields
-func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch, error) {
+// SECURITY: Requires tenantID to prevent IDOR attacks
+func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error) {
 	batch := &models.Batch{}
 	var specsJSON []byte
 	var marketRegion string
@@ -149,9 +150,9 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	          hsn_code,
 	          dva_source,
 	          pli_certificate_url
-	          FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
+	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
 
-	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
 		&batch.ID,
 		&batch.TenantID,
 		&batch.BatchName,
