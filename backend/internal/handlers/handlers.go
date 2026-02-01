@@ -19,6 +19,7 @@ type Handler struct {
 	pdfService        *services.PDFService
 	razorpayService   *services.RazorpayService
 	validationService *services.ValidationService // India compliance validation
+	lifecycleService  *services.LifecycleService  // Passport lifecycle & audit
 }
 
 // New creates a new Handler with the given database connection
@@ -28,14 +29,17 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 		razorpayService = services.NewRazorpayService(razorpayKeyID, razorpayKeySecret)
 	}
 
+	repo := repository.New(database)
+
 	return &Handler{
-		repo:              repository.New(database),
+		repo:              repo,
 		csvService:        services.NewCSVService(),
 		qrService:         services.NewQRService(baseURL),
 		geoService:        services.NewGeoIPService(geoDBPath),
 		pdfService:        services.NewPDFService(baseURL),
 		razorpayService:   razorpayService,
 		validationService: services.NewValidationService(),
+		lifecycleService:  services.NewLifecycleService(repo),
 	}
 }
 
@@ -51,4 +55,9 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 // respondError sends an error response
 func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, map[string]string{"error": message})
+}
+
+// RazorpayService returns the Razorpay service for webhook handler initialization
+func (h *Handler) RazorpayService() *services.RazorpayService {
+	return h.razorpayService
 }

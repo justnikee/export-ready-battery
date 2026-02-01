@@ -291,10 +291,10 @@ func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *mode
 	return nil
 }
 
-// CreatePassportEvent logs a lifecycle event
+// CreatePassportEvent logs a lifecycle event with tamper-proof hash
 func (r *Repository) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
-	query := `INSERT INTO public.passport_events (id, passport_id, event_type, actor, metadata, created_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6)`
+	query := `INSERT INTO public.passport_events (id, passport_id, event_type, actor, metadata, created_at, hash, previous_hash) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	metadataJSON, err := json.Marshal(event.Metadata)
 	if err != nil {
@@ -308,6 +308,8 @@ func (r *Repository) CreatePassportEvent(ctx context.Context, event *models.Pass
 		event.Actor,
 		metadataJSON,
 		event.CreatedAt,
+		event.Hash,
+		event.PreviousHash,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create passport event: %w", err)
@@ -315,12 +317,12 @@ func (r *Repository) CreatePassportEvent(ctx context.Context, event *models.Pass
 	return nil
 }
 
-// GetPassportEvents retrieves all events for a passport
+// GetPassportEvents retrieves all events for a passport with hash chain data
 func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) {
-	query := `SELECT id, passport_id, event_type, actor, metadata, created_at 
+	query := `SELECT id, passport_id, event_type, actor, metadata, created_at, COALESCE(hash, ''), COALESCE(previous_hash, '') 
 	          FROM public.passport_events 
 	          WHERE passport_id = $1 
-	          ORDER BY created_at DESC`
+	          ORDER BY created_at ASC`
 
 	rows, err := r.db.Pool.Query(ctx, query, passportID)
 	if err != nil {
@@ -339,6 +341,8 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 			&event.Actor,
 			&metadataJSON,
 			&event.CreatedAt,
+			&event.Hash,
+			&event.PreviousHash,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan event: %w", err)
 		}
@@ -353,4 +357,59 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 	}
 
 	return events, nil
+}
+
+// CreatePassportEventBatch inserts multiple passport events efficiently using COPY
+func (r *Repository) CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	// Prepare rows for bulk insert
+	rows := make([][]interface{}, len(events))
+	for i, e := range events {
+		metadataJSON, err := json.Marshal(e.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for event %d: %w", i, err)
+		}
+
+		rows[i] = []interface{}{
+			e.ID,
+			e.PassportID,
+			e.EventType,
+			e.Actor,
+			metadataJSON,
+			e.CreatedAt,
+			e.Hash,
+			e.PreviousHash,
+		}
+	}
+
+	columns := []string{"id", "passport_id", "event_type", "actor", "metadata", "created_at", "hash", "previous_hash"}
+
+	_, err := r.db.Pool.CopyFrom(
+		ctx,
+		pgx.Identifier{"public", "passport_events"},
+		columns,
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bulk insert passport events: %w", err)
+	}
+
+	return nil
+}
+
+// UpdatePassportOwnerID updates the owner_id for a passport (used for ownership transfers)
+// Named differently from UpdatePassportOwner in magic_link.go which updates owner email
+func (r *Repository) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
+	query := `UPDATE public.passports SET owner_id = $1 WHERE uuid = $2`
+	result, err := r.db.Pool.Exec(ctx, query, newOwnerID, passportID)
+	if err != nil {
+		return fmt.Errorf("failed to update passport owner: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("passport not found: %s", passportID)
+	}
+	return nil
 }

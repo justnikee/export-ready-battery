@@ -353,3 +353,240 @@ func (v *ValidationService) ValidatePLICompliance(dvaSource string, auditedDVA *
 func formatFloat(f float64) string {
 	return fmt.Sprintf("%.1f", f)
 }
+
+// ============================================================================
+// EU BATTERY REGULATION VALIDATION (EU 2023/1542)
+// ============================================================================
+
+// EU Carbon Footprint format: "[VALUE] kg CO2e" or "[VALUE] kg CO2e/kWh"
+// Examples: "45.2 kg CO2e", "123.5 kg CO2e/kWh"
+var EUCarbonFootprintRegex = regexp.MustCompile(`^\d+(\.\d+)?\s*kg\s*CO2e(/kWh)?$`)
+
+// EUExportRegularComplianceResult contains EU-specific validation results
+type EUComplianceResult struct {
+	Valid       bool     `json:"valid"`
+	Field       string   `json:"field,omitempty"`
+	Value       string   `json:"value,omitempty"`
+	Message     string   `json:"message,omitempty"`
+	Errors      []string `json:"errors,omitempty"`
+	Warnings    []string `json:"warnings,omitempty"`
+	IsCompliant bool     `json:"is_compliant"`
+}
+
+// ValidateCarbonFootprintFormat validates EU Carbon Footprint format
+// Format must be: "[VALUE] kg CO2e" or "[VALUE] kg CO2e/kWh"
+func (v *ValidationService) ValidateCarbonFootprintFormat(value string) ValidationResult {
+	if value == "" {
+		return ValidationResult{
+			Valid:   false,
+			Field:   "carbon_footprint",
+			Value:   value,
+			Message: "Carbon footprint is required for EU compliance",
+		}
+	}
+
+	cleanValue := strings.TrimSpace(value)
+	if !EUCarbonFootprintRegex.MatchString(cleanValue) {
+		return ValidationResult{
+			Valid:   false,
+			Field:   "carbon_footprint",
+			Value:   value,
+			Message: "Carbon footprint must be in format '[VALUE] kg CO2e' or '[VALUE] kg CO2e/kWh'",
+		}
+	}
+
+	return ValidationResult{
+		Valid:   true,
+		Field:   "carbon_footprint",
+		Value:   value,
+		Message: "Valid EU carbon footprint format",
+	}
+}
+
+// ValidateEUCompliance performs comprehensive EU Battery Regulation validation
+// Checks: carbon_footprint (required), recycled_content, supply_chain_due_diligence
+func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycledContent *float64, hasSupplyChainDD bool, hasCarbonDeclaration bool) EUComplianceResult {
+	var errs []string
+	var warnings []string
+
+	// 1. Carbon Footprint - MANDATORY since July 2024
+	cfResult := v.ValidateCarbonFootprintFormat(carbonFootprint)
+	if !cfResult.Valid {
+		errs = append(errs, cfResult.Message)
+	}
+
+	// 2. Recycled Content - Required since August 2028 but encouraged now
+	if recycledContent == nil {
+		warnings = append(warnings, "Recycled content percentage not provided. Required by Aug 2028 for EU markets.")
+	} else if *recycledContent < 0 || *recycledContent > 100 {
+		errs = append(errs, "Recycled content must be between 0% and 100%")
+	} else if *recycledContent < 16 {
+		// EU targets: 16% cobalt, 6% lithium, 6% nickel by 2030
+		warnings = append(warnings, fmt.Sprintf("Recycled content (%.1f%%) is below EU 2030 target (16%% minimum for cobalt)", *recycledContent))
+	}
+
+	// 3. Supply Chain Due Diligence - MANDATORY since August 2025
+	if !hasSupplyChainDD {
+		warnings = append(warnings, "Supply chain due diligence documentation recommended for EU export. Required from Aug 2025.")
+	}
+
+	// 4. Carbon Declaration - MANDATORY
+	if !hasCarbonDeclaration {
+		errs = append(errs, "Carbon footprint declaration is mandatory for EU battery passports")
+	}
+
+	result := EUComplianceResult{
+		Valid:       len(errs) == 0,
+		Errors:      errs,
+		Warnings:    warnings,
+		IsCompliant: len(errs) == 0,
+	}
+
+	if len(errs) > 0 {
+		result.Message = fmt.Sprintf("EU compliance check failed: %d error(s)", len(errs))
+	} else if len(warnings) > 0 {
+		result.Message = fmt.Sprintf("EU compliant with %d warning(s)", len(warnings))
+	} else {
+		result.Message = "Fully EU Battery Regulation compliant"
+	}
+
+	return result
+}
+
+// ValidateBatteryChemistry validates that battery chemistry is correctly formatted
+func (v *ValidationService) ValidateBatteryChemistry(chemistry string) ValidationResult {
+	if chemistry == "" {
+		return ValidationResult{
+			Valid:   false,
+			Field:   "chemistry",
+			Value:   chemistry,
+			Message: "Battery chemistry is required",
+		}
+	}
+
+	// Common accepted values
+	validChemistries := map[string]bool{
+		"LFP":  true, // Lithium Iron Phosphate
+		"NMC":  true, // Nickel Manganese Cobalt
+		"NCA":  true, // Nickel Cobalt Aluminum
+		"LCO":  true, // Lithium Cobalt Oxide
+		"LMO":  true, // Lithium Manganese Oxide
+		"LTO":  true, // Lithium Titanate
+		"NiMH": true, // Nickel Metal Hydride
+	}
+
+	upper := strings.ToUpper(strings.TrimSpace(chemistry))
+	if !validChemistries[upper] {
+		return ValidationResult{
+			Valid:   true, // Still valid, just a warning
+			Field:   "chemistry",
+			Value:   chemistry,
+			Message: fmt.Sprintf("Non-standard chemistry value '%s'. Common values: LFP, NMC, NCA, LCO, LMO, LTO, NiMH", chemistry),
+		}
+	}
+
+	return ValidationResult{
+		Valid:   true,
+		Field:   "chemistry",
+		Value:   chemistry,
+		Message: "Valid battery chemistry",
+	}
+}
+
+// ============================================================================
+// INDIA REGULATORY COMPLIANCE (BIS, EPR, PLI)
+// ============================================================================
+
+// IndiaComplianceResult contains India-specific validation results
+type IndiaComplianceResult struct {
+	Valid       bool     `json:"valid"`
+	Errors      []string `json:"errors,omitempty"`
+	Warnings    []string `json:"warnings,omitempty"`
+	Message     string   `json:"message"`
+	IsCompliant bool     `json:"is_compliant"`
+}
+
+// ValidateIndiaCompliance performs comprehensive India regulatory validation
+// Requirements:
+// - BIS R-Number: MANDATORY for lithium-ion batteries (IS 16046)
+// - EPR Number: Required for e-waste compliance
+// - HSN Code: Required for exports (8507.60XX for lithium-ion)
+// - IEC Code: Required for importers
+func (v *ValidationService) ValidateIndiaCompliance(
+	bisNumber string,
+	eprNumber string,
+	hsnCode string,
+	iecCode string,
+	cellSource string,
+	pliCompliant bool,
+	domesticValueAdd float64,
+) IndiaComplianceResult {
+	var errs []string
+	var warnings []string
+
+	// 1. BIS R-Number - MANDATORY for lithium-ion batteries
+	if bisNumber == "" {
+		errs = append(errs, "BIS R-Number is mandatory for lithium-ion batteries in India (IS 16046/16047)")
+	} else {
+		bisResult := v.ValidateBISRNumber(bisNumber)
+		if !bisResult.Valid {
+			errs = append(errs, bisResult.Message)
+		}
+	}
+
+	// 2. EPR Registration - Required for e-waste compliance
+	if eprNumber == "" {
+		warnings = append(warnings, "EPR Registration Number not provided. Required for e-waste compliance in India.")
+	} else {
+		eprResult := v.ValidateEPRNumber(eprNumber)
+		if !eprResult.Valid {
+			warnings = append(warnings, eprResult.Message)
+		}
+	}
+
+	// 3. HSN Code - Required for exports
+	if hsnCode == "" {
+		warnings = append(warnings, "HSN Code not provided. Required for GST compliance and exports.")
+	} else {
+		hsnResult := v.ValidateHSNCode(hsnCode)
+		if !hsnResult.Valid {
+			errs = append(errs, hsnResult.Message)
+		}
+	}
+
+	// 4. IEC Code - Required for importers
+	if cellSource == "IMPORTED" {
+		if iecCode == "" {
+			errs = append(errs, "IEC Code is mandatory when cell_source is IMPORTED")
+		} else {
+			iecResult := v.ValidateIECCode(iecCode)
+			if !iecResult.Valid {
+				errs = append(errs, iecResult.Message)
+			}
+		}
+	}
+
+	// 5. PLI Eligibility Check
+	if pliCompliant {
+		if domesticValueAdd < 50 {
+			warnings = append(warnings, fmt.Sprintf("DVA (%.1f%%) is below 50%% threshold for PLI eligibility. CA certification recommended.", domesticValueAdd))
+		}
+	}
+
+	result := IndiaComplianceResult{
+		Valid:       len(errs) == 0,
+		Errors:      errs,
+		Warnings:    warnings,
+		IsCompliant: len(errs) == 0,
+	}
+
+	if len(errs) > 0 {
+		result.Message = fmt.Sprintf("India compliance check failed: %d error(s)", len(errs))
+	} else if len(warnings) > 0 {
+		result.Message = fmt.Sprintf("India compliant with %d warning(s)", len(warnings))
+	} else {
+		result.Message = "Fully India regulatory compliant"
+	}
+
+	return result
+}

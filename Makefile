@@ -36,26 +36,26 @@ dev:
 
 # Run all pending migrations
 migrate-up:
-	migrate -path ./db/migrations -database "$(DATABASE_URL)" -verbose up
+	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose up
 
 # Rollback the last migration
 migrate-down:
-	migrate -path ./db/migrations -database "$(DATABASE_URL)" -verbose down 1
+	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down 1
 
 # Rollback ALL migrations (use with caution!)
 migrate-reset:
-	migrate -path ./db/migrations -database "$(DATABASE_URL)" -verbose down -all
+	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down -all
 
 # Show current migration version
 migrate-version:
-	migrate -path ./db/migrations -database "$(DATABASE_URL)" version
+	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" version
 
 # Force set migration version (use when stuck)
 migrate-force:
 	@read -p "Enter version to force: " version; \
-	migrate -path ./db/migrations -database "$(DATABASE_URL)" force $$version
+	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" force $$version
 
 # Create a new migration file
 migrate-create:
 	@read -p "Enter migration name: " name; \
-	migrate create -ext sql -dir ./db/migrations -seq $$name
+	migrate create -ext sql -dir ./backend/internal/db/migrations -seq $$name

@@ -105,6 +105,16 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create genesis events for audit trail (IMPORTED = from CSV)
+	actor := middleware.GetEmail(r.Context())
+	if actor == "" {
+		actor = "system"
+	}
+	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), parseResult.Passports, models.PassportEventImported, actor); err != nil {
+		log.Printf("Warning: Failed to create genesis events: %v", err)
+		// Non-fatal: passports created but audit events failed
+	}
+
 	processingTime := time.Since(startTime)
 
 	response := models.UploadCSVResponse{
@@ -320,6 +330,16 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		log.Printf("Failed to insert auto-generated passports: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
 		return
+	}
+
+	// Create genesis events for audit trail (CREATED = auto-generated)
+	actor := middleware.GetEmail(r.Context())
+	if actor == "" {
+		actor = "system"
+	}
+	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), passports, models.PassportEventCreated, actor); err != nil {
+		log.Printf("Warning: Failed to create genesis events: %v", err)
+		// Non-fatal: passports created but audit events failed
 	}
 
 	firstSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber)

@@ -69,6 +69,30 @@ func main() {
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
 
+	// Initialize export job services and handler
+	var exportJobHandler *handlers.ExportJobHandler
+	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
+		slogger := logger.Logger
+		storageService := services.NewStorageService(slogger)
+		exportEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
+		qrService := services.NewQRService(cfg.BaseURL)
+		pdfService := services.NewPDFService(cfg.BaseURL)
+		csvService := services.NewCSVService()
+		exportJobService := services.NewExportJobService(
+			database.Pool,
+			storageService,
+			qrService,
+			pdfService,
+			csvService,
+			exportEmailService,
+			slogger,
+		)
+		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
+		log.Println("✅ Export job handler initialized")
+	} else {
+		log.Println("⚠️ Export job handler not initialized (missing SUPABASE config)")
+	}
+
 	// Initialize magic link handler (with reward service for scan-to-earn and email service)
 	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, magicLinkEmailService, cfg.JWTSecret, cfg.BaseURL)
 
@@ -86,6 +110,49 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy","service":"exportready-battery"}`))
+	})
+
+	// ============================================
+	// API DOCUMENTATION (Public)
+	// ============================================
+	// Serve OpenAPI specification
+	mux.HandleFunc("GET /api/v1/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./api/openapi.yaml")
+	})
+
+	// Swagger UI (CDN-based)
+	mux.HandleFunc("GET /docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExportReady Battery API - Documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        .swagger-ui .topbar { display: none; }
+        .swagger-ui .info { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = () => {
+            SwaggerUIBundle({
+                url: '/api/v1/openapi.yaml',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                docExpansion: 'list',
+                defaultModelsExpandDepth: 1,
+                syntaxHighlight: { theme: 'monokai' }
+            });
+        };
+    </script>
+</body>
+</html>`))
 	})
 
 	// ============================================
@@ -135,6 +202,8 @@ func main() {
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedTransitions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
+	mux.Handle("POST /api/v1/passports/{uuid}/transfer", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransferPassport)))
+	mux.Handle("GET /api/v1/passports/{uuid}/verify-chain", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.VerifyAuditChain)))
 
 	// ============================================
 	// TEMPLATE ROUTES (Protected)
@@ -178,6 +247,12 @@ func main() {
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
 	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
 	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
+
+	// ============================================
+	// WEBHOOK ROUTES (Public - for payment providers)
+	// ============================================
+	webhookHandler := handlers.NewWebhookHandler(h.RazorpayService(), repo)
+	mux.HandleFunc("POST /api/v1/webhooks/razorpay", webhookHandler.RazorpayWebhook)
 
 	// ============================================
 	// DOCUMENT UPLOAD ROUTES (Protected)
@@ -238,6 +313,17 @@ func main() {
 	mux.HandleFunc("GET /api/v1/rewards/balance", rewardHandler.GetBalance)
 	mux.HandleFunc("GET /api/v1/rewards/leaderboard", rewardHandler.GetLeaderboard)
 	mux.HandleFunc("GET /api/v1/rewards/history", rewardHandler.GetHistory)
+
+	// ============================================
+	// EXPORT JOBS ROUTES (Protected - Async Exports)
+	// ============================================
+	if exportJobHandler != nil {
+		mux.Handle("POST /api/v1/export-jobs", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.CreateExportJob)))
+		mux.Handle("GET /api/v1/export-jobs", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.ListExportJobs)))
+		mux.Handle("GET /api/v1/export-jobs/{id}", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.GetExportJob)))
+		mux.Handle("GET /api/v1/export-jobs/{id}/download", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.DownloadExportJob)))
+		mux.Handle("POST /api/v1/export-jobs/{id}/refresh", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.RefreshDownloadURL)))
+	}
 
 	// ============================================
 	// EXTERNAL API (API Key Authenticated - ERP Integration)

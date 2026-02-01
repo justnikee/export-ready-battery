@@ -116,6 +116,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // IEC Validation State
     const [iecError, setIecError] = useState(false)
 
+    // Batch-level India Compliance Fields
+    const [bisNumber, setBisNumber] = useState("")
+    const [eprNumber, setEprNumber] = useState("")
+
     // Fetch templates when dialog opens
     useEffect(() => {
         if (open && user) {
@@ -339,6 +343,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     payload.country_of_origin = cellCountryOfOrigin
                     payload.customs_date = customsDate
                 }
+
+                // Batch-level compliance fields (optional override of tenant defaults)
+                if (bisNumber) payload.bis_number = bisNumber
+                if (eprNumber) payload.epr_number = eprNumber
             }
 
             await api.post("/batches", payload)
@@ -794,6 +802,38 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             maxLength={8}
                                         />
                                         <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
+                                    </div>
+
+                                    {/* Batch-Level Compliance Fields (Optional) */}
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="bisNumber" className="text-zinc-300 flex items-center gap-1">
+                                                BIS R-Number
+                                                <span className="text-[10px] text-zinc-500">(optional)</span>
+                                            </Label>
+                                            <Input
+                                                id="bisNumber"
+                                                value={bisNumber}
+                                                onChange={(e) => setBisNumber(e.target.value)}
+                                                placeholder="e.g. R-12345678"
+                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                            />
+                                            <p className="text-[10px] text-zinc-500">Override tenant default for this batch</p>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="eprNumber" className="text-zinc-300 flex items-center gap-1">
+                                                EPR Number
+                                                <span className="text-[10px] text-zinc-500">(optional)</span>
+                                            </Label>
+                                            <Input
+                                                id="eprNumber"
+                                                value={eprNumber}
+                                                onChange={(e) => setEprNumber(e.target.value)}
+                                                placeholder="e.g. EPR/E-Waste/2024/00001"
+                                                className="bg-zinc-800 border-zinc-700 text-zinc-100"
+                                            />
+                                            <p className="text-[10px] text-zinc-500">Override tenant default for this batch</p>
+                                        </div>
                                     </div>
 
                                     {/* DVA Calculation Section - HIDE for IMPORTED cells */}

@@ -1,7 +1,7 @@
 # ExportReady-Battery Codebase Review
 
-> **Review Date**: January 29, 2026  
-> **Project Status**: Production-Ready with Minor Enhancements Pending
+> **Review Date**: January 30, 2026  
+> **Project Status**: Production-Ready with Team Management Features
 
 ---
 
@@ -11,10 +11,10 @@ The ExportReady-Battery platform is a **comprehensive battery passport and compl
 
 | Metric | Count |
 |--------|-------|
-| Backend Handlers | 19 files |
-| Database Migrations | 14 |
-| Frontend Pages | 32 routes |
-| Frontend Components | 66 files |
+| Backend Handlers | 20 files |
+| Database Migrations | 17 |
+| Frontend Pages | 34 routes |
+| Frontend Components | 69 files |
 
 ---
 
@@ -37,7 +37,7 @@ graph TB
     
     subgraph Database["Database (PostgreSQL/Supabase)"]
         Tables[(Tables)]
-        Migrations[(14 Migrations)]
+        Migrations[(17 Migrations)]
     end
     
     Frontend --> |REST API| Backend
@@ -58,6 +58,8 @@ graph TB
 | **Registration/Login** | ✅ | ✅ | ✅ | Full flow with validation |
 | **Password Reset** | ✅ | ✅ | ✅ | Email-based flow via Resend |
 | **User Profile** | ✅ | ✅ | ✅ | With onboarding flag |
+| **Team Management** | ✅ | ✅ | ✅ | Invites, Roles, Seat Limits |
+| **Team Onboarding** | ✅ | ✅ | ✅ | Auto-link via email invite |
 | **Onboarding Flow** | ✅ | ✅ | ✅ | 4-step wizard, DB-persisted |
 | **Batch Creation** | ✅ | ✅ | ✅ | Manual + CSV upload |
 | **Batch Listing** | ✅ | ✅ | ✅ | With server-side pagination |
@@ -111,7 +113,7 @@ graph TB
 
 ## Backend Analysis
 
-### Handler Coverage (19 files)
+### Handler Coverage (20 files)
 
 ```
 internal/handlers/
@@ -128,6 +130,7 @@ internal/handlers/
 ├── razorpay_handlers.go     (158 lines) - Payments
 ├── reward_handlers.go       (208 lines) - Gamification
 ├── scan_handlers.go         (81 lines)  - QR tracking
+├── team_handlers.go         (NEW)       - Member invitations
 ├── template_handlers.go     (111 lines) - Quick create
 ├── trusted_partner_handlers.go (297 lines) - B2B access
 ├── upload_handlers.go       (330 lines) - CSV processing
@@ -140,23 +143,22 @@ internal/handlers/
 
 | Category | Endpoints | Auth Required |
 |----------|-----------|---------------|
-| **Auth** | `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/profile`, `/auth/me`, `/auth/forgot-password`, `/auth/reset-password` | Partial |
-| **Batches** | CRUD, `/download`, `/labels`, `/export`, `/passports`, `/duplicate`, `/activate` | Yes |
+| **Auth** | `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/profile` | Partial |
+| **Team** | `/team`, `/team/invite`, `/team/accept`, `/team/{id}/role` | Yes |
+| **Batches** | CRUD, `/download`, `/labels`, `/export`, `/passports` | Yes |
 | **Billing** | `/packages`, `/balance`, `/transactions`, `/top-up` | Yes |
 | **Passports** | `/p/{uuid}`, `/transition`, `/events`, `/transitions` | Partial |
 | **Partners** | `/trusted`, `/codes` | Yes |
-| **Rewards** | `/balance`, `/leaderboard`, `/history` | Partial |
-| **Templates** | CRUD | Yes |
 
 ---
 
 ## Frontend Analysis
 
-### Route Structure (32 pages)
+### Route Structure (34 pages)
 
 ```
 app/
-├── (auth)/              - Auth pages (login, register, forgot-password, reset-password)
+├── (auth)/              - Auth pages (login, register, forgot-password)
 ├── (admin)/             - Admin area (blog management)
 ├── (dashboard)/         - Protected dashboard area
 │   ├── analytics/
@@ -167,21 +169,24 @@ app/
 │   ├── partners/
 │   ├── rewards/
 │   ├── settings/
+│   ├── team/            - Team management
 │   └── templates/
 ├── blog/               - Public blog
 ├── docs/               - Documentation
 ├── onboarding/         - 4-step wizard
+├── accept-invite/      - Invite acceptance flow
 ├── p/[uuid]/           - Public passport view
 ├── pricing/            - Pricing page
 ├── privacy/            - Privacy policy
 └── terms/              - Terms of service
 ```
 
-### Component Library (66 files)
+### Component Library (69 files)
 
 Well-organized with:
 - **UI Components**: 19 shadcn/ui components
 - **Feature Components**: Batch forms, passport views, billing cards
+- **Team Components**: Invite dialog, member list, role selectors
 - **Layout Components**: Sidebar, header, footer
 - **Blog Components**: Editor, cards
 
@@ -189,27 +194,19 @@ Well-organized with:
 
 ## Database Schema
 
-### Migrations (14 total)
+### Migrations (17 total)
 
 | # | Name | Purpose |
 |---|------|---------|
-| 002 | `create_batch_templates` | Quick templates |
-| 003 | `create_scan_events` | QR tracking |
-| 004 | `add_dual_mode` | EU/India support |
-| 005 | `add_tenant_details` | Profile fields |
-| 006 | `add_soft_delete_batches` | Soft delete |
-| 007 | `add_india_compliance` | BIS-R, EPR, PLI |
-| 008 | `add_quota_system` | Usage limits |
-| 009 | `add_certificate_paths` | Doc storage |
-| 010 | `add_document_status` | Verification flow |
-| 011 | `add_password_reset` | Reset tokens |
-| 012 | `enterprise_lifecycle` | State machine |
-| 013 | `add_onboarding_completed` | Onboarding flag |
 | 014 | `add_performance_indexes` | Query optimization |
+| 015 | `add_unique_serial_constraint` | Data integrity |
+| 016 | `add_csv_traceability` | File tracking |
+| 017 | `add_team_management` | Members & Invites |
 
 ### Core Tables
 
 - `tenants` - Multi-tenant orgs
+- `team_members` - User memberships & invites
 - `users` - Auth users
 - `batches` - Passport batches
 - `passports` - Individual batteries

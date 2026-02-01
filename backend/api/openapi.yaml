@@ -1,0 +1,988 @@
+openapi: 3.0.3
+info:
+  title: ExportReady Battery API
+  description: |
+    API for Battery Passport Management System supporting EU Battery Regulation 2023/1542 
+    and BIS India compliance requirements.
+    
+    ## Authentication
+    Most endpoints require JWT Bearer token authentication. Obtain tokens via `/auth/login` or `/auth/register`.
+    
+    ## Webhooks
+    Payment webhooks (Razorpay) use HMAC-SHA256 signature verification.
+  version: 1.0.0
+  contact:
+    name: ExportReady Support
+    email: support@exportready.app
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Auth
+    description: Authentication and user management
+  - name: Batches
+    description: Batch creation and management
+  - name: Passports
+    description: Battery passport lifecycle
+  - name: Export Jobs
+    description: Async export job management for large data sets
+  - name: Billing
+    description: Quota and payment management
+  - name: Team
+    description: Team member management
+  - name: Webhooks
+    description: Payment provider webhooks
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, company_name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                company_name:
+                  type: string
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent if account exists
+
+  /batches:
+    post:
+      tags: [Batches]
+      summary: Create new batch
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBatchRequest'
+      responses:
+        '201':
+          description: Batch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          description: Insufficient quota
+
+    get:
+      tags: [Batches]
+      summary: List batches
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: List of batches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Batch'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /batches/{id}:
+    get:
+      tags: [Batches]
+      summary: Get batch details
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: Batch details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+        '404':
+          description: Batch not found
+
+    delete:
+      tags: [Batches]
+      summary: Delete batch (draft only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '204':
+          description: Batch deleted
+        '400':
+          description: Cannot delete non-draft batch
+
+  /batches/{id}/activate:
+    post:
+      tags: [Batches]
+      summary: Activate batch (deducts quota)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: Batch activated
+        '402':
+          description: Insufficient quota
+
+  /batches/{id}/download:
+    get:
+      tags: [Batches]
+      summary: Download QR codes as PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf: {}
+
+  /passports/{uuid}:
+    get:
+      tags: [Passports]
+      summary: Get passport public info (for QR scanning)
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Passport details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PassportWithSpecs'
+
+  /passports/{uuid}/transition:
+    post:
+      tags: [Passports]
+      summary: Transition passport status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to_status]
+              properties:
+                to_status:
+                  type: string
+                  enum: [shipped, installed, in_use, returned, recalled, end_of_life]
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Transition successful
+        '400':
+          description: Invalid transition
+
+  /passports/{uuid}/events:
+    get:
+      tags: [Passports]
+      summary: Get passport audit events
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PassportEvent'
+
+  /passports/{uuid}/transfer:
+    post:
+      tags: [Passports]
+      summary: Transfer passport ownership
+      description: Transfer ownership of a battery passport to a new owner. Logs immutable TRANSFERRED event in audit trail.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_owner_id:
+                  type: string
+                  format: uuid
+                  description: UUID of the new owner
+              required:
+                - new_owner_id
+      responses:
+        '200':
+          description: Transfer successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  passport_id:
+                    type: string
+                    format: uuid
+                  new_owner_id:
+                    type: string
+                    format: uuid
+                  message:
+                    type: string
+        '400':
+          description: Invalid request
+        '404':
+          description: Passport not found
+
+  /passports/{uuid}/verify-chain:
+    get:
+      tags: [Passports]
+      summary: Verify audit chain integrity
+      description: Verifies that the hash chain of passport events is intact (no tampering). Returns valid=false if chain is broken.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Chain verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    description: true if chain is intact, false if tampering detected
+                  passport_id:
+                    type: string
+                    format: uuid
+                  event_count:
+                    type: integer
+                  failed_at_index:
+                    type: integer
+                    description: Index of first failed event (-1 if valid)
+                  message:
+                    type: string
+        '404':
+          description: Passport not found
+
+  /billing/balance:
+    get:
+      tags: [Billing]
+      summary: Get current quota balance
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Balance info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passport_quota:
+                    type: integer
+                  used_quota:
+                    type: integer
+                  remaining_quota:
+                    type: integer
+
+  /billing/packages:
+    get:
+      tags: [Billing]
+      summary: Get available quota packages
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuotaPackage'
+
+  /billing/razorpay/order:
+    post:
+      tags: [Billing]
+      summary: Create Razorpay payment order
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [package_id]
+              properties:
+                package_id:
+                  type: string
+      responses:
+        '200':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                  amount:
+                    type: integer
+                  currency:
+                    type: string
+
+  /webhooks/razorpay:
+    post:
+      tags: [Webhooks]
+      summary: Razorpay payment webhook
+      description: |
+        Receives payment events from Razorpay. Requires valid HMAC-SHA256 signature.
+        
+        Handled events:
+        - `payment.captured` - Adds quota to tenant
+        - `payment.failed` - Logs failure for investigation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '401':
+          description: Invalid signature
+        '500':
+          description: Processing error (will retry)
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                  description: Password reset token from email
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid or expired token
+
+  /batches/{id}/upload:
+    post:
+      tags: [Batches]
+      summary: Upload CSV with passport data
+      description: |
+        Upload a CSV file containing battery passport data.
+        Supports both EU and India market formats.
+        
+        **Required columns:** serial_number
+        **Optional columns:** model, capacity, chemistry, manufacturer, etc.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: CSV processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batch_id:
+                    type: string
+                    format: uuid
+                  passports_count:
+                    type: integer
+                  processing_time:
+                    type: string
+        '400':
+          description: Invalid CSV format
+
+  /batches/{id}/labels:
+    get:
+      tags: [Batches]
+      summary: Download labels as PDF
+      description: Generate and download battery labels for printing
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf: {}
+        '400':
+          description: Batch too large - use async export
+
+  /export-jobs:
+    post:
+      tags: [Export Jobs]
+      summary: Create async export job
+      description: |
+        Creates a background job for large exports (>500 passports).
+        Supported job types:
+        - `QR_ZIP` - ZIP archive of QR code images
+        - `LABEL_PDF` - PDF of printable labels
+        - `CSV` - CSV export of passport data
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [batch_id, job_type]
+              properties:
+                batch_id:
+                  type: string
+                  format: uuid
+                job_type:
+                  type: string
+                  enum: [QR_ZIP, LABEL_PDF, CSV]
+      responses:
+        '202':
+          description: Export job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags: [Export Jobs]
+      summary: List export jobs
+      description: Get export job history with pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of export jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExportJob'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /export-jobs/{id}:
+    get:
+      tags: [Export Jobs]
+      summary: Get export job status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Export job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportJob'
+        '404':
+          description: Job not found
+
+  /export-jobs/{id}/download:
+    get:
+      tags: [Export Jobs]
+      summary: Download export file
+      description: Redirects to presigned download URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '307':
+          description: Redirect to download URL
+        '400':
+          description: Job not completed or expired
+
+  /export-jobs/{id}/refresh:
+    post:
+      tags: [Export Jobs]
+      summary: Refresh expired download URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: New download URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  download_url:
+                    type: string
+                    format: uri
+                  expires_at:
+                    type: string
+                    format: date-time
+        '404':
+          description: Job not found
+
+  /team:
+    get:
+      tags: [Team]
+      summary: List team members
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Team members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+
+  /team/invite:
+    post:
+      tags: [Team]
+      summary: Invite team member
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, operator, viewer]
+      responses:
+        '200':
+          description: Invitation sent
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    BatchId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        company_name:
+          type: string
+        role:
+          type: string
+
+    Batch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batch_name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, completed]
+        market_region:
+          type: string
+          enum: [EU, INDIA]
+        passport_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CreateBatchRequest:
+      type: object
+      required: [batch_name, market_region, specs]
+      properties:
+        batch_name:
+          type: string
+        market_region:
+          type: string
+          enum: [EU, INDIA]
+        specs:
+          type: object
+          properties:
+            model:
+              type: string
+            capacity_wh:
+              type: number
+            chemistry:
+              type: string
+            manufacturer:
+              type: string
+
+    PassportWithSpecs:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        serial_number:
+          type: string
+        status:
+          type: string
+        batch_name:
+          type: string
+        specs:
+          type: object
+        tenant:
+          type: object
+
+    PassportEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+        actor:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        hash:
+          type: string
+          description: SHA-256 hash for tamper detection
+        previous_hash:
+          type: string
+          description: Hash of previous event for chain integrity
+
+    QuotaPackage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        passports:
+          type: integer
+        price:
+          type: integer
+          description: Price in paise
+
+    TeamMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+          enum: [active, pending]
+
+    ExportJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        batch_id:
+          type: string
+          format: uuid
+        job_type:
+          type: string
+          enum: [QR_ZIP, LABEL_PDF, CSV]
+          description: Type of export to generate
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        file_path:
+          type: string
+          description: Storage path of completed file
+        file_size:
+          type: integer
+          description: File size in bytes
+        download_url:
+          type: string
+          format: uri
+          description: Presigned download URL
+        expires_at:
+          type: string
+          format: date-time
+          description: Download URL expiration time
+        download_count:
+          type: integer
+          description: Number of times downloaded
+        error_message:
+          type: string
+          description: Error details if job failed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time

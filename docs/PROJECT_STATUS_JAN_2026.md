@@ -1,7 +1,7 @@
 # ExportReady-Battery: Project Status & Documentation
 
-> **Generated:** January 25, 2026  
-> **Version:** 3.0 | Latest Build
+> **Generated:** January 30, 2026  
+> **Version:** 3.1 | Team Management Update
 
 ---
 
@@ -13,6 +13,7 @@
 - **Dual-market compliance** (India + EU) with dynamic passport views
 - **QR-based digital passports** accessible to consumers and regulators
 - **External stakeholder access** via Magic Link authentication
+- **Multi-user Team Management** with role-based access
 
 ### The Problem We Solve
 
@@ -23,6 +24,7 @@
 | Supply chain visibility | Lifecycle tracking with audit trails |
 | Multi-stakeholder access | Magic links for logistics, technicians, recyclers |
 | Scalable passport generation | Bulk CSV upload, parallel QR generation |
+| Team Collaboration | Invite members, assign roles, manage access |
 
 ---
 
@@ -30,12 +32,12 @@
 
 | Metric | Count |
 |--------|-------|
-| **Backend Handlers** | 18 files |
+| **Backend Handlers** | 20 files |
 | **Backend Services** | 8 files |
-| **Database Migrations** | 6 |
-| **Frontend Pages** | 15+ routes |
-| **API Endpoints** | 40+ |
-| **React Components** | 60+ |
+| **Database Migrations** | 17 |
+| **Frontend Pages** | 17+ routes |
+| **API Endpoints** | 45+ |
+| **React Components** | 65+ |
 
 ---
 
@@ -64,7 +66,17 @@
 | **Batch Templates** | ✅ | Save & reuse specifications |
 | **Batch Activation** | ✅ | Quota-based activation system |
 
-### 3. Passport Lifecycle Management (NEW)
+### 3. Team Management (NEW)
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Team Invites** | ✅ NEW | Send email invites to team members |
+| **Role Management** | ✅ NEW | OWNER, ADMIN, MEMBER roles |
+| **Seat Limits** | ✅ NEW | Plan-based restrictions on team size |
+| **Accept Flow** | ✅ NEW | Secure token visual, auto-linking |
+| **Member List** | ✅ NEW | Manage active members and pending invites |
+
+### 4. Passport Lifecycle Management (NEW)
 
 ```
 ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
@@ -156,6 +168,9 @@ ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
 | `000004_lifecycle_and_compliance` | Passport events, India compliance |
 | `000005_magic_link` | Magic link tokens, ownership tracking |
 | `000006_trusted_partners` | Trusted partners, partner codes |
+| `000015_unique_serial` | Enforce unique serials per batch |
+| `000016_csv_traceability` | Track original CSV filenames |
+| `000017_team_management` | Team members and invites |
 
 ### Backend Services
 
@@ -213,12 +228,12 @@ ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
 
 | Method | Endpoint | Auth |
 |--------|----------|------|
-| `POST` | `/api/v1/auth/register` | ❌ |
-| `POST` | `/api/v1/auth/login` | ❌ |
-| `POST` | `/api/v1/auth/refresh` | ❌ |
-| `POST` | `/api/v1/auth/forgot-password` | ❌ |
-| `POST` | `/api/v1/auth/reset-password` | ❌ |
-| `POST` | `/api/v1/auth/magic-link` | ❌ |
+| `POST` | `/api/v1/auth/register` | ✅ |
+| `POST` | `/api/v1/auth/login` | ✅ |
+| `POST` | `/api/v1/auth/refresh` | ✅ |
+| `POST` | `/api/v1/auth/forgot-password` | ✅ |
+| `POST` | `/api/v1/auth/reset-password` | ✅ |
+| `POST` | `/api/v1/auth/magic-link` | ✅ |
 | `GET` | `/api/v1/auth/me` | ✅ |
 | `PUT` | `/api/v1/auth/profile` | ✅ |
 

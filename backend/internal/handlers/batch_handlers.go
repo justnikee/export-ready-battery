@@ -263,6 +263,8 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		HSNCode:           req.HSNCode,
 		DVASource:         req.DVASource,
 		PLICertificateURL: req.PLICertificateURL,
+		BISNumber:         req.BISNumber,
+		EPRNumber:         req.EPRNumber,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
