@@ -96,10 +96,10 @@ export function BulkActionToolbar({
         <>
             {/* Floating Toolbar */}
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-200">
-                <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4">
+                <div className="bg-zinc-900 border border-slate-200 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4">
                     {/* Selection Count */}
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-slate-900 font-semibold text-sm">
                             {selectedIds.length}
                         </div>
                         <span className="text-zinc-300 text-sm">selected</span>
@@ -111,15 +111,15 @@ export function BulkActionToolbar({
                     <div className="flex items-center gap-2">
                         <span className="text-zinc-400 text-sm">Change status:</span>
                         <Select onValueChange={handleStatusChange} disabled={isUpdating}>
-                            <SelectTrigger className="w-36 bg-zinc-800 border-zinc-600 text-white">
+                            <SelectTrigger className="w-36 bg-white border-slate-300 text-slate-900">
                                 <SelectValue placeholder="Select status" />
                             </SelectTrigger>
-                            <SelectContent className="bg-zinc-800 border-zinc-700">
+                            <SelectContent className="bg-white border-slate-200">
                                 {STATUSES.map((status) => (
                                     <SelectItem
                                         key={status.value}
                                         value={status.value}
-                                        className="text-white hover:bg-zinc-700"
+                                        className="text-slate-900 hover:bg-zinc-700"
                                     >
                                         <span className={status.color}>{status.label}</span>
                                     </SelectItem>
@@ -151,7 +151,7 @@ export function BulkActionToolbar({
                         variant="ghost"
                         size="sm"
                         onClick={onClearSelection}
-                        className="text-zinc-400 hover:text-white"
+                        className="text-zinc-400 hover:text-slate-900"
                     >
                         <X className="w-4 h-4" />
                     </Button>
@@ -160,19 +160,19 @@ export function BulkActionToolbar({
 
             {/* Status Change Confirmation */}
             <AlertDialog open={!!pendingStatus} onOpenChange={() => setPendingStatus(null)}>
-                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                <AlertDialogContent className="bg-zinc-900 border-slate-200">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">
+                        <AlertDialogTitle className="text-slate-900">
                             Update {selectedIds.length} Passports?
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-zinc-400">
                             This will change the status of {selectedIds.length} passport
                             {selectedIds.length > 1 ? "s" : ""} to{" "}
-                            <span className="font-semibold text-white">{pendingStatus}</span>.
+                            <span className="font-semibold text-slate-900">{pendingStatus}</span>.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700">
+                        <AlertDialogCancel className="bg-white border-slate-300 text-slate-900 hover:bg-zinc-700">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
@@ -198,9 +198,9 @@ export function BulkActionToolbar({
 
             {/* Delete Confirmation */}
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                <AlertDialogContent className="bg-zinc-900 border-zinc-700">
+                <AlertDialogContent className="bg-zinc-900 border-slate-200">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">
+                        <AlertDialogTitle className="text-slate-900">
                             Delete {selectedIds.length} Passports?
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-zinc-400">
@@ -209,7 +209,7 @@ export function BulkActionToolbar({
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 border-zinc-600 text-white hover:bg-zinc-700">
+                        <AlertDialogCancel className="bg-white border-slate-300 text-slate-900 hover:bg-zinc-700">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction

@@ -95,7 +95,7 @@ export function CreateTemplateDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[550px] bg-slate-900 border-slate-800 text-slate-100">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-white">
+                    <DialogTitle className="flex items-center gap-2 text-slate-900">
                         <Sparkles className="h-5 w-5 text-teal-400" />
                         Create New Template
                     </DialogTitle>
@@ -116,7 +116,7 @@ export function CreateTemplateDialog({
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g., E-Bike Standard Pack"
-                                className="bg-slate-800 border-slate-700 text-white"
+                                className="bg-slate-800 border-slate-700 text-slate-900"
                                 required
                             />
                         </div>
@@ -132,7 +132,7 @@ export function CreateTemplateDialog({
                                     value={chemistry}
                                     onChange={(e) => setChemistry(e.target.value)}
                                     placeholder="e.g., Li-ion NMC"
-                                    className="bg-slate-800 border-slate-700 text-white"
+                                    className="bg-slate-800 border-slate-700 text-slate-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -144,7 +144,7 @@ export function CreateTemplateDialog({
                                     value={voltage}
                                     onChange={(e) => setVoltage(e.target.value)}
                                     placeholder="e.g., 48V"
-                                    className="bg-slate-800 border-slate-700 text-white"
+                                    className="bg-slate-800 border-slate-700 text-slate-900"
                                 />
                             </div>
                         </div>
@@ -160,7 +160,7 @@ export function CreateTemplateDialog({
                                     value={capacity}
                                     onChange={(e) => setCapacity(e.target.value)}
                                     placeholder="e.g., 20Ah"
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-white border-slate-200 text-slate-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -172,7 +172,7 @@ export function CreateTemplateDialog({
                                     value={weight}
                                     onChange={(e) => setWeight(e.target.value)}
                                     placeholder="e.g., 12kg"
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-white border-slate-200 text-slate-900"
                                 />
                             </div>
                         </div>
@@ -188,7 +188,7 @@ export function CreateTemplateDialog({
                                     value={manufacturer}
                                     onChange={(e) => setManufacturer(e.target.value)}
                                     placeholder={user?.company_name || "Company name"}
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-white border-slate-200 text-slate-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -200,7 +200,7 @@ export function CreateTemplateDialog({
                                     value={countryOfOrigin}
                                     onChange={(e) => setCountryOfOrigin(e.target.value)}
                                     placeholder="e.g., India"
-                                    className="bg-zinc-800 border-zinc-700 text-white"
+                                    className="bg-white border-slate-200 text-slate-900"
                                 />
                             </div>
                         </div>
@@ -220,7 +220,7 @@ export function CreateTemplateDialog({
                                         value={carbonFootprint}
                                         onChange={(e) => setCarbonFootprint(e.target.value)}
                                         placeholder="e.g., 85 kg CO₂e"
-                                        className="bg-zinc-800 border-zinc-700 text-white"
+                                        className="bg-white border-slate-200 text-slate-900"
                                     />
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -244,7 +244,7 @@ export function CreateTemplateDialog({
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="text-slate-400 hover:text-white"
+                            className="text-slate-400 hover:text-slate-900"
                         >
                             Cancel
                         </Button>

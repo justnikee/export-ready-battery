@@ -16,7 +16,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
     const isLow = percentage >= 80
 
     return (
-        <Card className="bg-slate-900 border-slate-800 text-slate-100">
+        <Card className="bg-white border-slate-200 text-slate-100">
             <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-semibold">Passport Quota</CardTitle>

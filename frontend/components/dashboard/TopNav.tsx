@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Battery, LogOut, HelpCircle } from "lucide-react"
+import { Battery, LogOut, HelpCircle, Menu, X, Home, Box, Truck, Users, Trophy, CreditCard, Settings, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -15,19 +15,22 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/context/auth-context"
 import { clsx } from "clsx"
+import { useState } from "react"
 
 export function TopNav() {
     const pathname = usePathname()
     const { user, logout } = useAuth()
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     const navItems = [
-        { name: "Overview", href: "/dashboard" },
-        { name: "Batches", href: "/batches" },
-        { name: "Dispatch", href: "/dashboard/dispatch" },
-        { name: "Partners", href: "/partners" },
-        { name: "Rewards", href: "/rewards" },
-        { name: "Billing", href: "/billing" },
-        { name: "Settings", href: "/settings" },
+        { name: "Overview", href: "/dashboard", icon: Home },
+        { name: "Batches", href: "/batches", icon: Box },
+        { name: "Dispatch", href: "/dashboard/dispatch", icon: Truck },
+        { name: "Partners", href: "/partners", icon: Users },
+        { name: "Team", href: "/team", icon: UserPlus },
+        { name: "Rewards", href: "/rewards", icon: Trophy },
+        { name: "Billing", href: "/billing", icon: CreditCard },
+        { name: "Settings", href: "/settings", icon: Settings },
     ]
 
     const quotaBalance = user?.quota_balance ?? 0
@@ -38,91 +41,195 @@ export function TopNav() {
         : user?.email?.substring(0, 2).toUpperCase() || "U"
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950">
-            <div className="flex h-14 items-center justify-between px-6">
-                {/* Left: Logo */}
-                <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-                    <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center">
-                        <Battery className="h-4 w-4 text-white" />
+        <>
+            <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white">
+                <div className="flex h-14 items-center justify-between px-4 md:px-6">
+                    {/* Left: Mobile Menu + Logo */}
+                    <div className="flex items-center gap-2">
+                        {/* Mobile Menu Button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="md:hidden h-9 w-9"
+                            onClick={() => setMobileMenuOpen(true)}
+                        >
+                            <Menu className="h-5 w-5 text-slate-700" />
+                        </Button>
+
+                        {/* Logo */}
+                        <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+                            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                <Battery className="h-4 w-4 text-white" />
+                            </div>
+                            <span className="font-semibold text-slate-900 text-lg hidden sm:block">ExportReady</span>
+                        </Link>
                     </div>
-                    <span className="font-semibold text-white text-lg hidden sm:block">ExportReady</span>
-                </Link>
 
-                {/* Center: Navigation */}
-                <nav className="hidden md:flex items-center gap-1">
-                    {navItems.map((item) => {
-                        const isActive = pathname === item.href ||
-                            (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                    {/* Center: Navigation (Desktop only) */}
+                    <nav className="hidden md:flex items-center gap-1">
+                        {navItems.map((item) => {
+                            const isActive = pathname === item.href ||
+                                (item.href !== "/dashboard" && pathname.startsWith(item.href))
 
-                        return (
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={clsx(
+                                        "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                                        isActive
+                                            ? "text-blue-700 border-b-2 border-blue-500 rounded-none pb-4"
+                                            : "text-slate-600 hover:text-slate-900 pb-4"
+                                    )}
+                                >
+                                    {item.name}
+                                </Link>
+                            )
+                        })}
+                    </nav>
+
+                    {/* Right: Quota Badge + User Profile */}
+                    <div className="flex items-center gap-2 md:gap-3">
+                        {/* Quota Badge */}
+                        <Link href="/billing">
+                            <div className={clsx(
+                                "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
+                                isLowQuota
+                                    ? "border-red-300 text-red-600 hover:bg-red-50"
+                                    : "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                            )}>
+                                <span className={clsx("h-1.5 w-1.5 rounded-full", isLowQuota ? "bg-red-500" : "bg-emerald-500")} />
+                                <span className="hidden sm:inline">Licenses:</span>
+                                <span>{quotaBalance}</span>
+                            </div>
+                        </Link>
+
+                        {/* User Avatar Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-slate-100">
+                                    <Avatar className="h-8 w-8 border border-slate-200">
+                                        <AvatarImage src={user?.logo_url} />
+                                        <AvatarFallback className="bg-slate-100 text-slate-700 text-xs font-medium">
+                                            {initials}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 bg-white border-slate-200 text-slate-900" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none text-slate-900">{user?.company_name || 'Account'}</p>
+                                        <p className="text-xs leading-none text-slate-500">
+                                            {user?.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator className="bg-slate-200" />
+                                <DropdownMenuItem asChild className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 cursor-pointer">
+                                    <a href="mailto:support@exportready.in">
+                                        <HelpCircle className="mr-2 h-4 w-4" />
+                                        <span>Support</span>
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={logout} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Sign Out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+            </header>
+
+            {/* Mobile Menu Overlay */}
+            {mobileMenuOpen && (
+                <div className="fixed inset-0 z-[100] md:hidden">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+
+                    {/* Slide-out Menu */}
+                    <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
+                        {/* Menu Header */}
+                        <div className="flex items-center justify-between border-b border-slate-200 p-4">
                             <Link
-                                key={item.href}
-                                href={item.href}
-                                className={clsx(
-                                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                                    isActive
-                                        ? "text-white border-b-2 border-teal-500 rounded-none pb-4"
-                                        : "text-slate-400 hover:text-white pb-4"
-                                )}
+                                href="/dashboard"
+                                className="flex items-center gap-2"
+                                onClick={() => setMobileMenuOpen(false)}
                             >
-                                {item.name}
+                                <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                                    <Battery className="h-4 w-4 text-white" />
+                                </div>
+                                <span className="font-semibold text-slate-900 text-lg">ExportReady</span>
                             </Link>
-                        )
-                    })}
-                </nav>
-
-                {/* Right: Quota Badge + User Profile */}
-                <div className="flex items-center gap-3">
-                    {/* Quota Badge */}
-                    <Link href="/billing">
-                        <div className={clsx(
-                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
-                            isLowQuota
-                                ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
-                                : "border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
-                        )}>
-                            <span className={clsx("h-1.5 w-1.5 rounded-full", isLowQuota ? "bg-red-500" : "bg-emerald-500")} />
-                            <span>Licenses: {quotaBalance}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <X className="h-5 w-5 text-slate-500" />
+                            </Button>
                         </div>
-                    </Link>
 
-                    {/* User Avatar Dropdown */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-slate-800">
-                                <Avatar className="h-8 w-8 border border-zinc-700">
+                        {/* Menu Items */}
+                        <nav className="flex flex-col p-4 space-y-1">
+                            {navItems.map((item) => {
+                                const Icon = item.icon
+                                const isActive = pathname === item.href ||
+                                    (item.href !== "/dashboard" && pathname.startsWith(item.href))
+
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={clsx(
+                                            "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                                            isActive
+                                                ? "bg-blue-50 text-blue-700"
+                                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                        )}
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                        {item.name}
+                                    </Link>
+                                )
+                            })}
+                        </nav>
+
+                        {/* User Info at Bottom */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10 border border-slate-200">
                                     <AvatarImage src={user?.logo_url} />
-                                    <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs font-medium">
+                                    <AvatarFallback className="bg-slate-100 text-slate-700 text-sm font-medium">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-slate-900 border-slate-800 text-slate-100" align="end" forceMount>
-                            <DropdownMenuLabel className="font-normal">
-                                <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none text-white">{user?.company_name || 'Account'}</p>
-                                    <p className="text-xs leading-none text-zinc-500">
-                                        {user?.email}
-                                    </p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-900 truncate">{user?.company_name || 'Account'}</p>
+                                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                                 </div>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-zinc-800" />
-                            <DropdownMenuItem asChild className="text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer">
-                                <a href="mailto:support@exportready.in">
-                                    <HelpCircle className="mr-2 h-4 w-4" />
-                                    <span>Support</span>
-                                </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={logout} className="text-red-400 hover:text-red-300 hover:bg-zinc-800 cursor-pointer">
+                            </div>
+                            <Button
+                                variant="outline"
+                                className="w-full mt-3 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => {
+                                    logout()
+                                    setMobileMenuOpen(false)
+                                }}
+                            >
                                 <LogOut className="mr-2 h-4 w-4" />
-                                <span>Sign Out</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                Sign Out
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </header>
+            )}
+        </>
     )
 }
-

@@ -94,7 +94,7 @@ export default function TemplatesPage() {
 
     return (
         <div className="min-h-screen bg-[#0F172A] text-slate-100 p-8 font-sans">
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div className="w-full mx-auto space-y-8">
                 {/* Header */}
                 <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-linear-to-r from-teal-900/20 via-slate-900 to-slate-900 p-6">
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

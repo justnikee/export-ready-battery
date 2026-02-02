@@ -1,11 +1,20 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Import Fonts */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
 /* ============================================
-   EXPORTREADY BATTERY - TRUST & AUTHORITY
-   Design System v2.0 - January 2026
+   EXPORTREADY BATTERY - INDUSTRIAL PRECISION
+   Design System v3.0 - February 2026
    
-   NOTE: Fonts loaded via layout.tsx <link> tag
+   "Compliance Cockpit" - Clean Enterprise
+   Inspired by Vercel, Stripe, Linear
    ============================================ */
 
 @custom-variant dark (&:is(.dark *));
@@ -14,9 +23,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Trust & Authority Typography */
-  --font-sans: 'Source Sans 3', system-ui, sans-serif;
-  --font-heading: 'Lexend', system-ui, sans-serif;
+  /* Industrial Precision Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   /* Sidebar */
@@ -29,7 +37,7 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
 
-  /* Charts - Teal/Cyan theme (no purple!) */
+  /* Charts */
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -53,128 +61,83 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Radius */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  /* Border Radius - Industrial Precision (smaller, boxier) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 8px;
 
-  /* Trust & Authority Color Palette - Light Mode */
+  /* Industrial Precision Color Palette */
   --background: #F8FAFC;
+  /* Slate-50: Off-white page */
   --foreground: #0F172A;
+  /* Slate-900: Primary text */
   --card: #FFFFFF;
-  --card-foreground: #1E293B;
+  /* White cards */
+  --card-foreground: #0F172A;
+  /* Slate-900 */
   --popover: #FFFFFF;
-  --popover-foreground: #1E293B;
+  --popover-foreground: #0F172A;
 
-  /* Primary: Trust Blue */
-  --primary: #3B82F6;
+  /* Primary: Dark Gray (Serious, Professional) */
+  --primary: #0F172A;
+  /* Slate-900 for buttons */
   --primary-foreground: #FFFFFF;
 
-  /* Secondary: Lighter Blue */
-  --secondary: #EFF6FF;
-  --secondary-foreground: #1E40AF;
+  /* Secondary: Subtle */
+  --secondary: #F1F5F9;
+  /* Slate-100 */
+  --secondary-foreground: #334155;
+  /* Slate-700 */
 
   /* Muted */
   --muted: #F1F5F9;
+  /* Slate-100 */
   --muted-foreground: #64748B;
+  /* Slate-500 */
 
-  /* Accent: CTA Orange (stands out!) */
-  --accent: #F97316;
+  /* Accent: Blue for links/active states */
+  --accent: #2563EB;
+  /* Blue-600 */
   --accent-foreground: #FFFFFF;
 
-  --destructive: #EF4444;
+  --destructive: #DC2626;
+  /* Red-600 */
   --border: #E2E8F0;
+  /* Slate-200 */
   --input: #E2E8F0;
-  --ring: #3B82F6;
+  /* Slate-200 */
+  --ring: #0F172A;
+  /* Slate-900 */
 
-  /* Charts - Teal/Emerald theme (no purple!) */
-  --chart-1: #14B8A6;
-  --chart-2: #0EA5E9;
-  --chart-3: #22C55E;
-  --chart-4: #F59E0B;
+  /* Charts - Clean enterprise palette */
+  --chart-1: #10B981;
+  /* Emerald-500 */
+  --chart-2: #3B82F6;
+  /* Blue-500 */
+  --chart-3: #F59E0B;
+  /* Amber-500 */
+  --chart-4: #8B5CF6;
+  /* Violet-500 */
   --chart-5: #EF4444;
+  /* Red-500 */
 
   /* Sidebar - Light */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1E293B;
-  --sidebar-primary: #3B82F6;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #0F172A;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EFF6FF;
-  --sidebar-accent-foreground: #1E40AF;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #3B82F6;
-
-  /* Design System Tokens */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-
-  /* Spacing */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 48px;
-  --space-3xl: 64px;
+  --sidebar-ring: #0F172A;
 }
 
-.dark {
-  /* Trust & Authority Color Palette - Dark Mode */
-  --background: #0F172A;
-  --foreground: #F1F5F9;
-  --card: #1E293B;
-  --card-foreground: #F1F5F9;
-  --popover: #1E293B;
-  --popover-foreground: #F1F5F9;
-
-  /* Primary: Trust Blue */
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-
-  /* Secondary */
-  --secondary: #334155;
-  --secondary-foreground: #F1F5F9;
-
-  /* Muted */
-  --muted: #334155;
-  --muted-foreground: #94A3B8;
-
-  /* Accent: CTA Orange */
-  --accent: #F97316;
-  --accent-foreground: #FFFFFF;
-
-  --destructive: #EF4444;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #3B82F6;
-
-  /* Charts - Teal/Emerald theme */
-  --chart-1: #2DD4BF;
-  --chart-2: #38BDF8;
-  --chart-3: #4ADE80;
-  --chart-4: #FBBF24;
-  --chart-5: #F87171;
-
-  /* Sidebar - Dark */
-  --sidebar: #1E293B;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #334155;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #3B82F6;
-}
+/* Dark mode disabled for Enterprise */
 
 @layer base {
   * {
@@ -184,193 +147,236 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
-    line-height: 1.6;
+    font-size: 14px;
+    /* Enterprise standard: 14px, not 16px */
+    line-height: 1.5;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography: Lexend for headings */
+  /* Typography */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading);
+    font-family: var(--font-sans);
     font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+    color: #0F172A;
+    letter-spacing: -0.025em;
   }
 
   h1 {
-    font-size: 2.5rem;
-    line-height: 1.1;
-  }
-
-  h2 {
-    font-size: 2rem;
-    line-height: 1.15;
-  }
-
-  h3 {
-    font-size: 1.5rem;
+    font-size: 24px;
     line-height: 1.2;
   }
 
-  h4 {
-    font-size: 1.25rem;
-    line-height: 1.25;
+  h2 {
+    font-size: 18px;
+    line-height: 1.3;
   }
 
-  /* Body text: Source Sans 3 */
+  h3 {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
   p {
     line-height: 1.6;
-    max-width: 65ch;
+    color: #334155;
   }
 
-  /* Utility class for heading font */
-  .font-heading {
-    font-family: var(--font-heading);
+  /* Monospace for data */
+  .font-mono,
+  code,
+  pre {
+    font-family: var(--font-mono);
   }
 
-  /* All clickable elements get pointer cursor */
-  button,
-  a,
-  [role="button"],
-  .clickable {
-    cursor: pointer;
-  }
-
-  /* Focus states for accessibility */
+  /* Focus states */
   :focus-visible {
-    outline: 2px solid var(--ring);
+    outline: 2px solid #0F172A;
     outline-offset: 2px;
   }
 
-  /* Smooth transitions globally */
+  /* Smooth transitions */
   a,
   button,
   input,
   textarea,
   select {
-    transition: all 200ms ease;
+    transition: all 150ms ease;
   }
 }
 
 @layer components {
+  /* ========================================
+     INDUSTRIAL PRECISION COMPONENTS
+     ======================================== */
 
-  /* CTA Button - Orange (stands out!) */
-  .btn-cta {
-    @apply px-6 py-3 rounded-lg font-semibold text-white cursor-pointer;
-    background: var(--accent);
-    min-height: 44px;
-    transition: all 200ms ease;
-  }
-
-  .btn-cta:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
-  }
-
-  /* Primary Button - Blue */
+  /* Primary Button - Dark Gray (Vercel Style) */
   .btn-primary {
-    @apply px-6 py-3 rounded-lg font-semibold text-white cursor-pointer;
-    background: var(--primary);
-    min-height: 44px;
-    transition: all 200ms ease;
+    @apply px-4 py-2 rounded-md text-sm font-medium text-white;
+    background: #0F172A;
+    border: 1px solid transparent;
+    min-height: 36px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   .btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
+    background: #1E293B;
+  }
+
+  .btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #0F172A;
   }
 
   /* Secondary Button */
   .btn-secondary {
-    @apply px-6 py-3 rounded-lg font-semibold cursor-pointer;
-    background: transparent;
-    color: var(--primary);
-    border: 2px solid var(--primary);
-    min-height: 44px;
-    transition: all 200ms ease;
+    @apply px-4 py-2 rounded-md text-sm font-medium;
+    background: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid #E2E8F0;
+    min-height: 36px;
   }
 
   .btn-secondary:hover {
-    background: var(--primary);
-    color: white;
+    background: #F8FAFC;
+    border-color: #CBD5E1;
   }
 
-  /* Card with proper shadow depth */
-  .card-elevated {
-    @apply rounded-xl p-6;
-    background: var(--card);
-    box-shadow: var(--shadow-md);
-    transition: all 200ms ease;
+  /* Card - Border, No Shadow */
+  .card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    overflow: hidden;
   }
 
-  .card-elevated:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+  .card-header {
+    @apply px-6 py-4 border-b border-slate-100 flex justify-between items-center;
   }
 
-  /* Trust Badge */
-  .trust-badge {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium;
-    background: rgba(34, 197, 94, 0.1);
-    color: #166534;
-    border: 1px solid rgba(34, 197, 94, 0.2);
+  .card-header h3 {
+    @apply text-base font-medium text-slate-900;
   }
 
-  .dark .trust-badge {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ADE80;
-    border-color: rgba(34, 197, 94, 0.3);
+  .card-content {
+    @apply p-6;
   }
 
-  /* Security Indicator */
-  .security-badge {
-    @apply inline-flex items-center gap-1.5 text-xs font-medium;
-    color: #166534;
+  /* Data Table - Industrial Precision */
+  .data-table {
+    @apply w-full;
   }
 
-  .dark .security-badge {
-    color: #4ADE80;
+  .data-table thead {
+    @apply bg-slate-50 border-b border-slate-200;
   }
 
-  /* Stats Card with pulse animation */
-  .stat-value {
-    @apply text-3xl font-bold;
-    font-family: var(--font-heading);
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider;
   }
 
-  @keyframes pulse-subtle {
-
-    0%,
-    100% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.8;
-    }
+  .data-table tbody tr {
+    @apply border-b border-slate-100 bg-white;
   }
 
-  .stat-updating {
-    animation: pulse-subtle 2s ease-in-out infinite;
+  .data-table tbody tr:hover {
+    @apply bg-slate-50;
   }
 
-  /* Input with proper sizing */
+  .data-table td {
+    @apply px-4 py-3 text-sm text-slate-600;
+  }
+
+  .data-table td.mono {
+    @apply font-mono text-xs text-slate-600;
+  }
+
+  /* Status Badges - Subtle (No Candy Colors) */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    border: 1px solid;
+  }
+
+  .badge-success {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+
+  .badge-warning {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+
+  .badge-error {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+
+  .badge-info {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+
+  .badge-neutral {
+    @apply bg-slate-100 text-slate-600 border-slate-200;
+  }
+
+  /* Form Labels - Technical Style */
+  .form-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block;
+  }
+
+  /* Input Field */
   .input-field {
-    @apply w-full px-4 py-3 rounded-lg text-base;
-    background: var(--input);
-    border: 1px solid var(--border);
-    min-height: 44px;
-    transition: all 200ms ease;
+    @apply w-full px-3 py-2 rounded-md text-sm;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    min-height: 36px;
+  }
+
+  .input-field:hover {
+    border-color: #CBD5E1;
   }
 
   .input-field:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: #0F172A;
     outline: none;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
+  }
+
+  /* Stats Card */
+  .stat-card {
+    @apply bg-white border border-slate-200 rounded-lg p-6;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wider;
+  }
+
+  .stat-value {
+    @apply text-2xl font-semibold text-slate-900 tracking-tight;
+  }
+
+  /* Section Divider */
+  .divider {
+    @apply border-t border-slate-200 my-6;
+  }
+
+  /* Link Style */
+  .link {
+    @apply text-blue-600 hover:text-blue-700 font-medium;
+  }
+
+  /* Mono Text (IDs, UUIDs, Hashes) */
+  .mono-text {
+    @apply font-mono text-xs text-slate-600;
   }
 }
 
@@ -384,4 +390,38 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================
+   NProgress Loading Bar - Industrial Theme
+   ============================================ */
+
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  box-shadow:
+    0 0 10px rgba(245, 158, 11, 0.7),
+    0 0 5px rgba(245, 158, 11, 0.5);
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  box-shadow:
+    0 0 10px #f59e0b,
+    0 0 5px #f59e0b;
+  opacity: 1;
+  transform: rotate(3deg) translate(0, -4px);
 }

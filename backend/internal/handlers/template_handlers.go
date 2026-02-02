@@ -28,7 +28,7 @@ func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := h.repo.CreateTemplate(r.Context(), req.TenantID, req.Name, req.Specs)
+	template, err := h.repo.CreateTemplate(r.Context(), req.TenantID, req.Name, req.MarketRegion, req.Specs)
 	if err != nil {
 		log.Printf("Failed to create template: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create template")

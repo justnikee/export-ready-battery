@@ -96,9 +96,13 @@ func (h *ExportJobHandler) CreateExportJob(w http.ResponseWriter, r *http.Reques
 		respondError(w, http.StatusBadRequest, "Invalid job_type. Must be QR_ZIP, LABELS_PDF, or CSV")
 		return
 	}
-
-	// TODO: Get passport count from batch (for now we'll pass 0 and let the service determine)
-	passportCount := 0
+	// Get passport count from batch
+	passportCount, err := h.exportJobService.GetPassportCountByBatch(r.Context(), batchID)
+	if err != nil {
+		h.logger.Error("failed to get passport count", "error", err, "batchId", batchID)
+		// Fallback to 0 - the service will determine the count when processing
+		passportCount = 0
+	}
 
 	// Create the export job
 	job, err := h.exportJobService.CreateJob(r.Context(), tenantID, batchID, userID, jobType, passportCount)

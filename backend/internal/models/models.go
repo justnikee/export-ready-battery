@@ -88,20 +88,22 @@ type UpdateProfileRequest struct {
 // TEMPLATE
 // ============================================================================
 
-// Template represents a reusable batch specification template
+// Template represents a reusable batch specification template (Product SKU)
 type Template struct {
-	ID        uuid.UUID `json:"id"`
-	TenantID  uuid.UUID `json:"tenant_id"`
-	Name      string    `json:"name"`
-	Specs     BatchSpec `json:"specs"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           uuid.UUID    `json:"id"`
+	TenantID     uuid.UUID    `json:"tenant_id"`
+	Name         string       `json:"name"`
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
+	Specs        BatchSpec    `json:"specs"`
+	CreatedAt    time.Time    `json:"created_at"`
 }
 
 // CreateTemplateRequest is the request body for creating a template
 type CreateTemplateRequest struct {
-	TenantID uuid.UUID `json:"tenant_id"`
-	Name     string    `json:"name"`
-	Specs    BatchSpec `json:"specs"`
+	TenantID     uuid.UUID    `json:"tenant_id"`
+	Name         string       `json:"name"`
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
+	Specs        BatchSpec    `json:"specs"`
 }
 
 // ============================================================================
@@ -153,6 +155,13 @@ type BatchSpec struct {
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
 	ImportCostINR float64 `json:"import_cost_inr,omitempty"`
+
+	// India PLI/Compliance Fields (for Product SKU Templates)
+	CellSource       string  `json:"cell_source,omitempty"`        // IMPORTED or DOMESTIC
+	DomesticValueAdd float64 `json:"domestic_value_add,omitempty"` // Target DVA % (e.g., 50.0 = 50%)
+	HSNCode          string  `json:"hsn_code,omitempty"`           // Harmonized System Nomenclature code
+	BISNumber        string  `json:"bis_number,omitempty"`         // BIS R-Number (e.g., "R-12345678")
+	EPRNumber        string  `json:"epr_number,omitempty"`         // EPR Registration Number
 
 	// EU Battery Regulation 2023/1542 - MANDATORY FIELDS
 	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`     // Critical raw materials %

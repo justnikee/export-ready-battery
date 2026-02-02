@@ -20,10 +20,11 @@ type Handler struct {
 	razorpayService   *services.RazorpayService
 	validationService *services.ValidationService // India compliance validation
 	lifecycleService  *services.LifecycleService  // Passport lifecycle & audit
+	emailService      *services.EmailService      // Email service for invites
 }
 
 // New creates a new Handler with the given database connection
-func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string) *Handler {
+func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string, emailService *services.EmailService) *Handler {
 	var razorpayService *services.RazorpayService
 	if razorpayKeyID != "" && razorpayKeySecret != "" {
 		razorpayService = services.NewRazorpayService(razorpayKeyID, razorpayKeySecret)
@@ -40,6 +41,7 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 		razorpayService:   razorpayService,
 		validationService: services.NewValidationService(),
 		lifecycleService:  services.NewLifecycleService(repo),
+		emailService:      emailService,
 	}
 }
 

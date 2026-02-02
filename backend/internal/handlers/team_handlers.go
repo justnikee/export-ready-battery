@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -158,8 +159,14 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Send invite email with token
-	// For now, return the invite URL (dev mode)
+	// Send invite email
+	if h.emailService != nil {
+		if err := h.emailService.SendTeamInvite(req.Email, tenant.CompanyName, token, req.Role); err != nil {
+			// Log the error but don't fail the request - invite was created
+			log.Printf("⚠️ Failed to send invite email to %s: %v", req.Email, err)
+		}
+	}
+
 	inviteURL := fmt.Sprintf("/invite?token=%s", token)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{

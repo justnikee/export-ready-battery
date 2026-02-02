@@ -53,7 +53,7 @@ func main() {
 	repo := repository.New(database)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize middleware

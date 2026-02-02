@@ -92,6 +92,16 @@ func (s *ExportJobService) CreateJob(ctx context.Context, tenantID, batchID, req
 	return job, nil
 }
 
+// GetPassportCountByBatch returns the number of passports in a batch
+func (s *ExportJobService) GetPassportCountByBatch(ctx context.Context, batchID uuid.UUID) (int, error) {
+	var count int
+	err := s.db.QueryRow(ctx, "SELECT COUNT(*) FROM passports WHERE batch_id = $1", batchID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get passport count: %w", err)
+	}
+	return count, nil
+}
+
 // GetJobByID retrieves an export job by ID
 func (s *ExportJobService) GetJobByID(ctx context.Context, jobID uuid.UUID) (*models.ExportJob, error) {
 	query := `

@@ -220,6 +220,90 @@ func getActionContent(action string) (title, description, color string) {
 	}
 }
 
+// TeamInviteData contains data for the team invite email
+type TeamInviteData struct {
+	CompanyName string
+	InviteLink  string
+	Role        string
+}
+
+// SendTeamInvite sends a team invitation email
+func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role string) error {
+	inviteLink := fmt.Sprintf("%s/invite?token=%s", e.baseURL, inviteToken)
+
+	if !e.enabled {
+		// Log to console in development
+		log.Printf("📧 Team Invite for %s to join %s as %s:\n%s", toEmail, companyName, role, inviteLink)
+		return nil
+	}
+
+	html := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Invitation</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1f5f9;">
+    <table role="presentation" style="width: 100%%; border-collapse: collapse;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #3B82F6 0%%, #2563EB 100%%); padding: 32px 40px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">ExportReady</h1>
+                            <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Battery Passport Registry</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 16px; color: #1e293b; font-size: 20px;">You've Been Invited!</h2>
+                            <p style="margin: 0 0 24px; color: #64748b; font-size: 15px; line-height: 1.6;">
+                                You've been invited to join <strong style="color: #1e293b;">%s</strong> as a <strong style="color: #3b82f6;">%s</strong> on ExportReady.
+                            </p>
+                            <p style="margin: 0 0 28px; color: #64748b; font-size: 15px; line-height: 1.6;">
+                                Click the button below to accept this invitation and get started.
+                            </p>
+                            <a href="%s" style="display: inline-block; background: linear-gradient(135deg, #3B82F6 0%%, #2563EB 100%%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                                Accept Invitation
+                            </a>
+                            <p style="margin: 28px 0 0; color: #94a3b8; font-size: 13px;">
+                                This invitation expires in 7 days. If you didn't expect this, you can ignore this email.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
+                                © 2026 ExportReady Battery
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+`, companyName, role, inviteLink)
+
+	plainText := fmt.Sprintf(`You've Been Invited!
+
+You've been invited to join %s as a %s on ExportReady.
+
+Click the link below to accept this invitation:
+%s
+
+This invitation expires in 7 days.
+If you didn't expect this, you can ignore this email.
+
+© 2026 ExportReady Battery
+`, companyName, role, inviteLink)
+
+	return e.sendEmail(toEmail, fmt.Sprintf("You're invited to join %s on ExportReady", companyName), html, plainText)
+}
+
 // SendExportReady sends a notification that an export job is complete
 func (e *EmailService) SendExportReady(toEmail, subject, htmlContent string) error {
 	if !e.enabled {

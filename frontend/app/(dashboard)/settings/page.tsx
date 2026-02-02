@@ -76,20 +76,20 @@ function DocumentUpload({
         switch (currentStatus) {
             case "VERIFIED":
                 return (
-                    <span className="flex items-center gap-1.5 text-emerald-400 text-xs font-medium" title="Document verified by compliance team">
+                    <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-medium" title="Document verified by compliance team">
                         <CheckCircle className="h-3.5 w-3.5" />
                         ✅ Verified
                     </span>
                 )
             case "PENDING":
                 return (
-                    <span className="flex items-center gap-1.5 text-amber-400 text-xs font-medium" title="Our compliance team is reviewing your document">
+                    <span className="flex items-center gap-1.5 text-amber-600 text-xs font-medium" title="Our compliance team is reviewing your document">
                         ⏳ Verification Pending
                     </span>
                 )
             case "REJECTED":
                 return (
-                    <span className="flex items-center gap-1.5 text-red-400 text-xs font-medium" title="Document rejected. Please upload a valid document.">
+                    <span className="flex items-center gap-1.5 text-red-600 text-xs font-medium" title="Document rejected. Please upload a valid document.">
                         ❌ Rejected
                     </span>
                 )
@@ -117,7 +117,7 @@ function DocumentUpload({
                     <button
                         type="button"
                         onClick={handleViewDocument}
-                        className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1"
+                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
                     >
                         <ExternalLink className="h-3 w-3" />
                         View
@@ -126,7 +126,7 @@ function DocumentUpload({
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="text-xs text-zinc-400 hover:text-zinc-300"
+                        className="text-xs text-slate-500 hover:text-slate-700"
                     >
                         {uploading ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -140,7 +140,7 @@ function DocumentUpload({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
                 >
                     {uploading ? (
                         <>
@@ -225,7 +225,7 @@ function LogoUpload({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:border-slate-600 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
             >
                 {uploading ? (
                     <>
@@ -316,27 +316,24 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0F172A] text-slate-100 p-8 font-sans">
-            <div className="max-w-4xl mx-auto space-y-8">
+        <div className="min-h-screen bg-slate-50 p-6">
+            <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
-                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-linear-to-r from-teal-900/20 via-slate-900 to-slate-900 p-6">
-                    <div className="relative z-10">
-                        <h1 className="text-3xl font-bold text-white">Organization Settings</h1>
-                        <p className="text-slate-400 mt-1">Manage your company profile and compliance documents</p>
-                    </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div>
+                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Organization Settings</h1>
+                    <p className="text-sm text-slate-500 mt-1">Manage your company profile and compliance documents</p>
                 </div>
 
                 {/* Company Profile Card */}
-                <div className="rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur overflow-hidden">
-                    <div className="border-b border-slate-800 bg-slate-900 px-6 py-4">
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-slate-100 px-6 py-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-teal-500/10">
-                                <Building2 className="h-5 w-5 text-teal-400" />
+                            <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
+                                <Building2 className="h-5 w-5 text-blue-600" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-semibold text-white">Company Profile</h2>
-                                <p className="text-xs text-zinc-500">Basic information displayed on battery passports</p>
+                                <h2 className="text-base font-medium text-slate-900">Company Profile</h2>
+                                <p className="text-xs text-slate-500">Basic information displayed on battery passports</p>
                             </div>
                         </div>
                     </div>
@@ -344,14 +341,14 @@ export default function SettingsPage() {
                     <form onSubmit={handleSubmit} className="p-6 space-y-6">
                         {/* Company Name */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            <label className="text-sm font-medium leading-none text-slate-700">
                                 Company Name
                             </label>
                             <div className="relative">
-                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Acme Battery Co."
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -362,32 +359,32 @@ export default function SettingsPage() {
 
                         {/* Address */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            <label className="text-sm font-medium leading-none text-slate-700">
                                 Manufacturer Address
                             </label>
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                                 <textarea
-                                    className="flex min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 pl-9 text-sm text-slate-100 shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 pl-9 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="123 Industrial Park, Energy City, Country"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-zinc-500">This address will appear on your battery passports.</p>
+                            <p className="text-xs text-slate-500">This address will appear on your battery passports.</p>
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
                             {/* Support Email */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                <label className="text-sm font-medium leading-none text-slate-700">
                                     Support Email
                                 </label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                     <input
                                         type="email"
-                                        className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="support@acme.com"
                                         value={formData.support_email}
                                         onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
@@ -397,14 +394,14 @@ export default function SettingsPage() {
 
                             {/* Website */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                <label className="text-sm font-medium leading-none text-slate-700">
                                     Website
                                 </label>
                                 <div className="relative">
-                                    <Globe className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+                                    <Globe className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                     <input
                                         type="url"
-                                        className="flex h-9 w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-1 pl-9 text-sm text-slate-100 shadow-sm transition-colors placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="https://acme.com"
                                         value={formData.website}
                                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -415,12 +412,12 @@ export default function SettingsPage() {
 
                         {/* Logo Upload */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-zinc-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            <label className="text-sm font-medium leading-none text-slate-700">
                                 Company Logo
                             </label>
                             <div className="flex items-start gap-4">
                                 {/* Logo Preview */}
-                                <div className="h-20 w-20 rounded-lg border border-zinc-700 bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                                <div className="h-20 w-20 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                                     {formData.logo_url ? (
                                         <img
                                             src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
@@ -432,7 +429,7 @@ export default function SettingsPage() {
                                             }}
                                         />
                                     ) : null}
-                                    <div className={`flex flex-col items-center justify-center text-zinc-500 ${formData.logo_url ? 'hidden' : ''}`}>
+                                    <div className={`flex flex-col items-center justify-center text-slate-400 ${formData.logo_url ? 'hidden' : ''}`}>
                                         <ImageIcon className="h-8 w-8" />
                                     </div>
                                 </div>
@@ -446,143 +443,145 @@ export default function SettingsPage() {
                                             await refreshUser()
                                         }}
                                     />
-                                    <p className="text-xs text-zinc-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
+                                    <p className="text-xs text-slate-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* India Regulatory Details Section */}
-                        <div className="mt-8 -mx-6 border-t border-zinc-800">
-                            <div className="px-6 py-4 bg-zinc-900/80">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-emerald-500/10">
-                                        <ShieldCheck className="h-5 w-5 text-emerald-400" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white">India Compliance Vault</h3>
-                                        <p className="text-xs text-zinc-500">BWM 2022 &amp; BIS Safety Standards • Upload certificates for verification</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 grid gap-6 md:grid-cols-2">
-                                {/* EPR Registration Number */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none text-zinc-300">
-                                        EPR Registration Number
-                                    </label>
-                                    <div className="relative">
-                                        <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
-                                        <input
-                                            type="text"
-                                            className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                            placeholder="EPR/B/2024/XXXX"
-                                            value={formData.epr_registration_number}
-                                            onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-zinc-500">CPCB Extended Producer Responsibility registration.</p>
-                                    <DocumentUpload
-                                        label="EPR"
-                                        documentType="epr"
-                                        currentPath={certificatePaths.epr_certificate_path}
-                                        currentStatus={certificatePaths.epr_status}
-                                        onUploadSuccess={handleUploadSuccess}
-                                    />
-                                </div>
-
-                                {/* BIS R-Number */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none text-zinc-300">
-                                        BIS R-Number (IS 16046)
-                                    </label>
-                                    <div className="relative">
-                                        <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
-                                        <input
-                                            type="text"
-                                            className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                            placeholder="R-12345678"
-                                            value={formData.bis_r_number}
-                                            onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-zinc-500">BIS CRS registration for IS 16046 safety standard.</p>
-                                    <DocumentUpload
-                                        label="BIS"
-                                        documentType="bis"
-                                        currentPath={certificatePaths.bis_certificate_path}
-                                        currentStatus={certificatePaths.bis_status}
-                                        onUploadSuccess={handleUploadSuccess}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* IEC Code with PLI Certificate */}
-                            <div className="grid gap-6 md:grid-cols-2 mt-6 px-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none text-zinc-300">
-                                        IEC Code (Import Export Code)
-                                    </label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-amber-500" />
-                                        <input
-                                            type="text"
-                                            className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 pl-9 text-sm text-zinc-100 shadow-sm transition-colors placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                            placeholder="AAACT1234A"
-                                            value={formData.iec_code}
-                                            onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-zinc-500">Required for importers of battery cells.</p>
-                                </div>
-
-                                {/* PLI Certificate */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none text-zinc-300">
-                                        PLI Scheme Certificate
-                                    </label>
-                                    <div className="p-3 rounded-md border border-zinc-700 bg-zinc-800/50">
-                                        <p className="text-xs text-zinc-500 mb-2">
-                                            Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
-                                        </p>
-                                        <DocumentUpload
-                                            label="PLI"
-                                            documentType="pli"
-                                            currentPath={certificatePaths.pli_certificate_path}
-                                            currentStatus={certificatePaths.pli_status}
-                                            onUploadSuccess={handleUploadSuccess}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Feedback Message */}
-                        {message && (
-                            <div className={`rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800' : 'bg-red-900/50 text-red-400 border border-red-800'
-                                }`}>
-                                {message.text}
-                            </div>
-                        )}
-
-                        {/* Submit Button */}
-                        <div className="flex justify-end pt-6 mt-6 border-t border-zinc-800">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="inline-flex items-center justify-center rounded-lg bg-linear-to-r from-teal-600 to-teal-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 hover:from-teal-500 hover:to-teal-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:pointer-events-none disabled:opacity-50 transition-all duration-200"
-                            >
-                                {loading ? (
-                                    <>
-                                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                        Saving...
-                                    </>
-                                ) : (
-                                    "Save Changes"
-                                )}
-                            </button>
                         </div>
                     </form>
+                </div>
+
+                {/* India Compliance Vault Card */}
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-slate-100 px-6 py-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-medium text-slate-900">India Compliance Vault</h3>
+                                <p className="text-xs text-slate-500">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 grid gap-6 md:grid-cols-2">
+                        {/* EPR Registration Number */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                EPR Registration Number
+                            </label>
+                            <div className="relative">
+                                <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="EPR/B/2024/XXXX"
+                                    value={formData.epr_registration_number}
+                                    onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">CPCB Extended Producer Responsibility registration.</p>
+                            <DocumentUpload
+                                label="EPR"
+                                documentType="epr"
+                                currentPath={certificatePaths.epr_certificate_path}
+                                currentStatus={certificatePaths.epr_status}
+                                onUploadSuccess={handleUploadSuccess}
+                            />
+                        </div>
+
+                        {/* BIS R-Number */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                BIS R-Number (IS 16046)
+                            </label>
+                            <div className="relative">
+                                <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="R-12345678"
+                                    value={formData.bis_r_number}
+                                    onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">BIS CRS registration for IS 16046 safety standard.</p>
+                            <DocumentUpload
+                                label="BIS"
+                                documentType="bis"
+                                currentPath={certificatePaths.bis_certificate_path}
+                                currentStatus={certificatePaths.bis_status}
+                                onUploadSuccess={handleUploadSuccess}
+                            />
+                        </div>
+                    </div>
+
+                    {/* IEC Code with PLI Certificate */}
+                    <div className="grid gap-6 md:grid-cols-2 px-6 pb-6">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                IEC Code (Import Export Code)
+                            </label>
+                            <div className="relative">
+                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-amber-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="AAACT1234A"
+                                    value={formData.iec_code}
+                                    onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">Required for importers of battery cells.</p>
+                        </div>
+
+                        {/* PLI Certificate */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                PLI Scheme Certificate
+                            </label>
+                            <div className="p-3 rounded-md border border-slate-200 bg-slate-50">
+                                <p className="text-xs text-slate-500 mb-2">
+                                    Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
+                                </p>
+                                <DocumentUpload
+                                    label="PLI"
+                                    documentType="pli"
+                                    currentPath={certificatePaths.pli_certificate_path}
+                                    currentStatus={certificatePaths.pli_status}
+                                    onUploadSuccess={handleUploadSuccess}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Feedback Message & Submit */}
+                <div className="bg-white border border-slate-200 rounded-lg p-6">
+                    {message && (
+                        <div className={`rounded-md p-3 text-sm mb-4 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={loading}
+                            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save Changes"
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
