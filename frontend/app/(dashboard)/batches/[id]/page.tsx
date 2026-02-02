@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
-import { createExportJob } from "@/lib/api/exports"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -13,9 +12,6 @@ import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
-
-// Threshold for async export (above this count, use background processing)
-const ASYNC_EXPORT_THRESHOLD = 500
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -37,7 +33,6 @@ export default function BatchDetailsPage() {
     const [passportCount, setPassportCount] = useState<number>(0)
     const [passports, setPassports] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [downloading, setDownloading] = useState<string | null>(null)
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 1,
         limit: 50,
@@ -89,30 +84,8 @@ export default function BatchDetailsPage() {
         fetchPassports(newPage, pagination.limit)
     }
 
-    // Smart download handler - uses async for large batches
-    const handleDownloadQR = async () => {
-        if (passportCount > ASYNC_EXPORT_THRESHOLD) {
-            // Use async export for large batches
-            setDownloading('qr')
-            try {
-                const response = await createExportJob({ batch_id: params.id as string, job_type: 'QR_ZIP' })
-                toast.success('Export job queued!', {
-                    description: `Your ${passportCount.toLocaleString()} QR codes are being generated. Check the Exports page or wait for an email.`,
-                    duration: 8000,
-                    action: {
-                        label: 'View Exports',
-                        onClick: () => router.push('/exports')
-                    }
-                })
-            } catch (error: any) {
-                console.error("Failed to create export job", error)
-                toast.error(error.response?.data?.error || "Failed to queue export job")
-            } finally {
-                setDownloading(null)
-            }
-        } else {
-            // Use sync download for small batches
-            setDownloading('qr')
+    const handleDownloadQR = () => {
+        const download = async () => {
             try {
                 const response = await api.get(`/batches/${params.id}/download`, {
                     responseType: 'blob'
@@ -127,115 +100,56 @@ export default function BatchDetailsPage() {
                 link.remove();
             } catch (error) {
                 console.error("Failed to download QR codes", error)
-                toast.error("Failed to download QR codes")
-            } finally {
-                setDownloading(null)
+                alert("Failed to download QR codes")
             }
         }
+        download()
     }
 
     const handleDownloadLabels = async () => {
-        if (passportCount > ASYNC_EXPORT_THRESHOLD) {
-            // Use async export for large batches
-            setDownloading('labels')
-            try {
-                const response = await createExportJob({ batch_id: params.id as string, job_type: 'LABELS_PDF' })
-                toast.success('Export job queued!', {
-                    description: `Your ${passportCount.toLocaleString()} PDF labels are being generated. Check the Exports page or wait for an email.`,
-                    duration: 8000,
-                    action: {
-                        label: 'View Exports',
-                        onClick: () => router.push('/exports')
-                    }
-                })
-            } catch (error: any) {
-                console.error("Failed to create export job", error)
-                if (error.response?.status === 403) {
-                    toast.error("⚠️ You must Activate this batch before downloading labels.", {
-                        description: "Click 'Activate Batch' to unlock downloads.",
-                        duration: 5000
-                    })
-                } else {
-                    toast.error(error.response?.data?.error || "Failed to queue export job")
-                }
-            } finally {
-                setDownloading(null)
-            }
-        } else {
-            // Use sync download for small batches
-            setDownloading('labels')
-            try {
-                const response = await api.get(`/batches/${params.id}/labels`, {
-                    responseType: 'blob'
-                })
+        try {
+            const response = await api.get(`/batches/${params.id}/labels`, {
+                responseType: 'blob'
+            })
 
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${batch.batch_name}_labels.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-            } catch (error: any) {
-                console.error("Failed to download labels", error)
-                if (error.response?.status === 403) {
-                    toast.error("⚠️ You must Activate this batch before downloading labels.", {
-                        description: "Click 'Activate Batch' to unlock downloads.",
-                        duration: 5000
-                    })
-                } else {
-                    toast.error(error.response?.data?.error || "Failed to download labels")
-                }
-            } finally {
-                setDownloading(null)
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_labels.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error: any) {
+            console.error("Failed to download labels", error)
+            if (error.response?.status === 403) {
+                toast.error("⚠️ You must Activate this batch before downloading labels.", {
+                    description: "Click 'Activate Batch' to unlock downloads.",
+                    duration: 5000
+                })
+            } else {
+                toast.error(error.response?.data?.error || "Failed to download labels")
             }
         }
     }
 
     const handleExportCSV = async () => {
-        if (passportCount > ASYNC_EXPORT_THRESHOLD) {
-            // Use async export for large batches
-            setDownloading('csv')
-            try {
-                const response = await createExportJob({ batch_id: params.id as string, job_type: 'CSV' })
-                toast.success('Export job queued!', {
-                    description: `Your ${passportCount.toLocaleString()} serial numbers are being exported. Check the Exports page or wait for an email.`,
-                    duration: 8000,
-                    action: {
-                        label: 'View Exports',
-                        onClick: () => router.push('/exports')
-                    }
-                })
-            } catch (error: any) {
-                console.error("Failed to create export job", error)
-                toast.error(error.response?.data?.error || "Failed to queue export job")
-            } finally {
-                setDownloading(null)
-            }
-        } else {
-            // Use sync download for small batches
-            setDownloading('csv')
-            try {
-                const response = await api.get(`/batches/${params.id}/export`, {
-                    responseType: 'blob'
-                })
+        try {
+            const response = await api.get(`/batches/${params.id}/export`, {
+                responseType: 'blob'
+            })
 
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${batch.batch_name}_serial_export.csv`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-            } catch (error: any) {
-                console.error("Failed to export CSV", error)
-                toast.error("Failed to export CSV")
-            } finally {
-                setDownloading(null)
-            }
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_serial_export.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export CSV", error)
+            alert("Failed to export CSV")
         }
     }
-
 
     // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
