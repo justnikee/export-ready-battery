@@ -22,7 +22,8 @@ type Config struct {
 	RazorpayKeyID     string
 	RazorpayKeySecret string
 
-	// CORS - Allowed Origins (comma-separated)
+	// CORS - Allowed Origins (comma-separated).
+	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
 }
 
