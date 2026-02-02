@@ -101,7 +101,7 @@ export default function PricingPage() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8"
+                        className="bg-white/50 border border-slate-200 rounded-2xl p-8"
                     >
                         <h3 className="text-xl font-semibold text-white mb-6 text-center">All Licenses Include</h3>
                         <div className="grid md:grid-cols-4 gap-6">

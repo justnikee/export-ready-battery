@@ -32,6 +32,10 @@ type CreateBatchRequest struct {
 	// DVA Audit Mode Fields
 	DVASource         string // "ESTIMATED" or "AUDITED"
 	PLICertificateURL string // URL to CA certificate (Supabase Storage)
+
+	// India Compliance Certification Fields
+	BISNumber string // BIS R-Number (e.g., "R-12345678")
+	EPRNumber string // EPR Registration Number
 }
 
 // CreateBatch creates a new batch with dual-mode support
@@ -58,6 +62,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		HSNCode:           req.HSNCode,
 		DVASource:         req.DVASource,
 		PLICertificateURL: req.PLICertificateURL,
+		BISNumber:         req.BISNumber,
+		EPRNumber:         req.EPRNumber,
 	}
 
 	specsJSON, err := json.Marshal(req.Specs)
@@ -74,11 +80,11 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	// Debug logging
 	log.Printf("DEBUG CreateBatch: specsJSON=%s, marketRegion=%s", string(specsJSON), marketRegion)
 
-	// Updated query to include hsn_code, dva_source, and pli_certificate_url
+	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number
 	query := `INSERT INTO public.batches 
 		(id, tenant_id, batch_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
-		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url) 
-		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
+		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number) 
+		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`
 
 	// Handle nullable import fields
 	var billOfEntry, countryOrigin, hsnCode interface{}
@@ -101,6 +107,15 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		pliCertURL = req.PLICertificateURL
 	}
 
+	// Handle nullable India compliance fields
+	var bisNumber, eprNumber interface{}
+	if req.BISNumber != "" {
+		bisNumber = req.BISNumber
+	}
+	if req.EPRNumber != "" {
+		eprNumber = req.EPRNumber
+	}
+
 	_, err = r.db.Pool.Exec(ctx, query,
 		batch.ID,
 		batch.TenantID,
@@ -118,6 +133,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		hsnCode,
 		dvaSource,
 		pliCertURL,
+		bisNumber,
+		eprNumber,
 	)
 	if err != nil {
 		log.Printf("DEBUG CreateBatch ERROR: %v", err)
@@ -128,7 +145,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 }
 
 // GetBatch retrieves a batch by ID with all dual-mode fields
-func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch, error) {
+// SECURITY: Requires tenantID to prevent IDOR attacks
+func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error) {
 	batch := &models.Batch{}
 	var specsJSON []byte
 	var marketRegion string
@@ -149,9 +167,9 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID) (*models.Batch,
 	          hsn_code,
 	          dva_source,
 	          pli_certificate_url
-	          FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
+	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
 
-	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
 		&batch.ID,
 		&batch.TenantID,
 		&batch.BatchName,

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,7 +45,8 @@ type Tenant struct {
 	CreatedAt    time.Time `json:"created_at"`
 
 	// Quota System (Monetization)
-	QuotaBalance int `json:"quota_balance"` // Batch activation slots available
+	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
+	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
 
 	// India Regulatory Compliance Fields (BWM Rules 2022 & BIS)
 	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
@@ -86,20 +88,22 @@ type UpdateProfileRequest struct {
 // TEMPLATE
 // ============================================================================
 
-// Template represents a reusable batch specification template
+// Template represents a reusable batch specification template (Product SKU)
 type Template struct {
-	ID        uuid.UUID `json:"id"`
-	TenantID  uuid.UUID `json:"tenant_id"`
-	Name      string    `json:"name"`
-	Specs     BatchSpec `json:"specs"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           uuid.UUID    `json:"id"`
+	TenantID     uuid.UUID    `json:"tenant_id"`
+	Name         string       `json:"name"`
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
+	Specs        BatchSpec    `json:"specs"`
+	CreatedAt    time.Time    `json:"created_at"`
 }
 
 // CreateTemplateRequest is the request body for creating a template
 type CreateTemplateRequest struct {
-	TenantID uuid.UUID `json:"tenant_id"`
-	Name     string    `json:"name"`
-	Specs    BatchSpec `json:"specs"`
+	TenantID     uuid.UUID    `json:"tenant_id"`
+	Name         string       `json:"name"`
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
+	Specs        BatchSpec    `json:"specs"`
 }
 
 // ============================================================================
@@ -127,8 +131,10 @@ type Batch struct {
 	CountryOfOrigin string     `json:"country_of_origin,omitempty"` // Source country for imported cells
 	CustomsDate     *time.Time `json:"customs_date,omitempty"`      // Date of customs clearance
 
-	// India Compliance Fields
-	HSNCode string `json:"hsn_code,omitempty"` // Harmonized System Nomenclature code (e.g., "8507.60")
+	// India Compliance Fields (Mandatory for market_region = INDIA)
+	HSNCode   string `json:"hsn_code,omitempty"`   // Harmonized System Nomenclature code (e.g., "8507.60")
+	BISNumber string `json:"bis_number,omitempty"` // BIS R-Number (e.g., "R-12345678") - Required for lithium-ion batteries
+	EPRNumber string `json:"epr_number,omitempty"` // EPR Registration Number (e.g., "EPR/E-Waste/2024/00001")
 
 	// PLI/DVA Audit Compliance Fields (reduces legal liability)
 	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
@@ -149,6 +155,13 @@ type BatchSpec struct {
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
 	ImportCostINR float64 `json:"import_cost_inr,omitempty"`
+
+	// India PLI/Compliance Fields (for Product SKU Templates)
+	CellSource       string  `json:"cell_source,omitempty"`        // IMPORTED or DOMESTIC
+	DomesticValueAdd float64 `json:"domestic_value_add,omitempty"` // Target DVA % (e.g., 50.0 = 50%)
+	HSNCode          string  `json:"hsn_code,omitempty"`           // Harmonized System Nomenclature code
+	BISNumber        string  `json:"bis_number,omitempty"`         // BIS R-Number (e.g., "R-12345678")
+	EPRNumber        string  `json:"epr_number,omitempty"`         // EPR Registration Number
 
 	// EU Battery Regulation 2023/1542 - MANDATORY FIELDS
 	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`     // Critical raw materials %
@@ -205,6 +218,10 @@ type Passport struct {
 
 	// Ownership tracking
 	OwnerID *uuid.UUID `json:"owner_id,omitempty"` // Current owner (distributor, retailer, end user)
+
+	// CSV Traceability
+	CSVSourceFilename string `json:"csv_source_filename,omitempty"`
+	CSVRowIndex       int    `json:"csv_row_index,omitempty"`
 }
 
 // PassportStatus constants - lifecycle states
@@ -255,6 +272,9 @@ var RoleTransitionPermissions = map[string]map[string][]string{
 		PassportStatusReturnRequested: {PassportStatusRecycled}, // Recycle after return request
 		PassportStatusReturned:        {PassportStatusRecycled}, // Standard recycling
 	},
+	"CUSTOMER": {
+		PassportStatusInService: {PassportStatusReturnRequested}, // Allow customers to request returns
+	},
 }
 
 // IsValidRoleTransition checks if a role can perform a specific transition
@@ -300,17 +320,21 @@ func GetAllowedTransitions(currentStatus string) []string {
 
 // PassportEvent represents an immutable lifecycle event for a passport
 type PassportEvent struct {
-	ID         uuid.UUID              `json:"id"`
-	PassportID uuid.UUID              `json:"passport_id"`
-	EventType  string                 `json:"event_type"` // CREATED, STATUS_CHANGED, SCANNED, RECALLED, RECYCLED, END_OF_LIFE
-	Actor      string                 `json:"actor"`      // Who triggered: system, user email, etc.
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
-	CreatedAt  time.Time              `json:"created_at"`
+	ID           uuid.UUID              `json:"id"`
+	PassportID   uuid.UUID              `json:"passport_id"`
+	EventType    string                 `json:"event_type"` // CREATED, STATUS_CHANGED, SCANNED, RECALLED, RECYCLED, END_OF_LIFE
+	Actor        string                 `json:"actor"`      // Who triggered: system, user email, etc.
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	Hash         string                 `json:"hash,omitempty"`          // SHA-256 hash of event data for tamper detection
+	PreviousHash string                 `json:"previous_hash,omitempty"` // Hash of previous event in chain
 }
 
 // PassportEventType constants
 const (
 	PassportEventCreated       = "CREATED"
+	PassportEventImported      = "IMPORTED"    // Genesis event for CSV-uploaded passports
+	PassportEventTransferred   = "TRANSFERRED" // Ownership transfer event
 	PassportEventStatusChanged = "STATUS_CHANGED"
 	PassportEventScanned       = "SCANNED"
 	PassportEventShipped       = "SHIPPED"   // NEW: battery left factory
@@ -378,6 +402,10 @@ type CreateBatchRequest struct {
 	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
 	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"` // CA-certified DVA %
 	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // Path to CA certificate
+
+	// India Compliance Certification Fields
+	BISNumber string `json:"bis_number,omitempty"` // BIS R-Number (e.g., "R-12345678")
+	EPRNumber string `json:"epr_number,omitempty"` // EPR Registration Number
 }
 
 // CreateBatchResponse is the response after creating a batch
@@ -583,5 +611,85 @@ func GetLoyaltyLevel(totalPoints int) string {
 		return "Level 2 - Intermediate"
 	default:
 		return "Level 1 - Starter"
+	}
+}
+
+// ============================================================================
+// EXPORT JOBS (ASYNC BACKGROUND EXPORTS)
+// ============================================================================
+
+// ExportJobStatus represents the processing status of an export job
+type ExportJobStatus string
+
+const (
+	ExportJobStatusPending    ExportJobStatus = "PENDING"
+	ExportJobStatusProcessing ExportJobStatus = "PROCESSING"
+	ExportJobStatusCompleted  ExportJobStatus = "COMPLETED"
+	ExportJobStatusFailed     ExportJobStatus = "FAILED"
+)
+
+// ExportJobType represents the type of export file
+type ExportJobType string
+
+const (
+	ExportJobTypeQRZip    ExportJobType = "QR_ZIP"
+	ExportJobTypeLabelPDF ExportJobType = "LABELS_PDF"
+	ExportJobTypeCSV      ExportJobType = "CSV"
+)
+
+// ExportJob represents an async background export job
+type ExportJob struct {
+	ID            uuid.UUID       `json:"id"`
+	TenantID      uuid.UUID       `json:"tenant_id"`
+	BatchID       uuid.UUID       `json:"batch_id"`
+	JobType       ExportJobType   `json:"job_type"`
+	Status        ExportJobStatus `json:"status"`
+	PassportCount int             `json:"passport_count"`
+
+	// File storage info (Supabase Storage)
+	FilePath      *string `json:"file_path,omitempty"`
+	FileSizeBytes *int64  `json:"file_size_bytes,omitempty"`
+	DownloadURL   *string `json:"download_url,omitempty"`
+
+	// Error tracking
+	ErrorMessage *string `json:"error_message,omitempty"`
+
+	// Audit fields
+	RequestedBy uuid.UUID  `json:"requested_by"`
+	RequestedAt time.Time  `json:"requested_at"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+
+	// Usage tracking
+	DownloadCount    int        `json:"download_count"`
+	LastDownloadedAt *time.Time `json:"last_downloaded_at,omitempty"`
+
+	// Additional info for display (populated by service)
+	BatchName string `json:"batch_name,omitempty"`
+}
+
+// IsExpired checks if the download link has expired
+func (e *ExportJob) IsExpired() bool {
+	if e.ExpiresAt == nil {
+		return false
+	}
+	return time.Now().After(*e.ExpiresAt)
+}
+
+// GetFilename returns a user-friendly filename for the export
+func (e *ExportJob) GetFilename(batchName string) string {
+	// Sanitize batch name to prevent issues with spaces in URLs
+	sanitizedBatchName := strings.ReplaceAll(batchName, " ", "_")
+
+	switch e.JobType {
+	case ExportJobTypeQRZip:
+		return fmt.Sprintf("%s_qrcodes.zip", sanitizedBatchName)
+	case ExportJobTypeLabelPDF:
+		return fmt.Sprintf("%s_labels.pdf", sanitizedBatchName)
+	case ExportJobTypeCSV:
+		return fmt.Sprintf("%s_export.csv", sanitizedBatchName)
+	default:
+		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}
 }

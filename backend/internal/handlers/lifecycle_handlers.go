@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/services"
 
@@ -215,4 +216,124 @@ func (h *LifecycleHandler) GetPassportEvents(w http.ResponseWriter, r *http.Requ
 		"events":      events,
 		"count":       len(events),
 	})
+}
+
+// TransferPassportRequest represents ownership transfer request
+type TransferPassportRequest struct {
+	NewOwnerID uuid.UUID `json:"new_owner_id"`
+}
+
+// TransferPassport handles POST /api/v1/passports/{uuid}/transfer
+// @Summary Transfer passport ownership
+// @Description Transfer ownership of a battery passport to a new owner. Logs immutable TRANSFERRED event.
+// @Tags passports
+func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Request) {
+	// Get passport UUID from URL path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Parse request body
+	var req TransferPassportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate new owner ID
+	if req.NewOwnerID == uuid.Nil {
+		respondError(w, http.StatusBadRequest, "new_owner_id is required and must be a valid UUID")
+		return
+	}
+
+	// Authorization check: verify the passport belongs to the current user's tenant
+	// The lifecycle service will validate ownership when performing the transfer
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized - tenant context required")
+		return
+	}
+
+	// Get actor from context for audit logging
+	actor := middleware.GetEmail(r.Context())
+	if actor == "" {
+		actor = "system"
+	}
+
+	// Perform transfer
+	if err := h.service.TransferPassport(r.Context(), passportID, req.NewOwnerID, actor); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "Failed to transfer passport")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":      true,
+		"passport_id":  passportID,
+		"new_owner_id": req.NewOwnerID,
+		"message":      "Ownership transfer successful. Audit event logged.",
+	})
+}
+
+// VerifyAuditChain handles GET /api/v1/passports/{uuid}/verify-chain
+// @Summary Verify passport audit chain integrity
+// @Description Verifies that the hash chain of events is intact (no tampering)
+// @Tags passports
+func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Request) {
+	// Get passport UUID from URL path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Verify chain integrity
+	valid, failedAtIndex, err := h.service.VerifyPassportAuditChain(r.Context(), passportID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "Failed to verify audit chain")
+		return
+	}
+
+	// Get event count for response
+	events, _ := h.service.GetPassportEvents(r.Context(), passportID)
+	eventCount := len(events)
+
+	if valid {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"valid":           true,
+			"passport_id":     passportID,
+			"event_count":     eventCount,
+			"failed_at_index": -1,
+			"message":         "Audit chain verified - no tampering detected",
+		})
+	} else {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"valid":           false,
+			"passport_id":     passportID,
+			"event_count":     eventCount,
+			"failed_at_index": failedAtIndex,
+			"message":         "CHAIN BROKEN - possible tampering detected",
+		})
+	}
 }

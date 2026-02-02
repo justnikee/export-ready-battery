@@ -106,13 +106,36 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 	metadata["previous_status"] = previousStatus
 	metadata["new_status"] = req.ToStatus
 
+	// Get previous event hash for chain integrity
+	var previousHash string
+	prevEvents, err := s.repo.GetPassportEvents(ctx, passport.UUID)
+	if err == nil && len(prevEvents) > 0 {
+		// Get the most recent event's hash
+		previousHash = prevEvents[len(prevEvents)-1].Hash
+	}
+
 	event := &models.PassportEvent{
-		ID:         uuid.New(),
-		PassportID: passport.UUID,
-		EventType:  eventType,
-		Actor:      req.Actor,
-		Metadata:   metadata,
-		CreatedAt:  now,
+		ID:           uuid.New(),
+		PassportID:   passport.UUID,
+		EventType:    eventType,
+		Actor:        req.Actor,
+		Metadata:     metadata,
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	// Generate tamper-proof hash
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Actor:        event.Actor,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
 	}
 
 	if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
@@ -226,4 +249,148 @@ func (s *LifecycleService) getEventTypeForStatus(status string) string {
 // GetPassportEvents retrieves all events for a passport
 func (s *LifecycleService) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) {
 	return s.repo.GetPassportEvents(ctx, passportID)
+}
+
+// TransferPassport handles ownership transfer with audit logging
+func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID, actor string) error {
+	// Get current passport to log previous owner
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+
+	// Store previous owner for audit
+	var previousOwnerID string
+	if passport.OwnerID != nil {
+		previousOwnerID = passport.OwnerID.String()
+	}
+
+	// Update owner in DB
+	if err := s.repo.UpdatePassportOwnerID(ctx, passportID, newOwnerID); err != nil {
+		return fmt.Errorf("failed to update owner: %w", err)
+	}
+
+	// Log TRANSFERRED event
+	now := time.Now()
+	metadata := map[string]interface{}{
+		"previous_owner_id": previousOwnerID,
+		"new_owner_id":      newOwnerID.String(),
+	}
+
+	// Get previous hash for chain integrity
+	var previousHash string
+	prevEvents, err := s.repo.GetPassportEvents(ctx, passport.UUID)
+	if err == nil && len(prevEvents) > 0 {
+		previousHash = prevEvents[len(prevEvents)-1].Hash
+	}
+
+	event := &models.PassportEvent{
+		ID:           uuid.New(),
+		PassportID:   passport.UUID,
+		EventType:    models.PassportEventTransferred,
+		Actor:        actor,
+		Metadata:     metadata,
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	// Generate hash for tamper detection
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Actor:        event.Actor,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
+	}
+
+	if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
+		return fmt.Errorf("failed to log transfer event: %w", err)
+	}
+
+	return nil
+}
+
+// CreateLifecycleEvents creates genesis events for newly created passports
+func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports []*models.Passport, eventType string, actor string) error {
+	if len(passports) == 0 {
+		return nil
+	}
+
+	events := make([]*models.PassportEvent, len(passports))
+
+	for i, p := range passports {
+		// Genesis events have no previous hash (they are the first in the chain)
+		previousHash := ""
+
+		event := &models.PassportEvent{
+			ID:           uuid.New(),
+			PassportID:   p.UUID,
+			EventType:    eventType,
+			Actor:        actor,
+			Metadata:     map[string]interface{}{"note": "Initial creation"},
+			CreatedAt:    p.CreatedAt,
+			PreviousHash: previousHash,
+		}
+
+		// Generate hash for tamper detection
+		hashData := EventHashData{
+			ID:           event.ID,
+			PassportID:   event.PassportID,
+			EventType:    event.EventType,
+			Actor:        event.Actor,
+			Metadata:     event.Metadata,
+			CreatedAt:    event.CreatedAt,
+			PreviousHash: previousHash,
+		}
+
+		hash, err := GenerateEventHash(hashData)
+		if err != nil {
+			return fmt.Errorf("failed to generate hash for passport %s: %w", p.SerialNumber, err)
+		}
+		event.Hash = hash
+
+		events[i] = event
+	}
+
+	return s.repo.CreatePassportEventBatch(ctx, events)
+}
+
+// VerifyPassportAuditChain verifies the integrity of a passport's event chain
+// Returns: (isValid, failedAtIndex, error)
+// failedAtIndex is -1 if valid, or the index of the first broken link
+func (s *LifecycleService) VerifyPassportAuditChain(ctx context.Context, passportID uuid.UUID) (bool, int, error) {
+	events, err := s.repo.GetPassportEvents(ctx, passportID)
+	if err != nil {
+		return false, -1, err
+	}
+
+	if len(events) == 0 {
+		// No events = valid (nothing to verify)
+		return true, -1, nil
+	}
+
+	// Convert to ChainEvent format for verification
+	chainEvents := make([]ChainEvent, len(events))
+	for i, e := range events {
+		chainEvents[i] = ChainEvent{
+			Data: EventHashData{
+				ID:           e.ID,
+				PassportID:   e.PassportID,
+				EventType:    e.EventType,
+				Actor:        e.Actor,
+				Metadata:     e.Metadata,
+				CreatedAt:    e.CreatedAt,
+				PreviousHash: e.PreviousHash,
+			},
+			Hash: e.Hash,
+		}
+	}
+
+	valid, failedIdx := VerifyEventChain(chainEvents)
+	return valid, failedIdx, nil
 }

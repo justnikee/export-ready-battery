@@ -53,13 +53,14 @@ func main() {
 	repo := repository.New(database)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
 	apiKeyService := services.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyAuth(repo, apiKeyService)
+	authRateLimiter := middleware.NewAuthRateLimiter()
 
 	// Initialize lifecycle service and handler
 	lifecycleService := services.NewLifecycleService(repo)
@@ -67,6 +68,30 @@ func main() {
 
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
+
+	// Initialize export job services and handler
+	var exportJobHandler *handlers.ExportJobHandler
+	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
+		slogger := logger.Logger
+		storageService := services.NewStorageService(slogger)
+		exportEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
+		qrService := services.NewQRService(cfg.BaseURL)
+		pdfService := services.NewPDFService(cfg.BaseURL)
+		csvService := services.NewCSVService()
+		exportJobService := services.NewExportJobService(
+			database.Pool,
+			storageService,
+			qrService,
+			pdfService,
+			csvService,
+			exportEmailService,
+			slogger,
+		)
+		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
+		log.Println("✅ Export job handler initialized")
+	} else {
+		log.Println("⚠️ Export job handler not initialized (missing SUPABASE config)")
+	}
 
 	// Initialize magic link handler (with reward service for scan-to-earn and email service)
 	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, magicLinkEmailService, cfg.JWTSecret, cfg.BaseURL)
@@ -88,14 +113,60 @@ func main() {
 	})
 
 	// ============================================
-	// AUTH ROUTES (Public)
+	// API DOCUMENTATION (Public)
 	// ============================================
-	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
-	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
-	mux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
-	mux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	// Serve OpenAPI specification
+	mux.HandleFunc("GET /api/v1/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./api/openapi.yaml")
+	})
+
+	// Swagger UI (CDN-based)
+	mux.HandleFunc("GET /docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExportReady Battery API - Documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        .swagger-ui .topbar { display: none; }
+        .swagger-ui .info { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = () => {
+            SwaggerUIBundle({
+                url: '/api/v1/openapi.yaml',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                docExpansion: 'list',
+                defaultModelsExpandDepth: 1,
+                syntaxHighlight: { theme: 'monokai' }
+            });
+        };
+    </script>
+</body>
+</html>`))
+	})
+
+	// ============================================
+	// AUTH ROUTES (Public but rate-limited)
+	// ============================================
+	authMux := http.NewServeMux()
+	authMux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	authMux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	authMux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	authMux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
+	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
+	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	// Apply rate limiting to all auth routes
+	mux.Handle("/api/v1/auth/", authRateLimiter.Limit(authMux))
 
 	// ============================================
 	// AUTH ROUTES (Protected)
@@ -131,6 +202,8 @@ func main() {
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedTransitions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
+	mux.Handle("POST /api/v1/passports/{uuid}/transfer", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransferPassport)))
+	mux.Handle("GET /api/v1/passports/{uuid}/verify-chain", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.VerifyAuditChain)))
 
 	// ============================================
 	// TEMPLATE ROUTES (Protected)
@@ -139,6 +212,15 @@ func main() {
 	mux.Handle("GET /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.ListTemplates)))
 	mux.Handle("GET /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetTemplate)))
 	mux.Handle("DELETE /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteTemplate)))
+
+	// ============================================
+	// TEAM MANAGEMENT ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/team", authMiddleware.Protect(http.HandlerFunc(h.ListTeamMembers)))
+	mux.Handle("POST /api/v1/team/invite", authMiddleware.Protect(http.HandlerFunc(h.InviteUser)))
+	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(http.HandlerFunc(h.RemoveTeamMember)))
+	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(http.HandlerFunc(h.UpdateTeamMemberRole)))
+	mux.HandleFunc("POST /api/v1/team/accept", h.AcceptInvite) // Public for invite links
 
 	// ============================================
 	// UTILITY ROUTES (Public)
@@ -165,6 +247,12 @@ func main() {
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
 	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
 	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
+
+	// ============================================
+	// WEBHOOK ROUTES (Public - for payment providers)
+	// ============================================
+	webhookHandler := handlers.NewWebhookHandler(h.RazorpayService(), repo)
+	mux.HandleFunc("POST /api/v1/webhooks/razorpay", webhookHandler.RazorpayWebhook)
 
 	// ============================================
 	// DOCUMENT UPLOAD ROUTES (Protected)
@@ -227,6 +315,17 @@ func main() {
 	mux.HandleFunc("GET /api/v1/rewards/history", rewardHandler.GetHistory)
 
 	// ============================================
+	// EXPORT JOBS ROUTES (Protected - Async Exports)
+	// ============================================
+	if exportJobHandler != nil {
+		mux.Handle("POST /api/v1/export-jobs", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.CreateExportJob)))
+		mux.Handle("GET /api/v1/export-jobs", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.ListExportJobs)))
+		mux.Handle("GET /api/v1/export-jobs/{id}", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.GetExportJob)))
+		mux.Handle("GET /api/v1/export-jobs/{id}/download", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.DownloadExportJob)))
+		mux.Handle("POST /api/v1/export-jobs/{id}/refresh", authMiddleware.Protect(http.HandlerFunc(exportJobHandler.RefreshDownloadURL)))
+	}
+
+	// ============================================
 	// EXTERNAL API (API Key Authenticated - ERP Integration)
 	// ============================================
 	mux.Handle("GET /api/v1/external/passports/{uuid}", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalGetPassport)))
@@ -237,7 +336,7 @@ func main() {
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      corsMiddleware(loggingMiddleware(mux)),
+		Handler:      corsMiddleware(cfg.CORSOrigins)(loggingMiddleware(mux)),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 60 * time.Second, // Longer timeout for ZIP downloads
 		IdleTimeout:  60 * time.Second,
@@ -280,17 +379,33 @@ func loggingMiddleware(next http.Handler) http.Handler {
 }
 
 // corsMiddleware adds CORS headers for Next.js frontend
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+// SECURITY: Uses whitelist instead of wildcard
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	// Build origin lookup map for O(1) checks
+	originMap := make(map[string]bool)
+	for _, o := range allowedOrigins {
+		originMap[o] = true
+	}
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
 
-		next.ServeHTTP(w, r)
-	})
+			// Check if origin is allowed
+			if origin != "" && originMap[origin] {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

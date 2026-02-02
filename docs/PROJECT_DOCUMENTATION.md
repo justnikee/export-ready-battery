@@ -99,7 +99,28 @@ GET  /api/v1/auth/me              - Get current user (Protected)
 
 ---
 
-### 2.2 Batch Management System
+### 2.2 Team Management System
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Invite Members | ✅ Complete | Email-based invitations |
+| Role Management | ✅ Complete | OWNER, ADMIN, MEMBER roles |
+| Seat Limits | ✅ Complete | Enforced by billing plan |
+| Invitation Flow | ✅ Complete | Token-based acceptance, auto-linking |
+| Member Removal | ✅ Complete | Revoke access instantly |
+
+**API Endpoints:**
+```
+GET    /api/v1/team              - List team members
+POST   /api/v1/team/invite       - Send invitation
+POST   /api/v1/team/accept       - Accept invitation (Token)
+DELETE /api/v1/team/{id}         - Remove member
+PUT    /api/v1/team/{id}/role    - Update role
+```
+
+---
+
+### 2.3 Batch Management System
 
 | Feature | Status | Details |
 |---------|--------|---------|
@@ -180,7 +201,9 @@ BAT-2026-002,2026-01-15
 | Pricing Page | `/pricing` | ✅ Complete |
 | Login | `/login` | ✅ Complete |
 | Register | `/register` | ✅ Complete |
+| Accept Invite | `/accept-invite` | ✅ Complete |
 | Dashboard | `/dashboard` | ✅ Complete |
+| Team Management | `/team` | ✅ Complete |
 | Batches List | `/batches` | ✅ Complete |
 | Batch Details | `/batches/[id]` | ✅ Complete |
 | Public Passport | `/p/[uuid]` | ✅ Complete |
@@ -266,6 +289,22 @@ CREATE TABLE passports (
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(batch_id, serial_number)
+);
+```
+
+#### `team_members` Table
+```sql
+CREATE TABLE team_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'MEMBER',
+    status VARCHAR(50) DEFAULT 'PENDING',
+    invite_token VARCHAR(255),
+    invite_expires_at TIMESTAMP WITH TIME ZONE,
+    user_id UUID REFERENCES tenants(id), -- Linked account
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    accepted_at TIMESTAMP WITH TIME ZONE
 );
 ```
 

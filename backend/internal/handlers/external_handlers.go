@@ -151,14 +151,10 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 	}
 	tenantID, _ := uuid.Parse(tenantIDStr)
 
-	// Verify batch ownership
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch ownership (enforced at DB level)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
-		return
-	}
-	if batch.TenantID != tenantID {
-		respondError(w, http.StatusForbidden, "Access denied")
 		return
 	}
 
@@ -269,14 +265,10 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 	}
 	tenantID, _ := uuid.Parse(tenantIDStr)
 
-	// Verify batch ownership
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch ownership (enforced at DB level)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
-		return
-	}
-	if batch.TenantID != tenantID {
-		respondError(w, http.StatusForbidden, "Access denied")
 		return
 	}
 

@@ -103,14 +103,16 @@ export default function FeaturesPage() {
             </section>
 
             {/* Features Grid Overview */}
-            <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { icon: <FileText className="w-5 h-5 text-indigo-400" />, label: 'Batch Management', status: '✅' },
                     { icon: <QrCode className="w-5 h-5 text-emerald-400" />, label: 'QR Generation', status: '✅' },
                     { icon: <Upload className="w-5 h-5 text-blue-400" />, label: 'CSV Upload', status: '✅' },
                     { icon: <Calculator className="w-5 h-5 text-amber-400" />, label: 'DVA Calculator', status: '✅' },
                     { icon: <Layers className="w-5 h-5 text-purple-400" />, label: 'Templates', status: '✅' },
-                    { icon: <BarChart3 className="w-5 h-5 text-cyan-400" />, label: 'Analytics', status: '🔄' },
+                    { icon: <Zap className="w-5 h-5 text-orange-400" />, label: 'Lifecycle Tracking', status: '✅' },
+                    { icon: <Mail className="w-5 h-5 text-teal-400" />, label: 'Team Management', status: '✅' },
+                    { icon: <BarChart3 className="w-5 h-5 text-cyan-400" />, label: 'Scan-to-Earn', status: '✅' },
                 ].map((feature) => (
                     <div
                         key={feature.label}
@@ -382,6 +384,87 @@ GET /api/v1/templates
                         </div>
                     ))}
                 </div>
+            </FeatureCard>
+
+            {/* ============= PASSPORT LIFECYCLE ============= */}
+            <FeatureCard
+                id="lifecycle"
+                icon={<Zap className="w-5 h-5 text-orange-400" />}
+                title="Passport Lifecycle Tracking"
+                description="Complete lifecycle management with tamper-proof audit trail."
+                status="complete"
+            >
+                <ul className="space-y-2 mb-6">
+                    <FeatureItem>State machine: Active → Shipped → Installed → In Use → End of Life</FeatureItem>
+                    <FeatureItem>Magic Link transitions for supply chain partners</FeatureItem>
+                    <FeatureItem>SHA-256 hash chain for tamper-proof event history</FeatureItem>
+                    <FeatureItem>Bulk transitions for batch operations</FeatureItem>
+                    <FeatureItem>Automatic event logging with actor attribution</FeatureItem>
+                </ul>
+
+                <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">Lifecycle States</h4>
+                <div className="flex flex-wrap gap-2">
+                    {['active', 'shipped', 'installed', 'in_use', 'returned', 'recalled', 'end_of_life'].map((state) => (
+                        <span key={state} className="px-3 py-1 rounded-full bg-white/10 text-white text-sm">
+                            {state.replace('_', ' ')}
+                        </span>
+                    ))}
+                </div>
+            </FeatureCard>
+
+            {/* ============= TEAM MANAGEMENT ============= */}
+            <FeatureCard
+                id="team-management"
+                icon={<Mail className="w-5 h-5 text-teal-400" />}
+                title="Team Management"
+                description="Invite team members and manage role-based access control."
+                status="complete"
+            >
+                <ul className="space-y-2 mb-6">
+                    <FeatureItem>Email-based team invitations</FeatureItem>
+                    <FeatureItem>Role-based access: Admin, Operator, Viewer</FeatureItem>
+                    <FeatureItem>Manage team member roles and permissions</FeatureItem>
+                    <FeatureItem>Pending invite tracking</FeatureItem>
+                </ul>
+
+                <div className="grid sm:grid-cols-3 gap-4">
+                    {[
+                        { role: 'Admin', desc: 'Full access to all features' },
+                        { role: 'Operator', desc: 'Create batches, manage passports' },
+                        { role: 'Viewer', desc: 'Read-only dashboard access' },
+                    ].map((r) => (
+                        <div key={r.role} className="p-4 rounded-lg bg-white/5 border border-white/10">
+                            <div className="font-bold text-white">{r.role}</div>
+                            <div className="text-sm text-gray-400">{r.desc}</div>
+                        </div>
+                    ))}
+                </div>
+            </FeatureCard>
+
+            {/* ============= SCAN-TO-EARN REWARDS ============= */}
+            <FeatureCard
+                id="rewards"
+                icon={<BarChart3 className="w-5 h-5 text-pink-400" />}
+                title="Scan-to-Earn Rewards"
+                description="Gamification system to incentivize passport scanning and verification."
+                status="complete"
+            >
+                <ul className="space-y-2 mb-6">
+                    <FeatureItem>Earn points for scanning battery passports</FeatureItem>
+                    <FeatureItem>Consumer wallet via phone number linking</FeatureItem>
+                    <FeatureItem>Leaderboard rankings and history</FeatureItem>
+                    <FeatureItem>Lifecycle action bonuses (recycle, return)</FeatureItem>
+                </ul>
+
+                <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">Point System</h4>
+                <CodeBlock
+                    code={`// Points earned per action
+Scan passport:     +10 points
+First scan bonus:  +50 points
+Recycle action:    +100 points
+Return action:     +75 points`}
+                    language="text"
+                />
             </FeatureCard>
         </div>
     );

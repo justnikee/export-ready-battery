@@ -68,10 +68,10 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
     }
 
     return (
-        <Card className="bg-slate-900/80 border-slate-800 text-slate-100 h-full flex flex-col">
+        <Card className="bg-white border-slate-200 text-slate-100 h-full flex flex-col">
             {/* Header - Matches RecentBatches */}
-            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-800">
-                <CardTitle className="text-sm font-semibold text-white uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-200">
+                <CardTitle className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
                     Audit Log
                 </CardTitle>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -96,7 +96,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                             return (
                                 <div
                                     key={activity.id}
-                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-slate-800/30 transition-colors ${idx !== activities.length - 1 ? 'border-b border-slate-800/30' : ''
+                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-slate-800/30 transition-colors ${idx !== activities.length - 1 ? 'border-b border-slate-200/30' : ''
                                         }`}
                                 >
                                     {/* Icon - Compact, color-coded */}

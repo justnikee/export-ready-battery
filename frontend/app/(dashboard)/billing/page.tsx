@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { PricingCard } from "@/components/billing/pricing-card"
 import { LiveBalanceBanner } from "@/components/billing/live-balance-banner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { HelpCircle, ArrowUpRight, ArrowDownRight, Receipt, Loader2 } from "lucide-react"
+import { HelpCircle, ArrowUpRight, ArrowDownRight, Receipt, Loader2, CreditCard } from "lucide-react"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { formatDistanceToNow } from "date-fns"
 
@@ -217,7 +217,7 @@ export default function BillingPage() {
                     contact: ""
                 },
                 theme: {
-                    color: "#10B981" // Emerald green
+                    color: "#0f172a" // Slate-900
                 },
                 modal: {
                     ondismiss: function () {
@@ -239,29 +239,32 @@ export default function BillingPage() {
 
     const getTransactionIcon = (quotaChange: number) => {
         if (quotaChange > 0) {
-            return <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+            return <ArrowUpRight className="h-4 w-4 text-emerald-600" />
         }
-        return <ArrowDownRight className="h-4 w-4 text-orange-400" />
+        return <ArrowDownRight className="h-4 w-4 text-amber-600" />
     }
 
     const getTransactionColor = (quotaChange: number) => {
         if (quotaChange > 0) {
-            return 'text-emerald-400'
+            return 'text-emerald-600'
         }
-        return 'text-orange-400'
+        return 'text-amber-600'
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8 font-sans">
-            <div className="max-w-7xl mx-auto space-y-10">
+        <div className="min-h-screen bg-slate-50 p-6">
+            <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
-                <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 p-8 md:p-12">
-                    <div className="absolute inset-0 bg-linear-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
-                    <div className="relative z-10 max-w-2xl">
-                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">Production Capacity</h1>
-                        <p className="text-slate-400 text-lg">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-amber-50 border border-amber-100">
+                                <CreditCard className="h-5 w-5 text-amber-600" />
+                            </div>
+                            Production Capacity
+                        </h1>
+                        <p className="text-sm text-slate-500 mt-1">
                             Purchase licenses to activate batches and generate compliant labels.
-                            Scale your manufacturing with our flexible quota system.
                         </p>
                     </div>
                 </div>
@@ -270,32 +273,32 @@ export default function BillingPage() {
                 <LiveBalanceBanner />
 
                 {/* Transaction History */}
-                <Card className="bg-slate-900/50 border-slate-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <Card className="bg-white border-slate-200">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-slate-100">
+                        <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider flex items-center gap-2">
                             <Receipt className="h-4 w-4" />
                             Transaction History
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-4">
                         {loadingTransactions ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                             </div>
                         ) : transactions.length === 0 ? (
                             <div className="text-center py-8 text-slate-500 text-sm">
                                 No transactions yet. Purchase a license to get started.
                             </div>
                         ) : (
-                            <div className="divide-y divide-slate-800">
+                            <div className="divide-y divide-slate-100">
                                 {transactions.slice(0, 10).map((tx) => (
                                     <div key={tx.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center">
+                                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
                                                 {getTransactionIcon(tx.quota_change)}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-200">{tx.description}</p>
+                                                <p className="text-sm font-medium text-slate-900">{tx.description}</p>
                                                 <p className="text-xs text-slate-500">
                                                     {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                                                 </p>
@@ -315,7 +318,7 @@ export default function BillingPage() {
 
 
                 {/* Pricing Grid */}
-                <div className="grid lg:grid-cols-3 gap-8">
+                <div className="grid lg:grid-cols-3 gap-6">
                     {packages.map((pkg) => (
                         <PricingCard
                             key={pkg.id}
@@ -328,19 +331,19 @@ export default function BillingPage() {
                 </div>
 
                 {/* FAQ Section */}
-                <div className="pt-10 border-t border-slate-800">
+                <div className="pt-8 border-t border-slate-200">
                     <div className="max-w-3xl mx-auto">
-                        <div className="text-center mb-10">
-                            <h2 className="text-2xl font-bold text-white flex items-center justify-center gap-2">
-                                <HelpCircle className="h-6 w-6 text-slate-500" />
+                        <div className="text-center mb-8">
+                            <h2 className="text-xl font-semibold text-slate-900 flex items-center justify-center gap-2">
+                                <HelpCircle className="h-5 w-5 text-slate-500" />
                                 Frequently Asked Questions
                             </h2>
                         </div>
                         <Accordion className="w-full">
                             {faqs.map((faq, i) => (
                                 <AccordionItem key={i} value={`item-${i}`}>
-                                    <AccordionTrigger className="text-slate-200">{faq.question}</AccordionTrigger>
-                                    <AccordionContent>
+                                    <AccordionTrigger className="text-slate-900">{faq.question}</AccordionTrigger>
+                                    <AccordionContent className="text-slate-600">
                                         {faq.answer}
                                     </AccordionContent>
                                 </AccordionItem>
@@ -352,4 +355,3 @@ export default function BillingPage() {
         </div>
     )
 }
-

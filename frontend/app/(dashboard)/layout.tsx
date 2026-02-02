@@ -1,9 +1,20 @@
 "use client"
 
 import { useAuth } from "@/context/auth-context"
-import { TopNav } from "@/components/dashboard/TopNav"
-import { useEffect } from "react"
+import { DashboardSidebar, useSidebarState } from "@/components/dashboard/DashboardSidebar"
+import { DashboardTopBar } from "@/components/dashboard/DashboardTopBar"
+import { LoadingBar } from "@/components/ui/loading-bar"
+import { useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
+import { clsx } from "clsx"
+
+function LoadingBarWrapper() {
+    return (
+        <Suspense fallback={null}>
+            <LoadingBar />
+        </Suspense>
+    )
+}
 
 export default function DashboardLayout({
     children,
@@ -12,17 +23,12 @@ export default function DashboardLayout({
 }) {
     const { user, loading } = useAuth()
     const router = useRouter()
+    const sidebar = useSidebarState()
 
-    // Onboarding check - uses DB state (user.onboarding_completed)
-    // Auth redirect is handled by middleware.ts
+    // Onboarding check - uses DB state only (no localStorage)
     useEffect(() => {
         if (!loading && user) {
-            // Use DB onboarding state, fallback to localStorage for backward compatibility
-            const onboardingFromDB = user.onboarding_completed
-            const onboardingFromLocal = localStorage.getItem('onboarding_completed')
-            const profileIncomplete = !user.address || !user.support_email
-
-            if (profileIncomplete && !onboardingFromDB && !onboardingFromLocal) {
+            if (!user.onboarding_completed) {
                 router.push("/onboarding")
             }
         }
@@ -30,8 +36,8 @@ export default function DashboardLayout({
 
     if (loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
             </div>
         )
     }
@@ -41,11 +47,33 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-            <TopNav />
-            <main className="flex-1 w-full">
-                {children}
-            </main>
+        <div className="min-h-screen bg-slate-50 text-slate-900">
+            {/* Loading Bar */}
+            <LoadingBarWrapper />
+
+            {/* Sidebar */}
+            <DashboardSidebar
+                isOpen={sidebar.isOpen}
+                onClose={() => sidebar.setIsOpen(false)}
+                isCollapsed={sidebar.isCollapsed}
+                onToggleCollapse={sidebar.toggleCollapse}
+            />
+
+            {/* Main Content Area */}
+            <div className={clsx(
+                "min-h-screen flex flex-col transition-all duration-300",
+                sidebar.isCollapsed ? "md:ml-16" : "md:ml-60"
+            )}>
+                {/* Top Bar */}
+                <DashboardTopBar
+                    onMenuClick={sidebar.toggleOpen}
+                />
+
+                {/* Page Content */}
+                <main className="flex-1 w-full">
+                    {children}
+                </main>
+            </div>
         </div>
     )
 }

@@ -68,6 +68,7 @@ api.interceptors.response.use(
       // If refresh failed or no refresh token, logout
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
+      document.cookie = 'auth_token=; path=/; max-age=0'; // Clear cookie to prevent middleware redirect loop
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }

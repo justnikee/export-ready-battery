@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 
 	"github.com/google/uuid"
@@ -16,6 +17,14 @@ import (
 func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -24,8 +33,8 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify batch exists
-	_, err = h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch exists and belongs to tenant
+	_, err = h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -48,7 +57,7 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received file: %s (%d bytes)", header.Filename, header.Size)
 
 	// Parse CSV
-	parseResult, err := h.csvService.ParseCSV(file, batchID)
+	parseResult, err := h.csvService.ParseCSV(file, batchID, header.Filename)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, fmt.Sprintf("CSV parsing error: %v", err))
 		return
@@ -96,6 +105,16 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create genesis events for audit trail (IMPORTED = from CSV)
+	actor := middleware.GetEmail(r.Context())
+	if actor == "" {
+		actor = "system"
+	}
+	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), parseResult.Passports, models.PassportEventImported, actor); err != nil {
+		log.Printf("Warning: Failed to create genesis events: %v", err)
+		// Non-fatal: passports created but audit events failed
+	}
+
 	processingTime := time.Since(startTime)
 
 	response := models.UploadCSVResponse{
@@ -120,6 +139,14 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 // ValidateCSV handles POST /api/v1/batches/{id}/validate
 // Validates CSV without inserting records - allows user to preview and fix issues
 func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -128,8 +155,8 @@ func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify batch exists
-	_, err = h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch exists and belongs to tenant
+	_, err = h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -152,7 +179,7 @@ func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Validating file: %s (%d bytes)", header.Filename, header.Size)
 
 	// Parse CSV (validate only, don't persist)
-	parseResult, err := h.csvService.ParseCSV(file, batchID)
+	parseResult, err := h.csvService.ParseCSV(file, batchID, header.Filename)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, fmt.Sprintf("CSV parsing error: %v", err))
 		return
@@ -224,6 +251,14 @@ BAT-2026-005,2026-01-17,,,,`
 // AutoGeneratePassports handles POST /api/v1/batches/{id}/auto-generate
 // Generates sequential passport serial numbers without CSV upload
 func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	// Parse batch ID
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
@@ -232,8 +267,8 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Verify batch exists
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch exists and belongs to tenant
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
@@ -295,6 +330,16 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		log.Printf("Failed to insert auto-generated passports: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
 		return
+	}
+
+	// Create genesis events for audit trail (CREATED = auto-generated)
+	actor := middleware.GetEmail(r.Context())
+	if actor == "" {
+		actor = "system"
+	}
+	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), passports, models.PassportEventCreated, actor); err != nil {
+		log.Printf("Warning: Failed to create genesis events: %v", err)
+		// Non-fatal: passports created but audit events failed
 	}
 
 	firstSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber)

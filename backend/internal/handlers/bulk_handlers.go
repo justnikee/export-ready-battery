@@ -82,10 +82,10 @@ func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check each passport's batch belongs to tenant
+	// Check each passport's batch belongs to tenant (enforced by GetBatch with tenantID)
 	for _, p := range passports {
-		batch, err := h.repo.GetBatch(r.Context(), p.BatchID)
-		if err != nil || batch.TenantID != tenantID {
+		_, err := h.repo.GetBatch(r.Context(), p.BatchID, tenantID)
+		if err != nil {
 			respondError(w, http.StatusForbidden, "Access denied to one or more passports")
 			return
 		}
@@ -155,8 +155,8 @@ func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range passports {
-		batch, err := h.repo.GetBatch(r.Context(), p.BatchID)
-		if err != nil || batch.TenantID != tenantID {
+		_, err := h.repo.GetBatch(r.Context(), p.BatchID, tenantID)
+		if err != nil {
 			respondError(w, http.StatusForbidden, "Access denied to one or more passports")
 			return
 		}
@@ -195,15 +195,10 @@ func (h *Handler) DeleteBatch(w http.ResponseWriter, r *http.Request) {
 	}
 	tenantID, _ := uuid.Parse(tenantIDStr)
 
-	// Verify batch belongs to tenant
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	// Verify batch belongs to tenant (enforced at DB level)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
-		return
-	}
-
-	if batch.TenantID != tenantID {
-		respondError(w, http.StatusForbidden, "Access denied")
 		return
 	}
 

@@ -162,7 +162,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get batch to verify ownership and status
-	batch, err := h.repo.GetBatch(r.Context(), batchID)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return

@@ -13,7 +13,7 @@ interface ScanStatsCardProps {
 
 export function ScanStatsCard({ icon, label, value, iconColor, bgColor }: ScanStatsCardProps) {
     return (
-        <Card className="bg-zinc-900/50 border-zinc-800">
+        <Card className="bg-white/50 border-slate-200">
             <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-lg ${bgColor}`}>
