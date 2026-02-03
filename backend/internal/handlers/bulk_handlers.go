@@ -28,6 +28,9 @@ type BulkDeleteRequest struct {
 
 // BulkUpdateStatus handles POST /api/v1/passports/bulk/status
 func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	respondError(w, http.StatusForbidden, "Bulk status updates are disabled. Use /passports/bulk/transition to preserve audit events.")
+	return
+
 	var req BulkUpdateStatusRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -110,6 +113,9 @@ func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
 
 // BulkDeletePassports handles POST /api/v1/passports/bulk/delete
 func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
+	respondError(w, http.StatusForbidden, "Passport deletion is not permitted. Passports are immutable for compliance.")
+	return
+
 	var req BulkDeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -180,6 +186,9 @@ func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
 
 // DeleteBatch handles DELETE /api/v1/batches/{id}
 func (h *Handler) DeleteBatch(w http.ResponseWriter, r *http.Request) {
+	respondError(w, http.StatusForbidden, "Batch deletion is not permitted. Use archive/clone to correct data.")
+	return
+
 	batchIDStr := r.PathValue("id")
 	batchID, err := uuid.Parse(batchIDStr)
 	if err != nil {

@@ -150,6 +150,10 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', onUploadComplete }
             toast.error("Quantity must be between 1 and 10,000")
             return
         }
+        if (!manufactureDate) {
+            toast.error("Manufacture date is required")
+            return
+        }
 
         setIsGenerating(true)
         try {

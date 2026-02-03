@@ -231,7 +231,7 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 		BatchID:           batchID,
 		SerialNumber:      serialNumber,
 		ManufactureDate:   manufactureDate,
-		Status:            models.PassportStatusActive,
+		Status:            models.PassportStatusCreated,
 		CreatedAt:         time.Now(),
 		CSVSourceFilename: filename,
 		CSVRowIndex:       rowNum,

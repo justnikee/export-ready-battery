@@ -240,12 +240,22 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	metadata["authenticated_via"] = "magic_link"
 
 	// Perform the transition using lifecycle service
+	currentOwnerIdentifier := ""
+	if req.ToStatus == models.PassportStatusInService || req.ToStatus == models.PassportStatusShipped {
+		currentOwnerIdentifier = claims.Email
+	}
+
 	result, err := h.lifecycleService.TransitionPassport(r.Context(), services.TransitionRequest{
-		PassportID: passportID,
-		ToStatus:   req.ToStatus,
-		Actor:      claims.Email, // Use email from magic link token
-		ActorRole:  claims.Role,  // CRITICAL: Pass role for RBAC enforcement
-		Metadata:   metadata,
+		PassportID:              passportID,
+		ToStatus:                req.ToStatus,
+		Actor:                   claims.Email, // Use email from magic link token
+		ActorRole:               claims.Role,  // CRITICAL: Pass role for RBAC enforcement
+		ActorType:               "PARTNER",
+		ActorID:                 claims.Email,
+		Source:                  "MAGIC_LINK",
+		IPAddress:               r.RemoteAddr,
+		CurrentOwnerIdentifier:  currentOwnerIdentifier,
+		Metadata:                metadata,
 	})
 
 	if err != nil {
@@ -253,12 +263,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Update current_owner_email if transitioning to certain states
-	if req.ToStatus == models.PassportStatusInService || req.ToStatus == models.PassportStatusShipped {
-		if err := h.repo.UpdatePassportOwner(r.Context(), passportID, claims.Email); err != nil {
-			log.Printf("Warning: Failed to update passport owner: %v", err)
-		}
-	}
+	// Owner updates are handled inside lifecycle service when CurrentOwnerIdentifier is provided
 
 	// Mark token as used (optional - for single-use tokens)
 	if err := h.repo.MarkMagicTokenUsed(r.Context(), auth.HashToken(tokenString)); err != nil {

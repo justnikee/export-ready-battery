@@ -10,6 +10,7 @@ export type PassportStatus =
     | 'CREATED'
     | 'SHIPPED'
     | 'IN_SERVICE'
+    | 'RETURN_REQUESTED'
     | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
@@ -19,6 +20,7 @@ export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
     CREATED: 'Created',
     SHIPPED: 'Shipped',
     IN_SERVICE: 'In Service',
+    RETURN_REQUESTED: 'Return Requested',
     RETURNED: 'Returned',
     RECALLED: 'Recalled',
     RECYCLED: 'Recycled',
@@ -28,9 +30,10 @@ export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
 // Valid transitions from each status
 export const VALID_PASSPORT_TRANSITIONS: Record<PassportStatus, PassportStatus[]> = {
     CREATED: ['SHIPPED'],
-    SHIPPED: ['IN_SERVICE', 'RETURNED', 'RECALLED'],
-    IN_SERVICE: ['RETURNED', 'RECALLED'],
-    RETURNED: ['RECYCLED', 'IN_SERVICE'], // Can return to service after repair
+    SHIPPED: ['IN_SERVICE', 'RETURN_REQUESTED', 'RECALLED'],
+    IN_SERVICE: ['RETURN_REQUESTED', 'RECALLED', 'RECYCLED'],
+    RETURN_REQUESTED: ['RETURNED', 'IN_SERVICE'],
+    RETURNED: ['RECYCLED', 'IN_SERVICE', 'SHIPPED'], // Can refurbish/resell
     RECALLED: ['RECYCLED'],
     RECYCLED: ['END_OF_LIFE'],
     END_OF_LIFE: [],
@@ -43,17 +46,32 @@ export interface Passport {
     manufacture_date: string;
     status: PassportStatus;
     created_at: string;
+    batch_snapshot?: Record<string, unknown>;
 
     // Lifecycle tracking
     shipped_at?: string;
     installed_at?: string;
     returned_at?: string;
+    recycled_at?: string;
 
     // Dynamic compliance field (EU requirement)
-    state_of_health: number; // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+    state_of_health?: number | null; // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+    last_soh_update_timestamp?: string | null;
 
     // Ownership tracking
     owner_id?: string;
+    current_owner_identifier?: string;
+    current_owner_email?: string;
+    ownership_history?: Record<string, unknown>[];
+
+    // EU compliance events
+    repair_events?: Record<string, unknown>[];
+    replacement_events?: Record<string, unknown>[];
+
+    // India recycling fields
+    recycling_status?: string;
+    recycler_epr_id?: string;
+    recycling_date?: string;
 }
 
 export type PassportEventType =
@@ -65,7 +83,10 @@ export type PassportEventType =
     | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
-    | 'END_OF_LIFE';
+    | 'END_OF_LIFE'
+    | 'SOH_UPDATED'
+    | 'REPAIR_LOGGED'
+    | 'REPLACEMENT_LOGGED';
 
 export interface PassportEvent {
     id: string;
@@ -91,6 +112,7 @@ export interface MaterialComposition {
     nickel_pct?: number;
     lead_pct?: number;
     manganese_pct?: number;
+    graphite_pct?: number;
 }
 
 // HazardousSubstances for REACH/RoHS compliance
@@ -117,9 +139,9 @@ export interface BatchSpec {
     manufacturer_address?: string;
     eu_representative?: string;
     eu_representative_email?: string;
-    expected_lifetime_cycles?: number; // e.g., 1000
-    warranty_months?: number;          // e.g., 24
-    recycled_content_pct?: number;     // stored as literal: 15.5 = 15.5%
+    expected_lifetime_cycles?: number | null; // e.g., 1000
+    warranty_months?: number | null;          // e.g., 24
+    recycled_content_pct?: number | null;     // stored as literal: 15.5 = 15.5%
     hazardous_substances?: HazardousSubstances;
 
     // India PLI Compliance Fields - Financial data for DVA calculation
@@ -131,9 +153,13 @@ export interface Batch {
     id: string;
     tenant_id: string;
     batch_name: string;
+    model_name?: string;
     specs: BatchSpec;
     created_at: string;
     status: BatchStatus;
+
+    manufacturing_start_date?: string;
+    manufacturing_end_date?: string;
 
     // Dual-Mode Compliance Fields
     market_region: MarketRegion;
@@ -149,6 +175,8 @@ export interface Batch {
 
     // India Compliance Fields
     hsn_code?: string; // e.g., "8507.60"
+    bis_number?: string;
+    epr_number?: string;
 }
 
 // ============================================================================

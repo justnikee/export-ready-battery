@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -28,6 +29,12 @@ type TransitionRequest struct {
 	ToStatus   string                 `json:"to_status"`
 	Actor      string                 `json:"actor"`                // Who is making this change: user email, system, API key name
 	ActorRole  string                 `json:"actor_role,omitempty"` // Role: MANUFACTURER, LOGISTICS, TECHNICIAN, RECYCLER
+	ActorType  string                 `json:"actor_type,omitempty"` // SYSTEM | USER | PARTNER
+	ActorID    string                 `json:"actor_identifier,omitempty"`
+	Source     string                 `json:"source,omitempty"` // INTERNAL | MAGIC_LINK | API
+	IPAddress  string                 `json:"ip_address,omitempty"`
+	// Optional owner identifier (email or external ID)
+	CurrentOwnerIdentifier string                 `json:"current_owner_identifier,omitempty"`
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`   // Additional context: "carrier": "FedEx", "mechanic": "John Doe"
 }
 
@@ -53,6 +60,28 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 	}
 
 	previousStatus := passport.Status
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
+	// Normalize actor metadata
+	if req.Source == "" {
+		req.Source = "INTERNAL"
+	}
+	if req.ActorType == "" {
+		if req.Source == "MAGIC_LINK" {
+			req.ActorType = "PARTNER"
+		} else if req.Actor == "system" || req.Actor == "" {
+			req.ActorType = "SYSTEM"
+		} else {
+			req.ActorType = "USER"
+		}
+	}
+	if req.ActorID == "" {
+		req.ActorID = req.Actor
+	}
 
 	// Validate transition is allowed by state machine
 	if !models.IsValidTransition(previousStatus, req.ToStatus) {
@@ -87,6 +116,29 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		passport.ReturnedAt = &now
 	}
 
+	// India-specific: enforce recycler EPR ID for RECYCLED status
+	if req.ToStatus == models.PassportStatusRecycled {
+		region, regionErr := s.repo.GetBatchMarketRegion(ctx, passport.BatchID)
+		if regionErr == nil && (region == models.MarketRegionIndia || region == models.MarketRegionGlobal) {
+			recyclerEprID, _ := metadata["recycler_epr_id"].(string)
+			if recyclerEprID == "" {
+				return &TransitionResult{
+					Success:        false,
+					PreviousStatus: previousStatus,
+					Error:          "recycler_epr_id is required to close recycling (India compliance)",
+				}, errors.New("missing recycler_epr_id")
+			}
+			// Update recycling fields on passport
+			if err := s.repo.SetRecyclingInfo(ctx, passport.UUID, "RECYCLED", recyclerEprID, now); err != nil {
+				return &TransitionResult{
+					Success:        false,
+					PreviousStatus: previousStatus,
+					Error:          "Failed to update recycling info",
+				}, err
+			}
+		}
+	}
+
 	// Update passport status
 	passport.Status = req.ToStatus
 	if err := s.repo.UpdatePassportStatus(ctx, passport.UUID, req.ToStatus); err != nil {
@@ -99,12 +151,11 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 
 	// Log the event
 	eventType := s.getEventTypeForStatus(req.ToStatus)
-	metadata := req.Metadata
-	if metadata == nil {
-		metadata = make(map[string]interface{})
-	}
 	metadata["previous_status"] = previousStatus
 	metadata["new_status"] = req.ToStatus
+	if req.CurrentOwnerIdentifier != "" {
+		metadata["current_owner_identifier"] = req.CurrentOwnerIdentifier
+	}
 
 	// Get previous event hash for chain integrity
 	var previousHash string
@@ -119,6 +170,12 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		PassportID:   passport.UUID,
 		EventType:    eventType,
 		Actor:        req.Actor,
+		ActorType:    req.ActorType,
+		ActorID:      req.ActorID,
+		Source:       req.Source,
+		StatusFrom:   previousStatus,
+		StatusTo:     req.ToStatus,
+		IPAddress:    req.IPAddress,
 		Metadata:     metadata,
 		CreatedAt:    now,
 		PreviousHash: previousHash,
@@ -130,6 +187,12 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
 		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
 		Metadata:     event.Metadata,
 		CreatedAt:    event.CreatedAt,
 		PreviousHash: previousHash,
@@ -141,6 +204,20 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 	if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
 		// Log but don't fail the transition
 		fmt.Printf("Warning: Failed to log passport event: %v\n", err)
+	}
+
+	// Update current owner identifier if provided
+	if req.CurrentOwnerIdentifier != "" {
+		_ = s.repo.UpdatePassportOwner(ctx, passport.UUID, req.CurrentOwnerIdentifier)
+		entry := map[string]interface{}{
+			"current_owner_identifier": req.CurrentOwnerIdentifier,
+			"timestamp":                now,
+			"actor":                    req.Actor,
+			"source":                   req.Source,
+		}
+		if entryJSON, err := json.Marshal([]interface{}{entry}); err == nil {
+			_ = s.repo.AppendOwnershipHistory(ctx, passport.UUID, entryJSON)
+		}
 	}
 
 	return &TransitionResult{
@@ -289,6 +366,9 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		PassportID:   passport.UUID,
 		EventType:    models.PassportEventTransferred,
 		Actor:        actor,
+		ActorType:    "USER",
+		ActorID:      actor,
+		Source:       "INTERNAL",
 		Metadata:     metadata,
 		CreatedAt:    now,
 		PreviousHash: previousHash,
@@ -300,6 +380,12 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
 		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
 		Metadata:     event.Metadata,
 		CreatedAt:    event.CreatedAt,
 		PreviousHash: previousHash,
@@ -312,11 +398,23 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		return fmt.Errorf("failed to log transfer event: %w", err)
 	}
 
+	// Append ownership history entry (EU compliance)
+	entry := map[string]interface{}{
+		"previous_owner_id": previousOwnerID,
+		"new_owner_id":      newOwnerID.String(),
+		"timestamp":         now,
+		"actor":             actor,
+		"source":            "INTERNAL",
+	}
+	if entryJSON, err := json.Marshal([]interface{}{entry}); err == nil {
+		_ = s.repo.AppendOwnershipHistory(ctx, passportID, entryJSON)
+	}
+
 	return nil
 }
 
 // CreateLifecycleEvents creates genesis events for newly created passports
-func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports []*models.Passport, eventType string, actor string) error {
+func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports []*models.Passport, eventType, actor, actorType, source string) error {
 	if len(passports) == 0 {
 		return nil
 	}
@@ -332,6 +430,11 @@ func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports 
 			PassportID:   p.UUID,
 			EventType:    eventType,
 			Actor:        actor,
+			ActorType:    actorType,
+			ActorID:      actor,
+			Source:       source,
+			StatusFrom:   "",
+			StatusTo:     p.Status,
 			Metadata:     map[string]interface{}{"note": "Initial creation"},
 			CreatedAt:    p.CreatedAt,
 			PreviousHash: previousHash,
@@ -343,6 +446,12 @@ func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports 
 			PassportID:   event.PassportID,
 			EventType:    event.EventType,
 			Actor:        event.Actor,
+			ActorType:    event.ActorType,
+			ActorID:      event.ActorID,
+			Source:       event.Source,
+			StatusFrom:   event.StatusFrom,
+			StatusTo:     event.StatusTo,
+			IPAddress:    event.IPAddress,
 			Metadata:     event.Metadata,
 			CreatedAt:    event.CreatedAt,
 			PreviousHash: previousHash,
@@ -383,6 +492,12 @@ func (s *LifecycleService) VerifyPassportAuditChain(ctx context.Context, passpor
 				PassportID:   e.PassportID,
 				EventType:    e.EventType,
 				Actor:        e.Actor,
+				ActorType:    e.ActorType,
+				ActorID:      e.ActorID,
+				Source:       e.Source,
+				StatusFrom:   e.StatusFrom,
+				StatusTo:     e.StatusTo,
+				IPAddress:    e.IPAddress,
 				Metadata:     e.Metadata,
 				CreatedAt:    e.CreatedAt,
 				PreviousHash: e.PreviousHash,
@@ -393,4 +508,167 @@ func (s *LifecycleService) VerifyPassportAuditChain(ctx context.Context, passpor
 
 	valid, failedIdx := VerifyEventChain(chainEvents)
 	return valid, failedIdx, nil
+}
+
+// UpdateStateOfHealth updates SoH and logs an immutable event
+func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, actor, actorType, source, ip string) error {
+	if soh < 0 || soh > 100 {
+		return fmt.Errorf("state_of_health must be between 0 and 100")
+	}
+
+	now := time.Now()
+	if err := s.repo.UpdateStateOfHealth(ctx, passportID, soh, now); err != nil {
+		return err
+	}
+
+	previousHash := ""
+	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
+	if err == nil && len(prevEvents) > 0 {
+		previousHash = prevEvents[len(prevEvents)-1].Hash
+	}
+
+	event := &models.PassportEvent{
+		ID:           uuid.New(),
+		PassportID:   passportID,
+		EventType:    models.PassportEventSOHUpdated,
+		Actor:        actor,
+		ActorType:    actorType,
+		ActorID:      actor,
+		Source:       source,
+		IPAddress:    ip,
+		Metadata:     map[string]interface{}{"state_of_health": soh},
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
+	}
+
+	return s.repo.CreatePassportEvent(ctx, event)
+}
+
+// LogRepairEvent appends repair event data and logs an immutable event
+func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
+	now := time.Now()
+	if payload == nil {
+		payload = map[string]interface{}{}
+	}
+	payload["timestamp"] = now
+
+	entryJSON, err := json.Marshal([]interface{}{payload})
+	if err == nil {
+		_ = s.repo.AppendRepairEvent(ctx, passportID, entryJSON)
+	}
+
+	previousHash := ""
+	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
+	if err == nil && len(prevEvents) > 0 {
+		previousHash = prevEvents[len(prevEvents)-1].Hash
+	}
+
+	event := &models.PassportEvent{
+		ID:           uuid.New(),
+		PassportID:   passportID,
+		EventType:    models.PassportEventRepairLogged,
+		Actor:        actor,
+		ActorType:    actorType,
+		ActorID:      actor,
+		Source:       source,
+		IPAddress:    ip,
+		Metadata:     payload,
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
+	}
+
+	return s.repo.CreatePassportEvent(ctx, event)
+}
+
+// LogReplacementEvent appends replacement event data and logs an immutable event
+func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
+	now := time.Now()
+	if payload == nil {
+		payload = map[string]interface{}{}
+	}
+	payload["timestamp"] = now
+
+	entryJSON, err := json.Marshal([]interface{}{payload})
+	if err == nil {
+		_ = s.repo.AppendReplacementEvent(ctx, passportID, entryJSON)
+	}
+
+	previousHash := ""
+	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
+	if err == nil && len(prevEvents) > 0 {
+		previousHash = prevEvents[len(prevEvents)-1].Hash
+	}
+
+	event := &models.PassportEvent{
+		ID:           uuid.New(),
+		PassportID:   passportID,
+		EventType:    models.PassportEventReplaceLogged,
+		Actor:        actor,
+		ActorType:    actorType,
+		ActorID:      actor,
+		Source:       source,
+		IPAddress:    ip,
+		Metadata:     payload,
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
+	}
+
+	return s.repo.CreatePassportEvent(ctx, event)
 }

@@ -39,6 +39,9 @@ export default function OnboardingPage() {
         epr_registration_number: "",
         bis_r_number: "",
         iec_code: "",
+        eu_authorized_representative_name: "",
+        eu_authorized_representative_address: "",
+        eu_contact_email: "",
     })
 
     // Pre-fill with existing user data
@@ -54,6 +57,9 @@ export default function OnboardingPage() {
                 epr_registration_number: user.epr_registration_number || "",
                 bis_r_number: user.bis_r_number || "",
                 iec_code: user.iec_code || "",
+                eu_authorized_representative_name: user.eu_authorized_representative_name || "",
+                eu_authorized_representative_address: user.eu_authorized_representative_address || "",
+                eu_contact_email: user.eu_contact_email || "",
             }))
         }
     }, [user])
@@ -102,6 +108,9 @@ export default function OnboardingPage() {
                 epr_registration_number: formData.epr_registration_number,
                 bis_r_number: formData.bis_r_number,
                 iec_code: formData.iec_code,
+                eu_authorized_representative_name: formData.eu_authorized_representative_name,
+                eu_authorized_representative_address: formData.eu_authorized_representative_address,
+                eu_contact_email: formData.eu_contact_email,
             })
 
             console.log("Profile update response:", response.data)
@@ -396,6 +405,58 @@ export default function OnboardingPage() {
                                                     />
                                                 </div>
                                                 <p className="text-xs text-slate-500">BIS CRS registration (IS 16046)</p>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {(formData.primary_market === "eu" || formData.primary_market === "both") && (
+                                        <>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Authorized Representative Name
+                                                </label>
+                                                <div className="relative">
+                                                    <Building2 className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="text"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="EU Rep GmbH"
+                                                        value={formData.eu_authorized_representative_name}
+                                                        onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Contact Email
+                                                </label>
+                                                <div className="relative">
+                                                    <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="email"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="compliance@eurep.eu"
+                                                        value={formData.eu_contact_email}
+                                                        onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Authorized Representative Address
+                                                </label>
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="text"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="Street, City, Country"
+                                                        value={formData.eu_authorized_representative_address}
+                                                        onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
+                                                    />
+                                                </div>
                                             </div>
                                         </>
                                     )}

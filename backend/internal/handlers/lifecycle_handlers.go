@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 
@@ -77,6 +78,10 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 		PassportID: passportID,
 		ToStatus:   req.ToStatus,
 		Actor:      actor,
+		ActorType:  "USER",
+		ActorID:    actor,
+		Source:     "INTERNAL",
+		IPAddress:  getRequestIP(r),
 		Metadata:   req.Metadata,
 	})
 
@@ -223,6 +228,18 @@ type TransferPassportRequest struct {
 	NewOwnerID uuid.UUID `json:"new_owner_id"`
 }
 
+// SOHUpdateRequest represents a state-of-health update request
+type SOHUpdateRequest struct {
+	StateOfHealth float64 `json:"state_of_health"`
+	Actor         string  `json:"actor,omitempty"`
+}
+
+// GenericEventRequest represents a repair/replacement event payload
+type GenericEventRequest struct {
+	Actor   string                 `json:"actor,omitempty"`
+	Payload map[string]interface{} `json:"payload,omitempty"`
+}
+
 // TransferPassport handles POST /api/v1/passports/{uuid}/transfer
 // @Summary Transfer passport ownership
 // @Description Transfer ownership of a battery passport to a new owner. Logs immutable TRANSFERRED event.
@@ -286,6 +303,20 @@ func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// getRequestIP returns the best-effort client IP address.
+func getRequestIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		parts := strings.Split(fwd, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
 // VerifyAuditChain handles GET /api/v1/passports/{uuid}/verify-chain
 // @Summary Verify passport audit chain integrity
 // @Description Verifies that the hash chain of events is intact (no tampering)
@@ -336,4 +367,125 @@ func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Reque
 			"message":         "CHAIN BROKEN - possible tampering detected",
 		})
 	}
+}
+
+// UpdateStateOfHealth handles POST /api/v1/passports/{uuid}/soh
+func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req SOHUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.UpdateStateOfHealth(r.Context(), passportID, req.StateOfHealth, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":          true,
+		"passport_id":      passportID,
+		"state_of_health":  req.StateOfHealth,
+	})
+}
+
+// LogRepairEvent handles POST /api/v1/passports/{uuid}/repairs
+func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req GenericEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.LogRepairEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":     true,
+		"passport_id": passportID,
+	})
+}
+
+// LogReplacementEvent handles POST /api/v1/passports/{uuid}/replacements
+func (h *LifecycleHandler) LogReplacementEvent(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req GenericEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.LogReplacementEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":     true,
+		"passport_id": passportID,
+	})
 }

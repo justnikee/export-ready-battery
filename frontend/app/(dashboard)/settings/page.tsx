@@ -257,7 +257,11 @@ export default function SettingsPage() {
         // India Regulatory Fields
         epr_registration_number: "",
         bis_r_number: "",
-        iec_code: ""
+        iec_code: "",
+        // EU Authorized Representative Fields
+        eu_authorized_representative_name: "",
+        eu_authorized_representative_address: "",
+        eu_contact_email: ""
     })
 
     // Certificate paths state
@@ -280,7 +284,10 @@ export default function SettingsPage() {
                 logo_url: user.logo_url || "",
                 epr_registration_number: user.epr_registration_number || "",
                 bis_r_number: user.bis_r_number || "",
-                iec_code: user.iec_code || ""
+                iec_code: user.iec_code || "",
+                eu_authorized_representative_name: user.eu_authorized_representative_name || "",
+                eu_authorized_representative_address: user.eu_authorized_representative_address || "",
+                eu_contact_email: user.eu_contact_email || ""
             })
             setCertificatePaths({
                 epr_certificate_path: user.epr_certificate_path || "",
@@ -552,6 +559,74 @@ export default function SettingsPage() {
                                     onUploadSuccess={handleUploadSuccess}
                                 />
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* EU Compliance Contact Card */}
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-slate-100 px-6 py-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                                <Globe className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-medium text-slate-900">EU Authorized Representative</h3>
+                                <p className="text-xs text-slate-500">Required for EU Battery Passport compliance</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                EU Authorized Representative Name
+                            </label>
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="EU Rep GmbH"
+                                    value={formData.eu_authorized_representative_name}
+                                    onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">Legal representative for EU compliance.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                EU Contact Email
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
+                                <input
+                                    type="email"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="compliance@eurep.eu"
+                                    value={formData.eu_contact_email}
+                                    onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">Regulatory contact email for EU.</p>
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="text-sm font-medium leading-none text-slate-700">
+                                EU Authorized Representative Address
+                            </label>
+                            <div className="relative">
+                                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
+                                <input
+                                    type="text"
+                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Street, City, Country"
+                                    value={formData.eu_authorized_representative_address}
+                                    onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">Official address of EU representative.</p>
                         </div>
                     </div>
                 </div>

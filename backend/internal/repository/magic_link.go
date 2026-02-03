@@ -64,7 +64,7 @@ func (r *Repository) IsMagicTokenUsed(ctx context.Context, tokenHash string) (bo
 
 // UpdatePassportOwner updates the current owner email on a passport
 func (r *Repository) UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, email string) error {
-	query := `UPDATE passports SET current_owner_email = $1 WHERE uuid = $2`
+	query := `UPDATE passports SET current_owner_email = $1, current_owner_identifier = $1 WHERE uuid = $2`
 
 	_, err := r.db.Pool.Exec(ctx, query, email, passportID)
 	if err != nil {

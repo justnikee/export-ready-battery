@@ -17,11 +17,16 @@ import (
 type CreateBatchRequest struct {
 	TenantID         uuid.UUID
 	BatchName        string
+	ModelName        string
 	Specs            models.BatchSpec
 	MarketRegion     models.MarketRegion
 	PLICompliant     bool
 	DomesticValueAdd float64
 	CellSource       string
+
+	// Manufacturing window
+	ManufacturingStartDate *time.Time
+	ManufacturingEndDate   *time.Time
 
 	// India Import/Customs Fields
 	BillOfEntryNo   string
@@ -50,12 +55,15 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		ID:                uuid.New(),
 		TenantID:          req.TenantID,
 		BatchName:         req.BatchName,
+		ModelName:         req.ModelName,
 		Specs:             req.Specs,
 		CreatedAt:         time.Now(),
 		MarketRegion:      marketRegion,
 		PLICompliant:      req.PLICompliant,
 		DomesticValueAdd:  req.DomesticValueAdd,
 		CellSource:        req.CellSource,
+		ManufacturingStartDate: req.ManufacturingStartDate,
+		ManufacturingEndDate:   req.ManufacturingEndDate,
 		BillOfEntryNo:     req.BillOfEntryNo,
 		CountryOfOrigin:   req.CountryOfOrigin,
 		CustomsDate:       req.CustomsDate,
@@ -82,9 +90,10 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 
 	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number
 	query := `INSERT INTO public.batches 
-		(id, tenant_id, batch_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
+		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
+		 manufacturing_start_date, manufacturing_end_date,
 		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number) 
-		VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
 
 	// Handle nullable import fields
 	var billOfEntry, countryOrigin, hsnCode interface{}
@@ -120,6 +129,7 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.ID,
 		batch.TenantID,
 		batch.BatchName,
+		batch.ModelName,
 		string(specsJSON), // Pass as string, let PostgreSQL cast to jsonb
 		batch.CreatedAt,
 		models.BatchStatusDraft, // New batches start as DRAFT
@@ -127,6 +137,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.PLICompliant,
 		batch.DomesticValueAdd,
 		cellSource,
+		req.ManufacturingStartDate,
+		req.ManufacturingEndDate,
 		billOfEntry,
 		countryOrigin,
 		req.CustomsDate,
@@ -153,26 +165,33 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	var cellSource *string
 	var billOfEntry, countryOrigin, hsnCode *string
 	var customsDate *time.Time
+	var manufacturingStart, manufacturingEnd *time.Time
 	var dvaSource, pliCertURL *string
+	var bisNumber, eprNumber *string
 
-	query := `SELECT id, tenant_id, batch_name, specs, created_at, 
+	query := `SELECT id, tenant_id, batch_name, model_name, specs, created_at, 
 	          COALESCE(status, 'DRAFT') as status,
 	          COALESCE(market_region, 'GLOBAL') as market_region, 
 	          COALESCE(pli_compliant, false), 
 	          COALESCE(domestic_value_add, 0), 
 	          cell_source, 
+	          manufacturing_start_date,
+	          manufacturing_end_date,
 	          bill_of_entry_no,
 	          country_of_origin,
 	          customs_date,
 	          hsn_code,
 	          dva_source,
-	          pli_certificate_url
+	          pli_certificate_url,
+	          bis_number,
+	          epr_number
 	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
 		&batch.ID,
 		&batch.TenantID,
 		&batch.BatchName,
+		&batch.ModelName,
 		&specsJSON,
 		&batch.CreatedAt,
 		&batch.Status,
@@ -180,12 +199,16 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&batch.PLICompliant,
 		&batch.DomesticValueAdd,
 		&cellSource,
+		&manufacturingStart,
+		&manufacturingEnd,
 		&billOfEntry,
 		&countryOrigin,
 		&customsDate,
 		&hsnCode,
 		&dvaSource,
 		&pliCertURL,
+		&bisNumber,
+		&eprNumber,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -215,6 +238,8 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		batch.HSNCode = *hsnCode
 	}
 	batch.CustomsDate = customsDate
+	batch.ManufacturingStartDate = manufacturingStart
+	batch.ManufacturingEndDate = manufacturingEnd
 
 	// DVA audit fields
 	if dvaSource != nil {
@@ -222,6 +247,12 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	}
 	if pliCertURL != nil {
 		batch.PLICertificateURL = *pliCertURL
+	}
+	if bisNumber != nil {
+		batch.BISNumber = *bisNumber
+	}
+	if eprNumber != nil {
+		batch.EPRNumber = *eprNumber
 	}
 
 	return batch, nil
@@ -244,26 +275,31 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
 
-	query := `SELECT b.id, b.tenant_id, b.batch_name, b.specs, b.created_at, 
+	query := `SELECT b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, 
 	          COALESCE(b.status, 'DRAFT') as status,
 	          COALESCE(b.market_region::text, 'GLOBAL') as market_region, 
 	          COALESCE(b.pli_compliant, false), 
 	          COALESCE(b.domestic_value_add, 0), 
 	          b.cell_source, 
+	          b.manufacturing_start_date,
+	          b.manufacturing_end_date,
 	          b.bill_of_entry_no,
 	          b.country_of_origin,
 	          b.customs_date,
 	          b.hsn_code,
 	          b.dva_source,
 	          b.pli_certificate_url,
+	          b.bis_number,
+	          b.epr_number,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
 	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
-	          GROUP BY b.id, b.tenant_id, b.batch_name, b.specs, b.created_at, b.status, 
+	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status, 
 	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
+	                   b.manufacturing_start_date, b.manufacturing_end_date,
 	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
-	                   b.dva_source, b.pli_certificate_url
+	                   b.dva_source, b.pli_certificate_url, b.bis_number, b.epr_number
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
@@ -282,12 +318,15 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 		var cellSource *string
 		var billOfEntry, countryOrigin, hsnCode *string
 		var customsDate *time.Time
+		var manufacturingStart, manufacturingEnd *time.Time
 		var dvaSource, pliCertURL *string
+		var bisNumber, eprNumber *string
 
 		if err := rows.Scan(
 			&batch.ID,
 			&batch.TenantID,
 			&batch.BatchName,
+			&batch.ModelName,
 			&specsJSON,
 			&batch.CreatedAt,
 			&batch.Status,
@@ -295,12 +334,16 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 			&batch.PLICompliant,
 			&batch.DomesticValueAdd,
 			&cellSource,
+			&manufacturingStart,
+			&manufacturingEnd,
 			&billOfEntry,
 			&countryOrigin,
 			&customsDate,
 			&hsnCode,
 			&dvaSource,
 			&pliCertURL,
+			&bisNumber,
+			&eprNumber,
 			&batch.TotalPassports,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan batch: %w", err)
@@ -329,6 +372,8 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 			batch.HSNCode = *hsnCode
 		}
 		batch.CustomsDate = customsDate
+		batch.ManufacturingStartDate = manufacturingStart
+		batch.ManufacturingEndDate = manufacturingEnd
 
 		// DVA audit fields
 		if dvaSource != nil {
@@ -336,6 +381,12 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 		}
 		if pliCertURL != nil {
 			batch.PLICertificateURL = *pliCertURL
+		}
+		if bisNumber != nil {
+			batch.BISNumber = *bisNumber
+		}
+		if eprNumber != nil {
+			batch.EPRNumber = *eprNumber
 		}
 
 		batches = append(batches, batch)
@@ -378,4 +429,14 @@ func (r *Repository) SetBatchStatus(ctx context.Context, batchID uuid.UUID, stat
 		return fmt.Errorf("failed to set batch status: %w", err)
 	}
 	return nil
+}
+
+// GetBatchMarketRegion retrieves the market region for a batch (no tenant filter)
+func (r *Repository) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error) {
+	var region string
+	query := `SELECT COALESCE(market_region::text, 'GLOBAL') FROM public.batches WHERE id = $1`
+	if err := r.db.Pool.QueryRow(ctx, query, batchID).Scan(&region); err != nil {
+		return "", fmt.Errorf("failed to get batch market region: %w", err)
+	}
+	return models.MarketRegion(region), nil
 }

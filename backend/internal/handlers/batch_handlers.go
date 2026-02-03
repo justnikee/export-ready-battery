@@ -50,13 +50,9 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// ===== DUAL-MODE VALIDATION =====
 
-	// EU Mode: Carbon Footprint is MANDATORY
+	// EU Mode: allow draft creation without full compliance (hard-block at activation)
 	if req.MarketRegion == models.MarketRegionEU {
-		if req.Specs.CarbonFootprint == "" {
-			respondError(w, http.StatusBadRequest, "EU compliance requires carbon_footprint")
-			return
-		}
-		// EU Mode: Certifications should include CE
+		// EU Mode: Certifications should include CE (soft warning only)
 		hasCE := false
 		for _, cert := range req.Specs.Certifications {
 			if cert == "CE" {
@@ -105,18 +101,6 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 					req.DVASource, req.TenantID)
 			}
 			req.DVASource = services.DVASourceEstimated
-		}
-
-		// ===== SECURITY: STRICT PLI VALIDATION FOR DOMESTIC CELLS =====
-		// Enforce PLI scheme minimum DVA requirement
-		if req.CellSource == "DOMESTIC" && req.PLICompliant {
-			// PLI Scheme requires minimum 50% DVA
-			if req.DomesticValueAdd < 50 {
-				respondError(w, http.StatusBadRequest,
-					fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Current DVA: %.2f%%", req.DomesticValueAdd))
-				return
-			}
-			log.Printf("✅ PLI Eligibility Check Passed: DVA=%.2f%% (TenantID=%s)", req.DomesticValueAdd, req.TenantID)
 		}
 
 		// Validate DVA source
@@ -177,6 +161,18 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%. Please enter Sale Price and Import Cost.")
 				return
 			}
+
+			// ===== SECURITY: STRICT PLI VALIDATION FOR DOMESTIC CELLS =====
+			// Enforce PLI scheme minimum DVA requirement (checked AFTER calculation)
+			if req.PLICompliant {
+				// PLI Scheme requires minimum 50% DVA
+				if req.DomesticValueAdd < 50.0 {
+					respondError(w, http.StatusBadRequest,
+						fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Calculated DVA: %.2f%%. Minimum 50%% required for PLI Benefits.", req.DomesticValueAdd))
+					return
+				}
+				log.Printf("✅ PLI Eligibility Check Passed: DVA=%.2f%% (TenantID=%s)", req.DomesticValueAdd, req.TenantID)
+			}
 		}
 
 		// PLI Compliance Validation using validation service
@@ -190,22 +186,9 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	tenantID := req.TenantID
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {
+		log.Printf("ERROR: Failed to retrieve tenant details for ID %s: %v", tenantID, err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
-	}
-
-	// MANDATORY DOCUMENT VALIDATION (P0 Audit Fix)
-	if req.MarketRegion == models.MarketRegionIndia {
-		// 1. Validate BIS Certificate
-		if tenant.BISCertificatePath == "" {
-			respondError(w, http.StatusForbidden, "Compliance Error: BIS Certificate is mandatory for India market. Please upload it in Organization Settings.")
-			return
-		}
-		// 2. Validate EPR Certificate
-		if tenant.EPRCertificatePath == "" {
-			respondError(w, http.StatusForbidden, "Compliance Error: EPR Certificate is mandatory for India market. Please upload it in Organization Settings.")
-			return
-		}
 	}
 
 	// Validate IEC Code format if provided (India: 10 digits)
@@ -245,26 +228,53 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		customsDate = &parsedDate
 	}
 
+	// Parse manufacturing window if provided
+	var manufacturingStart *time.Time
+	var manufacturingEnd *time.Time
+	if req.ManufacturingStartDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.ManufacturingStartDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid manufacturing_start_date format. Use YYYY-MM-DD")
+			return
+		}
+		manufacturingStart = &parsedDate
+	}
+	if req.ManufacturingEndDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.ManufacturingEndDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid manufacturing_end_date format. Use YYYY-MM-DD")
+			return
+		}
+		manufacturingEnd = &parsedDate
+	}
+	if manufacturingStart != nil && manufacturingEnd != nil && manufacturingEnd.Before(*manufacturingStart) {
+		respondError(w, http.StatusBadRequest, "manufacturing_end_date must be on or after manufacturing_start_date")
+		return
+	}
+
 	// Create the batch
 	log.Printf("DEBUG Handler CreateBatch: TenantID=%s, BatchName=%s, MarketRegion=%s, Specs=%+v",
 		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
 
 	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:          req.TenantID,
-		BatchName:         req.BatchName,
-		Specs:             req.Specs,
-		MarketRegion:      req.MarketRegion,
-		PLICompliant:      req.PLICompliant,
-		DomesticValueAdd:  req.DomesticValueAdd,
-		CellSource:        req.CellSource,
-		BillOfEntryNo:     req.BillOfEntryNo,
-		CountryOfOrigin:   req.CountryOfOrigin,
-		CustomsDate:       customsDate,
-		HSNCode:           req.HSNCode,
-		DVASource:         req.DVASource,
-		PLICertificateURL: req.PLICertificateURL,
-		BISNumber:         req.BISNumber,
-		EPRNumber:         req.EPRNumber,
+		TenantID:               req.TenantID,
+		BatchName:              req.BatchName,
+		ModelName:              req.ModelName,
+		Specs:                  req.Specs,
+		MarketRegion:           req.MarketRegion,
+		PLICompliant:           req.PLICompliant,
+		DomesticValueAdd:       req.DomesticValueAdd,
+		CellSource:             req.CellSource,
+		ManufacturingStartDate: manufacturingStart,
+		ManufacturingEndDate:   manufacturingEnd,
+		BillOfEntryNo:          req.BillOfEntryNo,
+		CountryOfOrigin:        req.CountryOfOrigin,
+		CustomsDate:            customsDate,
+		HSNCode:                req.HSNCode,
+		DVASource:              req.DVASource,
+		PLICertificateURL:      req.PLICertificateURL,
+		BISNumber:              req.BISNumber,
+		EPRNumber:              req.EPRNumber,
 	})
 	if err != nil {
 		log.Printf("Failed to create batch: %v", err)
@@ -543,6 +553,17 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Hard block export if SHIPPED event missing (compliance)
+	missingShipped, err := h.repo.CountPassportsMissingShippedEvent(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to validate shipped status")
+		return
+	}
+	if missingShipped > 0 {
+		respondError(w, http.StatusForbidden, "Export blocked: one or more passports are missing SHIPPED events")
+		return
+	}
+
 	// Get all passports
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
@@ -651,17 +672,24 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// Create the batch copy
 	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:         originalBatch.TenantID,
-		BatchName:        newBatchName,
-		Specs:            originalBatch.Specs,
-		MarketRegion:     originalBatch.MarketRegion,
-		PLICompliant:     originalBatch.PLICompliant,
-		DomesticValueAdd: originalBatch.DomesticValueAdd,
-		CellSource:       originalBatch.CellSource,
-		BillOfEntryNo:    originalBatch.BillOfEntryNo,
-		CountryOfOrigin:  originalBatch.CountryOfOrigin,
-		CustomsDate:      originalBatch.CustomsDate,
-		HSNCode:          originalBatch.HSNCode,
+		TenantID:               originalBatch.TenantID,
+		BatchName:              newBatchName,
+		ModelName:              originalBatch.ModelName,
+		Specs:                  originalBatch.Specs,
+		MarketRegion:           originalBatch.MarketRegion,
+		PLICompliant:           originalBatch.PLICompliant,
+		DomesticValueAdd:       originalBatch.DomesticValueAdd,
+		CellSource:             originalBatch.CellSource,
+		ManufacturingStartDate: originalBatch.ManufacturingStartDate,
+		ManufacturingEndDate:   originalBatch.ManufacturingEndDate,
+		BillOfEntryNo:          originalBatch.BillOfEntryNo,
+		CountryOfOrigin:        originalBatch.CountryOfOrigin,
+		CustomsDate:            originalBatch.CustomsDate,
+		HSNCode:                originalBatch.HSNCode,
+		DVASource:              originalBatch.DVASource,
+		PLICertificateURL:      originalBatch.PLICertificateURL,
+		BISNumber:              originalBatch.BISNumber,
+		EPRNumber:              originalBatch.EPRNumber,
 	})
 
 	if err != nil {

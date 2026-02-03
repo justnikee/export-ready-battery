@@ -18,6 +18,10 @@ interface User {
     epr_registration_number?: string;
     bis_r_number?: string;
     iec_code?: string;
+    // EU Authorized Representative Fields
+    eu_authorized_representative_name?: string;
+    eu_authorized_representative_address?: string;
+    eu_contact_email?: string;
     // Certificate Document Paths (Compliance Vault)
     epr_certificate_path?: string;
     bis_certificate_path?: string;

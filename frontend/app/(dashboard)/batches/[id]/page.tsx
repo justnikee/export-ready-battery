@@ -211,29 +211,19 @@ export default function BatchDetailsPage() {
     // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
         const region = batch?.market_region as MarketRegion
-        const specs = batch?.specs || {}
 
         if (region === "INDIA") {
             return (
                 <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30 text-sm px-3 py-1">
-                    🇮🇳 PLI Ready
+                    🇮🇳 India Market
                 </Badge>
             )
         } else if (region === "EU") {
-            const hasCarbon = specs.carbon_footprint && specs.carbon_footprint !== ""
-            if (hasCarbon) {
-                return (
-                    <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30 text-sm px-3 py-1">
-                        🇪🇺 EU Compliant
-                    </Badge>
-                )
-            } else {
-                return (
-                    <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-sm px-3 py-1">
-                        <AlertTriangle className="h-3 w-3 mr-1" /> Compliance Pending
-                    </Badge>
-                )
-            }
+            return (
+                <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30 text-sm px-3 py-1">
+                    🇪🇺 EU Market
+                </Badge>
+            )
         } else {
             return (
                 <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 text-sm px-3 py-1">
@@ -297,6 +287,10 @@ export default function BatchDetailsPage() {
     const region = batch.market_region as MarketRegion
     const isIndia = region === "INDIA"
     const isEU = region === "EU"
+
+    const hasWarrantyMonths = batch.specs.warranty_months !== null && batch.specs.warranty_months !== undefined
+    const hasExpectedLifetime = batch.specs.expected_lifetime_cycles !== null && batch.specs.expected_lifetime_cycles !== undefined
+    const hasRecycledContent = batch.specs.recycled_content_pct !== null && batch.specs.recycled_content_pct !== undefined
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 p-8 font-sans">
@@ -650,15 +644,15 @@ export default function BatchDetailsPage() {
                                         )}
 
                                         {/* Warranty & Lifetime */}
-                                        {(batch.specs.warranty_months || batch.specs.expected_lifetime_cycles) && (
+                                        {(hasWarrantyMonths || hasExpectedLifetime) && (
                                             <>
-                                                {batch.specs.warranty_months && (
+                                                {hasWarrantyMonths && (
                                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                         <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
                                                         <dd className="font-semibold text-slate-900">{batch.specs.warranty_months} months</dd>
                                                     </div>
                                                 )}
-                                                {batch.specs.expected_lifetime_cycles && (
+                                                {hasExpectedLifetime && (
                                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                         <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
                                                         <dd className="font-semibold text-slate-900">{batch.specs.expected_lifetime_cycles.toLocaleString()} cycles</dd>
@@ -668,7 +662,7 @@ export default function BatchDetailsPage() {
                                         )}
 
                                         {/* Recycled Content */}
-                                        {batch.specs.recycled_content_pct !== undefined && batch.specs.recycled_content_pct > 0 && (
+                                        {hasRecycledContent && (
                                             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                 <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
                                                 <dd className="font-semibold text-emerald-400">{batch.specs.recycled_content_pct}%</dd>

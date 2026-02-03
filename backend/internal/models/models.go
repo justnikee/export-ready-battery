@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -44,6 +45,11 @@ type Tenant struct {
 	Website      string    `json:"website,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 
+	// EU Authorized Representative (EU Battery Regulation)
+	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name,omitempty"`
+	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address,omitempty"`
+	EUContactEmail                    string `json:"eu_contact_email,omitempty"`
+
 	// Quota System (Monetization)
 	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
 	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
@@ -77,6 +83,11 @@ type UpdateProfileRequest struct {
 	LogoURL      string `json:"logo_url"`
 	SupportEmail string `json:"support_email"`
 	Website      string `json:"website"`
+
+	// EU Authorized Representative
+	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name"`
+	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address"`
+	EUContactEmail                    string `json:"eu_contact_email"`
 
 	// India Regulatory Fields
 	EPRRegistrationNumber string `json:"epr_registration_number"`
@@ -115,9 +126,14 @@ type Batch struct {
 	ID        uuid.UUID `json:"id"`
 	TenantID  uuid.UUID `json:"tenant_id"`
 	BatchName string    `json:"batch_name"`
+	ModelName string    `json:"model_name"`
 	Specs     BatchSpec `json:"specs"`
 	CreatedAt time.Time `json:"created_at"`
 	Status    string    `json:"status"` // DRAFT, ACTIVE, ARCHIVED
+
+	// Manufacturing window (legal declaration)
+	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 
 	// Dual-Mode Compliance Fields
 	MarketRegion     MarketRegion `json:"market_region"`         // INDIA, EU, or GLOBAL
@@ -169,9 +185,9 @@ type BatchSpec struct {
 	ManufacturerAddress    string               `json:"manufacturer_address,omitempty"`     // Physical address
 	EURepresentative       string               `json:"eu_representative,omitempty"`        // EU contact name/company
 	EURepresentativeEmail  string               `json:"eu_representative_email,omitempty"`  // EU contact email
-	ExpectedLifetimeCycles int                  `json:"expected_lifetime_cycles,omitempty"` // Expected charge cycles (e.g., 1000)
-	WarrantyMonths         int                  `json:"warranty_months,omitempty"`          // Warranty period in months
-	RecycledContentPct     float64              `json:"recycled_content_pct,omitempty"`     // % recycled content (stored as literal: 15.5 = 15.5%)
+	ExpectedLifetimeCycles *int                 `json:"expected_lifetime_cycles,omitempty"` // Expected charge cycles (e.g., 1000)
+	WarrantyMonths         *int                 `json:"warranty_months,omitempty"`          // Warranty period in months
+	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`     // % recycled content (stored as literal: 15.5 = 15.5%)
 	HazardousSubstances    *HazardousSubstances `json:"hazardous_substances,omitempty"`     // REACH/RoHS compliance
 }
 
@@ -208,16 +224,35 @@ type Passport struct {
 	Status          string    `json:"status"` // CREATED, SHIPPED, IN_SERVICE, RETURNED, RECALLED, RECYCLED, END_OF_LIFE
 	CreatedAt       time.Time `json:"created_at"`
 
+	// Immutable snapshot of batch data at creation time
+	BatchSnapshot json.RawMessage `json:"batch_snapshot,omitempty"`
+
+	// Ownership tracking (current + history)
+	CurrentOwnerIdentifier string          `json:"current_owner_identifier,omitempty"`
+	CurrentOwnerEmail      string          `json:"current_owner_email,omitempty"`
+	OwnershipHistory       json.RawMessage `json:"ownership_history,omitempty"`
+
 	// Lifecycle tracking fields
 	ShippedAt   *time.Time `json:"shipped_at,omitempty"`   // When battery left factory
 	InstalledAt *time.Time `json:"installed_at,omitempty"` // When installed in device/vehicle
 	ReturnedAt  *time.Time `json:"returned_at,omitempty"`  // When returned for warranty/recycling
+	RecycledAt  *time.Time `json:"recycled_at,omitempty"`  // When recycled
 
 	// Dynamic compliance field (updated over battery lifetime)
-	StateOfHealth float64 `json:"state_of_health"` // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+	StateOfHealth          *float64   `json:"state_of_health,omitempty"` // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+	LastSOHUpdateTimestamp *time.Time `json:"last_soh_update_timestamp,omitempty"`
+
+	// EU dynamic compliance data
+	RepairEvents      json.RawMessage `json:"repair_events,omitempty"`
+	ReplacementEvents json.RawMessage `json:"replacement_events,omitempty"`
 
 	// Ownership tracking
 	OwnerID *uuid.UUID `json:"owner_id,omitempty"` // Current owner (distributor, retailer, end user)
+
+	// India-specific recycling fields
+	RecyclingStatus string     `json:"recycling_status,omitempty"`
+	RecyclerEprID   string     `json:"recycler_epr_id,omitempty"`
+	RecyclingDate   *time.Time `json:"recycling_date,omitempty"`
 
 	// CSV Traceability
 	CSVSourceFilename string `json:"csv_source_filename,omitempty"`
@@ -260,7 +295,7 @@ var RoleTransitionPermissions = map[string]map[string][]string{
 		PassportStatusReturned: {PassportStatusRecycled, PassportStatusShipped}, // In-house recycling or refurbishment
 	},
 	"LOGISTICS": {
-		PassportStatusShipped: {PassportStatusInService}, // Delivery confirmation
+		PassportStatusCreated: {PassportStatusShipped}, // Shipment dispatch
 	},
 	"TECHNICIAN": {
 		PassportStatusShipped:         {PassportStatusInService},       // Installation
@@ -324,6 +359,12 @@ type PassportEvent struct {
 	PassportID   uuid.UUID              `json:"passport_id"`
 	EventType    string                 `json:"event_type"` // CREATED, STATUS_CHANGED, SCANNED, RECALLED, RECYCLED, END_OF_LIFE
 	Actor        string                 `json:"actor"`      // Who triggered: system, user email, etc.
+	ActorType    string                 `json:"actor_type,omitempty"`
+	ActorID      string                 `json:"actor_identifier,omitempty"`
+	Source       string                 `json:"source,omitempty"` // INTERNAL | MAGIC_LINK | API
+	StatusFrom   string                 `json:"status_from,omitempty"`
+	StatusTo     string                 `json:"status_to,omitempty"`
+	IPAddress    string                 `json:"ip_address,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	CreatedAt    time.Time              `json:"created_at"`
 	Hash         string                 `json:"hash,omitempty"`          // SHA-256 hash of event data for tamper detection
@@ -343,6 +384,9 @@ const (
 	PassportEventRecalled      = "RECALLED"
 	PassportEventRecycled      = "RECYCLED"
 	PassportEventEndOfLife     = "END_OF_LIFE"
+	PassportEventSOHUpdated    = "SOH_UPDATED"
+	PassportEventRepairLogged  = "REPAIR_LOGGED"
+	PassportEventReplaceLogged = "REPLACEMENT_LOGGED"
 )
 
 // ============================================================================
@@ -384,6 +428,7 @@ type CSVRow struct {
 type CreateBatchRequest struct {
 	TenantID  uuid.UUID `json:"tenant_id"`
 	BatchName string    `json:"batch_name"`
+	ModelName string    `json:"model_name"`
 	Specs     BatchSpec `json:"specs"`
 
 	// Dual-Mode Fields
@@ -391,6 +436,10 @@ type CreateBatchRequest struct {
 	PLICompliant     bool         `json:"pli_compliant,omitempty"`      // India only
 	DomesticValueAdd float64      `json:"domestic_value_add,omitempty"` // India only (stored as literal: 45.5 = 45.5%)
 	CellSource       string       `json:"cell_source,omitempty"`        // India only
+
+	// Manufacturing window (legal declaration)
+	ManufacturingStartDate string `json:"manufacturing_start_date,omitempty"` // YYYY-MM-DD
+	ManufacturingEndDate   string `json:"manufacturing_end_date,omitempty"`   // YYYY-MM-DD
 
 	// India Import/Customs Fields (Required when MarketRegion=INDIA and CellSource=IMPORTED)
 	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
@@ -425,9 +474,12 @@ type UploadCSVResponse struct {
 type PassportWithSpecs struct {
 	Passport     *Passport    `json:"passport"`
 	BatchName    string       `json:"batch_name"`
+	ModelName    string       `json:"model_name,omitempty"`
 	Specs        *BatchSpec   `json:"specs"`
 	MarketRegion MarketRegion `json:"market_region"` // For conditional UI rendering
 	Tenant       *Tenant      `json:"tenant"`        // Added for public profile display
+	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 	// Added for Import/Domestic logic
 	CellSource      string `json:"cell_source,omitempty"`
 	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`
