@@ -452,6 +452,8 @@ type ScanEvent struct {
 	IPAddress  string    `json:"ip_address"`
 	City       string    `json:"city"`
 	Country    string    `json:"country"`
+	Latitude   float64   `json:"latitude"`
+	Longitude  float64   `json:"longitude"`
 	DeviceType string    `json:"device_type"`
 	UserAgent  string    `json:"user_agent"`
 	ScannedAt  time.Time `json:"scanned_at"`
@@ -461,6 +463,8 @@ type ScanEvent struct {
 type ScanFeedItem struct {
 	City         string    `json:"city"`
 	Country      string    `json:"country"`
+	Latitude     float64   `json:"latitude"`
+	Longitude    float64   `json:"longitude"`
 	DeviceType   string    `json:"device_type"`
 	ScannedAt    time.Time `json:"scanned_at"`
 	SerialNumber string    `json:"serial_number"`

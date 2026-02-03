@@ -20,6 +20,7 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
 const BatchStatusChart = dynamic(() => import('@/components/dashboard/BatchStatusChart').then(mod => mod.BatchStatusChart), { ssr: false })
+const ScanMap = dynamic(() => import('@/components/dashboard/ScanMap').then(mod => mod.ScanMap), { ssr: false })
 
 interface DashboardStats {
     total_passports: number
@@ -45,6 +46,7 @@ export default function DashboardPage() {
     const [batches, setBatches] = useState<Batch[]>([])
     const [recentBatches, setRecentBatches] = useState<any[]>([])
     const [activities, setActivities] = useState<any[]>([])
+    const [scanLocations, setScanLocations] = useState<any[]>([])
     const [chartData, setChartData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
@@ -105,8 +107,17 @@ export default function DashboardPage() {
                 created_at: formatDistanceToNow(new Date(b.created_at), { addSuffix: true })
             })))
 
-            // Audit Log
+            // Store scan locations for the map
             const scans = (scansRes.data.scans || [])
+            setScanLocations(scans.map((s: any) => ({
+                city: s.city,
+                country: s.country,
+                latitude: s.latitude || 0,
+                longitude: s.longitude || 0,
+                scanned_at: s.scanned_at,
+            })))
+
+            // Audit Log
             const scanEvents = scans.map((s: any) => ({
                 id: `scan-${s.id || Math.random()}`,
                 type: 'SCAN',
@@ -269,6 +280,8 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
+
+
                 {/* Data Tables Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* Recent Batches - Industrial Data Table */}
@@ -392,6 +405,17 @@ export default function DashboardPage() {
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Global Scan Activity - Full Width */}
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-base font-medium text-slate-900">Global Scan Activity</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Real-time QR code scans worldwide</p>
+                        </div>
+                    </div>
+                    <ScanMap scans={scanLocations} height={400} />
                 </div>
 
             </div>

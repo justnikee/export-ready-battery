@@ -12,8 +12,8 @@ import (
 
 // CreateScanEvent records a new scan event
 func (r *Repository) CreateScanEvent(ctx context.Context, event *models.ScanEvent) error {
-	query := `INSERT INTO public.scan_events (id, passport_id, ip_address, city, country, device_type, user_agent, scanned_at) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	query := `INSERT INTO public.scan_events (id, passport_id, ip_address, city, country, latitude, longitude, device_type, user_agent, scanned_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	_, err := r.db.Pool.Exec(ctx, query,
 		event.ID,
@@ -21,6 +21,8 @@ func (r *Repository) CreateScanEvent(ctx context.Context, event *models.ScanEven
 		event.IPAddress,
 		event.City,
 		event.Country,
+		event.Latitude,
+		event.Longitude,
 		event.DeviceType,
 		event.UserAgent,
 		event.ScannedAt,
@@ -50,7 +52,9 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 	query := `
 		SELECT 
 			s.city, 
-			s.country, 
+			s.country,
+			COALESCE(s.latitude, 0) as latitude,
+			COALESCE(s.longitude, 0) as longitude,
 			s.device_type, 
 			s.scanned_at,
 			p.serial_number,
@@ -75,6 +79,8 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 		if err := rows.Scan(
 			&item.City,
 			&item.Country,
+			&item.Latitude,
+			&item.Longitude,
 			&item.DeviceType,
 			&item.ScannedAt,
 			&item.SerialNumber,

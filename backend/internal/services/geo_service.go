@@ -36,15 +36,17 @@ func (s *GeoIPService) Close() {
 
 // GeoLookupResult contains the location lookup result
 type GeoLookupResult struct {
-	City    string
-	Country string
+	City      string
+	Country   string
+	Latitude  float64
+	Longitude float64
 }
 
 // Lookup returns the city and country for an IP address
 func (s *GeoIPService) Lookup(ipStr string) GeoLookupResult {
 	// Handle localhost/development IPs
 	if ipStr == "127.0.0.1" || ipStr == "::1" || ipStr == "" {
-		return GeoLookupResult{City: "Local", Country: "Development"}
+		return GeoLookupResult{City: "Local", Country: "Development", Latitude: 0, Longitude: 0}
 	}
 
 	// Strip port if present
@@ -57,17 +59,17 @@ func (s *GeoIPService) Lookup(ipStr string) GeoLookupResult {
 
 	// If in fallback mode, return unknown
 	if s.fallback || s.db == nil {
-		return GeoLookupResult{City: "Unknown", Country: "Unknown"}
+		return GeoLookupResult{City: "Unknown", Country: "Unknown", Latitude: 0, Longitude: 0}
 	}
 
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return GeoLookupResult{City: "Unknown", Country: "Unknown"}
+		return GeoLookupResult{City: "Unknown", Country: "Unknown", Latitude: 0, Longitude: 0}
 	}
 
 	record, err := s.db.City(ip)
 	if err != nil {
-		return GeoLookupResult{City: "Unknown", Country: "Unknown"}
+		return GeoLookupResult{City: "Unknown", Country: "Unknown", Latitude: 0, Longitude: 0}
 	}
 
 	city := record.City.Names["en"]
@@ -80,7 +82,12 @@ func (s *GeoIPService) Lookup(ipStr string) GeoLookupResult {
 		country = "Unknown"
 	}
 
-	return GeoLookupResult{City: city, Country: country}
+	return GeoLookupResult{
+		City:      city,
+		Country:   country,
+		Latitude:  record.Location.Latitude,
+		Longitude: record.Location.Longitude,
+	}
 }
 
 // ParseDeviceType extracts the device type from User-Agent string
