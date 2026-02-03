@@ -2,11 +2,29 @@
 
 import Link from 'next/link';
 import { Search, Github, ExternalLink, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function DocsHeader() {
     const [searchOpen, setSearchOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Keyboard shortcut: Ctrl+K / Cmd+K to open search
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Open search with Ctrl+K or Cmd+K
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+            // Close search with Escape
+            if (e.key === 'Escape') {
+                setSearchOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     return (
         <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-xl">

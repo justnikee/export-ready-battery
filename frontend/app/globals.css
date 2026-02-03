@@ -425,3 +425,30 @@
   opacity: 1;
   transform: rotate(3deg) translate(0, -4px);
 }
+
+/* ============================================
+   Custom Scrollbar Styling
+   ============================================ */
+
+/* Docs Sidebar - Ultra-thin Dark Theme Scrollbar */
+.docs-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 3px !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}

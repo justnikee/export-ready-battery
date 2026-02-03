@@ -53,7 +53,7 @@ const navGroups: NavGroup[] = [
     {
         label: "Developer",
         items: [
-            { name: "API Keys", href: "/api-keys", icon: Key },
+            { name: "API Keys", href: "/developer", icon: Key },
             { name: "Docs", href: "/docs", icon: BookOpen },
         ]
     }
