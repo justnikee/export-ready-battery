@@ -35,6 +35,8 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton"
+
 // Types
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 type FilterType = "ALL" | "DRAFT" | "ACTIVE"
@@ -213,14 +215,7 @@ export default function BatchesPage() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50">
-                <div className="flex items-center gap-3 text-slate-500">
-                    <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full" />
-                    Loading batches...
-                </div>
-            </div>
-        )
+        return <BatchesListSkeleton />
     }
 
     return (

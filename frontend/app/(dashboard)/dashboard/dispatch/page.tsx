@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
+import { DispatchSkeleton } from "@/components/dispatch/DispatchSkeleton"
 
 // Types
 interface ScannedItem {
@@ -32,6 +33,7 @@ export default function DispatchPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [soundEnabled, setSoundEnabled] = useState(true)
     const [isFocused, setIsFocused] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Audio Context Ref
@@ -112,6 +114,7 @@ export default function DispatchPage() {
                 localStorage.removeItem(STORAGE_KEY)
             }
         }
+        setIsInitialized(true)
     }, [])
 
     // Persist to localStorage whenever items change
@@ -245,6 +248,11 @@ export default function DispatchPage() {
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    // Show skeleton during hydration
+    if (!isInitialized) {
+        return <DispatchSkeleton />
     }
 
     return (

@@ -14,6 +14,8 @@ import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
 
+import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton"
+
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
@@ -289,11 +291,7 @@ export default function BatchDetailsPage() {
 
     const isDraft = batch?.status !== 'ACTIVE' && batch?.status !== 'ARCHIVED'
 
-    if (loading) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-        </div>
-    )
+    if (loading) return <BatchDetailSkeleton />
     if (!batch) return <div className="p-8 text-slate-400">Batch not found</div>
 
     const region = batch.market_region as MarketRegion
