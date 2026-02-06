@@ -22,6 +22,7 @@ import {
 interface UploadCSVProps {
     batchId: string
     marketRegion?: 'INDIA' | 'EU' | 'GLOBAL'
+    chemistry?: string  // For dynamic BPAN prefix (e.g., 'LFP', 'NMC')
     onUploadComplete: () => void
 }
 
@@ -41,7 +42,7 @@ interface ValidationResult {
     ready_to_import: boolean
 }
 
-export function UploadCSV({ batchId, marketRegion = 'GLOBAL', onUploadComplete }: UploadCSVProps) {
+export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploadComplete }: UploadCSVProps) {
     // CSV Upload State
     const [file, setFile] = useState<File | null>(null)
     const [isValidating, setIsValidating] = useState(false)
@@ -50,8 +51,14 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', onUploadComplete }
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
     const [uploadResult, setUploadResult] = useState<any>(null)
 
-    // Auto-Generate State - Default prefix based on market region
-    const defaultPrefix = marketRegion === 'INDIA' ? 'IN-MFG-LFP-2026-' : marketRegion === 'EU' ? 'EU-BAT-2026-' : 'BAT-2026-'
+    // Auto-Generate State - Default prefix based on market region and chemistry
+    const currentYear = new Date().getFullYear()
+    const chemistryCode = chemistry?.toUpperCase() || 'LFP'
+    const defaultPrefix = marketRegion === 'INDIA'
+        ? `IN-NKY-${chemistryCode}-${currentYear}-`
+        : marketRegion === 'EU'
+            ? `EU-BAT-${currentYear}-`
+            : `BAT-${currentYear}-`
     const [quantity, setQuantity] = useState("100")
     const [prefix, setPrefix] = useState(defaultPrefix)
     const [startNumber, setStartNumber] = useState("1")

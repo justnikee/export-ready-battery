@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { FileText, Trash2, Globe, Flag, Leaf, Loader2 } from "lucide-react"
 import api from "@/lib/api"
 
@@ -44,6 +45,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
     const [templates, setTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [pendingDelete, setPendingDelete] = useState<{ id: string, name: string } | null>(null)
 
     const fetchTemplates = useCallback(async () => {
         if (!user) return
@@ -68,7 +70,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
     }, [open, user, fetchTemplates])
 
     const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return
+        setPendingDelete(null)
 
         setDeletingId(id)
         try {
@@ -87,9 +89,9 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
     const getMarketIcon = (region: MarketRegion) => {
         switch (region) {
             case "INDIA":
-                return <span className="w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-green-500 shrink-0" />
+                return <span className="w-3 h-3 rounded-full bg-linear-to-br from-orange-400 to-green-500 shrink-0" />
             case "EU":
-                return <span className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shrink-0" />
+                return <span className="w-3 h-3 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0" />
             default:
                 return <Globe className="h-3.5 w-3.5" />
         }
@@ -107,124 +109,137 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 h-10 px-4">
-                    <FileText className="h-4 w-4" />
-                    Templates
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-slate-600" />
-                        Product SKU Templates
-                    </DialogTitle>
-                    <DialogDescription>
-                        Saved templates with market-specific compliance data. Load these when creating new batches.
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2 h-10 px-4">
+                        <FileText className="h-4 w-4" />
+                        Templates
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-slate-600" />
+                            Product SKU Templates
+                        </DialogTitle>
+                        <DialogDescription>
+                            Saved templates with market-specific compliance data. Load these when creating new batches.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto mt-4">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-                        </div>
-                    ) : templates.length === 0 ? (
-                        <div className="text-center py-12">
-                            <FileText className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                            <p className="text-slate-500">No templates saved yet</p>
-                            <p className="text-sm text-slate-400 mt-1">
-                                Create a batch and check "Save as Template" to save your first template
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {templates.map((template) => (
-                                <div
-                                    key={template.id}
-                                    className="border border-slate-200 rounded-lg p-4 hover:border-slate-300 transition-colors bg-white"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <h3 className="font-medium text-slate-900">{template.name}</h3>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`text-xs flex items-center gap-1 ${getMarketColor(template.market_region || "GLOBAL")}`}
-                                                >
-                                                    {getMarketIcon(template.market_region || "GLOBAL")}
-                                                    {template.market_region || "GLOBAL"}
-                                                </Badge>
-                                            </div>
+                    <div className="flex-1 overflow-y-auto mt-4">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            </div>
+                        ) : templates.length === 0 ? (
+                            <div className="text-center py-12">
+                                <FileText className="h-12 w-12 mx-auto text-slate-300 mb-3" />
+                                <p className="text-slate-500">No templates saved yet</p>
+                                <p className="text-sm text-slate-400 mt-1">
+                                    Create a batch and check "Save as Template" to save your first template
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {templates.map((template) => (
+                                    <div
+                                        key={template.id}
+                                        className="border border-slate-200 rounded-lg p-4 hover:border-slate-300 transition-colors bg-white"
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <h3 className="font-medium text-slate-900">{template.name}</h3>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={`text-xs flex items-center gap-1 ${getMarketColor(template.market_region || "GLOBAL")}`}
+                                                    >
+                                                        {getMarketIcon(template.market_region || "GLOBAL")}
+                                                        {template.market_region || "GLOBAL"}
+                                                    </Badge>
+                                                </div>
 
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-500">
-                                                {template.specs.chemistry && (
-                                                    <span>Chemistry: <span className="text-slate-700">{template.specs.chemistry}</span></span>
-                                                )}
-                                                {template.specs.capacity && (
-                                                    <span>Capacity: <span className="text-slate-700">{template.specs.capacity}</span></span>
-                                                )}
-                                                {template.specs.voltage && (
-                                                    <span>Voltage: <span className="text-slate-700">{template.specs.voltage}</span></span>
-                                                )}
-                                                {template.specs.manufacturer && (
-                                                    <span>Mfr: <span className="text-slate-700">{template.specs.manufacturer}</span></span>
-                                                )}
-                                            </div>
-
-                                            {/* India compliance badges */}
-                                            {template.market_region === "INDIA" && (
-                                                <div className="flex gap-2 mt-2 flex-wrap">
-                                                    {template.specs.hsn_code && (
-                                                        <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
-                                                            HSN: {template.specs.hsn_code}
-                                                        </Badge>
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-500">
+                                                    {template.specs.chemistry && (
+                                                        <span>Chemistry: <span className="text-slate-700">{template.specs.chemistry}</span></span>
                                                     )}
-                                                    {template.specs.bis_number && (
-                                                        <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
-                                                            BIS: {template.specs.bis_number}
-                                                        </Badge>
+                                                    {template.specs.capacity && (
+                                                        <span>Capacity: <span className="text-slate-700">{template.specs.capacity}</span></span>
                                                     )}
-                                                    {template.specs.epr_number && (
-                                                        <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
-                                                            EPR: {template.specs.epr_number}
-                                                        </Badge>
+                                                    {template.specs.voltage && (
+                                                        <span>Voltage: <span className="text-slate-700">{template.specs.voltage}</span></span>
+                                                    )}
+                                                    {template.specs.manufacturer && (
+                                                        <span>Mfr: <span className="text-slate-700">{template.specs.manufacturer}</span></span>
                                                     )}
                                                 </div>
-                                            )}
 
-                                            <p className="text-xs text-slate-400 mt-2">
-                                                Created {new Date(template.created_at).toLocaleDateString()}
-                                            </p>
+                                                {/* India compliance badges */}
+                                                {template.market_region === "INDIA" && (
+                                                    <div className="flex gap-2 mt-2 flex-wrap">
+                                                        {template.specs.hsn_code && (
+                                                            <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
+                                                                HSN: {template.specs.hsn_code}
+                                                            </Badge>
+                                                        )}
+                                                        {template.specs.bis_number && (
+                                                            <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
+                                                                BIS: {template.specs.bis_number}
+                                                            </Badge>
+                                                        )}
+                                                        {template.specs.epr_number && (
+                                                            <Badge variant="outline" className="text-xs bg-orange-50 border-orange-200 text-orange-700">
+                                                                EPR: {template.specs.epr_number}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <p className="text-xs text-slate-400 mt-2">
+                                                    Created {new Date(template.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => setPendingDelete({ id: template.id, name: template.name })}
+                                                disabled={deletingId === template.id}
+                                            >
+                                                {deletingId === template.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </Button>
                                         </div>
-
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                            onClick={() => handleDelete(template.id, template.name)}
-                                            disabled={deletingId === template.id}
-                                        >
-                                            {deletingId === template.id ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Trash2 className="h-4 w-4" />
-                                            )}
-                                        </Button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                <div className="border-t border-slate-200 pt-4 mt-4">
-                    <p className="text-xs text-slate-500 text-center">
-                        💡 Tip: To use a template, open "Create New Batch" and select it from the template dropdown
-                    </p>
-                </div>
-            </DialogContent>
-        </Dialog>
+                    <div className="border-t border-slate-200 pt-4 mt-4">
+                        <p className="text-xs text-slate-500 text-center">
+                            💡 Tip: To use a template, open "Create New Batch" and select it from the template dropdown
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Confirmation Dialog */}
+            <ConfirmDialog
+                open={!!pendingDelete}
+                onOpenChange={(open) => !open && setPendingDelete(null)}
+                title="Delete template?"
+                description={pendingDelete ? `Delete template "${pendingDelete.name}"? This cannot be undone.` : ""}
+                confirmText="Delete"
+                variant="destructive"
+                onConfirm={() => pendingDelete && handleDelete(pendingDelete.id, pendingDelete.name)}
+            />
+        </>
     )
 }

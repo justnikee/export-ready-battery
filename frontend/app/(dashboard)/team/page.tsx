@@ -39,9 +39,10 @@ export default function TeamPage() {
         );
     }
 
-    const { members, seat_count, seat_limit, plan_type } = data || {
+    const { members: rawMembers, seat_count, seat_limit, plan_type } = data || {
         members: [], seat_count: 0, seat_limit: 2, plan_type: 'STARTER'
     };
+    const members = rawMembers || [];
 
     const usagePercent = (seat_count / seat_limit) * 100;
 

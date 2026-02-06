@@ -88,7 +88,7 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
         }
     }
 
-    if (members.length === 0) {
+    if (!members || members.length === 0) {
         return (
             <div className="text-center py-12 bg-slate-50 rounded-lg border border-dashed">
                 <p className="text-muted-foreground">No team members found.</p>

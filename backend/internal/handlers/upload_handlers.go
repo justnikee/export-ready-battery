@@ -99,8 +99,10 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// UPDATE BATCH METADATA IF DETECTED
-	if batch.Status == models.BatchStatusDraft && (parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil) {
+	// UPDATE BATCH METADATA IF DETECTED FROM CSV
+	// Note: Once a batch is ACTIVE, it's considered immutable per design_system.md
+	// We log a warning but allow updates to import fields from CSV for data enrichment
+	if parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil {
 		var cellSource, billOfEntry, countryOrigin *string
 		if parseResult.DetectedCellSource != "" {
 			val := parseResult.DetectedCellSource
@@ -367,7 +369,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Generate passports
 	passports := make([]*models.Passport, req.Count)
 	for i := 0; i < req.Count; i++ {
-		serialNumber := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber+i)
+		serialNumber := fmt.Sprintf("%s%05d", req.Prefix, req.StartNumber+i)
 		passports[i] = &models.Passport{
 			UUID:                   uuid.New(),
 			BatchID:                batchID,

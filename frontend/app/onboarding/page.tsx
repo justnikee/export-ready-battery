@@ -44,6 +44,13 @@ export default function OnboardingPage() {
         eu_contact_email: "",
     })
 
+    // Redirect if onboarding is already completed
+    useEffect(() => {
+        if (user?.onboarding_completed) {
+            router.push("/dashboard")
+        }
+    }, [user, router])
+
     // Pre-fill with existing user data
     useEffect(() => {
         if (user) {

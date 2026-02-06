@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck } from "lucide-react"
+import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2 } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton"
 
@@ -33,6 +34,8 @@ export default function BatchDetailsPage() {
     const { refreshUser } = useAuth()
     const [batch, setBatch] = useState<any>(null)
     const [activating, setActivating] = useState(false)
+    const [archiving, setArchiving] = useState(false)
+    const [deletingDraft, setDeletingDraft] = useState(false)
     const [passportCount, setPassportCount] = useState<number>(0)
     const [passports, setPassports] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -44,6 +47,8 @@ export default function BatchDetailsPage() {
         hasMore: false
     })
     const [labelsDialogOpen, setLabelsDialogOpen] = useState(false)
+    const [confirmArchive, setConfirmArchive] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
 
     const fetchBatch = async () => {
         try {
@@ -279,6 +284,42 @@ export default function BatchDetailsPage() {
         }
     }
 
+    // Archive batch handler (for ACTIVE batches)
+    const handleArchiveBatch = async () => {
+        if (!batch) return
+        setConfirmArchive(false)
+
+        setArchiving(true)
+        try {
+            await api.post(`/batches/${params.id}/archive`)
+            toast.success('Batch archived successfully')
+            await fetchBatch()
+        } catch (error: any) {
+            console.error('Failed to archive batch:', error)
+            toast.error(error.response?.data?.error || 'Failed to archive batch')
+        } finally {
+            setArchiving(false)
+        }
+    }
+
+    // Delete draft batch handler (for DRAFT batches with 0 passports)
+    const handleDeleteDraft = async () => {
+        if (!batch) return
+        setConfirmDelete(false)
+
+        setDeletingDraft(true)
+        try {
+            await api.delete(`/batches/${params.id}/draft`)
+            toast.success('Draft batch deleted successfully')
+            router.push('/batches')
+        } catch (error: any) {
+            console.error('Failed to delete draft batch:', error)
+            toast.error(error.response?.data?.error || 'Failed to delete draft batch')
+        } finally {
+            setDeletingDraft(false)
+        }
+    }
+
     const isDraft = batch?.status !== 'ACTIVE' && batch?.status !== 'ARCHIVED'
 
     if (loading) return <BatchDetailSkeleton />
@@ -318,32 +359,91 @@ export default function BatchDetailsPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            {isDraft ? (
-                                <Button
-                                    onClick={handleActivateBatch}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                                    disabled={activating}
-                                >
-                                    {activating ? (
-                                        <>
-                                            <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                            Activating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Unlock className="mr-2 h-4 w-4" />
-                                            Activate Batch
-                                        </>
+                            {/* Draft batch actions */}
+                            {isDraft && (
+                                <>
+                                    <Button
+                                        onClick={handleActivateBatch}
+                                        className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                                        disabled={activating}
+                                    >
+                                        {activating ? (
+                                            <>
+                                                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                Activating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Unlock className="mr-2 h-4 w-4" />
+                                                Activate Batch
+                                            </>
+                                        )}
+                                    </Button>
+                                    {/* Delete Draft - only if no passports */}
+                                    {(batch?.total_passports === 0) && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setConfirmDelete(true)}
+                                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                            disabled={deletingDraft}
+                                        >
+                                            {deletingDraft ? (
+                                                <>
+                                                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                                    Deleting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete Draft
+                                                </>
+                                            )}
+                                        </Button>
                                     )}
-                                </Button>
-                            ) : (
+                                </>
+                            )}
+
+                            {/* Active batch actions */}
+                            {batch?.status === 'ACTIVE' && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLabelsDialogOpen(true)}
+                                        className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                    >
+                                        <Printer className="mr-2 h-4 w-4" />
+                                        Print Labels
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setConfirmArchive(true)}
+                                        className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                        disabled={archiving}
+                                    >
+                                        {archiving ? (
+                                            <>
+                                                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-amber-600 border-t-transparent"></div>
+                                                Archiving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Archive className="mr-2 h-4 w-4" />
+                                                Archive Batch
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+
+                            {/* Archived batch - read only */}
+                            {batch?.status === 'ARCHIVED' && (
                                 <Button
                                     variant="outline"
-                                    onClick={() => setLabelsDialogOpen(true)}
-                                    className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                    disabled
+                                    className="border-slate-200 text-slate-400 cursor-not-allowed"
                                 >
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Print Labels
+                                    <Lock className="mr-2 h-4 w-4" />
+                                    Archived (Read Only)
                                 </Button>
                             )}
                         </div>
@@ -773,7 +873,7 @@ export default function BatchDetailsPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <UploadCSV batchId={batch.id} marketRegion={region} onUploadComplete={handleUploadComplete} />
+                                <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} onUploadComplete={handleUploadComplete} />
                             </CardContent>
                         </Card>
                     </div>
@@ -929,6 +1029,26 @@ export default function BatchDetailsPage() {
                     batchName={batch?.batch_name || ""}
                     passportCount={passportCount}
                     onDownload={handleDownloadLabels}
+                />
+
+                {/* Confirmation Dialogs */}
+                <ConfirmDialog
+                    open={confirmArchive}
+                    onOpenChange={setConfirmArchive}
+                    title="Archive this batch?"
+                    description="Archived batches remain available for audit and compliance purposes but cannot generate new passports."
+                    confirmText="Archive Batch"
+                    variant="default"
+                    onConfirm={handleArchiveBatch}
+                />
+                <ConfirmDialog
+                    open={confirmDelete}
+                    onOpenChange={setConfirmDelete}
+                    title="Delete this draft batch?"
+                    description="This action cannot be undone. Only draft batches with no passports can be deleted."
+                    confirmText="Delete Draft"
+                    variant="destructive"
+                    onConfirm={handleDeleteDraft}
                 />
             </div>
         </div >

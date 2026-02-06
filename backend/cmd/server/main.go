@@ -188,6 +188,8 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
+	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
+	mux.Handle("DELETE /api/v1/batches/{id}/draft", authMiddleware.Protect(http.HandlerFunc(h.DeleteDraftBatch)))
 
 	// ============================================
 	// BULK OPERATIONS (Protected)

@@ -17,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
 const BatchStatusChart = dynamic(() => import('@/components/dashboard/BatchStatusChart').then(mod => mod.BatchStatusChart), { ssr: false })
@@ -49,6 +50,7 @@ export default function DashboardPage() {
     const [scanLocations, setScanLocations] = useState<any[]>([])
     const [chartData, setChartData] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [batchToDelete, setBatchToDelete] = useState<string | null>(null)
 
     const fetchDashboardData = async () => {
         if (!user) return
@@ -199,7 +201,7 @@ export default function DashboardPage() {
                     <div className="bg-white border border-slate-200 rounded-lg p-5">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-400 to-green-500 shrink-0" />
+                                <span className="w-4 h-4 rounded-full bg-linear-to-br from-orange-400 to-green-500 shrink-0" />
                                 India
                             </span>
                             <Zap className="h-4 w-4 text-orange-500" />
@@ -212,7 +214,7 @@ export default function DashboardPage() {
                     <div className="bg-white border border-slate-200 rounded-lg p-5">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shrink-0" />
+                                <span className="w-4 h-4 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0" />
                                 EU
                             </span>
                             <Globe className="h-4 w-4 text-blue-500" />
@@ -351,16 +353,9 @@ export default function DashboardPage() {
                                                     <DropdownMenuSeparator className="bg-slate-200" />
 
                                                     <DropdownMenuItem
-                                                        onClick={async () => {
-                                                            if (confirm("Delete this batch?")) {
-                                                                try {
-                                                                    await api.delete(`/batches/${batch.id}`)
-                                                                    toast.success("Batch deleted")
-                                                                    fetchDashboardData()
-                                                                } catch (err) {
-                                                                    toast.error("Failed to delete batch")
-                                                                }
-                                                            }
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            setBatchToDelete(batch.id)
                                                         }}
                                                         className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
                                                     >
@@ -419,6 +414,28 @@ export default function DashboardPage() {
                 </div>
 
             </div>
+            {/* Confirmation Dialogs */}
+            <ConfirmDialog
+                open={!!batchToDelete}
+                onOpenChange={(open) => !open && setBatchToDelete(null)}
+                title="Delete this batch?"
+                description="This action cannot be undone. The batch and all its data will be permanently removed."
+                confirmText="Delete Batch"
+                variant="destructive"
+                onConfirm={async () => {
+                    if (batchToDelete) {
+                        try {
+                            await api.delete(`/batches/${batchToDelete}`)
+                            toast.success("Batch deleted")
+                            fetchDashboardData()
+                        } catch (err) {
+                            toast.error("Failed to delete batch")
+                        } finally {
+                            setBatchToDelete(null)
+                        }
+                    }
+                }}
+            />
         </div>
     )
 }

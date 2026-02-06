@@ -240,3 +240,106 @@ func formatMessage(count int, noun string, verb string) string {
 	}
 	return string(rune(count)) + " " + noun + suffix + " " + verb
 }
+
+// ArchiveBatch handles POST /api/v1/batches/{id}/archive
+// Archives an ACTIVE batch - compliance-safe alternative to deletion
+func (h *Handler) ArchiveBatch(w http.ResponseWriter, r *http.Request) {
+	batchIDStr := r.PathValue("id")
+	batchID, err := uuid.Parse(batchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID")
+		return
+	}
+
+	// Get tenant ID for authorization
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+	tenantID, _ := uuid.Parse(tenantIDStr)
+
+	// Verify batch belongs to tenant
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Only ACTIVE batches can be archived
+	if batch.Status != "ACTIVE" {
+		respondError(w, http.StatusBadRequest, "Only ACTIVE batches can be archived. Current status: "+batch.Status)
+		return
+	}
+
+	// Set batch status to ARCHIVED
+	err = h.repo.SetBatchStatus(r.Context(), batchID, "ARCHIVED")
+	if err != nil {
+		log.Printf("Failed to archive batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to archive batch")
+		return
+	}
+
+	log.Printf("📦 Archived batch %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"batch_id":   batchID,
+		"batch_name": batch.BatchName,
+		"status":     "ARCHIVED",
+		"message":    "Batch archived successfully. It remains available for audit and compliance purposes.",
+	})
+}
+
+// DeleteDraftBatch handles DELETE /api/v1/batches/{id}/draft
+// Only allows deletion of DRAFT batches with no passports
+func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
+	batchIDStr := r.PathValue("id")
+	batchID, err := uuid.Parse(batchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID")
+		return
+	}
+
+	// Get tenant ID for authorization
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+	tenantID, _ := uuid.Parse(tenantIDStr)
+
+	// Verify batch belongs to tenant
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Only DRAFT batches can be deleted
+	if batch.Status != "DRAFT" {
+		respondError(w, http.StatusForbidden, "Only DRAFT batches can be deleted. Use archive for ACTIVE batches.")
+		return
+	}
+
+	// Check if batch has any passports
+	if batch.TotalPassports > 0 {
+		respondError(w, http.StatusForbidden, "Cannot delete batch with existing passports. Remove passports first or archive the batch.")
+		return
+	}
+
+	// Safe to hard delete - no legal artifacts created
+	_, err = h.repo.DeleteBatchWithPassports(r.Context(), batchID)
+	if err != nil {
+		log.Printf("Failed to delete draft batch: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to delete draft batch")
+		return
+	}
+
+	log.Printf("🗑️ Deleted DRAFT batch %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"batch_id":   batchID,
+		"batch_name": batch.BatchName,
+		"message":    "Draft batch deleted successfully.",
+	})
+}
