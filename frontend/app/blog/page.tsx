@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 import { Metadata } from 'next';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
     title: 'The ExportReady Blog | Battery Passport & Compliance Insights',
@@ -30,10 +31,12 @@ export default async function BlogIndexPage() {
                             <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-200 border-border/60">
                                 {post.cover_image && (
                                     <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted relative">
-                                        <img
+                                        <Image
                                             src={post.cover_image}
                                             alt={post.title}
-                                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                                            fill
+                                            sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
+                                            className="object-cover group-hover:scale-105 transition-transform duration-300"
                                         />
                                     </div>
                                 )}

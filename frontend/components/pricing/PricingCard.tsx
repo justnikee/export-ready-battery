@@ -1,23 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { Check, X } from "lucide-react"
+import { Check, ArrowRight } from "lucide-react"
 import { clsx } from "clsx"
 import { motion } from "framer-motion"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 
 interface PricingCardProps {
     planName: string
     description: string
-    price: number | string // Allow string for custom pricing
+    price: number | string
     billingPeriod?: "monthly" | "yearly"
     features: { text: string; available?: boolean; highlight?: boolean }[]
     recommended?: boolean
     ctaText: string
     ctaLink: string
     ctaVariant?: "default" | "outline"
-    priceSuffix?: string // e.g. "/batch" or nothing for one-time
+    priceSuffix?: string
 }
 
 export function PricingCard({
@@ -33,7 +31,6 @@ export function PricingCard({
     priceSuffix
 }: PricingCardProps) {
 
-    // Calculate displayed price (20% off for yearly)
     const displayPrice = billingPeriod === "yearly" && typeof price === 'number' && price > 0
         ? Math.floor(price * 0.8)
         : price
@@ -43,85 +40,127 @@ export function PricingCard({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className={clsx(
-                "relative rounded-2xl border p-1 transition-all duration-300",
-                recommended
-                    ? "bg-linear-to-b from-teal-500/20 to-transparent border-teal-500/30 md:-translate-y-4"
-                    : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
-            )}
+            transition={{ duration: 0.4 }}
+            className="relative group"
         >
+            {/* Recommended glow effect */}
             {recommended && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1 shadow-lg shadow-teal-500/25">
-                        Most Popular
-                    </Badge>
-                </div>
+                <div className="absolute -inset-[1px] bg-gradient-to-b from-white/20 via-white/5 to-transparent rounded-2xl" />
             )}
 
-            <div className="bg-slate-900 rounded-xl p-6 h-full flex flex-col">
-                <div className="mb-6">
-                    <h3 className={clsx(
-                        "text-xl font-semibold mb-1",
-                        recommended ? "text-teal-400" : "text-white"
-                    )}>
-                        {planName}
-                    </h3>
-                    <p className="text-sm text-slate-500">{description}</p>
-                </div>
-
-                <div className="mb-6">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-white">
-                            {typeof displayPrice === 'number'
-                                ? (displayPrice === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`)
-                                : displayPrice}
+            <div className={clsx(
+                "relative h-full rounded-2xl transition-all duration-300",
+                recommended
+                    ? "bg-white text-zinc-900"
+                    : "bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
+            )}>
+                {/* Popular badge */}
+                {recommended && (
+                    <div className="absolute -top-3 left-6">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-zinc-900 text-white shadow-lg">
+                            Most Popular
                         </span>
-                        {priceSuffix && <span className="text-slate-500">{priceSuffix}</span>}
-                        {billingPeriod && typeof price === 'number' && price > 0 && <span className="text-slate-500">/mo</span>}
                     </div>
-                    {billingPeriod === "yearly" && typeof price === 'number' && typeof displayPrice === 'number' && price > 0 && (
-                        <p className="text-xs text-emerald-400 font-medium mt-1">
-                            Billed ₹{(displayPrice * 12).toLocaleString('en-IN')} yearly (Save 20%)
+                )}
+
+                <div className="p-8 flex flex-col h-full">
+                    {/* Plan header */}
+                    <div className="mb-8">
+                        <h3 className={clsx(
+                            "text-lg font-semibold mb-2",
+                            recommended ? "text-zinc-900" : "text-white"
+                        )}>
+                            {planName}
+                        </h3>
+                        <p className={clsx(
+                            "text-sm leading-relaxed",
+                            recommended ? "text-zinc-600" : "text-zinc-400"
+                        )}>
+                            {description}
                         </p>
-                    )}
-                </div>
+                    </div>
 
-                <div className="space-y-3 mb-8 grow">
-                    {features.map((feature, i) => (
-                        <FeatureItem key={i} {...feature} />
-                    ))}
-                </div>
+                    {/* Price */}
+                    <div className="mb-8">
+                        <div className="flex items-baseline gap-1">
+                            <span className={clsx(
+                                "text-5xl font-bold tracking-tight",
+                                recommended ? "text-zinc-900" : "text-white"
+                            )}>
+                                {typeof displayPrice === 'number'
+                                    ? (displayPrice === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`)
+                                    : displayPrice}
+                            </span>
+                        </div>
+                        {priceSuffix && (
+                            <p className={clsx(
+                                "text-sm mt-1",
+                                recommended ? "text-zinc-500" : "text-zinc-500"
+                            )}>
+                                {priceSuffix}
+                            </p>
+                        )}
+                        {billingPeriod === "yearly" && typeof price === 'number' && typeof displayPrice === 'number' && price > 0 && (
+                            <p className="text-xs text-emerald-500 font-medium mt-2">
+                                Save 20% with yearly billing
+                            </p>
+                        )}
+                    </div>
 
-                <Button
-                    asChild
-                    className={clsx(
-                        "w-full h-11 font-semibold rounded-lg mt-auto",
-                        recommended
-                            ? "bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-500/25"
-                            : ctaVariant === "default"
-                                ? "bg-white hover:bg-slate-200 text-slate-900"
-                                : "bg-transparent border border-slate-700 text-white hover:bg-slate-800"
-                    )}
-                    variant={recommended ? "default" : ctaVariant}
-                >
-                    <Link href={ctaLink}>{ctaText}</Link>
-                </Button>
+                    {/* CTA Button */}
+                    <Link
+                        href={ctaLink}
+                        className={clsx(
+                            "flex items-center justify-center gap-2 w-full py-3 px-4 rounded-lg font-medium text-sm transition-all duration-200 mb-8",
+                            recommended
+                                ? "bg-zinc-900 text-white hover:bg-zinc-800"
+                                : ctaVariant === "default"
+                                    ? "bg-white text-zinc-900 hover:bg-zinc-100"
+                                    : "border border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600"
+                        )}
+                    >
+                        {ctaText}
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+
+                    {/* Divider */}
+                    <div className={clsx(
+                        "h-px mb-8",
+                        recommended ? "bg-zinc-200" : "bg-zinc-800"
+                    )} />
+
+                    {/* Features */}
+                    <div className="space-y-4 flex-grow">
+                        <p className={clsx(
+                            "text-xs font-medium uppercase tracking-wider",
+                            recommended ? "text-zinc-500" : "text-zinc-500"
+                        )}>
+                            What&apos;s included
+                        </p>
+                        {features.map((feature, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                                <div className={clsx(
+                                    "flex items-center justify-center w-5 h-5 rounded-full mt-0.5 shrink-0",
+                                    recommended
+                                        ? "bg-zinc-900 text-white"
+                                        : feature.highlight
+                                            ? "bg-emerald-500/20 text-emerald-400"
+                                            : "bg-zinc-800 text-zinc-400"
+                                )}>
+                                    <Check className="h-3 w-3" />
+                                </div>
+                                <span className={clsx(
+                                    "text-sm",
+                                    recommended ? "text-zinc-700" : "text-zinc-300",
+                                    feature.highlight && !recommended && "text-white font-medium"
+                                )}>
+                                    {feature.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </motion.div>
-    )
-}
-
-function FeatureItem({ text, available = true, highlight = false }: { text: string, available?: boolean, highlight?: boolean }) {
-    return (
-        <div className="flex items-start gap-3">
-            {available ? (
-                <Check className={clsx("h-5 w-5 shrink-0 mt-0.5", highlight ? "text-teal-400" : "text-emerald-400")} />
-            ) : (
-                <X className="h-5 w-5 shrink-0 mt-0.5 text-slate-600" />
-            )}
-            <span className={clsx("text-sm", available ? "text-slate-300" : "text-slate-600 line-through")}>
-                {text}
-            </span>
-        </div>
     )
 }

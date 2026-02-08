@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Battery, LogOut, HelpCircle, Menu, X, Home, Box, Truck, Users, Trophy, CreditCard, Settings, UserPlus } from "lucide-react"
+import { LogOut, HelpCircle, Menu, X, Home, Box, Truck, Users, Trophy, CreditCard, Settings, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -58,10 +59,7 @@ export function TopNav() {
 
                         {/* Logo */}
                         <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-                            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                <Battery className="h-4 w-4 text-white" />
-                            </div>
-                            <span className="font-semibold text-slate-900 text-lg hidden sm:block">ExportReady</span>
+                            <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
                         </Link>
                     </div>
 
@@ -160,10 +158,7 @@ export function TopNav() {
                                 className="flex items-center gap-2"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                    <Battery className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="font-semibold text-slate-900 text-lg">ExportReady</span>
+                                <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
                             </Link>
                             <Button
                                 variant="ghost"

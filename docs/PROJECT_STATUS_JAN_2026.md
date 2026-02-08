@@ -79,28 +79,29 @@
 ### 4. Passport Lifecycle Management (NEW)
 
 ```
-ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
-                       ↓
-                   RECALLED
+CREATED -> ACTIVE -> SHIPPED -> IN_SERVICE -> RECYCLED -> END_OF_LIFE
+             |
+          RECALLED -> RECYCLED / END_OF_LIFE
 ```
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **Status Transitions** | ✅ NEW | Validated state machine with allowed transitions |
-| **Bulk Transitions** | ✅ NEW | Update multiple passports at once |
-| **Audit Trail** | ✅ NEW | PassportEvent logging for all changes |
-| **Actor Tracking** | ✅ NEW | Track who made each change (role + email) |
-| **Ownership Transfer** | ✅ NEW | `current_owner_email` field |
+| **Lifecycle Actions** | Yes NEW | Action-based state machine with validated intent |
+| **Bulk Actions** | Yes NEW | Apply lifecycle actions to multiple passports |
+| **Audit Trail** | Yes NEW | Immutable PassportEvent logging for all changes |
+| **Actor Tracking** | Yes NEW | Enforced actor role + identity |
+| **Evidence Enforcement** | Yes NEW | Required evidence for SHIP/INSTALL/RECYCLE/RECALL |
+| **Ownership Transfer** | Yes NEW | current_owner_email field |
 
 ### 4. External Stakeholder Access (NEW)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| **Magic Link Tokens** | ✅ NEW | Time-limited authentication for external users |
-| **Trusted Partners** | ✅ NEW | Tier A: Auto-approve by email domain |
-| **Partner Codes** | ✅ NEW | Tier B: Shared secret codes for unknown domains |
-| **Role-based Access** | ✅ NEW | LOGISTICS, TECHNICIAN, RECYCLER, CUSTOMER |
-| **Public Action Page** | ✅ NEW | External users can update passport status |
+| **Magic Link Tokens** | Yes NEW | Single-use, time-limited, action-bound tokens |
+| **Trusted Partners** | Yes NEW | Tier A: Auto-approve by email domain |
+| **Partner Codes** | Yes NEW | Tier B: Shared secret codes for unknown domains |
+| **Role-based Access** | Yes NEW | LOGISTICS, TECHNICIAN, RECYCLER |
+| **Public Action Page** | Yes NEW | External users perform action-based transitions with evidence |
 
 ### 5. India Compliance
 
@@ -253,13 +254,15 @@ ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
 
 | Method | Endpoint | Auth |
 |--------|----------|------|
-| `GET` | `/api/v1/passport/{uuid}` | ❌ |
+| `GET` | `/api/v1/p/{uuid}` | ❌ |
 | `GET` | `/api/v1/passport/{uuid}/action-info` | Magic Link |
 | `POST` | `/api/v1/passport/{uuid}/transition` | Magic Link |
 | `POST` | `/api/v1/passports/{uuid}/transition` | ✅ |
 | `POST` | `/api/v1/passports/bulk/transition` | ✅ |
 | `GET` | `/api/v1/passports/{uuid}/transitions` | ✅ |
 | `GET` | `/api/v1/passports/{uuid}/events` | ✅ |
+
+Note: Lifecycle transition endpoints accept action + evidence only. Status or metadata fields are rejected.
 
 ### API Keys
 
@@ -290,7 +293,7 @@ ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
 |------|---------|--------|-----|
 | **India PLI/EPR/BIS** | 85% | 95% | 10% |
 | **EU Battery Regulation** | 60% | 90% | 30% |
-| **Lifecycle Tracking** | 90% | 95% | 5% |
+| **Lifecycle Tracking** | 100% | 100% | 0% |
 | **Enterprise Features** | 75% | 85% | 10% |
 
 ### EU Gaps (for 2027 mandate)
@@ -307,7 +310,7 @@ ACTIVE → SHIPPED → IN_SERVICE → RETURNED → RECYCLED → END_OF_LIFE
 ## 🚀 Recent Additions (Jan 2026)
 
 ### Magic Link Authentication
-External stakeholders (logistics, technicians, recyclers) can now access and update passport status without creating accounts.
+External stakeholders (logistics, technicians, recyclers) can perform action-based transitions with evidence using single-use, action-bound magic links.
 
 ### Trusted Partner System
 Two-tier verification:
@@ -315,7 +318,7 @@ Two-tier verification:
 - **Tier B:** Partner codes for unknown domains
 
 ### Passport Lifecycle Management
-Full state machine with validated transitions, bulk updates, and audit logging.
+Action-based state machine with role enforcement, evidence validation, and immutable audit events.
 
 ### API Key Management
 Programmatic access for integrations with read/write scopes and rate limiting.
@@ -369,3 +372,11 @@ npm run start         # Production server
 ---
 
 *Document generated: January 25, 2026 | ExportReady-Battery v3.0*
+
+
+
+
+
+
+
+

@@ -52,7 +52,7 @@ export function DownloadLabelsDialog({
                         Download PDF Labels
                     </DialogTitle>
                     <DialogDescription className="text-slate-400">
-                        Generate printable label sheets for batch "{batchName}"
+                        Generate printable label sheets for batch &quot;{batchName}&quot;
                     </DialogDescription>
                 </DialogHeader>
 

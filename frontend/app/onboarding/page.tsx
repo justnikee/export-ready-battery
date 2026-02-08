@@ -135,9 +135,10 @@ export default function OnboardingPage() {
             refreshUser()
 
             router.push("/dashboard")
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to complete onboarding:", err)
-            setError(err?.response?.data?.error || err?.message || "Failed to save profile. Please try again.")
+            const apiError = err as { response?: { data?: { error?: string } }; message?: string }
+            setError(apiError.response?.data?.error || apiError.message || "Failed to save profile. Please try again.")
         } finally {
             setLoading(false)
         }
@@ -499,8 +500,8 @@ export default function OnboardingPage() {
                                         >
                                             <CheckCircle2 className="w-10 h-10 text-white" />
                                         </motion.div>
-                                        <h2 className="text-xl font-semibold text-white">You're all set!</h2>
-                                        <p className="text-slate-400 mt-1">Here's a summary of your profile</p>
+                                        <h2 className="text-xl font-semibold text-white">You&apos;re all set!</h2>
+                                        <p className="text-slate-400 mt-1">Here&apos;s a summary of your profile</p>
                                     </div>
 
                                     <div className="space-y-4 bg-slate-800/50 rounded-xl p-4">
@@ -601,7 +602,7 @@ export default function OnboardingPage() {
                         animate={{ opacity: 1 }}
                         className="text-center text-slate-500 text-sm"
                     >
-                        Don't have these details?{" "}
+                        Don&apos;t have these details?{" "}
                         <button
                             type="button"
                             onClick={handleNext}

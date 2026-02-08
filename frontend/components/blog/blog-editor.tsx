@@ -113,7 +113,7 @@ export default function BlogEditor({ post, isNew = false }: BlogEditorProps) {
                 toast.error(result.error);
                 setLoading(false);
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete post');
             setLoading(false);
         }

@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Battery, Box, Home, Settings, CreditCard, Code, Users, Trophy, FileArchive } from "lucide-react"
+import { Box, Home, Settings, CreditCard, Code, Users, Trophy, FileArchive } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -24,8 +25,7 @@ export function Sidebar() {
         <div className="flex h-full w-64 flex-col border-r bg-white">
             <div className="flex h-14 items-center border-b px-6">
                 <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <Battery className="h-6 w-6 text-primary" />
-                    <span>ExportReady</span>
+                    <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
                 </Link>
             </div>
             <div className="flex-1 overflow-y-auto py-4">

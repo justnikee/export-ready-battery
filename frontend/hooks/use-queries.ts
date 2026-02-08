@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
+import { Batch } from '@/lib/types'
 
 // Query keys factory for consistent cache management
 export const queryKeys = {
@@ -19,8 +20,8 @@ export function useBatches(tenantId: string | undefined) {
         queryKey: queryKeys.batches(tenantId || ''),
         queryFn: async () => {
             const response = await api.get(`/batches?tenant_id=${tenantId}`)
-            const batches = response.data.batches || []
-            return batches.sort((a: any, b: any) =>
+            const batches = (response.data.batches || []) as Batch[]
+            return batches.sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )
         },

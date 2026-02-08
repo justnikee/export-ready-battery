@@ -21,18 +21,18 @@ import (
 
 // ExternalCreateBatchRequest is the request for creating a batch via external API
 type ExternalCreateBatchRequest struct {
-	BatchName        string           `json:"batch_name"`
-	ModelName        string           `json:"model_name,omitempty"`
-	MarketRegion     string           `json:"market_region"`
-	Specs            models.BatchSpec `json:"specs"`
-	PLICompliant     bool             `json:"pli_compliant,omitempty"`
-	DomesticValueAdd float64          `json:"domestic_value_add,omitempty"`
-	CellSource       string           `json:"cell_source,omitempty"`
-	BillOfEntryNo    string           `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin  string           `json:"country_of_origin,omitempty"`
-	CustomsDate      string           `json:"customs_date,omitempty"`
-	ManufacturingStartDate string     `json:"manufacturing_start_date,omitempty"`
-	ManufacturingEndDate   string     `json:"manufacturing_end_date,omitempty"`
+	BatchName              string           `json:"batch_name"`
+	ModelName              string           `json:"model_name,omitempty"`
+	MarketRegion           string           `json:"market_region"`
+	Specs                  models.BatchSpec `json:"specs"`
+	PLICompliant           bool             `json:"pli_compliant,omitempty"`
+	DomesticValueAdd       float64          `json:"domestic_value_add,omitempty"`
+	CellSource             string           `json:"cell_source,omitempty"`
+	BillOfEntryNo          string           `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin        string           `json:"country_of_origin,omitempty"`
+	CustomsDate            string           `json:"customs_date,omitempty"`
+	ManufacturingStartDate string           `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   string           `json:"manufacturing_end_date,omitempty"`
 }
 
 // ExternalCreatePassportsRequest is the request for adding passports via external API
@@ -116,19 +116,19 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// Create batch using repository request struct
 	createReq := repository.CreateBatchRequest{
-		TenantID:         tenantID,
-		BatchName:        req.BatchName,
-		ModelName:        req.ModelName,
-		Specs:            req.Specs,
-		MarketRegion:     marketRegion,
-		PLICompliant:     req.PLICompliant,
-		DomesticValueAdd: req.DomesticValueAdd,
-		CellSource:       req.CellSource,
+		TenantID:               tenantID,
+		BatchName:              req.BatchName,
+		ModelName:              req.ModelName,
+		Specs:                  req.Specs,
+		MarketRegion:           marketRegion,
+		PLICompliant:           req.PLICompliant,
+		DomesticValueAdd:       req.DomesticValueAdd,
+		CellSource:             req.CellSource,
 		ManufacturingStartDate: manufacturingStart,
 		ManufacturingEndDate:   manufacturingEnd,
-		BillOfEntryNo:    req.BillOfEntryNo,
-		CountryOfOrigin:  req.CountryOfOrigin,
-		CustomsDate:      customsDate,
+		BillOfEntryNo:          req.BillOfEntryNo,
+		CountryOfOrigin:        req.CountryOfOrigin,
+		CustomsDate:            customsDate,
 	}
 
 	batch, err := h.repo.CreateBatch(r.Context(), createReq)
@@ -270,15 +270,18 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	created, err := h.repo.CreatePassportsBatch(r.Context(), passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "API")
 	if err != nil {
-		log.Printf("External API: Failed to create passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to create passports")
+		log.Printf("External API: Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
-	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), passports, models.PassportEventCreated, actor, actorType, "API"); err != nil {
-		log.Printf("Warning: Failed to create genesis events: %v", err)
+	created, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
+	if err != nil {
+		log.Printf("External API: Failed to create passports with audit events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create passports")
+		return
 	}
 
 	log.Printf("🔗 External API: %d passports created for batch %s (tenant: %s)", created, batch.BatchName, tenantIDStr[:8])

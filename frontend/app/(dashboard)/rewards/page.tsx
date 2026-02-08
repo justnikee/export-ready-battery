@@ -1,12 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
     Trophy, Users, Zap, Star, Loader2,
     Medal, Award, TrendingUp, Crown
 } from "lucide-react"
-import { useAuth } from "@/context/auth-context"
 
 interface LeaderboardEntry {
     rank: number
@@ -36,44 +35,43 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }>
 const RANK_ICONS = [Crown, Medal, Award]
 
 export default function RewardsPage() {
-    const { user } = useAuth()
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<LeaderboardData | null>(null)
     const [error, setError] = useState("")
 
-    const getAuthHeaders = () => {
+    const getAuthHeaders = useCallback(() => {
         const token = localStorage.getItem("token")
         return {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         }
-    }
+    }, [])
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 
-    useEffect(() => {
-        const fetchLeaderboard = async () => {
-            try {
-                const response = await fetch(`${apiUrl}/rewards/leaderboard?limit=20`, {
-                    headers: getAuthHeaders()
-                })
+    const fetchLeaderboard = useCallback(async () => {
+        try {
+            const response = await fetch(`${apiUrl}/rewards/leaderboard?limit=20`, {
+                headers: getAuthHeaders()
+            })
 
-                if (response.ok) {
-                    const result = await response.json()
-                    setData(result)
-                } else {
-                    throw new Error("Failed to fetch leaderboard")
-                }
-            } catch (err: any) {
-                console.error("Failed to fetch leaderboard:", err)
-                setError(err.message || "Failed to load rewards data")
-            } finally {
-                setLoading(false)
+            if (response.ok) {
+                const result = await response.json()
+                setData(result)
+            } else {
+                throw new Error("Failed to fetch leaderboard")
             }
+        } catch (err: unknown) {
+            console.error("Failed to fetch leaderboard:", err)
+            setError(err instanceof Error ? err.message : "Failed to load rewards data")
+        } finally {
+            setLoading(false)
         }
+    }, [apiUrl, getAuthHeaders])
 
+    useEffect(() => {
         fetchLeaderboard()
-    }, [])
+    }, [fetchLeaderboard])
 
     // Calculate stats from leaderboard
     const leaderboard = data?.leaderboard ?? []

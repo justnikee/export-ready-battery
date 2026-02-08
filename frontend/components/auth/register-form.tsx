@@ -10,6 +10,8 @@ import api from "@/lib/api"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, Lock, Building2, Loader2, Eye, EyeOff, Check, X } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 
 export function RegisterForm() {
     const [email, setEmail] = useState("")
@@ -17,6 +19,7 @@ export function RegisterForm() {
     const [companyName, setCompanyName] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const searchParams = useSearchParams()
     const { login } = useAuth()
 
     // Password validation
@@ -25,6 +28,13 @@ export function RegisterForm() {
         { label: "Contains a number", valid: /\d/.test(password) },
         { label: "Contains uppercase", valid: /[A-Z]/.test(password) },
     ]
+
+    const getSafeRedirect = (value: string | null) => {
+        if (!value) return undefined
+        if (!value.startsWith("/")) return undefined
+        if (value.startsWith("//") || value.startsWith("/\\")) return undefined
+        return value
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -39,12 +49,18 @@ export function RegisterForm() {
 
             const { token, refresh_token, tenant_id } = response.data
 
-            login(token, refresh_token, {
-                id: tenant_id,
-                tenant_id,
-                email,
-                company_name: companyName,
-            })
+            const redirectTo = getSafeRedirect(searchParams.get("redirect"))
+            login(
+                token,
+                refresh_token,
+                {
+                    id: tenant_id,
+                    tenant_id,
+                    email,
+                    company_name: companyName,
+                },
+                redirectTo
+            )
 
             toast.success("Account created successfully!")
         } catch (error: unknown) {
@@ -199,13 +215,13 @@ export function RegisterForm() {
                     className="text-xs text-center text-slate-500"
                 >
                     By creating an account, you agree to our{" "}
-                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
+                    <Link href="/terms" className="text-teal-400 hover:text-teal-300 transition-colors">
                         Terms of Service
-                    </a>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
+                    <Link href="/privacy" className="text-teal-400 hover:text-teal-300 transition-colors">
                         Privacy Policy
-                    </a>
+                    </Link>
                 </motion.p>
             </form>
         </AuthLayout>

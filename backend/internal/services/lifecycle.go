@@ -8,48 +8,72 @@ import (
 	"time"
 
 	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
 
+var (
+	ErrUnknownAction           = errors.New("unknown transition action")
+	ErrActionNotAllowed        = errors.New("action not allowed from current status")
+	ErrRoleNotAllowed          = errors.New("actor role not allowed for action")
+	ErrMissingActorContext     = errors.New("missing actor context")
+	ErrInvalidActorContext     = errors.New("invalid actor context")
+	ErrInvalidEvidence         = errors.New("invalid evidence")
+	ErrMagicLinkTokenInvalid   = errors.New("magic link token invalid")
+	ErrTransitionPersistFailed = errors.New("failed to persist lifecycle transition")
+)
+
 // LifecycleService handles passport lifecycle transitions and event logging
 type LifecycleService struct {
-	repo *repository.Repository
+	repo LifecycleRepository
+}
+
+// LifecycleRepository defines the data access required for lifecycle operations.
+type LifecycleRepository interface {
+	GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error)
+	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
+	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
+	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
+	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
+	UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, ownerIdentifier string) error
+	AppendOwnershipHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
+	UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error
+	CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error
+	UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, updatedAt time.Time) error
+	AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
+	AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 }
 
 // NewLifecycleService creates a new lifecycle service
-func NewLifecycleService(repo *repository.Repository) *LifecycleService {
+func NewLifecycleService(repo LifecycleRepository) *LifecycleService {
 	return &LifecycleService{repo: repo}
 }
 
-// TransitionRequest represents a request to transition a passport's status
+// TransitionRequest represents a request to apply a lifecycle action
 type TransitionRequest struct {
-	PassportID uuid.UUID              `json:"passport_id"`
-	ToStatus   string                 `json:"to_status"`
-	Actor      string                 `json:"actor"`                // Who is making this change: user email, system, API key name
-	ActorRole  string                 `json:"actor_role,omitempty"` // Role: MANUFACTURER, LOGISTICS, TECHNICIAN, RECYCLER
-	ActorType  string                 `json:"actor_type,omitempty"` // SYSTEM | USER | PARTNER
-	ActorID    string                 `json:"actor_identifier,omitempty"`
-	Source     string                 `json:"source,omitempty"` // INTERNAL | MAGIC_LINK | API
-	IPAddress  string                 `json:"ip_address,omitempty"`
+	PassportID         uuid.UUID           `json:"passport_id"`
+	Action             string              `json:"action"`
+	ActorContext       models.ActorContext `json:"actor_context"`
+	IPAddress          string              `json:"ip_address,omitempty"`
+	MagicLinkTokenHash string              `json:"-"`
 	// Optional owner identifier (email or external ID)
-	CurrentOwnerIdentifier string                 `json:"current_owner_identifier,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`   // Additional context: "carrier": "FedEx", "mechanic": "John Doe"
+	CurrentOwnerIdentifier string          `json:"current_owner_identifier,omitempty"`
+	Evidence               models.Evidence `json:"evidence,omitempty"`
 }
 
-// TransitionResult contains the result of a status transition
+// TransitionResult contains the result of an applied lifecycle action
 type TransitionResult struct {
 	Success        bool             `json:"success"`
 	Passport       *models.Passport `json:"passport,omitempty"`
 	PreviousStatus string           `json:"previous_status"`
 	NewStatus      string           `json:"new_status"`
+	Action         string           `json:"action"`
 	EventID        uuid.UUID        `json:"event_id"`
 	Error          string           `json:"error,omitempty"`
 }
 
-// TransitionPassport handles a single passport status transition with validation and event logging
-func (s *LifecycleService) TransitionPassport(ctx context.Context, req TransitionRequest) (*TransitionResult, error) {
+// ApplyTransition handles a single passport lifecycle action with validation and event logging
+func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRequest) (*TransitionResult, error) {
 	// Get current passport
 	passport, err := s.repo.GetPassportByUUID(ctx, req.PassportID)
 	if err != nil {
@@ -61,98 +85,111 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 
 	previousStatus := passport.Status
 
-	metadata := req.Metadata
-	if metadata == nil {
-		metadata = make(map[string]interface{})
-	}
-
-	// Normalize actor metadata
-	if req.Source == "" {
-		req.Source = "INTERNAL"
-	}
-	if req.ActorType == "" {
-		if req.Source == "MAGIC_LINK" {
-			req.ActorType = "PARTNER"
-		} else if req.Actor == "system" || req.Actor == "" {
-			req.ActorType = "SYSTEM"
-		} else {
-			req.ActorType = "USER"
-		}
-	}
-	if req.ActorID == "" {
-		req.ActorID = req.Actor
-	}
-
-	// Validate transition is allowed by state machine
-	if !models.IsValidTransition(previousStatus, req.ToStatus) {
-		allowed := models.GetAllowedTransitions(previousStatus)
+	if req.ActorContext.ActorID == "" || req.ActorContext.ActorType == "" || req.ActorContext.ActorRole == "" || req.ActorContext.Source == "" {
 		return &TransitionResult{
 			Success:        false,
 			PreviousStatus: previousStatus,
-			Error:          fmt.Sprintf("Invalid transition from %s to %s. Allowed: %v", previousStatus, req.ToStatus, allowed),
-		}, errors.New("invalid status transition")
+			Error:          "Missing actor context",
+		}, ErrMissingActorContext
+	}
+	if err := models.ValidateActorContext(req.ActorContext); err != nil {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Error:          "Invalid actor context",
+		}, ErrInvalidActorContext
 	}
 
-	// Validate role-based permission (if ActorRole is provided)
-	if req.ActorRole != "" && req.ActorRole != "MANUFACTURER" {
-		// Non-manufacturers must have specific permission for this transition
-		if !models.IsValidRoleTransition(req.ActorRole, previousStatus, req.ToStatus) {
-			return &TransitionResult{
-				Success:        false,
-				PreviousStatus: previousStatus,
-				Error:          fmt.Sprintf("Role %s is not permitted to transition from %s to %s", req.ActorRole, previousStatus, req.ToStatus),
-			}, errors.New("role not permitted for this transition")
+	// Validate action exists
+	action := models.TransitionAction(req.Action)
+	if !models.IsValidAction(req.Action) {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Error:          fmt.Sprintf("Unknown action: %s", req.Action),
+		}, ErrUnknownAction
+	}
+
+	// Validate actor role is allowed for action
+	if !models.IsRoleAllowedForAction(action, req.ActorContext.ActorRole) {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          fmt.Sprintf("Role %s is not permitted to perform %s", req.ActorContext.ActorRole, action),
+		}, ErrRoleNotAllowed
+	}
+
+	// Validate action allowed from current state
+	if !models.IsActionAllowedFrom(action, previousStatus) {
+		allowedActions := models.GetAllowedActions(previousStatus)
+		allowedStrings := make([]string, 0, len(allowedActions))
+		for _, a := range allowedActions {
+			allowedStrings = append(allowedStrings, string(a))
 		}
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          fmt.Sprintf("Action %s not allowed from %s. Allowed actions: %v", action, previousStatus, allowedStrings),
+		}, ErrActionNotAllowed
+	}
+
+	definition, _ := models.GetTransitionDefinition(action)
+	toStatus := definition.To
+
+	validation, err := models.ValidateEvidence(action, req.Evidence)
+	if err != nil {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          err.Error(),
+		}, ErrInvalidEvidence
 	}
 
 	// Set appropriate timestamp based on target status
 	now := time.Now()
-	switch req.ToStatus {
+	var shippedAt *time.Time
+	var installedAt *time.Time
+	var recycledAt *time.Time
+	var recyclingStatus string
+	var recyclerEprID string
+	var recyclingDate *time.Time
+	switch toStatus {
 	case models.PassportStatusShipped:
-		passport.ShippedAt = &now
-	case models.PassportStatusInService:
-		passport.InstalledAt = &now
-	case models.PassportStatusReturned:
-		passport.ReturnedAt = &now
-	}
-
-	// India-specific: enforce recycler EPR ID for RECYCLED status
-	if req.ToStatus == models.PassportStatusRecycled {
-		region, regionErr := s.repo.GetBatchMarketRegion(ctx, passport.BatchID)
-		if regionErr == nil && (region == models.MarketRegionIndia || region == models.MarketRegionGlobal) {
-			recyclerEprID, _ := metadata["recycler_epr_id"].(string)
-			if recyclerEprID == "" {
-				return &TransitionResult{
-					Success:        false,
-					PreviousStatus: previousStatus,
-					Error:          "recycler_epr_id is required to close recycling (India compliance)",
-				}, errors.New("missing recycler_epr_id")
-			}
-			// Update recycling fields on passport
-			if err := s.repo.SetRecyclingInfo(ctx, passport.UUID, "RECYCLED", recyclerEprID, now); err != nil {
-				return &TransitionResult{
-					Success:        false,
-					PreviousStatus: previousStatus,
-					Error:          "Failed to update recycling info",
-				}, err
-			}
+		if dt, ok := validation.Dates[models.EvidenceShipmentDate]; ok {
+			shippedAt = &dt
+		} else {
+			shippedAt = &now
 		}
-	}
-
-	// Update passport status
-	passport.Status = req.ToStatus
-	if err := s.repo.UpdatePassportStatus(ctx, passport.UUID, req.ToStatus); err != nil {
-		return &TransitionResult{
-			Success:        false,
-			PreviousStatus: previousStatus,
-			Error:          "Failed to update passport status",
-		}, err
+	case models.PassportStatusInService:
+		if dt, ok := validation.Dates[models.EvidenceInstallationDate]; ok {
+			installedAt = &dt
+		} else {
+			installedAt = &now
+		}
+	case models.PassportStatusRecycled:
+		if dt, ok := validation.Dates[models.EvidenceRecyclingDate]; ok {
+			recycledAt = &dt
+			recyclingDate = &dt
+		} else {
+			recycledAt = &now
+			recyclingDate = &now
+		}
+		recyclerEprID = validation.Evidence[models.EvidenceRecyclerEprID]
+		recyclingStatus = "RECYCLED"
 	}
 
 	// Log the event
-	eventType := s.getEventTypeForStatus(req.ToStatus)
+	eventType := s.getEventTypeForStatus(toStatus)
+	metadata := make(map[string]interface{})
 	metadata["previous_status"] = previousStatus
-	metadata["new_status"] = req.ToStatus
+	metadata["new_status"] = toStatus
+	metadata["action"] = string(action)
+	if len(validation.Evidence) > 0 {
+		metadata["evidence"] = validation.Evidence
+	}
 	if req.CurrentOwnerIdentifier != "" {
 		metadata["current_owner_identifier"] = req.CurrentOwnerIdentifier
 	}
@@ -169,12 +206,14 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		ID:           uuid.New(),
 		PassportID:   passport.UUID,
 		EventType:    eventType,
-		Actor:        req.Actor,
-		ActorType:    req.ActorType,
-		ActorID:      req.ActorID,
-		Source:       req.Source,
+		Action:       action,
+		Actor:        req.ActorContext.ActorID,
+		ActorType:    string(req.ActorContext.ActorType),
+		ActorRole:    req.ActorContext.ActorRole,
+		ActorID:      req.ActorContext.ActorID,
+		Source:       string(req.ActorContext.Source),
 		StatusFrom:   previousStatus,
-		StatusTo:     req.ToStatus,
+		StatusTo:     toStatus,
 		IPAddress:    req.IPAddress,
 		Metadata:     metadata,
 		CreatedAt:    now,
@@ -186,8 +225,10 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		ID:           event.ID,
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
+		Action:       string(event.Action),
 		Actor:        event.Actor,
 		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
 		ActorID:      event.ActorID,
 		Source:       event.Source,
 		StatusFrom:   event.StatusFrom,
@@ -201,9 +242,52 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		event.Hash = hash
 	}
 
-	if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
-		// Log but don't fail the transition
-		fmt.Printf("Warning: Failed to log passport event: %v\n", err)
+	if err := s.repo.ApplyLifecycleTransition(ctx, models.TransitionPersistence{
+		PassportID:         passport.UUID,
+		NewStatus:          toStatus,
+		ShippedAt:          shippedAt,
+		InstalledAt:        installedAt,
+		RecycledAt:         recycledAt,
+		RecyclingStatus:    recyclingStatus,
+		RecyclerEprID:      recyclerEprID,
+		RecyclingDate:      recyclingDate,
+		Event:              event,
+		MagicLinkTokenHash: req.MagicLinkTokenHash,
+	}); err != nil {
+		if errors.Is(err, models.ErrMagicLinkTokenInvalid) {
+			return &TransitionResult{
+				Success:        false,
+				PreviousStatus: previousStatus,
+				Action:         string(action),
+				Error:          "Magic link token is invalid or already used",
+			}, ErrMagicLinkTokenInvalid
+		}
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          "Failed to persist lifecycle transition",
+		}, ErrTransitionPersistFailed
+	}
+
+	passport.Status = toStatus
+	if shippedAt != nil {
+		passport.ShippedAt = shippedAt
+	}
+	if installedAt != nil {
+		passport.InstalledAt = installedAt
+	}
+	if recycledAt != nil {
+		passport.RecycledAt = recycledAt
+	}
+	if recyclingStatus != "" {
+		passport.RecyclingStatus = recyclingStatus
+	}
+	if recyclerEprID != "" {
+		passport.RecyclerEprID = recyclerEprID
+	}
+	if recyclingDate != nil {
+		passport.RecyclingDate = recyclingDate
 	}
 
 	// Update current owner identifier if provided
@@ -212,8 +296,8 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		entry := map[string]interface{}{
 			"current_owner_identifier": req.CurrentOwnerIdentifier,
 			"timestamp":                now,
-			"actor":                    req.Actor,
-			"source":                   req.Source,
+			"actor":                    req.ActorContext.ActorID,
+			"source":                   string(req.ActorContext.Source),
 		}
 		if entryJSON, err := json.Marshal([]interface{}{entry}); err == nil {
 			_ = s.repo.AppendOwnershipHistory(ctx, passport.UUID, entryJSON)
@@ -224,7 +308,8 @@ func (s *LifecycleService) TransitionPassport(ctx context.Context, req Transitio
 		Success:        true,
 		Passport:       passport,
 		PreviousStatus: previousStatus,
-		NewStatus:      req.ToStatus,
+		NewStatus:      toStatus,
+		Action:         string(action),
 		EventID:        event.ID,
 	}, nil
 }
@@ -236,10 +321,10 @@ func (s *LifecycleService) GetPassportForTransition(ctx context.Context, passpor
 
 // BulkTransitionRequest represents a request to transition multiple passports
 type BulkTransitionRequest struct {
-	PassportIDs []uuid.UUID            `json:"passport_ids"`
-	ToStatus    string                 `json:"to_status"`
-	Actor       string                 `json:"actor"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	PassportIDs  []uuid.UUID         `json:"passport_ids"`
+	Action       string              `json:"action"`
+	ActorContext models.ActorContext `json:"actor_context"`
+	Evidence     models.Evidence     `json:"evidence,omitempty"`
 }
 
 // BulkTransitionResult contains results for bulk transitions
@@ -253,6 +338,19 @@ type BulkTransitionResult struct {
 
 // BulkTransitionPassports handles bulk passport status transitions with validation
 func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req BulkTransitionRequest) (*BulkTransitionResult, error) {
+	if !models.IsValidAction(req.Action) {
+		return nil, ErrUnknownAction
+	}
+	if req.ActorContext.ActorID == "" || req.ActorContext.ActorType == "" || req.ActorContext.ActorRole == "" || req.ActorContext.Source == "" {
+		return nil, ErrMissingActorContext
+	}
+	if err := models.ValidateActorContext(req.ActorContext); err != nil {
+		return nil, ErrInvalidActorContext
+	}
+	if !models.IsRoleAllowedForAction(models.TransitionAction(req.Action), req.ActorContext.ActorRole) {
+		return nil, ErrRoleNotAllowed
+	}
+
 	result := &BulkTransitionResult{
 		Total:     len(req.PassportIDs),
 		FailedIDs: []string{},
@@ -261,13 +359,13 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 
 	for _, passportID := range req.PassportIDs {
 		transitionReq := TransitionRequest{
-			PassportID: passportID,
-			ToStatus:   req.ToStatus,
-			Actor:      req.Actor,
-			Metadata:   req.Metadata,
+			PassportID:   passportID,
+			Action:       req.Action,
+			ActorContext: req.ActorContext,
+			Evidence:     req.Evidence,
 		}
 
-		transitionResult, err := s.TransitionPassport(ctx, transitionReq)
+		transitionResult, err := s.ApplyTransition(ctx, transitionReq)
 		if err != nil || !transitionResult.Success {
 			result.Failed++
 			result.FailedIDs = append(result.FailedIDs, passportID.String())
@@ -308,10 +406,6 @@ func (s *LifecycleService) getEventTypeForStatus(status string) string {
 		return models.PassportEventShipped
 	case models.PassportStatusInService:
 		return models.PassportEventInstalled
-	case models.PassportStatusReturned:
-		return models.PassportEventReturned
-	case models.PassportStatusReturnRequested:
-		return "RETURN_REQUESTED" // Should align with a constant, but string literal for now or add const
 	case models.PassportStatusRecalled:
 		return models.PassportEventRecalled
 	case models.PassportStatusRecycled:
@@ -379,8 +473,10 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		ID:           event.ID,
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
+		Action:       string(event.Action),
 		Actor:        event.Actor,
 		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
 		ActorID:      event.ActorID,
 		Source:       event.Source,
 		StatusFrom:   event.StatusFrom,
@@ -413,10 +509,10 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 	return nil
 }
 
-// CreateLifecycleEvents creates genesis events for newly created passports
-func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports []*models.Passport, eventType, actor, actorType, source string) error {
+// BuildLifecycleEvents builds genesis events for newly created passports.
+func (s *LifecycleService) BuildLifecycleEvents(passports []*models.Passport, eventType, actor, actorType, source string) ([]*models.PassportEvent, error) {
 	if len(passports) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	events := make([]*models.PassportEvent, len(passports))
@@ -445,8 +541,10 @@ func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports 
 			ID:           event.ID,
 			PassportID:   event.PassportID,
 			EventType:    event.EventType,
+			Action:       string(event.Action),
 			Actor:        event.Actor,
 			ActorType:    event.ActorType,
+			ActorRole:    string(event.ActorRole),
 			ActorID:      event.ActorID,
 			Source:       event.Source,
 			StatusFrom:   event.StatusFrom,
@@ -459,13 +557,22 @@ func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports 
 
 		hash, err := GenerateEventHash(hashData)
 		if err != nil {
-			return fmt.Errorf("failed to generate hash for passport %s: %w", p.SerialNumber, err)
+			return nil, fmt.Errorf("failed to generate hash for passport %s: %w", p.SerialNumber, err)
 		}
 		event.Hash = hash
 
 		events[i] = event
 	}
 
+	return events, nil
+}
+
+// CreateLifecycleEvents creates genesis events for newly created passports.
+func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports []*models.Passport, eventType, actor, actorType, source string) error {
+	events, err := s.BuildLifecycleEvents(passports, eventType, actor, actorType, source)
+	if err != nil {
+		return err
+	}
 	return s.repo.CreatePassportEventBatch(ctx, events)
 }
 
@@ -491,8 +598,10 @@ func (s *LifecycleService) VerifyPassportAuditChain(ctx context.Context, passpor
 				ID:           e.ID,
 				PassportID:   e.PassportID,
 				EventType:    e.EventType,
+				Action:       string(e.Action),
 				Actor:        e.Actor,
 				ActorType:    e.ActorType,
+				ActorRole:    string(e.ActorRole),
 				ActorID:      e.ActorID,
 				Source:       e.Source,
 				StatusFrom:   e.StatusFrom,
@@ -545,8 +654,10 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 		ID:           event.ID,
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
+		Action:       string(event.Action),
 		Actor:        event.Actor,
 		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
 		ActorID:      event.ActorID,
 		Source:       event.Source,
 		StatusFrom:   event.StatusFrom,
@@ -600,8 +711,10 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 		ID:           event.ID,
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
+		Action:       string(event.Action),
 		Actor:        event.Actor,
 		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
 		ActorID:      event.ActorID,
 		Source:       event.Source,
 		StatusFrom:   event.StatusFrom,
@@ -655,8 +768,10 @@ func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID u
 		ID:           event.ID,
 		PassportID:   event.PassportID,
 		EventType:    event.EventType,
+		Action:       string(event.Action),
 		Actor:        event.Actor,
 		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
 		ActorID:      event.ActorID,
 		Source:       event.Source,
 		StatusFrom:   event.StatusFrom,

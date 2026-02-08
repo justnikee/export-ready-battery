@@ -234,7 +234,7 @@ The ExportReady Battery frontend is a modern, dark-themed Next.js application th
 - ✅ **Scan Recording** - Tracks IP, device, location for analytics
 
 ### PassportView Component Features
-- ✅ **Status Badge** - Active/Recalled/Recycled with pulse animation
+- ✅ **Status Badge** - Created/Active/Shipped/In Service/Recalled/Recycled/End of Life
 - ✅ **Market Badge** - 🇮🇳 India / 🇪🇺 EU / 🌍 Global
 - ✅ **Verified Badge** - Blockchain verification indicator
 - ✅ **Serial Number** with BPAN format for India
@@ -243,7 +243,7 @@ The ExportReady Battery frontend is a modern, dark-themed Next.js application th
 - ✅ **Carbon Footprint** - EU passports with CO₂e display
 - ✅ **Material Composition** - Cobalt, Lithium, Nickel percentages
 - ✅ **Certifications** - CE Mark, BIS Mark icons
-- ✅ **Lifecycle Timeline** - Manufactured → In Use → End of Life
+- ✅ **Lifecycle Timeline** - Created -> Active -> Shipped -> In Service -> Recycled -> End of Life
 - ✅ Contact support link
 - ✅ QR code display
 

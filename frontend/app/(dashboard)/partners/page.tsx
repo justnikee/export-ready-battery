@@ -1,14 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
     Building2, Plus, Trash2, AlertCircle, CheckCircle,
-    Loader2, Key, Users, Copy, Eye, EyeOff,
-    Calendar, Hash, Shield
+    Loader2, Key, Users, Copy,
+    Calendar, Hash
 } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { useAuth } from "@/context/auth-context"
 
 interface TrustedPartner {
     id: string
@@ -32,10 +31,17 @@ interface PartnerCode {
     created_at: string
 }
 
-const ROLES = ["TECHNICIAN", "RECYCLER", "LOGISTICS", "CUSTOMER"]
+interface PartnerCodePayload {
+    code: string
+    role: string
+    description?: string
+    max_uses?: number
+    expires_at?: string
+}
+
+const ROLES = ["TECHNICIAN", "RECYCLER", "LOGISTICS"]
 
 export default function PartnersPage() {
-    const { user } = useAuth()
     const [activeTab, setActiveTab] = useState<"trusted" | "codes">("trusted")
     const [pendingDeletePartner, setPendingDeletePartner] = useState<string | null>(null)
     const [pendingDeactivateCode, setPendingDeactivateCode] = useState<string | null>(null)
@@ -67,18 +73,18 @@ export default function PartnersPage() {
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
 
-    const getAuthHeaders = () => {
+    const getAuthHeaders = useCallback(() => {
         const token = localStorage.getItem("token")
         return {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         }
-    }
+    }, [])
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 
     // Fetch trusted partners
-    const fetchPartners = async () => {
+    const fetchPartners = useCallback(async () => {
         try {
             const response = await fetch(`${apiUrl}/partners/trusted`, {
                 headers: getAuthHeaders()
@@ -92,10 +98,10 @@ export default function PartnersPage() {
         } finally {
             setLoadingPartners(false)
         }
-    }
+    }, [apiUrl, getAuthHeaders])
 
     // Fetch partner codes
-    const fetchCodes = async () => {
+    const fetchCodes = useCallback(async () => {
         try {
             const response = await fetch(`${apiUrl}/partners/codes`, {
                 headers: getAuthHeaders()
@@ -109,12 +115,12 @@ export default function PartnersPage() {
         } finally {
             setLoadingCodes(false)
         }
-    }
+    }, [apiUrl, getAuthHeaders])
 
     useEffect(() => {
         fetchPartners()
         fetchCodes()
-    }, [])
+    }, [fetchCodes, fetchPartners])
 
     // Add trusted partner
     const handleAddPartner = async () => {
@@ -138,8 +144,8 @@ export default function PartnersPage() {
             setShowAddPartner(false)
             setNewPartner({ company_name: "", email_domain: "", role: "TECHNICIAN", contact_email: "" })
             fetchPartners()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to add partner")
         } finally {
             setSubmitting(false)
         }
@@ -165,7 +171,7 @@ export default function PartnersPage() {
         setError("")
 
         try {
-            const payload: any = {
+            const payload: PartnerCodePayload = {
                 code: newCode.code.toUpperCase(),
                 role: newCode.role,
                 description: newCode.description || undefined
@@ -194,8 +200,8 @@ export default function PartnersPage() {
             setShowAddCode(false)
             setNewCode({ code: "", role: "TECHNICIAN", description: "", max_uses: "", expires_at: "" })
             fetchCodes()
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to create code")
         } finally {
             setSubmitting(false)
         }
@@ -293,7 +299,7 @@ export default function PartnersPage() {
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <p className="text-blue-700 text-sm">
                                 <strong>Tier A:</strong> Any email from trusted domains will be automatically approved for magic link access.
-                                Add your partners' corporate email domains here.
+                                Add your partners&apos; corporate email domains here.
                             </p>
                         </div>
 

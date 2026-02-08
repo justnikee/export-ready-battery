@@ -74,9 +74,9 @@ graph TB
 | **Quota Top-up** | ✅ (mock) | ✅ | ✅ | Razorpay integrated |
 | **Dashboard Stats** | ✅ | ✅ | - | Counts, recent batches |
 | **Passport Lifecycle** | ✅ | ✅ | ✅ | State machine with events |
-| **Bulk Transitions** | ✅ | ✅ | ✅ | Mass status updates |
+| **Bulk Transitions** | ✅ | ✅ | ✅ | Action-based lifecycle transitions with evidence |
 | **Rewards/Gamification** | ✅ | ✅ | ✅ | Points, leaderboard |
-| **Magic Links** | ✅ | ✅ | - | Consumer access to passports |
+| **Magic Links** | ✅ | ✅ | - | External partner action access (single-use tokens) |
 | **Trusted Partners** | ✅ | ✅ | ✅ | Tier A: Domain whitelist |
 | **Partner Codes** | ✅ | ✅ | ✅ | Tier B: Access codes |
 | **API Keys** | ✅ | ✅ | - | Developer portal |
@@ -124,7 +124,7 @@ internal/handlers/
 ├── dashboard_handlers.go    (95 lines)  - Stats
 ├── document_handlers.go     (287 lines) - File uploads
 ├── external_handlers.go     (345 lines) - Third-party
-├── lifecycle_handlers.go    (219 lines) - State machine
+├── lifecycle_handlers.go    (219 lines) - Action-based state machine
 ├── magic_link_handlers.go   (436 lines) - Consumer access
 ├── passport_handlers.go     (31 lines)  - Minimal
 ├── razorpay_handlers.go     (158 lines) - Payments
@@ -147,7 +147,7 @@ internal/handlers/
 | **Team** | `/team`, `/team/invite`, `/team/accept`, `/team/{id}/role` | Yes |
 | **Batches** | CRUD, `/download`, `/labels`, `/export`, `/passports` | Yes |
 | **Billing** | `/packages`, `/balance`, `/transactions`, `/top-up` | Yes |
-| **Passports** | `/p/{uuid}`, `/transition`, `/events`, `/transitions` | Partial |
+| **Passports** | `/p/{uuid}`, `/passports/{uuid}/transition`, `/passports/{uuid}/events`, `/passports/{uuid}/transitions` | Partial |
 | **Partners** | `/trusted`, `/codes` | Yes |
 
 ---
@@ -211,7 +211,7 @@ Well-organized with:
 - `batches` - Passport batches
 - `passports` - Individual batteries
 - `scan_events` - QR scans
-- `lifecycle_events` - State transitions
+- `passport_events` - Immutable lifecycle transitions
 - `batch_templates` - Quick create
 - `reward_transactions` - Gamification
 - `trusted_partners` - B2B access

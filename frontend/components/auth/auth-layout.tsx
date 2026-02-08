@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Battery, ArrowLeft, Shield, Zap, Globe } from "lucide-react"
+import Image from "next/image"
+import { ArrowLeft, Shield, Zap, Globe } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface AuthLayoutProps {
@@ -82,13 +83,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                         href="/"
                         className="flex items-center gap-3 text-white group w-fit"
                     >
-                        <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            className="bg-gradient-to-br from-blue-500 to-teal-500 p-2.5 rounded-xl shadow-lg shadow-blue-500/30"
-                        >
-                            <Battery className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-2xl font-bold">ExportReady</span>
+                        <Image src="/logo/logo.svg" alt="ExportReady" width={180} height={36} className="h-9 w-auto" />
                     </Link>
 
                     {/* Feature Cards */}
@@ -141,16 +136,12 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
 
             {/* Right Panel - Form */}
             <div className="flex-1 flex flex-col">
-                {/* Mobile Header */}
                 <div className="lg:hidden p-6 border-b border-slate-800">
                     <Link
                         href="/"
                         className="flex items-center gap-3 text-white"
                     >
-                        <div className="bg-gradient-to-br from-blue-500 to-teal-500 p-2 rounded-xl shadow-lg shadow-blue-500/30">
-                            <Battery className="h-5 w-5" />
-                        </div>
-                        <span className="text-xl font-bold">ExportReady</span>
+                        <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto" />
                     </Link>
                 </div>
 
@@ -187,7 +178,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                             <p className="text-center text-sm text-slate-500">
                                 {type === "login" ? (
                                     <>
-                                        Don't have an account?{" "}
+                                        Don&apos;t have an account?{" "}
                                         <Link href="/register" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
                                             Create account
                                         </Link>

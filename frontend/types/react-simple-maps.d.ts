@@ -19,7 +19,7 @@ declare module 'react-simple-maps' {
 
     interface GeographiesProps {
         geography: string | object
-        children: (data: { geographies: any[] }) => ReactNode
+        children: (data: { geographies: unknown[] }) => ReactNode
     }
 
     interface GeographyStyleProps {
@@ -29,7 +29,7 @@ declare module 'react-simple-maps' {
     }
 
     interface GeographyProps {
-        geography: any
+        geography: unknown
         fill?: string
         stroke?: string
         strokeWidth?: number

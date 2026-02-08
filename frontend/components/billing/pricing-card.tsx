@@ -3,11 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Check, Zap, Loader2 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-
-interface PricingFeature {
-    text: string
-}
 
 interface PricingCardProps {
     title: string

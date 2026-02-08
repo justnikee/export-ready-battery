@@ -64,7 +64,7 @@ func main() {
 
 	// Initialize lifecycle service and handler
 	lifecycleService := services.NewLifecycleService(repo)
-	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService)
+	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService, repo)
 
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
@@ -202,7 +202,7 @@ func main() {
 	// PASSPORT LIFECYCLE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
-	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedTransitions)))
+	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
 	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth)))
 	mux.Handle("POST /api/v1/passports/{uuid}/repairs", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogRepairEvent)))

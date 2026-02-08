@@ -23,6 +23,8 @@ interface ScanMapProps {
     height?: number
 }
 
+type GeoFeature = { rsmKey: string } & Record<string, unknown>
+
 function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
     // Filter out invalid coordinates and create unique markers
     const markers = useMemo(() => {
@@ -91,10 +93,12 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
             >
                 <Geographies geography={geoUrl}>
                     {({ geographies }) =>
-                        geographies.map((geo) => (
-                            <Geography
-                                key={geo.rsmKey}
-                                geography={geo}
+                        geographies.map((geo) => {
+                            const feature = geo as GeoFeature
+                            return (
+                                <Geography
+                                    key={feature.rsmKey}
+                                    geography={geo}
                                 fill="#cbd5e1"
                                 stroke="#94a3b8"
                                 strokeWidth={0.4}
@@ -103,8 +107,9 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
                                     hover: { outline: "none", fill: "#94a3b8" },
                                     pressed: { outline: "none" },
                                 }}
-                            />
-                        ))
+                                />
+                            )
+                        })
                     }
                 </Geographies>
 

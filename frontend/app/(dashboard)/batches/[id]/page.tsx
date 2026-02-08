@@ -1,19 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
-import { createExportJob, getExportJob, getExportDownloadUrl } from "@/lib/api/exports"
+import { createExportJob } from "@/lib/api/exports"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2 } from "lucide-react"
+import { ArrowLeft, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Globe, AlertTriangle, CheckCircle, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2 } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import type { Batch, Passport } from "@/lib/types"
 
 import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton"
 
@@ -28,16 +29,46 @@ interface PaginationInfo {
     hasMore: boolean
 }
 
+interface BatchResponse {
+    batch: Batch
+    passport_count?: number
+}
+
+interface PassportsResponse {
+    passports: Passport[]
+    page?: number
+    limit?: number
+    total?: number
+    total_pages?: number
+    has_more?: boolean
+}
+
+interface ApiError {
+    response?: {
+        data?: {
+            error?: string
+        }
+        status?: number
+    }
+}
+
+const toApiError = (error: unknown): ApiError => {
+    if (typeof error === "object" && error !== null) {
+        return error as ApiError
+    }
+    return {}
+}
+
 export default function BatchDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const { refreshUser } = useAuth()
-    const [batch, setBatch] = useState<any>(null)
+    const [batch, setBatch] = useState<Batch | null>(null)
     const [activating, setActivating] = useState(false)
     const [archiving, setArchiving] = useState(false)
     const [deletingDraft, setDeletingDraft] = useState(false)
     const [passportCount, setPassportCount] = useState<number>(0)
-    const [passports, setPassports] = useState<any[]>([])
+    const [passports, setPassports] = useState<Passport[]>([])
     const [loading, setLoading] = useState(true)
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 1,
@@ -50,21 +81,21 @@ export default function BatchDetailsPage() {
     const [confirmArchive, setConfirmArchive] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
 
-    const fetchBatch = async () => {
+    const fetchBatch = useCallback(async () => {
         try {
-            const response = await api.get(`/batches/${params.id}`)
+            const response = await api.get<BatchResponse>(`/batches/${params.id}`)
             setBatch(response.data.batch)
             setPassportCount(response.data.passport_count || 0)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch batch:", error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [params.id])
 
-    const fetchPassports = async (page = 1, limit = 50) => {
+    const fetchPassports = useCallback(async (page = 1, limit = 50) => {
         try {
-            const response = await api.get(`/batches/${params.id}/passports?page=${page}&limit=${limit}`)
+            const response = await api.get<PassportsResponse>(`/batches/${params.id}/passports?page=${page}&limit=${limit}`)
             setPassports(response.data.passports || [])
             setPagination({
                 page: response.data.page || 1,
@@ -73,15 +104,15 @@ export default function BatchDetailsPage() {
                 totalPages: response.data.total_pages || 0,
                 hasMore: response.data.has_more || false
             })
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch passports:", error)
         }
-    }
+    }, [params.id])
 
     useEffect(() => {
         fetchBatch()
         fetchPassports(1, 50)
-    }, [params.id])
+    }, [fetchBatch, fetchPassports])
 
     const handleUploadComplete = () => {
         fetchBatch()
@@ -93,6 +124,7 @@ export default function BatchDetailsPage() {
     }
 
     const handleDownloadQR = async () => {
+        if (!batch) return
         const MAX_DIRECT_DOWNLOAD = 500;
 
         if (passportCount > MAX_DIRECT_DOWNLOAD) {
@@ -112,9 +144,10 @@ export default function BatchDetailsPage() {
                         onClick: () => router.push('/exports')
                     }
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to create export job", error);
-                toast.error(error.response?.data?.error || "Failed to create export job", { id: 'qr-export' });
+                toast.error(apiError.response?.data?.error || "Failed to create export job", { id: 'qr-export' });
             }
         } else {
             // Direct download for small batches
@@ -132,14 +165,16 @@ export default function BatchDetailsPage() {
                 link.click();
                 link.remove();
                 toast.success("QR codes downloaded successfully!", { id: 'qr-download' });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to download QR codes", error);
-                toast.error(error.response?.data?.error || "Failed to download QR codes", { id: 'qr-download' });
+                toast.error(apiError.response?.data?.error || "Failed to download QR codes", { id: 'qr-download' });
             }
         }
     };
 
     const handleDownloadLabels = async () => {
+        if (!batch) return
         const MAX_DIRECT_DOWNLOAD = 500;
 
         if (passportCount > MAX_DIRECT_DOWNLOAD) {
@@ -159,9 +194,10 @@ export default function BatchDetailsPage() {
                         onClick: () => router.push('/exports')
                     }
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to create export job", error);
-                toast.error(error.response?.data?.error || "Failed to create export job", { id: 'labels-export' });
+                toast.error(apiError.response?.data?.error || "Failed to create export job", { id: 'labels-export' });
             }
         } else {
             // Direct download for small batches
@@ -179,22 +215,24 @@ export default function BatchDetailsPage() {
                 link.click();
                 link.remove();
                 toast.success("Labels downloaded successfully!", { id: 'labels-download' });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to download labels", error);
-                if (error.response?.status === 403) {
+                if (apiError.response?.status === 403) {
                     toast.error("⚠️ You must Activate this batch before downloading labels.", {
                         id: 'labels-download',
                         description: "Click 'Activate Batch' to unlock downloads.",
                         duration: 5000
                     });
                 } else {
-                    toast.error(error.response?.data?.error || "Failed to download labels", { id: 'labels-download' });
+                    toast.error(apiError.response?.data?.error || "Failed to download labels", { id: 'labels-download' });
                 }
             }
         }
     };
 
     const handleExportCSV = async () => {
+        if (!batch) return
         try {
             const response = await api.get(`/batches/${params.id}/export`, {
                 responseType: 'blob'
@@ -267,17 +305,18 @@ export default function BatchDetailsPage() {
     const handleActivateBatch = async () => {
         setActivating(true)
         try {
-            const response = await api.post(`/batches/${params.id}/activate`)
+            await api.post(`/batches/${params.id}/activate`)
             toast.success('Batch activated successfully!')
             await fetchBatch()
             await refreshUser()
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
             console.error('Failed to activate batch:', error)
-            if (error.response?.status === 402) {
+            if (apiError.response?.status === 402) {
                 toast.error('Insufficient quota. Please purchase more quota units.')
                 router.push('/billing')
             } else {
-                toast.error(error.response?.data?.error || 'Failed to activate batch')
+                toast.error(apiError.response?.data?.error || 'Failed to activate batch')
             }
         } finally {
             setActivating(false)
@@ -294,9 +333,10 @@ export default function BatchDetailsPage() {
             await api.post(`/batches/${params.id}/archive`)
             toast.success('Batch archived successfully')
             await fetchBatch()
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
             console.error('Failed to archive batch:', error)
-            toast.error(error.response?.data?.error || 'Failed to archive batch')
+            toast.error(apiError.response?.data?.error || 'Failed to archive batch')
         } finally {
             setArchiving(false)
         }
@@ -312,9 +352,10 @@ export default function BatchDetailsPage() {
             await api.delete(`/batches/${params.id}/draft`)
             toast.success('Draft batch deleted successfully')
             router.push('/batches')
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
             console.error('Failed to delete draft batch:', error)
-            toast.error(error.response?.data?.error || 'Failed to delete draft batch')
+            toast.error(apiError.response?.data?.error || 'Failed to delete draft batch')
         } finally {
             setDeletingDraft(false)
         }
@@ -330,8 +371,11 @@ export default function BatchDetailsPage() {
     const isEU = region === "EU"
 
     const hasWarrantyMonths = batch.specs.warranty_months !== null && batch.specs.warranty_months !== undefined
-    const hasExpectedLifetime = batch.specs.expected_lifetime_cycles !== null && batch.specs.expected_lifetime_cycles !== undefined
+    const expectedLifetimeCycles = batch.specs.expected_lifetime_cycles ?? null
+    const hasExpectedLifetime = expectedLifetimeCycles !== null
     const hasRecycledContent = batch.specs.recycled_content_pct !== null && batch.specs.recycled_content_pct !== undefined
+    const certifications = batch.specs.certifications ?? []
+    const materialComposition = batch.specs.material_composition
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 p-8 font-sans">
@@ -492,25 +536,11 @@ export default function BatchDetailsPage() {
                                     </div>
 
                                     {/* Manufacturer Contact Info - Full Width */}
-                                    {(batch.specs.manufacturer_address || batch.specs.manufacturer_email) && (
-                                        <>
-                                            {batch.specs.manufacturer_address && (
-                                                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
-                                                    <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
-                                                    <dd className="font-semibold text-slate-900 text-sm">{batch.specs.manufacturer_address}</dd>
-                                                </div>
-                                            )}
-                                            {batch.specs.manufacturer_email && (
-                                                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
-                                                    <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Email</dt>
-                                                    <dd className="font-semibold text-blue-400">
-                                                        <a href={`mailto:${batch.specs.manufacturer_email}`} className="hover:underline">
-                                                            {batch.specs.manufacturer_email}
-                                                        </a>
-                                                    </dd>
-                                                </div>
-                                            )}
-                                        </>
+                                    {batch.specs.manufacturer_address && (
+                                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
+                                            <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
+                                            <dd className="font-semibold text-slate-900 text-sm">{batch.specs.manufacturer_address}</dd>
+                                        </div>
                                     )}
                                 </dl>
                             </CardContent>
@@ -688,20 +718,16 @@ export default function BatchDetailsPage() {
                                             </dd>
                                         </div>
                                         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                            <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recyclable</dt>
-                                            <dd className="font-semibold">
-                                                {batch.specs.recyclable ? (
-                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">♻️ Yes</Badge>
-                                                ) : (
-                                                    <Badge className="bg-slate-700 text-slate-400">No</Badge>
-                                                )}
+                                            <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
+                                            <dd className="font-semibold text-slate-900">
+                                                {hasRecycledContent ? `${batch.specs.recycled_content_pct}%` : "Not declared"}
                                             </dd>
                                         </div>
                                         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                             <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Certifications</dt>
                                             <dd className="flex gap-2 flex-wrap">
-                                                {batch.specs.certifications?.length > 0 ? (
-                                                    batch.specs.certifications.map((cert: string) => (
+                                                {certifications.length > 0 ? (
+                                                    certifications.map((cert: string) => (
                                                         <Badge key={cert} className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                                                             {cert}
                                                         </Badge>
@@ -717,7 +743,7 @@ export default function BatchDetailsPage() {
                                                 Material Data
                                             </dt>
                                             <dd className="font-semibold">
-                                                {batch.materials ? (
+                                                {materialComposition ? (
                                                     <span className="text-emerald-400">Available</span>
                                                 ) : (
                                                     <span className="text-amber-400 flex items-center gap-1.5">
@@ -755,7 +781,7 @@ export default function BatchDetailsPage() {
                                                 {hasExpectedLifetime && (
                                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                         <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
-                                                        <dd className="font-semibold text-slate-900">{batch.specs.expected_lifetime_cycles.toLocaleString()} cycles</dd>
+                                                        <dd className="font-semibold text-slate-900">{expectedLifetimeCycles?.toLocaleString()} cycles</dd>
                                                     </div>
                                                 )}
                                             </>
@@ -770,47 +796,47 @@ export default function BatchDetailsPage() {
                                         )}
 
                                         {/* Material Composition - Full Width */}
-                                        {batch.specs.material_composition && (
+                                        {materialComposition && (
                                             <div className="col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                 <dt className="text-slate-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
                                                     <Atom className="h-3.5 w-3.5 text-teal-400" />
                                                     Material Composition
                                                 </dt>
                                                 <dd className="grid grid-cols-3 gap-3 text-xs">
-                                                    {batch.specs.material_composition.cobalt_pct > 0 && (
+                                                    {(materialComposition.cobalt_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Cobalt</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.cobalt_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.cobalt_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.lithium_pct > 0 && (
+                                                    {(materialComposition.lithium_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Lithium</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.lithium_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.lithium_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.nickel_pct > 0 && (
+                                                    {(materialComposition.nickel_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Nickel</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.nickel_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.nickel_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.manganese_pct > 0 && (
+                                                    {(materialComposition.manganese_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Manganese</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.manganese_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.manganese_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.graphite_pct > 0 && (
+                                                    {(materialComposition.graphite_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Graphite</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.graphite_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.graphite_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.lead_pct > 0 && (
+                                                    {(materialComposition.lead_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Lead</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.lead_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.lead_pct}%</span>
                                                         </div>
                                                     )}
                                                 </dd>

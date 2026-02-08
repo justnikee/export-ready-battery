@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Trash2, Mail, Shield, ShieldCheck, User, Eye, Ban } from 'lucide-react';
+import { Loader2, Trash2, Mail, Shield, ShieldCheck, User, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
 import {
@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import { TeamMember, TeamRole } from '@/lib/types';
+import { TeamMember, TeamRole, TeamStatus } from '@/lib/types';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -48,8 +48,10 @@ const roleIcons: Record<TeamRole, React.ReactNode> = {
     VIEWER: <Eye className="h-4 w-4 text-slate-400" />,
 };
 
-const statusBadges: Record<string, 'default' | 'success' | 'secondary' | 'destructive'> = {
-    ACTIVE: 'success',
+type BadgeVariant = 'default' | 'secondary' | 'destructive';
+
+const statusBadges: Record<TeamStatus, BadgeVariant> = {
+    ACTIVE: 'default',
     PENDING: 'secondary',
     REVOKED: 'destructive',
 };
@@ -64,9 +66,10 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
             await api.delete(`/team/${id}`);
             toast.success('Member removed');
             onUpdate();
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
             toast.error('Error', {
-                description: error.response?.data?.error || 'Failed to remove member',
+                description: apiError.response?.data?.error || 'Failed to remove member',
             });
         } finally {
             setDeletingId(null);
@@ -79,9 +82,10 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
             await api.put(`/team/${id}/role`, { role: newRole });
             toast.success('Role updated');
             onUpdate();
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
             toast.error('Error', {
-                description: error.response?.data?.error || 'Failed to update role',
+                description: apiError.response?.data?.error || 'Failed to update role',
             });
         } finally {
             setUpdatingId(null);
@@ -147,7 +151,7 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
                                     </DropdownMenu>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={(statusBadges[member.status] || 'default') as any}>
+                                    <Badge variant={statusBadges[member.status] || 'default'}>
                                         {member.status === 'PENDING' && <Mail className="mr-1 h-3 w-3" />}
                                         {member.status}
                                     </Badge>

@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "lint": "npm --prefix frontend run lint"
+  },
   "devDependencies": {
     "pg": "^8.16.3"
   }

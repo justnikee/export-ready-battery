@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { CreateBatchDialog } from "@/components/batches/create-batch-dialog"
 import { TemplatesDialog } from "@/components/batches/templates-dialog"
@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import type { Batch } from "@/lib/types"
 
 import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton"
 
@@ -42,20 +43,25 @@ import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton"
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 type FilterType = "ALL" | "DRAFT" | "ACTIVE"
 
-interface Batch {
-    id: string
-    batch_name: string
-    created_at: string
-    specs: any
-    status?: string
-    market_region?: MarketRegion
-    pli_compliant?: boolean
-    total_passports?: number
-    domestic_value_add?: number
-    cell_source?: 'IMPORTED' | 'DOMESTIC'
-    hsn_code?: string
-    bill_of_entry_no?: string
-    country_of_origin?: string
+interface BatchesResponse {
+    batches: Batch[]
+    total?: number
+    total_pages?: number
+}
+
+interface ApiError {
+    response?: {
+        data?: {
+            error?: string
+        }
+    }
+}
+
+const toApiError = (error: unknown): ApiError => {
+    if (typeof error === "object" && error !== null) {
+        return error as ApiError
+    }
+    return {}
 }
 
 const ITEMS_PER_PAGE = 50
@@ -73,25 +79,25 @@ export default function BatchesPage() {
     const [batchToArchive, setBatchToArchive] = useState<Batch | null>(null)
     const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null)
 
-    const fetchBatches = async (page = 1) => {
+    const fetchBatches = useCallback(async (page = 1) => {
         if (!user) return
         try {
             setLoading(true)
-            const response = await api.get(`/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`)
+            const response = await api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`)
             setBatches(response.data.batches || [])
             setTotalCount(response.data.total || 0)
             setTotalPages(response.data.total_pages || 1)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch batches:", error)
             toast.error("Failed to load batches")
         } finally {
             setLoading(false)
         }
-    }
+    }, [user])
 
     useEffect(() => {
         fetchBatches(currentPage)
-    }, [user?.tenant_id, currentPage])
+    }, [currentPage, fetchBatches])
 
     const filteredBatches = batches.filter(batch => {
         if (filter !== "ALL") {
@@ -121,7 +127,7 @@ export default function BatchesPage() {
             await duplicateBatch(batchId)
             toast.success("Batch duplicated successfully")
             fetchBatches()
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Duplicate failed:", error)
             toast.error("Failed to duplicate batch")
         }
@@ -395,8 +401,9 @@ export default function BatchesPage() {
                                                                     await api.post(`/batches/${batch.id}/activate`)
                                                                     toast.success("Batch activated!")
                                                                     fetchBatches()
-                                                                } catch (err: any) {
-                                                                    toast.error(err.response?.data?.error || "Activation failed")
+                                                                } catch (err: unknown) {
+                                                                    const apiError = toApiError(err)
+                                                                    toast.error(apiError.response?.data?.error || "Activation failed")
                                                                 }
                                                             }}
                                                             className="cursor-pointer text-emerald-600 hover:bg-emerald-50 focus:bg-emerald-50 focus:text-emerald-700"
@@ -539,8 +546,9 @@ export default function BatchesPage() {
                             await api.post(`/batches/${batchToArchive.id}/archive`)
                             toast.success("Batch archived successfully")
                             fetchBatches()
-                        } catch (err: any) {
-                            toast.error(err.response?.data?.error || "Failed to archive batch")
+                        } catch (err: unknown) {
+                            const apiError = toApiError(err)
+                            toast.error(apiError.response?.data?.error || "Failed to archive batch")
                         } finally {
                             setBatchToArchive(null)
                         }
@@ -561,8 +569,9 @@ export default function BatchesPage() {
                             await api.delete(`/batches/${batchToDelete.id}/draft`)
                             toast.success("Draft batch deleted")
                             fetchBatches()
-                        } catch (err: any) {
-                            toast.error(err.response?.data?.error || "Failed to delete batch")
+                        } catch (err: unknown) {
+                            const apiError = toApiError(err)
+                            toast.error(apiError.response?.data?.error || "Failed to delete batch")
                         } finally {
                             setBatchToDelete(null)
                         }

@@ -1,0 +1,252 @@
+package handlers
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"exportready-battery/internal/auth"
+	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
+	"exportready-battery/internal/services"
+
+	"github.com/google/uuid"
+)
+
+type fakeMagicRepo struct {
+	passports map[uuid.UUID]*models.Passport
+	tokens    map[string]*repository.MagicLinkTokenRecord
+}
+
+func newFakeMagicRepo() *fakeMagicRepo {
+	return &fakeMagicRepo{
+		passports: make(map[uuid.UUID]*models.Passport),
+		tokens:    make(map[string]*repository.MagicLinkTokenRecord),
+	}
+}
+
+func (f *fakeMagicRepo) GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error) {
+	passport, ok := f.passports[passportID]
+	if !ok {
+		return nil, context.DeadlineExceeded
+	}
+	return passport, nil
+}
+
+func (f *fakeMagicRepo) VerifyPartnerAccess(ctx context.Context, email, partnerCode string) (*repository.VerificationResult, error) {
+	return &repository.VerificationResult{Allowed: true, Tier: "A", CompanyName: "Test", Role: string(models.ActorRoleLogistics)}, nil
+}
+
+func (f *fakeMagicRepo) ValidatePartnerCode(ctx context.Context, code string) (*repository.PartnerCode, error) {
+	return nil, nil
+}
+
+func (f *fakeMagicRepo) IncrementPartnerCodeUsage(ctx context.Context, codeID uuid.UUID, email string, passportID *uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) CreateMagicLinkToken(ctx context.Context, req repository.CreateMagicLinkTokenRequest) error {
+	f.tokens[req.TokenHash] = &repository.MagicLinkTokenRecord{
+		PassportID: req.PassportID,
+		Email:      req.Email,
+		Role:       req.Role,
+		Action:     req.Action,
+		ExpiresAt:  req.ExpiresAt,
+	}
+	return nil
+}
+
+func (f *fakeMagicRepo) GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*repository.MagicLinkTokenRecord, error) {
+	return f.tokens[tokenHash], nil
+}
+
+func (f *fakeMagicRepo) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error) {
+	return models.MarketRegionGlobal, nil
+}
+
+func (f *fakeMagicRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
+	if params.Event == nil {
+		return context.DeadlineExceeded
+	}
+	passport, ok := f.passports[params.PassportID]
+	if !ok {
+		return context.DeadlineExceeded
+	}
+
+	if params.MagicLinkTokenHash != "" {
+		token := f.tokens[params.MagicLinkTokenHash]
+		if token == nil || token.UsedAt != nil || time.Now().After(token.ExpiresAt) {
+			return models.ErrMagicLinkTokenInvalid
+		}
+		if token.PassportID != params.PassportID || token.Role != string(params.Event.ActorRole) || token.Action != string(params.Event.Action) {
+			return models.ErrMagicLinkTokenInvalid
+		}
+		now := time.Now()
+		token.UsedAt = &now
+	}
+
+	passport.Status = params.NewStatus
+	return nil
+}
+
+func (f *fakeMagicRepo) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) {
+	return nil, nil
+}
+
+func (f *fakeMagicRepo) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, ownerIdentifier string) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) AppendOwnershipHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, updatedAt time.Time) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
+func setupMagicLinkHandler(t *testing.T, status string, action string, role string) (*MagicLinkHandler, *fakeMagicRepo, *auth.MagicLinkToken, uuid.UUID) {
+	t.Helper()
+	repo := newFakeMagicRepo()
+	passportID := uuid.New()
+	repo.passports[passportID] = &models.Passport{
+		UUID:      passportID,
+		BatchID:   uuid.New(),
+		Status:    status,
+		CreatedAt: time.Now(),
+	}
+
+	secret := "test-secret"
+	token, err := auth.GenerateMagicToken(passportID.String(), "partner@example.com", role, action, secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	repo.tokens[token.TokenHash] = &repository.MagicLinkTokenRecord{
+		PassportID: passportID,
+		Email:      "partner@example.com",
+		Role:       role,
+		Action:     action,
+		ExpiresAt:  token.ExpiresAt,
+	}
+
+	lifecycleService := services.NewLifecycleService(repo)
+	handler := NewMagicLinkHandler(repo, lifecycleService, nil, nil, secret, "http://localhost")
+
+	return handler, repo, token, passportID
+}
+
+func TestMagicLinkTransition_ReusedTokenRejected(t *testing.T) {
+	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	body := `{"action":"SHIP","evidence":{"shipment_reference":"REF-1","shipment_date":"2026-01-15"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Authorization", "Bearer "+token.Token)
+	rr2 := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr2, req2)
+	if rr2.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rr2.Code)
+	}
+}
+
+func TestMagicLinkTransition_WrongActionRejected(t *testing.T) {
+	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	body := `{"action":"INSTALL","evidence":{"installation_date":"2026-01-15","installer_id":"TECH-1"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestMagicLinkTransition_ExpiredTokenRejected(t *testing.T) {
+	handler, repo, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	record := repo.tokens[token.TokenHash]
+	expired := time.Now().Add(-1 * time.Hour)
+	record.ExpiresAt = expired
+
+	body := `{"action":"SHIP","evidence":{"shipment_reference":"REF-1","shipment_date":"2026-01-15"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rr.Code)
+	}
+}
+
+func TestMagicLinkTransition_RoleMismatchRejected(t *testing.T) {
+	handler, repo, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	record := repo.tokens[token.TokenHash]
+	record.Role = "TECHNICIAN"
+
+	body := `{"action":"SHIP","evidence":{"shipment_reference":"REF-1","shipment_date":"2026-01-15"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestMagicLinkTransition_ValidTokenSucceeds(t *testing.T) {
+	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	body := `{"action":"SHIP","evidence":{"shipment_reference":"REF-1","shipment_date":"2026-01-15"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+}

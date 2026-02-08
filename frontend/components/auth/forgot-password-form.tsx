@@ -24,7 +24,7 @@ export function ForgotPasswordForm() {
             await api.post("/auth/forgot-password", { email })
             setIsSubmitted(true)
             toast.success("Reset instructions sent to your email")
-        } catch (error: unknown) {
+        } catch {
             // Always show success for security (don't reveal if email exists)
             setIsSubmitted(true)
             toast.success("If the email exists, reset instructions will be sent")
@@ -37,7 +37,7 @@ export function ForgotPasswordForm() {
         return (
             <AuthLayout
                 title="Check your email"
-                subtitle="We've sent password reset instructions"
+                subtitle="We&apos;ve sent password reset instructions"
                 type="login"
             >
                 <motion.div
@@ -52,10 +52,10 @@ export function ForgotPasswordForm() {
                     <div className="space-y-2">
                         <p className="text-slate-300">
                             If an account exists for <span className="font-medium text-white">{email}</span>,
-                            you'll receive an email with instructions to reset your password.
+                            you&apos;ll receive an email with instructions to reset your password.
                         </p>
                         <p className="text-slate-500 text-sm">
-                            Didn't receive an email? Check your spam folder or try again.
+                            Didn&apos;t receive an email? Check your spam folder or try again.
                         </p>
                     </div>
 
@@ -86,7 +86,7 @@ export function ForgotPasswordForm() {
     return (
         <AuthLayout
             title="Forgot password?"
-            subtitle="Enter your email and we'll send you reset instructions"
+            subtitle="Enter your email and we&apos;ll send you reset instructions"
             type="login"
         >
             <form onSubmit={handleSubmit} className="space-y-5">

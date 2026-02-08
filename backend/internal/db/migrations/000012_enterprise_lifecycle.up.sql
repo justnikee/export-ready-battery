@@ -1,17 +1,17 @@
 -- Migration: Enterprise Lifecycle Engine
--- Adds trusted domains, reward ledger, enhanced passport tracking, and RETURN_REQUESTED state
+-- Adds trusted domains, reward ledger, and enhanced passport tracking
 -- Date: 2026-01-25
 
 -- ============================================================================
--- 1. UPDATE PASSPORT STATUS CONSTRAINT (Add RETURN_REQUESTED)
+-- 1. UPDATE PASSPORT STATUS CONSTRAINT (Canonical lifecycle)
 -- ============================================================================
 
--- Drop old constraint and add new one with RETURN_REQUESTED
+-- Drop old constraint and add new one with canonical statuses
 ALTER TABLE public.passports DROP CONSTRAINT IF EXISTS passports_status_check;
 ALTER TABLE public.passports ADD CONSTRAINT passports_status_check 
-    CHECK (status IN ('CREATED', 'SHIPPED', 'IN_SERVICE', 'RETURN_REQUESTED', 'RETURNED', 'RECALLED', 'RECYCLED', 'END_OF_LIFE'));
+    CHECK (status IN ('CREATED', 'ACTIVE', 'SHIPPED', 'IN_SERVICE', 'RECALLED', 'RECYCLED', 'END_OF_LIFE'));
 
-COMMENT ON COLUMN public.passports.status IS 'Lifecycle status: CREATED → SHIPPED → IN_SERVICE → RETURN_REQUESTED → RETURNED → RECYCLED → END_OF_LIFE (or RECALLED at any point)';
+COMMENT ON COLUMN public.passports.status IS 'Lifecycle status: CREATED -> ACTIVE -> SHIPPED -> IN_SERVICE -> RECYCLED -> END_OF_LIFE (or RECALLED from ACTIVE/SHIPPED/IN_SERVICE)';
 
 -- ============================================================================
 -- 2. PASSPORT TABLE ENHANCEMENTS
@@ -33,7 +33,7 @@ COMMENT ON COLUMN public.passports.geolocation_history IS 'Array of {lat, lng, t
 ALTER TABLE public.passports 
 ADD COLUMN IF NOT EXISTS lifecycle_timestamps JSONB DEFAULT '{}';
 
-COMMENT ON COLUMN public.passports.lifecycle_timestamps IS 'Consolidated timestamps: {shipped, installed, return_requested, returned, recycled}';
+COMMENT ON COLUMN public.passports.lifecycle_timestamps IS 'Consolidated timestamps: {activated, shipped, installed, recalled, recycled, end_of_life}';
 
 -- ============================================================================
 -- 3. PASSPORT_EVENTS TABLE ENHANCEMENTS

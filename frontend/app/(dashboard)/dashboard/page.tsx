@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import dynamic from 'next/dynamic'
@@ -9,6 +9,7 @@ import { Package, Globe, Zap, AlertCircle, QrCode, FolderPlus, MoreHorizontal, A
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import type { Batch } from "@/lib/types"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,13 +32,52 @@ interface DashboardStats {
     passports_this_week: number
 }
 
-interface Batch {
+interface ScanFeedItem {
+    id?: string
+    batch_name?: string
+    city?: string
+    country?: string
+    latitude?: number
+    longitude?: number
+    scanned_at: string
+}
+
+interface ScanLocation {
+    city: string
+    country: string
+    latitude: number
+    longitude: number
+    scanned_at: string
+}
+
+interface ActivityItem {
     id: string
-    batch_name: string
-    market_region: string
-    total_passports: number
+    type: 'SCAN' | 'BATCH'
+    title: string
+    location: string
+    time: string
+}
+
+interface ChartPoint {
+    name: string
+    value: number
+}
+
+interface RecentBatch {
+    id: string
+    name: string
+    units: number
     status: string
+    market_region?: string
     created_at: string
+}
+
+interface BatchesResponse {
+    batches?: Batch[]
+}
+
+interface ScansResponse {
+    scans?: ScanFeedItem[]
 }
 
 export default function DashboardPage() {
@@ -45,32 +85,32 @@ export default function DashboardPage() {
     const router = useRouter()
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [batches, setBatches] = useState<Batch[]>([])
-    const [recentBatches, setRecentBatches] = useState<any[]>([])
-    const [activities, setActivities] = useState<any[]>([])
-    const [scanLocations, setScanLocations] = useState<any[]>([])
-    const [chartData, setChartData] = useState<any[]>([])
+    const [recentBatches, setRecentBatches] = useState<RecentBatch[]>([])
+    const [activities, setActivities] = useState<ActivityItem[]>([])
+    const [scanLocations, setScanLocations] = useState<ScanLocation[]>([])
+    const [chartData, setChartData] = useState<ChartPoint[]>([])
     const [loading, setLoading] = useState(true)
     const [batchToDelete, setBatchToDelete] = useState<string | null>(null)
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         if (!user) return
 
         try {
             const [statsRes, batchesRes, scansRes] = await Promise.all([
-                api.get(`/dashboard/stats?tenant_id=${user.tenant_id}`),
-                api.get(`/batches?tenant_id=${user.tenant_id}`),
-                api.get(`/scans/feed?tenant_id=${user.tenant_id}&limit=6`)
+                api.get<DashboardStats>(`/dashboard/stats?tenant_id=${user.tenant_id}`),
+                api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}`),
+                api.get<ScansResponse>(`/scans/feed?tenant_id=${user.tenant_id}&limit=6`)
             ])
 
             setStats(statsRes.data)
             const allBatches = batchesRes.data.batches || []
-            const sortedByDateDesc = [...allBatches].sort((a: any, b: any) =>
+            const sortedByDateDesc = [...allBatches].sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )
             setBatches(allBatches)
 
             // Chart Data
-            const sortedAsc = [...allBatches].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            const sortedAsc = [...allBatches].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
             const dateMap = new Map<string, number>()
             if (sortedAsc.length > 0) {
                 const today = new Date()
@@ -79,12 +119,12 @@ export default function DashboardPage() {
                     d.setDate(d.getDate() - i)
                     dateMap.set(format(d, 'MMM d'), 0)
                 }
-                sortedAsc.forEach((batch: any) => {
+                sortedAsc.forEach((batch) => {
                     const dateStr = format(parseISO(batch.created_at), 'MMM d')
                     dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + (batch.total_passports || 0))
                 })
                 let runningTotal = 0
-                const cData: any[] = []
+                const cData: ChartPoint[] = []
                 for (let i = 60; i >= 0; i -= 10) {
                     const d = new Date()
                     d.setDate(d.getDate() - i)
@@ -100,9 +140,9 @@ export default function DashboardPage() {
             }
 
             // Recent Batches
-            setRecentBatches(sortedByDateDesc.slice(0, 5).map((b: any) => ({
+            setRecentBatches(sortedByDateDesc.slice(0, 5).map((b) => ({
                 id: b.id,
-                name: b.batch_name || b.name,
+                name: b.batch_name || "Batch",
                 units: b.total_passports || 0,
                 status: b.status || 'DRAFT',
                 market_region: b.market_region,
@@ -111,26 +151,26 @@ export default function DashboardPage() {
 
             // Store scan locations for the map
             const scans = (scansRes.data.scans || [])
-            setScanLocations(scans.map((s: any) => ({
-                city: s.city,
-                country: s.country,
-                latitude: s.latitude || 0,
-                longitude: s.longitude || 0,
+            setScanLocations(scans.map((s) => ({
+                city: s.city || "Unknown",
+                country: s.country || "Unknown",
+                latitude: s.latitude ?? 0,
+                longitude: s.longitude ?? 0,
                 scanned_at: s.scanned_at,
             })))
 
             // Audit Log
-            const scanEvents = scans.map((s: any) => ({
+            const scanEvents: ActivityItem[] = scans.map((s) => ({
                 id: `scan-${s.id || Math.random()}`,
                 type: 'SCAN',
                 title: `QR Scan: ${s.batch_name}`,
-                location: `${s.city}, ${s.country}`,
+                location: `${s.city || "Unknown"}, ${s.country || "Unknown"}`,
                 time: formatDistanceToNow(new Date(s.scanned_at), { addSuffix: true })
             }))
-            const batchEvents = sortedByDateDesc.slice(0, 3).map((b: any) => ({
+            const batchEvents: ActivityItem[] = sortedByDateDesc.slice(0, 3).map((b) => ({
                 id: `batch-${b.id}`,
                 type: 'BATCH',
-                title: `Batch Created: ${b.batch_name || b.name}`,
+                title: `Batch Created: ${b.batch_name || "Batch"}`,
                 location: b.market_region === 'INDIA' ? 'Local' : 'EU Export',
                 time: formatDistanceToNow(new Date(b.created_at), { addSuffix: true })
             }))
@@ -140,9 +180,9 @@ export default function DashboardPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [user])
 
-    useEffect(() => { fetchDashboardData() }, [user?.tenant_id])
+    useEffect(() => { fetchDashboardData() }, [fetchDashboardData])
 
     // Calculate Status Counts
     let readyCount = 0, processingCount = 0, completedCount = 0
@@ -340,8 +380,9 @@ export default function DashboardPage() {
                                                                     await api.post(`/batches/${batch.id}/activate`)
                                                                     toast.success("Batch activated!")
                                                                     fetchDashboardData()
-                                                                } catch (err: any) {
-                                                                    toast.error(err.response?.data?.error || "Activation failed")
+                                                                } catch (err: unknown) {
+                                                                    const apiError = err as { response?: { data?: { error?: string } } }
+                                                                    toast.error(apiError.response?.data?.error || "Activation failed")
                                                                 }
                                                             }}
                                                             className="cursor-pointer text-emerald-600 hover:bg-emerald-50 focus:bg-emerald-50 focus:text-emerald-700"
@@ -428,7 +469,7 @@ export default function DashboardPage() {
                             await api.delete(`/batches/${batchToDelete}`)
                             toast.success("Batch deleted")
                             fetchDashboardData()
-                        } catch (err) {
+                        } catch {
                             toast.error("Failed to delete batch")
                         } finally {
                             setBatchToDelete(null)

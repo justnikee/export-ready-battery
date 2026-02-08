@@ -11,8 +11,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, HelpCircle, Battery } from "lucide-react"
+import { LogOut, HelpCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 
 const navItems = [
@@ -38,10 +39,7 @@ export function Header() {
         <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
             {/* Left: Logo */}
             <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-                <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <Battery className="h-4 w-4 text-white" />
-                </div>
-                <span className="font-semibold text-slate-900 text-lg">ExportReady</span>
+                <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
             </Link>
 
             {/* Center: Navigation */}

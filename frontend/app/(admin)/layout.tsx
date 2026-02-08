@@ -4,7 +4,7 @@ import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
-import { Battery, LayoutDashboard, FileText, Settings, LogOut } from "lucide-react"
+import { Battery, LayoutDashboard, FileText, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function AdminLayout({

@@ -1,7 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { CodeBlock, MethodBadge, ApiEndpoint } from '@/components/docs';
+import { CodeBlock, ApiEndpoint } from '@/components/docs';
 import {
   Shield,
   FileText,
@@ -350,7 +349,7 @@ uuid-1,BAT-001,2026-01-15,ACTIVE,https://example.com/p/uuid-1`}
         <div className="space-y-6 mt-6">
           <ApiEndpoint
             method="GET"
-            path="/passport/{uuid}"
+            path="/p/{uuid}"
             description="Get public passport data. No authentication required."
             responseBody={`{
   "uuid": "passport-uuid",
@@ -545,18 +544,20 @@ uuid-1,BAT-001,2026-01-15,ACTIVE,https://example.com/p/uuid-1`}
           <ApiEndpoint
             method="POST"
             path="/passports/{uuid}/transition"
-            description="Transition a passport to a new status with automatic event logging."
+            description="Apply a lifecycle action with automatic event logging."
             auth
             requestBody={`{
-  "to_status": "shipped",
-  "metadata": {
-    "tracking_number": "IND123456789",
-    "shipping_date": "2026-01-15"
+  "action": "SHIP",
+  "evidence": {
+    "shipment_reference": "IND123456789",
+    "shipment_date": "2026-01-15"
   }
 }`}
             responseBody={`{
-  "message": "Transition successful",
-  "new_status": "shipped",
+  "success": true,
+  "previous_status": "ACTIVE",
+  "new_status": "SHIPPED",
+  "action": "SHIP",
   "event_id": "event-uuid"
 }`}
           />
@@ -564,11 +565,11 @@ uuid-1,BAT-001,2026-01-15,ACTIVE,https://example.com/p/uuid-1`}
           <ApiEndpoint
             method="GET"
             path="/passports/{uuid}/transitions"
-            description="Get allowed status transitions for a passport."
+            description="Get allowed lifecycle actions for a passport."
             auth
             responseBody={`{
-  "current_status": "shipped",
-  "allowed_transitions": ["installed", "returned", "recalled"]
+  "current_status": "SHIPPED",
+  "allowed_actions": ["INSTALL", "RECALL"]
 }`}
           />
 
@@ -581,9 +582,13 @@ uuid-1,BAT-001,2026-01-15,ACTIVE,https://example.com/p/uuid-1`}
   "events": [
     {
       "id": "event-uuid",
-      "event_type": "status_change",
+      "event_type": "STATUS_CHANGED",
+      "action": "SHIP",
       "actor": "admin@acme.com",
-      "metadata": { "to_status": "shipped" },
+      "actor_role": "LOGISTICS",
+      "status_from": "ACTIVE",
+      "status_to": "SHIPPED",
+      "metadata": { "evidence": { "shipment_reference": "IND123456789" } },
       "hash": "sha256:abc123...",
       "previous_hash": "sha256:def456...",
       "created_at": "2026-01-15T10:00:00Z"
@@ -598,13 +603,19 @@ uuid-1,BAT-001,2026-01-15,ACTIVE,https://example.com/p/uuid-1`}
             description="Bulk transition multiple passports."
             auth
             requestBody={`{
-  "passport_uuids": ["uuid-1", "uuid-2", "uuid-3"],
-  "to_status": "shipped",
-  "metadata": { "batch_shipment": true }
+  "passport_ids": ["uuid-1", "uuid-2", "uuid-3"],
+  "action": "SHIP",
+  "evidence": {
+    "shipment_reference": "BATCH-2026-001",
+    "shipment_date": "2026-01-15"
+  }
 }`}
             responseBody={`{
-  "success_count": 3,
-  "failed": []
+  "total": 3,
+  "succeeded": 3,
+  "failed": 0,
+  "failed_ids": [],
+  "errors": []
 }`}
           />
         </div>

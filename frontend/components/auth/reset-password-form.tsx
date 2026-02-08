@@ -64,8 +64,9 @@ export function ResetPasswordForm() {
             toast.success("Password reset successfully!")
             // Redirect to login after 2 seconds
             setTimeout(() => router.push("/login"), 2000)
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.error || "Failed to reset password"
+        } catch (err: unknown) {
+            const apiError = err as { response?: { data?: { error?: string } } }
+            const errorMessage = apiError.response?.data?.error || "Failed to reset password"
             setError(errorMessage)
             toast.error(errorMessage)
         } finally {

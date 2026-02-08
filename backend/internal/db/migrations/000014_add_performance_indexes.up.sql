@@ -16,8 +16,14 @@ CREATE INDEX IF NOT EXISTS idx_scan_events_scanned_at ON public.scan_events(scan
 -- Index on batches.created_at for sorting (used in list queries)
 CREATE INDEX IF NOT EXISTS idx_batches_created_at ON public.batches(created_at DESC) WHERE deleted_at IS NULL;
 
--- Index on quota_transactions for tenant balance queries
-CREATE INDEX IF NOT EXISTS idx_quota_transactions_tenant_id ON public.quota_transactions(tenant_id);
+-- Index on quota_transactions (or transactions) for tenant balance queries
+DO $$ BEGIN
+    IF to_regclass('public.quota_transactions') IS NOT NULL THEN
+        CREATE INDEX IF NOT EXISTS idx_quota_transactions_tenant_id ON public.quota_transactions(tenant_id);
+    ELSIF to_regclass('public.transactions') IS NOT NULL THEN
+        CREATE INDEX IF NOT EXISTS idx_quota_transactions_tenant_id ON public.transactions(tenant_id);
+    END IF;
+END $$;
 
 -- Index on api_keys for authentication lookups
 CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON public.api_keys(key_hash) WHERE is_active = true;

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
 import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2 } from "lucide-react"
@@ -10,13 +11,11 @@ import { toast } from "sonner"
 function DocumentUpload({
     label,
     documentType,
-    currentPath,
     currentStatus = "NOT_UPLOADED",
     onUploadSuccess
 }: {
     label: string
     documentType: "epr" | "bis" | "pli"
-    currentPath: string
     currentStatus?: string // NOT_UPLOADED, PENDING, VERIFIED, REJECTED
     onUploadSuccess: () => void
 }) {
@@ -53,9 +52,10 @@ function DocumentUpload({
 
             toast.success(`${label} certificate uploaded successfully`)
             onUploadSuccess()
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Upload failed:", error)
-            toast.error(error.response?.data?.error || "Failed to upload certificate")
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Failed to upload certificate")
         } finally {
             setUploading(false)
             // Reset file input
@@ -200,9 +200,10 @@ function LogoUpload({
 
             toast.success("Logo uploaded successfully")
             onUploadSuccess(response.data.logo_url)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Upload failed:", error)
-            toast.error(error.response?.data?.error || "Failed to upload logo")
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Failed to upload logo")
         } finally {
             setUploading(false)
             if (fileInputRef.current) {
@@ -247,6 +248,7 @@ export default function SettingsPage() {
     const { user, refreshUser } = useAuth()
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+    const [logoError, setLogoError] = useState(false)
 
     const [formData, setFormData] = useState({
         company_name: "",
@@ -299,6 +301,10 @@ export default function SettingsPage() {
             })
         }
     }, [user])
+
+    useEffect(() => {
+        setLogoError(false)
+    }, [formData.logo_url])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -424,19 +430,18 @@ export default function SettingsPage() {
                             </label>
                             <div className="flex items-start gap-4">
                                 {/* Logo Preview */}
-                                <div className="h-20 w-20 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                    {formData.logo_url ? (
-                                        <img
+                                <div className="relative h-20 w-20 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                    {formData.logo_url && !logoError ? (
+                                        <Image
                                             src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
                                             alt="Company logo"
-                                            className="h-full w-full object-contain"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                            }}
+                                            fill
+                                            sizes="80px"
+                                            className="object-contain"
+                                            onError={() => setLogoError(true)}
                                         />
                                     ) : null}
-                                    <div className={`flex flex-col items-center justify-center text-slate-400 ${formData.logo_url ? 'hidden' : ''}`}>
+                                    <div className={`flex flex-col items-center justify-center text-slate-400 ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
                                         <ImageIcon className="h-8 w-8" />
                                     </div>
                                 </div>
@@ -491,7 +496,6 @@ export default function SettingsPage() {
                             <DocumentUpload
                                 label="EPR"
                                 documentType="epr"
-                                currentPath={certificatePaths.epr_certificate_path}
                                 currentStatus={certificatePaths.epr_status}
                                 onUploadSuccess={handleUploadSuccess}
                             />
@@ -516,7 +520,6 @@ export default function SettingsPage() {
                             <DocumentUpload
                                 label="BIS"
                                 documentType="bis"
-                                currentPath={certificatePaths.bis_certificate_path}
                                 currentStatus={certificatePaths.bis_status}
                                 onUploadSuccess={handleUploadSuccess}
                             />
@@ -554,7 +557,6 @@ export default function SettingsPage() {
                                 <DocumentUpload
                                     label="PLI"
                                     documentType="pli"
-                                    currentPath={certificatePaths.pli_certificate_path}
                                     currentStatus={certificatePaths.pli_status}
                                     onUploadSuccess={handleUploadSuccess}
                                 />

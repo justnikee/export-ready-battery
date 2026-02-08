@@ -5,8 +5,9 @@ import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import {
     Loader2, CheckCircle, AlertCircle, ArrowRight,
-    Truck, Wrench, RotateCcw, Recycle, Shield,
-    User, Building2, Trophy, Package
+    Truck, Wrench, Recycle, Shield,
+    User, Building2, Trophy,
+    type LucideIcon
 } from "lucide-react"
 
 interface PassportInfo {
@@ -19,46 +20,66 @@ interface PassportInfo {
         email: string
         role: string
     }
-    allowed_transitions: string[]
+    allowed_actions: string[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string; description: string }> = {
-    SHIPPED: {
+const ACTION_CONFIG: Record<string, { label: string; icon: LucideIcon; color: string; description: string }> = {
+    ACTIVATE: {
+        label: "Activate Passport",
+        icon: Shield,
+        color: "emerald",
+        description: "Manufacturing completed and legally valid"
+    },
+    SHIP: {
         label: "Mark as Shipped",
         icon: Truck,
         color: "blue",
         description: "Battery has left the factory and is in transit"
     },
-    IN_SERVICE: {
-        label: "Mark as Installed",
+    INSTALL: {
+        label: "Mark as In Service",
         icon: Wrench,
         color: "emerald",
         description: "Battery has been installed in a device or vehicle"
     },
-    RETURN_REQUESTED: {
-        label: "Request Return",
-        icon: Package,
-        color: "orange",
-        description: "Flag this battery for warranty return or service"
-    },
-    RETURNED: {
-        label: "Mark as Returned",
-        icon: RotateCcw,
-        color: "amber",
-        description: "Battery has been returned for warranty or end-of-life"
-    },
-    RECYCLED: {
+    RECYCLE: {
         label: "Mark as Recycled",
         icon: Recycle,
         color: "purple",
         description: "Battery has been processed by a certified recycler"
     },
-    RECALLED: {
-        label: "Mark as Recalled",
+    RECALL: {
+        label: "Recall Battery",
         icon: AlertCircle,
         color: "red",
-        description: "Battery has been recalled for safety or quality issues"
+        description: "Safety or compliance recall"
     },
+    CLOSE: {
+        label: "Close as End of Life",
+        icon: CheckCircle,
+        color: "slate",
+        description: "Lifecycle permanently closed after recycling"
+    },
+}
+
+const EVIDENCE_FIELDS: Record<string, { key: string; label: string; placeholder?: string; type?: string }[]> = {
+    SHIP: [
+        { key: "shipment_reference", label: "Shipment Reference", placeholder: "Tracking number / AWB" },
+        { key: "shipment_date", label: "Shipment Date", type: "date" },
+    ],
+    INSTALL: [
+        { key: "installation_date", label: "Installation Date", type: "date" },
+        { key: "installer_id", label: "Installer ID", placeholder: "Technician ID or badge" },
+    ],
+    RECYCLE: [
+        { key: "recycler_epr_id", label: "Recycler EPR ID", placeholder: "EPR-XXXX" },
+        { key: "recycling_date", label: "Recycling Date", type: "date" },
+        { key: "certificate_reference", label: "Certificate Reference", placeholder: "Certificate number" },
+    ],
+    RECALL: [
+        { key: "recall_reason", label: "Recall Reason", placeholder: "Recall reason" },
+        { key: "recall_reference", label: "Recall Reference", placeholder: "Incident / reference ID" },
+    ],
 }
 
 export default function PassportActionPage() {
@@ -72,8 +93,9 @@ export default function PassportActionPage() {
     const [loading, setLoading] = useState(true)
     const [info, setInfo] = useState<PassportInfo | null>(null)
     const [error, setError] = useState("")
-    const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
-    const [metadata, setMetadata] = useState<Record<string, string>>({})
+    const [selectedAction, setSelectedAction] = useState<string | null>(null)
+    const [resultStatus, setResultStatus] = useState<string | null>(null)
+    const [evidence, setEvidence] = useState<Record<string, string>>({})
     const [submitting, setSubmitting] = useState(false)
     const [success, setSuccess] = useState(false)
     const [pointsAwarded, setPointsAwarded] = useState(0)
@@ -98,8 +120,9 @@ export default function PassportActionPage() {
 
                 const data = await response.json()
                 setInfo(data)
-            } catch (err: any) {
-                setError(err.message || "Invalid or expired magic link")
+            } catch (err: unknown) {
+                const error = err as { message?: string }
+                setError(error.message || "Invalid or expired magic link")
             } finally {
                 setLoading(false)
             }
@@ -109,7 +132,7 @@ export default function PassportActionPage() {
     }, [passportId, token])
 
     const handleTransition = async () => {
-        if (!selectedStatus || !token) return
+        if (!selectedAction || !token) return
 
         // Check if UNVERIFIED user needs partner code
         if (info?.actor?.role === "UNVERIFIED" && !partnerCode.trim()) {
@@ -117,14 +140,22 @@ export default function PassportActionPage() {
             return
         }
 
+        const requiredEvidence = EVIDENCE_FIELDS[selectedAction] || []
+        for (const field of requiredEvidence) {
+            if (!evidence[field.key]?.trim()) {
+                setError(`${field.label} is required`)
+                return
+            }
+        }
+
         setSubmitting(true)
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 
             // Build payload with optional partner_code
-            const payload: any = {
-                to_status: selectedStatus,
-                metadata: metadata
+            const payload: { action: string; evidence: Record<string, string>; partner_code?: string } = {
+                action: selectedAction,
+                evidence: evidence
             }
             if (partnerCode.trim()) {
                 payload.partner_code = partnerCode.trim()
@@ -149,10 +180,14 @@ export default function PassportActionPage() {
             if (data.points_awarded) {
                 setPointsAwarded(data.points_awarded)
             }
+            if (data.new_status) {
+                setResultStatus(data.new_status)
+            }
 
             setSuccess(true)
-        } catch (err: any) {
-            setError(err.message || "Failed to update status")
+        } catch (err: unknown) {
+            const error = err as { message?: string }
+            setError(error.message || "Failed to apply action")
         } finally {
             setSubmitting(false)
         }
@@ -204,7 +239,7 @@ export default function PassportActionPage() {
 
     // Success state
     if (success) {
-        const config = STATUS_CONFIG[selectedStatus || ""] || { color: "emerald", icon: CheckCircle }
+        const config = ACTION_CONFIG[selectedAction || ""] || { color: "emerald", icon: CheckCircle }
 
         // Trigger confetti
         import('canvas-confetti').then((confetti) => {
@@ -228,8 +263,13 @@ export default function PassportActionPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">Status Updated!</h2>
                     <p className="text-slate-400 mb-2">
-                        Battery status changed to <span className="text-emerald-400 font-semibold">{config.label}</span>
+                        Action applied: <span className="text-emerald-400 font-semibold">{config.label}</span>
                     </p>
+                    {resultStatus && (
+                        <p className="text-slate-500 text-sm mb-2">
+                            New status: <span className="text-slate-300 font-mono">{resultStatus}</span>
+                        </p>
+                    )}
                     <p className="text-slate-500 text-sm mb-4">
                         This action has been recorded to the audit trail.
                     </p>
@@ -328,22 +368,26 @@ export default function PassportActionPage() {
                     transition={{ delay: 0.2 }}
                     className="mb-6"
                 >
-                    <p className="text-slate-400 text-sm mb-3">Select new status:</p>
+                    <p className="text-slate-400 text-sm mb-3">Select action:</p>
                     <div className="space-y-3">
-                        {info?.allowed_transitions?.map((status) => {
-                            const config = STATUS_CONFIG[status] || {
-                                label: status,
+                        {info?.allowed_actions?.map((action) => {
+                            const config = ACTION_CONFIG[action] || {
+                                label: action,
                                 icon: ArrowRight,
                                 color: "slate",
                                 description: ""
                             }
                             const Icon = config.icon
-                            const isSelected = selectedStatus === status
+                            const isSelected = selectedAction === action
 
                             return (
                                 <button
-                                    key={status}
-                                    onClick={() => setSelectedStatus(status)}
+                                    key={action}
+                                    onClick={() => {
+                                        setSelectedAction(action)
+                                        setEvidence({})
+                                        setError("")
+                                    }}
                                     className={`w-full p-4 rounded-xl border transition-all text-left ${isSelected
                                         ? `bg-${config.color}-500/10 border-${config.color}-500/50`
                                         : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
@@ -367,63 +411,32 @@ export default function PassportActionPage() {
                     </div>
                 </motion.div>
 
-                {/* Metadata Input */}
-                {selectedStatus && (
+                {/* Evidence Input */}
+                {selectedAction && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800 p-4 mb-6"
                     >
-                        <p className="text-slate-400 text-sm mb-3">Additional Details (Optional)</p>
+                        <p className="text-slate-400 text-sm mb-3">Evidence Required</p>
 
-                        {selectedStatus === "IN_SERVICE" && (
-                            <input
-                                type="text"
-                                placeholder="Vehicle VIN or Device ID"
-                                value={metadata.vehicle_vin || ""}
-                                onChange={(e) => setMetadata({ ...metadata, vehicle_vin: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                            />
-                        )}
-
-                        {selectedStatus === "SHIPPED" && (
-                            <input
-                                type="text"
-                                placeholder="Tracking Number / AWB"
-                                value={metadata.tracking_number || ""}
-                                onChange={(e) => setMetadata({ ...metadata, tracking_number: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                            />
-                        )}
-
-                        {selectedStatus === "RETURN_REQUESTED" && (
-                            <input
-                                type="text"
-                                placeholder="Reason (e.g. Warranty, Defect, End of Life)"
-                                value={metadata.return_reason || ""}
-                                onChange={(e) => setMetadata({ ...metadata, return_reason: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                            />
-                        )}
-
-                        {selectedStatus === "RETURNED" && (
-                            <input
-                                type="text"
-                                placeholder="Return Reason"
-                                value={metadata.return_reason || ""}
-                                onChange={(e) => setMetadata({ ...metadata, return_reason: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                            />
-                        )}
-
-                        {selectedStatus === "RECYCLED" && (
-                            <input
-                                type="text"
-                                placeholder="Recycling Certificate Number"
-                                value={metadata.recycling_cert || ""}
-                                onChange={(e) => setMetadata({ ...metadata, recycling_cert: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                            />
+                        {(EVIDENCE_FIELDS[selectedAction] || []).length === 0 ? (
+                            <p className="text-slate-500 text-sm">No evidence is required for this action.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {(EVIDENCE_FIELDS[selectedAction] || []).map((field) => (
+                                    <div key={field.key}>
+                                        <label className="block text-slate-400 text-xs mb-2">{field.label}</label>
+                                        <input
+                                            type={field.type || "text"}
+                                            placeholder={field.placeholder || ""}
+                                            value={evidence[field.key] || ""}
+                                            onChange={(e) => setEvidence({ ...evidence, [field.key]: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         )}
 
                         {/* Partner Code Gate for UNVERIFIED users */}
@@ -442,14 +455,6 @@ export default function PassportActionPage() {
                                 />
                             </div>
                         )}
-
-                        <textarea
-                            placeholder="Additional notes..."
-                            value={metadata.notes || ""}
-                            onChange={(e) => setMetadata({ ...metadata, notes: e.target.value })}
-                            rows={2}
-                            className="w-full mt-3 px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
-                        />
                     </motion.div>
                 )}
 
@@ -459,8 +464,8 @@ export default function PassportActionPage() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
                     onClick={handleTransition}
-                    disabled={!selectedStatus || submitting}
-                    className={`w-full py-4 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${selectedStatus
+                    disabled={!selectedAction || submitting}
+                    className={`w-full py-4 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${selectedAction
                         ? "bg-emerald-600 hover:bg-emerald-500"
                         : "bg-slate-800 cursor-not-allowed"
                         }`}
@@ -472,7 +477,7 @@ export default function PassportActionPage() {
                         </>
                     ) : (
                         <>
-                            Confirm Status Update
+                            Confirm Action
                             <ArrowRight className="h-5 w-5" />
                         </>
                     )}

@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"exportready-battery/internal/auth"
 	"exportready-battery/internal/models"
@@ -15,9 +19,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// MagicLinkRepository defines the data access required for magic link operations.
+type MagicLinkRepository interface {
+	GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error)
+	VerifyPartnerAccess(ctx context.Context, email, partnerCode string) (*repository.VerificationResult, error)
+	ValidatePartnerCode(ctx context.Context, code string) (*repository.PartnerCode, error)
+	IncrementPartnerCodeUsage(ctx context.Context, codeID uuid.UUID, email string, passportID *uuid.UUID) error
+	CreateMagicLinkToken(ctx context.Context, req repository.CreateMagicLinkTokenRequest) error
+	GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*repository.MagicLinkTokenRecord, error)
+}
+
 // MagicLinkHandler handles magic link authentication
 type MagicLinkHandler struct {
-	repo             *repository.Repository
+	repo             MagicLinkRepository
 	lifecycleService *services.LifecycleService
 	rewardService    *services.RewardService
 	emailService     *services.EmailService
@@ -26,7 +40,7 @@ type MagicLinkHandler struct {
 }
 
 // NewMagicLinkHandler creates a new magic link handler
-func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, emailService *services.EmailService, jwtSecret, baseURL string) *MagicLinkHandler {
+func NewMagicLinkHandler(repo MagicLinkRepository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, emailService *services.EmailService, jwtSecret, baseURL string) *MagicLinkHandler {
 	return &MagicLinkHandler{
 		repo:             repo,
 		lifecycleService: lifecycleService,
@@ -41,8 +55,9 @@ func NewMagicLinkHandler(repo *repository.Repository, lifecycleService *services
 type RequestMagicLinkRequest struct {
 	PassportID  string `json:"passport_id"`
 	Email       string `json:"email"`
-	Role        string `json:"role"`         // TECHNICIAN, RECYCLER, LOGISTICS, CUSTOMER
+	Role        string `json:"role"`         // TECHNICIAN, RECYCLER, LOGISTICS
 	PartnerCode string `json:"partner_code"` // Optional: Required for unknown email domains (Tier B)
+	Action      string `json:"action"`       // Canonical action (ACTIVATE, SHIP, INSTALL, RECYCLE, CLOSE, RECALL)
 }
 
 // RequestMagicLink handles POST /api/v1/auth/magic-link
@@ -76,16 +91,26 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Validate role
-	if !auth.IsValidActorRole(req.Role) {
-		respondError(w, http.StatusBadRequest, "Invalid role. Must be TECHNICIAN, RECYCLER, LOGISTICS, or CUSTOMER")
+	// Validate action
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
+		return
+	}
+	if !models.IsValidAction(req.Action) {
+		respondError(w, http.StatusBadRequest, "Invalid action")
 		return
 	}
 
 	// Verify passport exists
-	_, err = h.repo.GetPassportByUUID(r.Context(), passportUUID)
+	passport, err := h.repo.GetPassportByUUID(r.Context(), passportUUID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	// Ensure action is valid for current state (intent validation before persistence)
+	if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status) {
+		respondError(w, http.StatusConflict, "Action not allowed from current status")
 		return
 	}
 
@@ -107,10 +132,15 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Use role from verification if not explicitly provided (Tier B codes define role)
-	role := req.Role
-	if verification.Role != "" && verification.Tier == "B" {
-		role = verification.Role // Partner code defines the role
+	// Role must be derived from verification (trusted partner or partner code)
+	role := verification.Role
+	if role == "" {
+		respondError(w, http.StatusForbidden, "Role not authorized for this partner")
+		return
+	}
+	if !models.IsValidPartnerRole(role) {
+		respondError(w, http.StatusForbidden, "Invalid partner role")
+		return
 	}
 
 	// Log verification tier
@@ -126,7 +156,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Generate magic link token
-	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, h.jwtSecret)
+	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, req.Action, h.jwtSecret)
 	if err != nil {
 		log.Printf("Failed to generate magic token: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate magic link")
@@ -138,11 +168,14 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		PassportID: passportUUID,
 		Email:      req.Email,
 		Role:       role,
+		Action:     req.Action,
 		TokenHash:  token.TokenHash,
 		ExpiresAt:  token.ExpiresAt,
 	})
 	if err != nil {
-		log.Printf("Warning: Failed to store magic link token: %v", err)
+		log.Printf("Failed to store magic link token: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to store magic link token")
+		return
 	}
 
 	// Generate the magic link URL
@@ -150,7 +183,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 
 	// Send email with magic link
 	if h.emailService != nil && h.emailService.IsEnabled() {
-		if err := h.emailService.SendMagicLink(req.Email, req.PassportID, token.Token, role, req.Role); err != nil {
+		if err := h.emailService.SendMagicLink(req.Email, req.PassportID, token.Token, role, req.Action); err != nil {
 			log.Printf("⚠️ Failed to send magic link email: %v", err)
 			// Continue anyway - we'll return the link for testing
 		} else {
@@ -179,14 +212,14 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	respondJSON(w, http.StatusOK, response)
 }
 
-// MagicTransitionRequest is the request body for transitioning with a magic link
+// MagicTransitionRequest is the request body for applying an action with a magic link
 type MagicTransitionRequest struct {
-	ToStatus string                 `json:"to_status"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Action   string          `json:"action"`
+	Evidence models.Evidence `json:"evidence,omitempty"`
 }
 
 // TransitionWithMagicLink handles POST /api/v1/passport/{uuid}/transition
-// Authenticates via magic link token and performs the status transition
+// Authenticates via magic link token and applies a lifecycle action
 func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *http.Request) {
 	// Extract passport UUID from path
 	// URL format: /api/v1/passport/{uuid}/transition
@@ -219,56 +252,135 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		return
 	}
 
+	tokenHash := auth.HashToken(tokenString)
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		log.Printf("Failed to fetch magic link token: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
+		return
+	}
+	if record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.PassportID != passportID {
+		respondError(w, http.StatusUnauthorized, "Magic link not valid for this passport")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+	if !strings.EqualFold(record.Role, claims.Role) {
+		respondError(w, http.StatusForbidden, "Role not permitted by magic link token")
+		return
+	}
+
 	// Parse request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	for key := range raw {
+		if strings.Contains(strings.ToLower(key), "status") {
+			respondError(w, http.StatusBadRequest, "status fields are not allowed; use action")
+			return
+		}
+		if strings.EqualFold(key, "metadata") {
+			respondError(w, http.StatusBadRequest, "metadata is not allowed; use evidence")
+			return
+		}
+	}
+
 	var req MagicTransitionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	if req.ToStatus == "" {
-		respondError(w, http.StatusBadRequest, "to_status is required")
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
 		return
 	}
 
-	// Add actor info to metadata
-	metadata := req.Metadata
-	if metadata == nil {
-		metadata = make(map[string]interface{})
+	if claims.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
 	}
-	metadata["actor_role"] = claims.Role
-	metadata["authenticated_via"] = "magic_link"
+	if record.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
+	}
+	if !models.IsValidPartnerRole(claims.Role) {
+		respondError(w, http.StatusForbidden, "Invalid partner role")
+		return
+	}
+
+	if !strings.EqualFold(record.Action, claims.Action) {
+		respondError(w, http.StatusForbidden, "Action not permitted by magic link token")
+		return
+	}
+	if claims.Action != req.Action {
+		respondError(w, http.StatusForbidden, "Action not permitted by magic link token")
+		return
+	}
 
 	// Perform the transition using lifecycle service
 	currentOwnerIdentifier := ""
-	if req.ToStatus == models.PassportStatusInService || req.ToStatus == models.PassportStatusShipped {
-		currentOwnerIdentifier = claims.Email
+	if definition, ok := models.GetTransitionDefinition(models.TransitionAction(req.Action)); ok {
+		if definition.To == models.PassportStatusInService || definition.To == models.PassportStatusShipped {
+			currentOwnerIdentifier = claims.Email
+		}
 	}
 
-	result, err := h.lifecycleService.TransitionPassport(r.Context(), services.TransitionRequest{
-		PassportID:              passportID,
-		ToStatus:                req.ToStatus,
-		Actor:                   claims.Email, // Use email from magic link token
-		ActorRole:               claims.Role,  // CRITICAL: Pass role for RBAC enforcement
-		ActorType:               "PARTNER",
-		ActorID:                 claims.Email,
-		Source:                  "MAGIC_LINK",
-		IPAddress:               r.RemoteAddr,
-		CurrentOwnerIdentifier:  currentOwnerIdentifier,
-		Metadata:                metadata,
+	actorContext := models.ActorContext{
+		ActorType: models.ActorTypePartner,
+		ActorID:   claims.Email,
+		ActorRole: models.ActorRole(claims.Role),
+		Source:    models.ActionSourceMagicLink,
+	}
+
+	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:             passportID,
+		Action:                 req.Action,
+		ActorContext:           actorContext,
+		IPAddress:              r.RemoteAddr,
+		CurrentOwnerIdentifier: currentOwnerIdentifier,
+		Evidence:               req.Evidence,
+		MagicLinkTokenHash:     tokenHash,
 	})
 
 	if err != nil {
-		respondError(w, http.StatusBadRequest, result.Error)
+		switch {
+		case errors.Is(err, services.ErrMissingActorContext):
+			respondError(w, http.StatusUnauthorized, result.Error)
+		case errors.Is(err, services.ErrInvalidActorContext), errors.Is(err, services.ErrRoleNotAllowed):
+			respondError(w, http.StatusForbidden, result.Error)
+		case errors.Is(err, services.ErrInvalidEvidence):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrMagicLinkTokenInvalid):
+			respondError(w, http.StatusUnauthorized, result.Error)
+		case errors.Is(err, services.ErrUnknownAction):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrActionNotAllowed):
+			respondError(w, http.StatusConflict, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
 		return
 	}
 
 	// Owner updates are handled inside lifecycle service when CurrentOwnerIdentifier is provided
-
-	// Mark token as used (optional - for single-use tokens)
-	if err := h.repo.MarkMagicTokenUsed(r.Context(), auth.HashToken(tokenString)); err != nil {
-		log.Printf("Warning: Failed to mark token as used: %v", err)
-	}
 
 	// ===== REWARD TRIGGER =====
 	// Award points based on the transition (non-blocking)
@@ -277,14 +389,11 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		var awardResult *services.AwardPointsResult
 		var awardErr error
 
-		switch req.ToStatus {
-		case models.PassportStatusInService:
+		switch models.TransitionAction(req.Action) {
+		case models.ActionInstall:
 			// Installation = 50 points
 			awardResult, awardErr = h.rewardService.AwardInstallPoints(r.Context(), uuid.Nil, claims.Email, passportID)
-		case models.PassportStatusReturnRequested:
-			// Return request = 20 points
-			awardResult, awardErr = h.rewardService.AwardReturnPoints(r.Context(), uuid.Nil, claims.Email, passportID)
-		case models.PassportStatusRecycled:
+		case models.ActionRecycle:
 			// Recycling = 100 points
 			awardResult, awardErr = h.rewardService.AwardRecyclePoints(r.Context(), uuid.Nil, claims.Email, passportID)
 		}
@@ -295,7 +404,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		} else if awardResult != nil && awardResult.Success {
 			pointsAwarded = awardResult.PointsEarned
 			log.Printf("🏆 Awarded %d points to %s for %s (Total: %d, Level: %s)",
-				awardResult.PointsEarned, claims.Email, req.ToStatus,
+				awardResult.PointsEarned, claims.Email, req.Action,
 				awardResult.TotalPoints, awardResult.LoyaltyLevel)
 		}
 	}
@@ -304,6 +413,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		"success":         true,
 		"previous_status": result.PreviousStatus,
 		"new_status":      result.NewStatus,
+		"action":          result.Action,
 		"actor":           claims.Email,
 		"role":            claims.Role,
 		"event_id":        result.EventID,
@@ -312,7 +422,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 }
 
 // GetPassportForAction handles GET /api/v1/passport/{uuid}/action-info
-// Returns passport info and allowed transitions for the action page
+// Returns passport info and allowed actions for the action page
 func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.Request) {
 	// Extract passport UUID from path
 	pathParts := strings.Split(r.URL.Path, "/")
@@ -347,6 +457,37 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 		respondError(w, http.StatusUnauthorized, "Invalid or expired magic link")
 		return
 	}
+	if claims.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
+	}
+
+	tokenHash := auth.HashToken(tokenString)
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
+		return
+	}
+	if record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.PassportID != passportID {
+		respondError(w, http.StatusUnauthorized, "Magic link not valid for this passport")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+	if !strings.EqualFold(record.Role, claims.Role) || !strings.EqualFold(record.Action, claims.Action) {
+		respondError(w, http.StatusForbidden, "Magic link scope mismatch")
+		return
+	}
 
 	// Get passport details
 	passport, err := h.repo.GetPassportByUUID(r.Context(), passportID)
@@ -355,13 +496,12 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Get allowed transitions filtered by role
-	// This ensures users only see transitions they're permitted to perform
-	allTransitions := models.GetAllowedTransitions(passport.Status)
-	allowedForRole := []string{}
-	for _, targetStatus := range allTransitions {
-		if models.IsValidRoleTransition(claims.Role, passport.Status, targetStatus) {
-			allowedForRole = append(allowedForRole, targetStatus)
+	// Get allowed actions from current status (and restrict to token action)
+	allowedActions := models.GetAllowedActions(passport.Status)
+	allowedForToken := []string{}
+	for _, action := range allowedActions {
+		if string(action) == claims.Action {
+			allowedForToken = append(allowedForToken, string(action))
 		}
 	}
 
@@ -375,6 +515,6 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 			"email": claims.Email,
 			"role":  claims.Role,
 		},
-		"allowed_transitions": allowedForRole,
+		"allowed_actions": allowedForToken,
 	})
 }

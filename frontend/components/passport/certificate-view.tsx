@@ -1,13 +1,84 @@
 "use client"
 
-import { CheckCircle, Leaf, Recycle, Shield, Factory, Zap, AlertTriangle, Truck, FileCheck, Globe, Award, Clock, Mail, Phone, MapPin, Download, FileText } from "lucide-react"
+import { CheckCircle, Leaf, Recycle, Shield, Factory, Zap, AlertTriangle, Truck, FileCheck, Globe, Award, Clock, Mail, MapPin, Download, FileText } from "lucide-react"
 import { getBaseUrl } from "@/lib/api"
 import clsx from "clsx"
 
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
 interface CertificateViewProps {
-    passport: any
+    passport: PassportViewData
+}
+
+interface PassportViewData {
+    passport?: {
+        uuid?: string
+        serial_number?: string
+        manufacture_date?: string
+        created_at?: string
+        status?: string
+        ownership_history?: unknown[]
+        repair_events?: unknown[]
+        replacement_events?: unknown[]
+        state_of_health?: number | null
+        last_soh_update_timestamp?: string | null
+        recycling_date?: string | null
+        recycling_status?: string
+        recycler_epr_id?: string
+        current_owner_identifier?: string
+    }
+    specs?: {
+        chemistry?: string
+        capacity?: string
+        voltage?: string
+        weight?: string
+        carbon_footprint?: string
+        country_of_origin?: string
+        manufacturer?: string
+        manufacturer_address?: string
+        manufacturer_email?: string
+        material_composition?: {
+            cobalt_pct?: number
+            lithium_pct?: number
+            nickel_pct?: number
+            graphite_pct?: number
+            manganese_pct?: number
+            lead_pct?: number
+        }
+        certifications?: string[]
+        hazardous_substances?: {
+            declaration?: string
+        }
+        warranty_months?: number | null
+        expected_lifetime_cycles?: number | null
+        recycled_content_pct?: number | null
+    }
+    tenant?: {
+        id?: string
+        company_name?: string
+        address?: string
+        support_email?: string
+        epr_registration_number?: string
+        bis_r_number?: string
+        bis_certificate_path?: string
+        epr_certificate_path?: string
+        pli_certificate_path?: string
+        eu_authorized_representative_name?: string
+        eu_authorized_representative_address?: string
+        eu_contact_email?: string
+    }
+    batch_name?: string
+    model_name?: string
+    manufacturing_start_date?: string
+    manufacturing_end_date?: string
+    market_region?: MarketRegion
+    domestic_value_add?: number
+    cell_source?: string
+    pli_compliant?: boolean
+    hsn_code?: string
+    bill_of_entry_no?: string
+    country_of_origin?: string
+    customs_date?: string
 }
 
 // Clean data row for light mode
@@ -109,6 +180,12 @@ export function CertificateView({ passport }: CertificateViewProps) {
 
     const materials = specs.material_composition || null
     const hasMaterials = materials && (materials.cobalt_pct || materials.lithium_pct || materials.nickel_pct || materials.graphite_pct || materials.manganese_pct || materials.lead_pct)
+    const cobaltPct = materials?.cobalt_pct ?? 0
+    const lithiumPct = materials?.lithium_pct ?? 0
+    const nickelPct = materials?.nickel_pct ?? 0
+    const graphitePct = materials?.graphite_pct ?? 0
+    const manganesePct = materials?.manganese_pct ?? 0
+    const leadPct = materials?.lead_pct ?? 0
 
     const certifications = specs.certifications || []
     const warrantyMonths = specs.warranty_months ?? null
@@ -252,39 +329,39 @@ export function CertificateView({ passport }: CertificateViewProps) {
                             Critical Raw Materials
                         </p>
                         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                            {materials.cobalt_pct > 0 && (
+                            {cobaltPct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.cobalt_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{cobaltPct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Cobalt</p>
                                 </div>
                             )}
-                            {materials.lithium_pct > 0 && (
+                            {lithiumPct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.lithium_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{lithiumPct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Lithium</p>
                                 </div>
                             )}
-                            {materials.nickel_pct > 0 && (
+                            {nickelPct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.nickel_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{nickelPct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Nickel</p>
                                 </div>
                             )}
-                            {materials.graphite_pct > 0 && (
+                            {graphitePct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.graphite_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{graphitePct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Graphite</p>
                                 </div>
                             )}
-                            {materials.manganese_pct > 0 && (
+                            {manganesePct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.manganese_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{manganesePct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Manganese</p>
                                 </div>
                             )}
-                            {materials.lead_pct > 0 && (
+                            {leadPct > 0 && (
                                 <div className="bg-slate-50 rounded px-3 py-2 text-center border border-slate-100">
-                                    <p className="text-slate-900 font-medium">{materials.lead_pct.toFixed(1)}%</p>
+                                    <p className="text-slate-900 font-medium">{leadPct.toFixed(1)}%</p>
                                     <p className="text-slate-500 text-xs">Lead</p>
                                 </div>
                             )}

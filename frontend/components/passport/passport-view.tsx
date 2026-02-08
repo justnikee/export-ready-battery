@@ -1,6 +1,6 @@
 "use client"
 
-import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink, FileCheck, Truck, AlertTriangle, Activity } from "lucide-react"
+import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Smartphone, Shield, Building2, Mail, Flag, Factory, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, FileCheck, Truck, AlertTriangle, Activity, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
@@ -9,7 +9,60 @@ import { motion } from "framer-motion"
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
 interface PassportViewProps {
-    passport: any
+    passport: PassportViewData
+}
+
+interface PassportViewData {
+    passport?: {
+        uuid?: string
+        serial_number?: string
+        manufacture_date?: string
+        created_at?: string
+        status?: string
+        state_of_health?: number | null
+        last_soh_update_timestamp?: string | null
+    }
+    specs?: {
+        chemistry?: string
+        capacity?: string
+        voltage?: string
+        weight?: string
+        carbon_footprint?: string
+        country_of_origin?: string
+        manufacturer?: string
+        manufacturer_address?: string
+        manufacturer_email?: string
+        recyclable?: boolean
+        material_composition?: {
+            cobalt_pct?: number
+            lithium_pct?: number
+            nickel_pct?: number
+            manganese_pct?: number
+            graphite_pct?: number
+            lead_pct?: number
+        }
+        recycled_content_pct?: number | null
+        warranty_months?: number | null
+        expected_lifetime_cycles?: number | null
+        hazardous_substances?: {
+            declaration?: string
+        }
+    }
+    tenant?: {
+        company_name?: string
+        address?: string
+        support_email?: string
+        epr_registration_number?: string
+        bis_r_number?: string
+    }
+    batch_name?: string
+    market_region?: MarketRegion
+    domestic_value_add?: number
+    pli_compliant?: boolean
+    cell_source?: string
+    bill_of_entry_no?: string
+    country_of_origin?: string
+    customs_date?: string
 }
 
 // Animated gradient border wrapper
@@ -34,13 +87,10 @@ function GlowCard({ children, className, glowColor = "emerald" }: { children: Re
 // Status badge with animated pulse
 function StatusBadge({ status }: { status: string }) {
     const configs: Record<string, { bg: string; ring: string; dot: string; text: string; label: string }> = {
-        MANUFACTURED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Manufactured" },
         CREATED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Created" },
         ACTIVE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400", text: "text-emerald-400", label: "Active" },
         SHIPPED: { bg: "bg-blue-500/20", ring: "ring-blue-500/50", dot: "bg-blue-400", text: "text-blue-400", label: "Shipped" },
         IN_SERVICE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-400", label: "In Service" },
-        RETURN_REQUESTED: { bg: "bg-orange-500/20", ring: "ring-orange-500/50", dot: "bg-orange-400 animate-pulse", text: "text-orange-400", label: "Return Requested" },
-        RETURNED: { bg: "bg-amber-500/20", ring: "ring-amber-500/50", dot: "bg-amber-400", text: "text-amber-400", label: "Returned" },
         RECALLED: { bg: "bg-red-500/20", ring: "ring-red-500/50", dot: "bg-red-400 animate-pulse", text: "text-red-400", label: "Recalled" },
         RECYCLED: { bg: "bg-purple-500/20", ring: "ring-purple-500/50", dot: "bg-purple-400", text: "text-purple-400", label: "Recycled" },
         END_OF_LIFE: { bg: "bg-slate-700/20", ring: "ring-slate-500/50", dot: "bg-slate-500", text: "text-slate-400", label: "End of Life" },
@@ -102,7 +152,7 @@ function VerifiedBadge() {
 }
 
 // Spec card component
-function SpecCard({ icon: Icon, label, value, unit, color = "slate" }: { icon: any; label: string; value: string | number; unit?: string; color?: string }) {
+function SpecCard({ icon: Icon, label, value, unit, color = "slate" }: { icon: LucideIcon; label: string; value: string | number; unit?: string; color?: string }) {
     const colorClasses: Record<string, string> = {
         slate: "from-slate-500/10 to-slate-600/10 text-slate-400",
         emerald: "from-emerald-500/10 to-teal-500/10 text-emerald-400",
@@ -152,7 +202,7 @@ function GlowProgress({ value, max = 100, color = "emerald" }: { value: number; 
 }
 
 // Timeline event
-function TimelineEvent({ title, date, icon: Icon, color = "emerald", pending = false }: { title: string; date?: string; icon: any; color?: string; pending?: boolean }) {
+function TimelineEvent({ title, date, icon: Icon, color = "emerald", pending = false }: { title: string; date?: string; icon: LucideIcon; color?: string; pending?: boolean }) {
     const colorClasses: Record<string, string> = {
         emerald: "bg-emerald-500 shadow-emerald-500/50",
         orange: "bg-orange-500 shadow-orange-500/50",

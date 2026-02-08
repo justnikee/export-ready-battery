@@ -83,9 +83,10 @@ export function CreateTemplateDialog({
             toast.success(`Template "${name}" created successfully`)
             resetForm()
             onTemplateCreated()
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Failed to create template:", error)
-            toast.error(error.response?.data?.error || "Failed to create template")
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Failed to create template")
         } finally {
             setIsLoading(false)
         }

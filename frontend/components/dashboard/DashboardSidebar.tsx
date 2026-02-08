@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
-    Battery, LogOut, Menu, X, Home, Box, Truck, Users,
+    LogOut, X, Home, Box, Truck, Users,
     Trophy, CreditCard, Settings, UserPlus, FileDown,
     ChevronLeft, ChevronRight, Key, BookOpen
 } from "lucide-react"
@@ -110,15 +111,7 @@ export function DashboardSidebar({
                     isCollapsed ? "md:justify-center" : "justify-between"
                 )}>
                     <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-                        <div className="h-8 w-8 rounded-lg bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shrink-0">
-                            <Battery className="h-4 w-4 text-white" />
-                        </div>
-                        <span className={clsx(
-                            "font-semibold text-slate-900 text-lg transition-opacity",
-                            isCollapsed ? "md:hidden" : ""
-                        )}>
-                            ExportReady
-                        </span>
+                        <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
                     </Link>
 
                     {/* Mobile Close */}
@@ -255,13 +248,11 @@ export function DashboardSidebar({
 // Hook to manage sidebar state
 export function useSidebarState() {
     const [isOpen, setIsOpen] = useState(false)
-    const [isCollapsed, setIsCollapsed] = useState(false)
-
-    // Persist collapsed state
-    useEffect(() => {
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window === "undefined") return false
         const saved = localStorage.getItem('sidebar-collapsed')
-        if (saved) setIsCollapsed(JSON.parse(saved))
-    }, [])
+        return saved ? JSON.parse(saved) : false
+    })
 
     useEffect(() => {
         localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed))
@@ -272,7 +263,7 @@ export function useSidebarState() {
         setIsOpen,
         isCollapsed,
         setIsCollapsed,
-        toggleOpen: () => setIsOpen(prev => !prev),
-        toggleCollapse: () => setIsCollapsed(prev => !prev),
+        toggleOpen: () => setIsOpen((prev: boolean) => !prev),
+        toggleCollapse: () => setIsCollapsed((prev: boolean) => !prev),
     }
 }

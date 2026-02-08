@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // CreateMagicLinkTokenRequest contains parameters for creating a magic link token record
@@ -13,19 +14,31 @@ type CreateMagicLinkTokenRequest struct {
 	PassportID uuid.UUID
 	Email      string
 	Role       string
+	Action     string
 	TokenHash  string
 	ExpiresAt  time.Time
 }
 
+// MagicLinkTokenRecord represents stored token state for validation.
+type MagicLinkTokenRecord struct {
+	PassportID uuid.UUID
+	Email      string
+	Role       string
+	Action     string
+	ExpiresAt  time.Time
+	UsedAt     *time.Time
+}
+
 // CreateMagicLinkToken stores a magic link token in the database for tracking
 func (r *Repository) CreateMagicLinkToken(ctx context.Context, req CreateMagicLinkTokenRequest) error {
-	query := `INSERT INTO magic_link_tokens (passport_id, email, role, token_hash, expires_at) 
-	          VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO magic_link_tokens (passport_id, email, role, action, token_hash, expires_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6)`
 
 	_, err := r.db.Pool.Exec(ctx, query,
 		req.PassportID,
 		req.Email,
 		req.Role,
+		req.Action,
 		req.TokenHash,
 		req.ExpiresAt,
 	)
@@ -34,6 +47,30 @@ func (r *Repository) CreateMagicLinkToken(ctx context.Context, req CreateMagicLi
 	}
 
 	return nil
+}
+
+// GetMagicLinkTokenByHash fetches token state for validation.
+func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*MagicLinkTokenRecord, error) {
+	query := `SELECT passport_id, email, role, action, expires_at, used_at
+	          FROM magic_link_tokens
+	          WHERE token_hash = $1`
+
+	var record MagicLinkTokenRecord
+	err := r.db.Pool.QueryRow(ctx, query, tokenHash).Scan(
+		&record.PassportID,
+		&record.Email,
+		&record.Role,
+		&record.Action,
+		&record.ExpiresAt,
+		&record.UsedAt,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch magic link token: %w", err)
+	}
+	return &record, nil
 }
 
 // MarkMagicTokenUsed marks a magic link token as used

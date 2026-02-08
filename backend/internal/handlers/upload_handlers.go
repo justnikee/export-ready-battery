@@ -135,18 +135,19 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Bulk insert passports
-	insertedCount, err := h.repo.CreatePassportsBatch(r.Context(), parseResult.Passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(parseResult.Passports, models.PassportEventImported, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to insert passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
+		log.Printf("Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
-	// Create genesis events for audit trail (IMPORTED = from CSV)
-	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), parseResult.Passports, models.PassportEventImported, actor, actorType, "INTERNAL"); err != nil {
-		log.Printf("Warning: Failed to create genesis events: %v", err)
-		// Non-fatal: passports created but audit events failed
+	// Bulk insert passports and genesis events atomically
+	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), parseResult.Passports, events)
+	if err != nil {
+		log.Printf("Failed to insert passports with audit events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
+		return
 	}
 
 	processingTime := time.Since(startTime)
@@ -385,18 +386,19 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// Bulk insert
-	insertedCount, err := h.repo.CreatePassportsBatch(r.Context(), passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to insert auto-generated passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
+		log.Printf("Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
-	// Create genesis events for audit trail (CREATED = auto-generated)
-	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), passports, models.PassportEventCreated, actor, actorType, "INTERNAL"); err != nil {
-		log.Printf("Warning: Failed to create genesis events: %v", err)
-		// Non-fatal: passports created but audit events failed
+	// Bulk insert passports and genesis events atomically
+	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
+	if err != nil {
+		log.Printf("Failed to insert auto-generated passports with audit events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
+		return
 	}
 
 	firstSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber)

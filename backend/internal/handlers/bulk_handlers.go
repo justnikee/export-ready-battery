@@ -49,7 +49,7 @@ func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !repository.IsValidPassportStatus(req.Status) {
-		respondError(w, http.StatusBadRequest, "Invalid status. Must be: ACTIVE, RECALLED, RECYCLED, or END_OF_LIFE")
+		respondError(w, http.StatusBadRequest, "Invalid status. Must be: CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, RECALLED, or END_OF_LIFE")
 		return
 	}
 

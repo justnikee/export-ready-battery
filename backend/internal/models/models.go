@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -221,7 +222,7 @@ type Passport struct {
 	BatchID         uuid.UUID `json:"batch_id"`
 	SerialNumber    string    `json:"serial_number"` // Supports BPAN: IN-NKY-LFP-2026-00001
 	ManufactureDate time.Time `json:"manufacture_date"`
-	Status          string    `json:"status"` // CREATED, SHIPPED, IN_SERVICE, RETURNED, RECALLED, RECYCLED, END_OF_LIFE
+	Status          string    `json:"status"` // CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, END_OF_LIFE, RECALLED
 	CreatedAt       time.Time `json:"created_at"`
 
 	// Immutable snapshot of batch data at creation time
@@ -261,92 +262,234 @@ type Passport struct {
 
 // PassportStatus constants - lifecycle states
 const (
-	PassportStatusCreated         = "CREATED"          // Initial state after passport generation
-	PassportStatusShipped         = "SHIPPED"          // Battery left factory/warehouse
-	PassportStatusInService       = "IN_SERVICE"       // Installed in device/vehicle
-	PassportStatusReturnRequested = "RETURN_REQUESTED" // Return initiated (NEW)
-	PassportStatusReturned        = "RETURNED"         // Returned for warranty or recycling
-	PassportStatusRecalled        = "RECALLED"         // Manufacturer recall
-	PassportStatusRecycled        = "RECYCLED"         // End of second life
-	PassportStatusEndOfLife       = "END_OF_LIFE"      // Final state
-
-	// Legacy alias for backward compatibility
-	PassportStatusActive = "CREATED" // Deprecated: use PassportStatusCreated
+	PassportStatusCreated   = "CREATED"     // Passport record created
+	PassportStatusActive    = "ACTIVE"      // Manufactured and legally valid
+	PassportStatusShipped   = "SHIPPED"     // Battery left factory/warehouse
+	PassportStatusInService = "IN_SERVICE"  // Installed in device/vehicle
+	PassportStatusRecalled  = "RECALLED"    // Safety/compliance interruption
+	PassportStatusRecycled  = "RECYCLED"    // Processed by authorized recycler
+	PassportStatusEndOfLife = "END_OF_LIFE" // Final state
 )
 
-// ValidPassportTransitions defines which status transitions are allowed
-// Key = current status, Value = list of allowed next statuses
-var ValidPassportTransitions = map[string][]string{
-	PassportStatusCreated:         {PassportStatusShipped},
-	PassportStatusShipped:         {PassportStatusInService, PassportStatusReturnRequested, PassportStatusRecalled},
-	PassportStatusInService:       {PassportStatusReturnRequested, PassportStatusRecalled, PassportStatusRecycled},
-	PassportStatusReturnRequested: {PassportStatusReturned, PassportStatusInService}, // Can cancel return request
-	PassportStatusReturned:        {PassportStatusRecycled, PassportStatusShipped},   // Recycle or refurbish/resell
-	PassportStatusRecalled:        {PassportStatusRecycled},
-	PassportStatusRecycled:        {PassportStatusEndOfLife},
-	PassportStatusEndOfLife:       {}, // Terminal state
+// ActorType defines who performed a lifecycle action
+type ActorType string
+
+const (
+	ActorTypeSystem  ActorType = "SYSTEM"
+	ActorTypeUser    ActorType = "USER"
+	ActorTypePartner ActorType = "PARTNER"
+)
+
+// ActorRole defines legal authority for lifecycle actions
+type ActorRole string
+
+const (
+	ActorRoleSystem           ActorRole = "SYSTEM"
+	ActorRoleInternalOperator ActorRole = "INTERNAL_OPERATOR"
+	ActorRoleLogistics        ActorRole = "LOGISTICS"
+	ActorRoleTechnician       ActorRole = "TECHNICIAN"
+	ActorRoleRecycler         ActorRole = "RECYCLER"
+	ActorRoleAdmin            ActorRole = "ADMIN"
+)
+
+// ActionSource defines where the action originated
+type ActionSource string
+
+const (
+	ActionSourceInternal  ActionSource = "INTERNAL"
+	ActionSourceMagicLink ActionSource = "MAGIC_LINK"
+)
+
+// ActorContext carries the mandatory actor identity for lifecycle actions
+type ActorContext struct {
+	ActorType ActorType
+	ActorID   string
+	ActorRole ActorRole
+	Source    ActionSource
 }
 
-// RoleTransitionPermissions defines which roles can perform which transitions
-// Key = role, Value = map of (from_status -> allowed_to_statuses)
-var RoleTransitionPermissions = map[string]map[string][]string{
-	"MANUFACTURER": {
-		PassportStatusCreated:  {PassportStatusShipped},
-		PassportStatusReturned: {PassportStatusRecycled, PassportStatusShipped}, // In-house recycling or refurbishment
+var (
+	ErrInvalidActorContext = errors.New("invalid actor context")
+)
+
+// IsValidActorType checks if the actor type is valid
+func IsValidActorType(actorType ActorType) bool {
+	switch actorType {
+	case ActorTypeSystem, ActorTypeUser, ActorTypePartner:
+		return true
+	}
+	return false
+}
+
+// IsValidActorRole checks if the actor role is valid
+func IsValidActorRole(role ActorRole) bool {
+	switch role {
+	case ActorRoleSystem, ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler, ActorRoleAdmin:
+		return true
+	}
+	return false
+}
+
+// IsValidPartnerRole checks if the role is valid for external partners
+func IsValidPartnerRole(role string) bool {
+	switch ActorRole(role) {
+	case ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler:
+		return true
+	}
+	return false
+}
+
+// IsValidActionSource checks if the action source is valid
+func IsValidActionSource(source ActionSource) bool {
+	switch source {
+	case ActionSourceInternal, ActionSourceMagicLink:
+		return true
+	}
+	return false
+}
+
+// ValidateActorContext validates actor context and required invariants
+func ValidateActorContext(ctx ActorContext) error {
+	if ctx.ActorID == "" || ctx.ActorType == "" || ctx.ActorRole == "" || ctx.Source == "" {
+		return ErrInvalidActorContext
+	}
+	if !IsValidActorType(ctx.ActorType) || !IsValidActorRole(ctx.ActorRole) || !IsValidActionSource(ctx.Source) {
+		return ErrInvalidActorContext
+	}
+	// Enforce type/source alignment
+	switch ctx.ActorType {
+	case ActorTypeSystem:
+		if ctx.ActorRole != ActorRoleSystem || ctx.Source != ActionSourceInternal || ctx.ActorID != "system" {
+			return ErrInvalidActorContext
+		}
+	case ActorTypeUser:
+		if ctx.Source != ActionSourceInternal || ctx.ActorRole == ActorRoleSystem {
+			return ErrInvalidActorContext
+		}
+	case ActorTypePartner:
+		if ctx.Source != ActionSourceMagicLink {
+			return ErrInvalidActorContext
+		}
+	}
+	return nil
+}
+
+// TransitionAction constants - canonical lifecycle actions
+type TransitionAction string
+
+const (
+	ActionActivate TransitionAction = "ACTIVATE"
+	ActionShip     TransitionAction = "SHIP"
+	ActionInstall  TransitionAction = "INSTALL"
+	ActionRecycle  TransitionAction = "RECYCLE"
+	ActionClose    TransitionAction = "CLOSE"
+	ActionRecall   TransitionAction = "RECALL"
+)
+
+// TransitionDefinition defines allowed from-states and resulting state for an action.
+// This is the single source of truth for lifecycle transitions.
+type TransitionDefinition struct {
+	AllowedFrom []string
+	To          string
+}
+
+// TransitionActionOrder ensures deterministic ordering for allowed actions.
+var TransitionActionOrder = []TransitionAction{
+	ActionActivate,
+	ActionShip,
+	ActionInstall,
+	ActionRecycle,
+	ActionClose,
+	ActionRecall,
+}
+
+// TransitionMap defines the canonical action-based lifecycle transitions.
+var TransitionMap = map[TransitionAction]TransitionDefinition{
+	ActionActivate: {
+		AllowedFrom: []string{PassportStatusCreated},
+		To:          PassportStatusActive,
 	},
-	"LOGISTICS": {
-		PassportStatusCreated: {PassportStatusShipped}, // Shipment dispatch
+	ActionShip: {
+		AllowedFrom: []string{PassportStatusActive},
+		To:          PassportStatusShipped,
 	},
-	"TECHNICIAN": {
-		PassportStatusShipped:         {PassportStatusInService},       // Installation
-		PassportStatusInService:       {PassportStatusReturnRequested}, // Initiate return
-		PassportStatusReturnRequested: {PassportStatusReturned},        // Complete return
+	ActionInstall: {
+		AllowedFrom: []string{PassportStatusShipped},
+		To:          PassportStatusInService,
 	},
-	"RECYCLER": {
-		PassportStatusInService:       {PassportStatusRecycled}, // Direct recycling
-		PassportStatusReturnRequested: {PassportStatusRecycled}, // Recycle after return request
-		PassportStatusReturned:        {PassportStatusRecycled}, // Standard recycling
+	ActionRecycle: {
+		AllowedFrom: []string{PassportStatusInService, PassportStatusRecalled},
+		To:          PassportStatusRecycled,
 	},
-	"CUSTOMER": {
-		PassportStatusInService: {PassportStatusReturnRequested}, // Allow customers to request returns
+	ActionClose: {
+		AllowedFrom: []string{PassportStatusRecycled, PassportStatusRecalled},
+		To:          PassportStatusEndOfLife,
+	},
+	ActionRecall: {
+		AllowedFrom: []string{PassportStatusActive, PassportStatusShipped, PassportStatusInService},
+		To:          PassportStatusRecalled,
 	},
 }
 
-// IsValidRoleTransition checks if a role can perform a specific transition
-func IsValidRoleTransition(role, from, to string) bool {
-	rolePerms, exists := RoleTransitionPermissions[role]
+// AllowedRolesByAction defines which roles can perform which actions
+var AllowedRolesByAction = map[TransitionAction][]ActorRole{
+	ActionActivate: {ActorRoleSystem},
+	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics},
+	ActionInstall:  {ActorRoleTechnician},
+	ActionRecycle:  {ActorRoleRecycler},
+	ActionClose:    {ActorRoleSystem},
+	ActionRecall:   {ActorRoleAdmin},
+}
+
+// IsRoleAllowedForAction checks if a role is allowed to perform an action
+func IsRoleAllowedForAction(action TransitionAction, role ActorRole) bool {
+	allowedRoles, exists := AllowedRolesByAction[action]
 	if !exists {
 		return false
 	}
-	allowed, exists := rolePerms[from]
-	if !exists {
-		return false
-	}
-	for _, status := range allowed {
-		if status == to {
+	for _, allowed := range allowedRoles {
+		if allowed == role {
 			return true
 		}
 	}
 	return false
 }
 
-// IsValidTransition checks if a status transition is allowed
-func IsValidTransition(from, to string) bool {
-	allowed, exists := ValidPassportTransitions[from]
+// IsValidAction checks if a transition action is defined in the canonical map.
+func IsValidAction(action string) bool {
+	_, exists := TransitionMap[TransitionAction(action)]
+	return exists
+}
+
+// GetTransitionDefinition returns the transition definition for a given action.
+func GetTransitionDefinition(action TransitionAction) (TransitionDefinition, bool) {
+	def, exists := TransitionMap[action]
+	return def, exists
+}
+
+// IsActionAllowedFrom checks if an action is allowed from the current status.
+func IsActionAllowedFrom(action TransitionAction, currentStatus string) bool {
+	def, exists := TransitionMap[action]
 	if !exists {
 		return false
 	}
-	for _, status := range allowed {
-		if status == to {
+	for _, status := range def.AllowedFrom {
+		if status == currentStatus {
 			return true
 		}
 	}
 	return false
 }
 
-// GetAllowedTransitions returns the list of valid next statuses for a given current status
-func GetAllowedTransitions(currentStatus string) []string {
-	return ValidPassportTransitions[currentStatus]
+// GetAllowedActions returns the list of valid actions for a given current status.
+func GetAllowedActions(currentStatus string) []TransitionAction {
+	allowed := make([]TransitionAction, 0)
+	for _, action := range TransitionActionOrder {
+		if IsActionAllowedFrom(action, currentStatus) {
+			allowed = append(allowed, action)
+		}
+	}
+	return allowed
 }
 
 // ============================================================================
@@ -358,8 +501,10 @@ type PassportEvent struct {
 	ID           uuid.UUID              `json:"id"`
 	PassportID   uuid.UUID              `json:"passport_id"`
 	EventType    string                 `json:"event_type"` // CREATED, STATUS_CHANGED, SCANNED, RECALLED, RECYCLED, END_OF_LIFE
-	Actor        string                 `json:"actor"`      // Who triggered: system, user email, etc.
+	Action       TransitionAction       `json:"action,omitempty"`
+	Actor        string                 `json:"actor"` // Who triggered: system, user email, etc.
 	ActorType    string                 `json:"actor_type,omitempty"`
+	ActorRole    ActorRole              `json:"actor_role,omitempty"`
 	ActorID      string                 `json:"actor_identifier,omitempty"`
 	Source       string                 `json:"source,omitempty"` // INTERNAL | MAGIC_LINK | API
 	StatusFrom   string                 `json:"status_from,omitempty"`
@@ -371,6 +516,20 @@ type PassportEvent struct {
 	PreviousHash string                 `json:"previous_hash,omitempty"` // Hash of previous event in chain
 }
 
+// TransitionPersistence bundles a lifecycle transition with its audit event for atomic persistence.
+type TransitionPersistence struct {
+	PassportID         uuid.UUID
+	NewStatus          string
+	ShippedAt          *time.Time
+	InstalledAt        *time.Time
+	RecycledAt         *time.Time
+	RecyclingStatus    string
+	RecyclerEprID      string
+	RecyclingDate      *time.Time
+	Event              *PassportEvent
+	MagicLinkTokenHash string
+}
+
 // PassportEventType constants
 const (
 	PassportEventCreated       = "CREATED"
@@ -380,7 +539,6 @@ const (
 	PassportEventScanned       = "SCANNED"
 	PassportEventShipped       = "SHIPPED"   // NEW: battery left factory
 	PassportEventInstalled     = "INSTALLED" // NEW: installed in device
-	PassportEventReturned      = "RETURNED"  // NEW: warranty return
 	PassportEventRecalled      = "RECALLED"
 	PassportEventRecycled      = "RECYCLED"
 	PassportEventEndOfLife     = "END_OF_LIFE"
@@ -472,14 +630,14 @@ type UploadCSVResponse struct {
 
 // PassportWithSpecs combines passport data with batch specs for the public page
 type PassportWithSpecs struct {
-	Passport     *Passport    `json:"passport"`
-	BatchName    string       `json:"batch_name"`
-	ModelName    string       `json:"model_name,omitempty"`
-	Specs        *BatchSpec   `json:"specs"`
-	MarketRegion MarketRegion `json:"market_region"` // For conditional UI rendering
-	Tenant       *Tenant      `json:"tenant"`        // Added for public profile display
-	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
-	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
+	Passport               *Passport    `json:"passport"`
+	BatchName              string       `json:"batch_name"`
+	ModelName              string       `json:"model_name,omitempty"`
+	Specs                  *BatchSpec   `json:"specs"`
+	MarketRegion           MarketRegion `json:"market_region"` // For conditional UI rendering
+	Tenant                 *Tenant      `json:"tenant"`        // Added for public profile display
+	ManufacturingStartDate *time.Time   `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time   `json:"manufacturing_end_date,omitempty"`
 	// Added for Import/Domestic logic
 	CellSource      string `json:"cell_source,omitempty"`
 	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`
@@ -596,7 +754,7 @@ type TrustedDomain struct {
 	ID          uuid.UUID `json:"id"`
 	TenantID    uuid.UUID `json:"tenant_id"`
 	Domain      string    `json:"domain"`      // e.g., "tatamotors.com"
-	Role        string    `json:"role"`        // LOGISTICS, TECHNICIAN, RECYCLER, CUSTOMER
+	Role        string    `json:"role"`        // LOGISTICS, TECHNICIAN, RECYCLER
 	Description string    `json:"description"` // e.g., "Tata Motors Fleet Management"
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`

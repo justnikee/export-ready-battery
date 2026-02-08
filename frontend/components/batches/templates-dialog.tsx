@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { FileText, Trash2, Globe, Flag, Leaf, Loader2 } from "lucide-react"
+import { FileText, Trash2, Globe, Loader2 } from "lucide-react"
 import api from "@/lib/api"
 
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -138,7 +138,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                                 <FileText className="h-12 w-12 mx-auto text-slate-300 mb-3" />
                                 <p className="text-slate-500">No templates saved yet</p>
                                 <p className="text-sm text-slate-400 mt-1">
-                                    Create a batch and check "Save as Template" to save your first template
+                                    Create a batch and check &quot;Save as Template&quot; to save your first template
                                 </p>
                             </div>
                         ) : (
@@ -224,7 +224,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
 
                     <div className="border-t border-slate-200 pt-4 mt-4">
                         <p className="text-xs text-slate-500 text-center">
-                            💡 Tip: To use a template, open "Create New Batch" and select it from the template dropdown
+                            💡 Tip: To use a template, open &quot;Create New Batch&quot; and select it from the template dropdown
                         </p>
                     </div>
                 </DialogContent>
@@ -243,3 +243,4 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
         </>
     )
 }
+

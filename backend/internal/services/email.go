@@ -193,26 +193,30 @@ If you didn't request this, please ignore this email.
 // getActionContent returns action-specific email content
 func getActionContent(action string) (title, description, color string) {
 	switch action {
-	case "SHIPPED":
+	case "SHIP":
 		return "Shipping Confirmation",
 			"You've been authorized to mark this battery as shipped. Click below to confirm the shipment and update the battery's status in the registry.",
 			"#3b82f6" // blue
-	case "IN_SERVICE":
+	case "INSTALL":
 		return "Installation Verification",
 			"You've been authorized to register the installation of this battery. Click below to activate the warranty and mark the battery as in service.",
 			"#10b981" // emerald
-	case "RETURN_REQUESTED":
-		return "Return Request",
-			"You've requested to return this battery. Click below to initiate the return process and receive further instructions.",
-			"#f97316" // orange
-	case "RETURNED":
-		return "Return Confirmation",
-			"You've been authorized to confirm this battery's return. Click below to complete the return process.",
-			"#f59e0b" // amber
-	case "RECYCLED":
+	case "RECYCLE":
 		return "Recycling Verification",
 			"You've been authorized to mark this battery as recycled. Click below to complete the end-of-life documentation.",
 			"#8b5cf6" // purple
+	case "RECALL":
+		return "Recall Acknowledgement",
+			"You've been authorized to mark this battery as recalled. Click below to record the recall in the registry.",
+			"#ef4444" // red
+	case "ACTIVATE":
+		return "Activation Confirmation",
+			"You've been authorized to activate this battery passport. Click below to confirm manufacturing completion.",
+			"#10b981" // emerald
+	case "CLOSE":
+		return "End of Life Closure",
+			"You've been authorized to close this battery's lifecycle. Click below to finalize end-of-life status.",
+			"#64748b" // slate
 	default:
 		return "Battery Passport Action",
 			"You've been authorized to perform an action on this battery passport. Click below to continue.",

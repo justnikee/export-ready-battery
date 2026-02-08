@@ -1,6 +1,6 @@
 // Auto-generated types matching backend models
 // SYNC WITH: backend/internal/models/models.go
-// Last updated: 2026-01-24
+// Last updated: 2026-02-07
 
 // ============================================================================
 // PASSPORT LIFECYCLE
@@ -8,35 +8,50 @@
 
 export type PassportStatus =
     | 'CREATED'
+    | 'ACTIVE'
     | 'SHIPPED'
     | 'IN_SERVICE'
-    | 'RETURN_REQUESTED'
-    | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
     | 'END_OF_LIFE';
 
+export type TransitionAction =
+    | 'ACTIVATE'
+    | 'SHIP'
+    | 'INSTALL'
+    | 'RECYCLE'
+    | 'CLOSE'
+    | 'RECALL';
+
+export interface TransitionEvidence {
+    shipment_reference?: string;
+    shipment_date?: string;
+    installation_date?: string;
+    installer_id?: string;
+    recycler_epr_id?: string;
+    recycling_date?: string;
+    certificate_reference?: string;
+    recall_reason?: string;
+    recall_reference?: string;
+}
+
 export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
     CREATED: 'Created',
+    ACTIVE: 'Active',
     SHIPPED: 'Shipped',
     IN_SERVICE: 'In Service',
-    RETURN_REQUESTED: 'Return Requested',
-    RETURNED: 'Returned',
     RECALLED: 'Recalled',
     RECYCLED: 'Recycled',
     END_OF_LIFE: 'End of Life',
 };
 
-// Valid transitions from each status
-export const VALID_PASSPORT_TRANSITIONS: Record<PassportStatus, PassportStatus[]> = {
-    CREATED: ['SHIPPED'],
-    SHIPPED: ['IN_SERVICE', 'RETURN_REQUESTED', 'RECALLED'],
-    IN_SERVICE: ['RETURN_REQUESTED', 'RECALLED', 'RECYCLED'],
-    RETURN_REQUESTED: ['RETURNED', 'IN_SERVICE'],
-    RETURNED: ['RECYCLED', 'IN_SERVICE', 'SHIPPED'], // Can refurbish/resell
-    RECALLED: ['RECYCLED'],
-    RECYCLED: ['END_OF_LIFE'],
-    END_OF_LIFE: [],
+export const TRANSITION_ACTION_LABELS: Record<TransitionAction, string> = {
+    ACTIVATE: 'Activate',
+    SHIP: 'Ship',
+    INSTALL: 'Install',
+    RECYCLE: 'Recycle',
+    CLOSE: 'Close',
+    RECALL: 'Recall',
 };
 
 export interface Passport {
@@ -80,7 +95,6 @@ export type PassportEventType =
     | 'SCANNED'
     | 'SHIPPED'
     | 'INSTALLED'
-    | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
     | 'END_OF_LIFE'
@@ -132,6 +146,11 @@ export interface BatchSpec {
     weight: string;
     carbon_footprint: string;
     country_of_origin: string;
+    cell_source?: 'IMPORTED' | 'DOMESTIC';
+    domestic_value_add?: number;
+    hsn_code?: string;
+    bis_number?: string;
+    epr_number?: string;
 
     // EU Battery Regulation 2023/1542 - MANDATORY FIELDS
     material_composition?: MaterialComposition;
@@ -177,6 +196,11 @@ export interface Batch {
     hsn_code?: string; // e.g., "8507.60"
     bis_number?: string;
     epr_number?: string;
+
+    // PLI/DVA Audit Compliance Fields
+    dva_source?: string;
+    audited_domestic_value_add?: number | null;
+    pli_certificate_url?: string;
 }
 
 // ============================================================================
@@ -184,9 +208,9 @@ export interface Batch {
 // ============================================================================
 
 export interface TransitionRequest {
-    to_status: PassportStatus;
+    action: TransitionAction;
     actor?: string;
-    metadata?: Record<string, unknown>;
+    evidence?: TransitionEvidence;
 }
 
 export interface TransitionResult {
@@ -194,15 +218,16 @@ export interface TransitionResult {
     passport?: Passport;
     previous_status: PassportStatus;
     new_status: PassportStatus;
+    action?: TransitionAction;
     event_id: string;
     error?: string;
 }
 
 export interface BulkTransitionRequest {
     passport_ids: string[];
-    to_status: PassportStatus;
+    action: TransitionAction;
     actor?: string;
-    metadata?: Record<string, unknown>;
+    evidence?: TransitionEvidence;
 }
 
 export interface BulkTransitionResult {
@@ -213,9 +238,9 @@ export interface BulkTransitionResult {
     errors?: string[];
 }
 
-export interface AllowedTransitionsResponse {
+export interface AllowedActionsResponse {
     current_status: PassportStatus;
-    allowed_transitions: PassportStatus[];
+    allowed_actions: TransitionAction[];
 }
 
 export interface PassportEventsResponse {

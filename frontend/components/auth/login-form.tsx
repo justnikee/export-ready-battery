@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 
 
 export function LoginForm() {
@@ -18,7 +19,15 @@ export function LoginForm() {
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const searchParams = useSearchParams()
     const { login } = useAuth()
+
+    const getSafeRedirect = (value: string | null) => {
+        if (!value) return undefined
+        if (!value.startsWith("/")) return undefined
+        if (value.startsWith("//") || value.startsWith("/\\")) return undefined
+        return value
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -32,12 +41,18 @@ export function LoginForm() {
 
             const { token, refresh_token, tenant_id, company_name } = response.data
 
-            login(token, refresh_token, {
-                id: tenant_id,
-                tenant_id,
-                email,
-                company_name,
-            })
+            const redirectTo = getSafeRedirect(searchParams.get("redirect"))
+            login(
+                token,
+                refresh_token,
+                {
+                    id: tenant_id,
+                    tenant_id,
+                    email,
+                    company_name,
+                },
+                redirectTo
+            )
 
             toast.success("Logged in successfully")
         } catch (error: unknown) {

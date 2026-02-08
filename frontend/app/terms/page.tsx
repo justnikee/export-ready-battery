@@ -21,7 +21,7 @@ export default function TermsPage() {
 
             <section className="space-y-4">
                 <h2 className="text-xl font-semibold">4. Compliance Disclaimer</h2>
-                <p>While we strive to align with EU Battery Regulation and India's Battery Waste Management Rules, the final responsibility for regulatory compliance lies with the manufacturer.</p>
+                <p>While we strive to align with EU Battery Regulation and India&apos;s Battery Waste Management Rules, the final responsibility for regulatory compliance lies with the manufacturer.</p>
             </section>
         </div>
     )

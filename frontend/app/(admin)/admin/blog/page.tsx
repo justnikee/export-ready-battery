@@ -1,7 +1,7 @@
 import { getPosts } from '@/app/actions/blog';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
     Table,

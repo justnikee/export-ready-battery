@@ -22,6 +22,10 @@ func main() {
 		log.Fatal("DATABASE_URL environment variable is required")
 	}
 
+	if os.Getenv("ALLOW_REPLAY_MIGRATIONS") != "true" {
+		log.Fatal("Refusing to run replay-all migrator. Use `make migrate-up` (golang-migrate). Set ALLOW_REPLAY_MIGRATIONS=true to override on empty dev DBs.")
+	}
+
 	// Connect to database
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, databaseURL)

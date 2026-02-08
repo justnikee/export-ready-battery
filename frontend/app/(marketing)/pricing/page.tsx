@@ -1,20 +1,16 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { PublicHeader } from "@/components/layout/public-header"
 import { PricingCard } from "@/components/pricing/PricingCard"
-import { clsx } from "clsx"
 import { Check, Sparkles } from "lucide-react"
+import { CTASection } from "@/components/landing/cta-section"
 
 export default function PricingPage() {
     return (
-        <div className="min-h-screen bg-black">
-            <PublicHeader />
-
-            <div className="pt-32 pb-24 px-4">
-                <div className="container mx-auto max-w-6xl">
+        <>
+            <div className="pt-32 pb-24 px-4 bg-zinc-950">
+                <div className="mx-auto w-full max-w-6xl">
                     {/* Header */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -26,13 +22,13 @@ export default function PricingPage() {
                             <span className="text-sm font-medium text-amber-300">Simple, transparent pricing</span>
                         </div>
 
-                        <h1 className="text-4xl md:text-5xl font-bold text-white">
+                        <h1 className="text-4xl md:text-5xl font-bold text-white font-heading">
                             Production Licenses for{" "}
-                            <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-orange-400">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
                                 Every Scale
                             </span>
                         </h1>
-                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto font-sans">
                             Purchase batch activation quotas as detailed below. Licenses never expire and can be topped up at any time.
                         </p>
                     </motion.div>
@@ -101,9 +97,9 @@ export default function PricingPage() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-white/50 border border-slate-200 rounded-2xl p-8"
+                        className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8"
                     >
-                        <h3 className="text-xl font-semibold text-white mb-6 text-center">All Licenses Include</h3>
+                        <h3 className="text-xl font-semibold text-white mb-6 text-center font-heading">All Licenses Include</h3>
                         <div className="grid md:grid-cols-4 gap-6">
                             {[
                                 "Unlimited Users",
@@ -111,7 +107,7 @@ export default function PricingPage() {
                                 "99.9% Uptime SLA",
                                 "Secure Cloud Storage"
                             ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 text-sm text-zinc-400">
+                                <div key={i} className="flex items-center gap-2 text-sm text-zinc-400 font-sans">
                                     <Check className="h-4 w-4 text-emerald-400" />
                                     {item}
                                 </div>
@@ -120,7 +116,7 @@ export default function PricingPage() {
                     </motion.div>
 
                     <div className="mt-12 text-center">
-                        <p className="text-zinc-500">
+                        <p className="text-zinc-500 font-sans">
                             Need a custom enterprise plan?{" "}
                             <Link href="/contact" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">
                                 Contact us
@@ -130,6 +126,8 @@ export default function PricingPage() {
                     </div>
                 </div>
             </div>
-        </div>
+
+            <CTASection />
+        </>
     )
 }

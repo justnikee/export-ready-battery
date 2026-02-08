@@ -42,6 +42,18 @@ interface ValidationResult {
     ready_to_import: boolean
 }
 
+interface UploadResult {
+    passports_count?: number
+    result?: {
+        passports_count?: number
+    }
+}
+
+interface AutoGenerateResult {
+    passports_created: number
+    serial_range?: string
+}
+
 export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploadComplete }: UploadCSVProps) {
     // CSV Upload State
     const [file, setFile] = useState<File | null>(null)
@@ -49,7 +61,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
     const [isUploading, setIsUploading] = useState(false)
     const [progress, setProgress] = useState(0)
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
-    const [uploadResult, setUploadResult] = useState<any>(null)
+    const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
 
     // Auto-Generate State - Default prefix based on market region and chemistry
     const currentYear = new Date().getFullYear()
@@ -64,7 +76,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
     const [startNumber, setStartNumber] = useState("1")
     const [manufactureDate, setManufactureDate] = useState(new Date().toISOString().split('T')[0])
     const [isGenerating, setIsGenerating] = useState(false)
-    const [generateResult, setGenerateResult] = useState<any>(null)
+    const [generateResult, setGenerateResult] = useState<AutoGenerateResult | null>(null)
 
     // Computed preview
     const previewStart = `${prefix}${String(parseInt(startNumber) || 1).padStart(3, '0')}`
@@ -91,7 +103,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
             link.click()
             link.remove()
             toast.success(`Sample ${marketRegion} CSV downloaded`)
-        } catch (error) {
+        } catch {
             toast.error("Failed to download sample CSV")
         }
     }
@@ -112,8 +124,9 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
             })
             setProgress(100)
             setValidationResult(response.data)
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Validation failed")
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Validation failed")
             setFile(null)
         } finally {
             setIsValidating(false)
@@ -142,8 +155,9 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
             setUploadResult(response.data)
             toast.success("Passports imported successfully")
             onUploadComplete()
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Upload failed")
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Upload failed")
         } finally {
             setIsUploading(false)
         }
@@ -174,8 +188,9 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
             setGenerateResult(response.data)
             toast.success(`Generated ${response.data.passports_created} passports`)
             onUploadComplete()
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Generation failed")
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Generation failed")
         } finally {
             setIsGenerating(false)
         }

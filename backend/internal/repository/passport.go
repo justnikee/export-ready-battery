@@ -9,9 +9,86 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"exportready-battery/internal/models"
 )
+
+type copyFromer interface {
+	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rows pgx.CopyFromSource) (int64, error)
+}
+
+func copyPassports(ctx context.Context, exec copyFromer, passports []*models.Passport) (int, error) {
+	if len(passports) == 0 {
+		return 0, nil
+	}
+
+	columns := []string{"uuid", "batch_id", "serial_number", "manufacture_date", "status", "created_at", "batch_snapshot", "current_owner_identifier", "ownership_history", "state_of_health", "last_soh_update_timestamp", "csv_source_filename", "csv_row_index"}
+
+	rows := make([][]interface{}, len(passports))
+	for i, p := range passports {
+		rows[i] = []interface{}{p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt, p.BatchSnapshot, p.CurrentOwnerIdentifier, p.OwnershipHistory, p.StateOfHealth, p.LastSOHUpdateTimestamp, p.CSVSourceFilename, p.CSVRowIndex}
+	}
+
+	copyCount, err := exec.CopyFrom(
+		ctx,
+		pgx.Identifier{"public", "passports"},
+		columns,
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to bulk insert passports: %w", err)
+	}
+
+	return int(copyCount), nil
+}
+
+func copyPassportEvents(ctx context.Context, exec copyFromer, events []*models.PassportEvent) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	rows := make([][]interface{}, len(events))
+	for i, e := range events {
+		metadataJSON, err := json.Marshal(e.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata for event %d: %w", i, err)
+		}
+
+		rows[i] = []interface{}{
+			e.ID,
+			e.PassportID,
+			e.EventType,
+			nullableString(string(e.Action)),
+			e.Actor,
+			e.ActorType,
+			nullableString(string(e.ActorRole)),
+			e.ActorID,
+			e.Source,
+			e.StatusFrom,
+			e.StatusTo,
+			e.IPAddress,
+			metadataJSON,
+			e.CreatedAt,
+			e.Hash,
+			e.PreviousHash,
+		}
+	}
+
+	columns := []string{"id", "passport_id", "event_type", "action", "actor", "actor_type", "actor_role", "actor_identifier", "source", "status_from", "status_to", "ip_address", "metadata", "created_at", "hash", "previous_hash"}
+
+	_, err := exec.CopyFrom(
+		ctx,
+		pgx.Identifier{"public", "passport_events"},
+		columns,
+		pgx.CopyFromRows(rows),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bulk insert passport events: %w", err)
+	}
+
+	return nil
+}
 
 // CreatePassport creates a single passport
 func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passport) error {
@@ -42,29 +119,38 @@ func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passpo
 
 // CreatePassportsBatch inserts multiple passports efficiently using COPY
 func (r *Repository) CreatePassportsBatch(ctx context.Context, passports []*models.Passport) (int, error) {
+	return copyPassports(ctx, r.db.Pool, passports)
+}
+
+// CreatePassportsWithEvents inserts passports and genesis events in a single transaction.
+func (r *Repository) CreatePassportsWithEvents(ctx context.Context, passports []*models.Passport, events []*models.PassportEvent) (int, error) {
 	if len(passports) == 0 {
 		return 0, nil
 	}
-
-	// Use CopyFrom for bulk insert (much faster than individual inserts)
-	columns := []string{"uuid", "batch_id", "serial_number", "manufacture_date", "status", "created_at", "batch_snapshot", "current_owner_identifier", "ownership_history", "state_of_health", "last_soh_update_timestamp", "csv_source_filename", "csv_row_index"}
-
-	rows := make([][]interface{}, len(passports))
-	for i, p := range passports {
-		rows[i] = []interface{}{p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt, p.BatchSnapshot, p.CurrentOwnerIdentifier, p.OwnershipHistory, p.StateOfHealth, p.LastSOHUpdateTimestamp, p.CSVSourceFilename, p.CSVRowIndex}
+	if len(events) != len(passports) {
+		return 0, fmt.Errorf("passports and events length mismatch")
 	}
 
-	copyCount, err := r.db.Pool.CopyFrom(
-		ctx,
-		pgx.Identifier{"public", "passports"},
-		columns,
-		pgx.CopyFromRows(rows),
-	)
+	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return 0, fmt.Errorf("failed to bulk insert passports: %w", err)
+		return 0, fmt.Errorf("failed to begin passport transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	insertedCount, err := copyPassports(ctx, tx, passports)
+	if err != nil {
+		return 0, err
 	}
 
-	return int(copyCount), nil
+	if err := copyPassportEvents(ctx, tx, events); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("failed to commit passport transaction: %w", err)
+	}
+
+	return insertedCount, nil
 }
 
 // GetPassport retrieves a passport by UUID
@@ -349,6 +435,122 @@ func (r *Repository) UpdatePassportStatus(ctx context.Context, id uuid.UUID, sta
 	return nil
 }
 
+type execer interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
+
+func nullableString(value string) interface{} {
+	if value == "" {
+		return nil
+	}
+	return value
+}
+
+func insertPassportEvent(ctx context.Context, exec execer, event *models.PassportEvent) error {
+	query := `INSERT INTO public.passport_events (id, passport_id, event_type, action, actor, actor_type, actor_role, actor_identifier, source, status_from, status_to, ip_address, metadata, created_at, hash, previous_hash) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
+
+	metadataJSON, err := json.Marshal(event.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event metadata: %w", err)
+	}
+
+	_, err = exec.Exec(ctx, query,
+		event.ID,
+		event.PassportID,
+		event.EventType,
+		nullableString(string(event.Action)),
+		event.Actor,
+		event.ActorType,
+		nullableString(string(event.ActorRole)),
+		event.ActorID,
+		event.Source,
+		event.StatusFrom,
+		event.StatusTo,
+		event.IPAddress,
+		metadataJSON,
+		event.CreatedAt,
+		event.Hash,
+		event.PreviousHash,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create passport event: %w", err)
+	}
+	return nil
+}
+
+// ApplyLifecycleTransition persists an audit event and state update atomically.
+func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
+	if params.Event == nil {
+		return fmt.Errorf("missing audit event for transition")
+	}
+
+	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to begin transition transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := insertPassportEvent(ctx, tx, params.Event); err != nil {
+		return err
+	}
+
+	query := `UPDATE public.passports
+	          SET status = $1,
+	              shipped_at = COALESCE($2, shipped_at),
+	              installed_at = COALESCE($3, installed_at),
+	              recycled_at = COALESCE($4, recycled_at),
+	              recycling_status = COALESCE($5, recycling_status),
+	              recycler_epr_id = COALESCE($6, recycler_epr_id),
+	              recycling_date = COALESCE($7, recycling_date)
+	          WHERE uuid = $8`
+	_, err = tx.Exec(ctx, query,
+		params.NewStatus,
+		params.ShippedAt,
+		params.InstalledAt,
+		params.RecycledAt,
+		nullableString(params.RecyclingStatus),
+		nullableString(params.RecyclerEprID),
+		params.RecyclingDate,
+		params.PassportID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update passport status: %w", err)
+	}
+
+	if params.MagicLinkTokenHash != "" {
+		if params.Event == nil {
+			return fmt.Errorf("missing event for magic link token consumption")
+		}
+		updateTokenQuery := `UPDATE public.magic_link_tokens
+	          SET used_at = NOW()
+	          WHERE token_hash = $1
+	            AND used_at IS NULL
+	            AND expires_at > NOW()
+	            AND passport_id = $2
+	            AND role = $3
+	            AND action = $4`
+		tag, err := tx.Exec(ctx, updateTokenQuery,
+			params.MagicLinkTokenHash,
+			params.PassportID,
+			string(params.Event.ActorRole),
+			string(params.Event.Action),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to mark magic link token as used: %w", err)
+		}
+		if tag.RowsAffected() == 0 {
+			return models.ErrMagicLinkTokenInvalid
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transition transaction: %w", err)
+	}
+
+	return nil
+}
+
 // UpdatePassportLifecycle updates lifecycle-specific fields
 func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error {
 	query := `UPDATE public.passports 
@@ -372,40 +574,13 @@ func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *mode
 
 // CreatePassportEvent logs a lifecycle event with tamper-proof hash
 func (r *Repository) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
-	query := `INSERT INTO public.passport_events (id, passport_id, event_type, actor, actor_type, actor_identifier, source, status_from, status_to, ip_address, metadata, created_at, hash, previous_hash) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
-
-	metadataJSON, err := json.Marshal(event.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event metadata: %w", err)
-	}
-
-	_, err = r.db.Pool.Exec(ctx, query,
-		event.ID,
-		event.PassportID,
-		event.EventType,
-		event.Actor,
-		event.ActorType,
-		event.ActorID,
-		event.Source,
-		event.StatusFrom,
-		event.StatusTo,
-		event.IPAddress,
-		metadataJSON,
-		event.CreatedAt,
-		event.Hash,
-		event.PreviousHash,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create passport event: %w", err)
-	}
-	return nil
+	return insertPassportEvent(ctx, r.db.Pool, event)
 }
 
 // GetPassportEvents retrieves all events for a passport with hash chain data
 func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) {
-	query := `SELECT id, passport_id, event_type, actor,
-	                 COALESCE(actor_type, ''), COALESCE(actor_identifier, ''), COALESCE(source, ''),
+	query := `SELECT id, passport_id, event_type, COALESCE(action, ''), actor,
+	                 COALESCE(actor_type, ''), COALESCE(actor_role, ''), COALESCE(actor_identifier, ''), COALESCE(source, ''),
 	                 COALESCE(status_from, ''), COALESCE(status_to, ''), COALESCE(ip_address, ''),
 	                 metadata, created_at, COALESCE(hash, ''), COALESCE(previous_hash, '') 
 	          FROM public.passport_events 
@@ -426,8 +601,10 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 			&event.ID,
 			&event.PassportID,
 			&event.EventType,
+			&event.Action,
 			&event.Actor,
 			&event.ActorType,
+			&event.ActorRole,
 			&event.ActorID,
 			&event.Source,
 			&event.StatusFrom,
@@ -455,49 +632,7 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 
 // CreatePassportEventBatch inserts multiple passport events efficiently using COPY
 func (r *Repository) CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error {
-	if len(events) == 0 {
-		return nil
-	}
-
-	// Prepare rows for bulk insert
-	rows := make([][]interface{}, len(events))
-	for i, e := range events {
-		metadataJSON, err := json.Marshal(e.Metadata)
-		if err != nil {
-			return fmt.Errorf("failed to marshal metadata for event %d: %w", i, err)
-		}
-
-		rows[i] = []interface{}{
-			e.ID,
-			e.PassportID,
-			e.EventType,
-			e.Actor,
-			e.ActorType,
-			e.ActorID,
-			e.Source,
-			e.StatusFrom,
-			e.StatusTo,
-			e.IPAddress,
-			metadataJSON,
-			e.CreatedAt,
-			e.Hash,
-			e.PreviousHash,
-		}
-	}
-
-	columns := []string{"id", "passport_id", "event_type", "actor", "actor_type", "actor_identifier", "source", "status_from", "status_to", "ip_address", "metadata", "created_at", "hash", "previous_hash"}
-
-	_, err := r.db.Pool.CopyFrom(
-		ctx,
-		pgx.Identifier{"public", "passport_events"},
-		columns,
-		pgx.CopyFromRows(rows),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to bulk insert passport events: %w", err)
-	}
-
-	return nil
+	return copyPassportEvents(ctx, r.db.Pool, events)
 }
 
 // UpdatePassportOwnerID updates the owner_id for a passport (used for ownership transfers)
