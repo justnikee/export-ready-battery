@@ -1,37 +1,38 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { CheckCircle2, Globe, History, ShieldCheck } from "lucide-react"
 
-const passportData = {
-    serial: "EU-BAT-2024-00142A",
-    manufacturer: "Livguard Energy",
-    chemistry: "LFP",
-    capacity: "280Ah",
-    market: "EU",
-    lifecycle: "IN_SERVICE",
-    events: [
-        { event: "MANUFACTURED", date: "2024-01-15", actor: "Livguard" },
-        { event: "QC_PASSED", date: "2024-01-18", actor: "Quality Lab" },
-        { event: "SHIPPED", date: "2024-01-22", actor: "Logistics" },
-        { event: "INSTALLED", date: "2024-02-05", actor: "Installer DE" }
-    ]
-}
+const passportFields = [
+    { label: "Battery ID", value: "INB-2024-XHFC9", icon: ShieldCheck },
+    { label: "Manufacturer", value: "Nexus Power Solutions", icon: null },
+    { label: "Cell Chemistry", value: "NMC811 / LFP Hybrid", icon: null },
+    { label: "State", value: "IN_USE", icon: null },
+    { label: "Capacity", value: "75.8 kWh (±2%)", icon: null },
+    { label: "Export Regions", value: "EU, India", icon: Globe }
+]
+
+const eventLogs = [
+    { event: "MANUFACTURED", actor: "system", timestamp: "2024-08-14T09:00:00Z" },
+    { event: "SHIPPED", actor: "ops@nexus.com", timestamp: "2024-09-02T11:22:41Z" },
+    { event: "IN_USE", actor: "field-api", timestamp: "2024-09-05T15:08:12Z" }
+]
 
 export function PassportProofSection() {
     return (
         <section className="py-24 bg-white">
             <div className="mx-auto w-full max-w-6xl px-4">
-                <div className="max-w-5xl">
+                <div className="max-w-5xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         className="mb-10"
                     >
-                        <h2 className="text-2xl md:text-3xl font-heading font-semibold text-slate-900 mb-3">
+                        <h2 className="text-2xl md:text-3xl font-heading font-semibold text-[#0B1F3B] mb-3">
                             Every passport is proof.
                         </h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-slate-600 max-w-[55ch] mx-auto">
                             A real ExportLens battery passport, structured for audit review.
                         </p>
                     </motion.div>
@@ -40,63 +41,77 @@ export function PassportProofSection() {
                         initial={{ opacity: 0, y: 16 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-white border border-slate-200 overflow-hidden rounded-[2px]"
+                        transition={{ delay: 0.1 }}
+                        className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden"
                     >
-                        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                        {/* Header */}
+                        <div className="bg-[#0B1F3B] px-6 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <span className="inline-flex items-center border border-slate-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                                    EU Passport
+                                <div className="h-2.5 w-2.5 rounded-full bg-[#1F7A5F] animate-pulse" />
+                                <span className="font-mono text-[13px] text-white font-medium">
+                                    Battery Passport — INB-2024-XHFC9
                                 </span>
-                                <span className="font-mono text-slate-900 text-sm">{passportData.serial}</span>
                             </div>
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-semibold uppercase tracking-[0.18em] border border-emerald-200">
-                                Audit Ready
-                            </span>
+                            <span className="text-xs font-mono text-slate-400">EU + India Compliant</span>
                         </div>
 
-                        <div className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-slate-200">
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1">Manufacturer</p>
-                                <p className="text-sm text-slate-900">{passportData.manufacturer}</p>
-                            </div>
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1">Chemistry</p>
-                                <p className="text-sm text-slate-900">{passportData.chemistry}</p>
-                            </div>
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1">Capacity</p>
-                                <p className="text-sm text-slate-900">{passportData.capacity}</p>
-                            </div>
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1">Market</p>
-                                <p className="text-sm text-slate-900">{passportData.market}</p>
-                            </div>
+                        {/* Core fields */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-slate-200">
+                            {passportFields.map((field, i) => {
+                                const Icon = field.icon
+                                return (
+                                    <div key={i} className="bg-white p-4 text-left">
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">{field.label}</p>
+                                        <div className="flex items-center gap-1.5">
+                                            {Icon && <Icon className="h-3.5 w-3.5 text-[#1F7A5F]" />}
+                                            <p className="font-mono text-sm text-slate-800">{field.value}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
 
-                        <div className="px-6 py-4">
-                            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-3">
-                                Lifecycle Events
-                            </p>
-                            <div className="space-y-2">
-                                {passportData.events.map((evt, i) => (
-                                    <div key={i} className="flex flex-wrap items-center gap-4 text-sm">
-                                        <span className="font-mono text-slate-500 w-28">{evt.date}</span>
-                                        <span className="text-slate-700 w-28">{evt.event}</span>
-                                        <span className="text-slate-500">{evt.actor}</span>
+                        {/* Event log */}
+                        <div className="border-t border-slate-200 p-5 bg-white">
+                            <div className="flex items-center gap-2 mb-3">
+                                <History className="h-4 w-4 text-[#0B1F3B]" />
+                                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Lifecycle Events</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {eventLogs.map((log, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-3 font-mono text-xs text-slate-600"
+                                    >
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-[#1F7A5F]" />
+                                        <span className="text-[#0B1F3B] font-medium">{log.event}</span>
+                                        <span className="text-slate-400">by {log.actor}</span>
+                                        <span className="ml-auto text-slate-400">{new Date(log.timestamp).toLocaleDateString()}</span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </motion.div>
 
-                    <motion.p
+                    <motion.div
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        className="mt-6 text-sm text-slate-600"
+                        className="mt-6 flex items-center justify-center gap-6 text-sm text-slate-500"
                     >
-                        Immutable. Timestamped. Regulator-ready.
-                    </motion.p>
+                        <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#1F7A5F]" />
+                            Immutable
+                        </span>
+                        <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#0B1F3B]" />
+                            Signed
+                        </span>
+                        <span className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-slate-400" />
+                            Regulator-ready
+                        </span>
+                    </motion.div>
                 </div>
             </div>
         </section>

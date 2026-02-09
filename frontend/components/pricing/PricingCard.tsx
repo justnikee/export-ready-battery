@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Check, ArrowRight } from "lucide-react"
+import { Check } from "lucide-react"
 import { clsx } from "clsx"
 import { motion } from "framer-motion"
 
@@ -43,21 +43,21 @@ export function PricingCard({
             transition={{ duration: 0.4 }}
             className="relative group"
         >
-            {/* Recommended glow effect */}
+            {/* Recommended ring effect */}
             {recommended && (
-                <div className="absolute -inset-[1px] bg-gradient-to-b from-white/20 via-white/5 to-transparent rounded-2xl" />
+                <div className="absolute -inset-[2px] bg-[#1F7A5F] rounded-xl" />
             )}
 
             <div className={clsx(
-                "relative h-full rounded-2xl transition-all duration-300",
+                "relative h-full rounded-xl transition-all duration-300",
                 recommended
-                    ? "bg-white text-zinc-900"
-                    : "bg-zinc-900 border border-zinc-800 hover:border-zinc-700"
+                    ? "bg-white border-2 border-[#1F7A5F]"
+                    : "bg-white border border-slate-200 hover:border-slate-300 hover:shadow-lg"
             )}>
                 {/* Popular badge */}
                 {recommended && (
                     <div className="absolute -top-3 left-6">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-zinc-900 text-white shadow-lg">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold bg-[#1F7A5F] text-white">
                             Most Popular
                         </span>
                     </div>
@@ -66,16 +66,10 @@ export function PricingCard({
                 <div className="p-8 flex flex-col h-full">
                     {/* Plan header */}
                     <div className="mb-8">
-                        <h3 className={clsx(
-                            "text-lg font-semibold mb-2",
-                            recommended ? "text-zinc-900" : "text-white"
-                        )}>
+                        <h3 className="text-lg font-semibold text-[#0B1F3B] mb-2">
                             {planName}
                         </h3>
-                        <p className={clsx(
-                            "text-sm leading-relaxed",
-                            recommended ? "text-zinc-600" : "text-zinc-400"
-                        )}>
+                        <p className="text-sm text-slate-600 leading-relaxed">
                             {description}
                         </p>
                     </div>
@@ -83,25 +77,19 @@ export function PricingCard({
                     {/* Price */}
                     <div className="mb-8">
                         <div className="flex items-baseline gap-1">
-                            <span className={clsx(
-                                "text-5xl font-bold tracking-tight",
-                                recommended ? "text-zinc-900" : "text-white"
-                            )}>
+                            <span className="text-5xl font-bold tracking-tight text-[#0B1F3B]">
                                 {typeof displayPrice === 'number'
                                     ? (displayPrice === 0 ? "Free" : `₹${displayPrice.toLocaleString('en-IN')}`)
                                     : displayPrice}
                             </span>
                         </div>
                         {priceSuffix && (
-                            <p className={clsx(
-                                "text-sm mt-1",
-                                recommended ? "text-zinc-500" : "text-zinc-500"
-                            )}>
+                            <p className="text-sm text-slate-500 mt-1">
                                 {priceSuffix}
                             </p>
                         )}
                         {billingPeriod === "yearly" && typeof price === 'number' && typeof displayPrice === 'number' && price > 0 && (
-                            <p className="text-xs text-emerald-500 font-medium mt-2">
+                            <p className="text-xs text-[#1F7A5F] font-medium mt-2">
                                 Save 20% with yearly billing
                             </p>
                         )}
@@ -111,48 +99,38 @@ export function PricingCard({
                     <Link
                         href={ctaLink}
                         className={clsx(
-                            "flex items-center justify-center gap-2 w-full py-3 px-4 rounded-lg font-medium text-sm transition-all duration-200 mb-8",
+                            "flex items-center justify-center w-full py-3 px-4 font-semibold text-sm transition-all duration-200 mb-8",
                             recommended
-                                ? "bg-zinc-900 text-white hover:bg-zinc-800"
+                                ? "bg-[#0B1F3B] text-white hover:bg-[#1F7A5F]"
                                 : ctaVariant === "default"
-                                    ? "bg-white text-zinc-900 hover:bg-zinc-100"
-                                    : "border border-zinc-700 text-white hover:bg-zinc-800 hover:border-zinc-600"
+                                    ? "bg-[#0B1F3B] text-white hover:bg-[#1F7A5F]"
+                                    : "border border-[#0B1F3B] text-[#0B1F3B] hover:bg-[#0B1F3B] hover:text-white"
                         )}
                     >
                         {ctaText}
-                        <ArrowRight className="h-4 w-4" />
                     </Link>
 
                     {/* Divider */}
-                    <div className={clsx(
-                        "h-px mb-8",
-                        recommended ? "bg-zinc-200" : "bg-zinc-800"
-                    )} />
+                    <div className="h-px bg-slate-200 mb-8" />
 
                     {/* Features */}
-                    <div className="space-y-4 flex-grow">
-                        <p className={clsx(
-                            "text-xs font-medium uppercase tracking-wider",
-                            recommended ? "text-zinc-500" : "text-zinc-500"
-                        )}>
+                    <div className="space-y-4 grow">
+                        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
                             What&apos;s included
                         </p>
                         {features.map((feature, i) => (
                             <div key={i} className="flex items-start gap-3">
                                 <div className={clsx(
                                     "flex items-center justify-center w-5 h-5 rounded-full mt-0.5 shrink-0",
-                                    recommended
-                                        ? "bg-zinc-900 text-white"
-                                        : feature.highlight
-                                            ? "bg-emerald-500/20 text-emerald-400"
-                                            : "bg-zinc-800 text-zinc-400"
+                                    feature.highlight
+                                        ? "bg-[#1F7A5F]/20 text-[#1F7A5F]"
+                                        : "bg-slate-100 text-slate-600"
                                 )}>
                                     <Check className="h-3 w-3" />
                                 </div>
                                 <span className={clsx(
-                                    "text-sm",
-                                    recommended ? "text-zinc-700" : "text-zinc-300",
-                                    feature.highlight && !recommended && "text-white font-medium"
+                                    "text-sm text-slate-700",
+                                    feature.highlight && "text-[#0B1F3B] font-medium"
                                 )}>
                                     {feature.text}
                                 </span>

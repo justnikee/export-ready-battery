@@ -1,44 +1,72 @@
+"use client"
+
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Briefcase } from "lucide-react"
+
 export default function CareersPage() {
     return (
-        <div className="pt-32 pb-24 px-4 bg-zinc-950">
-            <div className="mx-auto w-full max-w-6xl space-y-10">
-                <div className="space-y-4">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white font-heading">
+        <section className="pt-32 pb-24 px-4 bg-white">
+            <div className="mx-auto w-full max-w-6xl">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center mb-16 space-y-6"
+                >
+                    <h1 className="text-4xl md:text-5xl font-heading font-semibold text-[#0B1F3B]">
                         Careers at ExportReady
                     </h1>
-                    <p className="text-lg text-zinc-400">
+                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                         We are building compliance infrastructure for the global battery supply chain.
                         If you want to work on high-stakes systems with real-world impact, we should talk.
                     </p>
-                </div>
+                </motion.div>
 
-                <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50">
-                    <h2 className="text-lg font-semibold text-white mb-2">Open Roles</h2>
-                    <p className="text-sm text-zinc-400">
-                        We are currently growing our product, engineering, and compliance teams. Send a short intro and
-                        your resume to{" "}
-                        <a className="text-emerald-400 hover:text-emerald-300" href="mailto:careers@exportready.com">
-                            careers@exportready.com
-                        </a>
-                        .
-                    </p>
-                </div>
+                {/* Open Roles Card */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="max-w-2xl mx-auto mb-16"
+                >
+                    <div className="p-8 rounded-xl border border-slate-200 bg-slate-50">
+                        <div className="w-10 h-10 rounded-lg bg-[#1F7A5F]/10 flex items-center justify-center mb-4">
+                            <Briefcase className="h-5 w-5 text-[#1F7A5F]" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-[#0B1F3B] mb-2">Open Roles</h2>
+                        <p className="text-sm text-slate-600">
+                            We are currently growing our product, engineering, and compliance teams. Send a short intro and
+                            your resume to{" "}
+                            <a className="text-[#1F7A5F] font-medium hover:underline" href="mailto:careers@exportready.com">
+                                careers@exportready.com
+                            </a>
+                            .
+                        </p>
+                    </div>
+                </motion.div>
 
-                <div className="flex flex-wrap gap-4">
-                    <a
-                        href="/about"
-                        className="inline-flex items-center px-5 py-2.5 rounded-lg border border-zinc-800 text-zinc-300 text-sm font-semibold hover:border-zinc-700 hover:text-white transition-colors"
-                    >
-                        Learn About Us
-                    </a>
-                    <a
+                {/* CTA Buttons */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex flex-wrap justify-center gap-4"
+                >
+                    <Link
                         href="/contact"
-                        className="inline-flex items-center px-5 py-2.5 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+                        className="inline-flex items-center justify-center bg-[#0B1F3B] px-10 py-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1F7A5F]"
                     >
                         Contact Recruiting
-                    </a>
-                </div>
+                    </Link>
+                    <Link
+                        href="/about"
+                        className="inline-flex items-center justify-center px-10 py-4 text-sm font-semibold text-[#0B1F3B] border border-[#0B1F3B] transition-all duration-200 hover:bg-[#0B1F3B] hover:text-white"
+                    >
+                        Learn About Us
+                    </Link>
+                </motion.div>
             </div>
-        </div>
+        </section>
     )
 }

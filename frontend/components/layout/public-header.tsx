@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { Menu, X, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
@@ -21,13 +21,13 @@ export function PublicHeader() {
 
     return (
         <header
-            className={`fixed top-0 w-full z-50 backdrop-blur-xl border-b ${
-                isHome ? "bg-white/90 border-slate-200" : "bg-zinc-950/80 border-zinc-800"
-            }`}
+            className={`fixed top-0 w-full z-50 backdrop-blur-xl border-b ${isHome ? "bg-white/90 border-slate-200" : "bg-zinc-950/80 border-zinc-800"
+                }`}
         >
             <div className="mx-auto w-full max-w-6xl px-4 h-16 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 font-bold text-xl text-slate-900">
-                    <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto" />
+                <Link href="/" className="flex items-center gap-2 group">
+                    <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                    <span className={`text-xl font-bold tracking-tight ${isHome ? "text-[#0B1F3B]" : "text-white"}`}>EXPORTLENS</span>
                 </Link>
 
                 {/* Desktop Nav */}
@@ -42,17 +42,16 @@ export function PublicHeader() {
                     <Link href="/login" className={linkClass}>
                         Login
                     </Link>
-                    <Button
-                        asChild
-                        size="sm"
+                    <Link
+                        href="/contact"
                         className={
                             isHome
-                                ? "bg-slate-900 text-white hover:bg-slate-800 font-semibold"
-                                : "bg-white text-slate-900 hover:bg-slate-100 font-semibold"
+                                ? "inline-flex items-center justify-center bg-[#0B1F3B] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1F7A5F]"
+                                : "inline-flex items-center justify-center bg-white px-6 py-2.5 text-sm font-semibold text-[#0B1F3B] transition-all duration-200 hover:bg-[#1F7A5F] hover:text-white"
                         }
                     >
-                        <Link href="/contact">Book a Demo</Link>
-                    </Button>
+                        Book a Demo
+                    </Link>
                 </nav>
 
                 {/* Mobile Nav Toggle */}
@@ -71,9 +70,8 @@ export function PublicHeader() {
             {/* Mobile Menu */}
             {mobileMenuOpen && (
                 <div
-                    className={`md:hidden border-t ${
-                        isHome ? "bg-white border-slate-200" : "bg-zinc-950 border-zinc-800"
-                    }`}
+                    className={`md:hidden border-t ${isHome ? "bg-white border-slate-200" : "bg-zinc-950 border-zinc-800"
+                        }`}
                 >
                     <div className="mx-auto w-full max-w-6xl px-4 py-4 space-y-4">
                         <Link
@@ -94,14 +92,13 @@ export function PublicHeader() {
                         >
                             Login
                         </Link>
-                        <Button
-                            asChild
-                            className={`w-full ${
-                                isHome ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-white text-slate-900"
-                            }`}
+                        <Link
+                            href="/contact"
+                            className={`w-full inline-flex items-center justify-center px-6 py-3 text-sm font-semibold transition-all duration-200 ${isHome ? "bg-[#0B1F3B] text-white hover:bg-[#1F7A5F]" : "bg-white text-[#0B1F3B] hover:bg-[#1F7A5F] hover:text-white"
+                                }`}
                         >
-                            <Link href="/contact">Book a Demo</Link>
-                        </Button>
+                            Book a Demo
+                        </Link>
                     </div>
                 </div>
             )}

@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+
 import { usePathname } from "next/navigation"
-import { LogOut, HelpCircle, Menu, X, Home, Box, Truck, Users, Trophy, CreditCard, Settings, UserPlus } from "lucide-react"
+import { LogOut, HelpCircle, Menu, X, Home, Box, Truck, Users, Trophy, CreditCard, Settings, UserPlus, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -58,8 +58,9 @@ export function TopNav() {
                         </Button>
 
                         {/* Logo */}
-                        <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-                            <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
+                        <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group">
+                            <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                            <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
                         </Link>
                     </div>
 
@@ -142,7 +143,7 @@ export function TopNav() {
 
             {/* Mobile Menu Overlay */}
             {mobileMenuOpen && (
-                <div className="fixed inset-0 z-[100] md:hidden">
+                <div className="fixed inset-0 z-100 md:hidden">
                     {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -155,10 +156,11 @@ export function TopNav() {
                         <div className="flex items-center justify-between border-b border-slate-200 p-4">
                             <Link
                                 href="/dashboard"
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 group"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto invert" />
+                                <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                                <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
                             </Link>
                             <Button
                                 variant="ghost"

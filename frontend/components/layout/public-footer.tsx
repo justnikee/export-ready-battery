@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
-import { Linkedin, Twitter, Github } from "lucide-react"
+
+import { Linkedin, Twitter, Github, BarChart3 } from "lucide-react"
 
 const footerLinks = {
     product: [
@@ -37,8 +37,9 @@ export function PublicFooter() {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
                     {/* Brand */}
                     <div className="col-span-2">
-                        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-white mb-4">
-                            <Image src="/logo/logo.svg" alt="ExportReady" width={140} height={28} className="h-7 w-auto" />
+                        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-white mb-4 group">
+                            <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                            <span className="text-xl font-bold tracking-tight text-white">EXPORTLENS</span>
                         </Link>
                         <p className="text-zinc-500 text-sm mb-4 max-w-xs font-sans">
                             The compliance platform for battery manufacturers exporting to EU and meeting India&apos;s 2026 mandates.
@@ -111,6 +112,6 @@ export function PublicFooter() {
                     </div>
                 </div>
             </div>
-        </footer>
+        </footer >
     )
 }

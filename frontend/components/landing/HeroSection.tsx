@@ -2,79 +2,68 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight } from "lucide-react"
 
 export function HeroSection() {
     return (
-        <section className="relative overflow-hidden bg-white pt-28 pb-20 border-b border-slate-200">
+        <section className="relative overflow-hidden bg-white pt-32 pb-32 min-h-[85vh] flex items-center border-b border-slate-200">
+            {/* Subtle background pattern */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-[0.35] bg-[linear-gradient(to_right,rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.06)_1px,transparent_1px)] bg-[size:48px_48px]"
+                className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,rgba(11,31,59,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(11,31,59,0.03)_1px,transparent_1px)] bg-[size:48px_48px]"
             />
+
             <div className="relative z-10 mx-auto w-full max-w-6xl px-4">
                 <div className="mx-auto max-w-4xl text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.3em] text-slate-500"
+                        className="flex items-center justify-center gap-2 mb-8"
                     >
-                        <span className="h-px w-10 bg-slate-300" />
-                        Regulatory Compliance Infrastructure
+                        <span className="inline-flex items-center gap-2 px-5 py-2 bg-[#1F7A5F]/10 border border-[#1F7A5F]/20 rounded-full">
+                            <span className="text-xs font-medium text-[#0B1F3B]">Regulatory Compliance Infrastructure</span>
+                        </span>
                     </motion.div>
 
                     <motion.h1
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="mt-8 text-4xl sm:text-5xl lg:text-6xl font-heading font-semibold tracking-tight text-slate-900 leading-[1.05]"
+                        className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight text-[#0B1F3B] leading-[1.1]"
                     >
                         Battery Passports,
-                        <span className="block">Built for Enforcement.</span>
+                        <span className="block text-[#1F7A5F]">
+                            Built for Enforcement.
+                        </span>
                     </motion.h1>
 
                     <motion.p
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-6 text-base sm:text-lg text-slate-600 max-w-[60ch] mx-auto leading-relaxed"
+                        className="mt-6 text-lg sm:text-xl text-slate-600 max-w-[55ch] mx-auto leading-relaxed"
                     >
                         ExportLens delivers audit-grade passports for EU and India with lifecycle evidence, immutable
                         records, and regulator-ready compliance by default.
                     </motion.p>
 
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.3 }}
-                        className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-500"
-                    >
-                        Not a document tool. A compliance system.
-                    </motion.p>
-
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.4 }}
-                        className="mt-10 flex flex-wrap items-center justify-center gap-4"
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                        className="mt-10 flex flex-wrap items-center justify-center gap-5"
                     >
                         <Link
                             href="/contact"
-                            className="inline-flex items-center justify-center gap-2 rounded-[2px] bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            className="inline-flex items-center justify-center bg-[#0B1F3B] px-10 py-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1F7A5F]"
                         >
-                            Book a Demo <ArrowRight className="h-4 w-4" />
+                            Book a Demo
                         </Link>
                         <Link
                             href="/docs"
-                            className="text-sm text-slate-600 underline underline-offset-4 transition hover:text-slate-900"
+                            className="inline-flex items-center justify-center px-10 py-4 text-sm font-semibold text-[#0B1F3B] border border-[#0B1F3B] transition-all duration-200 hover:bg-[#0B1F3B] hover:text-white"
                         >
                             Read Documentation
-                        </Link>
-                        <Link
-                            href="/docs/compliance"
-                            className="text-sm text-slate-600 underline underline-offset-4 transition hover:text-slate-900"
-                        >
-                            See Compliance Model
                         </Link>
                     </motion.div>
 
@@ -82,9 +71,17 @@ export function HeroSection() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.5 }}
-                        className="mt-12 border-t border-slate-200 pt-4 text-xs font-mono uppercase tracking-[0.18em] text-slate-500 text-center"
+                        className="mt-16 flex items-center justify-center gap-6 text-xs text-slate-500"
                     >
-                        Coverage: EU Battery Regulation (2023/1542) · India Battery Aadhaar
+                        <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-[#0B1F3B]" />
+                            <span className="font-mono">EU Battery Regulation (2023/1542)</span>
+                        </div>
+                        <div className="h-4 w-px bg-slate-300" />
+                        <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-[#1F7A5F]" />
+                            <span className="font-mono">India Battery Aadhaar</span>
+                        </div>
                     </motion.div>
                 </div>
             </div>
