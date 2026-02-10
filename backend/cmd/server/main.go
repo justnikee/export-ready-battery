@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -270,7 +272,16 @@ func main() {
 	// STATIC UPLOADS (Public - for serving logos)
 	// ============================================
 	uploadsFS := http.FileServer(http.Dir("./uploads"))
-	mux.Handle("GET /api/v1/uploads/", http.StripPrefix("/api/v1/uploads/", uploadsFS))
+	// Wrap with path traversal guard to prevent directory traversal attacks
+	safeUploadsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cleanPath := filepath.Clean(r.URL.Path)
+		if strings.Contains(cleanPath, "..") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		http.StripPrefix("/api/v1/uploads/", uploadsFS).ServeHTTP(w, r)
+	})
+	mux.Handle("GET /api/v1/uploads/", safeUploadsHandler)
 
 	// ============================================
 	// ADMIN ROUTES (Secret - for document verification)

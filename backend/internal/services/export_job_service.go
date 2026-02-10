@@ -306,7 +306,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	// Get batch and passports
 	batch, passports, tenant, err := s.getBatchData(ctx, job.BatchID, job.TenantID)
 	if err != nil {
-		s.MarkJobFailed(ctx, job.ID, err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 
@@ -334,7 +336,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	filePath := fmt.Sprintf("%s/%s/%s", job.TenantID, job.BatchID, job.GetFilename(batch.BatchName))
 
 	if err := s.storageService.UploadFile(ctx, data, filePath, contentType); err != nil {
-		s.MarkJobFailed(ctx, job.ID, "Failed to upload file: "+err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, "Failed to upload file: "+err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 
@@ -342,7 +346,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	expiresAt := time.Now().Add(DownloadURLExpiry)
 	downloadURL, err := s.storageService.CreateSignedURL(ctx, filePath, DownloadURLExpiry)
 	if err != nil {
-		s.MarkJobFailed(ctx, job.ID, "Failed to create download URL: "+err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, "Failed to create download URL: "+err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 

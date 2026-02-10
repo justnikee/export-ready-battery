@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"exportready-battery/internal/models"
@@ -96,25 +96,20 @@ func (a *APIKeyAuth) validateKey(w http.ResponseWriter, r *http.Request) (*model
 		return nil, http.ErrAbortHandler
 	}
 
-	// Get prefix for lookup
+	// Get prefix for lookup — query by prefix for O(1) instead of fetching all keys
 	prefix := a.keyService.ExtractPrefix(keyHeader)
+	lookupPrefix := prefix[:len(services.KeyPrefix)+4]
 
-	// Get all active keys with this prefix
-	keys, err := a.repo.GetAllActiveAPIKeys(r.Context())
+	key, err := a.repo.GetAPIKeyByPrefix(r.Context(), lookupPrefix)
 	if err != nil {
-		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"invalid API key"}`, http.StatusUnauthorized)
 		return nil, http.ErrAbortHandler
 	}
 
-	// Find matching key by validating hash
+	// Validate the key hash
 	var matchedKey *models.APIKey
-	for _, key := range keys {
-		if strings.HasPrefix(key.KeyPrefix, prefix[:len(services.KeyPrefix)+4]) {
-			if a.keyService.ValidateKey(keyHeader, key.KeyHash) {
-				matchedKey = key
-				break
-			}
-		}
+	if a.keyService.ValidateKey(keyHeader, key.KeyHash) {
+		matchedKey = key
 	}
 
 	if matchedKey == nil {
@@ -128,8 +123,12 @@ func (a *APIKeyAuth) validateKey(w http.ResponseWriter, r *http.Request) (*model
 		return nil, http.ErrAbortHandler
 	}
 
-	// Update last used
-	go a.repo.UpdateAPIKeyLastUsed(context.Background(), matchedKey.ID)
+	// Update last used — with error handling for audit tracking
+	go func() {
+		if err := a.repo.UpdateAPIKeyLastUsed(context.Background(), matchedKey.ID); err != nil {
+			log.Printf("⚠️ Failed to update API key last used: %v", err)
+		}
+	}()
 
 	return matchedKey, nil
 }

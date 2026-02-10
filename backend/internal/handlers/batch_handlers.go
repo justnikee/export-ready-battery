@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"exportready-battery/internal/middleware"
@@ -15,6 +17,18 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// sanitizeBatchName removes unsafe characters from batch names used in filenames
+var unsafeCharsRe = regexp.MustCompile(`[^a-zA-Z0-9_\-\. ]`)
+
+func sanitizeBatchName(name string) string {
+	safe := unsafeCharsRe.ReplaceAllString(name, "_")
+	safe = strings.TrimSpace(safe)
+	if safe == "" {
+		safe = "batch"
+	}
+	return safe
+}
 
 // Maximum passports allowed in a single PDF/QR download to prevent memory exhaustion
 const maxDownloadLimit = 500
@@ -430,7 +444,7 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set headers for file download
-	filename := fmt.Sprintf("%s_qrcodes.zip", batch.BatchName)
+	filename := fmt.Sprintf("%s_qrcodes.zip", sanitizeBatchName(batch.BatchName))
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", zipSize))
@@ -512,7 +526,7 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set headers for file download
-	filename := fmt.Sprintf("%s_labels.pdf", batch.BatchName)
+	filename := fmt.Sprintf("%s_labels.pdf", sanitizeBatchName(batch.BatchName))
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", pdfBuffer.Len()))
@@ -581,7 +595,7 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set headers for file download
-	filename := fmt.Sprintf("%s_serial_export.csv", batch.BatchName)
+	filename := fmt.Sprintf("%s_serial_export.csv", sanitizeBatchName(batch.BatchName))
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))

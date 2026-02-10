@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -24,11 +26,11 @@ func Connect(databaseURL string) (*DB, error) {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
-	// Connection pool settings
-	config.MaxConns = 4
-	config.MinConns = 1
-	config.MaxConnLifetime = time.Hour
-	config.MaxConnIdleTime = 30 * time.Minute
+	// Connection pool settings (configurable via env vars)
+	config.MaxConns = int32(getEnvInt("DB_MAX_CONNS", 4))
+	config.MinConns = int32(getEnvInt("DB_MIN_CONNS", 1))
+	config.MaxConnLifetime = time.Duration(getEnvInt("DB_MAX_CONN_LIFETIME_MIN", 60)) * time.Minute
+	config.MaxConnIdleTime = time.Duration(getEnvInt("DB_MAX_CONN_IDLE_MIN", 30)) * time.Minute
 
 	// CRITICAL: Disable statement caching for Supabase PgBouncer compatibility
 	// PgBouncer in transaction mode doesn't support prepared statements
@@ -65,4 +67,14 @@ func (db *DB) Close() {
 // Ping checks if the database is reachable
 func (db *DB) Ping(ctx context.Context) error {
 	return db.Pool.Ping(ctx)
+}
+
+// getEnvInt reads an env var as int, returning defaultVal if missing or invalid.
+func getEnvInt(key string, defaultVal int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return defaultVal
 }
