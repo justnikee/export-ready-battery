@@ -16,7 +16,7 @@ function LoadingBarWrapper() {
     )
 }
 
-export default function DashboardLayout({
+function DashboardLayoutInner({
     children,
 }: {
     children: React.ReactNode
@@ -90,5 +90,21 @@ export default function DashboardLayout({
                 </main>
             </div>
         </div>
+    )
+}
+
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+            </div>
+        }>
+            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+        </Suspense>
     )
 }

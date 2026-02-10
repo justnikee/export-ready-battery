@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import {
@@ -82,7 +82,7 @@ const EVIDENCE_FIELDS: Record<string, { key: string; label: string; placeholder?
     ],
 }
 
-export default function PassportActionPage() {
+function PassportActionContent() {
     const params = useParams()
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -492,5 +492,17 @@ export default function PassportActionPage() {
                 </button>
             </div>
         </div>
+    )
+}
+
+export default function PassportActionPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
+            </div>
+        }>
+            <PassportActionContent />
+        </Suspense>
     )
 }
