@@ -1,8 +1,15 @@
 -- Export Jobs table for async background exports
 -- Tracks large batch export jobs that run in the background
 
-CREATE TYPE export_job_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
-CREATE TYPE export_job_type AS ENUM ('QR_ZIP', 'LABELS_PDF', 'CSV');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'export_job_status') THEN
+        CREATE TYPE export_job_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'export_job_type') THEN
+        CREATE TYPE export_job_type AS ENUM ('QR_ZIP', 'LABELS_PDF', 'CSV');
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS export_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

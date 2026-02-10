@@ -5,9 +5,8 @@ import { useAuth } from '@/context/auth-context';
 import api from '@/lib/api';
 import { TeamList } from '@/components/team/TeamList';
 import { InviteMemberDialog } from '@/components/team/InviteMemberDialog';
-import { TeamListResponse, TeamMember } from '@/lib/types';
-import { Loader2, Users, Crown, CheckCircle2, Shield } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { TeamListResponse } from '@/lib/types';
+import { Users, Crown, CheckCircle2, Shield } from 'lucide-react';
 
 export default function TeamPage() {
     const { user } = useAuth();
@@ -39,9 +38,10 @@ export default function TeamPage() {
         );
     }
 
-    const { members, seat_count, seat_limit, plan_type } = data || {
+    const { members: rawMembers, seat_count, seat_limit, plan_type } = data || {
         members: [], seat_count: 0, seat_limit: 2, plan_type: 'STARTER'
     };
+    const members = rawMembers || [];
 
     const usagePercent = (seat_count / seat_limit) * 100;
 

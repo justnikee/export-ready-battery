@@ -1,48 +1,42 @@
-# Technical Debt & Pending Remediation
+# Technical Debt and Pending Remediation
 
-This document tracks technical debt and infrastructure tasks that need to be addressed to improve code quality, maintainability, and developer experience.
+This document tracks technical debt and infrastructure tasks needed to improve code quality, maintainability, and developer experience.
 
-## 🔴 High Priority
+## High Priority
 
 ### 1. Backend Testing Strategy
-**Current Status:** 0% Coverage. No unit or integration tests exist for the Go backend.
+**Current Status:** Partial coverage. Lifecycle handlers/services and magic-link flows have tests, but auth/billing and integration coverage are still thin.
 **Action Items:**
-- [ ] **Infrastructure**: Add `test` target to Makefile.
-- [ ] **Unit Tests**: Create `internal/handlers/auth_handlers_test.go` as a baseline.
-- [ ] **Integration Tests**: Create a mock Razorpay client to verify `verify-payment` webhook logic without external dependencies.
+- Add baseline auth handler tests (e.g. `internal/handlers/auth_handlers_test.go`).
+- Add end-to-end integration tests for batch creation, lifecycle transition, and quota deduction.
+- Mock Razorpay client for webhook verification without external dependencies.
 
 ### 2. API Documentation
-**Current Status:** No formal API documentation exists. Frontend developers rely on reading Go code.
+**Current Status:** OpenAPI spec exists at `backend/api/openapi.yaml` but is not wired to a UI.
 **Action Items:**
-- [ ] **OpenAPI Spec**: Generate `openapi.yaml` for core entities (Auth, Batches, Passports).
-- [ ] **Swagger UI**: Mount Swagger UI middleware at `/server/docs` or `/swagger`.
+- Mount Swagger UI at `/server/docs` or `/swagger`.
+- Review coverage for lifecycle, evidence, and magic-link endpoints.
 
-## 🟡 Medium Priority
+## Medium Priority
 
 ### 3. Email Service Refactoring
 **Current Status:** Email HTML is hardcoded in strings within `internal/services/email.go`.
 **Action Items:**
-- [ ] **Templates**: Move HTML content to `internal/templates/*.html`.
-- [ ] **Rendering**: Refactor `EmailService` to use Go's `html/template` package for dynamic rendering.
+- Move HTML content to `internal/templates/*.html`.
+- Refactor `EmailService` to use Go `html/template`.
 
-## 🟢 Low Priority
+## Low Priority
 
 ### 4. Logging
-**Current Status:** Using standard `log.Printf`.
+**Current Status:** Standard `log.Printf`.
 **Action Items:**
-- [ ] Migrate to structured logging using `log/slog` (Go 1.21+).
+- Migrate to structured logging using `log/slog` (Go 1.21+).
 
+## Immediate Roadmap (Safety First Sprint)
 
-Here is your revised Immediate Roadmap (The "Safety First" Sprint):
+- Billing Integrity: Implement real Razorpay webhooks. (2 days)
+- Audit Defense: Passport event hash chain is implemented; expand verification coverage. (1 day)
+- Safety Net: Add 3 core integration tests (batch creation, lifecycle transition, quota deduction). (2 days)
+- Security Patch: Fix string interpolation in emails. (2 hours)
+- Ignore (for now): SSO, Redis, Blockchain, RabbitMQ.
 
-Billing Integrity: Implement real Razorpay Webhooks. (2 Days)
-
-Audit Defense: Add the Hash column to PassportEvents. (1 Day)
-
-Safety Net: Write 3 core Integration Tests (Batch Creation, Status Change, Quota Deduction). (2 Days)
-
-Security Patch: Fix the String Interpolation in emails. (2 Hours)
-
-Ignore (For Now): SSO, Redis, Blockchain, RabbitMQ.
-
-Final Thought: This critique is a gift. It tells you exactly where the "landmines" are. Fix the landmines (Billing/Tests), ignore the noise (Blockchain/SSO), and ship.

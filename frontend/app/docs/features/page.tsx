@@ -13,7 +13,6 @@ import {
     CheckCircle2,
     BarChart3,
     Mail,
-    Download,
     Globe
 } from 'lucide-react';
 
@@ -232,7 +231,6 @@ BAT-2026-004,01-15-2026`}
                         DVA = ((Ex-Factory Sale Price - Cost of Imported Materials) / Ex-Factory Sale Price) × 100
                     </code>
                 </div>
-
                 <ul className="space-y-2 mb-6">
                     <FeatureItem>Real-time calculation as user types</FeatureItem>
                     <FeatureItem>Visual PLI eligibility indicator (≥50% = Eligible)</FeatureItem>
@@ -395,16 +393,18 @@ GET /api/v1/templates
                 status="complete"
             >
                 <ul className="space-y-2 mb-6">
-                    <FeatureItem>State machine: Active → Shipped → Installed → In Use → End of Life</FeatureItem>
-                    <FeatureItem>Magic Link transitions for supply chain partners</FeatureItem>
+                    <FeatureItem>Action-based state machine: Created -&gt; Active -&gt; Shipped -&gt; In Service -&gt; Recycled -&gt; End of Life</FeatureItem>
+                    <FeatureItem>Recall interrupt state from Active/Shipped/In Service</FeatureItem>
+                    <FeatureItem>Magic link transitions for external partners (single-use, action-bound)</FeatureItem>
                     <FeatureItem>SHA-256 hash chain for tamper-proof event history</FeatureItem>
-                    <FeatureItem>Bulk transitions for batch operations</FeatureItem>
-                    <FeatureItem>Automatic event logging with actor attribution</FeatureItem>
+                    <FeatureItem>Bulk transitions for batch operations (action + evidence)</FeatureItem>
+                    <FeatureItem>Automatic event logging with actor role attribution</FeatureItem>
+                    <FeatureItem>Evidence required for Ship, Install, Recycle, Recall</FeatureItem>
                 </ul>
 
                 <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">Lifecycle States</h4>
                 <div className="flex flex-wrap gap-2">
-                    {['active', 'shipped', 'installed', 'in_use', 'returned', 'recalled', 'end_of_life'].map((state) => (
+                    {['created', 'active', 'shipped', 'in_service', 'recalled', 'recycled', 'end_of_life'].map((state) => (
                         <span key={state} className="px-3 py-1 rounded-full bg-white/10 text-white text-sm">
                             {state.replace('_', ' ')}
                         </span>
@@ -453,7 +453,7 @@ GET /api/v1/templates
                     <FeatureItem>Earn points for scanning battery passports</FeatureItem>
                     <FeatureItem>Consumer wallet via phone number linking</FeatureItem>
                     <FeatureItem>Leaderboard rankings and history</FeatureItem>
-                    <FeatureItem>Lifecycle action bonuses (recycle, return)</FeatureItem>
+                    <FeatureItem>Lifecycle action bonuses (recycle)</FeatureItem>
                 </ul>
 
                 <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">Point System</h4>
@@ -462,7 +462,7 @@ GET /api/v1/templates
 Scan passport:     +10 points
 First scan bonus:  +50 points
 Recycle action:    +100 points
-Return action:     +75 points`}
+`}
                     language="text"
                 />
             </FeatureCard>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { CreateBatchDialog } from "@/components/batches/create-batch-dialog"
 import { TemplatesDialog } from "@/components/batches/templates-dialog"
@@ -8,7 +8,6 @@ import api from "@/lib/api"
 import { duplicateBatch } from "@/lib/api/batches"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,28 +30,38 @@ import {
     ChevronLeft,
     ChevronRight,
     Battery,
-    Package
+    Package,
+    Archive
 } from "lucide-react"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import type { Batch } from "@/lib/types"
+
+import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton"
 
 // Types
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 type FilterType = "ALL" | "DRAFT" | "ACTIVE"
 
-interface Batch {
-    id: string
-    batch_name: string
-    created_at: string
-    specs: any
-    status?: string
-    market_region?: MarketRegion
-    pli_compliant?: boolean
-    total_passports?: number
-    domestic_value_add?: number
-    cell_source?: 'IMPORTED' | 'DOMESTIC'
-    hsn_code?: string
-    bill_of_entry_no?: string
-    country_of_origin?: string
+interface BatchesResponse {
+    batches: Batch[]
+    total?: number
+    total_pages?: number
+}
+
+interface ApiError {
+    response?: {
+        data?: {
+            error?: string
+        }
+    }
+}
+
+const toApiError = (error: unknown): ApiError => {
+    if (typeof error === "object" && error !== null) {
+        return error as ApiError
+    }
+    return {}
 }
 
 const ITEMS_PER_PAGE = 50
@@ -64,31 +73,31 @@ export default function BatchesPage() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<FilterType>("ALL")
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [currentPage, setCurrentPage] = useState(1)
-    const [isDeleting, setIsDeleting] = useState(false)
     const [totalCount, setTotalCount] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
+    const [batchToArchive, setBatchToArchive] = useState<Batch | null>(null)
+    const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null)
 
-    const fetchBatches = async (page = 1) => {
+    const fetchBatches = useCallback(async (page = 1) => {
         if (!user) return
         try {
             setLoading(true)
-            const response = await api.get(`/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`)
+            const response = await api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`)
             setBatches(response.data.batches || [])
             setTotalCount(response.data.total || 0)
             setTotalPages(response.data.total_pages || 1)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch batches:", error)
             toast.error("Failed to load batches")
         } finally {
             setLoading(false)
         }
-    }
+    }, [user])
 
     useEffect(() => {
         fetchBatches(currentPage)
-    }, [user?.tenant_id, currentPage])
+    }, [currentPage, fetchBatches])
 
     const filteredBatches = batches.filter(batch => {
         if (filter !== "ALL") {
@@ -111,54 +120,14 @@ export default function BatchesPage() {
         setCurrentPage(1)
     }, [filter, searchQuery])
 
-    const toggleSelect = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation()
-        const newSelected = new Set(selectedIds)
-        if (newSelected.has(id)) {
-            newSelected.delete(id)
-        } else {
-            newSelected.add(id)
-        }
-        setSelectedIds(newSelected)
-    }
 
-    const toggleSelectAll = () => {
-        if (selectedIds.size === paginatedBatches.length) {
-            setSelectedIds(new Set())
-        } else {
-            setSelectedIds(new Set(paginatedBatches.map(b => b.id)))
-        }
-    }
-
-    const handleBulkDelete = async () => {
-        if (selectedIds.size === 0) return
-
-        const confirmed = window.confirm(`Are you sure you want to delete ${selectedIds.size} batch(es)? This action cannot be undone.`)
-        if (!confirmed) return
-
-        setIsDeleting(true)
-        try {
-            const deletePromises = Array.from(selectedIds).map(id =>
-                api.delete(`/batches/${id}`)
-            )
-            await Promise.all(deletePromises)
-            toast.success(`Successfully deleted ${selectedIds.size} batch(es)`)
-            setSelectedIds(new Set())
-            fetchBatches()
-        } catch (error) {
-            console.error("Delete failed:", error)
-            toast.error("Failed to delete some batches")
-        } finally {
-            setIsDeleting(false)
-        }
-    }
 
     const handleDuplicate = async (batchId: string) => {
         try {
             await duplicateBatch(batchId)
             toast.success("Batch duplicated successfully")
             fetchBatches()
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Duplicate failed:", error)
             toast.error("Failed to duplicate batch")
         }
@@ -191,7 +160,7 @@ export default function BatchesPage() {
         if (region === 'INDIA') {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
-                    <span className="w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-green-500 shrink-0" />
+                    <span className="w-3 h-3 rounded-full bg-linear-to-br from-orange-400 to-green-500 shrink-0" />
                     India
                 </span>
             )
@@ -199,7 +168,7 @@ export default function BatchesPage() {
         if (region === 'EU') {
             return (
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    <span className="w-3 h-3 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shrink-0" />
+                    <span className="w-3 h-3 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0" />
                     EU
                 </span>
             )
@@ -213,14 +182,7 @@ export default function BatchesPage() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50">
-                <div className="flex items-center gap-3 text-slate-500">
-                    <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full" />
-                    Loading batches...
-                </div>
-            </div>
-        )
+        return <BatchesListSkeleton />
     }
 
     return (
@@ -313,24 +275,7 @@ export default function BatchesPage() {
                         </DropdownMenu>
                     </div>
 
-                    {/* Bulk Actions */}
-                    {selectedIds.size > 0 && (
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm text-slate-500">
-                                {selectedIds.size} selected
-                            </span>
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={handleBulkDelete}
-                                disabled={isDeleting}
-                                className="bg-red-600 hover:bg-red-700 text-white h-9"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                {isDeleting ? "Deleting..." : "Delete Selected"}
-                            </Button>
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Table */}
@@ -338,13 +283,6 @@ export default function BatchesPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="w-12 pl-4 py-3">
-                                    <Checkbox
-                                        checked={paginatedBatches.length > 0 && selectedIds.size === paginatedBatches.length}
-                                        onCheckedChange={toggleSelectAll}
-                                        className="border-slate-300 data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900"
-                                    />
-                                </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Market</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Specifications</th>
@@ -356,7 +294,7 @@ export default function BatchesPage() {
                         <tbody className="divide-y divide-slate-100">
                             {paginatedBatches.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="h-32 text-center text-slate-500">
+                                    <td colSpan={6} className="h-32 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-2">
                                             <Package className="h-8 w-8 text-slate-300" />
                                             <span>No batches found</span>
@@ -367,17 +305,9 @@ export default function BatchesPage() {
                                 paginatedBatches.map((batch) => (
                                     <tr
                                         key={batch.id}
-                                        className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(batch.id) ? 'bg-blue-50' : ''
-                                            }`}
+                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
                                         onClick={() => router.push(`/batches/${batch.id}`)}
                                     >
-                                        {/* Checkbox */}
-                                        <td className="pl-4 py-4" onClick={(e) => toggleSelect(batch.id, e)}>
-                                            <Checkbox
-                                                checked={selectedIds.has(batch.id)}
-                                                className="border-slate-300 data-[state=checked]:bg-slate-900 data-[state=checked]:border-slate-900"
-                                            />
-                                        </td>
 
                                         {/* Batch Name */}
                                         <td className="px-4 py-4">
@@ -471,8 +401,9 @@ export default function BatchesPage() {
                                                                     await api.post(`/batches/${batch.id}/activate`)
                                                                     toast.success("Batch activated!")
                                                                     fetchBatches()
-                                                                } catch (err: any) {
-                                                                    toast.error(err.response?.data?.error || "Activation failed")
+                                                                } catch (err: unknown) {
+                                                                    const apiError = toApiError(err)
+                                                                    toast.error(apiError.response?.data?.error || "Activation failed")
                                                                 }
                                                             }}
                                                             className="cursor-pointer text-emerald-600 hover:bg-emerald-50 focus:bg-emerald-50 focus:text-emerald-700"
@@ -506,23 +437,31 @@ export default function BatchesPage() {
 
                                                     <DropdownMenuSeparator className="bg-slate-200" />
 
-                                                    <DropdownMenuItem
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation()
-                                                            if (confirm("Delete this batch?")) {
-                                                                try {
-                                                                    await api.delete(`/batches/${batch.id}`)
-                                                                    toast.success("Batch deleted")
-                                                                    fetchBatches()
-                                                                } catch (err) {
-                                                                    toast.error("Failed to delete batch")
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                    </DropdownMenuItem>
+                                                    {/* Archive - only for ACTIVE batches */}
+                                                    {batch.status === 'ACTIVE' && (
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                setBatchToArchive(batch)
+                                                            }}
+                                                            className="cursor-pointer text-amber-600 hover:bg-amber-50 focus:bg-amber-50 focus:text-amber-700"
+                                                        >
+                                                            <Archive className="mr-2 h-4 w-4" /> Archive
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    {/* Delete Draft - only for DRAFT batches with 0 passports */}
+                                                    {batch.status !== 'ACTIVE' && batch.status !== 'ARCHIVED' && (batch.total_passports || 0) === 0 && (
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                setBatchToDelete(batch)
+                                                            }}
+                                                            className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete Draft
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </td>
@@ -594,6 +533,51 @@ export default function BatchesPage() {
                     </div>
                 )}
             </div>
+            {/* Confirmation Dialogs */}
+            <ConfirmDialog
+                open={!!batchToArchive}
+                onOpenChange={(open) => !open && setBatchToArchive(null)}
+                title="Archive this batch?"
+                description="Archived batches remain available for audit and compliance purposes but cannot generate new passports."
+                confirmText="Archive Batch"
+                onConfirm={async () => {
+                    if (batchToArchive) {
+                        try {
+                            await api.post(`/batches/${batchToArchive.id}/archive`)
+                            toast.success("Batch archived successfully")
+                            fetchBatches()
+                        } catch (err: unknown) {
+                            const apiError = toApiError(err)
+                            toast.error(apiError.response?.data?.error || "Failed to archive batch")
+                        } finally {
+                            setBatchToArchive(null)
+                        }
+                    }
+                }}
+            />
+
+            <ConfirmDialog
+                open={!!batchToDelete}
+                onOpenChange={(open) => !open && setBatchToDelete(null)}
+                title="Delete this draft batch?"
+                description="This action cannot be undone. All data associated with this draft will be permanently removed."
+                confirmText="Delete Draft"
+                variant="destructive"
+                onConfirm={async () => {
+                    if (batchToDelete) {
+                        try {
+                            await api.delete(`/batches/${batchToDelete.id}/draft`)
+                            toast.success("Draft batch deleted")
+                            fetchBatches()
+                        } catch (err: unknown) {
+                            const apiError = toApiError(err)
+                            toast.error(apiError.response?.data?.error || "Failed to delete batch")
+                        } finally {
+                            setBatchToDelete(null)
+                        }
+                    }
+                }}
+            />
         </div>
     )
 }

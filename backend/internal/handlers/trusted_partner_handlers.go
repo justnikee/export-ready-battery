@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
@@ -68,6 +69,10 @@ func (h *TrustedPartnerHandler) CreateTrustedPartner(w http.ResponseWriter, r *h
 	}
 	if req.Role == "" {
 		respondError(w, http.StatusBadRequest, "role is required")
+		return
+	}
+	if !models.IsValidPartnerRole(req.Role) {
+		respondError(w, http.StatusBadRequest, "Invalid role. Must be LOGISTICS, TECHNICIAN, or RECYCLER")
 		return
 	}
 
@@ -200,6 +205,10 @@ func (h *TrustedPartnerHandler) CreatePartnerCode(w http.ResponseWriter, r *http
 	}
 	if req.Role == "" {
 		respondError(w, http.StatusBadRequest, "role is required")
+		return
+	}
+	if !models.IsValidPartnerRole(req.Role) {
+		respondError(w, http.StatusBadRequest, "Invalid role. Must be LOGISTICS, TECHNICIAN, or RECYCLER")
 		return
 	}
 

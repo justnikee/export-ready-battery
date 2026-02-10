@@ -1,35 +1,74 @@
 "use client"
 
-import { Shield, Award, Globe, Lock } from "lucide-react"
+import { Shield, Award, Globe, Lock, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
 
-export function TrustBar() {
-    const items = [
-        { icon: Shield, text: "BWM Rules 2022" },
-        { icon: Award, text: "AIS-156 Ready" },
-        { icon: Globe, text: "EU Battery Regulation" },
-        { icon: Lock, text: "GDPR Compliant" }
-    ]
+const regulations = [
+    {
+        icon: Shield,
+        title: "BWM Rules 2022",
+        status: "Certified",
+        color: "text-emerald-400"
+    },
+    {
+        icon: Award,
+        title: "AIS-156 Ready",
+        status: "Compliant",
+        color: "text-blue-400"
+    },
+    {
+        icon: Globe,
+        title: "EU Battery Regulation",
+        status: "2027 Ready",
+        color: "text-cyan-400"
+    },
+    {
+        icon: Lock,
+        title: "Data Security",
+        status: "SOC 2",
+        color: "text-purple-400"
+    }
+]
 
+export function TrustBar() {
     return (
-        <section className="py-12 border-y border-zinc-800/50 bg-zinc-900/30 backdrop-blur-sm">
-            <div className="container mx-auto px-4">
-                <p className="text-center text-xs font-medium text-zinc-600 mb-8 uppercase tracking-widest">
-                    Built for compliance with
-                </p>
+        <section className="py-16 border-y border-zinc-800/50 bg-zinc-950/50 backdrop-blur-sm relative overflow-hidden">
+            {/* Subtle gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-blue-500/5" />
+
+            <div className="container mx-auto px-4 relative">
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="text-center text-xs font-semibold text-zinc-500 mb-10 uppercase tracking-[0.2em]"
+                >
+                    Trusted for regulatory compliance
+                </motion.p>
+
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="flex flex-wrap justify-center items-center gap-6 md:gap-12"
+                    className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto"
                 >
-                    {items.map((item, i) => (
+                    {regulations.map((item, i) => (
                         <div
                             key={i}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800/30 border border-zinc-700/50 hover:border-zinc-600 transition-colors"
+                            className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-all duration-300"
                         >
-                            <item.icon className="h-4 w-4 text-zinc-500" />
-                            <span className="text-sm font-medium text-zinc-400">{item.text}</span>
+                            <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-lg bg-zinc-800/50 ${item.color}`}>
+                                    <item.icon className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                        <span className="text-xs text-zinc-500">{item.status}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </motion.div>

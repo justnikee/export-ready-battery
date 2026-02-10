@@ -1,6 +1,6 @@
 "use client"
 
-import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Clock, Smartphone, Shield, Building2, Mail, Flag, Factory, Scale, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, ExternalLink, FileCheck, Truck, AlertTriangle, Activity, Info } from "lucide-react"
+import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Smartphone, Shield, Building2, Mail, Flag, Factory, Globe, Zap, ThermometerSun, Weight, Atom, Sparkles, BadgeCheck, QrCode, FileCheck, Truck, AlertTriangle, Activity, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
@@ -9,7 +9,60 @@ import { motion } from "framer-motion"
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
 interface PassportViewProps {
-    passport: any
+    passport: PassportViewData
+}
+
+interface PassportViewData {
+    passport?: {
+        uuid?: string
+        serial_number?: string
+        manufacture_date?: string
+        created_at?: string
+        status?: string
+        state_of_health?: number | null
+        last_soh_update_timestamp?: string | null
+    }
+    specs?: {
+        chemistry?: string
+        capacity?: string
+        voltage?: string
+        weight?: string
+        carbon_footprint?: string
+        country_of_origin?: string
+        manufacturer?: string
+        manufacturer_address?: string
+        manufacturer_email?: string
+        recyclable?: boolean
+        material_composition?: {
+            cobalt_pct?: number
+            lithium_pct?: number
+            nickel_pct?: number
+            manganese_pct?: number
+            graphite_pct?: number
+            lead_pct?: number
+        }
+        recycled_content_pct?: number | null
+        warranty_months?: number | null
+        expected_lifetime_cycles?: number | null
+        hazardous_substances?: {
+            declaration?: string
+        }
+    }
+    tenant?: {
+        company_name?: string
+        address?: string
+        support_email?: string
+        epr_registration_number?: string
+        bis_r_number?: string
+    }
+    batch_name?: string
+    market_region?: MarketRegion
+    domestic_value_add?: number
+    pli_compliant?: boolean
+    cell_source?: string
+    bill_of_entry_no?: string
+    country_of_origin?: string
+    customs_date?: string
 }
 
 // Animated gradient border wrapper
@@ -34,14 +87,13 @@ function GlowCard({ children, className, glowColor = "emerald" }: { children: Re
 // Status badge with animated pulse
 function StatusBadge({ status }: { status: string }) {
     const configs: Record<string, { bg: string; ring: string; dot: string; text: string; label: string }> = {
-        MANUFACTURED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Manufactured" },
+        CREATED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Created" },
         ACTIVE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400", text: "text-emerald-400", label: "Active" },
         SHIPPED: { bg: "bg-blue-500/20", ring: "ring-blue-500/50", dot: "bg-blue-400", text: "text-blue-400", label: "Shipped" },
         IN_SERVICE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-400", label: "In Service" },
-        RETURN_REQUESTED: { bg: "bg-orange-500/20", ring: "ring-orange-500/50", dot: "bg-orange-400 animate-pulse", text: "text-orange-400", label: "Return Requested" },
-        RETURNED: { bg: "bg-amber-500/20", ring: "ring-amber-500/50", dot: "bg-amber-400", text: "text-amber-400", label: "Returned" },
         RECALLED: { bg: "bg-red-500/20", ring: "ring-red-500/50", dot: "bg-red-400 animate-pulse", text: "text-red-400", label: "Recalled" },
         RECYCLED: { bg: "bg-purple-500/20", ring: "ring-purple-500/50", dot: "bg-purple-400", text: "text-purple-400", label: "Recycled" },
+        END_OF_LIFE: { bg: "bg-slate-700/20", ring: "ring-slate-500/50", dot: "bg-slate-500", text: "text-slate-400", label: "End of Life" },
     }
 
     const config = configs[status] || configs.ACTIVE
@@ -59,7 +111,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Market Badge with flag
-function MarketBadge({ region }: { region: MarketRegion }) {
+function MarketBadge({ region, pliEligible }: { region: MarketRegion; pliEligible?: boolean }) {
     if (region === "INDIA") {
         return (
             <motion.span
@@ -67,7 +119,7 @@ function MarketBadge({ region }: { region: MarketRegion }) {
                 animate={{ scale: 1, opacity: 1 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 ring-1 ring-orange-500/50 text-orange-400 text-sm font-bold"
             >
-                🇮🇳 PLI Eligible
+                {pliEligible ? "🇮🇳 PLI Eligible" : "🇮🇳 India Market"}
             </motion.span>
         )
     }
@@ -78,7 +130,7 @@ function MarketBadge({ region }: { region: MarketRegion }) {
                 animate={{ scale: 1, opacity: 1 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 ring-1 ring-blue-500/50 text-blue-400 text-sm font-bold"
             >
-                🇪🇺 EU Compliant
+                🇪🇺 EU Battery Passport
             </motion.span>
         )
     }
@@ -100,7 +152,7 @@ function VerifiedBadge() {
 }
 
 // Spec card component
-function SpecCard({ icon: Icon, label, value, unit, color = "slate" }: { icon: any; label: string; value: string | number; unit?: string; color?: string }) {
+function SpecCard({ icon: Icon, label, value, unit, color = "slate" }: { icon: LucideIcon; label: string; value: string | number; unit?: string; color?: string }) {
     const colorClasses: Record<string, string> = {
         slate: "from-slate-500/10 to-slate-600/10 text-slate-400",
         emerald: "from-emerald-500/10 to-teal-500/10 text-emerald-400",
@@ -150,7 +202,7 @@ function GlowProgress({ value, max = 100, color = "emerald" }: { value: number; 
 }
 
 // Timeline event
-function TimelineEvent({ title, date, icon: Icon, color = "emerald", pending = false }: { title: string; date?: string; icon: any; color?: string; pending?: boolean }) {
+function TimelineEvent({ title, date, icon: Icon, color = "emerald", pending = false }: { title: string; date?: string; icon: LucideIcon; color?: string; pending?: boolean }) {
     const colorClasses: Record<string, string> = {
         emerald: "bg-emerald-500 shadow-emerald-500/50",
         orange: "bg-orange-500 shadow-orange-500/50",
@@ -198,6 +250,8 @@ function MaterialChip({ element, value }: { element: string; value: number }) {
         cobalt: "from-blue-500/20 to-blue-600/20 text-blue-400 ring-blue-500/30",
         lithium: "from-purple-500/20 to-purple-600/20 text-purple-400 ring-purple-500/30",
         nickel: "from-teal-500/20 to-teal-600/20 text-teal-400 ring-teal-500/30",
+        manganese: "from-amber-500/20 to-orange-500/20 text-amber-400 ring-amber-500/30",
+        graphite: "from-slate-500/20 to-slate-600/20 text-slate-300 ring-slate-500/30",
         lead: "from-slate-500/20 to-slate-600/20 text-slate-400 ring-slate-500/30",
     }
 
@@ -214,23 +268,46 @@ export function PassportView({ passport }: PassportViewProps) {
     const passportData = passport.passport || {}
     const tenant = passport.tenant || {}
     const batchName = passport.batch_name || "Battery Passport"
-    const status = passportData.status || "ACTIVE"
+    const status = passportData.status || "CREATED"
+    const eprNumber = tenant.epr_registration_number || ""
+    const bisNumber = tenant.bis_r_number || ""
 
     const marketRegion = (passport.market_region || "GLOBAL") as MarketRegion
     const isIndia = marketRegion === "INDIA"
     const isEU = marketRegion === "EU"
 
-    // Fix: allow 0 to be a valid value for imported batches
-    const domesticValueAdd = passport.domestic_value_add !== undefined ? passport.domestic_value_add : 65
+    const domesticValueAdd = passport.domestic_value_add
+    const hasDomesticValueAdd = domesticValueAdd !== null && domesticValueAdd !== undefined
+    const pliEligible = passport.pli_compliant && hasDomesticValueAdd && domesticValueAdd >= 50
 
-    const cellSource = passport.cell_source || "DOMESTIC"
-    const materials = passport.materials || (isEU ? { cobalt: 12, lithium: 8, nickel: 15, lead: 0.1 } : null)
+    const cellSource = passport.cell_source || ""
+    const isImported = cellSource === "IMPORTED"
+    const materialComposition = specs.material_composition || null
+    const hasMaterials = materialComposition && (
+        materialComposition.cobalt_pct ||
+        materialComposition.lithium_pct ||
+        materialComposition.nickel_pct ||
+        materialComposition.manganese_pct ||
+        materialComposition.graphite_pct ||
+        materialComposition.lead_pct
+    )
+    const recycledContentLabel = specs.recycled_content_pct !== null && specs.recycled_content_pct !== undefined
+        ? `${specs.recycled_content_pct}%`
+        : "Missing"
+    const warrantyLabel = specs.warranty_months !== null && specs.warranty_months !== undefined
+        ? `${specs.warranty_months} months`
+        : "Missing"
+    const lifetimeLabel = specs.expected_lifetime_cycles !== null && specs.expected_lifetime_cycles !== undefined
+        ? `${specs.expected_lifetime_cycles} cycles`
+        : "Missing"
+    const hazardousDeclaration = specs.hazardous_substances?.declaration || ""
+    const recyclableLabel = specs.recyclable === true ? "Recyclable" : specs.recyclable === false ? "Non-Recyclable" : "Missing"
+    const recyclableColor = specs.recyclable === true ? "text-emerald-400" : specs.recyclable === false ? "text-slate-500" : "text-red-400"
 
     // India import/customs fields
     const billOfEntryNo = passport.bill_of_entry_no || ""
     const cellCountryOfOrigin = passport.country_of_origin || ""
     const customsDate = passport.customs_date || ""
-    const isImported = cellSource === "IMPORTED"
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -259,7 +336,7 @@ export function PassportView({ passport }: PassportViewProps) {
                 {/* Status Badges Row */}
                 <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
                     <VerifiedBadge />
-                    <MarketBadge region={marketRegion} />
+                    <MarketBadge region={marketRegion} pliEligible={pliEligible} />
                     <StatusBadge status={status} />
                 </div>
 
@@ -323,38 +400,18 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">State of Health</div>
                                         <div className="text-white font-semibold mt-0.5 flex items-center gap-2">
                                             {(() => {
-                                                const soh = specs.state_of_health
-                                                const hasLiveTelemetry = specs.telemetry_source === "LIVE" || specs.has_bms_integration
-
-                                                // If SOH is 100, null, or undefined AND no live telemetry, show static EU compliance
-                                                if ((soh === null || soh === undefined || soh === 100) && !hasLiveTelemetry) {
-                                                    return (
-                                                        <>
-                                                            <span className="text-emerald-400">100%</span>
-                                                            <span className="text-xs text-slate-500">(Initial Rated Capacity)</span>
-                                                            <div className="group relative">
-                                                                <Info className="h-4 w-4 text-blue-400 cursor-help animate-pulse" />
-                                                                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 p-3 bg-slate-800 border border-blue-500/30 rounded-lg shadow-xl z-10">
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <Shield className="h-4 w-4 text-blue-400" />
-                                                                        <p className="text-xs font-semibold text-blue-400">EU Safe Harbor Declaration</p>
-                                                                    </div>
-                                                                    <p className="text-xs text-slate-300 leading-relaxed">
-                                                                        Static declaration based on factory rating (Annex VII). Live telemetry not available. This passport contains manufacturing data only.
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    )
+                                                const soh = passportData.state_of_health
+                                                const lastUpdate = passportData.last_soh_update_timestamp
+                                                if (soh === null || soh === undefined || !lastUpdate) {
+                                                    return <span className="text-red-400">Missing</span>
                                                 }
 
-                                                // Otherwise show actual SOH with percentage
                                                 return (
                                                     <>
                                                         <span className="text-emerald-400 text-xl">{soh}%</span>
-                                                        {hasLiveTelemetry && (
-                                                            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-medium">Live</span>
-                                                        )}
+                                                        <span className="text-xs text-slate-500">
+                                                            Updated {new Date(lastUpdate).toLocaleDateString()}
+                                                        </span>
                                                     </>
                                                 )
                                             })()}
@@ -374,14 +431,21 @@ export function PassportView({ passport }: PassportViewProps) {
                                     <>
                                         <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Origin</div>
                                         <div className="text-white font-semibold mt-0.5">
-                                            Imported from {cellCountryOfOrigin || specs.country_of_origin || "Unknown"}
+                                            Imported from {cellCountryOfOrigin || specs.country_of_origin || "Missing"}
+                                        </div>
+                                    </>
+                                ) : cellSource === "DOMESTIC" ? (
+                                    <>
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Country of Origin</div>
+                                        <div className="text-white font-semibold mt-0.5">
+                                            Made in {specs.country_of_origin || "Missing"}
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Country of Origin</div>
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Origin</div>
                                         <div className="text-white font-semibold mt-0.5">
-                                            Made in {specs.country_of_origin || "India"}
+                                            Missing
                                         </div>
                                     </>
                                 )}
@@ -415,24 +479,34 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <span className="text-sm font-medium text-slate-300">Domestic Value Add</span>
                                         <span className={clsx(
                                             "text-2xl font-bold",
-                                            isImported ? "text-slate-400" : (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400")
+                                            hasDomesticValueAdd
+                                                ? (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400")
+                                                : "text-slate-500"
                                         )}>
-                                            {domesticValueAdd}%
+                                            {hasDomesticValueAdd ? `${domesticValueAdd}%` : "Missing"}
                                         </span>
                                     </div>
-                                    <GlowProgress value={isImported ? 0 : domesticValueAdd} color={isImported ? "blue" : (domesticValueAdd >= 50 ? "emerald" : "orange")} />
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {isImported ? "Imported cells (0% DVA)" : "PLI Requirement: ≥50%"}
-                                    </p>
+                                    {hasDomesticValueAdd ? (
+                                        <>
+                                            <GlowProgress value={domesticValueAdd} color={domesticValueAdd >= 50 ? "emerald" : "orange"} />
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                {cellSource === "IMPORTED" ? "Imported cells (DVA may be 0%)" : "PLI Requirement: >= 50%"}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="text-xs text-slate-500 mt-2">Missing</p>
+                                    )}
                                 </div>
 
                                 {/* Cell Source */}
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <Factory className={clsx("h-5 w-5", cellSource === "DOMESTIC" ? "text-emerald-400" : "text-slate-500")} />
+                                        <Factory className={clsx("h-5 w-5", cellSource === "DOMESTIC" ? "text-emerald-400" : cellSource === "IMPORTED" ? "text-amber-400" : "text-slate-500")} />
                                         <div>
                                             <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Cell Source</div>
-                                            <div className="font-semibold text-white mt-0.5">{cellSource === "DOMESTIC" ? "Domestic 🇮🇳" : "Imported"}</div>
+                                            <div className="font-semibold text-white mt-0.5">
+                                                {cellSource === "DOMESTIC" ? "Domestic ????" : cellSource === "IMPORTED" ? "Imported" : "Missing"}
+                                            </div>
                                         </div>
                                     </div>
                                     {cellSource === "DOMESTIC" && (
@@ -448,25 +522,23 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <FileCheck className="h-5 w-5 text-emerald-400" />
                                         <div className="flex-1">
                                             <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">EPR Registration</div>
-                                            <div className="font-semibold text-emerald-400 flex items-center gap-1.5 mt-0.5">
-                                                <CheckCircle className="h-4 w-4" />
-                                                {tenant.epr_registration_number || "Registered Producer"}
+                                            <div className={clsx("font-semibold flex items-center gap-1.5 mt-0.5", eprNumber ? "text-emerald-400" : "text-red-400")}>
+                                                {eprNumber ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                                {eprNumber || "Missing"}
                                             </div>
                                         </div>
                                     </div>
-                                    {tenant.bis_r_number && (
-                                        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-                                            <BISMark />
-                                            <div>
-                                                <div className="text-xs text-slate-500">BIS R-Number (IS 16046)</div>
-                                                <div className="text-blue-400 text-sm font-mono">R-{tenant.bis_r_number}</div>
-                                            </div>
+                                    <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+                                        <BISMark />
+                                        <div>
+                                            <div className="text-xs text-slate-500">BIS R-Number (IS 16046)</div>
+                                            <div className="text-blue-400 text-sm font-mono">{bisNumber ? `R-${bisNumber}` : "Missing"}</div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
 
                                 {/* Import Details for IMPORTED cells */}
-                                {isImported && billOfEntryNo && (
+                                {isImported && (
                                     <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Truck className="h-4 w-4 text-amber-400" />
@@ -475,16 +547,20 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <div className="text-xs text-slate-500">Imported from</div>
-                                                <div className="text-white font-medium">{cellCountryOfOrigin || "Foreign Origin"}</div>
+                                                <div className="text-white font-medium">{cellCountryOfOrigin || "Missing"}</div>
                                             </div>
                                             <div>
                                                 <div className="text-xs text-slate-500">Bill of Entry</div>
-                                                <div className="text-white font-mono text-sm">{billOfEntryNo}</div>
+                                                <div className="text-white font-mono text-sm">{billOfEntryNo || "Missing"}</div>
                                             </div>
                                         </div>
-                                        {customsDate && (
+                                        {customsDate ? (
                                             <div className="mt-2 text-xs text-slate-500">
                                                 Cleared: {new Date(customsDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </div>
+                                        ) : (
+                                            <div className="mt-2 text-xs text-slate-500">
+                                                Cleared: Missing
                                             </div>
                                         )}
                                     </div>
@@ -515,7 +591,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                         <div>
                                             <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Carbon Footprint</div>
                                             <div className="text-xl font-bold text-white mt-0.5">
-                                                {specs.carbon_footprint || "N/A"} <span className="text-sm font-normal text-slate-500">kg CO₂e</span>
+                                                {specs.carbon_footprint || "Missing"} <span className="text-sm font-normal text-slate-500">kg CO₂e</span>
                                             </div>
                                         </div>
                                     </div>
@@ -527,7 +603,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                 </div>
 
                                 {/* Materials */}
-                                {materials && (
+                                {hasMaterials ? (
                                     <div className="p-4 rounded-xl bg-white/5 border border-white/5">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Shield className="h-4 w-4 text-amber-400" />
@@ -535,21 +611,64 @@ export function PassportView({ passport }: PassportViewProps) {
                                             <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-medium">EU Required</span>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
-                                            {materials.cobalt && <MaterialChip element="cobalt" value={materials.cobalt} />}
-                                            {materials.lithium && <MaterialChip element="lithium" value={materials.lithium} />}
-                                            {materials.nickel && <MaterialChip element="nickel" value={materials.nickel} />}
-                                            {materials.lead && <MaterialChip element="lead" value={materials.lead} />}
+                                            {materialComposition?.cobalt_pct && materialComposition.cobalt_pct > 0 && (
+                                                <MaterialChip element="cobalt" value={materialComposition.cobalt_pct} />
+                                            )}
+                                            {materialComposition?.lithium_pct && materialComposition.lithium_pct > 0 && (
+                                                <MaterialChip element="lithium" value={materialComposition.lithium_pct} />
+                                            )}
+                                            {materialComposition?.nickel_pct && materialComposition.nickel_pct > 0 && (
+                                                <MaterialChip element="nickel" value={materialComposition.nickel_pct} />
+                                            )}
+                                            {materialComposition?.manganese_pct && materialComposition.manganese_pct > 0 && (
+                                                <MaterialChip element="manganese" value={materialComposition.manganese_pct} />
+                                            )}
+                                            {materialComposition?.graphite_pct && materialComposition.graphite_pct > 0 && (
+                                                <MaterialChip element="graphite" value={materialComposition.graphite_pct} />
+                                            )}
+                                            {materialComposition?.lead_pct && materialComposition.lead_pct > 0 && (
+                                                <MaterialChip element="lead" value={materialComposition.lead_pct} />
+                                            )}
                                         </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Shield className="h-4 w-4 text-amber-400" />
+                                            <span className="text-sm font-medium text-slate-300">Material Composition</span>
+                                            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-medium">EU Required</span>
+                                        </div>
+                                        <span className="text-red-400 text-sm">Missing</span>
                                     </div>
                                 )}
 
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recycled Content</div>
+                                        <div className="text-white font-semibold">{recycledContentLabel}</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Warranty Period</div>
+                                        <div className="text-white font-semibold">{warrantyLabel}</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Expected Lifetime</div>
+                                        <div className="text-white font-semibold">{lifetimeLabel}</div>
+                                    </div>
+                                </div>
+                                <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                                    <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Hazardous Substances Declaration</div>
+                                    <div className="text-white text-sm">{hazardousDeclaration || "Missing"}</div>
+                                </div>
+
                                 {/* Recyclability */}
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Recycle className={clsx("h-5 w-5", specs.recyclable ? "text-emerald-400" : "text-slate-500")} />
+                                    <Recycle className={clsx("h-5 w-5", recyclableColor)} />
                                     <div>
                                         <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recyclability</div>
-                                        <div className={clsx("font-semibold mt-0.5", specs.recyclable ? "text-emerald-400" : "text-slate-500")}>
-                                            {specs.recyclable ? "♻️ Recyclable" : "Non-Recyclable"}
+                                        <div className={clsx("font-semibold mt-0.5", recyclableColor)}>
+                                            {recyclableLabel}
                                         </div>
                                     </div>
                                 </div>
@@ -574,11 +693,11 @@ export function PassportView({ passport }: PassportViewProps) {
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Recycle className={clsx("h-5 w-5", specs.recyclable ? "text-emerald-400" : "text-slate-500")} />
+                                    <Recycle className={clsx("h-5 w-5", recyclableColor)} />
                                     <div>
                                         <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recyclability</div>
-                                        <div className={clsx("font-semibold mt-0.5", specs.recyclable ? "text-emerald-400" : "text-slate-500")}>
-                                            {specs.recyclable ? "Recyclable" : "Non-Recyclable"}
+                                        <div className={clsx("font-semibold mt-0.5", recyclableColor)}>
+                                            {recyclableLabel}
                                         </div>
                                     </div>
                                 </div>
@@ -705,7 +824,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                     <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Company</span>
                                 </div>
                                 <p className="text-white font-medium text-sm">
-                                    {specs.manufacturer || tenant.company_name || "Not specified"}
+                                    {specs.manufacturer || tenant.company_name || "Missing"}
                                 </p>
                             </div>
                             <div className="p-4 rounded-xl bg-white/5 border border-white/5">
@@ -714,7 +833,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                     <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Address</span>
                                 </div>
                                 <p className="text-slate-300 text-sm">
-                                    {specs.manufacturer_address || tenant.address || "Not specified"}
+                                    {specs.manufacturer_address || tenant.address || "Missing"}
                                 </p>
                             </div>
                             <div className="p-4 rounded-xl bg-white/5 border border-white/5">
@@ -727,7 +846,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                         {specs.manufacturer_email || tenant.support_email}
                                     </a>
                                 ) : (
-                                    <span className="text-slate-500 text-sm">Not specified</span>
+                                    <span className="text-slate-500 text-sm">Missing</span>
                                 )}
                             </div>
                         </div>
@@ -751,16 +870,12 @@ export function PassportView({ passport }: PassportViewProps) {
                     <div className="flex items-center gap-3">
                         {isEU && <CEMark className="h-6 text-slate-600" />}
                         {isIndia && <BISMark />}
-                        {tenant.epr_registration_number && (
-                            <span className="text-[10px] text-slate-600 font-mono">
-                                EPR: {tenant.epr_registration_number}
-                            </span>
-                        )}
-                        {tenant.bis_r_number && (
-                            <span className="text-[10px] text-slate-600 font-mono">
-                                R-{tenant.bis_r_number}
-                            </span>
-                        )}
+                        <span className="text-[10px] text-slate-600 font-mono">
+                            EPR: {tenant.epr_registration_number || "Missing"}
+                        </span>
+                        <span className="text-[10px] text-slate-600 font-mono">
+                            R-{tenant.bis_r_number || "Missing"}
+                        </span>
                     </div>
                 </div>
             </motion.div>

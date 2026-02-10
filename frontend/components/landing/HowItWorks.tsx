@@ -1,40 +1,41 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Upload, FileCheck, Printer, ArrowRight } from "lucide-react"
+import { Upload, Cpu, Download, ArrowRight, CheckCircle2 } from "lucide-react"
 
 const steps = [
     {
+        number: "01",
         icon: Upload,
-        title: "Upload Batch",
-        description: "Drag & drop your production CSV file directly into the dashboard.",
-        color: "text-blue-400",
-        bgColor: "bg-blue-500/10",
-        borderColor: "border-blue-500/30"
+        title: "Upload Your Batch",
+        description: "Drag & drop your production CSV or connect via API. Supports any format — we map the fields automatically.",
+        details: ["CSV, Excel, JSON", "API integration", "Auto field mapping"],
+        color: "from-blue-500 to-cyan-500"
     },
     {
-        icon: FileCheck,
-        title: "Validate Data",
-        description: "Our engine checks for missing PLI metrics, Carbon limits, and required fields.",
-        color: "text-emerald-400",
-        bgColor: "bg-emerald-500/10",
-        borderColor: "border-emerald-500/30"
+        number: "02",
+        icon: Cpu,
+        title: "Auto Validation",
+        description: "Our compliance engine validates PLI metrics, carbon limits, and all mandatory fields in real-time.",
+        details: ["PLI eligibility check", "Carbon compliance", "Data integrity"],
+        color: "from-emerald-500 to-teal-500"
     },
     {
-        icon: Printer,
-        title: "Print Labels",
-        description: "Download sticker-ready PDF sheets (3x7) or separate QR codes instantly.",
-        color: "text-teal-400",
-        bgColor: "bg-teal-500/10",
-        borderColor: "border-teal-500/30"
+        number: "03",
+        icon: Download,
+        title: "Export & Print",
+        description: "Download print-ready sticker sheets (3×7 A4) or individual QR codes. Labels ready in seconds.",
+        details: ["PDF sticker sheets", "Individual QRs", "Label roll format"],
+        color: "from-purple-500 to-pink-500"
     }
 ]
 
 export function HowItWorks() {
     return (
-        <section className="py-24 bg-slate-900/50 relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-3xl" />
+        <section className="py-24 bg-zinc-900 relative overflow-hidden">
+            {/* Background */}
+            <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 to-teal-500/5 rounded-full blur-3xl" />
 
             <div className="container mx-auto px-4 relative">
                 <motion.div
@@ -43,51 +44,67 @@ export function HowItWorks() {
                     viewport={{ once: true }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                        Compliance in 3 Simple Steps
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-800/50 border border-zinc-700/50 text-xs font-medium text-zinc-400 mb-6">
+                        <span>⚡</span>
+                        Under 2 minutes, start to finish
+                    </div>
+                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                        How It Works
                     </h2>
-                    <p className="text-slate-500 max-w-xl mx-auto">
-                        From spreadsheet to sticker in less than 2 minutes.
+                    <p className="text-zinc-500 max-w-xl mx-auto text-lg">
+                        From spreadsheet to compliance-ready stickers in three simple steps.
                     </p>
                 </motion.div>
 
-                <div className="max-w-4xl mx-auto">
-                    <div className="relative">
-                        {/* Connector Line */}
-                        {/* <div className="hidden md:block absolute top-24 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-zinc-700 to-transparent" /> */}
-
-                        <div className="grid md:grid-cols-3 gap-8">
-                            {steps.map((step, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: i * 0.15 }}
-                                    className="text-center relative"
-                                >
-                                    {/* Step number badge */}
-                                    {/* <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-800 text-zinc-400 text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center border border-zinc-700 z-10">
-                                        {i + 1}
-                                    </div> */}
-
-                                    {/* Icon container */}
-                                    <div className={`h-20 w-20 mx-auto ${step.bgColor} border ${step.borderColor} rounded-2xl flex items-center justify-center mb-6 relative`}>
-                                        <step.icon className={`h-8 w-8 ${step.color}`} />
+                {/* Steps Grid */}
+                <div className="max-w-5xl mx-auto">
+                    <div className="grid md:grid-cols-3 gap-6 relative">
+                        {steps.map((step, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.15 }}
+                                className="relative"
+                            >
+                                {/* Step card */}
+                                <div className="bg-zinc-800/30 border border-zinc-700/50 rounded-2xl p-6 h-full hover:border-zinc-600/50 transition-colors">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg`}>
+                                            <step.icon className="h-6 w-6 text-white" />
+                                        </div>
+                                        <span className="text-3xl font-bold text-zinc-700">{step.number}</span>
                                     </div>
 
-                                    <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-                                    <p className="text-slate-500 text-sm leading-relaxed">{step.description}</p>
+                                    {/* Content */}
+                                    <h3 className="text-xl font-semibold text-white mb-3">
+                                        {step.title}
+                                    </h3>
+                                    <p className="text-zinc-400 text-sm leading-relaxed mb-4">
+                                        {step.description}
+                                    </p>
 
-                                    {/* Arrow between steps */}
-                                    {/* {i < steps.length - 1 && (
-                                        <div className="hidden md:flex absolute top-24 -right-4 transform translate-x-1/2">
-                                            <ArrowRight className="h-4 w-4 text-zinc-600" />
-                                        </div>
-                                    )} */}
-                                </motion.div>
-                            ))}
-                        </div>
+                                    {/* Details */}
+                                    <div className="space-y-2">
+                                        {step.details.map((detail, j) => (
+                                            <div key={j} className="flex items-center gap-2 text-xs text-zinc-500">
+                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/70" />
+                                                {detail}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Arrow connector (mobile) */}
+                                {i < steps.length - 1 && (
+                                    <div className="md:hidden flex justify-center py-4">
+                                        <ArrowRight className="h-5 w-5 text-zinc-600 rotate-90" />
+                                    </div>
+                                )}
+                            </motion.div>
+                        ))}
                     </div>
                 </div>
             </div>

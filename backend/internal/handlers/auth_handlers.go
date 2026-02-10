@@ -444,6 +444,10 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	var loginEmail string
 	var lastLogin *time.Time
 	err = h.db.Pool.QueryRow(r.Context(), "SELECT email, last_login FROM public.tenants WHERE id = $1", id).Scan(&loginEmail, &lastLogin)
+	if err != nil {
+		log.Printf("Failed to get tenant login details: %v", err)
+		// Continue with empty values rather than failing the entire request
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"id":                      tenant.ID,
@@ -460,6 +464,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"epr_registration_number": tenant.EPRRegistrationNumber,
 		"bis_r_number":            tenant.BISRNumber,
 		"iec_code":                tenant.IECCode,
+		"eu_authorized_representative_name":    tenant.EUAuthorizedRepresentativeName,
+		"eu_authorized_representative_address": tenant.EUAuthorizedRepresentativeAddress,
+		"eu_contact_email":                     tenant.EUContactEmail,
 		// Certificate Document Paths
 		"epr_certificate_path": tenant.EPRCertificatePath,
 		"bis_certificate_path": tenant.BISCertificatePath,

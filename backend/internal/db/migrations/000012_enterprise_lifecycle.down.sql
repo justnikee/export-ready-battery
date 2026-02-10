@@ -27,7 +27,7 @@ ALTER TABLE public.passports DROP COLUMN IF EXISTS current_custody_email;
 ALTER TABLE public.passports DROP COLUMN IF EXISTS geolocation_history;
 ALTER TABLE public.passports DROP COLUMN IF EXISTS lifecycle_timestamps;
 
--- 8. Revert passport status constraint (remove RETURN_REQUESTED)
+-- 8. Revert passport status constraint (canonical lifecycle)
 ALTER TABLE public.passports DROP CONSTRAINT IF EXISTS passports_status_check;
 ALTER TABLE public.passports ADD CONSTRAINT passports_status_check 
-    CHECK (status IN ('ACTIVE', 'RECALLED', 'RECYCLED', 'END_OF_LIFE'));
+    CHECK (status IN ('CREATED', 'ACTIVE', 'SHIPPED', 'IN_SERVICE', 'RECALLED', 'RECYCLED', 'END_OF_LIFE'));

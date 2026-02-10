@@ -1,73 +1,68 @@
-# ExportReady-Battery 🔋
+# ExportReady-Battery
 
-> **Digital Battery Passport Platform for Global Regulatory Compliance**
+Digital Battery Passport platform for global regulatory compliance.
 
-[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
-[![Next.js](https://img.shields.io/badge/Next.js-16+-000000?style=flat&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-ExportReady-Battery is a full-stack Digital Battery Passport platform helping battery manufacturers comply with **EU Battery Regulation (2023/1542)** and India's **Battery Aadhaar** initiative. Generate unique digital passports, QR codes, and maintain complete traceability for every battery unit.
+ExportReady-Battery helps battery manufacturers comply with EU Battery Regulation (2023/1542) and India's Battery Aadhaar initiative. Generate unique digital passports, QR codes, and maintain traceability for every battery unit.
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎫 Digital Battery Passports
-- UUID-based unique identifiers per battery
-- QR code generation (256×256 PNG)
+### Digital Battery Passports
+- UUID-based identifiers per battery
+- QR code generation (256x256 PNG)
 - Public verification pages (no auth required)
-- Lifecycle tracking (manufactured → shipped → in-service → recycled)
+- Lifecycle tracking (action-based, role-guarded, evidence-validated, audit logged)
 
-### 📦 Batch Management
+### Batch Management
 - Create batches with detailed specifications (chemistry, voltage, capacity)
 - Bulk CSV upload with parallel processing
 - Auto-generate serial numbers with market-specific prefixes
 - Download QR codes as ZIP archives
 
-### 🌍 Multi-Market Compliance
-- **EU Market**: EU Battery Regulation 2023/1542 compliant
-- **India Market**: PLI compliance, BIS/EPR certification tracking
+### Multi-Market Compliance
+- EU Market: EU Battery Regulation 2023/1542 compliant
+- India Market: PLI compliance, BIS/EPR certification tracking
 - Market-specific form fields and validation
 
-### 👥 Team Management
+### Team Management
 - Invite team members via email
 - Role-based access (Owner, Admin, Member)
 - Seat limits enforced by billing plan
 
-### 💳 Subscription & Billing
+### Subscription and Billing
 - Tiered plans (Free, Starter, Growth, Enterprise)
 - Quota-based passport generation
 - Razorpay payment integration (India)
 
-### 📊 Analytics Dashboard
+### Analytics Dashboard
 - Real-time production statistics
 - QR scan tracking with geolocation
 - Export activity feeds
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | Next.js 16, React 19, Tailwind CSS | App Router, SSR, RSC |
-| **Backend** | Go 1.24, Chi Router | REST API, Worker pools |
-| **Database** | PostgreSQL (Supabase) | Data persistence |
-| **Storage** | Supabase Storage | QR ZIPs, Label PDFs |
-| **Email** | Resend API | Transactional emails |
-| **Payments** | Razorpay | Subscription billing |
+| --- | --- | --- |
+| Frontend | Next.js 16, React 19, Tailwind CSS | App Router, SSR, RSC |
+| Backend | Go 1.24, Chi Router | REST API, Worker pools |
+| Database | PostgreSQL (Supabase) | Data persistence |
+| Storage | Supabase Storage | QR ZIPs, Label PDFs |
+| Email | Resend API | Transactional emails |
+| Payments | Razorpay | Subscription billing |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- **Go** 1.24+
-- **Node.js** 20+ 
-- **PostgreSQL** 16+ (or Supabase account)
-- **Make** (optional, for convenience)
+- Go 1.24+
+- Node.js 20+
+- PostgreSQL 16+ (or Supabase account)
+- Make (optional)
 
 ### 1. Clone the Repository
 
@@ -93,11 +88,14 @@ go mod download
 # Run migrations
 make migrate-up
 
+# NOTE: The legacy replay-all migrator (cmd/migrate) is unsafe for existing databases.
+# Use it only on empty dev DBs with ALLOW_REPLAY_MIGRATIONS=true.
+
 # Start the server
 make run
 ```
 
-Backend runs on **http://localhost:8080**
+Backend runs on `http://localhost:8080`.
 
 ### 3. Setup Frontend
 
@@ -117,11 +115,11 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Frontend runs on **http://localhost:3000**
+Frontend runs on `http://localhost:3000`.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ExportReady-Battery/
@@ -137,7 +135,7 @@ ExportReady-Battery/
 │   │   ├── repository/      # Data access layer
 │   │   └── services/        # Business logic
 │   └── templates/           # Email HTML templates
-├── frontend/                # Next.js 16 App
+├── frontend/                # Next.js App
 │   ├── app/                 # App Router pages
 │   ├── components/          # React components
 │   ├── context/             # Auth context
@@ -149,99 +147,92 @@ ExportReady-Battery/
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Backend Environment Variables
 
 | Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | ✅ |
-| `JWT_SECRET` | Secret for JWT signing | ✅ |
-| `PORT` | Server port (default: 8080) | ❌ |
-| `FRONTEND_URL` | Frontend URL for CORS | ✅ |
-| `QR_BASE_URL` | Base URL for QR code links | ✅ |
-| `SUPABASE_URL` | Supabase project URL | ✅ |
-| `SUPABASE_SERVICE_KEY` | Supabase service role key | ✅ |
-| `RESEND_API_KEY` | Resend API key for emails | ❌ |
-| `EMAIL_FROM` | Sender email address | ❌ |
-| `RAZORPAY_KEY_ID` | Razorpay API key | ❌ |
-| `RAZORPAY_KEY_SECRET` | Razorpay secret | ❌ |
-| `TEMPLATES_DIR` | Email templates directory | ❌ |
+| --- | --- | --- |
+| DATABASE_URL | PostgreSQL connection string | Yes |
+| JWT_SECRET | Secret for JWT signing | Yes |
+| PORT | Server port (default: 8080) | No |
+| FRONTEND_URL | Frontend URL for CORS | Yes |
+| QR_BASE_URL | Base URL for QR code links | Yes |
+| SUPABASE_URL | Supabase project URL | Yes |
+| SUPABASE_SERVICE_KEY | Supabase service role key | Yes |
+| RESEND_API_KEY | Resend API key for emails | No |
+| EMAIL_FROM | Sender email address | No |
+| RAZORPAY_KEY_ID | Razorpay API key | No |
+| RAZORPAY_KEY_SECRET | Razorpay secret | No |
+| TEMPLATES_DIR | Email templates directory | No |
 
 ### Frontend Environment Variables
 
 | Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | ✅ |
+| --- | --- | --- |
+| NEXT_PUBLIC_API_URL | Backend API URL | Yes |
 
 ---
 
-## 📖 API Documentation
+## API Documentation
 
-Full OpenAPI 3.0 specification available at:
-- **File**: `backend/api/openapi.yaml`
-- **Swagger UI**: Coming soon
+OpenAPI spec: `backend/api/openapi.yaml`
 
 ### Key Endpoints
 
 ```
 # Authentication
-POST /api/v1/auth/register     - Register new company
-POST /api/v1/auth/login        - Login and get JWT
-POST /api/v1/auth/refresh      - Refresh access token
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
 POST /api/v1/auth/forgot-password
 POST /api/v1/auth/reset-password
+POST /api/v1/auth/magic-link
 
 # Batches
-POST   /api/v1/batches              - Create batch
-GET    /api/v1/batches              - List batches (paginated)
-GET    /api/v1/batches/{id}         - Get batch details
-POST   /api/v1/batches/{id}/upload  - Upload CSV
-GET    /api/v1/batches/{id}/download - Download QR ZIP
+POST /api/v1/batches
+GET  /api/v1/batches
+GET  /api/v1/batches/{id}
+POST /api/v1/batches/{id}/upload
+GET  /api/v1/batches/{id}/download
+GET  /api/v1/batches/{id}/export
 
 # Passports (Public)
-GET    /api/v1/p/{uuid}             - View passport details
+GET  /api/v1/p/{uuid}
 
-# Team
-GET    /api/v1/team                 - List members
-POST   /api/v1/team/invite          - Send invitation
-POST   /api/v1/team/accept          - Accept invite
+# Lifecycle (Action-Based)
+POST /api/v1/passports/{uuid}/transition
+POST /api/v1/passports/bulk/transition
+GET  /api/v1/passports/{uuid}/transitions
+GET  /api/v1/passports/{uuid}/events
+
+# Magic Link Lifecycle
+GET  /api/v1/passport/{uuid}/action-info
+POST /api/v1/passport/{uuid}/transition
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### Backend Tests
+### Backend
 
 ```bash
 cd backend
-
-# Run all tests
 go test ./...
-
-# Run with verbose output
-go test -v ./...
-
-# Run specific package tests
-go test -v ./internal/services/...
 ```
 
-### Frontend Tests
+### Frontend
 
 ```bash
 cd frontend
-
-# Lint check
 npm run lint
-
-# Type check
 npm run build
 ```
 
 ---
 
-## 🗃️ Database Migrations
+## Database Migrations
 
 ```bash
 cd backend
@@ -259,11 +250,11 @@ make migrate-down
 make migrate-version
 ```
 
+Important: `cmd/migrate` replays all migrations and can mutate existing data. It is locked behind `ALLOW_REPLAY_MIGRATIONS=true` and should be used only on empty dev databases. Use `make migrate-up` for normal operation.
+
 ---
 
-## 📝 CSV Upload Format
-
-Upload batteries to a batch using CSV:
+## CSV Upload Format
 
 ```csv
 serial_number,manufacture_date
@@ -282,7 +273,7 @@ IN-BAT-2026-002,2026-01-15,IMPORTED,0,BOE123456,China
 
 ---
 
-## 🏗️ Deployment
+## Deployment
 
 ### Production Build
 
@@ -304,53 +295,42 @@ docker-compose up -d
 
 ---
 
-## 🔐 Security
-
-- **Authentication**: bcrypt password hashing, JWT tokens
-- **Authorization**: Tenant-scoped resource isolation
-- **Transport**: HTTPS enforced in production
-- **Database**: Prepared statements (SQL injection prevention)
-- **CORS**: Configured for specific origins
-- **Token Expiry**: Access (15 min), Refresh (7 days)
-
----
-
-## 📜 Compliance Support
+## Compliance Support
 
 ### EU Battery Regulation (2023/1542)
 
 | Requirement | Status |
-|-------------|--------|
-| Battery Passport (Article 77) | ✅ Implemented |
-| Unique Identifier | ✅ UUID + QR |
-| Material Composition | ✅ JSONB specs |
-| Manufacturer Info | ✅ Tenant profiles |
-| Carbon Footprint | 🔄 Schema ready |
-| Recycled Content | 🔄 Schema ready |
+| --- | --- |
+| Battery Passport (Article 77) | Implemented |
+| Unique Identifier | UUID + QR |
+| Material Composition | JSONB specs |
+| Manufacturer Info | Tenant profiles |
+| Carbon Footprint | Schema ready |
+| Recycled Content | Schema ready |
 
 ### India Battery Aadhaar
 
 | Requirement | Status |
-|-------------|--------|
-| Unique ID per Battery | ✅ UUID system |
-| PLI Compliance | ✅ Tracking |
-| BIS Certification | ✅ Tracking |
-| EPR Registration | ✅ Tracking |
+| --- | --- |
+| Unique ID per Battery | UUID system |
+| PLI Compliance | Tracking |
+| BIS Certification | Tracking |
+| EPR Registration | Tracking |
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-Detailed documentation available in `docs/`:
-
-- [Project Documentation](docs/PROJECT_DOCUMENTATION.md) - Complete technical docs
-- [API Reference](backend/api/openapi.yaml) - OpenAPI specification
-- [Feature Status](docs/FEATURE_STATUS_REVIEW.md) - Current feature status
-- [Technical Debt](docs/TECHNICAL_DEBT.md) - Known issues & improvements
+Detailed documentation in `docs/`:
+- `docs/PROJECT_DOCUMENTATION.md`
+- `docs/PHASES_1_6_IMPLEMENTATION_REPORT.md`
+- `docs/PASSPORT_LIFECYCLE_GUIDE.md`
+- `docs/FEATURE_STATUS_REVIEW.md`
+- `docs/TECHNICAL_DEBT.md`
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -360,21 +340,7 @@ Detailed documentation available in `docs/`:
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT. See `LICENSE`.
 
----
-
-## 🙏 Acknowledgments
-
-- [EU Battery Regulation](https://eur-lex.europa.eu/eli/reg/2023/1542/oj) for compliance requirements
-- [Supabase](https://supabase.com) for database and storage
-- [Resend](https://resend.com) for transactional emails
-- [Razorpay](https://razorpay.com) for payment processing
-
----
-
-<p align="center">
-  Made with ❤️ for sustainable battery manufacturing
-</p>

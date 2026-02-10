@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
+
 import { usePathname } from "next/navigation"
 import {
-    Battery, LogOut, Menu, X, Home, Box, Truck, Users,
+    LogOut, X, Home, Box, Truck, Users,
     Trophy, CreditCard, Settings, UserPlus, FileDown,
-    ChevronLeft, ChevronRight, Key, BookOpen
+    ChevronLeft, ChevronRight, Key, BookOpen, BarChart3
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -53,7 +54,7 @@ const navGroups: NavGroup[] = [
     {
         label: "Developer",
         items: [
-            { name: "API Keys", href: "/api-keys", icon: Key },
+            { name: "API Keys", href: "/developer", icon: Key },
             { name: "Docs", href: "/docs", icon: BookOpen },
         ]
     }
@@ -110,15 +111,8 @@ export function DashboardSidebar({
                     isCollapsed ? "md:justify-center" : "justify-between"
                 )}>
                     <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-                        <div className="h-8 w-8 rounded-lg bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shrink-0">
-                            <Battery className="h-4 w-4 text-white" />
-                        </div>
-                        <span className={clsx(
-                            "font-semibold text-slate-900 text-lg transition-opacity",
-                            isCollapsed ? "md:hidden" : ""
-                        )}>
-                            ExportReady
-                        </span>
+                        <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                        <span className={clsx("text-xl font-bold tracking-tight text-[#0B1F3B]", isCollapsed && "md:hidden")}>EXPORTLENS</span>
                     </Link>
 
                     {/* Mobile Close */}
@@ -179,7 +173,7 @@ export function DashboardSidebar({
                                             className={clsx(
                                                 "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                                                 active
-                                                    ? "bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md"
+                                                    ? "bg-linear-to-r from-slate-900 to-slate-800 text-white shadow-md"
                                                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                                                 isCollapsed && "md:justify-center md:px-0"
                                             )}
@@ -255,13 +249,11 @@ export function DashboardSidebar({
 // Hook to manage sidebar state
 export function useSidebarState() {
     const [isOpen, setIsOpen] = useState(false)
-    const [isCollapsed, setIsCollapsed] = useState(false)
-
-    // Persist collapsed state
-    useEffect(() => {
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window === "undefined") return false
         const saved = localStorage.getItem('sidebar-collapsed')
-        if (saved) setIsCollapsed(JSON.parse(saved))
-    }, [])
+        return saved ? JSON.parse(saved) : false
+    })
 
     useEffect(() => {
         localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed))
@@ -272,7 +264,7 @@ export function useSidebarState() {
         setIsOpen,
         isCollapsed,
         setIsCollapsed,
-        toggleOpen: () => setIsOpen(prev => !prev),
-        toggleCollapse: () => setIsCollapsed(prev => !prev),
+        toggleOpen: () => setIsOpen((prev: boolean) => !prev),
+        toggleCollapse: () => setIsCollapsed((prev: boolean) => !prev),
     }
 }

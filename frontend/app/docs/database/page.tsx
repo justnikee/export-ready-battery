@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { CodeBlock } from '@/components/docs';
 import {
     Database,
@@ -178,7 +177,7 @@ export default function DatabasePage() {
                         { name: 'batch_id', type: 'UUID', nullable: false, description: 'FK to batches.id' },
                         { name: 'serial_number', type: 'VARCHAR(100)', nullable: false, description: 'Battery serial no.' },
                         { name: 'manufacture_date', type: 'DATE', nullable: false, description: 'Manufacturing date' },
-                        { name: 'status', type: 'VARCHAR(50)', nullable: false, description: 'ACTIVE, RECALLED, etc.' },
+                        { name: 'status', type: 'VARCHAR(50)', nullable: false, description: 'CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECALLED, RECYCLED, END_OF_LIFE' },
                         { name: 'created_at', type: 'TIMESTAMPTZ', nullable: false, description: 'Creation timestamp' },
                     ]}
                 />
@@ -211,16 +210,14 @@ export default function DatabasePage() {
                 />
 
                 <TableDoc
-                    name="quota_transactions"
+                    name="transactions"
                     description="Quota purchase and usage history"
                     columns={[
                         { name: 'id', type: 'UUID', nullable: false, description: 'Primary key' },
                         { name: 'tenant_id', type: 'UUID', nullable: false, description: 'FK to tenants.id' },
-                        { name: 'type', type: 'VARCHAR(20)', nullable: false, description: 'PURCHASE or USAGE' },
-                        { name: 'amount', type: 'INT', nullable: false, description: 'Quota amount (+/-)' },
-                        { name: 'balance_after', type: 'INT', nullable: false, description: 'Balance after txn' },
-                        { name: 'razorpay_order_id', type: 'VARCHAR(100)', nullable: true, description: 'Razorpay order' },
-                        { name: 'razorpay_payment_id', type: 'VARCHAR(100)', nullable: true, description: 'Razorpay payment' },
+                        { name: 'description', type: 'VARCHAR(255)', nullable: false, description: 'Reason for transaction' },
+                        { name: 'quota_change', type: 'INT', nullable: false, description: 'Quota amount (+/-)' },
+                        { name: 'batch_id', type: 'UUID', nullable: true, description: 'Related batch (optional)' },
                         { name: 'created_at', type: 'TIMESTAMPTZ', nullable: false, description: 'Transaction time' },
                     ]}
                 />

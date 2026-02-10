@@ -11,15 +11,14 @@ function AcceptInviteContent() {
     const searchParams = useSearchParams()
     const token = searchParams.get("token")
     const router = useRouter()
-    const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-    const [message, setMessage] = useState("Verifying invitation...")
+    const hasToken = Boolean(token)
+    const [status, setStatus] = useState<"loading" | "success" | "error">(hasToken ? "loading" : "error")
+    const [message, setMessage] = useState(
+        hasToken ? "Verifying invitation..." : "Invalid invitation link. Token is missing."
+    )
 
     useEffect(() => {
-        if (!token) {
-            setStatus("error")
-            setMessage("Invalid invitation link. Token is missing.")
-            return
-        }
+        if (!token) return
 
         const acceptInvite = async () => {
             try {
@@ -44,9 +43,10 @@ function AcceptInviteContent() {
                     router.push("/dashboard")
                 }, 2000)
 
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = error as { response?: { data?: { error?: string } } }
                 setStatus("error")
-                setMessage(error.response?.data?.error || "Failed to accept invitation. It may have expired.")
+                setMessage(apiError.response?.data?.error || "Failed to accept invitation. It may have expired.")
             }
         }
 

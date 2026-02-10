@@ -1,6 +1,6 @@
 // Auto-generated types matching backend models
 // SYNC WITH: backend/internal/models/models.go
-// Last updated: 2026-01-24
+// Last updated: 2026-02-07
 
 // ============================================================================
 // PASSPORT LIFECYCLE
@@ -8,32 +8,50 @@
 
 export type PassportStatus =
     | 'CREATED'
+    | 'ACTIVE'
     | 'SHIPPED'
     | 'IN_SERVICE'
-    | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
     | 'END_OF_LIFE';
 
+export type TransitionAction =
+    | 'ACTIVATE'
+    | 'SHIP'
+    | 'INSTALL'
+    | 'RECYCLE'
+    | 'CLOSE'
+    | 'RECALL';
+
+export interface TransitionEvidence {
+    shipment_reference?: string;
+    shipment_date?: string;
+    installation_date?: string;
+    installer_id?: string;
+    recycler_epr_id?: string;
+    recycling_date?: string;
+    certificate_reference?: string;
+    recall_reason?: string;
+    recall_reference?: string;
+}
+
 export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
     CREATED: 'Created',
+    ACTIVE: 'Active',
     SHIPPED: 'Shipped',
     IN_SERVICE: 'In Service',
-    RETURNED: 'Returned',
     RECALLED: 'Recalled',
     RECYCLED: 'Recycled',
     END_OF_LIFE: 'End of Life',
 };
 
-// Valid transitions from each status
-export const VALID_PASSPORT_TRANSITIONS: Record<PassportStatus, PassportStatus[]> = {
-    CREATED: ['SHIPPED'],
-    SHIPPED: ['IN_SERVICE', 'RETURNED', 'RECALLED'],
-    IN_SERVICE: ['RETURNED', 'RECALLED'],
-    RETURNED: ['RECYCLED', 'IN_SERVICE'], // Can return to service after repair
-    RECALLED: ['RECYCLED'],
-    RECYCLED: ['END_OF_LIFE'],
-    END_OF_LIFE: [],
+export const TRANSITION_ACTION_LABELS: Record<TransitionAction, string> = {
+    ACTIVATE: 'Activate',
+    SHIP: 'Ship',
+    INSTALL: 'Install',
+    RECYCLE: 'Recycle',
+    CLOSE: 'Close',
+    RECALL: 'Recall',
 };
 
 export interface Passport {
@@ -43,17 +61,32 @@ export interface Passport {
     manufacture_date: string;
     status: PassportStatus;
     created_at: string;
+    batch_snapshot?: Record<string, unknown>;
 
     // Lifecycle tracking
     shipped_at?: string;
     installed_at?: string;
     returned_at?: string;
+    recycled_at?: string;
 
     // Dynamic compliance field (EU requirement)
-    state_of_health: number; // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+    state_of_health?: number | null; // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
+    last_soh_update_timestamp?: string | null;
 
     // Ownership tracking
     owner_id?: string;
+    current_owner_identifier?: string;
+    current_owner_email?: string;
+    ownership_history?: Record<string, unknown>[];
+
+    // EU compliance events
+    repair_events?: Record<string, unknown>[];
+    replacement_events?: Record<string, unknown>[];
+
+    // India recycling fields
+    recycling_status?: string;
+    recycler_epr_id?: string;
+    recycling_date?: string;
 }
 
 export type PassportEventType =
@@ -62,10 +95,12 @@ export type PassportEventType =
     | 'SCANNED'
     | 'SHIPPED'
     | 'INSTALLED'
-    | 'RETURNED'
     | 'RECALLED'
     | 'RECYCLED'
-    | 'END_OF_LIFE';
+    | 'END_OF_LIFE'
+    | 'SOH_UPDATED'
+    | 'REPAIR_LOGGED'
+    | 'REPLACEMENT_LOGGED';
 
 export interface PassportEvent {
     id: string;
@@ -91,6 +126,7 @@ export interface MaterialComposition {
     nickel_pct?: number;
     lead_pct?: number;
     manganese_pct?: number;
+    graphite_pct?: number;
 }
 
 // HazardousSubstances for REACH/RoHS compliance
@@ -110,6 +146,11 @@ export interface BatchSpec {
     weight: string;
     carbon_footprint: string;
     country_of_origin: string;
+    cell_source?: 'IMPORTED' | 'DOMESTIC';
+    domestic_value_add?: number;
+    hsn_code?: string;
+    bis_number?: string;
+    epr_number?: string;
 
     // EU Battery Regulation 2023/1542 - MANDATORY FIELDS
     material_composition?: MaterialComposition;
@@ -117,9 +158,9 @@ export interface BatchSpec {
     manufacturer_address?: string;
     eu_representative?: string;
     eu_representative_email?: string;
-    expected_lifetime_cycles?: number; // e.g., 1000
-    warranty_months?: number;          // e.g., 24
-    recycled_content_pct?: number;     // stored as literal: 15.5 = 15.5%
+    expected_lifetime_cycles?: number | null; // e.g., 1000
+    warranty_months?: number | null;          // e.g., 24
+    recycled_content_pct?: number | null;     // stored as literal: 15.5 = 15.5%
     hazardous_substances?: HazardousSubstances;
 
     // India PLI Compliance Fields - Financial data for DVA calculation
@@ -131,9 +172,13 @@ export interface Batch {
     id: string;
     tenant_id: string;
     batch_name: string;
+    model_name?: string;
     specs: BatchSpec;
     created_at: string;
     status: BatchStatus;
+
+    manufacturing_start_date?: string;
+    manufacturing_end_date?: string;
 
     // Dual-Mode Compliance Fields
     market_region: MarketRegion;
@@ -149,6 +194,13 @@ export interface Batch {
 
     // India Compliance Fields
     hsn_code?: string; // e.g., "8507.60"
+    bis_number?: string;
+    epr_number?: string;
+
+    // PLI/DVA Audit Compliance Fields
+    dva_source?: string;
+    audited_domestic_value_add?: number | null;
+    pli_certificate_url?: string;
 }
 
 // ============================================================================
@@ -156,9 +208,9 @@ export interface Batch {
 // ============================================================================
 
 export interface TransitionRequest {
-    to_status: PassportStatus;
+    action: TransitionAction;
     actor?: string;
-    metadata?: Record<string, unknown>;
+    evidence?: TransitionEvidence;
 }
 
 export interface TransitionResult {
@@ -166,15 +218,16 @@ export interface TransitionResult {
     passport?: Passport;
     previous_status: PassportStatus;
     new_status: PassportStatus;
+    action?: TransitionAction;
     event_id: string;
     error?: string;
 }
 
 export interface BulkTransitionRequest {
     passport_ids: string[];
-    to_status: PassportStatus;
+    action: TransitionAction;
     actor?: string;
-    metadata?: Record<string, unknown>;
+    evidence?: TransitionEvidence;
 }
 
 export interface BulkTransitionResult {
@@ -185,9 +238,9 @@ export interface BulkTransitionResult {
     errors?: string[];
 }
 
-export interface AllowedTransitionsResponse {
+export interface AllowedActionsResponse {
     current_status: PassportStatus;
-    allowed_transitions: PassportStatus[];
+    allowed_actions: TransitionAction[];
 }
 
 export interface PassportEventsResponse {

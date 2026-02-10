@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Plus, AlertCircle, Sparkles, ArrowRight, Check } from 'lucide-react';
+import { Loader2, Plus, AlertCircle, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -75,13 +75,14 @@ export function InviteMemberDialog({ onSuccess }: InviteMemberDialogProps) {
             setOpen(false);
             form.reset();
             onSuccess?.();
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
             // Check for specific seat limit error structure
-            if (error.response?.data?.error === 'seat_limit_reached') {
-                setSeatError(error.response.data);
+            if (apiError.response?.data?.error === 'seat_limit_reached') {
+                setSeatError(apiError.response.data as SeatLimitError);
             } else {
                 toast.error('Failed to invite', {
-                    description: error.response?.data?.error || 'Something went wrong',
+                    description: apiError.response?.data?.error || 'Something went wrong',
                 });
             }
         } finally {

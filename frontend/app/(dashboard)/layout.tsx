@@ -5,7 +5,7 @@ import { DashboardSidebar, useSidebarState } from "@/components/dashboard/Dashbo
 import { DashboardTopBar } from "@/components/dashboard/DashboardTopBar"
 import { LoadingBar } from "@/components/ui/loading-bar"
 import { useEffect, Suspense } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { clsx } from "clsx"
 
 function LoadingBarWrapper() {
@@ -16,13 +16,16 @@ function LoadingBarWrapper() {
     )
 }
 
-export default function DashboardLayout({
+function DashboardLayoutInner({
     children,
 }: {
     children: React.ReactNode
 }) {
     const { user, loading } = useAuth()
     const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const search = searchParams.toString()
     const sidebar = useSidebarState()
 
     // Onboarding check - uses DB state only (no localStorage)
@@ -34,6 +37,14 @@ export default function DashboardLayout({
         }
     }, [user, loading, router])
 
+    // Redirect unauthenticated users to login with return path
+    useEffect(() => {
+        if (!loading && !user) {
+            const redirectTo = search ? `${pathname}?${search}` : pathname
+            router.replace(`/login?redirect=${encodeURIComponent(redirectTo)}`)
+        }
+    }, [loading, user, router, pathname, search])
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -43,7 +54,11 @@ export default function DashboardLayout({
     }
 
     if (!user) {
-        return null
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+                Redirecting to login...
+            </div>
+        )
     }
 
     return (
@@ -75,5 +90,21 @@ export default function DashboardLayout({
                 </main>
             </div>
         </div>
+    )
+}
+
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-slate-50">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+            </div>
+        }>
+            <DashboardLayoutInner>{children}</DashboardLayoutInner>
+        </Suspense>
     )
 }

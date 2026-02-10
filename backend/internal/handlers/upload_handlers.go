@@ -9,6 +9,7 @@ import (
 
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -34,9 +35,21 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify batch exists and belongs to tenant
-	_, err = h.repo.GetBatch(r.Context(), batchID, tenantID)
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Enforce activation before passport creation
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be ACTIVE before creating passports")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
 
@@ -63,7 +76,32 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// UPDATE BATCH METADATA IF DETECTED
+	// Embed batch snapshot into each passport for auditability
+	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
+		return
+	}
+
+	actor := middleware.GetEmail(r.Context())
+	actorType := "USER"
+	if actor == "" {
+		actor = "system"
+		actorType = "SYSTEM"
+	}
+	ownerIdentifier := resolveOwnerIdentifier(tenant)
+
+	for _, p := range parseResult.Passports {
+		p.BatchSnapshot = snapshot
+		p.CurrentOwnerIdentifier = ownerIdentifier
+		if history, err := services.BuildInitialOwnershipHistory(ownerIdentifier, actor, "INTERNAL", p.CreatedAt); err == nil {
+			p.OwnershipHistory = history
+		}
+	}
+
+	// UPDATE BATCH METADATA IF DETECTED FROM CSV
+	// Note: Once a batch is ACTIVE, it's considered immutable per design_system.md
+	// We log a warning but allow updates to import fields from CSV for data enrichment
 	if parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil {
 		var cellSource, billOfEntry, countryOrigin *string
 		if parseResult.DetectedCellSource != "" {
@@ -97,22 +135,19 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Bulk insert passports
-	insertedCount, err := h.repo.CreatePassportsBatch(r.Context(), parseResult.Passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(parseResult.Passports, models.PassportEventImported, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to insert passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
+		log.Printf("Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
-	// Create genesis events for audit trail (IMPORTED = from CSV)
-	actor := middleware.GetEmail(r.Context())
-	if actor == "" {
-		actor = "system"
-	}
-	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), parseResult.Passports, models.PassportEventImported, actor); err != nil {
-		log.Printf("Warning: Failed to create genesis events: %v", err)
-		// Non-fatal: passports created but audit events failed
+	// Bulk insert passports and genesis events atomically
+	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), parseResult.Passports, events)
+	if err != nil {
+		log.Printf("Failed to insert passports with audit events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
+		return
 	}
 
 	processingTime := time.Since(startTime)
@@ -274,6 +309,13 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Get tenant details for batch snapshot
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+
 	// Parse request body
 	var req struct {
 		Count           int    `json:"count"`
@@ -299,47 +341,64 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		req.StartNumber = 1
 	}
 
-	// Parse manufacture date
-	manufactureDate := time.Now()
-	if req.ManufactureDate != "" {
-		parsed, err := time.Parse("2006-01-02", req.ManufactureDate)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid manufacture_date format (expected YYYY-MM-DD)")
-			return
-		}
-		manufactureDate = parsed
+	// Parse manufacture date (required)
+	if req.ManufactureDate == "" {
+		respondError(w, http.StatusBadRequest, "manufacture_date is required (YYYY-MM-DD)")
+		return
 	}
+	manufactureDate, err := time.Parse("2006-01-02", req.ManufactureDate)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid manufacture_date format (expected YYYY-MM-DD)")
+		return
+	}
+
+	// Build batch snapshot for auditability
+	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
+		return
+	}
+
+	actor := middleware.GetEmail(r.Context())
+	actorType := "USER"
+	if actor == "" {
+		actor = "system"
+		actorType = "SYSTEM"
+	}
+	ownerIdentifier := resolveOwnerIdentifier(tenant)
 
 	// Generate passports
 	passports := make([]*models.Passport, req.Count)
 	for i := 0; i < req.Count; i++ {
-		serialNumber := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber+i)
+		serialNumber := fmt.Sprintf("%s%05d", req.Prefix, req.StartNumber+i)
 		passports[i] = &models.Passport{
-			UUID:            uuid.New(),
-			BatchID:         batchID,
-			SerialNumber:    serialNumber,
-			ManufactureDate: manufactureDate,
-			Status:          models.PassportStatusActive,
-			CreatedAt:       time.Now(),
+			UUID:                   uuid.New(),
+			BatchID:                batchID,
+			SerialNumber:           serialNumber,
+			ManufactureDate:        manufactureDate,
+			Status:                 models.PassportStatusCreated,
+			CreatedAt:              time.Now(),
+			BatchSnapshot:          snapshot,
+			CurrentOwnerIdentifier: ownerIdentifier,
+		}
+		if history, err := services.BuildInitialOwnershipHistory(ownerIdentifier, actor, "INTERNAL", passports[i].CreatedAt); err == nil {
+			passports[i].OwnershipHistory = history
 		}
 	}
 
-	// Bulk insert
-	insertedCount, err := h.repo.CreatePassportsBatch(r.Context(), passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to insert auto-generated passports: %v", err)
-		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
+		log.Printf("Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
-	// Create genesis events for audit trail (CREATED = auto-generated)
-	actor := middleware.GetEmail(r.Context())
-	if actor == "" {
-		actor = "system"
-	}
-	if err := h.lifecycleService.CreateLifecycleEvents(r.Context(), passports, models.PassportEventCreated, actor); err != nil {
-		log.Printf("Warning: Failed to create genesis events: %v", err)
-		// Non-fatal: passports created but audit events failed
+	// Bulk insert passports and genesis events atomically
+	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
+	if err != nil {
+		log.Printf("Failed to insert auto-generated passports with audit events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
+		return
 	}
 
 	firstSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber)
@@ -352,4 +411,17 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		"serial_range":      fmt.Sprintf("%s to %s", firstSerial, lastSerial),
 		"qr_codes_ready":    true,
 	})
+}
+
+func resolveOwnerIdentifier(tenant *models.Tenant) string {
+	if tenant == nil {
+		return ""
+	}
+	if tenant.CompanyName != "" {
+		return tenant.CompanyName
+	}
+	if tenant.SupportEmail != "" {
+		return tenant.SupportEmail
+	}
+	return tenant.ID.String()
 }

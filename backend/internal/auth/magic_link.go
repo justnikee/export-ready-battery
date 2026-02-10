@@ -10,21 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// ActorRole defines the type of external user
-type ActorRole string
-
-const (
-	ActorRoleManufacturer ActorRole = "MANUFACTURER"
-	ActorRoleLogistics    ActorRole = "LOGISTICS"
-	ActorRoleTechnician   ActorRole = "TECHNICIAN"
-	ActorRoleRecycler     ActorRole = "RECYCLER"
-	ActorRoleCustomer     ActorRole = "CUSTOMER"
-)
-
-// IsValidActorRole checks if the role is valid
+// IsValidActorRole checks if the role is valid for magic link partners
 func IsValidActorRole(role string) bool {
-	switch ActorRole(role) {
-	case ActorRoleManufacturer, ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler, ActorRoleCustomer:
+	switch role {
+	case "LOGISTICS", "TECHNICIAN", "RECYCLER":
 		return true
 	}
 	return false
@@ -35,6 +24,7 @@ type MagicLinkClaims struct {
 	PassportID string `json:"passport_id"`
 	Email      string `json:"email"`
 	Role       string `json:"role"`
+	Action     string `json:"action"`
 	TokenID    string `json:"token_id"` // For revocation tracking
 	jwt.RegisteredClaims
 }
@@ -49,7 +39,7 @@ type MagicLinkToken struct {
 
 // GenerateMagicToken creates a 1-hour JWT for passport access
 // The token is scoped to a specific passport and includes the actor's email and role
-func GenerateMagicToken(passportID, email, role, secret string) (*MagicLinkToken, error) {
+func GenerateMagicToken(passportID, email, role, action, secret string) (*MagicLinkToken, error) {
 	if passportID == "" {
 		return nil, errors.New("passport_id is required")
 	}
@@ -59,6 +49,9 @@ func GenerateMagicToken(passportID, email, role, secret string) (*MagicLinkToken
 	if !IsValidActorRole(role) {
 		return nil, errors.New("invalid actor role")
 	}
+	if action == "" {
+		return nil, errors.New("action is required")
+	}
 
 	tokenID := uuid.New().String()
 	expiresAt := time.Now().Add(1 * time.Hour)
@@ -67,6 +60,7 @@ func GenerateMagicToken(passportID, email, role, secret string) (*MagicLinkToken
 		PassportID: passportID,
 		Email:      email,
 		Role:       role,
+		Action:     action,
 		TokenID:    tokenID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),

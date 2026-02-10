@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { Calculator, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
 import {
     Dialog,
@@ -20,9 +20,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
     const [open, setOpen] = useState(false)
     const [salePrice, setSalePrice] = useState<string>("")
     const [importedCost, setImportedCost] = useState<string>("")
-    const [dva, setDva] = useState<number>(0)
-
-    useEffect(() => {
+    const dva = useMemo(() => {
         const price = parseFloat(salePrice) || 0
         const cost = parseFloat(importedCost) || 0
 
@@ -31,10 +29,10 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
             let calculated = ((price - cost) / price) * 100
             if (calculated < 0) calculated = 0
             if (calculated > 100) calculated = 100
-            setDva(calculated)
-        } else {
-            setDva(0)
+            return calculated
         }
+
+        return 0
     }, [salePrice, importedCost])
 
     const handleApply = () => {

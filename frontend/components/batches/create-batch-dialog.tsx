@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,11 +16,50 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator, Recycle, Shield, Activity, Users, FileCheck } from "lucide-react"
+import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator, Shield, Activity, Users, FileCheck } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
+type CellSource = "IMPORTED" | "DOMESTIC" | ""
+type DvaSource = "ESTIMATED" | "AUDITED"
+
+type MaterialCompositionInput = {
+    cobalt: string
+    lithium: string
+    nickel: string
+    manganese: string
+    graphite: string
+    lead: string
+}
+
+type HazardousSubstancesInput = {
+    lead: boolean
+    mercury: boolean
+    cadmium: boolean
+}
+
+type BatchPayload = {
+    tenant_id: string
+    batch_name: string
+    model_name: string
+    manufacturing_start_date?: string
+    manufacturing_end_date?: string
+    market_region: MarketRegion
+    specs: Record<string, unknown>
+    pli_compliant?: boolean
+    hsn_code?: string
+    dva_source?: DvaSource
+    audited_domestic_value_add?: number
+    pli_certificate_url?: string
+    domestic_value_add?: number
+    cell_source?: CellSource
+    bill_of_entry_no?: string
+    country_of_origin?: string
+    customs_date?: string
+    bis_number?: string
+    epr_number?: string
+}
 
 interface Template {
     id: string
@@ -91,6 +130,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
     // Form states - Common
     const [batchName, setBatchName] = useState("")
+    const [modelName, setModelName] = useState("")
+    const [manufacturingStartDate, setManufacturingStartDate] = useState("")
+    const [manufacturingEndDate, setManufacturingEndDate] = useState("")
     const [capacity, setCapacity] = useState("")
     const [voltage, setVoltage] = useState("")
     const [chemistry, setChemistry] = useState("Li-ion")
@@ -105,7 +147,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [carbonFootprint, setCarbonFootprint] = useState("")
     const [certifications, setCertifications] = useState<string[]>(["CE"])
     // New EU Compliance Fields
-    const [materialComposition, setMaterialComposition] = useState({
+    const [materialComposition, setMaterialComposition] = useState<MaterialCompositionInput>({
         cobalt: "",
         lithium: "",
         nickel: "",
@@ -114,11 +156,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         lead: ""
     })
     const [recycledContent, setRecycledContent] = useState("")
-    const [hazardousSubstances, setHazardousSubstances] = useState({
+    const [hazardousSubstances, setHazardousSubstances] = useState<HazardousSubstancesInput>({
         lead: false,
         mercury: false,
         cadmium: false
     })
+    const [hazardousDeclaration, setHazardousDeclaration] = useState("")
     const [euRepresentative, setEuRepresentative] = useState("")
     const [euRepresentativeEmail, setEuRepresentativeEmail] = useState("")
     const [expectedLifetime, setExpectedLifetime] = useState("")
@@ -131,14 +174,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [salePrice, setSalePrice] = useState("")
     const [importCost, setImportCost] = useState("")
 
-    const [cellSource, setCellSource] = useState<"IMPORTED" | "DOMESTIC" | "">("")
+    const [cellSource, setCellSource] = useState<CellSource>("")
     // Form states - India Import/Customs Declaration
     const [billOfEntryNo, setBillOfEntryNo] = useState("")
     const [cellCountryOfOrigin, setCellCountryOfOrigin] = useState("")
     const [customsDate, setCustomsDate] = useState("")
 
     // DVA Audit Compliance
-    const [dvaSource, setDvaSource] = useState<"ESTIMATED" | "AUDITED">("ESTIMATED")
+    const [dvaSource, setDvaSource] = useState<DvaSource>("ESTIMATED")
     const [auditedDva, setAuditedDva] = useState("")
 
     // File Upload State
@@ -153,12 +196,22 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [bisNumber, setBisNumber] = useState("")
     const [eprNumber, setEprNumber] = useState("")
 
+    const fetchTemplates = useCallback(async () => {
+        if (!user) return
+        try {
+            const response = await api.get(`/templates?tenant_id=${user.tenant_id}`)
+            setTemplates(response.data.templates || [])
+        } catch (error) {
+            console.error("Failed to fetch templates:", error)
+        }
+    }, [user])
+
     // Fetch templates when dialog opens
     useEffect(() => {
-        if (open && user) {
+        if (open) {
             fetchTemplates()
         }
-    }, [open, user])
+    }, [open, fetchTemplates])
 
     // Auto-disable PLI and validate IEC for IMPORTED cells
     useEffect(() => {
@@ -176,16 +229,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             setIecError(false)
         }
     }, [cellSource, user?.iec_code])
-
-    const fetchTemplates = async () => {
-        if (!user) return
-        try {
-            const response = await api.get(`/templates?tenant_id=${user.tenant_id}`)
-            setTemplates(response.data.templates || [])
-        } catch (error) {
-            console.error("Failed to fetch templates:", error)
-        }
-    }
 
     const handleTemplateSelect = (templateId: string) => {
         setSelectedTemplate(templateId)
@@ -299,7 +342,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             setUploadProgress(30)
 
             // Upload to Supabase Storage
-            const { data, error } = await supabase.storage
+            const { error } = await supabase.storage
                 .from('compliance-docs')
                 .upload(filePath, file, {
                     cacheControl: '3600',
@@ -319,9 +362,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             setUploadedFileUrl(publicUrl)
             toast.success('Certificate uploaded successfully')
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Upload error:', error)
-            toast.error(error.message || 'Upload failed')
+            const uploadError = error as { message?: string }
+            toast.error(uploadError.message || 'Upload failed')
         } finally {
             setIsUploading(false)
             setTimeout(() => setUploadProgress(0), 1000)
@@ -333,6 +377,18 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         if (!user) return
 
         // ===== DUAL-MODE VALIDATION =====
+        if (!modelName) {
+            toast.error("Model Name is required")
+            return
+        }
+        if (!manufacturingStartDate || !manufacturingEndDate) {
+            toast.error("Manufacturing start and end dates are required")
+            return
+        }
+        if (manufacturingStartDate && manufacturingEndDate && new Date(manufacturingEndDate) < new Date(manufacturingStartDate)) {
+            toast.error("Manufacturing end date must be on or after the start date")
+            return
+        }
 
         // India Mode: Cell Source is MANDATORY
         if (marketRegion === "INDIA" && !cellSource) {
@@ -364,9 +420,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setIsLoading(true)
         try {
             // Build the request payload
-            const payload: any = {
+            const payload: BatchPayload = {
                 tenant_id: user.tenant_id,
                 batch_name: batchName,
+                model_name: modelName,
+                manufacturing_start_date: manufacturingStartDate || undefined,
+                manufacturing_end_date: manufacturingEndDate || undefined,
                 market_region: marketRegion,
                 specs: {
                     capacity,
@@ -387,28 +446,45 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 payload.specs.certifications = certifications
 
                 // Add new EU fields
-                payload.specs.material_composition = {
-                    cobalt_pct: parseFloat(materialComposition.cobalt) || 0,
-                    lithium_pct: parseFloat(materialComposition.lithium) || 0,
-                    nickel_pct: parseFloat(materialComposition.nickel) || 0,
-                    manganese_pct: parseFloat(materialComposition.manganese) || 0,
-                    graphite_pct: parseFloat((materialComposition as any).graphite) || 0,
-                    lead_pct: parseFloat(materialComposition.lead) || 0,
+                const materialPayload: {
+                    cobalt_pct?: number
+                    lithium_pct?: number
+                    nickel_pct?: number
+                    manganese_pct?: number
+                    graphite_pct?: number
+                    lead_pct?: number
+                } = {
+                    cobalt_pct: materialComposition.cobalt ? parseFloat(materialComposition.cobalt) : undefined,
+                    lithium_pct: materialComposition.lithium ? parseFloat(materialComposition.lithium) : undefined,
+                    nickel_pct: materialComposition.nickel ? parseFloat(materialComposition.nickel) : undefined,
+                    manganese_pct: materialComposition.manganese ? parseFloat(materialComposition.manganese) : undefined,
+                    graphite_pct: materialComposition.graphite ? parseFloat(materialComposition.graphite) : undefined,
+                    lead_pct: materialComposition.lead ? parseFloat(materialComposition.lead) : undefined,
+                }
+                const hasMaterial = Object.values(materialPayload).some((v) => typeof v === "number" && v > 0)
+                if (hasMaterial) {
+                    payload.specs.material_composition = materialPayload
                 }
 
-                payload.specs.recycled_content_pct = parseFloat(recycledContent) || 0
+                if (recycledContent !== "") {
+                    payload.specs.recycled_content_pct = parseFloat(recycledContent)
+                }
 
                 payload.specs.hazardous_substances = {
                     lead_present: hazardousSubstances.lead,
                     mercury_present: hazardousSubstances.mercury,
                     cadmium_present: hazardousSubstances.cadmium,
-                    declaration: "Compliant with Battery Regulation 2023/1542"
+                    declaration: hazardousDeclaration
                 }
 
                 payload.specs.eu_representative = euRepresentative
                 payload.specs.eu_representative_email = euRepresentativeEmail
-                payload.specs.expected_lifetime_cycles = parseInt(expectedLifetime) || 0
-                payload.specs.warranty_months = parseInt(warrantyMonths) || 0
+                if (expectedLifetime !== "") {
+                    payload.specs.expected_lifetime_cycles = parseInt(expectedLifetime)
+                }
+                if (warrantyMonths !== "") {
+                    payload.specs.warranty_months = parseInt(warrantyMonths)
+                }
             }
 
             // Add India-specific fields
@@ -461,7 +537,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             if (saveAsTemplate && templateName.trim()) {
                 try {
                     // Build enhanced specs with all compliance fields
-                    const templateSpecs: Record<string, any> = {
+                    const templateSpecs: Record<string, unknown> = {
                         ...payload.specs,
                         // Add India compliance fields to specs for template
                         cell_source: cellSource || undefined,
@@ -489,8 +565,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             setOpen(false)
             onBatchCreated()
             resetForm()
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Failed to create batch")
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
+            toast.error(apiError.response?.data?.error || "Failed to create batch")
         } finally {
             setIsLoading(false)
         }
@@ -498,6 +575,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
     const resetForm = () => {
         setBatchName("")
+        setModelName("")
+        setManufacturingStartDate("")
+        setManufacturingEndDate("")
         setCapacity("")
         setVoltage("")
         setWeight("")
@@ -515,6 +595,23 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setImportCost("")
         setCellSource("")
         setCertifications(["CE"])
+        setMaterialComposition({
+            cobalt: "",
+            lithium: "",
+            nickel: "",
+            manganese: "",
+            graphite: "",
+            lead: ""
+        })
+        setHazardousSubstances({
+            lead: false,
+            mercury: false,
+            cadmium: false
+        })
+        setHazardousDeclaration("")
+        setExpectedLifetime("")
+        setWarrantyMonths("")
+        setRecycledContent("")
         setManufacturerAddress("")
         setManufacturerEmail("")
         // Reset customs fields
@@ -532,6 +629,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // Check if this is EU mode
     const isEUMode = marketRegion === "EU"
     const isIndiaMode = marketRegion === "INDIA"
+    const materialKeys = ["lithium", "cobalt", "graphite", "nickel", "manganese"] as const
+    const materialKeyLabels: Array<{ key: typeof materialKeys[number]; label: string }> = [
+        { key: "lithium", label: "Lithium" },
+        { key: "graphite", label: "Graphite" },
+        { key: "cobalt", label: "Cobalt" },
+        { key: "nickel", label: "Nickel" },
+        { key: "manganese", label: "Manganese" },
+    ]
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -631,9 +736,45 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             />
                         </div>
 
+                        {/* Row 1b: Model Name */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="modelName">Model Name <span className="text-red-500">*</span></Label>
+                            <Input
+                                id="modelName"
+                                value={modelName}
+                                onChange={(e) => setModelName(e.target.value)}
+                                placeholder="e.g. ER-52V-20Ah"
+                                required
+                            />
+                        </div>
+
                         {/* Form fields with animation */}
                         <div className={`space-y-6 transition-all duration-300 ${fieldsAnimating ? 'bg-teal-500/10 rounded-lg p-4 -m-4' : ''}`}>
-                            {/* Row 2: Manufacturer & Chemistry */}
+                            {/* Row 2: Manufacturing Window */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="mfgStart">Manufacturing Start Date <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        id="mfgStart"
+                                        type="date"
+                                        value={manufacturingStartDate}
+                                        onChange={(e) => setManufacturingStartDate(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="mfgEnd">Manufacturing End Date <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        id="mfgEnd"
+                                        type="date"
+                                        value={manufacturingEndDate}
+                                        onChange={(e) => setManufacturingEndDate(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Row 3: Manufacturer & Chemistry */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="manufacturer">Manufacturer <span className="text-red-500">*</span></Label>
@@ -655,7 +796,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 </div>
                             </div>
 
-                            {/* Row 2b: Manufacturer Address & Email */}
+                            {/* Row 3b: Manufacturer Address & Email */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="manufacturerAddress">Manufacturer Address</Label>
@@ -678,10 +819,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 </div>
                             </div>
 
-                            {/* Row 3: Capacity & Voltage */}
+                            {/* Row 4: Capacity & Voltage */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="capacity">Capacity <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="capacity">Rated Capacity <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="capacity"
                                         value={capacity}
@@ -702,7 +843,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 </div>
                             </div>
 
-                            {/* Row 4: Weight & Country */}
+                            {/* Row 5: Weight & Country */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="weight">Weight</Label>
@@ -755,7 +896,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             Chemistry Breakdown (%)
                                         </div>
                                         <div className="grid grid-cols-3 gap-3">
-                                            {["lithium", "cobalt", "graphite", "nickel", "manganese"].map((key) => (
+                                            {materialKeys.map((key) => (
                                                 <div key={key} className="grid gap-1">
                                                     <Label htmlFor={key} className="text-xs capitalize text-slate-500">{key} %</Label>
                                                     <Input
@@ -764,7 +905,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         min="0"
                                                         max="100"
                                                         step="0.1"
-                                                        value={(materialComposition as any)[key]}
+                                                        value={materialComposition[key]}
                                                         onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
                                                         placeholder="0.0"
                                                         className="h-8 text-xs bg-white border-slate-200"
@@ -864,6 +1005,17 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     </div>
                                                 ))}
                                             </div>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="hazardDeclaration" className="text-xs text-slate-500">Hazardous Substances Declaration</Label>
+                                            <Input
+                                                id="hazardDeclaration"
+                                                value={hazardousDeclaration}
+                                                onChange={(e) => setHazardousDeclaration(e.target.value)}
+                                                placeholder="Declaration statement required for EU compliance"
+                                                className="h-8 text-xs bg-white border-slate-200"
+                                            />
                                         </div>
                                     </div>
 
@@ -1164,7 +1316,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         <select
                                             id="cellSource"
                                             value={cellSource}
-                                            onChange={(e) => setCellSource(e.target.value as any)}
+                                            onChange={(e) => setCellSource(e.target.value as CellSource)}
                                             className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
                                                 ? "border-red-500/50 bg-white"
                                                 : "border-slate-200 bg-white"
@@ -1285,13 +1437,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 </div>
 
                                 <div className="grid grid-cols-5 gap-2">
-                                    {[
-                                        { key: "lithium", label: "Lithium" },
-                                        { key: "graphite", label: "Graphite" },
-                                        { key: "cobalt", label: "Cobalt" },
-                                        { key: "nickel", label: "Nickel" },
-                                        { key: "manganese", label: "Manganese" }
-                                    ].map(({ key, label }) => (
+                                    {materialKeyLabels.map(({ key, label }) => (
                                         <div key={key} className="grid gap-1">
                                             <Label htmlFor={key} className="text-[10px] uppercase text-slate-500 truncate" title={label}>
                                                 {label} %
@@ -1302,7 +1448,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 min="0"
                                                 max="100"
                                                 step="0.1"
-                                                value={(materialComposition as any)[key]}
+                                                value={materialComposition[key]}
                                                 onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
                                                 placeholder="0.0"
                                                 className="h-8 text-xs bg-white border-slate-200 px-2"

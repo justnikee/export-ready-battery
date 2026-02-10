@@ -161,6 +161,17 @@ https://your-domain.com/p/{passport-uuid}
 
 ---
 
+### 2.3.1 Lifecycle Enforcement (Phases 1-6)
+
+- Action-based transitions only (no status mutation from clients).
+- Canonical lifecycle states enforced in code and DB constraints.
+- Actor context and role enforcement required for all transitions.
+- Evidence required for SHIP/INSTALL/RECYCLE/RECALL.
+- Audit events are immutable and written atomically with state updates.
+
+See `docs/PASSPORT_LIFECYCLE_GUIDE.md` for the full contract.
+
+---
 ### 2.4 CSV Data Ingestion
 
 | Feature | Status | Details |
@@ -286,7 +297,7 @@ CREATE TABLE passports (
     batch_id UUID REFERENCES batches(id) ON DELETE CASCADE,
     serial_number VARCHAR(100) NOT NULL,
     manufacture_date DATE NOT NULL,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
+    status VARCHAR(50) DEFAULT 'CREATED',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(batch_id, serial_number)
 );
@@ -682,3 +693,5 @@ For technical questions or issues, refer to:
 
 *Document generated: January 13, 2026*
 *Last updated: v1.0*
+
+

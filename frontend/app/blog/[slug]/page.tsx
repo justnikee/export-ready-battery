@@ -1,8 +1,9 @@
-import { getPostBySlug, getPosts } from '@/app/actions/blog';
+import { getPostBySlug } from '@/app/actions/blog';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowLeft, Calendar, User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import ReactMarkdown from 'react-markdown';
@@ -107,11 +108,13 @@ export default async function BlogPostPage({ params }: Props) {
 
                 {/* Cover Image */}
                 {post.cover_image && (
-                    <div className="aspect-video w-full overflow-hidden rounded-xl border bg-muted shadow-sm">
-                        <img
+                    <div className="relative aspect-video w-full overflow-hidden rounded-xl border bg-muted shadow-sm">
+                        <Image
                             src={post.cover_image}
                             alt={post.title}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(min-width: 1024px) 768px, 100vw"
+                            className="object-cover"
                         />
                     </div>
                 )}

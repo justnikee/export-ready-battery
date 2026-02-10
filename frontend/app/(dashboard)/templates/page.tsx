@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { TemplateCard } from "@/components/templates/TemplateCard"
 import { CreateTemplateDialog } from "@/components/templates/CreateTemplateDialog"
 import { DeleteTemplateDialog } from "@/components/templates/DeleteTemplateDialog"
-import { Plus, Search, FileText, Sparkles } from "lucide-react"
+import { Plus, Search, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 interface Template {
@@ -37,7 +37,7 @@ export default function TemplatesPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null)
 
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         if (!user) return
         try {
             const response = await api.get(`/templates?tenant_id=${user.tenant_id}`)
@@ -48,11 +48,11 @@ export default function TemplatesPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [user])
 
     useEffect(() => {
         fetchTemplates()
-    }, [user?.tenant_id])
+    }, [fetchTemplates])
 
     const handleDeleteClick = (template: Template) => {
         setTemplateToDelete(template)
@@ -167,7 +167,7 @@ export default function TemplatesPage() {
                 ) : (
                     /* No search results */
                     <div className="text-center py-12">
-                        <p className="text-slate-400">No templates matching "{searchQuery}"</p>
+                        <p className="text-slate-400">No templates matching &quot;{searchQuery}&quot;</p>
                     </div>
                 )}
 

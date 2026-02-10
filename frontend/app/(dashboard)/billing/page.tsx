@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { toast } from "sonner"
@@ -14,8 +14,38 @@ import { formatDistanceToNow } from "date-fns"
 // Declare Razorpay type for TypeScript
 declare global {
     interface Window {
-        Razorpay: any
+        Razorpay: new (options: RazorpayOptions) => RazorpayInstance
     }
+}
+
+interface RazorpayResponse {
+    razorpay_order_id: string
+    razorpay_payment_id: string
+    razorpay_signature: string
+}
+
+interface RazorpayOptions {
+    key: string
+    amount: number
+    currency: string
+    name: string
+    description: string
+    order_id: string
+    handler: (response: RazorpayResponse) => Promise<void>
+    prefill: {
+        email: string
+        contact: string
+    }
+    theme: {
+        color: string
+    }
+    modal: {
+        ondismiss: () => void
+    }
+}
+
+interface RazorpayInstance {
+    open: () => void
 }
 
 interface Package {
@@ -38,6 +68,39 @@ interface Transaction {
     quota_change: number  // Negative for usage, positive for top-up
     batch_id?: string
     created_at: string
+}
+
+interface ApiPackage {
+    id: string
+    name?: string
+    title?: string
+    display_price?: string
+    price?: string
+    quota?: number
+    batchCount?: number
+    price_per_batch?: string
+    pricePerBatch?: string
+    quota_units?: number
+    description: string
+    features?: string[]
+    is_popular?: boolean
+    isPopular?: boolean
+    is_enterprise?: boolean
+    isEnterprise?: boolean
+}
+
+interface PackagesResponse {
+    packages?: ApiPackage[]
+}
+
+interface TransactionsResponse {
+    transactions?: Transaction[]
+}
+
+interface OrderResponse {
+    order_id: string
+    key_id: string
+    amount: number
 }
 
 // Default packages as fallback
@@ -110,13 +173,13 @@ const faqs = [
 ]
 
 // Transform API response to frontend Package interface
-function transformApiPackage(apiPkg: any): Package {
+function transformApiPackage(apiPkg: ApiPackage): Package {
     return {
         id: apiPkg.id,
-        title: apiPkg.name || apiPkg.title,
-        price: apiPkg.display_price || apiPkg.price,
-        batchCount: apiPkg.quota || apiPkg.batchCount,
-        pricePerBatch: apiPkg.price_per_batch || apiPkg.pricePerBatch,
+        title: apiPkg.name || apiPkg.title || "Enterprise License",
+        price: apiPkg.display_price || apiPkg.price || "Contact us",
+        batchCount: apiPkg.quota || apiPkg.batchCount || 0,
+        pricePerBatch: apiPkg.price_per_batch || apiPkg.pricePerBatch || "Custom",
         quota_units: apiPkg.quota || apiPkg.quota_units,
         description: apiPkg.description,
         features: apiPkg.features || [],
@@ -131,7 +194,6 @@ export default function BillingPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [loadingTransactions, setLoadingTransactions] = useState(true)
     const [packages, setPackages] = useState<Package[]>(defaultPackages)
-    const [loadingPackages, setLoadingPackages] = useState(true)
 
     useEffect(() => {
         fetchTransactions()
@@ -140,24 +202,22 @@ export default function BillingPage() {
 
     const fetchPackages = async () => {
         try {
-            const response = await api.get("/billing/packages")
+            const response = await api.get<PackagesResponse>("/billing/packages")
             if (response.data.packages && response.data.packages.length > 0) {
                 const transformedPackages = response.data.packages.map(transformApiPackage)
                 setPackages(transformedPackages)
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.warn("Using default packages - API unavailable:", error)
             // Keep using default packages
-        } finally {
-            setLoadingPackages(false)
         }
     }
 
     const fetchTransactions = async () => {
         try {
-            const response = await api.get("/billing/transactions")
+            const response = await api.get<TransactionsResponse>("/billing/transactions")
             setTransactions(response.data.transactions || [])
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch transactions:", error)
         } finally {
             setLoadingTransactions(false)
@@ -175,7 +235,7 @@ export default function BillingPage() {
 
         try {
             // Step 1: Create Razorpay order
-            const orderResponse = await api.post("/billing/razorpay/order", {
+            const orderResponse = await api.post<OrderResponse>("/billing/razorpay/order", {
                 package_id: pkg.id
             })
 
@@ -189,7 +249,7 @@ export default function BillingPage() {
                 name: "ExportReady Battery",
                 description: pkg.description,
                 order_id: order_id,
-                handler: async function (response: any) {
+                handler: async function (response: RazorpayResponse) {
                     // Step 3: Verify payment on backend
                     try {
                         const verifyResponse = await api.post("/billing/razorpay/verify", {
@@ -207,7 +267,7 @@ export default function BillingPage() {
                             // Refresh transactions
                             fetchTransactions()
                         }
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                         console.error("Payment verification failed:", error)
                         toast.error("Payment verification failed. Please contact support.")
                     }
@@ -229,7 +289,7 @@ export default function BillingPage() {
             const razorpay = new window.Razorpay(options)
             razorpay.open()
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Failed to create order:", error)
             toast.error("Failed to initiate payment. Please try again.")
         } finally {

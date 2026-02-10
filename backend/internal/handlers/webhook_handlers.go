@@ -38,7 +38,8 @@ func NewWebhookHandler(razorpay *services.RazorpayService, repo interface {
 // and must verify the signature before processing
 func (h *WebhookHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Request) {
 	// Read the raw request body for signature verification
-	body, err := io.ReadAll(r.Body)
+	// Limit to 1MB to prevent DoS via oversized payloads
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 	if err != nil {
 		logger.Error("Failed to read webhook body", "error", err)
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)

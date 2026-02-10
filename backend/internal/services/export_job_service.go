@@ -102,6 +102,24 @@ func (s *ExportJobService) GetPassportCountByBatch(ctx context.Context, batchID 
 	return count, nil
 }
 
+// CountPassportsMissingShippedEvent returns count of passports missing a SHIPPED event
+func (s *ExportJobService) CountPassportsMissingShippedEvent(ctx context.Context, batchID uuid.UUID) (int, error) {
+	var count int
+	query := `
+		SELECT COUNT(*)
+		FROM passports p
+		WHERE p.batch_id = $1
+		  AND NOT EXISTS (
+			  SELECT 1 FROM passport_events e
+			  WHERE e.passport_id = p.uuid AND e.event_type = 'SHIPPED'
+		  )
+	`
+	if err := s.db.QueryRow(ctx, query, batchID).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count missing shipped events: %w", err)
+	}
+	return count, nil
+}
+
 // GetJobByID retrieves an export job by ID
 func (s *ExportJobService) GetJobByID(ctx context.Context, jobID uuid.UUID) (*models.ExportJob, error) {
 	query := `
@@ -288,7 +306,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	// Get batch and passports
 	batch, passports, tenant, err := s.getBatchData(ctx, job.BatchID, job.TenantID)
 	if err != nil {
-		s.MarkJobFailed(ctx, job.ID, err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 
@@ -316,7 +336,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	filePath := fmt.Sprintf("%s/%s/%s", job.TenantID, job.BatchID, job.GetFilename(batch.BatchName))
 
 	if err := s.storageService.UploadFile(ctx, data, filePath, contentType); err != nil {
-		s.MarkJobFailed(ctx, job.ID, "Failed to upload file: "+err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, "Failed to upload file: "+err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 
@@ -324,7 +346,9 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	expiresAt := time.Now().Add(DownloadURLExpiry)
 	downloadURL, err := s.storageService.CreateSignedURL(ctx, filePath, DownloadURLExpiry)
 	if err != nil {
-		s.MarkJobFailed(ctx, job.ID, "Failed to create download URL: "+err.Error())
+		if markErr := s.MarkJobFailed(ctx, job.ID, "Failed to create download URL: "+err.Error()); markErr != nil {
+			s.logger.Error("Failed to mark job as failed", "job_id", job.ID, "mark_error", markErr, "original_error", err)
+		}
 		return err
 	}
 

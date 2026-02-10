@@ -1,15 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ComponentProps } from "react"
 import { useParams } from "next/navigation"
 import api from "@/lib/api"
 import { CertificateView } from "@/components/passport/certificate-view"
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal"
-import { AlertCircle, Loader2, CheckCircle, Download, Wrench } from "lucide-react"
+import { AlertCircle, Loader2, Download, Wrench } from "lucide-react"
+
+type CertificatePassport = ComponentProps<typeof CertificateView>["passport"]
 
 export default function PublicPassportPage() {
     const params = useParams()
-    const [passport, setPassport] = useState<any>(null)
+    const [passport, setPassport] = useState<CertificatePassport | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [showActionModal, setShowActionModal] = useState(false)
@@ -20,9 +22,10 @@ export default function PublicPassportPage() {
                 const response = await api.get(`/passports/${params.uuid}`)
                 setPassport(response.data)
                 recordScan(params.uuid as string)
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Failed to fetch passport", err)
-                setError(err.response?.status === 404
+                const apiError = err as { response?: { status?: number } }
+                setError(apiError.response?.status === 404
                     ? "Passport not found. Please check the URL or QR code."
                     : "Failed to load passport details."
                 )
@@ -70,6 +73,26 @@ export default function PublicPassportPage() {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 mb-2">Verification Failed</h2>
                     <p className="text-slate-600 mb-6">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    if (!passport) {
+        return (
+            <div className="min-h-screen bg-slate-100 p-6 flex items-center justify-center">
+                <div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-slate-200 p-8 text-center">
+                    <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6">
+                        <AlertCircle className="h-8 w-8 text-amber-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Passport Unavailable</h2>
+                    <p className="text-slate-600 mb-6">We could not load the passport data at this time.</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"

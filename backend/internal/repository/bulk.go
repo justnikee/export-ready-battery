@@ -112,7 +112,7 @@ func (r *Repository) GetPassportsByIDs(ctx context.Context, passportIDs []uuid.U
 
 // ValidPassportStatuses returns valid passport statuses
 func ValidPassportStatuses() []string {
-	return []string{"ACTIVE", "RECALLED", "RECYCLED", "END_OF_LIFE"}
+	return []string{"CREATED", "ACTIVE", "SHIPPED", "IN_SERVICE", "RECYCLED", "END_OF_LIFE", "RECALLED"}
 }
 
 // IsValidPassportStatus checks if a status is valid

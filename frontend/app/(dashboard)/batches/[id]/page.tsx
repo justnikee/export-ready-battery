@@ -1,18 +1,22 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
-import { createExportJob, getExportJob, getExportDownloadUrl } from "@/lib/api/exports"
+import { createExportJob } from "@/lib/api/exports"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
-import { ArrowLeft, Download, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Flag, Globe, AlertTriangle, CheckCircle, Zap, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck } from "lucide-react"
+import { ArrowLeft, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Globe, AlertTriangle, CheckCircle, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2 } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import type { Batch, Passport } from "@/lib/types"
+
+import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -25,14 +29,46 @@ interface PaginationInfo {
     hasMore: boolean
 }
 
+interface BatchResponse {
+    batch: Batch
+    passport_count?: number
+}
+
+interface PassportsResponse {
+    passports: Passport[]
+    page?: number
+    limit?: number
+    total?: number
+    total_pages?: number
+    has_more?: boolean
+}
+
+interface ApiError {
+    response?: {
+        data?: {
+            error?: string
+        }
+        status?: number
+    }
+}
+
+const toApiError = (error: unknown): ApiError => {
+    if (typeof error === "object" && error !== null) {
+        return error as ApiError
+    }
+    return {}
+}
+
 export default function BatchDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const { refreshUser } = useAuth()
-    const [batch, setBatch] = useState<any>(null)
+    const [batch, setBatch] = useState<Batch | null>(null)
     const [activating, setActivating] = useState(false)
+    const [archiving, setArchiving] = useState(false)
+    const [deletingDraft, setDeletingDraft] = useState(false)
     const [passportCount, setPassportCount] = useState<number>(0)
-    const [passports, setPassports] = useState<any[]>([])
+    const [passports, setPassports] = useState<Passport[]>([])
     const [loading, setLoading] = useState(true)
     const [pagination, setPagination] = useState<PaginationInfo>({
         page: 1,
@@ -42,22 +78,24 @@ export default function BatchDetailsPage() {
         hasMore: false
     })
     const [labelsDialogOpen, setLabelsDialogOpen] = useState(false)
+    const [confirmArchive, setConfirmArchive] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
 
-    const fetchBatch = async () => {
+    const fetchBatch = useCallback(async () => {
         try {
-            const response = await api.get(`/batches/${params.id}`)
+            const response = await api.get<BatchResponse>(`/batches/${params.id}`)
             setBatch(response.data.batch)
             setPassportCount(response.data.passport_count || 0)
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch batch:", error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [params.id])
 
-    const fetchPassports = async (page = 1, limit = 50) => {
+    const fetchPassports = useCallback(async (page = 1, limit = 50) => {
         try {
-            const response = await api.get(`/batches/${params.id}/passports?page=${page}&limit=${limit}`)
+            const response = await api.get<PassportsResponse>(`/batches/${params.id}/passports?page=${page}&limit=${limit}`)
             setPassports(response.data.passports || [])
             setPagination({
                 page: response.data.page || 1,
@@ -66,15 +104,15 @@ export default function BatchDetailsPage() {
                 totalPages: response.data.total_pages || 0,
                 hasMore: response.data.has_more || false
             })
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to fetch passports:", error)
         }
-    }
+    }, [params.id])
 
     useEffect(() => {
         fetchBatch()
         fetchPassports(1, 50)
-    }, [params.id])
+    }, [fetchBatch, fetchPassports])
 
     const handleUploadComplete = () => {
         fetchBatch()
@@ -86,6 +124,7 @@ export default function BatchDetailsPage() {
     }
 
     const handleDownloadQR = async () => {
+        if (!batch) return
         const MAX_DIRECT_DOWNLOAD = 500;
 
         if (passportCount > MAX_DIRECT_DOWNLOAD) {
@@ -105,9 +144,10 @@ export default function BatchDetailsPage() {
                         onClick: () => router.push('/exports')
                     }
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to create export job", error);
-                toast.error(error.response?.data?.error || "Failed to create export job", { id: 'qr-export' });
+                toast.error(apiError.response?.data?.error || "Failed to create export job", { id: 'qr-export' });
             }
         } else {
             // Direct download for small batches
@@ -125,14 +165,16 @@ export default function BatchDetailsPage() {
                 link.click();
                 link.remove();
                 toast.success("QR codes downloaded successfully!", { id: 'qr-download' });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to download QR codes", error);
-                toast.error(error.response?.data?.error || "Failed to download QR codes", { id: 'qr-download' });
+                toast.error(apiError.response?.data?.error || "Failed to download QR codes", { id: 'qr-download' });
             }
         }
     };
 
     const handleDownloadLabels = async () => {
+        if (!batch) return
         const MAX_DIRECT_DOWNLOAD = 500;
 
         if (passportCount > MAX_DIRECT_DOWNLOAD) {
@@ -152,9 +194,10 @@ export default function BatchDetailsPage() {
                         onClick: () => router.push('/exports')
                     }
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to create export job", error);
-                toast.error(error.response?.data?.error || "Failed to create export job", { id: 'labels-export' });
+                toast.error(apiError.response?.data?.error || "Failed to create export job", { id: 'labels-export' });
             }
         } else {
             // Direct download for small batches
@@ -172,22 +215,24 @@ export default function BatchDetailsPage() {
                 link.click();
                 link.remove();
                 toast.success("Labels downloaded successfully!", { id: 'labels-download' });
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const apiError = toApiError(error)
                 console.error("Failed to download labels", error);
-                if (error.response?.status === 403) {
+                if (apiError.response?.status === 403) {
                     toast.error("⚠️ You must Activate this batch before downloading labels.", {
                         id: 'labels-download',
                         description: "Click 'Activate Batch' to unlock downloads.",
                         duration: 5000
                     });
                 } else {
-                    toast.error(error.response?.data?.error || "Failed to download labels", { id: 'labels-download' });
+                    toast.error(apiError.response?.data?.error || "Failed to download labels", { id: 'labels-download' });
                 }
             }
         }
     };
 
     const handleExportCSV = async () => {
+        if (!batch) return
         try {
             const response = await api.get(`/batches/${params.id}/export`, {
                 responseType: 'blob'
@@ -209,29 +254,19 @@ export default function BatchDetailsPage() {
     // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
         const region = batch?.market_region as MarketRegion
-        const specs = batch?.specs || {}
 
         if (region === "INDIA") {
             return (
                 <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border-orange-500/30 text-sm px-3 py-1">
-                    🇮🇳 PLI Ready
+                    🇮🇳 India Market
                 </Badge>
             )
         } else if (region === "EU") {
-            const hasCarbon = specs.carbon_footprint && specs.carbon_footprint !== ""
-            if (hasCarbon) {
-                return (
-                    <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30 text-sm px-3 py-1">
-                        🇪🇺 EU Compliant
-                    </Badge>
-                )
-            } else {
-                return (
-                    <Badge className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border-amber-500/30 text-sm px-3 py-1">
-                        <AlertTriangle className="h-3 w-3 mr-1" /> Compliance Pending
-                    </Badge>
-                )
-            }
+            return (
+                <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border-blue-500/30 text-sm px-3 py-1">
+                    🇪🇺 EU Market
+                </Badge>
+            )
         } else {
             return (
                 <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30 text-sm px-3 py-1">
@@ -270,35 +305,77 @@ export default function BatchDetailsPage() {
     const handleActivateBatch = async () => {
         setActivating(true)
         try {
-            const response = await api.post(`/batches/${params.id}/activate`)
+            await api.post(`/batches/${params.id}/activate`)
             toast.success('Batch activated successfully!')
             await fetchBatch()
             await refreshUser()
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
             console.error('Failed to activate batch:', error)
-            if (error.response?.status === 402) {
+            if (apiError.response?.status === 402) {
                 toast.error('Insufficient quota. Please purchase more quota units.')
                 router.push('/billing')
             } else {
-                toast.error(error.response?.data?.error || 'Failed to activate batch')
+                toast.error(apiError.response?.data?.error || 'Failed to activate batch')
             }
         } finally {
             setActivating(false)
         }
     }
 
+    // Archive batch handler (for ACTIVE batches)
+    const handleArchiveBatch = async () => {
+        if (!batch) return
+        setConfirmArchive(false)
+
+        setArchiving(true)
+        try {
+            await api.post(`/batches/${params.id}/archive`)
+            toast.success('Batch archived successfully')
+            await fetchBatch()
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            console.error('Failed to archive batch:', error)
+            toast.error(apiError.response?.data?.error || 'Failed to archive batch')
+        } finally {
+            setArchiving(false)
+        }
+    }
+
+    // Delete draft batch handler (for DRAFT batches with 0 passports)
+    const handleDeleteDraft = async () => {
+        if (!batch) return
+        setConfirmDelete(false)
+
+        setDeletingDraft(true)
+        try {
+            await api.delete(`/batches/${params.id}/draft`)
+            toast.success('Draft batch deleted successfully')
+            router.push('/batches')
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            console.error('Failed to delete draft batch:', error)
+            toast.error(apiError.response?.data?.error || 'Failed to delete draft batch')
+        } finally {
+            setDeletingDraft(false)
+        }
+    }
+
     const isDraft = batch?.status !== 'ACTIVE' && batch?.status !== 'ARCHIVED'
 
-    if (loading) return (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-        </div>
-    )
+    if (loading) return <BatchDetailSkeleton />
     if (!batch) return <div className="p-8 text-slate-400">Batch not found</div>
 
     const region = batch.market_region as MarketRegion
     const isIndia = region === "INDIA"
     const isEU = region === "EU"
+
+    const hasWarrantyMonths = batch.specs.warranty_months !== null && batch.specs.warranty_months !== undefined
+    const expectedLifetimeCycles = batch.specs.expected_lifetime_cycles ?? null
+    const hasExpectedLifetime = expectedLifetimeCycles !== null
+    const hasRecycledContent = batch.specs.recycled_content_pct !== null && batch.specs.recycled_content_pct !== undefined
+    const certifications = batch.specs.certifications ?? []
+    const materialComposition = batch.specs.material_composition
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 p-8 font-sans">
@@ -326,32 +403,91 @@ export default function BatchDetailsPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            {isDraft ? (
-                                <Button
-                                    onClick={handleActivateBatch}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                                    disabled={activating}
-                                >
-                                    {activating ? (
-                                        <>
-                                            <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                            Activating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Unlock className="mr-2 h-4 w-4" />
-                                            Activate Batch
-                                        </>
+                            {/* Draft batch actions */}
+                            {isDraft && (
+                                <>
+                                    <Button
+                                        onClick={handleActivateBatch}
+                                        className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                                        disabled={activating}
+                                    >
+                                        {activating ? (
+                                            <>
+                                                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                                Activating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Unlock className="mr-2 h-4 w-4" />
+                                                Activate Batch
+                                            </>
+                                        )}
+                                    </Button>
+                                    {/* Delete Draft - only if no passports */}
+                                    {(batch?.total_passports === 0) && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setConfirmDelete(true)}
+                                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                            disabled={deletingDraft}
+                                        >
+                                            {deletingDraft ? (
+                                                <>
+                                                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                                    Deleting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete Draft
+                                                </>
+                                            )}
+                                        </Button>
                                     )}
-                                </Button>
-                            ) : (
+                                </>
+                            )}
+
+                            {/* Active batch actions */}
+                            {batch?.status === 'ACTIVE' && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setLabelsDialogOpen(true)}
+                                        className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                    >
+                                        <Printer className="mr-2 h-4 w-4" />
+                                        Print Labels
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setConfirmArchive(true)}
+                                        className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                                        disabled={archiving}
+                                    >
+                                        {archiving ? (
+                                            <>
+                                                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-amber-600 border-t-transparent"></div>
+                                                Archiving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Archive className="mr-2 h-4 w-4" />
+                                                Archive Batch
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+
+                            {/* Archived batch - read only */}
+                            {batch?.status === 'ARCHIVED' && (
                                 <Button
                                     variant="outline"
-                                    onClick={() => setLabelsDialogOpen(true)}
-                                    className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                    disabled
+                                    className="border-slate-200 text-slate-400 cursor-not-allowed"
                                 >
-                                    <Printer className="mr-2 h-4 w-4" />
-                                    Print Labels
+                                    <Lock className="mr-2 h-4 w-4" />
+                                    Archived (Read Only)
                                 </Button>
                             )}
                         </div>
@@ -400,25 +536,11 @@ export default function BatchDetailsPage() {
                                     </div>
 
                                     {/* Manufacturer Contact Info - Full Width */}
-                                    {(batch.specs.manufacturer_address || batch.specs.manufacturer_email) && (
-                                        <>
-                                            {batch.specs.manufacturer_address && (
-                                                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
-                                                    <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
-                                                    <dd className="font-semibold text-slate-900 text-sm">{batch.specs.manufacturer_address}</dd>
-                                                </div>
-                                            )}
-                                            {batch.specs.manufacturer_email && (
-                                                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
-                                                    <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Email</dt>
-                                                    <dd className="font-semibold text-blue-400">
-                                                        <a href={`mailto:${batch.specs.manufacturer_email}`} className="hover:underline">
-                                                            {batch.specs.manufacturer_email}
-                                                        </a>
-                                                    </dd>
-                                                </div>
-                                            )}
-                                        </>
+                                    {batch.specs.manufacturer_address && (
+                                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 col-span-2">
+                                            <dt className="text-slate-600 mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
+                                            <dd className="font-semibold text-slate-900 text-sm">{batch.specs.manufacturer_address}</dd>
+                                        </div>
                                     )}
                                 </dl>
                             </CardContent>
@@ -596,20 +718,16 @@ export default function BatchDetailsPage() {
                                             </dd>
                                         </div>
                                         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                                            <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recyclable</dt>
-                                            <dd className="font-semibold">
-                                                {batch.specs.recyclable ? (
-                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">♻️ Yes</Badge>
-                                                ) : (
-                                                    <Badge className="bg-slate-700 text-slate-400">No</Badge>
-                                                )}
+                                            <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
+                                            <dd className="font-semibold text-slate-900">
+                                                {hasRecycledContent ? `${batch.specs.recycled_content_pct}%` : "Not declared"}
                                             </dd>
                                         </div>
                                         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                             <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Certifications</dt>
                                             <dd className="flex gap-2 flex-wrap">
-                                                {batch.specs.certifications?.length > 0 ? (
-                                                    batch.specs.certifications.map((cert: string) => (
+                                                {certifications.length > 0 ? (
+                                                    certifications.map((cert: string) => (
                                                         <Badge key={cert} className="bg-blue-500/20 text-blue-400 border-blue-500/30">
                                                             {cert}
                                                         </Badge>
@@ -625,7 +743,7 @@ export default function BatchDetailsPage() {
                                                 Material Data
                                             </dt>
                                             <dd className="font-semibold">
-                                                {batch.materials ? (
+                                                {materialComposition ? (
                                                     <span className="text-emerald-400">Available</span>
                                                 ) : (
                                                     <span className="text-amber-400 flex items-center gap-1.5">
@@ -652,25 +770,25 @@ export default function BatchDetailsPage() {
                                         )}
 
                                         {/* Warranty & Lifetime */}
-                                        {(batch.specs.warranty_months || batch.specs.expected_lifetime_cycles) && (
+                                        {(hasWarrantyMonths || hasExpectedLifetime) && (
                                             <>
-                                                {batch.specs.warranty_months && (
+                                                {hasWarrantyMonths && (
                                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                         <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
                                                         <dd className="font-semibold text-slate-900">{batch.specs.warranty_months} months</dd>
                                                     </div>
                                                 )}
-                                                {batch.specs.expected_lifetime_cycles && (
+                                                {hasExpectedLifetime && (
                                                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                         <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
-                                                        <dd className="font-semibold text-slate-900">{batch.specs.expected_lifetime_cycles.toLocaleString()} cycles</dd>
+                                                        <dd className="font-semibold text-slate-900">{expectedLifetimeCycles?.toLocaleString()} cycles</dd>
                                                     </div>
                                                 )}
                                             </>
                                         )}
 
                                         {/* Recycled Content */}
-                                        {batch.specs.recycled_content_pct !== undefined && batch.specs.recycled_content_pct > 0 && (
+                                        {hasRecycledContent && (
                                             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                 <dt className="text-slate-600 mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
                                                 <dd className="font-semibold text-emerald-400">{batch.specs.recycled_content_pct}%</dd>
@@ -678,47 +796,47 @@ export default function BatchDetailsPage() {
                                         )}
 
                                         {/* Material Composition - Full Width */}
-                                        {batch.specs.material_composition && (
+                                        {materialComposition && (
                                             <div className="col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
                                                 <dt className="text-slate-500 mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
                                                     <Atom className="h-3.5 w-3.5 text-teal-400" />
                                                     Material Composition
                                                 </dt>
                                                 <dd className="grid grid-cols-3 gap-3 text-xs">
-                                                    {batch.specs.material_composition.cobalt_pct > 0 && (
+                                                    {(materialComposition.cobalt_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Cobalt</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.cobalt_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.cobalt_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.lithium_pct > 0 && (
+                                                    {(materialComposition.lithium_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Lithium</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.lithium_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.lithium_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.nickel_pct > 0 && (
+                                                    {(materialComposition.nickel_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Nickel</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.nickel_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.nickel_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.manganese_pct > 0 && (
+                                                    {(materialComposition.manganese_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Manganese</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.manganese_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.manganese_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.graphite_pct > 0 && (
+                                                    {(materialComposition.graphite_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Graphite</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.graphite_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.graphite_pct}%</span>
                                                         </div>
                                                     )}
-                                                    {batch.specs.material_composition.lead_pct > 0 && (
+                                                    {(materialComposition.lead_pct ?? 0) > 0 && (
                                                         <div className="flex justify-between items-center p-2 bg-slate-100 rounded">
                                                             <span className="text-slate-600">Lead</span>
-                                                            <span className="font-semibold text-slate-900">{batch.specs.material_composition.lead_pct}%</span>
+                                                            <span className="font-semibold text-slate-900">{materialComposition.lead_pct}%</span>
                                                         </div>
                                                     )}
                                                 </dd>
@@ -781,7 +899,7 @@ export default function BatchDetailsPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <UploadCSV batchId={batch.id} marketRegion={region} onUploadComplete={handleUploadComplete} />
+                                <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} onUploadComplete={handleUploadComplete} />
                             </CardContent>
                         </Card>
                     </div>
@@ -937,6 +1055,26 @@ export default function BatchDetailsPage() {
                     batchName={batch?.batch_name || ""}
                     passportCount={passportCount}
                     onDownload={handleDownloadLabels}
+                />
+
+                {/* Confirmation Dialogs */}
+                <ConfirmDialog
+                    open={confirmArchive}
+                    onOpenChange={setConfirmArchive}
+                    title="Archive this batch?"
+                    description="Archived batches remain available for audit and compliance purposes but cannot generate new passports."
+                    confirmText="Archive Batch"
+                    variant="default"
+                    onConfirm={handleArchiveBatch}
+                />
+                <ConfirmDialog
+                    open={confirmDelete}
+                    onOpenChange={setConfirmDelete}
+                    title="Delete this draft batch?"
+                    description="This action cannot be undone. Only draft batches with no passports can be deleted."
+                    confirmText="Delete Draft"
+                    variant="destructive"
+                    onConfirm={handleDeleteDraft}
                 />
             </div>
         </div >

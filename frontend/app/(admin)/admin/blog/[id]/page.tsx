@@ -1,5 +1,4 @@
 import BlogEditor from '@/components/blog/blog-editor';
-import { getPostBySlug } from '@/app/actions/blog';
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 

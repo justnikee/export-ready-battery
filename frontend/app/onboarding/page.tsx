@@ -39,7 +39,17 @@ export default function OnboardingPage() {
         epr_registration_number: "",
         bis_r_number: "",
         iec_code: "",
+        eu_authorized_representative_name: "",
+        eu_authorized_representative_address: "",
+        eu_contact_email: "",
     })
+
+    // Redirect if onboarding is already completed
+    useEffect(() => {
+        if (user?.onboarding_completed) {
+            router.push("/dashboard")
+        }
+    }, [user, router])
 
     // Pre-fill with existing user data
     useEffect(() => {
@@ -54,6 +64,9 @@ export default function OnboardingPage() {
                 epr_registration_number: user.epr_registration_number || "",
                 bis_r_number: user.bis_r_number || "",
                 iec_code: user.iec_code || "",
+                eu_authorized_representative_name: user.eu_authorized_representative_name || "",
+                eu_authorized_representative_address: user.eu_authorized_representative_address || "",
+                eu_contact_email: user.eu_contact_email || "",
             }))
         }
     }, [user])
@@ -102,6 +115,9 @@ export default function OnboardingPage() {
                 epr_registration_number: formData.epr_registration_number,
                 bis_r_number: formData.bis_r_number,
                 iec_code: formData.iec_code,
+                eu_authorized_representative_name: formData.eu_authorized_representative_name,
+                eu_authorized_representative_address: formData.eu_authorized_representative_address,
+                eu_contact_email: formData.eu_contact_email,
             })
 
             console.log("Profile update response:", response.data)
@@ -119,9 +135,10 @@ export default function OnboardingPage() {
             refreshUser()
 
             router.push("/dashboard")
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Failed to complete onboarding:", err)
-            setError(err?.response?.data?.error || err?.message || "Failed to save profile. Please try again.")
+            const apiError = err as { response?: { data?: { error?: string } }; message?: string }
+            setError(apiError.response?.data?.error || apiError.message || "Failed to save profile. Please try again.")
         } finally {
             setLoading(false)
         }
@@ -400,6 +417,58 @@ export default function OnboardingPage() {
                                         </>
                                     )}
 
+                                    {(formData.primary_market === "eu" || formData.primary_market === "both") && (
+                                        <>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Authorized Representative Name
+                                                </label>
+                                                <div className="relative">
+                                                    <Building2 className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="text"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="EU Rep GmbH"
+                                                        value={formData.eu_authorized_representative_name}
+                                                        onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Contact Email
+                                                </label>
+                                                <div className="relative">
+                                                    <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="email"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="compliance@eurep.eu"
+                                                        value={formData.eu_contact_email}
+                                                        onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-slate-300">
+                                                    EU Authorized Representative Address
+                                                </label>
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <input
+                                                        type="text"
+                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        placeholder="Street, City, Country"
+                                                        value={formData.eu_authorized_representative_address}
+                                                        onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-slate-300">
                                             IEC Code
@@ -431,8 +500,8 @@ export default function OnboardingPage() {
                                         >
                                             <CheckCircle2 className="w-10 h-10 text-white" />
                                         </motion.div>
-                                        <h2 className="text-xl font-semibold text-white">You're all set!</h2>
-                                        <p className="text-slate-400 mt-1">Here's a summary of your profile</p>
+                                        <h2 className="text-xl font-semibold text-white">You&apos;re all set!</h2>
+                                        <p className="text-slate-400 mt-1">Here&apos;s a summary of your profile</p>
                                     </div>
 
                                     <div className="space-y-4 bg-slate-800/50 rounded-xl p-4">
@@ -533,7 +602,7 @@ export default function OnboardingPage() {
                         animate={{ opacity: 1 }}
                         className="text-center text-slate-500 text-sm"
                     >
-                        Don't have these details?{" "}
+                        Don&apos;t have these details?{" "}
                         <button
                             type="button"
                             onClick={handleNext}

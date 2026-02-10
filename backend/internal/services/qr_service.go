@@ -3,9 +3,12 @@ package services
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/skip2/go-qrcode"
@@ -51,11 +54,15 @@ func (s *QRService) GenerateQRCode(passportUUID uuid.UUID, serialNumber string) 
 	}, nil
 }
 
-// GenerateQRCodesParallel generates QR codes for multiple passports using goroutines
+// GenerateQRCodesParallel generates QR codes for multiple passports using goroutines.
+// A 5-minute timeout prevents goroutine leaks if generation stalls.
 func (s *QRService) GenerateQRCodesParallel(passports []*models.Passport, workerCount int) []*QRResult {
 	if workerCount <= 0 {
 		workerCount = 10
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
 	results := make([]*QRResult, len(passports))
 	var wg sync.WaitGroup
@@ -73,6 +80,15 @@ func (s *QRService) GenerateQRCodesParallel(passports []*models.Passport, worker
 		go func() {
 			defer wg.Done()
 			for j := range jobs {
+				// Check for context cancellation before processing
+				if ctx.Err() != nil {
+					results[j.index] = &QRResult{
+						UUID:   j.passport.UUID,
+						Serial: j.passport.SerialNumber,
+						Error:  ctx.Err(),
+					}
+					continue
+				}
 				result, err := s.GenerateQRCode(j.passport.UUID, j.passport.SerialNumber)
 				if err != nil {
 					results[j.index] = &QRResult{
@@ -109,8 +125,14 @@ func (s *QRService) CreateZipArchive(qrResults []*QRResult) (io.Reader, int64, e
 			continue // Skip failed QR codes
 		}
 
+		// Sanitize filename to prevent Zip Slip (path traversal)
+		safeFilename := filepath.Base(qr.Filename)
+		if safeFilename == "." || safeFilename == ".." {
+			continue // Skip invalid filenames
+		}
+
 		// Create file in zip
-		writer, err := zipWriter.Create(qr.Filename)
+		writer, err := zipWriter.Create(safeFilename)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to create zip entry: %w", err)
 		}

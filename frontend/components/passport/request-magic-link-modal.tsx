@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-    Truck, Wrench, RotateCcw, Recycle, X,
+    Truck, Wrench, Recycle, X,
     Mail, Loader2, CheckCircle, AlertCircle,
-    Key, ArrowRight, Package
+    Key, ArrowRight
 } from "lucide-react"
 
 interface RequestMagicLinkModalProps {
@@ -15,35 +15,21 @@ interface RequestMagicLinkModalProps {
 
 const ACTIONS = [
     {
-        status: "SHIPPED",
+        action: "SHIP",
         label: "I'm shipping this battery",
         icon: Truck,
         color: "blue",
         role: "LOGISTICS"
     },
     {
-        status: "IN_SERVICE",
+        action: "INSTALL",
         label: "I'm installing this battery",
         icon: Wrench,
         color: "emerald",
         role: "TECHNICIAN"
     },
     {
-        status: "RETURN_REQUESTED",
-        label: "I'm requesting a return",
-        icon: Package,
-        color: "orange",
-        role: "CUSTOMER"
-    },
-    {
-        status: "RETURNED",
-        label: "I'm returning this battery",
-        icon: RotateCcw,
-        color: "amber",
-        role: "CUSTOMER"
-    },
-    {
-        status: "RECYCLED",
+        action: "RECYCLE",
         label: "I'm recycling this battery",
         icon: Recycle,
         color: "purple",
@@ -76,6 +62,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                     passport_id: passportId,
                     email: email,
                     role: selectedAction.role,
+                    action: selectedAction.action,
                     partner_code: partnerCode || undefined
                 })
             })
@@ -94,8 +81,9 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
             }
 
             setStep("success")
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            const error = err as { message?: string }
+            setError(error.message || "Failed to send magic link")
             setStep("error")
         } finally {
             setLoading(false)
@@ -140,7 +128,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                     const Icon = action.icon
                                     return (
                                         <button
-                                            key={action.status}
+                                            key={action.action}
                                             onClick={() => {
                                                 setSelectedAction(action)
                                                 setStep("email")

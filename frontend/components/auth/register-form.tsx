@@ -1,213 +1,257 @@
 "use client"
 
 import { useState } from "react"
-import { useAuth } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AuthLayout } from "./auth-layout"
-import api from "@/lib/api"
+import { Mail, Lock, Building2, User, Loader2, Eye, EyeOff, Check, X } from "lucide-react"
+import { authApi } from "@/lib/auth-api"
 import { toast } from "sonner"
-import { motion } from "framer-motion"
-import { Mail, Lock, Building2, Loader2, Eye, EyeOff, Check, X } from "lucide-react"
 
 export function RegisterForm() {
+    const router = useRouter()
+    const [companyName, setCompanyName] = useState("")
+    const [fullName, setFullName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [companyName, setCompanyName] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
-    const { login } = useAuth()
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [passwordFocused, setPasswordFocused] = useState(false)
 
-    // Password validation
-    const passwordChecks = [
-        { label: "At least 8 characters", valid: password.length >= 8 },
-        { label: "Contains a number", valid: /\d/.test(password) },
-        { label: "Contains uppercase", valid: /[A-Z]/.test(password) },
+    // Password requirements
+    const passwordRequirements = [
+        { label: "At least 8 characters", met: password.length >= 8 },
+        { label: "One uppercase letter", met: /[A-Z]/.test(password) },
+        { label: "One lowercase letter", met: /[a-z]/.test(password) },
+        { label: "One number", met: /\d/.test(password) },
     ]
+
+    const allRequirementsMet = passwordRequirements.every(req => req.met)
+    const passwordsMatch = password === confirmPassword && confirmPassword.length > 0
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (!allRequirementsMet) {
+            toast.error("Please meet all password requirements")
+            return
+        }
+
+        if (password !== confirmPassword) {
+            toast.error("Passwords do not match")
+            return
+        }
+
         setIsLoading(true)
 
         try {
-            const response = await api.post("/auth/register", {
+            const response = await authApi.register({
                 email,
                 password,
                 company_name: companyName,
+                full_name: fullName,
             })
 
-            const { token, refresh_token, tenant_id } = response.data
-
-            login(token, refresh_token, {
-                id: tenant_id,
-                tenant_id,
-                email,
-                company_name: companyName,
-            })
+            if (response.error) {
+                toast.error(response.error)
+                return
+            }
 
             toast.success("Account created successfully!")
-        } catch (error: unknown) {
-            const axiosError = error as { response?: { data?: { error?: string } } }
-            toast.error(axiosError.response?.data?.error || "Failed to register")
+            router.push("/dashboard")
+        } catch {
+            toast.error("Something went wrong. Please try again.")
         } finally {
             setIsLoading(false)
         }
     }
 
     return (
-        <AuthLayout
-            title="Register Organization"
-            subtitle="Streamline your battery compliance and labeling today"
-            type="register"
-        >
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Company Name Field */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="space-y-2"
-                >
-                    <Label htmlFor="company" className="text-slate-300 text-sm font-medium">
-                        Company name
-                    </Label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Building2 className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                        </div>
-                        <Input
-                            id="company"
-                            placeholder="Acme Battery Co."
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            required
-                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
-                        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Company Name */}
+            <div className="space-y-2">
+                <Label htmlFor="company" className="text-sm font-medium text-[#0B1F3B]">
+                    Company name
+                </Label>
+                <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                        <Building2 className="h-5 w-5" />
                     </div>
-                </motion.div>
+                    <Input
+                        id="company"
+                        placeholder="Acme Battery Co."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                        className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                    />
+                </div>
+            </div>
 
-                {/* Email Field */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                    className="space-y-2"
-                >
-                    <Label htmlFor="email" className="text-slate-300 text-sm font-medium">
-                        Work email
-                    </Label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                        </div>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="name@company.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="pl-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
-                        />
+            {/* Full Name */}
+            <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-sm font-medium text-[#0B1F3B]">
+                    Full name
+                </Label>
+                <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                        <User className="h-5 w-5" />
                     </div>
-                </motion.div>
+                    <Input
+                        id="fullName"
+                        placeholder="John Smith"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                        className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                    />
+                </div>
+            </div>
 
-                {/* Password Field */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-2"
-                >
-                    <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
-                        Password
-                    </Label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                        </div>
-                        <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            minLength={8}
-                            className="pl-10 pr-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
+            {/* Email */}
+            <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-[#0B1F3B]">
+                    Work email
+                </Label>
+                <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                        <Mail className="h-5 w-5" />
                     </div>
+                    <Input
+                        id="email"
+                        type="email"
+                        placeholder="john@company.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                    />
+                </div>
+            </div>
 
-                    {/* Password Requirements */}
-                    {password.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="pt-2 space-y-1"
-                        >
-                            {passwordChecks.map((check, i) => (
-                                <div key={i} className="flex items-center gap-2 text-xs">
-                                    {check.valid ? (
-                                        <Check className="h-3 w-3 text-green-500" />
+            {/* Password */}
+            <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-[#0B1F3B]">
+                    Password
+                </Label>
+                <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                        <Lock className="h-5 w-5" />
+                    </div>
+                    <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a strong password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
+                        required
+                        className="pl-10 pr-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0B1F3B] transition-colors"
+                    >
+                        {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                        ) : (
+                            <Eye className="h-5 w-5" />
+                        )}
+                    </button>
+                </div>
+
+                {/* Password Requirements */}
+                {(passwordFocused || password.length > 0) && (
+                    <div className="mt-3 p-3 bg-white border border-slate-200 rounded-lg">
+                        <p className="text-xs font-medium text-slate-500 mb-2">Password requirements:</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            {passwordRequirements.map((req, index) => (
+                                <div key={index} className="flex items-center gap-1.5">
+                                    {req.met ? (
+                                        <Check className="h-3.5 w-3.5 text-[#1F7A5F]" />
                                     ) : (
-                                        <X className="h-3 w-3 text-slate-600" />
+                                        <X className="h-3.5 w-3.5 text-slate-300" />
                                     )}
-                                    <span className={check.valid ? "text-green-500" : "text-slate-500"}>
-                                        {check.label}
+                                    <span className={`text-xs ${req.met ? "text-[#1F7A5F]" : "text-slate-400"}`}>
+                                        {req.label}
                                     </span>
                                 </div>
                             ))}
-                        </motion.div>
-                    )}
-                </motion.div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
-                {/* Submit Button */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="pt-2"
-                >
-                    <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full h-12 bg-linear-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-200"
+            {/* Confirm Password */}
+            <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium text-[#0B1F3B]">
+                    Confirm password
+                </Label>
+                <div className="relative group">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                        <Lock className="h-5 w-5" />
+                    </div>
+                    <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className="pl-10 pr-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0B1F3B] transition-colors"
                     >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating account...
-                            </>
+                        {showConfirmPassword ? (
+                            <EyeOff className="h-5 w-5" />
                         ) : (
-                            "Create account"
+                            <Eye className="h-5 w-5" />
                         )}
-                    </Button>
-                </motion.div>
+                    </button>
+                </div>
+                {confirmPassword.length > 0 && (
+                    <p className={`text-xs ${passwordsMatch ? "text-[#1F7A5F]" : "text-red-500"}`}>
+                        {passwordsMatch ? "✓ Passwords match" : "Passwords do not match"}
+                    </p>
+                )}
+            </div>
 
-                {/* Terms */}
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-xs text-center text-slate-500"
-                >
-                    By creating an account, you agree to our{" "}
-                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
-                        Terms of Service
-                    </a>{" "}
-                    and{" "}
-                    <a href="#" className="text-teal-400 hover:text-teal-300 transition-colors">
-                        Privacy Policy
-                    </a>
-                </motion.p>
-            </form>
-        </AuthLayout>
+            {/* Terms */}
+            <p className="text-xs text-slate-500">
+                By creating an account, you agree to our{" "}
+                <a href="/terms" className="text-[#1F7A5F] hover:text-[#0B1F3B] underline">
+                    Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/privacy" className="text-[#1F7A5F] hover:text-[#0B1F3B] underline">
+                    Privacy Policy
+                </a>
+                .
+            </p>
+
+            {/* Submit Button */}
+            <Button
+                type="submit"
+                disabled={isLoading || !allRequirementsMet || !passwordsMatch}
+                className="w-full h-12 bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
+            >
+                {isLoading ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                    </>
+                ) : (
+                    "Create account"
+                )}
+            </Button>
+        </form>
     )
 }

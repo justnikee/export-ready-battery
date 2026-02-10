@@ -96,6 +96,20 @@ func (h *ExportJobHandler) CreateExportJob(w http.ResponseWriter, r *http.Reques
 		respondError(w, http.StatusBadRequest, "Invalid job_type. Must be QR_ZIP, LABELS_PDF, or CSV")
 		return
 	}
+
+	// Hard block CSV export if any passport missing SHIPPED event
+	if jobType == models.ExportJobTypeCSV {
+		missing, err := h.exportJobService.CountPassportsMissingShippedEvent(r.Context(), batchID)
+		if err != nil {
+			h.logger.Error("failed to validate shipped status", "error", err, "batchId", batchID)
+			respondError(w, http.StatusInternalServerError, "Failed to validate shipped status")
+			return
+		}
+		if missing > 0 {
+			respondError(w, http.StatusForbidden, "Export blocked: one or more passports are missing SHIPPED events")
+			return
+		}
+	}
 	// Get passport count from batch
 	passportCount, err := h.exportJobService.GetPassportCountByBatch(r.Context(), batchID)
 	if err != nil {

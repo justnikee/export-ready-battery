@@ -18,6 +18,10 @@ interface User {
     epr_registration_number?: string;
     bis_r_number?: string;
     iec_code?: string;
+    // EU Authorized Representative Fields
+    eu_authorized_representative_name?: string;
+    eu_authorized_representative_address?: string;
+    eu_contact_email?: string;
     // Certificate Document Paths (Compliance Vault)
     epr_certificate_path?: string;
     bis_certificate_path?: string;
@@ -33,7 +37,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (token: string, refreshToken: string, user: User) => void;
+    login: (token: string, refreshToken: string, user: User, redirectTo?: string) => void;
     logout: () => void;
     refreshUser: () => Promise<void>;
     updateUser: (user: Partial<User>) => void;
@@ -64,18 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Auth check failed:', error);
             localStorage.removeItem('token');
             localStorage.removeItem('refresh_token');
+            // Clear auth cookie for middleware to avoid stale sessions
+            document.cookie = 'auth_token=; path=/; max-age=0';
         } finally {
             setLoading(false);
         }
     };
 
-    const login = (token: string, refreshToken: string, newUser: User) => {
+    const login = (token: string, refreshToken: string, newUser: User, redirectTo?: string) => {
         localStorage.setItem('token', token);
         localStorage.setItem('refresh_token', refreshToken);
         // Set cookie for middleware auth check (edge-level protection)
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         setUser(newUser);
-        router.push('/dashboard');
+        router.push(redirectTo || '/dashboard');
     };
 
     const logout = () => {

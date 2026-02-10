@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"net"
 	"net/http"
 	"strings"
 
@@ -12,26 +16,90 @@ import (
 	"github.com/google/uuid"
 )
 
+// TeamRoleResolver resolves internal user roles
+type TeamRoleResolver interface {
+	GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.TeamMember, error)
+}
+
 // LifecycleHandler handles passport lifecycle operations
 type LifecycleHandler struct {
-	service *services.LifecycleService
+	service      *services.LifecycleService
+	roleResolver TeamRoleResolver
 }
 
 // NewLifecycleHandler creates a new lifecycle handler
-func NewLifecycleHandler(service *services.LifecycleService) *LifecycleHandler {
-	return &LifecycleHandler{service: service}
+func NewLifecycleHandler(service *services.LifecycleService, roleResolver TeamRoleResolver) *LifecycleHandler {
+	return &LifecycleHandler{service: service, roleResolver: roleResolver}
 }
 
-// TransitionRequest represents a request to change passport status
+// TransitionRequest represents a request to apply a passport lifecycle action
 type LifecycleTransitionRequest struct {
-	ToStatus string                 `json:"to_status"`
-	Actor    string                 `json:"actor,omitempty"`    // Who is making this change
-	Metadata map[string]interface{} `json:"metadata,omitempty"` // e.g., {"carrier": "FedEx", "tracking": "1234"}
+	Action   string          `json:"action"`
+	Actor    string          `json:"actor,omitempty"` // Who is making this change
+	Evidence models.Evidence `json:"evidence,omitempty"`
+}
+
+func mapTeamRoleToActorRole(teamRole string) (models.ActorRole, bool) {
+	switch strings.ToUpper(teamRole) {
+	case "OWNER", "ADMIN":
+		return models.ActorRoleAdmin, true
+	case "MEMBER":
+		return models.ActorRoleInternalOperator, true
+	default:
+		return "", false
+	}
+}
+
+func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string) (models.ActorContext, int, error) {
+	tenantIDStr := middleware.GetTenantID(ctx)
+	if tenantIDStr == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing tenant context")
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("invalid tenant context")
+	}
+
+	email := middleware.GetEmail(ctx)
+	if email == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+	}
+
+	if h.roleResolver == nil {
+		return models.ActorContext{}, http.StatusInternalServerError, errors.New("role resolver unavailable")
+	}
+
+	member, err := h.roleResolver.GetTeamMemberByEmail(ctx, tenantID, email)
+	if err != nil || member == nil {
+		return models.ActorContext{}, http.StatusForbidden, errors.New("role not found")
+	}
+
+	internalRole, ok := mapTeamRoleToActorRole(member.Role)
+	if !ok {
+		return models.ActorContext{}, http.StatusForbidden, errors.New("role not permitted")
+	}
+
+	if action == string(models.ActionActivate) || action == string(models.ActionClose) {
+		// System actions: performed by system actor
+		return models.ActorContext{
+			ActorType: models.ActorTypeSystem,
+			ActorID:   "system",
+			ActorRole: models.ActorRoleSystem,
+			Source:    models.ActionSourceInternal,
+		}, http.StatusOK, nil
+	}
+
+	return models.ActorContext{
+		ActorType: models.ActorTypeUser,
+		ActorID:   email,
+		ActorRole: internalRole,
+		Source:    models.ActionSourceInternal,
+	}, http.StatusOK, nil
 }
 
 // TransitionPassport handles POST /api/v1/passports/{uuid}/transition
-// @Summary Transition a passport's status
-// @Description Change a passport's lifecycle status with validation and event logging
+// @Summary Apply a passport lifecycle action
+// @Description Apply a lifecycle action with validation and event logging
 // @Tags passports
 func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Request) {
 	// Get passport UUID from URL path
@@ -48,61 +116,114 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Parse request body
+	// Parse request body (and reject any status-based mutation)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	for key := range raw {
+		if strings.Contains(strings.ToLower(key), "status") {
+			respondError(w, http.StatusBadRequest, "status fields are not allowed; use action")
+			return
+		}
+		if strings.EqualFold(key, "metadata") {
+			respondError(w, http.StatusBadRequest, "metadata is not allowed; use evidence")
+			return
+		}
+	}
+
 	var req LifecycleTransitionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	// Validate to_status is provided
-	if req.ToStatus == "" {
-		respondError(w, http.StatusBadRequest, "to_status is required")
+	// Validate action is provided
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
 		return
 	}
 
-	// Get actor from context or request
-	actor := req.Actor
-	if actor == "" {
-		// Try to get from context (authenticated user)
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildActorContext(r.Context(), req.Action)
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
 	// Execute transition
-	result, err := h.service.TransitionPassport(r.Context(), services.TransitionRequest{
-		PassportID: passportID,
-		ToStatus:   req.ToStatus,
-		Actor:      actor,
-		Metadata:   req.Metadata,
+	result, err := h.service.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:   passportID,
+		Action:       req.Action,
+		ActorContext: actorContext,
+		IPAddress:    getRequestIP(r),
+		Evidence:     req.Evidence,
 	})
 
 	if err != nil {
-		respondError(w, http.StatusBadRequest, result.Error)
+		switch {
+		case errors.Is(err, services.ErrMissingActorContext):
+			respondError(w, http.StatusUnauthorized, result.Error)
+		case errors.Is(err, services.ErrUnknownAction):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrRoleNotAllowed), errors.Is(err, services.ErrInvalidActorContext):
+			respondError(w, http.StatusForbidden, result.Error)
+		case errors.Is(err, services.ErrActionNotAllowed):
+			respondError(w, http.StatusConflict, result.Error)
+		case errors.Is(err, services.ErrInvalidEvidence):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrTransitionPersistFailed):
+			respondError(w, http.StatusInternalServerError, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
 		return
 	}
 
 	respondJSON(w, http.StatusOK, result)
 }
 
-// BulkLifecycleTransitionRequest represents a bulk status change request
+// BulkLifecycleTransitionRequest represents a bulk lifecycle action request
 type BulkLifecycleTransitionRequest struct {
-	PassportIDs []string               `json:"passport_ids"`
-	ToStatus    string                 `json:"to_status"`
-	Actor       string                 `json:"actor,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	PassportIDs []string        `json:"passport_ids"`
+	Action      string          `json:"action"`
+	Actor       string          `json:"actor,omitempty"`
+	Evidence    models.Evidence `json:"evidence,omitempty"`
 }
 
 // BulkTransitionPassports handles POST /api/v1/passports/bulk/transition
-// @Summary Bulk transition passport statuses
-// @Description Change multiple passport statuses with validation
+// @Summary Bulk apply lifecycle actions
+// @Description Apply a lifecycle action to multiple passports with validation
 // @Tags passports
 func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	for key := range raw {
+		if strings.Contains(strings.ToLower(key), "status") {
+			respondError(w, http.StatusBadRequest, "status fields are not allowed; use action")
+			return
+		}
+		if strings.EqualFold(key, "metadata") {
+			respondError(w, http.StatusBadRequest, "metadata is not allowed; use evidence")
+			return
+		}
+	}
+
 	var req BulkLifecycleTransitionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
@@ -112,8 +233,8 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if req.ToStatus == "" {
-		respondError(w, http.StatusBadRequest, "to_status is required")
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
 		return
 	}
 
@@ -128,24 +249,40 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		passportUUIDs = append(passportUUIDs, id)
 	}
 
-	// Get actor
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildActorContext(r.Context(), req.Action)
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
 	result, err := h.service.BulkTransitionPassports(r.Context(), services.BulkTransitionRequest{
-		PassportIDs: passportUUIDs,
-		ToStatus:    req.ToStatus,
-		Actor:       actor,
-		Metadata:    req.Metadata,
+		PassportIDs:  passportUUIDs,
+		Action:       req.Action,
+		ActorContext: actorContext,
+		Evidence:     req.Evidence,
 	})
 
 	if err != nil {
+		if errors.Is(err, services.ErrUnknownAction) {
+			respondError(w, http.StatusBadRequest, "Unknown action")
+			return
+		}
+		if errors.Is(err, services.ErrMissingActorContext) {
+			respondError(w, http.StatusUnauthorized, "Missing actor context")
+			return
+		}
+		if errors.Is(err, services.ErrInvalidEvidence) {
+			respondError(w, http.StatusBadRequest, "Invalid evidence")
+			return
+		}
+		if errors.Is(err, services.ErrRoleNotAllowed) || errors.Is(err, services.ErrInvalidActorContext) {
+			respondError(w, http.StatusForbidden, "Role not permitted")
+			return
+		}
+		if errors.Is(err, services.ErrTransitionPersistFailed) {
+			respondError(w, http.StatusInternalServerError, "Failed to persist lifecycle transition")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "Failed to process bulk transition")
 		return
 	}
@@ -153,11 +290,11 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 	respondJSON(w, http.StatusOK, result)
 }
 
-// GetAllowedTransitions handles GET /api/v1/passports/{uuid}/transitions
-// @Summary Get allowed status transitions
-// @Description Get list of valid next statuses for a passport
+// GetAllowedActions handles GET /api/v1/passports/{uuid}/transitions
+// @Summary Get allowed lifecycle actions
+// @Description Get list of valid actions for a passport
 // @Tags passports
-func (h *LifecycleHandler) GetAllowedTransitions(w http.ResponseWriter, r *http.Request) {
+func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Request) {
 	// Get passport UUID from URL path
 	// URL format: /api/v1/passports/{uuid}/transitions
 	pathParts := strings.Split(r.URL.Path, "/")
@@ -179,11 +316,15 @@ func (h *LifecycleHandler) GetAllowedTransitions(w http.ResponseWriter, r *http.
 		return
 	}
 
-	allowed := models.GetAllowedTransitions(passport.Status)
+	allowedActions := models.GetAllowedActions(passport.Status)
+	allowed := make([]string, 0, len(allowedActions))
+	for _, action := range allowedActions {
+		allowed = append(allowed, string(action))
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"current_status":      passport.Status,
-		"allowed_transitions": allowed,
+		"current_status":  passport.Status,
+		"allowed_actions": allowed,
 	})
 }
 
@@ -221,6 +362,18 @@ func (h *LifecycleHandler) GetPassportEvents(w http.ResponseWriter, r *http.Requ
 // TransferPassportRequest represents ownership transfer request
 type TransferPassportRequest struct {
 	NewOwnerID uuid.UUID `json:"new_owner_id"`
+}
+
+// SOHUpdateRequest represents a state-of-health update request
+type SOHUpdateRequest struct {
+	StateOfHealth float64 `json:"state_of_health"`
+	Actor         string  `json:"actor,omitempty"`
+}
+
+// GenericEventRequest represents a repair/replacement event payload
+type GenericEventRequest struct {
+	Actor   string                 `json:"actor,omitempty"`
+	Payload map[string]interface{} `json:"payload,omitempty"`
 }
 
 // TransferPassport handles POST /api/v1/passports/{uuid}/transfer
@@ -286,6 +439,20 @@ func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// getRequestIP returns the best-effort client IP address.
+func getRequestIP(r *http.Request) string {
+	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+		parts := strings.Split(fwd, ",")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
 // VerifyAuditChain handles GET /api/v1/passports/{uuid}/verify-chain
 // @Summary Verify passport audit chain integrity
 // @Description Verifies that the hash chain of events is intact (no tampering)
@@ -336,4 +503,125 @@ func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Reque
 			"message":         "CHAIN BROKEN - possible tampering detected",
 		})
 	}
+}
+
+// UpdateStateOfHealth handles POST /api/v1/passports/{uuid}/soh
+func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req SOHUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.UpdateStateOfHealth(r.Context(), passportID, req.StateOfHealth, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":         true,
+		"passport_id":     passportID,
+		"state_of_health": req.StateOfHealth,
+	})
+}
+
+// LogRepairEvent handles POST /api/v1/passports/{uuid}/repairs
+func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req GenericEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.LogRepairEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":     true,
+		"passport_id": passportID,
+	})
+}
+
+// LogReplacementEvent handles POST /api/v1/passports/{uuid}/replacements
+func (h *LifecycleHandler) LogReplacementEvent(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	uuidStr := pathParts[4]
+	passportID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	var req GenericEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	actor := req.Actor
+	if actor == "" {
+		if userEmail, ok := r.Context().Value("user_email").(string); ok {
+			actor = userEmail
+		} else {
+			actor = "system"
+		}
+	}
+
+	if err := h.service.LogReplacementEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":     true,
+		"passport_id": passportID,
+	})
 }

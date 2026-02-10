@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -64,7 +66,7 @@ func main() {
 
 	// Initialize lifecycle service and handler
 	lifecycleService := services.NewLifecycleService(repo)
-	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService)
+	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService, repo)
 
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
@@ -188,6 +190,8 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
+	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
+	mux.Handle("DELETE /api/v1/batches/{id}/draft", authMiddleware.Protect(http.HandlerFunc(h.DeleteDraftBatch)))
 
 	// ============================================
 	// BULK OPERATIONS (Protected)
@@ -200,8 +204,11 @@ func main() {
 	// PASSPORT LIFECYCLE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
-	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedTransitions)))
+	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
+	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth)))
+	mux.Handle("POST /api/v1/passports/{uuid}/repairs", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogRepairEvent)))
+	mux.Handle("POST /api/v1/passports/{uuid}/replacements", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogReplacementEvent)))
 	mux.Handle("POST /api/v1/passports/{uuid}/transfer", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransferPassport)))
 	mux.Handle("GET /api/v1/passports/{uuid}/verify-chain", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.VerifyAuditChain)))
 
@@ -265,7 +272,16 @@ func main() {
 	// STATIC UPLOADS (Public - for serving logos)
 	// ============================================
 	uploadsFS := http.FileServer(http.Dir("./uploads"))
-	mux.Handle("GET /api/v1/uploads/", http.StripPrefix("/api/v1/uploads/", uploadsFS))
+	// Wrap with path traversal guard to prevent directory traversal attacks
+	safeUploadsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cleanPath := filepath.Clean(r.URL.Path)
+		if strings.Contains(cleanPath, "..") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		http.StripPrefix("/api/v1/uploads/", uploadsFS).ServeHTTP(w, r)
+	})
+	mux.Handle("GET /api/v1/uploads/", safeUploadsHandler)
 
 	// ============================================
 	// ADMIN ROUTES (Secret - for document verification)

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Battery, ArrowLeft, Shield, Zap, Globe } from "lucide-react"
+import { ArrowLeft, Shield, Zap, Globe, BarChart3 } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface AuthLayoutProps {
@@ -31,46 +31,46 @@ const features = [
 
 export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps) {
     return (
-        <div className="min-h-screen flex bg-[#0F172A]">
+        <div className="min-h-screen flex bg-white">
             {/* Left Panel - Visual */}
-            <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#0B1F3B]">
                 {/* Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-slate-900/30 to-[#0F172A]" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0B1F3B] via-[#0B1F3B]/90 to-[#1F7A5F]/20" />
 
                 {/* Animated Orbs */}
                 <div className="absolute inset-0">
                     <motion.div
                         animate={{
                             scale: [1, 1.2, 1],
-                            opacity: [0.3, 0.5, 0.3],
+                            opacity: [0.2, 0.3, 0.2],
                         }}
                         transition={{
                             duration: 8,
                             repeat: Infinity,
                             ease: "easeInOut"
                         }}
-                        className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"
+                        className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1F7A5F]/30 rounded-full blur-3xl"
                     />
                     <motion.div
                         animate={{
                             scale: [1.2, 1, 1.2],
-                            opacity: [0.2, 0.4, 0.2],
+                            opacity: [0.15, 0.25, 0.15],
                         }}
                         transition={{
                             duration: 10,
                             repeat: Infinity,
                             ease: "easeInOut"
                         }}
-                        className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-teal-600/20 rounded-full blur-3xl"
+                        className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#1F7A5F]/20 rounded-full blur-3xl"
                     />
                 </div>
 
                 {/* Grid Pattern */}
                 <div
-                    className="absolute inset-0 opacity-10"
+                    className="absolute inset-0 opacity-5"
                     style={{
-                        backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                                          linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)`,
+                        backgroundImage: `linear-gradient(rgba(31, 122, 95, 0.5) 1px, transparent 1px),
+                                          linear-gradient(90deg, rgba(31, 122, 95, 0.5) 1px, transparent 1px)`,
                         backgroundSize: '50px 50px'
                     }}
                 />
@@ -80,15 +80,10 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                     {/* Logo */}
                     <Link
                         href="/"
-                        className="flex items-center gap-3 text-white group w-fit"
+                        className="flex items-center gap-2 text-white group w-fit"
                     >
-                        <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            className="bg-gradient-to-br from-blue-500 to-teal-500 p-2.5 rounded-xl shadow-lg shadow-blue-500/30"
-                        >
-                            <Battery className="h-6 w-6" />
-                        </motion.div>
-                        <span className="text-2xl font-bold">ExportReady</span>
+                        <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
+                        <span className="text-xl font-bold tracking-tight">EXPORTLENS</span>
                     </Link>
 
                     {/* Feature Cards */}
@@ -101,7 +96,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                         >
                             Compliance Infrastructure
                             <br />
-                            <span className="bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
+                            <span className="text-[#1F7A5F]">
                                 for Battery Manufacturers
                             </span>
                         </motion.h2>
@@ -115,12 +110,12 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                                     transition={{ delay: 0.3 + index * 0.1 }}
                                     className="flex items-start gap-4 p-4 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10"
                                 >
-                                    <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-teal-500/20">
-                                        <feature.icon className="h-5 w-5 text-teal-400" />
+                                    <div className="p-2 rounded-lg bg-[#1F7A5F]/20">
+                                        <feature.icon className="h-5 w-5 text-[#1F7A5F]" />
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-white">{feature.title}</h3>
-                                        <p className="text-sm text-slate-400">{feature.description}</p>
+                                        <p className="text-sm text-slate-300">{feature.description}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -132,7 +127,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.6 }}
-                        className="text-slate-500 text-sm"
+                        className="text-slate-400 text-sm"
                     >
                         Powering compliance for battery manufacturers across India & Europe
                     </motion.div>
@@ -140,17 +135,14 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
             </div>
 
             {/* Right Panel - Form */}
-            <div className="flex-1 flex flex-col">
-                {/* Mobile Header */}
-                <div className="lg:hidden p-6 border-b border-slate-800">
+            <div className="flex-1 flex flex-col bg-slate-50">
+                <div className="lg:hidden p-6 border-b border-slate-200">
                     <Link
                         href="/"
-                        className="flex items-center gap-3 text-white"
+                        className="flex items-center gap-2"
                     >
-                        <div className="bg-gradient-to-br from-blue-500 to-teal-500 p-2 rounded-xl shadow-lg shadow-blue-500/30">
-                            <Battery className="h-5 w-5" />
-                        </div>
-                        <span className="text-xl font-bold">ExportReady</span>
+                        <BarChart3 className="h-6 w-6 text-[#1F7A5F]" />
+                        <span className="text-lg font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
                     </Link>
                 </div>
 
@@ -158,7 +150,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                 <div className="p-6 lg:p-8">
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors group"
+                        className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#0B1F3B] transition-colors group"
                     >
                         <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                         Back to home
@@ -175,27 +167,27 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                     >
                         {/* Title */}
                         <div className="mb-8">
-                            <h1 className="text-3xl font-bold text-white mb-2">{title}</h1>
-                            <p className="text-slate-400">{subtitle}</p>
+                            <h1 className="text-3xl font-bold text-[#0B1F3B] mb-2">{title}</h1>
+                            <p className="text-slate-500">{subtitle}</p>
                         </div>
 
                         {/* Form */}
                         {children}
 
                         {/* Footer Links */}
-                        <div className="mt-8 pt-6 border-t border-slate-800">
+                        <div className="mt-8 pt-6 border-t border-slate-200">
                             <p className="text-center text-sm text-slate-500">
                                 {type === "login" ? (
                                     <>
-                                        Don't have an account?{" "}
-                                        <Link href="/register" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                                        Don&apos;t have an account?{" "}
+                                        <Link href="/register" className="text-[#1F7A5F] hover:text-[#0B1F3B] font-medium transition-colors">
                                             Create account
                                         </Link>
                                     </>
                                 ) : (
                                     <>
                                         Already have an account?{" "}
-                                        <Link href="/login" className="text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                                        <Link href="/login" className="text-[#1F7A5F] hover:text-[#0B1F3B] font-medium transition-colors">
                                             Sign in
                                         </Link>
                                     </>
@@ -206,7 +198,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 text-center text-xs text-slate-600">
+                <div className="p-6 text-center text-xs text-slate-400">
                     © 2026 ExportReady. All rights reserved.
                 </div>
             </div>

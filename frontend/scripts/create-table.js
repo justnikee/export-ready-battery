@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -33,8 +34,6 @@ console.log('🚀 Creating blog_posts table via Supabase REST API...\n');
 
 // Extract host from URL
 const url = new URL(supabaseUrl);
-const apiUrl = `${supabaseUrl}/rest/v1/rpc`;
-
 // Create the HTTP request
 const postData = JSON.stringify({
     query: sqlContent

@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { Scan, Trash2, Truck, CheckCircle, AlertCircle, RefreshCw, Volume2, VolumeX, Target, Package } from "lucide-react"
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
+import { DispatchSkeleton } from "@/components/dispatch/DispatchSkeleton"
 
 // Types
 interface ScannedItem {
@@ -23,15 +23,15 @@ interface ScannedItem {
 const STORAGE_KEY = 'dispatch_pending_items'
 
 export default function DispatchPage() {
-    const { user } = useAuth()
     const router = useRouter()
     const [scannedItems, setScannedItems] = useState<ScannedItem[]>([])
     const [inputValue, setInputValue] = useState("")
-    const [carrier, setCarrier] = useState("")
-    const [trackingNumber, setTrackingNumber] = useState("")
+    const [shipmentReference, setShipmentReference] = useState("")
+    const [shipmentDate, setShipmentDate] = useState("")
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [soundEnabled, setSoundEnabled] = useState(true)
     const [isFocused, setIsFocused] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Audio Context Ref
@@ -41,7 +41,10 @@ export default function DispatchPage() {
     useEffect(() => {
         const initAudio = () => {
             if (!audioContextRef.current) {
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+                const audioConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+                if (audioConstructor) {
+                    audioContextRef.current = new audioConstructor()
+                }
             }
         }
         window.addEventListener('click', initAudio)
@@ -112,6 +115,7 @@ export default function DispatchPage() {
                 localStorage.removeItem(STORAGE_KEY)
             }
         }
+        setIsInitialized(true)
     }, [])
 
     // Persist to localStorage whenever items change
@@ -176,8 +180,12 @@ export default function DispatchPage() {
 
     const handleConfirmDispatch = async () => {
         if (scannedItems.length === 0) return
-        if (!carrier.trim()) {
-            toast.error("Please enter a Carrier name")
+        if (!shipmentReference.trim()) {
+            toast.error("Please enter a shipment reference")
+            return
+        }
+        if (!shipmentDate.trim()) {
+            toast.error("Please enter a shipment date")
             return
         }
 
@@ -185,49 +193,57 @@ export default function DispatchPage() {
         try {
             const passportIds = scannedItems.map(item => item.id)
 
-            const response = await api.post("/passports/bulk/transition", {
-                passport_ids: passportIds,
-                to_status: "SHIPPED",
-                metadata: {
-                    carrier: carrier,
-                    tracking_number: trackingNumber,
-                    dispatched_at: new Date().toISOString()
+            const bulkTransition = async (action: string, evidence?: Record<string, unknown>) => {
+                const response = await api.post("/passports/bulk/transition", {
+                    passport_ids: passportIds,
+                    action: action,
+                    evidence: evidence || {}
+                })
+                return response.data as {
+                    total: number
+                    succeeded: number
+                    failed: number
+                    failed_ids?: string[]
+                    errors?: string[]
                 }
+            }
+
+            // Phase 2 action flow: ACTIVATE (if needed), then SHIP
+            await bulkTransition("ACTIVATE")
+
+            const result = await bulkTransition("SHIP", {
+                shipment_reference: shipmentReference,
+                shipment_date: shipmentDate
             })
 
             // Safety Net #2: Partial Failure Handling
-            const result = response.data
-            const successCount = result.success_count || 0
-            const failedCount = result.failed_count || 0
+            const successCount = result.succeeded || 0
+            const failedCount = result.failed || 0
 
             if (failedCount === 0) {
                 // Complete success
                 toast.success(`Successfully dispatched ${successCount} units!`)
                 setScannedItems([])
-                setCarrier("")
-                setTrackingNumber("")
+                setShipmentReference("")
+                setShipmentDate("")
                 localStorage.removeItem(STORAGE_KEY) // Clear storage on success
             } else {
                 // Partial failure: Keep only failed items
-                const failedIds = new Set(
-                    result.results
-                        ?.filter((r: any) => !r.success)
-                        .map((r: any) => r.passport_id) || []
-                )
+                const failedIds = new Set(result.failed_ids || [])
+                const errorsById = new Map<string, string>()
+                if (result.errors && result.failed_ids && result.errors.length === result.failed_ids.length) {
+                    result.failed_ids.forEach((id, idx) => {
+                        errorsById.set(id, result.errors![idx])
+                    })
+                }
 
                 const updatedItems = scannedItems
                     .filter(item => failedIds.has(item.id))
-                    .map(item => {
-                        // Find error message from API response
-                        const failedResult = result.results?.find(
-                            (r: any) => r.passport_id === item.id && !r.success
-                        )
-                        return {
-                            ...item,
-                            failed: true,
-                            error: failedResult?.error || 'Transition failed'
-                        }
-                    })
+                    .map(item => ({
+                        ...item,
+                        failed: true,
+                        error: errorsById.get(item.id) || 'Transition failed'
+                    }))
 
                 setScannedItems(updatedItems)
                 toast.warning(
@@ -238,13 +254,19 @@ export default function DispatchPage() {
             }
 
             inputRef.current?.focus()
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const apiError = error as { response?: { data?: { error?: string } } }
             console.error("Dispatch failed:", error)
-            toast.error(error.response?.data?.error || "Failed to process dispatch")
+            toast.error(apiError.response?.data?.error || "Failed to process dispatch")
             playSound('error')
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    // Show skeleton during hydration
+    if (!isInitialized) {
+        return <DispatchSkeleton />
     }
 
     return (
@@ -427,22 +449,22 @@ export default function DispatchPage() {
 
                             <div className="space-y-4 flex-1">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="carrier" className="text-slate-700 font-medium">Carrier Name</Label>
+                                    <Label htmlFor="shipment-reference" className="text-slate-700 font-medium">Shipment Reference</Label>
                                     <Input
-                                        id="carrier"
-                                        value={carrier}
-                                        onChange={(e) => setCarrier(e.target.value)}
-                                        placeholder="e.g. DHL, FedEx, Own Fleet"
+                                        id="shipment-reference"
+                                        value={shipmentReference}
+                                        onChange={(e) => setShipmentReference(e.target.value)}
+                                        placeholder="e.g. AWB-12345678"
                                         className="bg-slate-50 border-slate-200 text-slate-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-slate-400"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="tracking" className="text-slate-700 font-medium">Tracking / Ref Number</Label>
+                                    <Label htmlFor="shipment-date" className="text-slate-700 font-medium">Shipment Date</Label>
                                     <Input
-                                        id="tracking"
-                                        value={trackingNumber}
-                                        onChange={(e) => setTrackingNumber(e.target.value)}
-                                        placeholder="e.g. AWB-12345678"
+                                        id="shipment-date"
+                                        type="date"
+                                        value={shipmentDate}
+                                        onChange={(e) => setShipmentDate(e.target.value)}
                                         className="bg-slate-50 border-slate-200 text-slate-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-slate-400"
                                     />
                                 </div>
@@ -467,9 +489,9 @@ export default function DispatchPage() {
                                 </Button>
 
                                 <p className="text-center text-xs text-slate-500 mt-4">
-                                    This will mark {scannedItems.length} passports as
+                                    This will activate (if needed) and mark {scannedItems.length} passports as
                                     <span className="text-amber-600 font-mono mx-1 font-medium">SHIPPED</span>
-                                    and record dispatch metadata.
+                                    and record dispatch evidence.
                                 </p>
                             </div>
                         </Card>

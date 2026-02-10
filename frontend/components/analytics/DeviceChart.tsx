@@ -1,6 +1,6 @@
 "use client"
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, type LegendPayload } from "recharts"
 
 interface DeviceChartProps {
     data: { device: string; count: number }[]
@@ -23,7 +23,7 @@ export function DeviceChart({ data }: DeviceChartProps) {
         name: item.device,
         value: item.count,
         color: DEVICE_COLORS[item.device] || DEVICE_COLORS.Unknown,
-        percentage: total > 0 ? ((item.count / total) * 100).toFixed(1) : 0,
+        percentage: total > 0 ? ((item.count / total) * 100).toFixed(1) : "0.0",
     }))
 
     return (
@@ -59,14 +59,17 @@ export function DeviceChart({ data }: DeviceChartProps) {
                         layout="vertical"
                         align="right"
                         verticalAlign="middle"
-                        formatter={(value, entry: any) => (
-                            <span className="text-zinc-300 text-sm">
-                                {value}{" "}
-                                <span className="text-zinc-500">
-                                    ({entry.payload?.percentage}%)
+                        formatter={(value, entry: LegendPayload) => {
+                            const percentage = (entry.payload as { percentage?: string } | undefined)?.percentage ?? "0.0"
+                            return (
+                                <span className="text-zinc-300 text-sm">
+                                    {value}{" "}
+                                    <span className="text-zinc-500">
+                                        ({percentage}%)
+                                    </span>
                                 </span>
-                            </span>
-                        )}
+                            )
+                        }}
                     />
                 </PieChart>
             </ResponsiveContainer>

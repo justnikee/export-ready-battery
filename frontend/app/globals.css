@@ -26,6 +26,7 @@
   /* Industrial Precision Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-heading: 'Lexend', sans-serif;
 
   /* Sidebar */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -424,4 +425,68 @@
     0 0 5px #f59e0b;
   opacity: 1;
   transform: rotate(3deg) translate(0, -4px);
+}
+
+/* ============================================
+   Custom Scrollbar Styling
+   ============================================ */
+
+/* Docs Sidebar - Ultra-thin Dark Theme Scrollbar */
+.docs-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 3px !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ============================================
+   Landing Page Animations
+   ============================================ */
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-slow-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-spin-slow-reverse {
+  animation: spin-slow-reverse 25s linear infinite;
+}
+
+/* Conic gradient utility */
+.bg-gradient-conic {
+  background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to));
 }

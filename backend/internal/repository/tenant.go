@@ -34,6 +34,7 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	query := `SELECT id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
 	          COALESCE(quota_balance, 2),
 	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
+	          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
 	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
 	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED'),
 	          COALESCE(onboarding_completed, FALSE)
@@ -51,6 +52,9 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 		&tenant.EPRRegistrationNumber,
 		&tenant.BISRNumber,
 		&tenant.IECCode,
+		&tenant.EUAuthorizedRepresentativeName,
+		&tenant.EUAuthorizedRepresentativeAddress,
+		&tenant.EUContactEmail,
 		&tenant.EPRCertificatePath,
 		&tenant.BISCertificatePath,
 		&tenant.PLICertificatePath,
@@ -78,14 +82,21 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		UPDATE public.tenants 
 		SET company_name = $2, address = $3, logo_url = $4, support_email = $5, website = $6,
 		    epr_registration_number = $7, bis_r_number = $8, iec_code = $9,
-		    onboarding_completed = $10
+		    eu_authorized_representative_name = $10,
+		    eu_authorized_representative_address = $11,
+		    eu_contact_email = $12,
+		    onboarding_completed = $13
 		WHERE id = $1 
 		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
-		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''), onboarding_completed`
+		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
+		          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
+		          onboarding_completed`
 
 	tenant := &models.Tenant{}
 	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
-		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode, onboardingComplete).Scan(
+		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode,
+		req.EUAuthorizedRepresentativeName, req.EUAuthorizedRepresentativeAddress, req.EUContactEmail,
+		onboardingComplete).Scan(
 		&tenant.ID,
 		&tenant.CompanyName,
 		&tenant.Address,
@@ -96,6 +107,9 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		&tenant.EPRRegistrationNumber,
 		&tenant.BISRNumber,
 		&tenant.IECCode,
+		&tenant.EUAuthorizedRepresentativeName,
+		&tenant.EUAuthorizedRepresentativeAddress,
+		&tenant.EUContactEmail,
 		&tenant.OnboardingCompleted,
 	)
 	if err != nil {
@@ -207,14 +221,8 @@ func (r *Repository) UpdateLogoURL(ctx context.Context, tenantID uuid.UUID, logo
 // GetTenantByEmail retrieves a tenant by email
 func (r *Repository) GetTenantByEmail(ctx context.Context, email string) (*models.Tenant, error) {
 	tenant := &models.Tenant{}
-	query := `SELECT id, company_name, email FROM public.tenants WHERE email = $1`
-
-	// Note: We might need to select more fields depending on usage,
-	// but for now ID is the most critical for checking existence.
-	// Since Tenant model structure in GetTenant selects many fields,
-	// let's stick to a minimal selection or ensure the struct supports partial population.
-	// Re-using the full selection query would be safer but heavier.
-	// For "linking" purposes, we just need ID.
+	// Only select what we scan to avoid column count mismatch
+	query := `SELECT id FROM public.tenants WHERE email = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, email).Scan(&tenant.ID)
 	if err != nil {

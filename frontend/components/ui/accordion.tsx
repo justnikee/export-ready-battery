@@ -69,7 +69,9 @@ const AccordionContent = React.forwardRef<
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
             >
-                <div className={cn("pb-4 pt-0 px-6 text-sm text-zinc-400", className)}>{children}</div>
+                <div ref={ref} className={cn("pb-4 pt-0 px-6 text-sm text-zinc-400", className)} {...props}>
+                    {children}
+                </div>
             </motion.div>
         )}
     </AnimatePresence>
@@ -87,27 +89,24 @@ const AccordionSingle = ({ children, className }: { children: React.ReactNode, c
     return (
         <div className={cn("space-y-4", className)}>
             {React.Children.map(children, (child) => {
-                if (React.isValidElement(child)) {
-                    const childElement = child as React.ReactElement<any>
+                if (React.isValidElement<AccordionItemProps>(child)) {
+                    const childElement = child
                     const value = childElement.props.value
 
                     return React.cloneElement(childElement, {
                         isOpen: openItem === value,
                         onToggle: () => handleToggle(value),
                         children: React.Children.map(childElement.props.children, (subChild) => {
-                            if (React.isValidElement(subChild)) {
-                                const subChildElement = subChild as React.ReactElement<any>
-                                if (subChildElement.type === AccordionTrigger) {
-                                    return React.cloneElement(subChildElement, {
-                                        onClick: () => handleToggle(value),
-                                        isOpen: openItem === value
-                                    })
-                                }
-                                if (subChildElement.type === AccordionContent) {
-                                    return React.cloneElement(subChildElement, {
-                                        isOpen: openItem === value
-                                    })
-                                }
+                            if (React.isValidElement<AccordionTriggerProps>(subChild) && subChild.type === AccordionTrigger) {
+                                return React.cloneElement(subChild, {
+                                    onClick: () => handleToggle(value),
+                                    isOpen: openItem === value
+                                })
+                            }
+                            if (React.isValidElement<AccordionContentProps>(subChild) && subChild.type === AccordionContent) {
+                                return React.cloneElement(subChild, {
+                                    isOpen: openItem === value
+                                })
                             }
                             return subChild
                         })

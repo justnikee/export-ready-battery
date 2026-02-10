@@ -74,7 +74,7 @@ export function DocsSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 shrink-0 border-r border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl sticky top-0 h-screen overflow-y-auto">
+        <aside className="w-64 shrink-0 border-r border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl sticky top-0 h-screen overflow-y-auto docs-scrollbar">
             <div className="py-6 px-4">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2 mb-8 group">

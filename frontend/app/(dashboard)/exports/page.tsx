@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
     Download,
     RefreshCw,
@@ -19,7 +19,6 @@ import {
     formatJobType,
     type ExportJob
 } from '@/lib/api/exports';
-import api from '@/lib/api';
 
 export default function ExportsPage() {
     const [exports, setExports] = useState<ExportJob[]>([]);
@@ -28,7 +27,7 @@ export default function ExportsPage() {
     const [page, setPage] = useState(0);
     const limit = 10;
 
-    const fetchExports = async () => {
+    const fetchExports = useCallback(async () => {
         setLoading(true);
         try {
             const data = await listExportJobs(limit, page * limit);
@@ -39,14 +38,14 @@ export default function ExportsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [limit, page]);
 
     // Track if there are pending jobs for polling
     const hasPendingJobs = exports.some(e => e.status === 'PENDING' || e.status === 'PROCESSING');
 
     useEffect(() => {
         fetchExports();
-    }, [page]);
+    }, [fetchExports]);
 
     // Separate effect for polling - runs when hasPendingJobs changes
     useEffect(() => {
@@ -58,7 +57,7 @@ export default function ExportsPage() {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [hasPendingJobs, page]);
+    }, [fetchExports, hasPendingJobs]);
 
     const handleDownload = async (job: ExportJob) => {
         if (!job.download_url) return;

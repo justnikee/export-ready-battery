@@ -27,7 +27,7 @@ COMMENT ON COLUMN public.batches.materials IS 'Material composition for EU compl
 -- First check current constraint and recreate if needed
 ALTER TABLE public.passports DROP CONSTRAINT IF EXISTS passports_status_check;
 ALTER TABLE public.passports ADD CONSTRAINT passports_status_check 
-    CHECK (status IN ('ACTIVE', 'RECALLED', 'RECYCLED', 'END_OF_LIFE'));
+    CHECK (status IN ('CREATED', 'ACTIVE', 'SHIPPED', 'IN_SERVICE', 'RECALLED', 'RECYCLED', 'END_OF_LIFE')) NOT VALID;
 
 -- 5. Ensure serial_number can accommodate BPAN format (21 chars: IN-NKY-LFP-2026-00001)
 -- VARCHAR(50) should be sufficient, but let's verify the column type

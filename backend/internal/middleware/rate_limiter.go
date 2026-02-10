@@ -16,6 +16,7 @@ type RateLimiter struct {
 	rate     rate.Limit
 	burst    int
 	cleanup  time.Duration
+	stopCh   chan struct{}
 }
 
 type visitorInfo struct {
@@ -32,6 +33,7 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 		rate:     r,
 		burst:    b,
 		cleanup:  time.Minute * 5,
+		stopCh:   make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
@@ -56,19 +58,30 @@ func (rl *RateLimiter) getVisitor(ip string) *rate.Limiter {
 	return v.limiter
 }
 
-// cleanupVisitors removes stale entries
+// cleanupVisitors removes stale entries; exits when stopCh is closed.
 func (rl *RateLimiter) cleanupVisitors() {
-	for {
-		time.Sleep(rl.cleanup)
+	ticker := time.NewTicker(rl.cleanup)
+	defer ticker.Stop()
 
-		rl.mu.Lock()
-		for ip, v := range rl.visitors {
-			if time.Since(v.lastSeen) > rl.cleanup {
-				delete(rl.visitors, ip)
+	for {
+		select {
+		case <-ticker.C:
+			rl.mu.Lock()
+			for ip, v := range rl.visitors {
+				if time.Since(v.lastSeen) > rl.cleanup {
+					delete(rl.visitors, ip)
+				}
 			}
+			rl.mu.Unlock()
+		case <-rl.stopCh:
+			return
 		}
-		rl.mu.Unlock()
 	}
+}
+
+// Stop shuts down the cleanup goroutine. Call during graceful shutdown.
+func (rl *RateLimiter) Stop() {
+	close(rl.stopCh)
 }
 
 // Limit is the middleware that applies rate limiting

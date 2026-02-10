@@ -43,7 +43,7 @@
 | UUID-based Passports | ✅ Auto-generated | ✅ Display | Unique per battery |
 | Public Passport Page | ✅ `passport_handlers.go` | ✅ `/p/[uuid]` | QR-scannable, no auth required |
 | Passport List | ✅ Paginated | ✅ In batch details | With pagination controls |
-| Status Management | ✅ ACTIVE/RECALLED/etc | ✅ Status badges | Visual indicators |
+| Status Management | ✅ Canonical lifecycle states | ✅ Status badges | Created/Active/Shipped/In Service/Recalled/Recycled/End of Life |
 
 ---
 
@@ -149,7 +149,7 @@
 
 | Feature | Description | Effort | Impact |
 |---------|-------------|--------|--------|
-| **Bulk Actions** | Multi-select batches for bulk delete, export, status change | Medium | High |
+| **Bulk Actions** | Multi-select batches for export/labels only (status change removed) | Medium | High |
 | **Advanced Filtering** | Filter batches by date range, status, market region | Medium | High |
 | **Batch Search** | Full-text search across batch names, serial numbers | Medium | High |
 
@@ -197,7 +197,7 @@
 3. **Advanced Filtering** - Date/status filters on batch list
 
 ### Medium Projects (1 week each)
-1. **Bulk Actions** - Multi-select UI + batch operations
+1. **Bulk Actions** - Multi-select UI + batch operations (export/labels only)
 2. **Email Notifications** - SendGrid/Resend integration for alerts
 3. **Export PDF Report** - Comprehensive batch summary
 

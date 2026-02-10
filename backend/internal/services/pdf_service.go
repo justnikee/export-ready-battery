@@ -47,8 +47,14 @@ const (
 	cellPadding = 2.0 // mm
 )
 
-// GenerateLabelSheet creates an A4 PDF with a grid of battery stickers
+// GenerateLabelSheet creates an A4 PDF with a grid of battery stickers.
+// Guarded to max 500 passports to prevent OOM; larger batches should use async export jobs.
 func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant) (*bytes.Buffer, error) {
+	const maxPassports = 500
+	if len(passports) > maxPassports {
+		return nil, fmt.Errorf("too many passports (%d); maximum is %d for synchronous generation — use async export jobs for larger batches", len(passports), maxPassports)
+	}
+
 	// Create new PDF in portrait A4
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetAutoPageBreak(false, 0)

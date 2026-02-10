@@ -6,10 +6,8 @@ import {
     Rocket,
     CheckCircle2,
     Terminal,
-    Settings,
     Globe,
     ArrowRight,
-    Copy,
     Zap
 } from 'lucide-react';
 import Link from 'next/link';

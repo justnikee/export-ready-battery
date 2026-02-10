@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Battery, AlertTriangle, CheckCircle, Zap } from "lucide-react"
+import { Battery, AlertTriangle, CheckCircle } from "lucide-react"
 import api from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -30,9 +30,10 @@ export function LiveBalanceBanner() {
                 console.error("Invalid balance data:", response.data)
                 setError("Invalid data received")
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Failed to fetch balance:", error)
-            setError(error.message || "Failed to load balance")
+            const apiError = error as { message?: string }
+            setError(apiError.message || "Failed to load balance")
         } finally {
             setLoading(false)
         }

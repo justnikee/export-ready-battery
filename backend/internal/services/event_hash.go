@@ -16,7 +16,15 @@ type EventHashData struct {
 	ID           uuid.UUID              `json:"id"`
 	PassportID   uuid.UUID              `json:"passport_id"`
 	EventType    string                 `json:"event_type"`
+	Action       string                 `json:"action,omitempty"`
 	Actor        string                 `json:"actor"`
+	ActorType    string                 `json:"actor_type,omitempty"`
+	ActorRole    string                 `json:"actor_role,omitempty"`
+	ActorID      string                 `json:"actor_identifier,omitempty"`
+	Source       string                 `json:"source,omitempty"`
+	StatusFrom   string                 `json:"status_from,omitempty"`
+	StatusTo     string                 `json:"status_to,omitempty"`
+	IPAddress    string                 `json:"ip_address,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	CreatedAt    time.Time              `json:"created_at"`
 	PreviousHash string                 `json:"previous_hash"`

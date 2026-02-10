@@ -2,70 +2,118 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { Mail, Linkedin, Twitter } from "lucide-react"
+
+const footerLinks = [
+    {
+        label: "Product",
+        items: [
+            { label: "Features", href: "/docs/features" },
+            { label: "Pricing", href: "/pricing" },
+            { label: "Docs", href: "/docs" },
+        ],
+    },
+    {
+        label: "Company",
+        items: [
+            { label: "About", href: "/about" },
+            { label: "Blog", href: "/blog" },
+            { label: "Careers", href: "/careers" },
+        ],
+    },
+    {
+        label: "Legal",
+        items: [
+            { label: "Privacy", href: "/privacy" },
+            { label: "Terms", href: "/terms" },
+        ],
+    },
+]
 
 export function CTAFooter() {
     return (
-        <section className="py-24 relative overflow-hidden">
-            {/* Gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A] via-blue-950/20 to-[#0F172A]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
-
-            <div className="container mx-auto px-4 relative">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="max-w-3xl mx-auto text-center"
-                >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 mb-8">
-                        <Sparkles className="h-4 w-4 text-teal-400" />
-                        <span className="text-sm font-medium text-teal-300">Free tier available</span>
-                    </div>
-
-                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                        Ready to simplify battery compliance?
-                    </h2>
-                    <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                        Join leading assemblers and importers preparing for the 2026 mandates today.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <Button
-                            asChild
-                            size="lg"
-                            className="h-14 px-10 text-lg bg-white text-slate-900 hover:bg-slate-100 font-semibold rounded-xl"
-                        >
-                            <Link href="/register">
-                                Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </Button>
-                        <Button
-                            asChild
-                            variant="outline"
-                            size="lg"
-                            className="h-14 px-10 text-lg bg-transparent border-slate-700 text-white hover:bg-slate-900 rounded-xl"
-                        >
-                            <Link href="/pricing">View Pricing</Link>
-                        </Button>
-                    </div>
-                </motion.div>
-
-                {/* Footer links */}
-                <div className="mt-24 pt-8 border-t border-slate-800">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-slate-600">
-                            © 2026 ExportReady. All rights reserved.
+        <>
+            {/* CTA Section - Primary brand color */}
+            <section className="py-24 bg-[#0B1F3B]">
+                <div className="mx-auto w-full max-w-6xl px-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="max-w-3xl mx-auto text-center"
+                    >
+                        <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-4">
+                            Compliance you don&apos;t have to explain.
+                        </h2>
+                        <p className="text-lg text-slate-300 mb-8">
+                            Your batteries are already regulated. The only question is whether your data is audit-ready.
                         </p>
-                        <div className="flex items-center gap-6">
-                            <Link href="/privacy" className="text-sm text-slate-500 hover:text-slate-400 transition-colors">Privacy</Link>
-                            <Link href="/terms" className="text-sm text-slate-500 hover:text-slate-400 transition-colors">Terms</Link>
-                            <Link href="/docs" className="text-sm text-slate-500 hover:text-slate-400 transition-colors">Documentation</Link>
+
+                        <Link
+                            href="/contact"
+                            className="inline-flex items-center justify-center bg-[#1F7A5F] px-10 py-4 text-base font-semibold text-white transition-all duration-200 hover:bg-white hover:text-[#0B1F3B]"
+                        >
+                            Book a Demo
+                        </Link>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Footer - BLACK as requested */}
+            <footer className="py-16 bg-black">
+                <div className="mx-auto w-full max-w-6xl px-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+                        {/* Brand */}
+                        <div className="col-span-2 md:col-span-1">
+                            <Link href="/" className="text-xl font-heading font-bold text-white">
+                                ExportLens
+                            </Link>
+                            <p className="text-sm text-slate-400 mt-3">
+                                Audit-grade battery passports for India and the EU.
+                            </p>
+                        </div>
+
+                        {/* Links */}
+                        {footerLinks.map((group, i) => (
+                            <div key={i}>
+                                <h4 className="text-sm font-semibold text-white mb-3">
+                                    {group.label}
+                                </h4>
+                                <ul className="space-y-2">
+                                    {group.items.map((item, j) => (
+                                        <li key={j}>
+                                            <Link
+                                                href={item.href}
+                                                className="text-sm text-slate-400 hover:text-[#1F7A5F] transition-colors"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Bottom */}
+                    <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-slate-800">
+                        <p className="text-sm text-slate-500">
+                            © {new Date().getFullYear()} ExportLens. All rights reserved.
+                        </p>
+                        <div className="flex items-center gap-4 mt-4 md:mt-0">
+                            <Link href="mailto:hello@exportlens.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                                <Mail className="h-5 w-5" />
+                            </Link>
+                            <Link href="https://linkedin.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                                <Linkedin className="h-5 w-5" />
+                            </Link>
+                            <Link href="https://twitter.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                                <Twitter className="h-5 w-5" />
+                            </Link>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </footer>
+        </>
     )
 }

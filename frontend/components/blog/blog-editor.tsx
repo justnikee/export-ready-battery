@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Save, Trash, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface BlogEditorProps {
     post?: BlogPost;
@@ -45,6 +46,7 @@ export default function BlogEditor({ post, isNew = false }: BlogEditorProps) {
     });
 
     const [currentTag, setCurrentTag] = useState('');
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -98,7 +100,7 @@ export default function BlogEditor({ post, isNew = false }: BlogEditorProps) {
 
     const handleDelete = async () => {
         if (!post || isNew) return;
-        if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) return;
+        setConfirmDelete(false);
 
         setLoading(true);
         try {
@@ -111,206 +113,219 @@ export default function BlogEditor({ post, isNew = false }: BlogEditorProps) {
                 toast.error(result.error);
                 setLoading(false);
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete post');
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto pb-10">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/blog">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
+        <>
+            <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto pb-10">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Link href="/admin/blog">
+                            <Button variant="ghost" size="icon">
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight">
+                                {isNew ? 'Create New Post' : 'Edit Post'}
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                {isNew ? 'Draft a new blog post.' : `Editing: ${post?.title}`}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        {!isNew && (
+                            <Button type="button" variant="destructive" size="icon" onClick={() => setConfirmDelete(true)} disabled={loading}>
+                                <Trash className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <Button type="submit" disabled={loading}>
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Post
                         </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            {isNew ? 'Create New Post' : 'Edit Post'}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {isNew ? 'Draft a new blog post.' : `Editing: ${post?.title}`}
-                        </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    {!isNew && (
-                        <Button type="button" variant="destructive" size="icon" onClick={handleDelete} disabled={loading}>
-                            <Trash className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <Button type="submit" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Post
-                    </Button>
-                </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <CardContent className="pt-6 space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Post Title</Label>
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    placeholder="Enter post title"
-                                    value={formData.title}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="slug">Slug (URL)</Label>
-                                <Input
-                                    id="slug"
-                                    name="slug"
-                                    placeholder="url-friendly-slug"
-                                    value={formData.slug}
-                                    onChange={handleChange}
-                                />
-                                <p className="text-xs text-muted-foreground">Leave empty to auto-generate from title.</p>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="excerpt">Excerpt</Label>
-                                <Textarea
-                                    id="excerpt"
-                                    name="excerpt"
-                                    placeholder="Short summary for SEO and previews"
-                                    value={formData.excerpt}
-                                    onChange={handleChange}
-                                    rows={3}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="content">Content (Markdown)</Label>
-                                <div className="border rounded-md">
-                                    <Textarea
-                                        id="content"
-                                        name="content"
-                                        placeholder="# Write your masterpiece..."
-                                        value={formData.content}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Main Content */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Card>
+                            <CardContent className="pt-6 space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="title">Post Title</Label>
+                                    <Input
+                                        id="title"
+                                        name="title"
+                                        placeholder="Enter post title"
+                                        value={formData.title}
                                         onChange={handleChange}
-                                        className="min-h-[500px] border-0 focus-visible:ring-0 resize-y font-mono"
+                                        required
                                     />
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Supports Markdown. create tables, lists, and code blocks.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
 
-                    <Card>
-                        <CardContent className="pt-6 space-y-4">
-                            <h3 className="font-medium">SEO Settings</h3>
-                            <div className="space-y-2">
-                                <Label htmlFor="seo_title">SEO Title</Label>
-                                <Input
-                                    id="seo_title"
-                                    name="seo_title"
-                                    placeholder="Title for search engines (optional)"
-                                    value={formData.seo_title}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="seo_description">SEO Description</Label>
-                                <Textarea
-                                    id="seo_description"
-                                    name="seo_description"
-                                    placeholder="Meta description (optional)"
-                                    value={formData.seo_description}
-                                    onChange={handleChange}
-                                    rows={2}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-6">
-                    <Card>
-                        <CardContent className="pt-6 space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select
-                                    value={formData.status}
-                                    onValueChange={(val) => handleSelectChange('status', val)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="draft">Draft</SelectItem>
-                                        <SelectItem value="published">Published</SelectItem>
-                                        <SelectItem value="archived">Archived</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Category</Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(val) => handleSelectChange('category', val)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Compliance">Compliance</SelectItem>
-                                        <SelectItem value="Product">Product Updates</SelectItem>
-                                        <SelectItem value="Industry">Industry News</SelectItem>
-                                        <SelectItem value="Engineering">Engineering</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Tags</Label>
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                    {formData.tags.map(tag => (
-                                        <Badge key={tag} variant="secondary" className="px-2 py-1 flex items-center gap-1">
-                                            {tag}
-                                            <X
-                                                className="h-3 w-3 cursor-pointer hover:text-destructive"
-                                                onClick={() => removeTag(tag)}
-                                            />
-                                        </Badge>
-                                    ))}
+                                <div className="space-y-2">
+                                    <Label htmlFor="slug">Slug (URL)</Label>
+                                    <Input
+                                        id="slug"
+                                        name="slug"
+                                        placeholder="url-friendly-slug"
+                                        value={formData.slug}
+                                        onChange={handleChange}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Leave empty to auto-generate from title.</p>
                                 </div>
-                                <Input
-                                    placeholder="Type tag and press Enter"
-                                    value={currentTag}
-                                    onChange={(e) => setCurrentTag(e.target.value)}
-                                    onKeyDown={handleAddTag}
-                                />
-                            </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="cover_image">Cover Image URL</Label>
-                                <Input
-                                    id="cover_image"
-                                    name="cover_image"
-                                    placeholder="https://..."
-                                    value={formData.cover_image}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <div className="space-y-2">
+                                    <Label htmlFor="excerpt">Excerpt</Label>
+                                    <Textarea
+                                        id="excerpt"
+                                        name="excerpt"
+                                        placeholder="Short summary for SEO and previews"
+                                        value={formData.excerpt}
+                                        onChange={handleChange}
+                                        rows={3}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="content">Content (Markdown)</Label>
+                                    <div className="border rounded-md">
+                                        <Textarea
+                                            id="content"
+                                            name="content"
+                                            placeholder="# Write your masterpiece..."
+                                            value={formData.content}
+                                            onChange={handleChange}
+                                            className="min-h-[500px] border-0 focus-visible:ring-0 resize-y font-mono"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Supports Markdown. create tables, lists, and code blocks.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardContent className="pt-6 space-y-4">
+                                <h3 className="font-medium">SEO Settings</h3>
+                                <div className="space-y-2">
+                                    <Label htmlFor="seo_title">SEO Title</Label>
+                                    <Input
+                                        id="seo_title"
+                                        name="seo_title"
+                                        placeholder="Title for search engines (optional)"
+                                        value={formData.seo_title}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="seo_description">SEO Description</Label>
+                                    <Textarea
+                                        id="seo_description"
+                                        name="seo_description"
+                                        placeholder="Meta description (optional)"
+                                        value={formData.seo_description}
+                                        onChange={handleChange}
+                                        rows={2}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="space-y-6">
+                        <Card>
+                            <CardContent className="pt-6 space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="status">Status</Label>
+                                    <Select
+                                        value={formData.status}
+                                        onValueChange={(val) => handleSelectChange('status', val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="draft">Draft</SelectItem>
+                                            <SelectItem value="published">Published</SelectItem>
+                                            <SelectItem value="archived">Archived</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="category">Category</Label>
+                                    <Select
+                                        value={formData.category}
+                                        onValueChange={(val) => handleSelectChange('category', val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Compliance">Compliance</SelectItem>
+                                            <SelectItem value="Product">Product Updates</SelectItem>
+                                            <SelectItem value="Industry">Industry News</SelectItem>
+                                            <SelectItem value="Engineering">Engineering</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Tags</Label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {formData.tags.map(tag => (
+                                            <Badge key={tag} variant="secondary" className="px-2 py-1 flex items-center gap-1">
+                                                {tag}
+                                                <X
+                                                    className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                                    onClick={() => removeTag(tag)}
+                                                />
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <Input
+                                        placeholder="Type tag and press Enter"
+                                        value={currentTag}
+                                        onChange={(e) => setCurrentTag(e.target.value)}
+                                        onKeyDown={handleAddTag}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="cover_image">Cover Image URL</Label>
+                                    <Input
+                                        id="cover_image"
+                                        name="cover_image"
+                                        placeholder="https://..."
+                                        value={formData.cover_image}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+
+            {/* Confirmation Dialog */}
+            <ConfirmDialog
+                open={confirmDelete}
+                onOpenChange={setConfirmDelete}
+                title="Delete this post?"
+                description="This action cannot be undone. The post will be permanently deleted."
+                confirmText="Delete Post"
+                variant="destructive"
+                onConfirm={handleDelete}
+            />
+        </>
     );
 }

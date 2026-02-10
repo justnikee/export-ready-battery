@@ -4,11 +4,23 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// getBcryptCost returns the bcrypt cost from BCRYPT_COST env var, defaulting to bcrypt.DefaultCost.
+func getBcryptCost() int {
+	if v := os.Getenv("BCRYPT_COST"); v != "" {
+		if c, err := strconv.Atoi(v); err == nil && c >= bcrypt.MinCost && c <= bcrypt.MaxCost {
+			return c
+		}
+	}
+	return bcrypt.DefaultCost
+}
 
 var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
@@ -41,7 +53,7 @@ type Claims struct {
 
 // HashPassword hashes a password using bcrypt
 func (s *AuthService) HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), getBcryptCost())
 	if err != nil {
 		return "", err
 	}

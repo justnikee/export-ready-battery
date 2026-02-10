@@ -10,6 +10,7 @@ import (
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
+	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -20,15 +21,18 @@ import (
 
 // ExternalCreateBatchRequest is the request for creating a batch via external API
 type ExternalCreateBatchRequest struct {
-	BatchName        string           `json:"batch_name"`
-	MarketRegion     string           `json:"market_region"`
-	Specs            models.BatchSpec `json:"specs"`
-	PLICompliant     bool             `json:"pli_compliant,omitempty"`
-	DomesticValueAdd float64          `json:"domestic_value_add,omitempty"`
-	CellSource       string           `json:"cell_source,omitempty"`
-	BillOfEntryNo    string           `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin  string           `json:"country_of_origin,omitempty"`
-	CustomsDate      string           `json:"customs_date,omitempty"`
+	BatchName              string           `json:"batch_name"`
+	ModelName              string           `json:"model_name,omitempty"`
+	MarketRegion           string           `json:"market_region"`
+	Specs                  models.BatchSpec `json:"specs"`
+	PLICompliant           bool             `json:"pli_compliant,omitempty"`
+	DomesticValueAdd       float64          `json:"domestic_value_add,omitempty"`
+	CellSource             string           `json:"cell_source,omitempty"`
+	BillOfEntryNo          string           `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin        string           `json:"country_of_origin,omitempty"`
+	CustomsDate            string           `json:"customs_date,omitempty"`
+	ManufacturingStartDate string           `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   string           `json:"manufacturing_end_date,omitempty"`
 }
 
 // ExternalCreatePassportsRequest is the request for adding passports via external API
@@ -86,18 +90,45 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		customsDate = &parsed
 	}
 
+	// Parse manufacturing window if provided
+	var manufacturingStart *time.Time
+	var manufacturingEnd *time.Time
+	if req.ManufacturingStartDate != "" {
+		parsed, err := time.Parse("2006-01-02", req.ManufacturingStartDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid manufacturing_start_date format. Use YYYY-MM-DD")
+			return
+		}
+		manufacturingStart = &parsed
+	}
+	if req.ManufacturingEndDate != "" {
+		parsed, err := time.Parse("2006-01-02", req.ManufacturingEndDate)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid manufacturing_end_date format. Use YYYY-MM-DD")
+			return
+		}
+		manufacturingEnd = &parsed
+	}
+	if manufacturingStart != nil && manufacturingEnd != nil && manufacturingEnd.Before(*manufacturingStart) {
+		respondError(w, http.StatusBadRequest, "manufacturing_end_date must be on or after manufacturing_start_date")
+		return
+	}
+
 	// Create batch using repository request struct
 	createReq := repository.CreateBatchRequest{
-		TenantID:         tenantID,
-		BatchName:        req.BatchName,
-		Specs:            req.Specs,
-		MarketRegion:     marketRegion,
-		PLICompliant:     req.PLICompliant,
-		DomesticValueAdd: req.DomesticValueAdd,
-		CellSource:       req.CellSource,
-		BillOfEntryNo:    req.BillOfEntryNo,
-		CountryOfOrigin:  req.CountryOfOrigin,
-		CustomsDate:      customsDate,
+		TenantID:               tenantID,
+		BatchName:              req.BatchName,
+		ModelName:              req.ModelName,
+		Specs:                  req.Specs,
+		MarketRegion:           marketRegion,
+		PLICompliant:           req.PLICompliant,
+		DomesticValueAdd:       req.DomesticValueAdd,
+		CellSource:             req.CellSource,
+		ManufacturingStartDate: manufacturingStart,
+		ManufacturingEndDate:   manufacturingEnd,
+		BillOfEntryNo:          req.BillOfEntryNo,
+		CountryOfOrigin:        req.CountryOfOrigin,
+		CustomsDate:            customsDate,
 	}
 
 	batch, err := h.repo.CreateBatch(r.Context(), createReq)
@@ -158,6 +189,28 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Enforce activation before passport creation
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be ACTIVE before creating passports")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+
+	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
+		return
+	}
+
+	actor := "api"
+	actorType := "SYSTEM"
+	ownerIdentifier := resolveOwnerIdentifier(tenant)
+
 	// Check for duplicate serial numbers in request
 	serialNumbers := make([]string, len(req.Passports))
 	seen := make(map[string]bool)
@@ -192,25 +245,41 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 	// Create passports
 	passports := make([]*models.Passport, len(req.Passports))
 	for i, p := range req.Passports {
+		if p.ManufactureDate == "" {
+			respondError(w, http.StatusBadRequest, fmt.Sprintf("Passport at index %d missing manufacture_date", i))
+			return
+		}
 		manufDate, err := time.Parse("2006-01-02", p.ManufactureDate)
 		if err != nil {
-			// Default to today
-			manufDate = time.Now()
+			respondError(w, http.StatusBadRequest, fmt.Sprintf("Invalid manufacture_date at index %d (expected YYYY-MM-DD)", i))
+			return
 		}
 
 		passports[i] = &models.Passport{
-			UUID:            uuid.New(),
-			BatchID:         batchID,
-			SerialNumber:    p.SerialNumber,
-			ManufactureDate: manufDate,
-			Status:          "ACTIVE",
-			CreatedAt:       time.Now(),
+			UUID:                   uuid.New(),
+			BatchID:                batchID,
+			SerialNumber:           p.SerialNumber,
+			ManufactureDate:        manufDate,
+			Status:                 models.PassportStatusCreated,
+			CreatedAt:              time.Now(),
+			BatchSnapshot:          snapshot,
+			CurrentOwnerIdentifier: ownerIdentifier,
+		}
+		if history, err := services.BuildInitialOwnershipHistory(ownerIdentifier, actor, "API", passports[i].CreatedAt); err == nil {
+			passports[i].OwnershipHistory = history
 		}
 	}
 
-	created, err := h.repo.CreatePassportsBatch(r.Context(), passports)
+	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "API")
 	if err != nil {
-		log.Printf("External API: Failed to create passports: %v", err)
+		log.Printf("External API: Failed to build genesis events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
+		return
+	}
+
+	created, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
+	if err != nil {
+		log.Printf("External API: Failed to create passports with audit events: %v", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create passports")
 		return
 	}

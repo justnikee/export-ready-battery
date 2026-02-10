@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2, ExternalLink } from "lucide-react"
+import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 
@@ -55,7 +54,6 @@ interface NewKeyResponse extends APIKey {
 }
 
 export default function DeveloperPage() {
-    const { user } = useAuth()
     const [apiKeys, setApiKeys] = useState<APIKey[]>([])
     const [loading, setLoading] = useState(true)
     const [creating, setCreating] = useState(false)
@@ -69,6 +67,13 @@ export default function DeveloperPage() {
     const [keyName, setKeyName] = useState("")
     const [keyScope, setKeyScope] = useState("read")
     const [keyTier, setKeyTier] = useState("starter")
+
+    const toApiError = (error: unknown): { response?: { data?: { error?: string } } } => {
+        if (typeof error === "object" && error !== null) {
+            return error as { response?: { data?: { error?: string } } }
+        }
+        return {}
+    }
 
     useEffect(() => {
         fetchAPIKeys()
@@ -109,8 +114,9 @@ export default function DeveloperPage() {
             setKeyName("")
             setKeyScope("read")
             setKeyTier("starter")
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Failed to create API key")
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            toast.error(apiError.response?.data?.error || "Failed to create API key")
         } finally {
             setCreating(false)
         }
@@ -123,8 +129,9 @@ export default function DeveloperPage() {
             await api.delete(`/api-keys/${deleteTarget.id}`)
             toast.success("API key deleted")
             fetchAPIKeys()
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "Failed to delete API key")
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            toast.error(apiError.response?.data?.error || "Failed to delete API key")
         } finally {
             setDeleteTarget(null)
         }

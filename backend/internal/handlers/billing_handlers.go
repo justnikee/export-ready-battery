@@ -8,6 +8,7 @@ import (
 
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -177,6 +178,22 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	// Check if already active
 	if batch.Status == models.BatchStatusActive {
 		respondError(w, http.StatusBadRequest, "Batch is already active")
+		return
+	}
+
+	// Compliance hard-block at activation
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+	compliance := services.ValidateActivationCompliance(batch, tenant)
+	if !compliance.Valid {
+		respondJSON(w, http.StatusForbidden, map[string]interface{}{
+			"error":   "Compliance requirements missing or invalid. Activation blocked.",
+			"missing": compliance.Missing,
+			"errors":  compliance.Errors,
+		})
 		return
 	}
 

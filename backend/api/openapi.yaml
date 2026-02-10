@@ -275,7 +275,7 @@ paths:
   /passports/{uuid}/transition:
     post:
       tags: [Passports]
-      summary: Transition passport status
+      summary: Apply passport lifecycle action
       security:
         - bearerAuth: []
       parameters:
@@ -291,18 +291,17 @@ paths:
           application/json:
             schema:
               type: object
-              required: [to_status]
+              required: [action]
               properties:
-                to_status:
-                  type: string
-                  enum: [shipped, installed, in_use, returned, recalled, end_of_life]
-                metadata:
-                  type: object
+                action:
+                  $ref: '#/components/schemas/TransitionAction'
+                evidence:
+                  $ref: '#/components/schemas/TransitionEvidence'
       responses:
         '200':
-          description: Transition successful
+          description: Action applied successfully
         '400':
-          description: Invalid transition
+          description: Invalid action
 
   /passports/{uuid}/events:
     get:
@@ -883,7 +882,7 @@ components:
         serial_number:
           type: string
         status:
-          type: string
+          $ref: '#/components/schemas/PassportStatus'
         batch_name:
           type: string
         specs:
@@ -891,16 +890,92 @@ components:
         tenant:
           type: object
 
+    PassportStatus:
+      type: string
+      enum:
+        - CREATED
+        - ACTIVE
+        - SHIPPED
+        - IN_SERVICE
+        - RECYCLED
+        - END_OF_LIFE
+        - RECALLED
+
+    TransitionAction:
+      type: string
+      enum:
+        - ACTIVATE
+        - SHIP
+        - INSTALL
+        - RECYCLE
+        - CLOSE
+        - RECALL
+
+    TransitionEvidence:
+      type: object
+      description: |
+        Structured evidence fields. Required by action:
+        - SHIP: shipment_reference, shipment_date
+        - INSTALL: installation_date, installer_id
+        - RECYCLE: recycler_epr_id, recycling_date, certificate_reference
+        - RECALL: recall_reason, recall_reference
+      additionalProperties:
+        type: string
+
+    ActorType:
+      type: string
+      enum:
+        - SYSTEM
+        - USER
+        - PARTNER
+
+    ActorRole:
+      type: string
+      enum:
+        - SYSTEM
+        - INTERNAL_OPERATOR
+        - LOGISTICS
+        - TECHNICIAN
+        - RECYCLER
+        - ADMIN
+
+    ActionSource:
+      type: string
+      enum:
+        - INTERNAL
+        - MAGIC_LINK
+
     PassportEvent:
       type: object
       properties:
         id:
           type: string
           format: uuid
+        passport_id:
+          type: string
+          format: uuid
         event_type:
           type: string
+        action:
+          $ref: '#/components/schemas/TransitionAction'
         actor:
           type: string
+        actor_type:
+          $ref: '#/components/schemas/ActorType'
+        actor_role:
+          $ref: '#/components/schemas/ActorRole'
+        actor_identifier:
+          type: string
+        source:
+          $ref: '#/components/schemas/ActionSource'
+        status_from:
+          type: string
+        status_to:
+          type: string
+        ip_address:
+          type: string
+        metadata:
+          type: object
         created_at:
           type: string
           format: date-time

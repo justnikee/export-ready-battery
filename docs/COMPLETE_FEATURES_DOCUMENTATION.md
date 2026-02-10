@@ -193,7 +193,7 @@ graph TB
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| `GET` | `/api/v1/passports/{uuid}` | Get public passport data | ❌ |
+| `GET` | `/api/v1/p/{uuid}` | Get public passport data | ❌ |
 
 ---
 
@@ -201,21 +201,23 @@ graph TB
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| `GET` | `/api/v1/passports/{uuid}/transitions` | Get allowed status transitions | ✅ |
-| `POST` | `/api/v1/passports/{uuid}/transition` | Transition passport status | ✅ |
-| `POST` | `/api/v1/passports/bulk/transition` | Bulk status transition | ✅ |
+| `GET` | `/api/v1/passports/{uuid}/transitions` | Get allowed lifecycle actions | ✅ |
+| `POST` | `/api/v1/passports/{uuid}/transition` | Apply lifecycle action | ✅ |
+| `POST` | `/api/v1/passports/bulk/transition` | Bulk lifecycle action | ✅ |
 | `GET` | `/api/v1/passports/{uuid}/events` | Get passport audit trail | ✅ |
 
 #### Transition Request
 ```json
 {
-  "to_status": "SHIPPED",
-  "metadata": {
-    "carrier": "FedEx",
-    "tracking": "1234567890"
+  "action": "SHIP",
+  "evidence": {
+    "shipment_reference": "INV-2026-001",
+    "shipment_date": "2026-02-08"
   }
 }
 ```
+
+Note: status or metadata fields are rejected. Use action + evidence only.
 
 ---
 
@@ -227,12 +229,15 @@ graph TB
 | `GET` | `/api/v1/passport/{uuid}/action-info` | Get action info (with token) | Token |
 | `POST` | `/api/v1/passport/{uuid}/transition` | Complete transition via magic link | Token |
 
+Note: magic link tokens are single-use, action-bound, and role-bound.
+
 #### Magic Link Request
 ```json
 {
   "passport_id": "uuid",
   "email": "mechanic@company.com",
   "role": "TECHNICIAN",
+  "action": "INSTALL",
   "partner_code": "INSTALL-2026"
 }
 ```
@@ -354,7 +359,7 @@ type Passport struct {
     BatchID         uuid.UUID
     SerialNumber    string     // Supports BPAN: IN-NKY-LFP-2026-00001
     ManufactureDate time.Time
-    Status          string     // CREATED, SHIPPED, IN_SERVICE, RETURN_REQUESTED, RETURNED, RECALLED, RECYCLED, END_OF_LIFE
+    Status          string     // CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, END_OF_LIFE, RECALLED
     CreatedAt       time.Time
     
     // Lifecycle tracking
@@ -397,7 +402,7 @@ type Template struct {
 type PassportEvent struct {
     ID         uuid.UUID
     PassportID uuid.UUID
-    EventType  string  // CREATED, SHIPPED, INSTALLED, RETURN_REQUESTED, RETURNED, RECALLED, RECYCLED
+    EventType  string  // CREATED, STATUS_CHANGED, SHIPPED, INSTALLED, RECALLED, RECYCLED, END_OF_LIFE
     Actor      string  // Email of person who triggered
     Metadata   map[string]interface{}
     CreatedAt  time.Time
@@ -800,42 +805,42 @@ Tenants have a `quota_balance` field. Each activation consumes 1 quota unit.
 ```mermaid
 stateDiagram-v2
     [*] --> CREATED
-    CREATED --> SHIPPED
+    CREATED --> ACTIVE
+    ACTIVE --> SHIPPED
+    ACTIVE --> RECALLED
     SHIPPED --> IN_SERVICE
-    SHIPPED --> RETURN_REQUESTED
     SHIPPED --> RECALLED
-    IN_SERVICE --> RETURN_REQUESTED
-    IN_SERVICE --> RECALLED
     IN_SERVICE --> RECYCLED
-    RETURN_REQUESTED --> RETURNED
-    RETURN_REQUESTED --> IN_SERVICE
-    RETURNED --> RECYCLED
-    RETURNED --> SHIPPED
+    IN_SERVICE --> RECALLED
     RECALLED --> RECYCLED
+    RECALLED --> END_OF_LIFE
     RECYCLED --> END_OF_LIFE
     END_OF_LIFE --> [*]
 ```
 
-### 10.2 Valid Transitions
+### 10.2 Valid Actions
 
-| From Status | Allowed Transitions |
-|-------------|---------------------|
-| `CREATED` | SHIPPED |
-| `SHIPPED` | IN_SERVICE, RETURN_REQUESTED, RECALLED |
-| `IN_SERVICE` | RETURN_REQUESTED, RECALLED, RECYCLED |
-| `RETURN_REQUESTED` | RETURNED, IN_SERVICE |
-| `RETURNED` | RECYCLED, SHIPPED |
-| `RECALLED` | RECYCLED |
-| `RECYCLED` | END_OF_LIFE |
+| Action | Allowed From | To Status |
+|--------|--------------|-----------|
+| `ACTIVATE` | `CREATED` | `ACTIVE` |
+| `SHIP` | `ACTIVE` | `SHIPPED` |
+| `INSTALL` | `SHIPPED` | `IN_SERVICE` |
+| `RECYCLE` | `IN_SERVICE` | `RECYCLED` |
+| `CLOSE` | `RECYCLED` | `END_OF_LIFE` |
+| `RECALL` | `ACTIVE`, `SHIPPED`, `IN_SERVICE` | `RECALLED` |
 
-### 10.3 Role-Based Permissions
+### 10.3 Role-Based Permissions (Enforced)
 
-| Role | Allowed Transitions |
-|------|---------------------|
-| `MANUFACTURER` | CREATED→SHIPPED, RETURNED→RECYCLED/SHIPPED |
-| `LOGISTICS` | SHIPPED→IN_SERVICE |
-| `TECHNICIAN` | SHIPPED→IN_SERVICE, IN_SERVICE→RETURN_REQUESTED |
-| `RECYCLER` | Any→RECYCLED |
+Role enforcement is active. Each action is restricted to specific actor roles:
+
+| Action | Allowed Roles |
+| --- | --- |
+| ACTIVATE | SYSTEM |
+| SHIP | INTERNAL_OPERATOR, LOGISTICS |
+| INSTALL | TECHNICIAN |
+| RECYCLE | RECYCLER |
+| CLOSE | SYSTEM |
+| RECALL | ADMIN |
 
 ### 10.4 Event Logging
 Every transition creates an immutable `PassportEvent`:
@@ -843,7 +848,7 @@ Every transition creates an immutable `PassportEvent`:
 type PassportEvent struct {
     ID         uuid.UUID
     PassportID uuid.UUID
-    EventType  string    // SHIPPED, INSTALLED, RETURN_REQUESTED, etc.
+    EventType  string    // SHIPPED, INSTALLED, RECALLED, RECYCLED, etc.
     Actor      string    // Email of person who made change
     Metadata   map[string]interface{}
     CreatedAt  time.Time
@@ -902,7 +907,7 @@ One-time or limited-use codes for unknown emails:
 **Route:** `/p/[uuid]/action?token=...`
 
 Features:
-- Shows allowed transitions based on current status
+- Shows allowed actions based on current status
 - Partner code input for unverified users
 - Metadata fields (VIN, tracking number, reason)
 - Confetti celebration on success 🎉
@@ -920,7 +925,7 @@ Incentivize mechanics and partners to update battery lifecycle data.
 | Action | Points |
 |--------|--------|
 | Install battery (`IN_SERVICE`) | +50 |
-| Return request (`RETURN_REQUESTED`) | +20 |
+| Return scan (`SCAN_RETURN`) | +20 |
 | Recycle battery (`RECYCLED`) | +100 |
 
 ### 12.3 Loyalty Levels
@@ -974,8 +979,8 @@ The passport view dynamically renders based on market region:
 | Component | Purpose |
 |-----------|---------|
 | `GlowCard` | Animated gradient border wrapper |
-| `StatusBadge` | ACTIVE/RECALLED/RECYCLED status |
-| `MarketBadge` | 🇮🇳 PLI / 🇪🇺 EU Compliant |
+| StatusBadge | Created/Active/Shipped/In Service/Recalled/Recycled/End of Life |
+| MarketBadge | India PLI / EU Compliant |
 | `VerifiedBadge` | Authenticity verification |
 | `SpecCard` | Technical specification display |
 | `GlowProgress` | Animated progress bar |
@@ -1121,4 +1126,9 @@ npm run start         # Production server
 
 *Document generated: January 25, 2026*
 *Version: 3.0*
+
+
+
+
+
 

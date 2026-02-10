@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Source_Sans_3 } from "next/font/google";
+
 import "./globals.css";
 import "flag-icons/css/flag-icons.min.css";
 
-// Source Sans 3 - Clean, professional body font
+import { Source_Sans_3, Inter, JetBrains_Mono, Lexend } from "next/font/google"; // Source Sans 3 - Clean, professional body font
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-source-sans",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
 });
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
+const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend", display: "swap" });
 
 import { Providers } from "@/components/providers";
 
@@ -26,25 +30,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Lexend - Trust & Authority heading font */}
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
-        />
         {/* Razorpay Checkout Script */}
         <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
       </head>
       <body
-        className={`${sourceSans.variable} font-sans antialiased`}
+        className={`${sourceSans.variable} ${inter.variable} ${jetbrainsMono.variable} ${lexend.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

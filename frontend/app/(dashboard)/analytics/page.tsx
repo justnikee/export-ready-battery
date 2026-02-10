@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
         todayScans: 0,
     })
 
-    const fetchAnalytics = async (showRefresh = false) => {
+    const fetchAnalytics = useCallback(async (showRefresh = false) => {
         if (!user) return
         if (showRefresh) setRefreshing(true)
 
@@ -94,14 +94,14 @@ export default function AnalyticsPage() {
             setLoading(false)
             setRefreshing(false)
         }
-    }
+    }, [user])
 
     useEffect(() => {
         fetchAnalytics()
         // Auto-refresh every 30 seconds
         const interval = setInterval(() => fetchAnalytics(), 30000)
         return () => clearInterval(interval)
-    }, [user?.tenant_id])
+    }, [fetchAnalytics])
 
     // Calculate unique countries
     const uniqueCountries = data.countryBreakdown.length
