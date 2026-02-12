@@ -45,6 +45,9 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
 
+  /* New Design System Colors */
+  /* Reverted */
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -84,8 +87,8 @@
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
 
-  /* Primary: Dark Gray (Serious, Professional) */
-  --primary: #0F172A;
+  /* Primary: Deep Navy (Audit Ready) */
+  --primary: #111827;
   /* Slate-900 for buttons */
   --primary-foreground: #FFFFFF;
 
@@ -136,6 +139,8 @@
   --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
   --sidebar-ring: #0F172A;
+
+
 }
 
 /* Dark mode disabled for Enterprise */

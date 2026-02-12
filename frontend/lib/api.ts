@@ -53,6 +53,8 @@ api.interceptors.response.use(
           if (response.data.token) {
             // Update tokens
             localStorage.setItem('token', response.data.token);
+            // Sync cookie so Next.js middleware sees the fresh token
+            document.cookie = `auth_token=${response.data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
             // Update defaults and original request
             api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
             originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;

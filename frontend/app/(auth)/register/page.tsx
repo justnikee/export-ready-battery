@@ -4,8 +4,8 @@ import { RegisterForm } from "@/components/auth/register-form"
 export default function RegisterPage() {
     return (
         <AuthLayout
-            title="Create your account"
-            subtitle="Start your free trial and get started in minutes"
+            title="Get started with ExportLens"
+            subtitle="Set up your battery passport workspace in under 2 minutes"
             type="register"
         >
             <RegisterForm />

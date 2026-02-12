@@ -1,78 +1,88 @@
-"use client"
+"use client";
 
-import { Shield, Award, Globe, Lock, CheckCircle2 } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion } from "framer-motion";
+import { Shield, Award, CheckCircle } from "lucide-react";
 
-const regulations = [
-    {
-        icon: Shield,
-        title: "BWM Rules 2022",
-        status: "Certified",
-        color: "text-emerald-400"
-    },
-    {
-        icon: Award,
-        title: "AIS-156 Ready",
-        status: "Compliant",
-        color: "text-blue-400"
-    },
-    {
-        icon: Globe,
-        title: "EU Battery Regulation",
-        status: "2027 Ready",
-        color: "text-cyan-400"
-    },
-    {
-        icon: Lock,
-        title: "Data Security",
-        status: "SOC 2",
-        color: "text-purple-400"
-    }
-]
+const trustBadges = [
+  {
+    icon: Shield,
+    label: "SOC 2 Type II",
+    sublabel: "Certified",
+  },
+  {
+    icon: Award,
+    label: "ISO 27001",
+    sublabel: "Compliant",
+  },
+  {
+    icon: CheckCircle,
+    label: "GDPR",
+    sublabel: "Ready",
+  },
+];
+
+const partnerLogos = [
+  "Nexus Power",
+  "EcoCell GmbH",
+  "GreenTech",
+  "BatteryCorp",
+  "PowerFlow",
+  "CellTech",
+];
 
 export function TrustBar() {
-    return (
-        <section className="py-16 border-y border-zinc-800/50 bg-zinc-950/50 backdrop-blur-sm relative overflow-hidden">
-            {/* Subtle gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-blue-500/5" />
-
-            <div className="container mx-auto px-4 relative">
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    className="text-center text-xs font-semibold text-zinc-500 mb-10 uppercase tracking-[0.2em]"
-                >
-                    Trusted for regulatory compliance
-                </motion.p>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto"
-                >
-                    {regulations.map((item, i) => (
-                        <div
-                            key={i}
-                            className="group relative bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-all duration-300"
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className={`p-2 rounded-lg bg-zinc-800/50 ${item.color}`}>
-                                    <item.icon className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-white truncate">{item.title}</div>
-                                    <div className="flex items-center gap-1 mt-1">
-                                        <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                                        <span className="text-xs text-zinc-500">{item.status}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </motion.div>
+  return (
+    <section className="py-8 bg-slate-50 border-b border-slate-200">
+      <div className="mx-auto w-full max-w-6xl px-4">
+        {/* Trust Badges Row */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mb-6"
+        >
+          {trustBadges.map((badge, i) => (
+            <div key={i} className="flex items-center gap-2 text-slate-600">
+              <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#1F7A5F]">
+                <badge.icon className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-semibold text-slate-700">
+                  {badge.label}
+                </p>
+                <p className="text-[10px] text-slate-500">{badge.sublabel}</p>
+              </div>
             </div>
-        </section>
-    )
+          ))}
+        </motion.div>
+
+        {/* Partner Logos */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="text-center"
+        >
+          <p className="text-xs text-slate-500 mb-4 uppercase tracking-wide">
+            Trusted by leading battery manufacturers
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {partnerLogos.map((logo, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 * i }}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <span className="text-sm font-semibold tracking-tight">
+                  {logo}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
 }
