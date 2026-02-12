@@ -23,6 +23,13 @@ type Config struct {
 	RazorpayKeyID     string
 	RazorpayKeySecret string
 
+	// OAuth Configuration
+	GoogleClientID        string
+	GoogleClientSecret    string
+	MicrosoftClientID     string
+	MicrosoftClientSecret string
+	FrontendURL           string // For OAuth callback redirects to frontend
+
 	// CORS - Allowed Origins (comma-separated).
 	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
@@ -62,7 +69,13 @@ func Load() *Config {
 		RefreshExpiry:     parseDuration(getEnv("REFRESH_EXPIRY", "168h")), // 7 days
 		RazorpayKeyID:     getEnv("RAZORPAY_KEY_ID", ""),
 		RazorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET", ""),
-		CORSOrigins:       parseOrigins(corsOrigins),
+		// OAuth
+		GoogleClientID:        getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret:    getEnv("GOOGLE_CLIENT_SECRET", ""),
+		MicrosoftClientID:     getEnv("MICROSOFT_CLIENT_ID", ""),
+		MicrosoftClientSecret: getEnv("MICROSOFT_CLIENT_SECRET", ""),
+		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
+		CORSOrigins:           parseOrigins(corsOrigins),
 	}
 }
 

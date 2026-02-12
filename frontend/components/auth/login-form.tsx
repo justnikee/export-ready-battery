@@ -2,16 +2,17 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
 import { authApi } from "@/lib/auth-api"
+import { useAuth } from "@/context/auth-context"
 import { toast } from "sonner"
 
 export function LoginForm() {
-    const router = useRouter()
+    const { login } = useAuth()
     const searchParams = useSearchParams()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -32,9 +33,14 @@ export function LoginForm() {
 
             toast.success("Welcome back!")
 
-            // Get redirect URL from query params or default to dashboard
+            // Use AuthContext login — sets token, cookie, user state, and navigates
             const redirectTo = searchParams.get("redirect") || "/dashboard"
-            router.push(redirectTo)
+            login(response.token, response.refresh_token, {
+                id: response.tenant_id,
+                tenant_id: response.tenant_id,
+                email: response.email,
+                company_name: response.company_name,
+            }, redirectTo)
         } catch {
             toast.error("Something went wrong. Please try again.")
         } finally {
@@ -56,7 +62,7 @@ export function LoginForm() {
                     <Input
                         id="email"
                         type="email"
-                        placeholder="name@company.com"
+                        placeholder="you@yourcompany.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -134,12 +140,15 @@ export function LoginForm() {
             </div>
 
             {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3">
+            <div>
                 <Button
                     type="button"
                     variant="outline"
-                    className="h-11 border-slate-300 hover:bg-slate-100 text-[#0B1F3B] rounded-none"
-                    onClick={() => toast.info("Google login coming soon")}
+                    className="w-full h-11 border-slate-300 hover:bg-slate-100 text-[#0B1F3B] rounded-none"
+                    onClick={() => {
+                        const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1', '')
+                        window.location.href = `${apiBase}/api/v1/auth/google`
+                    }}
                 >
                     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                         <path
@@ -159,21 +168,7 @@ export function LoginForm() {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    Google
-                </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 border-slate-300 hover:bg-slate-100 text-[#0B1F3B] rounded-none"
-                    onClick={() => toast.info("Microsoft login coming soon")}
-                >
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path fill="#f25022" d="M1 1h10v10H1z" />
-                        <path fill="#00a4ef" d="M1 13h10v10H1z" />
-                        <path fill="#7fba00" d="M13 1h10v10H13z" />
-                        <path fill="#ffb900" d="M13 13h10v10H13z" />
-                    </svg>
-                    Microsoft
+                    Continue with Google
                 </Button>
             </div>
         </form>

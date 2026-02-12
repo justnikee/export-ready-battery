@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -57,6 +58,15 @@ func main() {
 	// Initialize handlers
 	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
+
+	// Initialize OAuth service and handler
+	backendURL := fmt.Sprintf("http://localhost:%s", cfg.Port)
+	oauthService := services.NewOAuthService(
+		cfg.GoogleClientID, cfg.GoogleClientSecret,
+		cfg.MicrosoftClientID, cfg.MicrosoftClientSecret,
+		backendURL,
+	)
+	oauthHandler := handlers.NewOAuthHandler(database, repo, authService, oauthService, cfg.FrontendURL)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
@@ -167,6 +177,11 @@ func main() {
 	authMux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
 	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	// OAuth routes
+	authMux.HandleFunc("GET /api/v1/auth/google", oauthHandler.GoogleRedirect)
+	authMux.HandleFunc("GET /api/v1/auth/google/callback", oauthHandler.GoogleCallback)
+	authMux.HandleFunc("GET /api/v1/auth/microsoft", oauthHandler.MicrosoftRedirect)
+	authMux.HandleFunc("GET /api/v1/auth/microsoft/callback", oauthHandler.MicrosoftCallback)
 	// Apply rate limiting to all auth routes
 	mux.Handle("/api/v1/auth/", authRateLimiter.Limit(authMux))
 

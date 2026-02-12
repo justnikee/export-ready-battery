@@ -177,10 +177,12 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Get tenant by email
 	var tenantID uuid.UUID
-	var companyName, passwordHash string
+	var companyName string
+	var passwordHash *string
+	var oauthProvider *string
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, company_name, password_hash FROM public.tenants WHERE email = $1`,
-		req.Email).Scan(&tenantID, &companyName, &passwordHash)
+		`SELECT id, company_name, password_hash, oauth_provider FROM public.tenants WHERE email = $1`,
+		req.Email).Scan(&tenantID, &companyName, &passwordHash, &oauthProvider)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusUnauthorized, "Invalid email or password")
@@ -191,8 +193,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if this is an OAuth-only account (no password set)
+	if passwordHash == nil || *passwordHash == "" {
+		respondError(w, http.StatusBadRequest, "This account uses social sign-in. Please use Google or Microsoft to log in.")
+		return
+	}
+
 	// Check password
-	if !h.authService.CheckPassword(req.Password, passwordHash) {
+	if !h.authService.CheckPassword(req.Password, *passwordHash) {
 		respondError(w, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
@@ -450,20 +458,20 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"id":                      tenant.ID,
-		"tenant_id":               tenant.ID.String(),
-		"company_name":            tenant.CompanyName,
-		"email":                   loginEmail,
-		"address":                 tenant.Address,
-		"logo_url":                tenant.LogoURL,
-		"support_email":           tenant.SupportEmail,
-		"website":                 tenant.Website,
-		"created_at":              tenant.CreatedAt,
-		"last_login":              lastLogin,
-		"quota_balance":           tenant.QuotaBalance,
-		"epr_registration_number": tenant.EPRRegistrationNumber,
-		"bis_r_number":            tenant.BISRNumber,
-		"iec_code":                tenant.IECCode,
+		"id":                                   tenant.ID,
+		"tenant_id":                            tenant.ID.String(),
+		"company_name":                         tenant.CompanyName,
+		"email":                                loginEmail,
+		"address":                              tenant.Address,
+		"logo_url":                             tenant.LogoURL,
+		"support_email":                        tenant.SupportEmail,
+		"website":                              tenant.Website,
+		"created_at":                           tenant.CreatedAt,
+		"last_login":                           lastLogin,
+		"quota_balance":                        tenant.QuotaBalance,
+		"epr_registration_number":              tenant.EPRRegistrationNumber,
+		"bis_r_number":                         tenant.BISRNumber,
+		"iec_code":                             tenant.IECCode,
 		"eu_authorized_representative_name":    tenant.EUAuthorizedRepresentativeName,
 		"eu_authorized_representative_address": tenant.EUAuthorizedRepresentativeAddress,
 		"eu_contact_email":                     tenant.EUContactEmail,
