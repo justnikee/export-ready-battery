@@ -251,6 +251,26 @@ export default function BatchDetailsPage() {
         }
     }
 
+    const handleExportAuditCSV = async () => {
+        if (!batch) return
+        try {
+            const response = await api.get(`/batches/${params.id}/audit-export`, {
+                responseType: 'blob'
+            })
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_audit_log.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Failed to export audit log", error)
+            toast.error("Failed to export audit log")
+        }
+    }
+
     // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
         const region = batch?.market_region as MarketRegion
@@ -937,6 +957,13 @@ export default function BatchDetailsPage() {
                                     <FileSpreadsheet className="mr-2 h-4 w-4 text-teal-500" />
                                     Export Serial List (CSV)
                                     {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                </Button>
+                                <Button
+                                    className="w-full bg-slate-100 hover:bg-amber-50 hover:border-amber-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                    onClick={handleExportAuditCSV}
+                                >
+                                    <FileText className="mr-2 h-4 w-4 text-amber-500" />
+                                    Export Audit Log (CSV)
                                 </Button>
                             </CardContent>
                         </Card>

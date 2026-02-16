@@ -249,8 +249,8 @@ func (v *ValidationService) ValidateBISRNumber(bis string) ValidationResult {
 	}
 
 	// Full strict validation if it looks like standard format
-	cleaned := strings.TrimPrefix(bis, "R-")
-	if len(cleaned) == 8 && !BISRNumberRegex.MatchString(bis) {
+	// Strict validation: must match R- followed by exactly 8 digits
+	if !BISRNumberRegex.MatchString(bis) {
 		return ValidationResult{
 			Valid:   false,
 			Field:   "bis_r_number",

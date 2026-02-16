@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-    Truck, Wrench, Recycle, X,
+    Truck, Wrench, Recycle, X, XCircle,
     Mail, Loader2, CheckCircle, AlertCircle,
     Key, ArrowRight
 } from "lucide-react"
@@ -33,6 +33,13 @@ const ACTIONS = [
         label: "I'm recycling this battery",
         icon: Recycle,
         color: "purple",
+        role: "RECYCLER"
+    },
+    {
+        action: "CLOSE",
+        label: "I'm finalizing disposal (End of Life)",
+        icon: XCircle,
+        color: "red",
         role: "RECYCLER"
     },
 ]

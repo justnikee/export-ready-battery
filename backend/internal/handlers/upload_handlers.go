@@ -260,21 +260,21 @@ IN-MFG-NMC-2026-00003,2026-01-16,IMPORTED,BOE-2026-1234,China,0
 IN-MFG-NMC-2026-00004,2026-01-16,IMPORTED,BOE-2026-1234,South Korea,0
 IN-MFG-LFP-2026-00005,2026-01-17,DOMESTIC,,,72.0`
 	} else if marketRegion == "EU" {
-		// EU-specific sample
+		// EU-specific sample with BPAN V2 format
 		sampleCSV = `serial_number,manufacture_date
-EU-BAT-2026-001,2026-01-15
-EU-BAT-2026-002,2026-01-15
-EU-BAT-2026-003,2026-01-16
-EU-BAT-2026-004,2026-01-16
-EU-BAT-2026-005,2026-01-17`
+EU-MFG-NMC-2026-00001,2026-01-15
+EU-MFG-NMC-2026-00002,2026-01-15
+EU-MFG-LFP-2026-00003,2026-01-16
+EU-MFG-LFP-2026-00004,2026-01-16
+EU-MFG-NMC-2026-00005,2026-01-17`
 	} else {
-		// Generic sample with all optional columns shown
+		// Generic sample with BPAN V2 format
 		sampleCSV = `serial_number,manufacture_date,cell_source,bill_of_entry_no,country_of_origin,domestic_value_add
-BAT-2026-001,2026-01-15,,,,
-BAT-2026-002,2026-01-15,,,,
-BAT-2026-003,2026-01-16,,,,
-BAT-2026-004,2026-01-16,,,,
-BAT-2026-005,2026-01-17,,,,`
+GL-MFG-LFP-2026-00001,2026-01-15,,,,
+GL-MFG-LFP-2026-00002,2026-01-15,,,,
+GL-MFG-NMC-2026-00003,2026-01-16,,,,
+GL-MFG-NMC-2026-00004,2026-01-16,,,,
+GL-MFG-LFP-2026-00005,2026-01-17,,,,`
 	}
 
 	w.Header().Set("Content-Type", "text/csv")
@@ -284,7 +284,7 @@ BAT-2026-005,2026-01-17,,,,`
 }
 
 // AutoGeneratePassports handles POST /api/v1/batches/{id}/auto-generate
-// Generates sequential passport serial numbers without CSV upload
+// Generates BPAN V2 serial numbers with region/chemistry encoding and atomic DB sequences.
 func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) {
 	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
 	tenantIDStr := middleware.GetTenantID(r.Context())
@@ -309,7 +309,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Get tenant details for batch snapshot
+	// Get tenant details for batch snapshot and manufacturer code
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
@@ -319,8 +319,8 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Parse request body
 	var req struct {
 		Count           int    `json:"count"`
-		Prefix          string `json:"prefix"`
-		StartNumber     int    `json:"start_number"`
+		Prefix          string `json:"prefix"`       // Legacy field, ignored if batch has region
+		StartNumber     int    `json:"start_number"` // Legacy field, ignored with V2
 		ManufactureDate string `json:"manufacture_date"`
 	}
 
@@ -333,12 +333,6 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	if req.Count <= 0 || req.Count > 10000 {
 		respondError(w, http.StatusBadRequest, "Count must be between 1 and 10000")
 		return
-	}
-	if req.Prefix == "" {
-		req.Prefix = "BAT-"
-	}
-	if req.StartNumber <= 0 {
-		req.StartNumber = 1
 	}
 
 	// Parse manufacture date (required)
@@ -367,10 +361,34 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	}
 	ownerIdentifier := resolveOwnerIdentifier(tenant)
 
-	// Generate passports
+	// ================================================================
+	// BPAN V2: Build prefix from batch region + tenant + chemistry
+	// ================================================================
+	regionPrefix := services.MapRegionPrefix(batch.MarketRegion)
+	chemCode := services.MapChemistryCode(batch.Specs.Chemistry)
+	year := time.Now().Year()
+
+	// Get or derive manufacturer code from tenant
+	mfrCode, err := h.repo.GetOrCreateManufacturerCode(r.Context(), tenantID, tenant.CompanyName)
+	if err != nil {
+		log.Printf("Warning: Failed to get manufacturer code, using fallback: %v", err)
+		mfrCode = services.DeriveManufacturerCode(tenant.CompanyName)
+	}
+
+	bpanPrefix := services.BuildBPANPrefix(regionPrefix, mfrCode, chemCode, year)
+
+	// Atomically reserve a batch of sequence numbers
+	startSeq, err := h.repo.NextSequenceBatch(r.Context(), bpanPrefix, req.Count)
+	if err != nil {
+		log.Printf("Failed to reserve BPAN sequences: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate serial numbers")
+		return
+	}
+
+	// Generate passports with BPAN V2 serials
 	passports := make([]*models.Passport, req.Count)
 	for i := 0; i < req.Count; i++ {
-		serialNumber := fmt.Sprintf("%s%05d", req.Prefix, req.StartNumber+i)
+		serialNumber := services.GenerateBPANv2(bpanPrefix, startSeq+i)
 		passports[i] = &models.Passport{
 			UUID:                   uuid.New(),
 			BatchID:                batchID,
@@ -401,14 +419,16 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	firstSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber)
-	lastSerial := fmt.Sprintf("%s%03d", req.Prefix, req.StartNumber+req.Count-1)
+	firstSerial := services.GenerateBPANv2(bpanPrefix, startSeq)
+	lastSerial := services.GenerateBPANv2(bpanPrefix, startSeq+req.Count-1)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"batch_id":          batchID,
 		"batch_name":        batch.BatchName,
 		"passports_created": insertedCount,
 		"serial_range":      fmt.Sprintf("%s to %s", firstSerial, lastSerial),
+		"bpan_version":      "V2",
+		"bpan_prefix":       bpanPrefix,
 		"qr_codes_ready":    true,
 	})
 }

@@ -20,7 +20,50 @@ export default function PublicPassportPage() {
         const fetchPassport = async () => {
             try {
                 const response = await api.get(`/passports/${params.uuid}`)
-                setPassport(response.data)
+                const data = response.data
+
+                // The API returns a tier-aware view (PublicPassportView, PartnerPassportView,
+                // or RegulatorPassportView). When `access_tier` is present and there is no
+                // nested `passport` key, reshape the flat response to the CertificateView format.
+                if (data.access_tier && !data.passport) {
+                    const reshaped: CertificatePassport = {
+                        passport: {
+                            uuid: data.uuid,
+                            serial_number: data.serial_number,
+                            manufacture_date: data.manufacture_date,
+                            created_at: data.created_at,
+                            status: data.status,
+                            state_of_health: data.state_of_health,
+                            last_soh_update_timestamp: data.last_soh_update_timestamp,
+                            // Partner-tier fields (only present with access_token)
+                            ownership_history: data.ownership_history,
+                            repair_events: data.repair_events,
+                            replacement_events: data.replacement_events,
+                            recycling_date: data.recycling_date,
+                            recycling_status: data.recycling_status,
+                            recycler_epr_id: data.recycler_epr_id,
+                            current_owner_identifier: data.current_owner_identifier,
+                        },
+                        specs: data.specs,
+                        tenant: data.tenant,
+                        batch_name: data.batch_name,
+                        model_name: data.model_name,
+                        manufacturing_start_date: data.manufacturing_start_date,
+                        manufacturing_end_date: data.manufacturing_end_date,
+                        market_region: data.market_region,
+                        domestic_value_add: data.domestic_value_add,
+                        cell_source: data.cell_source,
+                        pli_compliant: data.pli_compliant,
+                        hsn_code: data.hsn_code,
+                        bill_of_entry_no: data.bill_of_entry_no,
+                        country_of_origin: data.country_of_origin,
+                        customs_date: data.customs_date,
+                    }
+                    setPassport(reshaped)
+                } else {
+                    // RegulatorPassportView or legacy shape — already has nested passport key
+                    setPassport(data)
+                }
                 recordScan(params.uuid as string)
             } catch (err: unknown) {
                 console.error("Failed to fetch passport", err)

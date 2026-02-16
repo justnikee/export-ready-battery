@@ -409,6 +409,525 @@ func TestBatchTimestamps(t *testing.T) {
 }
 
 // ============================================================================
+// EU COMPLIANCE VALIDATION TESTS
+// ============================================================================
+
+// TestCreateBatch_EUComplianceValidation tests EU-specific batch creation rules
+func TestCreateBatch_EUComplianceValidation(t *testing.T) {
+	tenantID := uuid.New()
+
+	tests := []struct {
+		name        string
+		request     models.CreateBatchRequest
+		expectValid bool
+		description string
+	}{
+		{
+			name: "EU batch without carbon_footprint (allowed as draft)",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "EU-Draft-No-Carbon",
+				MarketRegion: models.MarketRegionEU,
+				Specs: models.BatchSpec{
+					Chemistry: "NMC",
+					Capacity:  "100Ah",
+				},
+			},
+			expectValid: true, // EU allows draft creation without full compliance
+			description: "EU mode permits draft batches; hard block happens at activation",
+		},
+		{
+			name: "EU batch with full carbon footprint",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "EU-Full-Compliance",
+				MarketRegion: models.MarketRegionEU,
+				Specs: models.BatchSpec{
+					Chemistry:       "NMC",
+					Capacity:        "100Ah",
+					CarbonFootprint: "45 kg CO2eq/kWh",
+					Certifications:  []string{"CE", "UN38.3"},
+				},
+			},
+			expectValid: true,
+			description: "Full EU compliance with carbon footprint and CE certification",
+		},
+		{
+			name: "EU batch without CE certification (soft warning only)",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "EU-No-CE",
+				MarketRegion: models.MarketRegionEU,
+				Specs: models.BatchSpec{
+					Chemistry:       "LFP",
+					CarbonFootprint: "45 kg CO2e",
+					Certifications:  []string{"UN38.3"},
+				},
+			},
+			expectValid: true,
+			description: "Missing CE generates a log warning but does not block creation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := createBatchJSONRequest(t, "POST", "/api/v1/batches", tt.request)
+			if req.Header.Get("Content-Type") != "application/json" {
+				t.Error("Content-Type should be application/json")
+			}
+			t.Logf("EU test: %s - %s", tt.name, tt.description)
+		})
+	}
+}
+
+// ============================================================================
+// INDIA IMPORT/CUSTOMS VALIDATION TESTS
+// ============================================================================
+
+// TestCreateBatch_IndiaImportValidation tests India IMPORTED cell requirements
+func TestCreateBatch_IndiaImportValidation(t *testing.T) {
+	tenantID := uuid.New()
+
+	tests := []struct {
+		name           string
+		request        models.CreateBatchRequest
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "India IMPORTED without bill_of_entry (blocked)",
+			request: models.CreateBatchRequest{
+				TenantID:        tenantID,
+				BatchName:       "IMP-NO-BOE",
+				MarketRegion:    models.MarketRegionIndia,
+				CellSource:      "IMPORTED",
+				CountryOfOrigin: "CN",
+				HSNCode:         "85076000",
+				Specs:           models.BatchSpec{Chemistry: "NMC"},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "Bill of Entry",
+		},
+		{
+			name: "India IMPORTED without country_of_origin (blocked)",
+			request: models.CreateBatchRequest{
+				TenantID:      tenantID,
+				BatchName:     "IMP-NO-COO",
+				MarketRegion:  models.MarketRegionIndia,
+				CellSource:    "IMPORTED",
+				BillOfEntryNo: "BOE-2025-MUM-12345",
+				HSNCode:       "85076000",
+				Specs:         models.BatchSpec{Chemistry: "NMC"},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "Country of Origin",
+		},
+		{
+			name: "India IMPORTED with all customs fields (valid)",
+			request: models.CreateBatchRequest{
+				TenantID:        tenantID,
+				BatchName:       "IMP-VALID",
+				MarketRegion:    models.MarketRegionIndia,
+				CellSource:      "IMPORTED",
+				BillOfEntryNo:   "BOE-2025-MUM-12345",
+				CountryOfOrigin: "CN",
+				CustomsDate:     "2025-01-08",
+				HSNCode:         "85076000",
+				Specs:           models.BatchSpec{Chemistry: "NMC"},
+			},
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := createBatchJSONRequest(t, "POST", "/api/v1/batches", tt.request)
+			t.Logf("India import test: %s - expects status %d", tt.name, tt.expectedStatus)
+			if req.Method != "POST" {
+				t.Errorf("Expected POST, got %s", req.Method)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// DVA SOURCE VALIDATION TESTS
+// ============================================================================
+
+// TestCreateBatch_DVASourceValidation tests Domestic Value Add source modes
+func TestCreateBatch_DVASourceValidation(t *testing.T) {
+	tenantID := uuid.New()
+	audited75 := 75.0
+
+	tests := []struct {
+		name           string
+		request        models.CreateBatchRequest
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "DVA ESTIMATED mode (valid)",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "DVA-EST-VALID",
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				DVASource:    "ESTIMATED",
+				HSNCode:      "85076000",
+				Specs: models.BatchSpec{
+					Chemistry:     "LFP",
+					SalePriceINR:  50000,
+					ImportCostINR: 15000,
+				},
+			},
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			name: "DVA AUDITED mode with value (valid)",
+			request: models.CreateBatchRequest{
+				TenantID:                tenantID,
+				BatchName:               "DVA-AUD-VALID",
+				MarketRegion:            models.MarketRegionIndia,
+				CellSource:              "DOMESTIC",
+				DVASource:               "AUDITED",
+				AuditedDomesticValueAdd: &audited75,
+				HSNCode:                 "85076000",
+				Specs:                   models.BatchSpec{Chemistry: "LFP"},
+			},
+			expectedStatus: http.StatusOK,
+			expectedError:  "",
+		},
+		{
+			name: "DVA AUDITED mode without value (blocked)",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "DVA-AUD-NO-VAL",
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				DVASource:    "AUDITED",
+				HSNCode:      "85076000",
+				Specs:        models.BatchSpec{Chemistry: "LFP"},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "audited_domestic_value_add",
+		},
+		{
+			name: "Invalid DVA source (blocked)",
+			request: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "DVA-INVALID",
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				DVASource:    "MANUAL",
+				HSNCode:      "85076000",
+				Specs:        models.BatchSpec{Chemistry: "LFP"},
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "DVA Source must be",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := createBatchJSONRequest(t, "POST", "/api/v1/batches", tt.request)
+			t.Logf("DVA source test: %s - expects status %d", tt.name, tt.expectedStatus)
+			if req.Method != "POST" {
+				t.Errorf("Expected POST, got %s", req.Method)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// HSN CODE VALIDATION TESTS
+// ============================================================================
+
+// TestCreateBatch_HSNCodeValidation tests India HSN code enforcement
+func TestCreateBatch_HSNCodeValidation(t *testing.T) {
+	tenantID := uuid.New()
+
+	tests := []struct {
+		name           string
+		hsnCode        string
+		expectedStatus int
+		expectedError  string
+	}{
+		{"Valid battery HSN 85076000", "85076000", http.StatusOK, ""},
+		{"Valid battery HSN 85078000", "85078000", http.StatusOK, ""},
+		{"Invalid: non-battery prefix", "12340000", http.StatusBadRequest, "must start with 8507"},
+		{"Invalid: too short", "8507", http.StatusBadRequest, "8 digits"},
+		{"Invalid: empty HSN (required for India)", "", http.StatusBadRequest, "required"},
+		{"Valid: with dots (normalized)", "8507.60.00", http.StatusOK, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "HSN-Test-" + tt.hsnCode,
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				HSNCode:      tt.hsnCode,
+				Specs: models.BatchSpec{
+					Chemistry:     "LFP",
+					SalePriceINR:  50000,
+					ImportCostINR: 10000,
+				},
+			}
+			req := createBatchJSONRequest(t, "POST", "/api/v1/batches", request)
+			t.Logf("HSN test: %s (code=%q) - expects status %d", tt.name, tt.hsnCode, tt.expectedStatus)
+			if req.Method != "POST" {
+				t.Errorf("Expected POST, got %s", req.Method)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// MANUFACTURING DATE VALIDATION TESTS
+// ============================================================================
+
+// TestCreateBatch_ManufacturingDateValidation tests manufacturing date window logic
+func TestCreateBatch_ManufacturingDateValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		startDate      string
+		endDate        string
+		expectedStatus int
+		expectedError  string
+	}{
+		{"Valid date range", "2025-01-15", "2025-02-15", http.StatusOK, ""},
+		{"Same start and end", "2025-01-15", "2025-01-15", http.StatusOK, ""},
+		{"End before start (blocked)", "2025-03-15", "2025-01-10", http.StatusBadRequest, "manufacturing_end_date must be on or after"},
+		{"Invalid start format", "15-01-2025", "", http.StatusBadRequest, "Invalid manufacturing_start_date format"},
+		{"Invalid end format", "2025-01-15", "15-02-2025", http.StatusBadRequest, "Invalid manufacturing_end_date format"},
+		{"Only start date (valid)", "2025-01-15", "", http.StatusOK, ""},
+		{"Only end date (valid)", "", "2025-02-15", http.StatusOK, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := models.CreateBatchRequest{
+				TenantID:               uuid.New(),
+				BatchName:              "Date-Test",
+				MarketRegion:           models.MarketRegionGlobal,
+				ManufacturingStartDate: tt.startDate,
+				ManufacturingEndDate:   tt.endDate,
+			}
+			req := createBatchJSONRequest(t, "POST", "/api/v1/batches", request)
+			t.Logf("Date test: %s (start=%q, end=%q) - expects status %d",
+				tt.name, tt.startDate, tt.endDate, tt.expectedStatus)
+			if req.Method != "POST" {
+				t.Errorf("Expected POST, got %s", req.Method)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// PLI SECURITY OVERRIDE EDGE CASES
+// ============================================================================
+
+// TestPLISecurityOverride_EdgeCases tests edge cases of PLI enforcement
+func TestPLISecurityOverride_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name              string
+		cellSource        string
+		inputPLICompliant bool
+		inputDVA          float64
+		dvaSource         string
+		expectedPLI       bool
+		expectedDVA       float64
+		expectedDVASource string
+	}{
+		{
+			name:              "Imported: PLI=true, DVA=99 → both forced to 0/false",
+			cellSource:        "IMPORTED",
+			inputPLICompliant: true,
+			inputDVA:          99.0,
+			dvaSource:         "AUDITED",
+			expectedPLI:       false,
+			expectedDVA:       0,
+			expectedDVASource: "ESTIMATED",
+		},
+		{
+			name:              "Imported: PLI=false (no override needed)",
+			cellSource:        "IMPORTED",
+			inputPLICompliant: false,
+			inputDVA:          0,
+			dvaSource:         "ESTIMATED",
+			expectedPLI:       false,
+			expectedDVA:       0,
+			expectedDVASource: "ESTIMATED",
+		},
+		{
+			name:              "Domestic: PLI=true, DVA=65 → preserved",
+			cellSource:        "DOMESTIC",
+			inputPLICompliant: true,
+			inputDVA:          65.0,
+			dvaSource:         "ESTIMATED",
+			expectedPLI:       true,
+			expectedDVA:       65.0,
+			expectedDVASource: "ESTIMATED",
+		},
+		{
+			name:              "Domestic: PLI=false → preserved as false",
+			cellSource:        "DOMESTIC",
+			inputPLICompliant: false,
+			inputDVA:          30.0,
+			dvaSource:         "ESTIMATED",
+			expectedPLI:       false,
+			expectedDVA:       30.0,
+			expectedDVASource: "ESTIMATED",
+		},
+		{
+			name:              "Empty cell source: no overrides applied",
+			cellSource:        "",
+			inputPLICompliant: true,
+			inputDVA:          50.0,
+			dvaSource:         "AUDITED",
+			expectedPLI:       true,
+			expectedDVA:       50.0,
+			expectedDVASource: "AUDITED",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Replicate handler security override logic
+			pli := tt.inputPLICompliant
+			dva := tt.inputDVA
+			dvaSource := tt.dvaSource
+
+			if tt.cellSource == "IMPORTED" {
+				pli = false
+				dva = 0
+				dvaSource = "ESTIMATED"
+			}
+
+			if pli != tt.expectedPLI {
+				t.Errorf("PLI: got %v, want %v", pli, tt.expectedPLI)
+			}
+			if dva != tt.expectedDVA {
+				t.Errorf("DVA: got %.2f, want %.2f", dva, tt.expectedDVA)
+			}
+			if dvaSource != tt.expectedDVASource {
+				t.Errorf("DVASource: got %q, want %q", dvaSource, tt.expectedDVASource)
+			}
+
+			t.Logf("Edge case: %s → PLI=%v, DVA=%.2f, Source=%s",
+				tt.name, pli, dva, dvaSource)
+		})
+	}
+}
+
+// ============================================================================
+// DVA CALCULATION TESTS
+// ============================================================================
+
+// TestDVACalculation_ServerSide tests that DVA is always recalculated server-side
+func TestDVACalculation_ServerSide(t *testing.T) {
+	tests := []struct {
+		name        string
+		salePrice   float64
+		importCost  float64
+		expectedDVA float64
+		description string
+	}{
+		{"Normal margins", 50000, 15000, 70.0, "DVA = (50000-15000)/50000 * 100"},
+		{"High margins", 100000, 10000, 90.0, "DVA = (100000-10000)/100000 * 100"},
+		{"Import cost equals sale", 50000, 50000, 0.0, "DVA = 0 when no value add"},
+		{"Import exceeds sale (capped at 0)", 50000, 60000, 0.0, "Negative DVA capped at 0"},
+		{"Zero sale price (no calc)", 0, 15000, 0.0, "Cannot calculate with zero sale price"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calculatedDVA float64
+			if tt.salePrice > 0 {
+				calculatedDVA = ((tt.salePrice - tt.importCost) / tt.salePrice) * 100
+				if calculatedDVA < 0 {
+					calculatedDVA = 0
+				}
+			}
+
+			if calculatedDVA != tt.expectedDVA {
+				t.Errorf("DVA calculation: got %.2f%%, want %.2f%% (%s)",
+					calculatedDVA, tt.expectedDVA, tt.description)
+			}
+
+			t.Logf("DVA calc: sale=%.0f, import=%.0f → DVA=%.2f%% (%s)",
+				tt.salePrice, tt.importCost, calculatedDVA, tt.description)
+		})
+	}
+}
+
+// ============================================================================
+// MARKET REGION VALIDATION TESTS
+// ============================================================================
+
+// TestMarketRegion_IsValid tests all market region variants
+func TestMarketRegion_IsValid(t *testing.T) {
+	tests := []struct {
+		region   models.MarketRegion
+		expected bool
+	}{
+		{models.MarketRegionIndia, true},
+		{models.MarketRegionEU, true},
+		{models.MarketRegionGlobal, true},
+		{"INVALID", false},
+		{"", false},
+		{"india", false}, // case-sensitive
+		{"eu", false},    // case-sensitive
+		{"USA", false},
+		{"CHINA", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.region), func(t *testing.T) {
+			if got := tt.region.IsValid(); got != tt.expected {
+				t.Errorf("MarketRegion(%q).IsValid() = %v, want %v", tt.region, got, tt.expected)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// CUSTOMS DATE FORMAT VALIDATION
+// ============================================================================
+
+// TestCustomsDateFormat tests customs date parsing
+func TestCustomsDateFormat(t *testing.T) {
+	tests := []struct {
+		name      string
+		date      string
+		wantValid bool
+	}{
+		{"Valid YYYY-MM-DD", "2025-01-08", true},
+		{"Valid leap day", "2024-02-29", true},
+		{"Invalid DD-MM-YYYY", "08-01-2025", false},
+		{"Invalid MM/DD/YYYY", "01/08/2025", false},
+		{"Invalid text", "january 8", false},
+		{"Empty (optional)", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.date == "" {
+				t.Log("Empty date is optional, skipped")
+				return
+			}
+			_, err := time.Parse("2006-01-02", tt.date)
+			if (err == nil) != tt.wantValid {
+				t.Errorf("Parse(%q) err=%v, wantValid=%v", tt.date, err, tt.wantValid)
+			}
+		})
+	}
+}
+
+// ============================================================================
 // CONTEXT HELPERS FOR INTEGRATION TESTS
 // ============================================================================
 

@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -256,6 +257,57 @@ func (s *CSVService) ExportPassports(passports []*models.Passport) ([]byte, erro
 			p.ManufactureDate.Format("2006-01-02"),
 			string(p.Status),
 			p.UUID.String(),
+		}
+		if err := writer.Write(record); err != nil {
+			return nil, fmt.Errorf("failed to write CSV record: %w", err)
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return nil, fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+// ExportAuditEvents generates a CSV file from batch-level audit event rows.
+func (s *CSVService) ExportAuditEvents(events []*models.AuditEventRow) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	header := []string{
+		"serial_number", "event_type", "action", "status_from", "status_to",
+		"actor", "actor_type", "actor_role", "source", "ip_address",
+		"created_at", "hash", "previous_hash", "metadata",
+	}
+	if err := writer.Write(header); err != nil {
+		return nil, fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	for _, e := range events {
+		metaStr := ""
+		if len(e.Metadata) > 0 {
+			if b, err := json.Marshal(e.Metadata); err == nil {
+				metaStr = string(b)
+			}
+		}
+
+		record := []string{
+			e.SerialNumber,
+			e.EventType,
+			string(e.Action),
+			e.StatusFrom,
+			e.StatusTo,
+			e.Actor,
+			e.ActorType,
+			string(e.ActorRole),
+			e.Source,
+			e.IPAddress,
+			e.CreatedAt.UTC().Format(time.RFC3339),
+			e.Hash,
+			e.PreviousHash,
+			metaStr,
 		}
 		if err := writer.Write(record); err != nil {
 			return nil, fmt.Errorf("failed to write CSV record: %w", err)

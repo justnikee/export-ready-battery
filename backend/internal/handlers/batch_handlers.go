@@ -604,6 +604,62 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	w.Write(csvBytes)
 }
 
+// ExportBatchAuditCSV handles GET /api/v1/batches/{id}/audit-export
+// Downloads the full audit trail (lifecycle events) for all passports in a batch as CSV.
+func (h *Handler) ExportBatchAuditCSV(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Verify batch ownership
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Get all audit events for this batch
+	events, err := h.repo.GetEventsByBatch(r.Context(), batchID)
+	if err != nil {
+		log.Printf("Failed to get batch events: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve audit events")
+		return
+	}
+
+	if len(events) == 0 {
+		respondError(w, http.StatusNotFound, "No lifecycle events found for this batch")
+		return
+	}
+
+	// Generate CSV
+	csvBytes, err := h.csvService.ExportAuditEvents(events)
+	if err != nil {
+		log.Printf("Failed to generate audit CSV: %v", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate audit CSV export")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_audit_log.csv", sanitizeBatchName(batch.BatchName))
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))
+
+	w.Write(csvBytes)
+}
+
 // GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")

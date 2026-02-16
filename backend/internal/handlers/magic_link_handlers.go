@@ -343,6 +343,29 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		}
 	}
 
+	// ===== PRIOR-RECYCLE GUARD =====
+	// Recyclers can only CLOSE a passport they previously RECYCLED (audit trail check)
+	if models.TransitionAction(req.Action) == models.ActionClose &&
+		models.ActorRole(claims.Role) == models.ActorRoleRecycler {
+		events, err := h.lifecycleService.GetPassportEvents(r.Context(), passportID)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to verify prior recycle event")
+			return
+		}
+		hasPriorRecycle := false
+		for _, ev := range events {
+			if ev.Action == models.ActionRecycle && ev.ActorID == claims.Email {
+				hasPriorRecycle = true
+				break
+			}
+		}
+		if !hasPriorRecycle {
+			respondError(w, http.StatusForbidden,
+				"CLOSE requires a prior RECYCLE event by the same recycler")
+			return
+		}
+	}
+
 	actorContext := models.ActorContext{
 		ActorType: models.ActorTypePartner,
 		ActorID:   claims.Email,

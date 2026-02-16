@@ -31,6 +31,7 @@ var evidenceRequirementsByAction = map[TransitionAction][]string{
 	ActionInstall: {EvidenceInstallationDate, EvidenceInstallerID},
 	ActionRecycle: {EvidenceRecyclerEprID, EvidenceRecyclingDate, EvidenceCertificateReference},
 	ActionRecall:  {EvidenceRecallReason, EvidenceRecallReference},
+	ActionClose:   {EvidenceCertificateReference},
 }
 
 var evidenceDateFields = map[string]bool{

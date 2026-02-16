@@ -56,7 +56,7 @@ func main() {
 	repo := repository.New(database)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService, cfg.RegulatorAPIKey)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize OAuth service and handler
@@ -81,7 +81,12 @@ func main() {
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
 
-	// Initialize export job services and handler
+	// Initialize BMS Telemetry services
+	deviceTokenService := services.NewDeviceTokenService(repo)
+	telemetryService := services.NewTelemetryService(repo)
+
+	// Initialize additional handlers
+	telemetryHandler := handlers.NewTelemetryHandler(telemetryService, deviceTokenService)
 	var exportJobHandler *handlers.ExportJobHandler
 	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
 		slogger := logger.Logger
@@ -114,7 +119,8 @@ func main() {
 	// Initialize reward handler
 	rewardHandler := handlers.NewRewardHandler(rewardService, cfg.JWTSecret)
 
-	// Setup routes
+	// Initialize additional middleware
+	deviceAuth := middleware.NewDeviceAuth(deviceTokenService)
 	mux := http.NewServeMux()
 
 	// Health check endpoint (public)
@@ -203,6 +209,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
 	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
+	mux.Handle("GET /api/v1/batches/{id}/audit-export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchAuditCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
@@ -269,6 +276,31 @@ func main() {
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
 	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
 	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
+
+	// ============================================
+	// CARBON CALCULATOR ROUTES (Protected)
+	// ============================================
+	carbonService := services.NewCarbonCalculatorService(repo)
+	carbonHandler := handlers.NewCarbonHandler(carbonService)
+	mux.Handle("POST /api/v1/carbon/calculate", authMiddleware.Protect(http.HandlerFunc(carbonHandler.CalculateCarbon)))
+
+	// ============================================
+	// BMS TELEMETRY ROUTES (Device Token Authenticated)
+	// ============================================
+	mux.Handle("POST /api/v1/telemetry", deviceAuth.Authenticate(http.HandlerFunc(telemetryHandler.IngestTelemetry)))
+	mux.Handle("POST /api/v1/telemetry/batch", deviceAuth.Authenticate(http.HandlerFunc(telemetryHandler.IngestTelemetryBatch)))
+
+	// ============================================
+	// BMS TELEMETRY MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/passports/{uuid}/telemetry", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.GetTelemetryHistory)))
+
+	// ============================================
+	// DEVICE TOKEN MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/device-tokens", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.CreateDeviceToken)))
+	mux.Handle("GET /api/v1/device-tokens", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.ListDeviceTokens)))
+	mux.Handle("DELETE /api/v1/device-tokens/{id}", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.RevokeDeviceToken)))
 
 	// ============================================
 	// WEBHOOK ROUTES (Public - for payment providers)
@@ -433,7 +465,8 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Device-Token")
 
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)

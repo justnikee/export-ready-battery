@@ -33,6 +33,9 @@ type Config struct {
 	// CORS - Allowed Origins (comma-separated).
 	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
+
+	// Art 78 Regulator Access (EU Battery Regulation)
+	RegulatorAPIKey string
 }
 
 // Load reads configuration from environment variables
@@ -76,6 +79,7 @@ func Load() *Config {
 		MicrosoftClientSecret: getEnv("MICROSOFT_CLIENT_SECRET", ""),
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
+		RegulatorAPIKey:       getEnv("REGULATOR_API_KEY", ""),
 	}
 }
 

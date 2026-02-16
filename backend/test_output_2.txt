@@ -1,0 +1,274 @@
+=== RUN   TestGenerateEventHash
+--- PASS: TestGenerateEventHash (0.00s)
+=== RUN   TestGenerateEventHash_DifferentInputs
+=== RUN   TestGenerateEventHash_DifferentInputs/Different_event_type
+=== RUN   TestGenerateEventHash_DifferentInputs/Different_actor
+=== RUN   TestGenerateEventHash_DifferentInputs/Different_timestamp
+=== RUN   TestGenerateEventHash_DifferentInputs/Different_previous_hash
+=== RUN   TestGenerateEventHash_DifferentInputs/Different_metadata
+--- PASS: TestGenerateEventHash_DifferentInputs (0.00s)
+    --- PASS: TestGenerateEventHash_DifferentInputs/Different_event_type (0.00s)
+    --- PASS: TestGenerateEventHash_DifferentInputs/Different_actor (0.00s)
+    --- PASS: TestGenerateEventHash_DifferentInputs/Different_timestamp (0.00s)
+    --- PASS: TestGenerateEventHash_DifferentInputs/Different_previous_hash (0.00s)
+    --- PASS: TestGenerateEventHash_DifferentInputs/Different_metadata (0.00s)
+=== RUN   TestVerifyEventHash
+=== RUN   TestVerifyEventHash/Valid_hash
+=== RUN   TestVerifyEventHash/Invalid_hash_-_wrong_value
+=== RUN   TestVerifyEventHash/Invalid_hash_-_empty
+=== RUN   TestVerifyEventHash/Invalid_hash_-_tampered_single_char
+--- PASS: TestVerifyEventHash (0.00s)
+    --- PASS: TestVerifyEventHash/Valid_hash (0.00s)
+    --- PASS: TestVerifyEventHash/Invalid_hash_-_wrong_value (0.00s)
+    --- PASS: TestVerifyEventHash/Invalid_hash_-_empty (0.00s)
+    --- PASS: TestVerifyEventHash/Invalid_hash_-_tampered_single_char (0.00s)
+=== RUN   TestVerifyEventChain
+=== RUN   TestVerifyEventChain/Valid_chain
+=== RUN   TestVerifyEventChain/Tampered_hash_in_chain
+=== RUN   TestVerifyEventChain/Broken_chain_-_wrong_previous_hash
+=== RUN   TestVerifyEventChain/Empty_chain
+=== RUN   TestVerifyEventChain/Single_event_chain
+--- PASS: TestVerifyEventChain (0.00s)
+    --- PASS: TestVerifyEventChain/Valid_chain (0.00s)
+    --- PASS: TestVerifyEventChain/Tampered_hash_in_chain (0.00s)
+    --- PASS: TestVerifyEventChain/Broken_chain_-_wrong_previous_hash (0.00s)
+    --- PASS: TestVerifyEventChain/Empty_chain (0.00s)
+    --- PASS: TestVerifyEventChain/Single_event_chain (0.00s)
+=== RUN   TestApplyTransition_EvidenceValidation
+=== RUN   TestApplyTransition_EvidenceValidation/ship_missing_shipment_reference
+=== RUN   TestApplyTransition_EvidenceValidation/install_missing_installer_id
+=== RUN   TestApplyTransition_EvidenceValidation/recycle_missing_certificate_reference
+=== RUN   TestApplyTransition_EvidenceValidation/recall_missing_recall_reason
+=== RUN   TestApplyTransition_EvidenceValidation/valid_evidence_passes
+--- PASS: TestApplyTransition_EvidenceValidation (0.00s)
+    --- PASS: TestApplyTransition_EvidenceValidation/ship_missing_shipment_reference (0.00s)
+    --- PASS: TestApplyTransition_EvidenceValidation/install_missing_installer_id (0.00s)
+    --- PASS: TestApplyTransition_EvidenceValidation/recycle_missing_certificate_reference (0.00s)
+    --- PASS: TestApplyTransition_EvidenceValidation/recall_missing_recall_reason (0.00s)
+    --- PASS: TestApplyTransition_EvidenceValidation/valid_evidence_passes (0.00s)
+=== RUN   TestApplyTransition_RoleEnforcement
+=== RUN   TestApplyTransition_RoleEnforcement/missing_actor_role
+=== RUN   TestApplyTransition_RoleEnforcement/user_attempts_recall
+=== RUN   TestApplyTransition_RoleEnforcement/customer_role_rejected
+=== RUN   TestApplyTransition_RoleEnforcement/logistics_attempts_install
+=== RUN   TestApplyTransition_RoleEnforcement/correct_role_allowed
+=== RUN   TestApplyTransition_RoleEnforcement/audit_failure_aborts_transition
+--- PASS: TestApplyTransition_RoleEnforcement (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/missing_actor_role (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/user_attempts_recall (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/customer_role_rejected (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/logistics_attempts_install (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/correct_role_allowed (0.00s)
+    --- PASS: TestApplyTransition_RoleEnforcement/audit_failure_aborts_transition (0.00s)
+=== RUN   TestValidateIECCode
+=== RUN   TestValidateIECCode/Valid_IEC_(PAN_format)
+=== RUN   TestValidateIECCode/Valid_IEC_lowercase_normalized
+=== RUN   TestValidateIECCode/Empty_(optional)
+=== RUN   TestValidateIECCode/Too_short
+=== RUN   TestValidateIECCode/Too_long
+=== RUN   TestValidateIECCode/Wrong_format:_all_digits
+=== RUN   TestValidateIECCode/Wrong_format:_all_letters
+=== RUN   TestValidateIECCode/Wrong_format:_starts_with_digits
+=== RUN   TestValidateIECCode/Has_special_chars
+--- PASS: TestValidateIECCode (0.00s)
+    --- PASS: TestValidateIECCode/Valid_IEC_(PAN_format) (0.00s)
+    --- PASS: TestValidateIECCode/Valid_IEC_lowercase_normalized (0.00s)
+    --- PASS: TestValidateIECCode/Empty_(optional) (0.00s)
+    --- PASS: TestValidateIECCode/Too_short (0.00s)
+    --- PASS: TestValidateIECCode/Too_long (0.00s)
+    --- PASS: TestValidateIECCode/Wrong_format:_all_digits (0.00s)
+    --- PASS: TestValidateIECCode/Wrong_format:_all_letters (0.00s)
+    --- PASS: TestValidateIECCode/Wrong_format:_starts_with_digits (0.00s)
+    --- PASS: TestValidateIECCode/Has_special_chars (0.00s)
+=== RUN   TestValidateHSNCode
+=== RUN   TestValidateHSNCode/Valid_battery_HSN
+=== RUN   TestValidateHSNCode/Valid_with_dots_(normalized)
+=== RUN   TestValidateHSNCode/Valid_with_spaces_(normalized)
+=== RUN   TestValidateHSNCode/Empty_(required)
+=== RUN   TestValidateHSNCode/Wrong_prefix_(not_8507)
+=== RUN   TestValidateHSNCode/Too_short
+=== RUN   TestValidateHSNCode/Too_long
+=== RUN   TestValidateHSNCode/Non-numeric
+=== RUN   TestValidateHSNCode/Close_but_wrong:_8506_prefix
+--- PASS: TestValidateHSNCode (0.00s)
+    --- PASS: TestValidateHSNCode/Valid_battery_HSN (0.00s)
+    --- PASS: TestValidateHSNCode/Valid_with_dots_(normalized) (0.00s)
+    --- PASS: TestValidateHSNCode/Valid_with_spaces_(normalized) (0.00s)
+    --- PASS: TestValidateHSNCode/Empty_(required) (0.00s)
+    --- PASS: TestValidateHSNCode/Wrong_prefix_(not_8507) (0.00s)
+    --- PASS: TestValidateHSNCode/Too_short (0.00s)
+    --- PASS: TestValidateHSNCode/Too_long (0.00s)
+    --- PASS: TestValidateHSNCode/Non-numeric (0.00s)
+    --- PASS: TestValidateHSNCode/Close_but_wrong:_8506_prefix (0.00s)
+=== RUN   TestValidateHSNCodeGeneric
+=== RUN   TestValidateHSNCodeGeneric/Valid_8-digit_HSN
+=== RUN   TestValidateHSNCodeGeneric/Valid_non-battery_HSN
+=== RUN   TestValidateHSNCodeGeneric/With_dots_(normalized)
+=== RUN   TestValidateHSNCodeGeneric/Empty_(required)
+=== RUN   TestValidateHSNCodeGeneric/Too_short
+=== RUN   TestValidateHSNCodeGeneric/Non-numeric
+--- PASS: TestValidateHSNCodeGeneric (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/Valid_8-digit_HSN (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/Valid_non-battery_HSN (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/With_dots_(normalized) (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/Empty_(required) (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/Too_short (0.00s)
+    --- PASS: TestValidateHSNCodeGeneric/Non-numeric (0.00s)
+=== RUN   TestValidateEPRNumber
+=== RUN   TestValidateEPRNumber/Valid_EPR
+=== RUN   TestValidateEPRNumber/Empty_(optional)
+=== RUN   TestValidateEPRNumber/Missing_B-_prefix
+=== RUN   TestValidateEPRNumber/Too_short
+=== RUN   TestValidateEPRNumber/Too_long_(>30_chars)
+--- PASS: TestValidateEPRNumber (0.00s)
+    --- PASS: TestValidateEPRNumber/Valid_EPR (0.00s)
+    --- PASS: TestValidateEPRNumber/Empty_(optional) (0.00s)
+    --- PASS: TestValidateEPRNumber/Missing_B-_prefix (0.00s)
+    --- PASS: TestValidateEPRNumber/Too_short (0.00s)
+    --- PASS: TestValidateEPRNumber/Too_long_(>30_chars) (0.00s)
+=== RUN   TestValidateBISRNumber
+=== RUN   TestValidateBISRNumber/Valid_R-Number
+=== RUN   TestValidateBISRNumber/Empty_(optional)
+=== RUN   TestValidateBISRNumber/Missing_R-_prefix
+=== RUN   TestValidateBISRNumber/Wrong_digit_count_(7)
+=== RUN   TestValidateBISRNumber/Lowercase_normalized
+--- PASS: TestValidateBISRNumber (0.00s)
+    --- PASS: TestValidateBISRNumber/Valid_R-Number (0.00s)
+    --- PASS: TestValidateBISRNumber/Empty_(optional) (0.00s)
+    --- PASS: TestValidateBISRNumber/Missing_R-_prefix (0.00s)
+    --- PASS: TestValidateBISRNumber/Wrong_digit_count_(7) (0.00s)
+    --- PASS: TestValidateBISRNumber/Lowercase_normalized (0.00s)
+=== RUN   TestValidateCountryCode
+=== RUN   TestValidateCountryCode/Valid_IN
+=== RUN   TestValidateCountryCode/Valid_US
+=== RUN   TestValidateCountryCode/Valid_CN
+=== RUN   TestValidateCountryCode/Empty_(optional)
+=== RUN   TestValidateCountryCode/Lowercase_(normalized)
+=== RUN   TestValidateCountryCode/Three_letters
+=== RUN   TestValidateCountryCode/Single_letter
+=== RUN   TestValidateCountryCode/Digits
+--- PASS: TestValidateCountryCode (0.00s)
+    --- PASS: TestValidateCountryCode/Valid_IN (0.00s)
+    --- PASS: TestValidateCountryCode/Valid_US (0.00s)
+    --- PASS: TestValidateCountryCode/Valid_CN (0.00s)
+    --- PASS: TestValidateCountryCode/Empty_(optional) (0.00s)
+    --- PASS: TestValidateCountryCode/Lowercase_(normalized) (0.00s)
+    --- PASS: TestValidateCountryCode/Three_letters (0.00s)
+    --- PASS: TestValidateCountryCode/Single_letter (0.00s)
+    --- PASS: TestValidateCountryCode/Digits (0.00s)
+=== RUN   TestValidateCarbonFootprint
+=== RUN   TestValidateCarbonFootprint/Valid_integer
+=== RUN   TestValidateCarbonFootprint/Valid_decimal
+=== RUN   TestValidateCarbonFootprint/Empty_(optional)
+=== RUN   TestValidateCarbonFootprint/Negative
+=== RUN   TestValidateCarbonFootprint/Letters
+=== RUN   TestValidateCarbonFootprint/Mixed
+--- PASS: TestValidateCarbonFootprint (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Valid_integer (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Valid_decimal (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Empty_(optional) (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Negative (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Letters (0.00s)
+    --- PASS: TestValidateCarbonFootprint/Mixed (0.00s)
+=== RUN   TestValidateDVASource
+=== RUN   TestValidateDVASource/ESTIMATED
+=== RUN   TestValidateDVASource/AUDITED
+=== RUN   TestValidateDVASource/Empty_(defaults_to_ESTIMATED)
+=== RUN   TestValidateDVASource/Invalid_value
+=== RUN   TestValidateDVASource/Lowercase
+--- PASS: TestValidateDVASource (0.00s)
+    --- PASS: TestValidateDVASource/ESTIMATED (0.00s)
+    --- PASS: TestValidateDVASource/AUDITED (0.00s)
+    --- PASS: TestValidateDVASource/Empty_(defaults_to_ESTIMATED) (0.00s)
+    --- PASS: TestValidateDVASource/Invalid_value (0.00s)
+    --- PASS: TestValidateDVASource/Lowercase (0.00s)
+=== RUN   TestValidateBatteryChemistry
+=== RUN   TestValidateBatteryChemistry/LFP
+=== RUN   TestValidateBatteryChemistry/NMC
+=== RUN   TestValidateBatteryChemistry/NCA
+=== RUN   TestValidateBatteryChemistry/LTO
+=== RUN   TestValidateBatteryChemistry/Empty_(required)
+=== RUN   TestValidateBatteryChemistry/Non-standard_(still_valid,_just_warning)
+--- PASS: TestValidateBatteryChemistry (0.00s)
+    --- PASS: TestValidateBatteryChemistry/LFP (0.00s)
+    --- PASS: TestValidateBatteryChemistry/NMC (0.00s)
+    --- PASS: TestValidateBatteryChemistry/NCA (0.00s)
+    --- PASS: TestValidateBatteryChemistry/LTO (0.00s)
+    --- PASS: TestValidateBatteryChemistry/Empty_(required) (0.00s)
+    --- PASS: TestValidateBatteryChemistry/Non-standard_(still_valid,_just_warning) (0.00s)
+=== RUN   TestValidatePLICompliance
+=== RUN   TestValidatePLICompliance/Not_claiming_PLI_-_no_validation
+=== RUN   TestValidatePLICompliance/AUDITED_with_DVA_>=_50%
+=== RUN   TestValidatePLICompliance/AUDITED_with_DVA_<_50%
+=== RUN   TestValidatePLICompliance/AUDITED_with_nil_DVA
+=== RUN   TestValidatePLICompliance/ESTIMATED_with_DVA_>=_50%
+=== RUN   TestValidatePLICompliance/ESTIMATED_with_DVA_<_50%
+--- PASS: TestValidatePLICompliance (0.00s)
+    --- PASS: TestValidatePLICompliance/Not_claiming_PLI_-_no_validation (0.00s)
+    --- PASS: TestValidatePLICompliance/AUDITED_with_DVA_>=_50% (0.00s)
+    --- PASS: TestValidatePLICompliance/AUDITED_with_DVA_<_50% (0.00s)
+    --- PASS: TestValidatePLICompliance/AUDITED_with_nil_DVA (0.00s)
+    --- PASS: TestValidatePLICompliance/ESTIMATED_with_DVA_>=_50% (0.00s)
+    --- PASS: TestValidatePLICompliance/ESTIMATED_with_DVA_<_50% (0.00s)
+=== RUN   TestValidateCarbonFootprintFormat
+=== RUN   TestValidateCarbonFootprintFormat/Valid:_integer_kg_CO2e
+=== RUN   TestValidateCarbonFootprintFormat/Valid:_decimal_kg_CO2e
+=== RUN   TestValidateCarbonFootprintFormat/Valid:_with_/kWh
+=== RUN   TestValidateCarbonFootprintFormat/Valid:_no_space_before_kg
+=== RUN   TestValidateCarbonFootprintFormat/Empty_(required_for_EU)
+=== RUN   TestValidateCarbonFootprintFormat/Just_a_number
+=== RUN   TestValidateCarbonFootprintFormat/Wrong_unit
+=== RUN   TestValidateCarbonFootprintFormat/Missing_CO2e
+--- PASS: TestValidateCarbonFootprintFormat (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Valid:_integer_kg_CO2e (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Valid:_decimal_kg_CO2e (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Valid:_with_/kWh (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Valid:_no_space_before_kg (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Empty_(required_for_EU) (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Just_a_number (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Wrong_unit (0.00s)
+    --- PASS: TestValidateCarbonFootprintFormat/Missing_CO2e (0.00s)
+=== RUN   TestValidateEUCompliance
+=== RUN   TestValidateEUCompliance/Fully_compliant
+=== RUN   TestValidateEUCompliance/Missing_carbon_footprint
+=== RUN   TestValidateEUCompliance/Missing_carbon_declaration
+=== RUN   TestValidateEUCompliance/Recycled_content_out_of_range
+=== RUN   TestValidateEUCompliance/Low_recycled_content_(warning)
+=== RUN   TestValidateEUCompliance/No_recycled_content_(warning)
+=== RUN   TestValidateEUCompliance/No_supply_chain_DD_(warning)
+--- PASS: TestValidateEUCompliance (0.00s)
+    --- PASS: TestValidateEUCompliance/Fully_compliant (0.00s)
+    --- PASS: TestValidateEUCompliance/Missing_carbon_footprint (0.00s)
+    --- PASS: TestValidateEUCompliance/Missing_carbon_declaration (0.00s)
+    --- PASS: TestValidateEUCompliance/Recycled_content_out_of_range (0.00s)
+    --- PASS: TestValidateEUCompliance/Low_recycled_content_(warning) (0.00s)
+    --- PASS: TestValidateEUCompliance/No_recycled_content_(warning) (0.00s)
+    --- PASS: TestValidateEUCompliance/No_supply_chain_DD_(warning) (0.00s)
+=== RUN   TestValidateIndiaCompliance
+=== RUN   TestValidateIndiaCompliance/Fully_compliant_domestic
+=== RUN   TestValidateIndiaCompliance/Missing_BIS_(mandatory)
+=== RUN   TestValidateIndiaCompliance/Imported_without_IEC_(mandatory)
+=== RUN   TestValidateIndiaCompliance/Imported_with_valid_IEC
+=== RUN   TestValidateIndiaCompliance/Invalid_HSN_code
+=== RUN   TestValidateIndiaCompliance/PLI_with_low_DVA_(warning_only)
+--- PASS: TestValidateIndiaCompliance (0.00s)
+    --- PASS: TestValidateIndiaCompliance/Fully_compliant_domestic (0.00s)
+    --- PASS: TestValidateIndiaCompliance/Missing_BIS_(mandatory) (0.00s)
+    --- PASS: TestValidateIndiaCompliance/Imported_without_IEC_(mandatory) (0.00s)
+    --- PASS: TestValidateIndiaCompliance/Imported_with_valid_IEC (0.00s)
+    --- PASS: TestValidateIndiaCompliance/Invalid_HSN_code (0.00s)
+    --- PASS: TestValidateIndiaCompliance/PLI_with_low_DVA_(warning_only) (0.00s)
+=== RUN   TestValidateBatchCompliance
+=== RUN   TestValidateBatchCompliance/Valid_HSN_+_not_imported
+=== RUN   TestValidateBatchCompliance/Valid_HSN_+_valid_IEC_imported
+=== RUN   TestValidateBatchCompliance/Missing_HSN
+=== RUN   TestValidateBatchCompliance/Imported_without_IEC
+=== RUN   TestValidateBatchCompliance/Imported_with_invalid_IEC
+--- PASS: TestValidateBatchCompliance (0.00s)
+    --- PASS: TestValidateBatchCompliance/Valid_HSN_+_not_imported (0.00s)
+    --- PASS: TestValidateBatchCompliance/Valid_HSN_+_valid_IEC_imported (0.00s)
+    --- PASS: TestValidateBatchCompliance/Missing_HSN (0.00s)
+    --- PASS: TestValidateBatchCompliance/Imported_without_IEC (0.00s)
+    --- PASS: TestValidateBatchCompliance/Imported_with_invalid_IEC (0.00s)
+PASS
+ok  	exportready-battery/internal/services	0.500s
