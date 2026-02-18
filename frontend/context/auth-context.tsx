@@ -64,12 +64,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const response = await api.get('/auth/me');
             setUser(response.data);
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Auth check failed:', error);
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh_token');
-            // Clear auth cookie for middleware to avoid stale sessions
-            document.cookie = 'auth_token=; path=/; max-age=0';
+            // Only clear tokens on genuine auth failures (401/403).
+            // The axios interceptor already tried refreshing the token,
+            // so if we still got here the session is truly dead.
+            // For transient network errors, keep the existing session alive.
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            if (status === 401 || status === 403) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('refresh_token');
+                document.cookie = 'auth_token=; path=/; max-age=0';
+            }
+            // For non-auth errors (network timeout, 500, etc.) we
+            // leave tokens in place so the user isn't randomly logged out.
         } finally {
             setLoading(false);
         }

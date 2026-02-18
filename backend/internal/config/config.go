@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -45,11 +45,12 @@ func Load() *Config {
 	// --- JWT Secret: crash in production if unset ---
 	jwtSecret := getEnv("JWT_SECRET", "")
 	if env == "production" && jwtSecret == "" {
-		log.Fatal("FATAL: JWT_SECRET environment variable must be set in production")
+		slog.Error("FATAL: JWT_SECRET environment variable must be set in production")
+		os.Exit(1)
 	}
 	if jwtSecret == "" {
 		jwtSecret = "dev-only-insecure-key-do-not-use-in-prod"
-		log.Println("⚠️  Using insecure default JWT secret (development only)")
+		slog.Warn("Using insecure default JWT secret (development only)")
 	}
 
 	// --- CORS Origins: crash in production if unset ---
@@ -59,7 +60,8 @@ func Load() *Config {
 	}
 	corsOrigins := getEnv("CORS_ORIGINS", defaultCORS)
 	if env == "production" && corsOrigins == "" {
-		log.Fatal("FATAL: CORS_ORIGINS environment variable must be set in production")
+		slog.Error("FATAL: CORS_ORIGINS environment variable must be set in production")
+		os.Exit(1)
 	}
 
 	return &Config{

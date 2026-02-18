@@ -31,6 +31,11 @@ type MaterialCompositionInput = {
     manganese: string
     graphite: string
     lead: string
+    // Per-material recycled content (EU 2023/1542 Art. 8)
+    recycled_cobalt: string
+    recycled_lithium: string
+    recycled_nickel: string
+    recycled_lead: string
 }
 
 type HazardousSubstancesInput = {
@@ -93,6 +98,10 @@ interface Template {
             manganese_pct?: number
             graphite_pct?: number
             lead_pct?: number
+            recycled_cobalt_pct?: number
+            recycled_lithium_pct?: number
+            recycled_nickel_pct?: number
+            recycled_lead_pct?: number
         }
         certifications?: string[]
         manufacturer_address?: string
@@ -153,7 +162,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         nickel: "",
         manganese: "",
         graphite: "",
-        lead: ""
+        lead: "",
+        recycled_cobalt: "",
+        recycled_lithium: "",
+        recycled_nickel: "",
+        recycled_lead: ""
     })
     const [recycledContent, setRecycledContent] = useState("")
     const [hazardousSubstances, setHazardousSubstances] = useState<HazardousSubstancesInput>({
@@ -289,7 +302,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     nickel: mc.nickel_pct?.toString() || "",
                     manganese: mc.manganese_pct?.toString() || "",
                     graphite: mc.graphite_pct?.toString() || "",
-                    lead: mc.lead_pct?.toString() || ""
+                    lead: mc.lead_pct?.toString() || "",
+                    recycled_cobalt: mc.recycled_cobalt_pct?.toString() || "",
+                    recycled_lithium: mc.recycled_lithium_pct?.toString() || "",
+                    recycled_nickel: mc.recycled_nickel_pct?.toString() || "",
+                    recycled_lead: mc.recycled_lead_pct?.toString() || ""
                 })
             }
             if (template.specs.certifications) {
@@ -453,6 +470,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     manganese_pct?: number
                     graphite_pct?: number
                     lead_pct?: number
+                    recycled_cobalt_pct?: number
+                    recycled_lithium_pct?: number
+                    recycled_nickel_pct?: number
+                    recycled_lead_pct?: number
                 } = {
                     cobalt_pct: materialComposition.cobalt ? parseFloat(materialComposition.cobalt) : undefined,
                     lithium_pct: materialComposition.lithium ? parseFloat(materialComposition.lithium) : undefined,
@@ -460,6 +481,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     manganese_pct: materialComposition.manganese ? parseFloat(materialComposition.manganese) : undefined,
                     graphite_pct: materialComposition.graphite ? parseFloat(materialComposition.graphite) : undefined,
                     lead_pct: materialComposition.lead ? parseFloat(materialComposition.lead) : undefined,
+                    recycled_cobalt_pct: materialComposition.recycled_cobalt ? parseFloat(materialComposition.recycled_cobalt) : undefined,
+                    recycled_lithium_pct: materialComposition.recycled_lithium ? parseFloat(materialComposition.recycled_lithium) : undefined,
+                    recycled_nickel_pct: materialComposition.recycled_nickel ? parseFloat(materialComposition.recycled_nickel) : undefined,
+                    recycled_lead_pct: materialComposition.recycled_lead ? parseFloat(materialComposition.recycled_lead) : undefined,
                 }
                 const hasMaterial = Object.values(materialPayload).some((v) => typeof v === "number" && v > 0)
                 if (hasMaterial) {
@@ -601,7 +626,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             nickel: "",
             manganese: "",
             graphite: "",
-            lead: ""
+            lead: "",
+            recycled_cobalt: "",
+            recycled_lithium: "",
+            recycled_nickel: "",
+            recycled_lead: ""
         })
         setHazardousSubstances({
             lead: false,
@@ -899,6 +928,40 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             {materialKeys.map((key) => (
                                                 <div key={key} className="grid gap-1">
                                                     <Label htmlFor={key} className="text-xs capitalize text-slate-500">{key} %</Label>
+                                                    <Input
+                                                        id={key}
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.1"
+                                                        value={materialComposition[key]}
+                                                        onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                        placeholder="0.0"
+                                                        className="h-8 text-xs bg-white border-slate-200"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Per-Material Recycled Content (EU 2023/1542 Art. 8) */}
+                                    <div className="space-y-3 pt-2">
+                                        <div className="flex items-center gap-2 text-emerald-600 font-semibold text-xs border-b border-emerald-500/20 pb-1">
+                                            <Leaf className="h-3.5 w-3.5" />
+                                            Recycled Content per Material (%)
+                                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">EU Art. 8</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {([
+                                                { key: "recycled_cobalt" as const, label: "Cobalt", target: "16% by 2030" },
+                                                { key: "recycled_lithium" as const, label: "Lithium", target: "6% by 2030" },
+                                                { key: "recycled_nickel" as const, label: "Nickel", target: "6% by 2030" },
+                                                { key: "recycled_lead" as const, label: "Lead", target: "85% by 2030" },
+                                            ]).map(({ key, label, target }) => (
+                                                <div key={key} className="grid gap-1">
+                                                    <Label htmlFor={key} className="text-xs text-slate-500">
+                                                        {label} <span className="text-[10px] text-emerald-500">({target})</span>
+                                                    </Label>
                                                     <Input
                                                         id={key}
                                                         type="number"

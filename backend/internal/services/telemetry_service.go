@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -126,7 +126,7 @@ func (s *TelemetryService) Ingest(ctx context.Context, req IngestRequest, device
 		req.StateOfHealth, req.CycleCount, req.Temperature, req.Voltage,
 		thermalIncrement, req.RecordedAt,
 	); err != nil {
-		log.Printf("WARN: failed to update passport dynamic fields for %s: %v", req.PassportID, err)
+		slog.Warn("Failed to update passport dynamic fields", "passport_id", req.PassportID, "error", err)
 	}
 
 	// Auto-generate lifecycle events
@@ -138,7 +138,7 @@ func (s *TelemetryService) Ingest(ctx context.Context, req IngestRequest, device
 	autoEvents := s.generateAutoEvents(ctx, passport, req)
 	for _, event := range autoEvents {
 		if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
-			log.Printf("WARN: failed to create auto-event %s for passport %s: %v", event.EventType, req.PassportID, err)
+			slog.Warn("Failed to create auto-event", "event_type", event.EventType, "passport_id", req.PassportID, "error", err)
 		} else {
 			result.EventsCreated = append(result.EventsCreated, event.EventType)
 		}

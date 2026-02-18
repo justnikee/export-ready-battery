@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/models"
@@ -30,7 +30,7 @@ func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 
 	template, err := h.repo.CreateTemplate(r.Context(), req.TenantID, req.Name, req.MarketRegion, req.Specs)
 	if err != nil {
-		log.Printf("Failed to create template: %v", err)
+		slog.Error("Failed to create template", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create template")
 		return
 	}
@@ -56,7 +56,7 @@ func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 
 	templates, err := h.repo.ListTemplates(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to list templates: %v", err)
+		slog.Error("Failed to list templates", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list templates")
 		return
 	}
@@ -82,7 +82,7 @@ func (h *Handler) GetTemplate(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Template not found")
 			return
 		}
-		log.Printf("Failed to get template: %v", err)
+		slog.Error("Failed to get template", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get template")
 		return
 	}
@@ -107,7 +107,7 @@ func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Template not found")
 			return
 		}
-		log.Printf("Failed to delete template: %v", err)
+		slog.Error("Failed to delete template", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete template")
 		return
 	}

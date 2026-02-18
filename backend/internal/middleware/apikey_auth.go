@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -126,7 +126,7 @@ func (a *APIKeyAuth) validateKey(w http.ResponseWriter, r *http.Request) (*model
 	// Update last used — with error handling for audit tracking
 	go func() {
 		if err := a.repo.UpdateAPIKeyLastUsed(context.Background(), matchedKey.ID); err != nil {
-			log.Printf("⚠️ Failed to update API key last used: %v", err)
+			slog.Warn("Failed to update API key last used", "error", err)
 		}
 	}()
 

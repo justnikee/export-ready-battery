@@ -113,7 +113,7 @@ func validateEUActivation(batch *models.Batch, tenant *models.Tenant, missing *[
 	}
 
 	// Batch-level EU compliance: prefer structured calculator result, fall back to freetext
-	if (batch.CarbonFootprintResult == nil || len(batch.CarbonFootprintResult) == 0) && batch.Specs.CarbonFootprint == "" {
+	if len(batch.CarbonFootprintResult) == 0 && batch.Specs.CarbonFootprint == "" {
 		*missing = append(*missing, "batch.carbon_footprint_result (use carbon calculator or provide specs.carbon_footprint)")
 	}
 	if batch.Specs.MaterialComposition == nil {

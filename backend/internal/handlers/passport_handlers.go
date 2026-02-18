@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"crypto/subtle"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/auth"
@@ -33,7 +33,7 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Passport not found")
 			return
 		}
-		log.Printf("Failed to get passport: %v", err)
+		slog.Error("Failed to get passport", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get passport")
 		return
 	}
@@ -45,7 +45,7 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 	case models.AccessTierRegulator:
 		events, err := h.repo.GetPassportEvents(r.Context(), passportUUID)
 		if err != nil {
-			log.Printf("Failed to get passport events for regulator view: %v", err)
+			slog.Error("Failed to get passport events for regulator view", "error", err)
 			// Degrade gracefully — return regulator view without events
 			events = nil
 		}

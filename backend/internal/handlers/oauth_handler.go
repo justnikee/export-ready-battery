@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -57,7 +57,7 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 
 	state, err := generateState()
 	if err != nil {
-		log.Printf("Failed to generate OAuth state: %v", err)
+		slog.Error("Failed to generate OAuth state", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to initiate OAuth")
 		return
 	}
@@ -90,7 +90,7 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 
 	state, err := generateState()
 	if err != nil {
-		log.Printf("Failed to generate OAuth state: %v", err)
+		slog.Error("Failed to generate OAuth state", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to initiate OAuth")
 		return
 	}
@@ -119,7 +119,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	// Check for OAuth error
 	if errParam := r.URL.Query().Get("error"); errParam != "" {
 		errDesc := r.URL.Query().Get("error_description")
-		log.Printf("OAuth error from %s: %s - %s", provider, errParam, errDesc)
+		slog.Warn("OAuth error from provider", "provider", provider, "error", errParam, "description", errDesc)
 		h.redirectWithError(w, r, "Authentication was cancelled or failed")
 		return
 	}
@@ -128,7 +128,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	state := r.URL.Query().Get("state")
 	stateCookie, err := r.Cookie("oauth_state")
 	if err != nil || stateCookie.Value != state || state == "" {
-		log.Printf("OAuth state mismatch for %s", provider)
+		slog.Warn("OAuth state mismatch", "provider", provider)
 		h.redirectWithError(w, r, "Invalid OAuth state. Please try again.")
 		return
 	}
@@ -161,7 +161,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err != nil {
-		log.Printf("Failed to exchange %s code: %v", provider, err)
+		slog.Error("Failed to exchange OAuth code", "provider", provider, "error", err)
 		h.redirectWithError(w, r, "Failed to authenticate with "+provider)
 		return
 	}
@@ -169,7 +169,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	// Find or create tenant
 	tenantID, companyName, err := h.findOrCreateTenant(r.Context(), profile)
 	if err != nil {
-		log.Printf("Failed to find/create tenant for %s OAuth: %v", provider, err)
+		slog.Error("Failed to find/create tenant for OAuth", "provider", provider, "error", err)
 		h.redirectWithError(w, r, "Failed to create account")
 		return
 	}
@@ -182,14 +182,14 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	// Generate tokens
 	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
+		slog.Error("Failed to generate token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
 
 	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email)
 	if err != nil {
-		log.Printf("Failed to generate refresh token: %v", err)
+		slog.Error("Failed to generate refresh token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
@@ -247,7 +247,7 @@ func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services
 	if err == nil {
 		for _, invite := range pendingInvites {
 			if err := h.repo.UpdateTeamMemberStatus(ctx, invite.ID, models.TeamStatusActive, &tenantID); err != nil {
-				log.Printf("Failed to activate pending invite for team %s: %v", invite.TenantID, err)
+				slog.Warn("Failed to activate pending invite", "team_id", invite.TenantID, "error", err)
 			}
 		}
 	}

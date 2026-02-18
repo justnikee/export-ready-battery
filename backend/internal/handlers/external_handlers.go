@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -133,12 +133,12 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	batch, err := h.repo.CreateBatch(r.Context(), createReq)
 	if err != nil {
-		log.Printf("External API: Failed to create batch: %v", err)
+		slog.Error("External API: Failed to create batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create batch")
 		return
 	}
 
-	log.Printf("🔗 External API: Batch created - %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+	slog.Info("External API: Batch created", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"id":         batch.ID.String(),
@@ -230,7 +230,7 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 	// Check for existing duplicates in database
 	duplicates, err := h.repo.FindDuplicateSerials(r.Context(), serialNumbers)
 	if err != nil {
-		log.Printf("Failed to check duplicates: %v", err)
+		slog.Error("Failed to check duplicates", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to validate serial numbers")
 		return
 	}
@@ -272,19 +272,19 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 
 	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "API")
 	if err != nil {
-		log.Printf("External API: Failed to build genesis events: %v", err)
+		slog.Error("External API: Failed to build genesis events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
 
 	created, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
 	if err != nil {
-		log.Printf("External API: Failed to create passports with audit events: %v", err)
+		slog.Error("External API: Failed to create passports with audit events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create passports")
 		return
 	}
 
-	log.Printf("🔗 External API: %d passports created for batch %s (tenant: %s)", created, batch.BatchName, tenantIDStr[:8])
+	slog.Info("External API: Passports created", "count", created, "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"created":    created,
@@ -360,10 +360,13 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Parse optional language for label translations
+	lang := services.NormalizeLang(r.URL.Query().Get("lang"))
+
 	// Generate PDF
-	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant)
+	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant, lang)
 	if err != nil {
-		log.Printf("External API: Failed to generate labels: %v", err)
+		slog.Error("External API: Failed to generate labels", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate labels")
 		return
 	}
@@ -375,5 +378,5 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 	w.Write(pdfBuffer.Bytes())
 
-	log.Printf("🔗 External API: Labels downloaded for batch %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+	slog.Info("External API: Labels downloaded", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 }

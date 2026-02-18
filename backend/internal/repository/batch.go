@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -85,9 +84,6 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		cellSource = req.CellSource
 	}
 
-	// Debug logging
-	log.Printf("DEBUG CreateBatch: specsJSON=%s, marketRegion=%s", string(specsJSON), marketRegion)
-
 	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result
 	query := `INSERT INTO public.batches 
 		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
@@ -150,7 +146,6 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
 	)
 	if err != nil {
-		log.Printf("DEBUG CreateBatch ERROR: %v", err)
 		return nil, fmt.Errorf("failed to create batch: %w", err)
 	}
 
@@ -310,8 +305,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 
 	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset)
 	if err != nil {
-		log.Printf("ListBatches Query Error: %v", err)
-		return nil, 0, fmt.Errorf("failed to list batches: %w\n", err)
+		return nil, 0, fmt.Errorf("failed to list batches: %w", err)
 	}
 	defer rows.Close()
 

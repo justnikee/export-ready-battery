@@ -10,7 +10,8 @@ import {
     Loader2,
     FileArchive,
     FileText,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Shield
 } from 'lucide-react';
 import {
     listExportJobs,
@@ -97,6 +98,10 @@ export default function ExportsPage() {
                 return <FileText className="w-5 h-5 text-blue-500" />;
             case 'CSV':
                 return <FileSpreadsheet className="w-5 h-5 text-emerald-500" />;
+            case 'DUE_DILIGENCE':
+                return <Shield className="w-5 h-5 text-indigo-500" />;
+            default:
+                return <FileText className="w-5 h-5 text-slate-500" />;
         }
     };
 

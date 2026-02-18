@@ -271,6 +271,30 @@ export default function BatchDetailsPage() {
         }
     }
 
+    const handleExportDueDiligence = async () => {
+        if (!batch) return
+        try {
+            toast.loading("Creating Due Diligence Report...", { id: 'dd-export' });
+            const job = await createExportJob({
+                batch_id: params.id as string,
+                job_type: 'DUE_DILIGENCE'
+            });
+            toast.success(`Due Diligence Report export job created!`, {
+                id: 'dd-export',
+                description: `Go to Exports page to download when ready.`,
+                duration: 10000,
+                action: {
+                    label: 'View Exports',
+                    onClick: () => router.push('/exports')
+                }
+            });
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            console.error("Failed to create DD report export", error);
+            toast.error(apiError.response?.data?.error || "Failed to create Due Diligence export job", { id: 'dd-export' });
+        }
+    }
+
     // Determine compliance status - DARK THEME
     const getComplianceBadge = () => {
         const region = batch?.market_region as MarketRegion
@@ -965,6 +989,19 @@ export default function BatchDetailsPage() {
                                     <FileText className="mr-2 h-4 w-4 text-amber-500" />
                                     Export Audit Log (CSV)
                                 </Button>
+
+                                {/* EU Due Diligence Report */}
+                                {(batch.market_region === "EU" || batch.market_region === "GLOBAL") && (
+                                    <Button
+                                        className="w-full bg-slate-100 hover:bg-indigo-50 hover:border-indigo-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                        onClick={handleExportDueDiligence}
+                                        disabled={isDraft}
+                                    >
+                                        <Shield className="mr-2 h-4 w-4 text-indigo-500" />
+                                        Due Diligence Report (PDF)
+                                        {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
 

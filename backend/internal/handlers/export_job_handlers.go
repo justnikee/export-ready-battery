@@ -92,8 +92,10 @@ func (h *ExportJobHandler) CreateExportJob(w http.ResponseWriter, r *http.Reques
 		jobType = models.ExportJobTypeLabelPDF
 	case "CSV":
 		jobType = models.ExportJobTypeCSV
+	case "DUE_DILIGENCE":
+		jobType = models.ExportJobTypeDueDiligence
 	default:
-		respondError(w, http.StatusBadRequest, "Invalid job_type. Must be QR_ZIP, LABELS_PDF, or CSV")
+		respondError(w, http.StatusBadRequest, "Invalid job_type. Must be QR_ZIP, LABELS_PDF, CSV, or DUE_DILIGENCE")
 		return
 	}
 

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,9 +27,9 @@ func main() {
 	// Load .env file from the current directory
 	// Using Overload to force .env values to override system environment variables
 	if err := godotenv.Overload(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+		slog.Info("No .env file found, using system environment variables")
 	} else {
-		log.Println("✅ Loaded .env file (overriding system env vars)")
+		slog.Info("Loaded .env file (overriding system env vars)")
 	}
 
 	// Initialize structured logger
@@ -41,11 +41,12 @@ func main() {
 	// Initialize database connection
 	database, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer database.Close()
 
-	log.Println("✅ Connected to PostgreSQL database")
+	slog.Info("Connected to PostgreSQL database")
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
@@ -105,9 +106,9 @@ func main() {
 			slogger,
 		)
 		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
-		log.Println("✅ Export job handler initialized")
+		slog.Info("Export job handler initialized")
 	} else {
-		log.Println("⚠️ Export job handler not initialized (missing SUPABASE config)")
+		slog.Warn("Export job handler not initialized (missing SUPABASE config)")
 	}
 
 	// Initialize magic link handler (with reward service for scan-to-earn and email service)
@@ -411,25 +412,27 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("🚀 Server starting on http://localhost:%s", cfg.Port)
+		slog.Info("Server starting", "addr", "http://localhost:"+cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			slog.Error("Server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	// Wait for shutdown signal
 	<-done
-	log.Println("⏳ Shutting down server...")
+	slog.Info("Shutting down server...")
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		slog.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("✅ Server exited gracefully")
+	slog.Info("Server exited gracefully")
 }
 
 // loggingMiddleware logs incoming HTTP requests
@@ -437,7 +440,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+		slog.Info("HTTP request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start))
 	})
 }
 
@@ -460,7 +463,7 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 				} else {
-					log.Printf("⚠️ CORS Blocked Origin: %s (Allowed: %v)", origin, allowedOrigins)
+					slog.Warn("CORS Blocked Origin", "origin", origin, "allowed", allowedOrigins)
 				}
 			}
 

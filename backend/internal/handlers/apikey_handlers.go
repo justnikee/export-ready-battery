@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -61,7 +61,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	keyService := services.NewAPIKeyService()
 	fullKey, prefix, err := keyService.GenerateKey()
 	if err != nil {
-		log.Printf("Failed to generate API key: %v", err)
+		slog.Error("Failed to generate API key", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate API key")
 		return
 	}
@@ -69,7 +69,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	// Hash key
 	keyHash, err := keyService.HashKey(fullKey)
 	if err != nil {
-		log.Printf("Failed to hash API key: %v", err)
+		slog.Error("Failed to hash API key", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create API key")
 		return
 	}
@@ -96,12 +96,12 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.CreateAPIKey(r.Context(), apiKey); err != nil {
-		log.Printf("Failed to save API key: %v", err)
+		slog.Error("Failed to save API key", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create API key")
 		return
 	}
 
-	log.Printf("🔑 API key created: %s (tenant: %s, scope: %s)", req.Name, tenantIDStr[:8], req.Scope)
+	slog.Info("API key created", "name", req.Name, "tenant", tenantIDStr[:8], "scope", req.Scope)
 
 	// Return key with full key (only time it's shown)
 	respondJSON(w, http.StatusCreated, models.APIKeyWithSecret{
@@ -121,7 +121,7 @@ func (h *Handler) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 
 	keys, err := h.repo.ListAPIKeys(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to list API keys: %v", err)
+		slog.Error("Failed to list API keys", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list API keys")
 		return
 	}
@@ -199,7 +199,7 @@ func (h *Handler) UpdateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.UpdateAPIKey(r.Context(), keyID, req.Name, req.IsActive); err != nil {
-		log.Printf("Failed to update API key: %v", err)
+		slog.Error("Failed to update API key", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update API key")
 		return
 	}
@@ -237,12 +237,12 @@ func (h *Handler) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.DeleteAPIKey(r.Context(), keyID); err != nil {
-		log.Printf("Failed to delete API key: %v", err)
+		slog.Error("Failed to delete API key", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete API key")
 		return
 	}
 
-	log.Printf("🗑️ API key deleted: %s (tenant: %s)", apiKey.Name, tenantIDStr[:8])
+	slog.Info("API key deleted", "name", apiKey.Name, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "API key deleted",

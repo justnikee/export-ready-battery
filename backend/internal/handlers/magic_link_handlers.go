@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -117,7 +117,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	// ===== TIERED PARTNER VERIFICATION =====
 	verification, err := h.repo.VerifyPartnerAccess(r.Context(), req.Email, req.PartnerCode)
 	if err != nil {
-		log.Printf("Partner verification error: %v", err)
+		slog.Error("Partner verification error", "error", err)
 		respondError(w, http.StatusInternalServerError, "Verification failed")
 		return
 	}
@@ -144,8 +144,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Log verification tier
-	log.Printf("✅ Partner verified: %s (Tier %s, Company: %s, Role: %s)",
-		req.Email, verification.Tier, verification.CompanyName, role)
+	slog.Info("Partner verified", "email", req.Email, "tier", verification.Tier, "company", verification.CompanyName, "role", role)
 
 	// If Tier B, increment code usage
 	if verification.Tier == "B" && req.PartnerCode != "" {
@@ -158,7 +157,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	// Generate magic link token
 	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, req.Action, h.jwtSecret)
 	if err != nil {
-		log.Printf("Failed to generate magic token: %v", err)
+		slog.Error("Failed to generate magic token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate magic link")
 		return
 	}
@@ -173,7 +172,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		ExpiresAt:  token.ExpiresAt,
 	})
 	if err != nil {
-		log.Printf("Failed to store magic link token: %v", err)
+		slog.Error("Failed to store magic link token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to store magic link token")
 		return
 	}
@@ -184,14 +183,14 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	// Send email with magic link
 	if h.emailService != nil && h.emailService.IsEnabled() {
 		if err := h.emailService.SendMagicLink(req.Email, req.PassportID, token.Token, role, req.Action); err != nil {
-			log.Printf("⚠️ Failed to send magic link email: %v", err)
+			slog.Warn("Failed to send magic link email", "error", err)
 			// Continue anyway - we'll return the link for testing
 		} else {
-			log.Printf("📧 Magic link email sent to %s (Tier %s)", req.Email, verification.Tier)
+			slog.Info("Magic link email sent", "email", req.Email, "tier", verification.Tier)
 		}
 	} else {
 		// Fallback: Log to console for development
-		log.Printf("🔗 Magic Link Generated for %s (%s, Tier %s):\n%s", req.Email, role, verification.Tier, magicLink)
+		slog.Info("Magic link generated (dev mode)", "email", req.Email, "role", role, "tier", verification.Tier, "link", magicLink)
 	}
 
 	response := map[string]interface{}{
@@ -247,7 +246,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	// Validate magic link token
 	claims, err := auth.ValidateMagicTokenForPassport(tokenString, h.jwtSecret, passportIDStr)
 	if err != nil {
-		log.Printf("Magic token validation failed: %v", err)
+		slog.Error("Magic token validation failed", "error", err)
 		respondError(w, http.StatusUnauthorized, "Invalid or expired magic link")
 		return
 	}
@@ -255,7 +254,7 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	tokenHash := auth.HashToken(tokenString)
 	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
 	if err != nil {
-		log.Printf("Failed to fetch magic link token: %v", err)
+		slog.Error("Failed to fetch magic link token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
 		return
 	}
@@ -423,12 +422,10 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 
 		if awardErr != nil {
 			// Log error but don't fail the transition
-			log.Printf("Warning: Failed to award points: %v", awardErr)
+			slog.Warn("Failed to award points", "error", awardErr)
 		} else if awardResult != nil && awardResult.Success {
 			pointsAwarded = awardResult.PointsEarned
-			log.Printf("🏆 Awarded %d points to %s for %s (Total: %d, Level: %s)",
-				awardResult.PointsEarned, claims.Email, req.Action,
-				awardResult.TotalPoints, awardResult.LoyaltyLevel)
+			slog.Info("Points awarded", "points", awardResult.PointsEarned, "email", claims.Email, "action", req.Action, "total", awardResult.TotalPoints, "level", awardResult.LoyaltyLevel)
 		}
 	}
 

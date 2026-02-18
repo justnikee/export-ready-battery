@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -39,7 +39,7 @@ func (h *RewardHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	// Validate magic link token
 	claims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret)
 	if err != nil {
-		log.Printf("Token validation failed: %v", err)
+		slog.Warn("Token validation failed", "error", err)
 		respondError(w, http.StatusUnauthorized, "Invalid or expired token")
 		return
 	}
@@ -51,7 +51,7 @@ func (h *RewardHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
 	// Get reward balance
 	balance, err := h.rewardService.GetUserRewards(r.Context(), tenantID, claims.Email)
 	if err != nil {
-		log.Printf("Failed to get reward balance: %v", err)
+		slog.Error("Failed to get reward balance", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve rewards")
 		return
 	}
@@ -92,7 +92,7 @@ func (h *RewardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 
 	leaderboard, err := h.rewardService.GetLeaderboard(r.Context(), tenantID, limit)
 	if err != nil {
-		log.Printf("Failed to get leaderboard: %v", err)
+		slog.Error("Failed to get leaderboard", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve leaderboard")
 		return
 	}
@@ -148,7 +148,7 @@ func (h *RewardHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 
 	history, err := h.rewardService.GetRewardHistory(r.Context(), tenantID, claims.Email, limit)
 	if err != nil {
-		log.Printf("Failed to get reward history: %v", err)
+		slog.Error("Failed to get reward history", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve history")
 		return
 	}

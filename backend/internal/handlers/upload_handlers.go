@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -67,7 +67,7 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	log.Printf("Received file: %s (%d bytes)", header.Filename, header.Size)
+	slog.Info("File received", "filename", header.Filename, "size", header.Size)
 
 	// Parse CSV
 	parseResult, err := h.csvService.ParseCSV(file, batchID, header.Filename)
@@ -117,11 +117,13 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 			countryOrigin = &val
 		}
 
-		log.Printf("Detected metadata from CSV: Source=%v, Origin=%v, DVA=%v",
-			parseResult.DetectedCellSource, parseResult.DetectedCountryOfOrigin, parseResult.DetectedDomesticValue)
+		slog.Info("Detected metadata from CSV",
+			"cell_source", parseResult.DetectedCellSource,
+			"country_of_origin", parseResult.DetectedCountryOfOrigin,
+			"domestic_value_add", parseResult.DetectedDomesticValue)
 
 		if err := h.repo.UpdateBatchMetadata(r.Context(), batchID, cellSource, billOfEntry, countryOrigin, parseResult.DetectedDomesticValue); err != nil {
-			log.Printf("Warning: Failed to update batch metadata from CSV: %v", err)
+			slog.Warn("Failed to update batch metadata from CSV", "error", err)
 			// Proceed with passport creation even if metadata update fails
 		}
 	}
@@ -137,7 +139,7 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 
 	events, err := h.lifecycleService.BuildLifecycleEvents(parseResult.Passports, models.PassportEventImported, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to build genesis events: %v", err)
+		slog.Error("Failed to build genesis events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
@@ -145,7 +147,7 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	// Bulk insert passports and genesis events atomically
 	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), parseResult.Passports, events)
 	if err != nil {
-		log.Printf("Failed to insert passports with audit events: %v", err)
+		slog.Error("Failed to insert passports with audit events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
 		return
 	}
@@ -211,7 +213,7 @@ func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	log.Printf("Validating file: %s (%d bytes)", header.Filename, header.Size)
+	slog.Info("Validating file", "filename", header.Filename, "size", header.Size)
 
 	// Parse CSV (validate only, don't persist)
 	parseResult, err := h.csvService.ParseCSV(file, batchID, header.Filename)
@@ -371,7 +373,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Get or derive manufacturer code from tenant
 	mfrCode, err := h.repo.GetOrCreateManufacturerCode(r.Context(), tenantID, tenant.CompanyName)
 	if err != nil {
-		log.Printf("Warning: Failed to get manufacturer code, using fallback: %v", err)
+		slog.Warn("Failed to get manufacturer code, using fallback", "error", err)
 		mfrCode = services.DeriveManufacturerCode(tenant.CompanyName)
 	}
 
@@ -380,7 +382,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Atomically reserve a batch of sequence numbers
 	startSeq, err := h.repo.NextSequenceBatch(r.Context(), bpanPrefix, req.Count)
 	if err != nil {
-		log.Printf("Failed to reserve BPAN sequences: %v", err)
+		slog.Error("Failed to reserve BPAN sequences", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate serial numbers")
 		return
 	}
@@ -406,7 +408,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 
 	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "INTERNAL")
 	if err != nil {
-		log.Printf("Failed to build genesis events: %v", err)
+		slog.Error("Failed to build genesis events for auto-generated passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
 	}
@@ -414,7 +416,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Bulk insert passports and genesis events atomically
 	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
 	if err != nil {
-		log.Printf("Failed to insert auto-generated passports with audit events: %v", err)
+		slog.Error("Failed to insert auto-generated passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
 		return
 	}

@@ -49,7 +49,11 @@ const (
 
 // GenerateLabelSheet creates an A4 PDF with a grid of battery stickers.
 // Guarded to max 500 passports to prevent OOM; larger batches should use async export jobs.
-func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant) (*bytes.Buffer, error) {
+func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant, lang ...string) (*bytes.Buffer, error) {
+	labelLang := "en"
+	if len(lang) > 0 && lang[0] != "" {
+		labelLang = lang[0]
+	}
 	const maxPassports = 500
 	if len(passports) > maxPassports {
 		return nil, fmt.Errorf("too many passports (%d); maximum is %d for synchronous generation — use async export jobs for larger batches", len(passports), maxPassports)
@@ -81,7 +85,7 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 		y := marginTop + float64(row)*cellHeight
 
 		// Draw the label
-		s.drawLabel(pdf, x, y, batch, passport, tenant, carbonPerKWh)
+		s.drawLabel(pdf, x, y, batch, passport, tenant, carbonPerKWh, labelLang)
 	}
 
 	// If no passports, add at least one page with a message
@@ -114,7 +118,9 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 //	+-------------------------------+
 func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	batch *models.Batch, passport *models.Passport, tenant *models.Tenant,
-	carbonPerKWh float64) {
+	carbonPerKWh float64, lang string) {
+
+	tr := GetLabelTranslations(lang)
 
 	// Draw cell border (rectangle)
 	pdf.SetDrawColor(180, 180, 180)
@@ -149,7 +155,7 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	pdf.SetXY(textX, textY)
 	chemistry := batch.Specs.Chemistry
 	if chemistry == "" {
-		chemistry = "Li-ion Battery"
+		chemistry = tr.DefaultChemistry
 	}
 	pdf.CellFormat(textWidth-12, 4, chemistry, "", 0, "L", false, 0, "")
 
@@ -250,13 +256,17 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	if cellSource == "" {
 		cellSource = "DOMESTIC"
 	}
+	cellSourceDisplay := tr.CellDomestic
+	if cellSource != "DOMESTIC" {
+		cellSourceDisplay = tr.CellImported
+	}
 	if cellSource == "DOMESTIC" {
 		pdf.SetTextColor(0, 128, 0) // Green
 	} else {
 		pdf.SetTextColor(200, 120, 0) // Orange
 	}
 	pdf.SetFont("Arial", "B", 4.5)
-	pdf.CellFormat(textWidth, 2.5, cellSource, "", 0, "L", false, 0, "")
+	pdf.CellFormat(textWidth, 2.5, cellSourceDisplay, "", 0, "L", false, 0, "")
 }
 
 // drawRegionBadge draws a small colored market region badge.
@@ -288,8 +298,8 @@ func (s *PDFService) drawRegionBadge(pdf *gofpdf.Fpdf, x, y float64, marketRegio
 }
 
 // GenerateLabelSheetReader returns an io.Reader for HTTP streaming
-func (s *PDFService) GenerateLabelSheetReader(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant) (io.Reader, int64, error) {
-	buf, err := s.GenerateLabelSheet(batch, passports, tenant)
+func (s *PDFService) GenerateLabelSheetReader(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant, lang ...string) (io.Reader, int64, error) {
+	buf, err := s.GenerateLabelSheet(batch, passports, tenant, lang...)
 	if err != nil {
 		return nil, 0, err
 	}

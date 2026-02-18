@@ -386,7 +386,7 @@ func TestValidateEUCompliance(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := v.ValidateEUCompliance(tt.carbonFootprint, tt.recycledContent, tt.hasSupplyChainDD, tt.hasCarbonDecl)
+			result := v.ValidateEUCompliance(tt.carbonFootprint, tt.recycledContent, tt.hasSupplyChainDD, tt.hasCarbonDecl, nil)
 			if result.Valid != tt.wantValid {
 				t.Errorf("ValidateEUCompliance() valid=%v, want %v (errors: %v)", result.Valid, tt.wantValid, result.Errors)
 			}

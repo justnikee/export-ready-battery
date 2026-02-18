@@ -226,6 +226,14 @@ type MaterialComposition struct {
 	NickelPct    float64 `json:"nickel_pct,omitempty"`    // e.g., 15.0 = 15%
 	LeadPct      float64 `json:"lead_pct,omitempty"`      // e.g., 0 = 0%
 	ManganesePct float64 `json:"manganese_pct,omitempty"` // Common in LFP batteries
+
+	// Per-material recycled content (EU 2023/1542 Art. 8)
+	// Required from 2030: Co ≥16%, Li ≥6%, Ni ≥6%, Pb ≥85%
+	// Required from 2035: Co ≥26%, Li ≥12%, Ni ≥15%, Pb ≥85%
+	RecycledCobaltPct  float64 `json:"recycled_cobalt_pct,omitempty"`  // % of cobalt from recycled sources
+	RecycledLithiumPct float64 `json:"recycled_lithium_pct,omitempty"` // % of lithium from recycled sources
+	RecycledNickelPct  float64 `json:"recycled_nickel_pct,omitempty"`  // % of nickel from recycled sources
+	RecycledLeadPct    float64 `json:"recycled_lead_pct,omitempty"`    // % of lead from recycled sources
 }
 
 // HazardousSubstances holds REACH/RoHS compliance declarations
@@ -872,7 +880,8 @@ type ExportJobType string
 const (
 	ExportJobTypeQRZip    ExportJobType = "QR_ZIP"
 	ExportJobTypeLabelPDF ExportJobType = "LABELS_PDF"
-	ExportJobTypeCSV      ExportJobType = "CSV"
+	ExportJobTypeCSV          ExportJobType = "CSV"
+	ExportJobTypeDueDiligence ExportJobType = "DUE_DILIGENCE"
 )
 
 // ExportJob represents an async background export job
@@ -927,6 +936,8 @@ func (e *ExportJob) GetFilename(batchName string) string {
 		return fmt.Sprintf("%s_labels.pdf", sanitizedBatchName)
 	case ExportJobTypeCSV:
 		return fmt.Sprintf("%s_export.csv", sanitizedBatchName)
+	case ExportJobTypeDueDiligence:
+		return fmt.Sprintf("%s_due_diligence.pdf", sanitizedBatchName)
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}
