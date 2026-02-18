@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,26 +51,26 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	}
 
 	batch := &models.Batch{
-		ID:                uuid.New(),
-		TenantID:          req.TenantID,
-		BatchName:         req.BatchName,
-		ModelName:         req.ModelName,
-		Specs:             req.Specs,
-		CreatedAt:         time.Now(),
-		MarketRegion:      marketRegion,
-		PLICompliant:      req.PLICompliant,
-		DomesticValueAdd:  req.DomesticValueAdd,
-		CellSource:        req.CellSource,
+		ID:                     uuid.New(),
+		TenantID:               req.TenantID,
+		BatchName:              req.BatchName,
+		ModelName:              req.ModelName,
+		Specs:                  req.Specs,
+		CreatedAt:              time.Now(),
+		MarketRegion:           marketRegion,
+		PLICompliant:           req.PLICompliant,
+		DomesticValueAdd:       req.DomesticValueAdd,
+		CellSource:             req.CellSource,
 		ManufacturingStartDate: req.ManufacturingStartDate,
 		ManufacturingEndDate:   req.ManufacturingEndDate,
-		BillOfEntryNo:     req.BillOfEntryNo,
-		CountryOfOrigin:   req.CountryOfOrigin,
-		CustomsDate:       req.CustomsDate,
-		HSNCode:           req.HSNCode,
-		DVASource:         req.DVASource,
-		PLICertificateURL: req.PLICertificateURL,
-		BISNumber:         req.BISNumber,
-		EPRNumber:         req.EPRNumber,
+		BillOfEntryNo:          req.BillOfEntryNo,
+		CountryOfOrigin:        req.CountryOfOrigin,
+		CustomsDate:            req.CustomsDate,
+		HSNCode:                req.HSNCode,
+		DVASource:              req.DVASource,
+		PLICertificateURL:      req.PLICertificateURL,
+		BISNumber:              req.BISNumber,
+		EPRNumber:              req.EPRNumber,
 	}
 
 	specsJSON, err := json.Marshal(req.Specs)
@@ -85,15 +84,12 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		cellSource = req.CellSource
 	}
 
-	// Debug logging
-	log.Printf("DEBUG CreateBatch: specsJSON=%s, marketRegion=%s", string(specsJSON), marketRegion)
-
-	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number
+	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result
 	query := `INSERT INTO public.batches 
 		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
 		 manufacturing_start_date, manufacturing_end_date,
-		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number) 
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
+		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result) 
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb)`
 
 	// Handle nullable import fields
 	var billOfEntry, countryOrigin, hsnCode interface{}
@@ -147,9 +143,9 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		pliCertURL,
 		bisNumber,
 		eprNumber,
+		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
 	)
 	if err != nil {
-		log.Printf("DEBUG CreateBatch ERROR: %v", err)
 		return nil, fmt.Errorf("failed to create batch: %w", err)
 	}
 
@@ -184,7 +180,8 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	          dva_source,
 	          pli_certificate_url,
 	          bis_number,
-	          epr_number
+	          epr_number,
+	          carbon_footprint_result
 	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
@@ -209,6 +206,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&pliCertURL,
 		&bisNumber,
 		&eprNumber,
+		&batch.CarbonFootprintResult,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -291,6 +289,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	          b.pli_certificate_url,
 	          b.bis_number,
 	          b.epr_number,
+	          b.carbon_footprint_result,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
@@ -299,14 +298,14 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
 	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
-	                   b.dva_source, b.pli_certificate_url, b.bis_number, b.epr_number
+	                   b.dva_source, b.pli_certificate_url, b.bis_number, b.epr_number,
+	                   b.carbon_footprint_result
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
 	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset)
 	if err != nil {
-		log.Printf("ListBatches Query Error: %v", err)
-		return nil, 0, fmt.Errorf("failed to list batches: %w\n", err)
+		return nil, 0, fmt.Errorf("failed to list batches: %w", err)
 	}
 	defer rows.Close()
 
@@ -344,6 +343,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 			&pliCertURL,
 			&bisNumber,
 			&eprNumber,
+			&batch.CarbonFootprintResult,
 			&batch.TotalPassports,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan batch: %w", err)
@@ -439,4 +439,17 @@ func (r *Repository) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID
 		return "", fmt.Errorf("failed to get batch market region: %w", err)
 	}
 	return models.MarketRegion(region), nil
+}
+
+// SaveCarbonFootprintResult stores the carbon calculator result on a batch
+func (r *Repository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error {
+	query := `UPDATE public.batches SET carbon_footprint_result = $3::jsonb WHERE id = $1 AND tenant_id = $2`
+	tag, err := r.db.Pool.Exec(ctx, query, batchID, tenantID, string(resultJSON))
+	if err != nil {
+		return fmt.Errorf("failed to save carbon footprint result: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("batch not found")
+	}
+	return nil
 }

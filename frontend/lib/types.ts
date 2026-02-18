@@ -127,6 +127,12 @@ export interface MaterialComposition {
     lead_pct?: number;
     manganese_pct?: number;
     graphite_pct?: number;
+
+    // Per-material recycled content (EU 2023/1542 Art. 8)
+    recycled_cobalt_pct?: number;
+    recycled_lithium_pct?: number;
+    recycled_nickel_pct?: number;
+    recycled_lead_pct?: number;
 }
 
 // HazardousSubstances for REACH/RoHS compliance

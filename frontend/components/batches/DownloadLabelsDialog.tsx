@@ -10,7 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { Printer, Download, FileText, Grid3X3, QrCode } from "lucide-react"
+import { Printer, Download, FileText, Grid3X3, QrCode, Globe, Leaf } from "lucide-react"
 
 interface DownloadLabelsDialogProps {
     open: boolean
@@ -18,6 +18,12 @@ interface DownloadLabelsDialogProps {
     batchName: string
     passportCount: number
     onDownload: () => Promise<void>
+    /** Market region of the batch (INDIA, EU, GLOBAL) */
+    marketRegion?: string
+    /** Chemistry code for BPAN display */
+    chemistry?: string
+    /** Whether a carbon footprint has been calculated for this batch */
+    hasCarbonFootprint?: boolean
 }
 
 export function DownloadLabelsDialog({
@@ -26,6 +32,9 @@ export function DownloadLabelsDialog({
     batchName,
     passportCount,
     onDownload,
+    marketRegion = "INDIA",
+    chemistry = "",
+    hasCarbonFootprint = false,
 }: DownloadLabelsDialogProps) {
     const [isDownloading, setIsDownloading] = useState(false)
 
@@ -42,6 +51,14 @@ export function DownloadLabelsDialog({
             setIsDownloading(false)
         }
     }
+
+    // Region display config
+    const regionConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+        INDIA: { label: "🇮🇳 India", color: "text-orange-400", bgColor: "bg-orange-500/10" },
+        EU: { label: "🇪🇺 EU", color: "text-blue-400", bgColor: "bg-blue-500/10" },
+        GLOBAL: { label: "🌍 Global", color: "text-green-400", bgColor: "bg-green-500/10" },
+    }
+    const region = regionConfig[marketRegion] || regionConfig["GLOBAL"]
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,8 +100,8 @@ export function DownloadLabelsDialog({
                         </p>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4">
+                    {/* Stats + Region Badge */}
+                    <div className="grid grid-cols-4 gap-3">
                         <div className="text-center p-3 bg-slate-800/50 rounded-lg">
                             <p className="text-2xl font-bold text-white">
                                 {passportCount.toLocaleString()}
@@ -103,6 +120,12 @@ export function DownloadLabelsDialog({
                             </p>
                             <p className="text-xs text-slate-500">Paper Size</p>
                         </div>
+                        <div className={`text-center p-3 ${region.bgColor} rounded-lg`}>
+                            <p className={`text-lg font-bold ${region.color}`}>
+                                {region.label}
+                            </p>
+                            <p className="text-xs text-slate-500">Region</p>
+                        </div>
                     </div>
 
                     {/* Label Content Info */}
@@ -112,10 +135,31 @@ export function DownloadLabelsDialog({
                             Each Label Contains
                         </h4>
                         <ul className="text-xs text-slate-400 space-y-1 ml-6 list-disc">
-                            <li>QR Code (links to digital passport)</li>
-                            <li>Batch name: {batchName}</li>
-                            <li>Serial number</li>
-                            <li>ExportReady branding</li>
+                            <li>QR Code (links to digital passport with BPAN data)</li>
+                            <li className="flex items-center gap-1">
+                                BPAN V2 serial number
+                                {chemistry && (
+                                    <span className="text-teal-400 font-mono text-[10px]">
+                                        ({chemistry})
+                                    </span>
+                                )}
+                            </li>
+                            <li>Decoded battery descriptor (chemistry, year, sequence)</li>
+                            <li>Battery specs (voltage, capacity, manufacturer)</li>
+                            <li className="flex items-center gap-1">
+                                <Globe className="h-3 w-3 text-slate-500" />
+                                Market region badge
+                                <span className={`text-[10px] font-medium ${region.color}`}>
+                                    {region.label}
+                                </span>
+                            </li>
+                            {(marketRegion === "EU" || hasCarbonFootprint) && (
+                                <li className="flex items-center gap-1 text-green-400">
+                                    <Leaf className="h-3 w-3" />
+                                    Carbon footprint (kgCO₂e/kWh)
+                                </li>
+                            )}
+                            <li>Compliance info (EPR, BIS, cell source)</li>
                         </ul>
                     </div>
                 </div>

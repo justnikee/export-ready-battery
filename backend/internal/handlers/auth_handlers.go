@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -94,7 +94,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	err := h.db.Pool.QueryRow(r.Context(),
 		"SELECT EXISTS(SELECT 1 FROM public.tenants WHERE email = $1)", req.Email).Scan(&exists)
 	if err != nil {
-		log.Printf("Failed to check email existence: %v", err)
+		slog.Error("Failed to check email existence", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
 		return
 	}
@@ -106,7 +106,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Hash password
 	passwordHash, err := h.authService.HashPassword(req.Password)
 	if err != nil {
-		log.Printf("Failed to hash password: %v", err)
+		slog.Error("Failed to hash password", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
 		return
 	}
@@ -118,7 +118,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		 VALUES ($1, $2, $3, $4, $5)`,
 		tenantID, req.CompanyName, req.Email, passwordHash, time.Now())
 	if err != nil {
-		log.Printf("Failed to create tenant: %v", err)
+		slog.Error("Failed to create tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
 		return
 	}
@@ -130,24 +130,24 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			// Activate the team member and link to the new user
 			// We pass the new tenantID as the userID
 			if err := h.repo.UpdateTeamMemberStatus(r.Context(), invite.ID, models.TeamStatusActive, &tenantID); err != nil {
-				log.Printf("Failed to activate pending invite for team %s: %v", invite.TenantID, err)
+				slog.Warn("Failed to activate pending invite", "team_id", invite.TenantID, "error", err)
 			}
 		}
 	} else {
-		log.Printf("Failed to check pending invites: %v", err)
+		slog.Warn("Failed to check pending invites", "error", err)
 	}
 
 	// Generate tokens
 	token, err := h.authService.GenerateToken(tenantID.String(), req.Email)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
+		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
 	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email)
 	if err != nil {
-		log.Printf("Failed to generate refresh token: %v", err)
+		slog.Error("Failed to generate refresh token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
@@ -188,7 +188,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusUnauthorized, "Invalid email or password")
 			return
 		}
-		log.Printf("Failed to get tenant: %v", err)
+		slog.Error("Failed to get tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to login")
 		return
 	}
@@ -213,14 +213,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Generate tokens
 	token, err := h.authService.GenerateToken(tenantID.String(), req.Email)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
+		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
 	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email)
 	if err != nil {
-		log.Printf("Failed to generate refresh token: %v", err)
+		slog.Error("Failed to generate refresh token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
@@ -255,7 +255,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	// Generate new access token
 	token, err := h.authService.GenerateToken(claims.TenantID, claims.Email)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
+		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
@@ -294,7 +294,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	// Generate reset token
 	resetToken, err := h.authService.GenerateResetToken()
 	if err != nil {
-		log.Printf("Failed to generate reset token: %v", err)
+		slog.Error("Failed to generate reset token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to process request")
 		return
 	}
@@ -305,14 +305,14 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		"UPDATE public.tenants SET reset_token = $1, reset_token_expires = $2 WHERE id = $3",
 		resetToken, expires, tenantID)
 	if err != nil {
-		log.Printf("Failed to save reset token: %v", err)
+		slog.Error("Failed to save reset token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to process request")
 		return
 	}
 
 	// Send password reset email (or log to console if not configured)
 	if err := h.emailService.SendPasswordResetEmail(req.Email, resetToken); err != nil {
-		log.Printf("Failed to send reset email: %v", err)
+		slog.Warn("Failed to send reset email", "error", err)
 		// Don't fail the request - still return success for security
 	}
 
@@ -351,7 +351,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "Invalid or expired reset token")
 			return
 		}
-		log.Printf("Failed to find reset token: %v", err)
+		slog.Error("Failed to find reset token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to reset password")
 		return
 	}
@@ -365,7 +365,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	// Hash new password
 	passwordHash, err := h.authService.HashPassword(req.NewPassword)
 	if err != nil {
-		log.Printf("Failed to hash password: %v", err)
+		slog.Error("Failed to hash password", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to reset password")
 		return
 	}
@@ -377,7 +377,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		 WHERE id = $2`,
 		passwordHash, tenantID)
 	if err != nil {
-		log.Printf("Failed to update password: %v", err)
+		slog.Error("Failed to update password", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to reset password")
 		return
 	}
@@ -414,7 +414,7 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	updatedTenant, err := h.repo.UpdateTenantProfile(r.Context(), tenantID, req)
 	if err != nil {
-		log.Printf("Failed to update profile: %v", err)
+		slog.Error("Failed to update profile", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update profile")
 		return
 	}
@@ -443,7 +443,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Tenant not found")
 			return
 		}
-		log.Printf("Failed to get tenant: %v", err)
+		slog.Error("Failed to get tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get user info")
 		return
 	}
@@ -453,7 +453,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	var lastLogin *time.Time
 	err = h.db.Pool.QueryRow(r.Context(), "SELECT email, last_login FROM public.tenants WHERE id = $1", id).Scan(&loginEmail, &lastLogin)
 	if err != nil {
-		log.Printf("Failed to get tenant login details: %v", err)
+		slog.Warn("Failed to get tenant login details", "error", err)
 		// Continue with empty values rather than failing the entire request
 	}
 

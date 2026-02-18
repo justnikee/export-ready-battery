@@ -11,6 +11,25 @@ import (
 )
 
 // ============================================================================
+// CARBON FACTORS (shared type for services + repository)
+// ============================================================================
+
+// CarbonFactor represents a carbon emission factor for EU Battery Regulation compliance.
+// Canonical type shared by services and repository packages.
+type CarbonFactor struct {
+	ID          uuid.UUID  `json:"id"`
+	Category    string     `json:"category"`
+	Subcategory string     `json:"subcategory"`
+	FactorValue float64    `json:"factor_value"`
+	Unit        string     `json:"unit"`
+	Source      string     `json:"source"`
+	ValidFrom   time.Time  `json:"valid_from"`
+	ValidTo     *time.Time `json:"valid_to,omitempty"`
+	Notes       string     `json:"notes,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+// ============================================================================
 // MARKET REGION (DUAL-MODE COMPLIANCE)
 // ============================================================================
 
@@ -75,6 +94,9 @@ type Tenant struct {
 
 	// Onboarding Status
 	OnboardingCompleted bool `json:"onboarding_completed"` // Whether user completed profile setup
+
+	// BPAN V2: 3-char manufacturer code for serial number generation
+	ManufacturerCode string `json:"manufacturer_code,omitempty"` // e.g. "TEN", auto-derived from company name
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile
@@ -157,6 +179,9 @@ type Batch struct {
 	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
 	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"` // CA-certified DVA % (nullable)
 	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // Path to CA certificate
+
+	// EU Carbon Footprint Calculator Result (JSONB, from POST /api/v1/carbon/calculate)
+	CarbonFootprintResult json.RawMessage `json:"carbon_footprint_result,omitempty"`
 }
 
 // BatchSpec holds the common specifications stored as JSONB
@@ -201,6 +226,14 @@ type MaterialComposition struct {
 	NickelPct    float64 `json:"nickel_pct,omitempty"`    // e.g., 15.0 = 15%
 	LeadPct      float64 `json:"lead_pct,omitempty"`      // e.g., 0 = 0%
 	ManganesePct float64 `json:"manganese_pct,omitempty"` // Common in LFP batteries
+
+	// Per-material recycled content (EU 2023/1542 Art. 8)
+	// Required from 2030: Co ≥16%, Li ≥6%, Ni ≥6%, Pb ≥85%
+	// Required from 2035: Co ≥26%, Li ≥12%, Ni ≥15%, Pb ≥85%
+	RecycledCobaltPct  float64 `json:"recycled_cobalt_pct,omitempty"`  // % of cobalt from recycled sources
+	RecycledLithiumPct float64 `json:"recycled_lithium_pct,omitempty"` // % of lithium from recycled sources
+	RecycledNickelPct  float64 `json:"recycled_nickel_pct,omitempty"`  // % of nickel from recycled sources
+	RecycledLeadPct    float64 `json:"recycled_lead_pct,omitempty"`    // % of lead from recycled sources
 }
 
 // HazardousSubstances holds REACH/RoHS compliance declarations
@@ -242,6 +275,13 @@ type Passport struct {
 	// Dynamic compliance field (updated over battery lifetime)
 	StateOfHealth          *float64   `json:"state_of_health,omitempty"` // 0-100, stored as literal percentage (e.g., 95.5 = 95.5%)
 	LastSOHUpdateTimestamp *time.Time `json:"last_soh_update_timestamp,omitempty"`
+
+	// BMS Telemetry summary fields (updated by telemetry ingestion)
+	CycleCount        *int       `json:"cycle_count,omitempty"`
+	LastTemperature   *float64   `json:"last_temperature,omitempty"`
+	LastVoltage       *float64   `json:"last_voltage,omitempty"`
+	ThermalEventCount int        `json:"thermal_event_count"`
+	LastTelemetryAt   *time.Time `json:"last_telemetry_at,omitempty"`
 
 	// EU dynamic compliance data
 	RepairEvents      json.RawMessage `json:"repair_events,omitempty"`
@@ -437,7 +477,7 @@ var AllowedRolesByAction = map[TransitionAction][]ActorRole{
 	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics},
 	ActionInstall:  {ActorRoleTechnician},
 	ActionRecycle:  {ActorRoleRecycler},
-	ActionClose:    {ActorRoleSystem},
+	ActionClose:    {ActorRoleSystem, ActorRoleRecycler},
 	ActionRecall:   {ActorRoleAdmin},
 }
 
@@ -514,6 +554,12 @@ type PassportEvent struct {
 	CreatedAt    time.Time              `json:"created_at"`
 	Hash         string                 `json:"hash,omitempty"`          // SHA-256 hash of event data for tamper detection
 	PreviousHash string                 `json:"previous_hash,omitempty"` // Hash of previous event in chain
+}
+
+// AuditEventRow is a DTO for batch-level audit export — joins PassportEvent with the passport's serial number.
+type AuditEventRow struct {
+	PassportEvent
+	SerialNumber string `json:"serial_number"`
 }
 
 // TransitionPersistence bundles a lifecycle transition with its audit event for atomic persistence.
@@ -709,40 +755,26 @@ type BatchSummary struct {
 }
 
 // ============================================================================
-// BPAN GENERATOR (INDIA MODE)
+// BPAN V2 TYPES (Multi-Region Serial Numbering)
+// Format: {REGION}-{MFR}-{CHEM}-{YYYY}-{NNNNN}
 // ============================================================================
 
-// BPANConfig holds configuration for generating Battery Product Authentication Numbers
-type BPANConfig struct {
-	CountryCode      string // "IN" for India
-	ManufacturerCode string // 3-char code, e.g., "NKY"
-	ChemistryCode    string // 3-char code, e.g., "LFP", "NMC", "LCO"
-	Year             int    // 4-digit year
-}
+// BPANVersion tracks the serial format version.
+type BPANVersion string
 
-// GenerateBPAN creates a BPAN serial number in format: IN-NKY-LFP-2026-00001
-func GenerateBPAN(config BPANConfig, sequence int) string {
-	return fmt.Sprintf("%s-%s-%s-%d-%05d",
-		config.CountryCode,
-		config.ManufacturerCode,
-		config.ChemistryCode,
-		config.Year,
-		sequence,
-	)
-}
+const (
+	BPANv1 BPANVersion = "V1" // Legacy India-only format
+	BPANv2 BPANVersion = "V2" // Multi-region format (IN/EU/GL)
+)
 
-// ValidateBPAN checks if a serial number follows BPAN format
-func ValidateBPAN(serial string) bool {
-	// Format: IN-XXX-XXX-YYYY-NNNNN (21 chars)
-	if len(serial) != 21 {
-		return false
-	}
-	// Check prefix
-	if serial[:3] != "IN-" {
-		return false
-	}
-	// Additional validation can be added here
-	return true
+// BPANComponents represents the parsed segments of a BPAN serial number.
+type BPANComponents struct {
+	Region       string      `json:"region"`       // IN, EU, GL
+	Manufacturer string      `json:"manufacturer"` // 3-char code
+	Chemistry    string      `json:"chemistry"`    // LFP, NMC, etc.
+	Year         int         `json:"year"`
+	Sequence     int         `json:"sequence"`
+	Version      BPANVersion `json:"version"`
 }
 
 // ============================================================================
@@ -848,7 +880,8 @@ type ExportJobType string
 const (
 	ExportJobTypeQRZip    ExportJobType = "QR_ZIP"
 	ExportJobTypeLabelPDF ExportJobType = "LABELS_PDF"
-	ExportJobTypeCSV      ExportJobType = "CSV"
+	ExportJobTypeCSV          ExportJobType = "CSV"
+	ExportJobTypeDueDiligence ExportJobType = "DUE_DILIGENCE"
 )
 
 // ExportJob represents an async background export job
@@ -903,6 +936,8 @@ func (e *ExportJob) GetFilename(batchName string) string {
 		return fmt.Sprintf("%s_labels.pdf", sanitizedBatchName)
 	case ExportJobTypeCSV:
 		return fmt.Sprintf("%s_export.csv", sanitizedBatchName)
+	case ExportJobTypeDueDiligence:
+		return fmt.Sprintf("%s_due_diligence.pdf", sanitizedBatchName)
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}

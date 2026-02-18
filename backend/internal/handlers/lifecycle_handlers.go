@@ -79,7 +79,7 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 		return models.ActorContext{}, http.StatusForbidden, errors.New("role not permitted")
 	}
 
-	if action == string(models.ActionActivate) || action == string(models.ActionClose) {
+	if action == string(models.ActionActivate) {
 		// System actions: performed by system actor
 		return models.ActorContext{
 			ActorType: models.ActorTypeSystem,

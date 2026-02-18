@@ -1,33 +1,96 @@
 "use client"
 
 import { useEffect, useState, type ComponentProps } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import api from "@/lib/api"
 import { CertificateView } from "@/components/passport/certificate-view"
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal"
-import { AlertCircle, Loader2, Download, Wrench } from "lucide-react"
+import { AlertCircle, Loader2, Download, Wrench, Globe } from "lucide-react"
+import { resolveLocale, createTranslator, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n/i18n"
 
 type CertificatePassport = ComponentProps<typeof CertificateView>["passport"]
 
 export default function PublicPassportPage() {
     const params = useParams()
+    const searchParams = useSearchParams()
     const [passport, setPassport] = useState<CertificatePassport | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [showActionModal, setShowActionModal] = useState(false)
+    const [locale, setLocale] = useState<Locale>("en")
+    const [showLangMenu, setShowLangMenu] = useState(false)
+
+    // Resolve locale from ?lang= param or browser language
+    useEffect(() => {
+        setLocale(resolveLocale(searchParams ? new URLSearchParams(searchParams.toString()) : undefined))
+    }, [searchParams])
+
+    const t = createTranslator(locale)
+
+    // Switch language by updating the URL query param
+    const switchLang = (lang: Locale) => {
+        setLocale(lang)
+        setShowLangMenu(false)
+        const url = new URL(window.location.href)
+        url.searchParams.set('lang', lang)
+        window.history.replaceState({}, '', url.toString())
+    }
 
     useEffect(() => {
         const fetchPassport = async () => {
             try {
                 const response = await api.get(`/passports/${params.uuid}`)
-                setPassport(response.data)
+                const data = response.data
+
+                // The API returns a tier-aware view (PublicPassportView, PartnerPassportView,
+                // or RegulatorPassportView). When `access_tier` is present and there is no
+                // nested `passport` key, reshape the flat response to the CertificateView format.
+                if (data.access_tier && !data.passport) {
+                    const reshaped: CertificatePassport = {
+                        passport: {
+                            uuid: data.uuid,
+                            serial_number: data.serial_number,
+                            manufacture_date: data.manufacture_date,
+                            created_at: data.created_at,
+                            status: data.status,
+                            state_of_health: data.state_of_health,
+                            last_soh_update_timestamp: data.last_soh_update_timestamp,
+                            // Partner-tier fields (only present with access_token)
+                            ownership_history: data.ownership_history,
+                            repair_events: data.repair_events,
+                            replacement_events: data.replacement_events,
+                            recycling_date: data.recycling_date,
+                            recycling_status: data.recycling_status,
+                            recycler_epr_id: data.recycler_epr_id,
+                            current_owner_identifier: data.current_owner_identifier,
+                        },
+                        specs: data.specs,
+                        tenant: data.tenant,
+                        batch_name: data.batch_name,
+                        model_name: data.model_name,
+                        manufacturing_start_date: data.manufacturing_start_date,
+                        manufacturing_end_date: data.manufacturing_end_date,
+                        market_region: data.market_region,
+                        domestic_value_add: data.domestic_value_add,
+                        cell_source: data.cell_source,
+                        pli_compliant: data.pli_compliant,
+                        hsn_code: data.hsn_code,
+                        bill_of_entry_no: data.bill_of_entry_no,
+                        country_of_origin: data.country_of_origin,
+                        customs_date: data.customs_date,
+                    }
+                    setPassport(reshaped)
+                } else {
+                    // RegulatorPassportView or legacy shape — already has nested passport key
+                    setPassport(data)
+                }
                 recordScan(params.uuid as string)
             } catch (err: unknown) {
                 console.error("Failed to fetch passport", err)
                 const apiError = err as { response?: { status?: number } }
                 setError(apiError.response?.status === 404
-                    ? "Passport not found. Please check the URL or QR code."
-                    : "Failed to load passport details."
+                    ? t("error_not_found")
+                    : t("error_generic")
                 )
             } finally {
                 setLoading(false)
@@ -56,8 +119,8 @@ export default function PublicPassportPage() {
                 <div className="flex flex-col items-center gap-6">
                     <Loader2 className="h-10 w-10 text-slate-600 animate-spin" />
                     <div className="text-center">
-                        <p className="text-slate-900 font-semibold text-lg">Verifying Battery Passport</p>
-                        <p className="text-slate-500 text-sm mt-1">Loading official records...</p>
+                        <p className="text-slate-900 font-semibold text-lg">{t("loading_title")}</p>
+                        <p className="text-slate-500 text-sm mt-1">{t("loading_subtitle")}</p>
                     </div>
                 </div>
             </div>
@@ -71,13 +134,13 @@ export default function PublicPassportPage() {
                     <div className="mx-auto w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6">
                         <AlertCircle className="h-8 w-8 text-red-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Verification Failed</h2>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("error_title")}</h2>
                     <p className="text-slate-600 mb-6">{error}</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
                     >
-                        Try Again
+                        {t("error_retry")}
                     </button>
                 </div>
             </div>
@@ -91,13 +154,13 @@ export default function PublicPassportPage() {
                     <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6">
                         <AlertCircle className="h-8 w-8 text-amber-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Passport Unavailable</h2>
-                    <p className="text-slate-600 mb-6">We could not load the passport data at this time.</p>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("unavailable_title")}</h2>
+                    <p className="text-slate-600 mb-6">{t("unavailable_subtitle")}</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
                     >
-                        Try Again
+                        {t("error_retry")}
                     </button>
                 </div>
             </div>
@@ -115,18 +178,47 @@ export default function PublicPassportPage() {
                         </div>
                         <div className="hidden sm:block">
                             <p className="text-slate-900 font-bold text-sm tracking-tight">EXPORTREADY</p>
-                            <p className="text-slate-500 text-xs">Battery Passport Registry</p>
+                            <p className="text-slate-500 text-xs">{t("header_registry")}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Language Selector */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowLangMenu(!showLangMenu)}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-lg border border-slate-200 transition-colors"
+                            >
+                                <Globe className="h-4 w-4" />
+                                <span className="hidden sm:inline">{SUPPORTED_LOCALES.find(l => l.code === locale)?.flag} {locale.toUpperCase()}</span>
+                                <span className="sm:hidden">{SUPPORTED_LOCALES.find(l => l.code === locale)?.flag}</span>
+                            </button>
+                            {showLangMenu && (
+                                <>
+                                    <div className="fixed inset-0 z-30" onClick={() => setShowLangMenu(false)} />
+                                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-40 min-w-[160px] overflow-hidden">
+                                        {SUPPORTED_LOCALES.map(({ code, label, flag }) => (
+                                            <button
+                                                key={code}
+                                                onClick={() => switchLang(code)}
+                                                className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${locale === code ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                            >
+                                                <span>{flag}</span>
+                                                <span>{label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                         {/* Download PDF Button */}
                         <button
                             onClick={() => window.print()}
                             className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-lg border border-slate-200 transition-colors"
                         >
                             <Download className="h-4 w-4" />
-                            <span className="hidden sm:inline">Download PDF</span>
+                            <span className="hidden sm:inline">{t("header_download")}</span>
                         </button>
 
                         {/* Desktop CTA */}
@@ -135,7 +227,7 @@ export default function PublicPassportPage() {
                             className="hidden md:flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm rounded-lg shadow-sm transition-all"
                         >
                             <Wrench className="h-4 w-4" />
-                            Install & Register Warranty
+                            {t("header_install")}
                         </button>
                     </div>
                 </div>
@@ -146,7 +238,7 @@ export default function PublicPassportPage() {
                 <div className="max-w-4xl mx-auto">
                     {/* The Certificate Paper */}
                     <div className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden print:shadow-none print:border-0">
-                        <CertificateView passport={passport} />
+                        <CertificateView passport={passport} locale={locale} />
                     </div>
                 </div>
             </main>
@@ -163,10 +255,10 @@ export default function PublicPassportPage() {
                     </button>
                     <button
                         onClick={() => setShowActionModal(true)}
-                        className="flex-[2] py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
+                        className="flex-2 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
                         <Wrench className="h-4 w-4" />
-                        Install & Register Warranty
+                        {t("header_install")}
                     </button>
                 </div>
             </div>
@@ -176,6 +268,7 @@ export default function PublicPassportPage() {
                 <RequestMagicLinkModal
                     passportId={params.uuid as string}
                     onClose={() => setShowActionModal(false)}
+                    locale={locale}
                 />
             )}
         </div>

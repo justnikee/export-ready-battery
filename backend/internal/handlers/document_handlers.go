@@ -4,7 +4,7 @@ import (
 	"exportready-battery/internal/middleware"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -77,7 +77,7 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	// Create uploads directory structure: ./uploads/{tenant_id}/
 	uploadDir := filepath.Join(".", "uploads", tenantID.String())
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Printf("Failed to create upload directory: %v", err)
+		slog.Error("Failed to create upload directory", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to process upload")
 		return
 	}
@@ -89,7 +89,7 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	// Create destination file
 	dst, err := os.Create(filePath)
 	if err != nil {
-		log.Printf("Failed to create file: %v", err)
+		slog.Error("Failed to create file", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
@@ -97,16 +97,16 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 
 	// Copy file contents
 	if _, err := io.Copy(dst, file); err != nil {
-		log.Printf("Failed to write file: %v", err)
+		slog.Error("Failed to write file", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
 
-	log.Printf("Saved %s certificate for tenant %s at %s", documentType, tenantID, filePath)
+	slog.Info("Certificate saved", "type", documentType, "tenant_id", tenantID, "path", filePath)
 
 	// Update tenant record with file path
 	if err := h.repo.UpdateCertificatePath(r.Context(), tenantID, documentType, filePath); err != nil {
-		log.Printf("Failed to update tenant certificate path: %v", err)
+		slog.Error("Failed to update tenant certificate path", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update record")
 		return
 	}
@@ -232,7 +232,7 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 	// Create uploads directory structure: ./uploads/{tenant_id}/
 	uploadDir := filepath.Join(".", "uploads", tenantID.String())
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		log.Printf("Failed to create upload directory: %v", err)
+		slog.Error("Failed to create upload directory", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to process upload")
 		return
 	}
@@ -244,7 +244,7 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 	// Create destination file
 	dst, err := os.Create(filePath)
 	if err != nil {
-		log.Printf("Failed to create file: %v", err)
+		slog.Error("Failed to create file", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
@@ -252,19 +252,19 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 
 	// Copy file contents
 	if _, err := io.Copy(dst, file); err != nil {
-		log.Printf("Failed to write file: %v", err)
+		slog.Error("Failed to write file", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save file")
 		return
 	}
 
-	log.Printf("Saved logo for tenant %s at %s", tenantID, filePath)
+	slog.Info("Logo saved", "tenant_id", tenantID, "path", filePath)
 
 	// Generate the public URL for the logo
 	logoURL := fmt.Sprintf("/api/v1/uploads/%s/%s", tenantID.String(), filename)
 
 	// Update tenant record with logo URL
 	if err := h.repo.UpdateLogoURL(r.Context(), tenantID, logoURL); err != nil {
-		log.Printf("Failed to update tenant logo URL: %v", err)
+		slog.Error("Failed to update tenant logo URL", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update record")
 		return
 	}

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -24,7 +24,7 @@ func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.repo.GetDashboardStats(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to get dashboard stats: %v", err)
+		slog.Error("Failed to get dashboard stats", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get dashboard stats")
 		return
 	}
@@ -56,7 +56,7 @@ func (h *Handler) GetRecentBatches(w http.ResponseWriter, r *http.Request) {
 
 	batches, err := h.repo.GetRecentBatches(r.Context(), tenantID, limit)
 	if err != nil {
-		log.Printf("Failed to get recent batches: %v", err)
+		slog.Error("Failed to get recent batches", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get recent batches")
 		return
 	}
@@ -91,7 +91,7 @@ func (h *Handler) GetScanFeed(w http.ResponseWriter, r *http.Request) {
 
 	feed, err := h.repo.GetScanFeed(r.Context(), tenantID, limit)
 	if err != nil {
-		log.Printf("Failed to get scan feed: %v", err)
+		slog.Error("Failed to get scan feed", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get scan feed")
 		return
 	}

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -33,6 +33,9 @@ type Config struct {
 	// CORS - Allowed Origins (comma-separated).
 	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
+
+	// Art 78 Regulator Access (EU Battery Regulation)
+	RegulatorAPIKey string
 }
 
 // Load reads configuration from environment variables
@@ -42,11 +45,12 @@ func Load() *Config {
 	// --- JWT Secret: crash in production if unset ---
 	jwtSecret := getEnv("JWT_SECRET", "")
 	if env == "production" && jwtSecret == "" {
-		log.Fatal("FATAL: JWT_SECRET environment variable must be set in production")
+		slog.Error("FATAL: JWT_SECRET environment variable must be set in production")
+		os.Exit(1)
 	}
 	if jwtSecret == "" {
 		jwtSecret = "dev-only-insecure-key-do-not-use-in-prod"
-		log.Println("⚠️  Using insecure default JWT secret (development only)")
+		slog.Warn("Using insecure default JWT secret (development only)")
 	}
 
 	// --- CORS Origins: crash in production if unset ---
@@ -56,7 +60,8 @@ func Load() *Config {
 	}
 	corsOrigins := getEnv("CORS_ORIGINS", defaultCORS)
 	if env == "production" && corsOrigins == "" {
-		log.Fatal("FATAL: CORS_ORIGINS environment variable must be set in production")
+		slog.Error("FATAL: CORS_ORIGINS environment variable must be set in production")
+		os.Exit(1)
 	}
 
 	return &Config{
@@ -76,6 +81,7 @@ func Load() *Config {
 		MicrosoftClientSecret: getEnv("MICROSOFT_CLIENT_SECRET", ""),
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
+		RegulatorAPIKey:       getEnv("REGULATOR_API_KEY", ""),
 	}
 }
 

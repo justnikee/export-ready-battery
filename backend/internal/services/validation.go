@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"exportready-battery/internal/models"
 	"fmt"
 	"regexp"
 	"strings"
@@ -249,8 +250,8 @@ func (v *ValidationService) ValidateBISRNumber(bis string) ValidationResult {
 	}
 
 	// Full strict validation if it looks like standard format
-	cleaned := strings.TrimPrefix(bis, "R-")
-	if len(cleaned) == 8 && !BISRNumberRegex.MatchString(bis) {
+	// Strict validation: must match R- followed by exactly 8 digits
+	if !BISRNumberRegex.MatchString(bis) {
 		return ValidationResult{
 			Valid:   false,
 			Field:   "bis_r_number",
@@ -404,8 +405,8 @@ func (v *ValidationService) ValidateCarbonFootprintFormat(value string) Validati
 }
 
 // ValidateEUCompliance performs comprehensive EU Battery Regulation validation
-// Checks: carbon_footprint (required), recycled_content, supply_chain_due_diligence
-func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycledContent *float64, hasSupplyChainDD bool, hasCarbonDeclaration bool) EUComplianceResult {
+// Checks: carbon_footprint (required), recycled_content, per-material recycled content, supply_chain_due_diligence
+func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycledContent *float64, hasSupplyChainDD bool, hasCarbonDeclaration bool, mc *models.MaterialComposition) EUComplianceResult {
 	var errs []string
 	var warnings []string
 
@@ -415,7 +416,7 @@ func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycle
 		errs = append(errs, cfResult.Message)
 	}
 
-	// 2. Recycled Content - Required since August 2028 but encouraged now
+	// 2. Recycled Content (overall) - Required since August 2028 but encouraged now
 	if recycledContent == nil {
 		warnings = append(warnings, "Recycled content percentage not provided. Required by Aug 2028 for EU markets.")
 	} else if *recycledContent < 0 || *recycledContent > 100 {
@@ -425,12 +426,53 @@ func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycle
 		warnings = append(warnings, fmt.Sprintf("Recycled content (%.1f%%) is below EU 2030 target (16%% minimum for cobalt)", *recycledContent))
 	}
 
-	// 3. Supply Chain Due Diligence - MANDATORY since August 2025
+	// 3. Per-material recycled content (EU 2023/1542 Art. 8)
+	if mc != nil {
+		// Validate range (0-100) and recycled ≤ total for each material
+		type materialCheck struct {
+			name       string
+			totalPct   float64
+			recycPct   float64
+			target2030 float64
+			target2035 float64
+		}
+		materials := []materialCheck{
+			{"cobalt", mc.CobaltPct, mc.RecycledCobaltPct, 16, 26},
+			{"lithium", mc.LithiumPct, mc.RecycledLithiumPct, 6, 12},
+			{"nickel", mc.NickelPct, mc.RecycledNickelPct, 6, 15},
+			{"lead", mc.LeadPct, mc.RecycledLeadPct, 85, 85},
+		}
+
+		for _, m := range materials {
+			if m.recycPct == 0 {
+				continue // Not set, skip
+			}
+			// Range check
+			if m.recycPct < 0 || m.recycPct > 100 {
+				errs = append(errs, fmt.Sprintf("Recycled %s content must be between 0%% and 100%%", m.name))
+				continue
+			}
+			// Recycled ≤ total material %
+			if m.totalPct > 0 && m.recycPct > m.totalPct {
+				errs = append(errs, fmt.Sprintf("Recycled %s (%.1f%%) cannot exceed total %s composition (%.1f%%)", m.name, m.recycPct, m.name, m.totalPct))
+			}
+			// EU 2030 advisory
+			if m.recycPct < m.target2030 {
+				warnings = append(warnings, fmt.Sprintf("Recycled %s (%.1f%%) is below EU 2030 target (%.0f%%)", m.name, m.recycPct, m.target2030))
+			}
+			// EU 2035 advisory
+			if m.recycPct >= m.target2030 && m.recycPct < m.target2035 {
+				warnings = append(warnings, fmt.Sprintf("Recycled %s (%.1f%%) meets 2030 target but below 2035 target (%.0f%%)", m.name, m.recycPct, m.target2035))
+			}
+		}
+	}
+
+	// 4. Supply Chain Due Diligence - MANDATORY since August 2025
 	if !hasSupplyChainDD {
 		warnings = append(warnings, "Supply chain due diligence documentation recommended for EU export. Required from Aug 2025.")
 	}
 
-	// 4. Carbon Declaration - MANDATORY
+	// 5. Carbon Declaration - MANDATORY
 	if !hasCarbonDeclaration {
 		errs = append(errs, "Carbon footprint declaration is mandatory for EU battery passports")
 	}

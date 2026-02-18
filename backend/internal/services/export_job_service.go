@@ -323,6 +323,8 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 		data, contentType, err = s.generateLabelPDF(batch, passports, tenant)
 	case models.ExportJobTypeCSV:
 		data, contentType, err = s.generateCSV(passports)
+	case models.ExportJobTypeDueDiligence:
+		data, contentType, err = s.generateDueDiligence(ctx, batch, tenant)
 	default:
 		err = fmt.Errorf("unknown job type: %s", job.JobType)
 	}
@@ -445,6 +447,51 @@ func (s *ExportJobService) generateCSV(passports []*models.Passport) ([]byte, st
 		return nil, "", err
 	}
 	return csvBytes, "text/csv", nil
+}
+
+// generateDueDiligence generates the EU Due Diligence Report PDF.
+// It queries the full batch (with specs, carbon result, and market region) since
+// getBatchData only loads the lightweight fields needed by other export types.
+func (s *ExportJobService) generateDueDiligence(ctx context.Context, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
+	// Re-query the full batch with all specs needed for the DD report
+	fullBatchQuery := `
+		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
+		       b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
+		       b.carbon_footprint_result
+		FROM batches b
+		WHERE b.id = $1`
+	fullBatch := &models.Batch{}
+	err := s.db.QueryRow(ctx, fullBatchQuery, batch.ID).Scan(
+		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
+		&fullBatch.Status, &fullBatch.CreatedAt,
+		&fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
+		&fullBatch.CarbonFootprintResult,
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load full batch for DD report: %w", err)
+	}
+
+	// Re-query tenant with EU representative fields
+	fullTenantQuery := `
+		SELECT id, company_name, address, logo_url, support_email, website,
+		       eu_authorized_representative_name, eu_authorized_representative_address, eu_contact_email
+		FROM tenants WHERE id = $1`
+	fullTenant := &models.Tenant{}
+	err = s.db.QueryRow(ctx, fullTenantQuery, tenant.ID).Scan(
+		&fullTenant.ID, &fullTenant.CompanyName, &fullTenant.Address,
+		&fullTenant.LogoURL, &fullTenant.SupportEmail, &fullTenant.Website,
+		&fullTenant.EUAuthorizedRepresentativeName, &fullTenant.EUAuthorizedRepresentativeAddress,
+		&fullTenant.EUContactEmail,
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load full tenant for DD report: %w", err)
+	}
+
+	data, err := GenerateDueDiligenceReport(fullBatch, fullTenant)
+	if err != nil {
+		return nil, "", err
+	}
+	return data, "application/pdf", nil
 }
 
 // getUserEmail retrieves user email for notifications

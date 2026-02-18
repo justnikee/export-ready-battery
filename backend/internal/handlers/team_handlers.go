@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -163,7 +163,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 	if h.emailService != nil {
 		if err := h.emailService.SendTeamInvite(req.Email, tenant.CompanyName, token, req.Role); err != nil {
 			// Log the error but don't fail the request - invite was created
-			log.Printf("⚠️ Failed to send invite email to %s: %v", req.Email, err)
+			slog.Warn("Failed to send invite email", "to", req.Email, "error", err)
 		}
 	}
 

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -54,12 +54,12 @@ func (h *Handler) AdminVerifyDocument(w http.ResponseWriter, r *http.Request) {
 
 	// Update the status
 	if err := h.repo.UpdateDocumentStatus(r.Context(), tenantID, docType, status); err != nil {
-		log.Printf("Failed to update document status: %v", err)
+		slog.Error("Failed to update document status", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update document status")
 		return
 	}
 
-	log.Printf("Admin %s %s document for tenant %s", req.Action, docType, tenantID)
+	slog.Info("Admin document action", "action", req.Action, "doc_type", docType, "tenant_id", tenantID)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":    true,

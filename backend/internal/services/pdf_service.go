@@ -49,7 +49,11 @@ const (
 
 // GenerateLabelSheet creates an A4 PDF with a grid of battery stickers.
 // Guarded to max 500 passports to prevent OOM; larger batches should use async export jobs.
-func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant) (*bytes.Buffer, error) {
+func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant, lang ...string) (*bytes.Buffer, error) {
+	labelLang := "en"
+	if len(lang) > 0 && lang[0] != "" {
+		labelLang = lang[0]
+	}
 	const maxPassports = 500
 	if len(passports) > maxPassports {
 		return nil, fmt.Errorf("too many passports (%d); maximum is %d for synchronous generation — use async export jobs for larger batches", len(passports), maxPassports)
@@ -58,6 +62,9 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 	// Create new PDF in portrait A4
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetAutoPageBreak(false, 0)
+
+	// Extract carbon footprint for EU/Global labels
+	carbonPerKWh := ExtractCarbonPerKWh(batch.CarbonFootprintResult)
 
 	labelsPerPage := columns * rows
 	totalLabels := len(passports)
@@ -78,7 +85,7 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 		y := marginTop + float64(row)*cellHeight
 
 		// Draw the label
-		s.drawLabel(pdf, x, y, batch, passport, tenant)
+		s.drawLabel(pdf, x, y, batch, passport, tenant, carbonPerKWh, labelLang)
 	}
 
 	// If no passports, add at least one page with a message
@@ -98,8 +105,23 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 	return &buf, nil
 }
 
-// drawLabel draws a single sticker label at the given position
-func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64, batch *models.Batch, passport *models.Passport, tenant *models.Tenant) {
+// drawLabel draws a single sticker label at the given position.
+// Layout:
+//
+//	+-------------------------------+
+//	| [QR]  Chemistry    [REGION] |
+//	|        SERIAL-NUMBER          |
+//	|        LFP | 2026 | Seq #42  |
+//	|        V / Ah | Manufacturer  |
+//	|        EPR / BIS / CO2        |
+//	|        CELL_SOURCE            |
+//	+-------------------------------+
+func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
+	batch *models.Batch, passport *models.Passport, tenant *models.Tenant,
+	carbonPerKWh float64, lang string) {
+
+	tr := GetLabelTranslations(lang)
+
 	// Draw cell border (rectangle)
 	pdf.SetDrawColor(180, 180, 180)
 	pdf.SetLineWidth(0.3)
@@ -109,11 +131,14 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64, batch *models.Bat
 	qrX := x + cellPadding
 	qrY := y + (cellHeight-qrSize)/2 // Center vertically
 
-	// Generate QR code
-	url := fmt.Sprintf("%s/p/%s", s.baseURL, passport.UUID.String())
-	qrPNG, err := qrcode.Encode(url, qrcode.Medium, 128)
+	// Generate enriched QR code
+	var qrCtx *QRLabelContext
+	if carbonPerKWh > 0 {
+		qrCtx = &QRLabelContext{CarbonPerKWh: carbonPerKWh}
+	}
+	qrURL := (&QRService{baseURL: s.baseURL}).BuildQRPayload(passport.UUID, passport.SerialNumber, qrCtx)
+	qrPNG, err := qrcode.Encode(qrURL, qrcode.Medium, 128)
 	if err == nil {
-		// Register image from memory
 		imageName := fmt.Sprintf("qr_%s", passport.UUID.String())
 		pdf.RegisterImageOptionsReader(imageName, gofpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(qrPNG))
 		pdf.ImageOptions(imageName, qrX, qrY, qrSize, qrSize, false, gofpdf.ImageOptions{}, 0, "")
@@ -124,29 +149,45 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64, batch *models.Bat
 	textY := y + cellPadding
 	textWidth := cellWidth - qrSize - cellPadding*3
 
-	// Title: Chemistry or "Li-ion Battery"
+	// --- Row 1: Chemistry + Market Region Badge ---
 	pdf.SetFont("Arial", "B", 8)
 	pdf.SetTextColor(0, 0, 0)
 	pdf.SetXY(textX, textY)
 	chemistry := batch.Specs.Chemistry
 	if chemistry == "" {
-		chemistry = "Li-ion Battery"
+		chemistry = tr.DefaultChemistry
 	}
-	pdf.CellFormat(textWidth, 4, chemistry, "", 0, "L", false, 0, "")
+	pdf.CellFormat(textWidth-12, 4, chemistry, "", 0, "L", false, 0, "")
 
-	// Serial Number (Monospace-style)
+	// Market region badge (top-right of text area)
+	s.drawRegionBadge(pdf, textX+textWidth-12, textY, models.MarketRegion(batch.MarketRegion))
+
+	// --- Row 2: Serial Number (monospace, prominent) ---
 	textY += 5
-	pdf.SetFont("Courier", "", 7)
+	pdf.SetFont("Courier", "B", 6.5)
+	pdf.SetTextColor(0, 0, 0)
 	pdf.SetXY(textX, textY)
 	serial := passport.SerialNumber
-	if len(serial) > 20 {
-		serial = serial[:20] + "..."
+	if len(serial) > 25 {
+		serial = serial[:25] + ".."
 	}
 	pdf.CellFormat(textWidth, 3.5, serial, "", 0, "L", false, 0, "")
 
-	// Specs line: Voltage / Capacity
-	textY += 4.5
-	pdf.SetFont("Arial", "", 6)
+	// --- Row 3: Decoded BPAN info (if parseable) ---
+	textY += 4
+	comp := ParseBPAN(passport.SerialNumber)
+	if comp != nil {
+		pdf.SetFont("Arial", "", 5.5)
+		pdf.SetTextColor(80, 80, 80)
+		pdf.SetXY(textX, textY)
+		bdsLine := fmt.Sprintf("%s | %d | Seq #%d", comp.Chemistry, comp.Year, comp.Sequence)
+		pdf.CellFormat(textWidth, 3, bdsLine, "", 0, "L", false, 0, "")
+	}
+
+	// --- Row 4: Voltage / Capacity | Manufacturer ---
+	textY += 3.5
+	pdf.SetFont("Arial", "", 5.5)
+	pdf.SetTextColor(60, 60, 60)
 	specs := batch.Specs
 	specLine := ""
 	if specs.NominalVoltage != "" {
@@ -158,38 +199,35 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64, batch *models.Bat
 		}
 		specLine += specs.Capacity
 	}
+	if specs.Manufacturer != "" {
+		if specLine != "" {
+			specLine += " | "
+		}
+		mfr := specs.Manufacturer
+		if len(mfr) > 15 {
+			mfr = mfr[:15] + ".."
+		}
+		specLine += mfr
+	}
 	if specLine != "" {
 		pdf.SetXY(textX, textY)
 		pdf.CellFormat(textWidth, 3, specLine, "", 0, "L", false, 0, "")
-	}
-
-	// Manufacturer
-	textY += 4
-	pdf.SetFont("Arial", "", 5)
-	pdf.SetTextColor(80, 80, 80)
-	if specs.Manufacturer != "" {
-		pdf.SetXY(textX, textY)
-		mfr := specs.Manufacturer
-		if len(mfr) > 25 {
-			mfr = mfr[:25] + "..."
-		}
-		pdf.CellFormat(textWidth, 3, mfr, "", 0, "L", false, 0, "")
 	}
 
 	// === FOOTER: Compliance Info ===
 	footerY := y + cellHeight - 10
 
 	// EPR Registration
-	pdf.SetFont("Arial", "", 5)
+	pdf.SetFont("Arial", "", 4.5)
 	pdf.SetTextColor(60, 60, 60)
 	if tenant.EPRRegistrationNumber != "" {
 		pdf.SetXY(textX, footerY)
 		eprText := fmt.Sprintf("EPR: %s", tenant.EPRRegistrationNumber)
 		if len(eprText) > 30 {
-			eprText = eprText[:30] + "..."
+			eprText = eprText[:30] + ".."
 		}
 		pdf.CellFormat(textWidth, 2.5, eprText, "", 0, "L", false, 0, "")
-		footerY += 3
+		footerY += 2.5
 	}
 
 	// BIS R-Number
@@ -197,27 +235,71 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64, batch *models.Bat
 		pdf.SetXY(textX, footerY)
 		bisText := fmt.Sprintf("BIS: R-%s", tenant.BISRNumber)
 		pdf.CellFormat(textWidth, 2.5, bisText, "", 0, "L", false, 0, "")
-		footerY += 3
+		footerY += 2.5
 	}
 
-	// Cell Source (Origin)
+	// Carbon Footprint (EU/Global batches)
+	if carbonPerKWh > 0 {
+		pdf.SetXY(textX, footerY)
+		pdf.SetTextColor(0, 100, 0)
+		pdf.SetFont("Arial", "B", 4.5)
+		co2Text := fmt.Sprintf("CO2: %.1f kgCO2e/kWh", carbonPerKWh)
+		pdf.CellFormat(textWidth, 2.5, co2Text, "", 0, "L", false, 0, "")
+		footerY += 2.5
+		pdf.SetTextColor(60, 60, 60)
+		pdf.SetFont("Arial", "", 4.5)
+	}
+
+	// Cell Source (Origin) — bottom line
 	pdf.SetXY(textX, footerY)
 	cellSource := batch.CellSource
 	if cellSource == "" {
 		cellSource = "DOMESTIC"
+	}
+	cellSourceDisplay := tr.CellDomestic
+	if cellSource != "DOMESTIC" {
+		cellSourceDisplay = tr.CellImported
 	}
 	if cellSource == "DOMESTIC" {
 		pdf.SetTextColor(0, 128, 0) // Green
 	} else {
 		pdf.SetTextColor(200, 120, 0) // Orange
 	}
+	pdf.SetFont("Arial", "B", 4.5)
+	pdf.CellFormat(textWidth, 2.5, cellSourceDisplay, "", 0, "L", false, 0, "")
+}
+
+// drawRegionBadge draws a small colored market region badge.
+func (s *PDFService) drawRegionBadge(pdf *gofpdf.Fpdf, x, y float64, marketRegion models.MarketRegion) {
+	label := ""
+	var r, g, b int
+	switch marketRegion {
+	case models.MarketRegionIndia:
+		label = "IN"
+		r, g, b = 255, 153, 51 // Orange (India flag)
+	case models.MarketRegionEU:
+		label = "EU"
+		r, g, b = 0, 51, 153 // Blue (EU flag)
+	default:
+		label = "GL"
+		r, g, b = 34, 139, 34 // Green (global)
+	}
+
+	// Draw filled rounded rect
+	pdf.SetFillColor(r, g, b)
+	pdf.SetDrawColor(r, g, b)
+	pdf.RoundedRect(x, y, 10, 4, 0.8, "1234", "FD")
+
+	// Badge text
 	pdf.SetFont("Arial", "B", 5)
-	pdf.CellFormat(textWidth, 2.5, cellSource, "", 0, "L", false, 0, "")
+	pdf.SetTextColor(255, 255, 255)
+	pdf.SetXY(x, y+0.3)
+	pdf.CellFormat(10, 3.5, label, "", 0, "C", false, 0, "")
 }
 
 // GenerateLabelSheetReader returns an io.Reader for HTTP streaming
-func (s *PDFService) GenerateLabelSheetReader(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant) (io.Reader, int64, error) {
-	buf, err := s.GenerateLabelSheet(batch, passports, tenant)
+func (s *PDFService) GenerateLabelSheetReader(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant, lang ...string) (io.Reader, int64, error) {
+	buf, err := s.GenerateLabelSheet(batch, passports, tenant, lang...)
 	if err != nil {
 		return nil, 0, err
 	}

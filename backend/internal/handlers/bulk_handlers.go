@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/middleware"
@@ -75,7 +75,7 @@ func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	// Verify all passports belong to this tenant's batches
 	passports, err := h.repo.GetPassportsByIDs(r.Context(), passportIDs)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to validate passports")
 		return
 	}
@@ -97,12 +97,12 @@ func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	// Perform bulk update
 	updated, err := h.repo.BulkUpdatePassportStatus(r.Context(), passportIDs, req.Status)
 	if err != nil {
-		log.Printf("Failed to bulk update passports: %v", err)
+		slog.Error("Failed to bulk update passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update passports")
 		return
 	}
 
-	log.Printf("✅ Bulk status update: %d passports → %s (tenant: %s)", updated, req.Status, tenantIDStr[:8])
+	slog.Info("Bulk status update", "count", updated, "status", req.Status, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"updated": updated,
@@ -155,7 +155,7 @@ func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
 	// Verify all passports belong to this tenant's batches
 	passports, err := h.repo.GetPassportsByIDs(r.Context(), passportIDs)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to validate passports")
 		return
 	}
@@ -171,12 +171,12 @@ func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
 	// Perform bulk delete
 	deleted, err := h.repo.BulkDeletePassports(r.Context(), passportIDs)
 	if err != nil {
-		log.Printf("Failed to bulk delete passports: %v", err)
+		slog.Error("Failed to bulk delete passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete passports")
 		return
 	}
 
-	log.Printf("🗑️ Bulk delete: %d passports (tenant: %s)", deleted, tenantIDStr[:8])
+	slog.Info("Bulk delete", "count", deleted, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"deleted": deleted,
@@ -214,12 +214,12 @@ func (h *Handler) DeleteBatch(w http.ResponseWriter, r *http.Request) {
 	// Delete batch and all passports
 	deletedPassports, err := h.repo.DeleteBatchWithPassports(r.Context(), batchID)
 	if err != nil {
-		log.Printf("Failed to delete batch: %v", err)
+		slog.Error("Failed to delete batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete batch")
 		return
 	}
 
-	log.Printf("🗑️ Deleted batch %s with %d passports (tenant: %s)", batch.BatchName, deletedPassports, tenantIDStr[:8])
+	slog.Info("Deleted batch", "batch_name", batch.BatchName, "passports", deletedPassports, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"deleted_passports": deletedPassports,
@@ -275,12 +275,12 @@ func (h *Handler) ArchiveBatch(w http.ResponseWriter, r *http.Request) {
 	// Set batch status to ARCHIVED
 	err = h.repo.SetBatchStatus(r.Context(), batchID, "ARCHIVED")
 	if err != nil {
-		log.Printf("Failed to archive batch: %v", err)
+		slog.Error("Failed to archive batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to archive batch")
 		return
 	}
 
-	log.Printf("📦 Archived batch %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+	slog.Info("Archived batch", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"batch_id":   batchID,
@@ -330,12 +330,12 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 	// Safe to hard delete - no legal artifacts created
 	_, err = h.repo.DeleteBatchWithPassports(r.Context(), batchID)
 	if err != nil {
-		log.Printf("Failed to delete draft batch: %v", err)
+		slog.Error("Failed to delete draft batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete draft batch")
 		return
 	}
 
-	log.Printf("🗑️ Deleted DRAFT batch %s (tenant: %s)", batch.BatchName, tenantIDStr[:8])
+	slog.Info("Deleted draft batch", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"batch_id":   batchID,

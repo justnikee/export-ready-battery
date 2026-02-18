@@ -37,7 +37,8 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
 	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
 	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED'),
-	          COALESCE(onboarding_completed, FALSE)
+	          COALESCE(onboarding_completed, FALSE),
+	          COALESCE(manufacturer_code, '')
 	          FROM public.tenants WHERE id = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -62,6 +63,7 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 		&tenant.BISStatus,
 		&tenant.PLIStatus,
 		&tenant.OnboardingCompleted,
+		&tenant.ManufacturerCode,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -233,4 +235,106 @@ func (r *Repository) GetTenantByEmail(ctx context.Context, email string) (*model
 	}
 
 	return tenant, nil
+}
+
+// ============================================================================
+// BPAN V2: Serial Sequence + Manufacturer Code
+// ============================================================================
+
+// NextSequence atomically increments and returns the next BPAN sequence number
+// for the given prefix (e.g. "IN-TEN-LFP-2026"). Uses INSERT ... ON CONFLICT
+// for lock-free atomic increment.
+func (r *Repository) NextSequence(ctx context.Context, prefix string) (int, error) {
+	var nextVal int
+	query := `
+		INSERT INTO public.serial_sequences (prefix, last_value, updated_at)
+		VALUES ($1, 1, NOW())
+		ON CONFLICT (prefix) DO UPDATE
+			SET last_value = serial_sequences.last_value + 1,
+			    updated_at = NOW()
+		RETURNING last_value`
+
+	err := r.db.Pool.QueryRow(ctx, query, prefix).Scan(&nextVal)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get next sequence for prefix %s: %w", prefix, err)
+	}
+	return nextVal, nil
+}
+
+// NextSequenceBatch atomically reserves N sequence numbers and returns the
+// starting value. E.g., if last_value was 5 and count is 10, returns 6
+// (the caller uses 6..15).
+func (r *Repository) NextSequenceBatch(ctx context.Context, prefix string, count int) (int, error) {
+	var newLast int
+	query := `
+		INSERT INTO public.serial_sequences (prefix, last_value, updated_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (prefix) DO UPDATE
+			SET last_value = serial_sequences.last_value + $2,
+			    updated_at = NOW()
+		RETURNING last_value`
+
+	err := r.db.Pool.QueryRow(ctx, query, prefix, count).Scan(&newLast)
+	if err != nil {
+		return 0, fmt.Errorf("failed to reserve %d sequences for prefix %s: %w", count, prefix, err)
+	}
+	// Starting value is (newLast - count + 1)
+	return newLast - count + 1, nil
+}
+
+// GetOrCreateManufacturerCode retrieves the tenant's manufacturer code.
+// If none exists, derives one from the company name, saves it, and returns it.
+func (r *Repository) GetOrCreateManufacturerCode(ctx context.Context, tenantID uuid.UUID, companyName string) (string, error) {
+	// Try to read existing code
+	var code *string
+	err := r.db.Pool.QueryRow(ctx,
+		`SELECT manufacturer_code FROM public.tenants WHERE id = $1`, tenantID,
+	).Scan(&code)
+	if err != nil {
+		return "", fmt.Errorf("failed to get manufacturer code: %w", err)
+	}
+
+	if code != nil && *code != "" {
+		return *code, nil
+	}
+
+	// Derive from company name (import services package would create a cycle,
+	// so we inline the logic here)
+	derived := deriveManufacturerCode(companyName)
+
+	_, err = r.db.Pool.Exec(ctx,
+		`UPDATE public.tenants SET manufacturer_code = $2 WHERE id = $1`,
+		tenantID, derived,
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to save manufacturer code: %w", err)
+	}
+
+	return derived, nil
+}
+
+// deriveManufacturerCode generates a 3-char uppercase code from a company name.
+func deriveManufacturerCode(companyName string) string {
+	var code []rune
+	for _, r := range companyName {
+		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' {
+			if r >= 'a' && r <= 'z' {
+				r = r - 32 // toUpper
+			}
+			code = append(code, r)
+			if len(code) == 3 {
+				break
+			}
+		}
+	}
+	switch len(code) {
+	case 0:
+		return "MFG"
+	case 1:
+		return string(code) + "XX"
+	case 2:
+		return string(code) + "X"
+	default:
+		return string(code)
+	}
 }

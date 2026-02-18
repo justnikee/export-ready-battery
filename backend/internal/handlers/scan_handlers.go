@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -76,7 +76,7 @@ func (h *Handler) RecordScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.CreateScanEvent(r.Context(), scanEvent); err != nil {
-		log.Printf("Failed to record scan: %v", err)
+		slog.Error("Failed to record scan", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to record scan")
 		return
 	}

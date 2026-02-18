@@ -630,6 +630,62 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 	return events, nil
 }
 
+// GetEventsByBatch retrieves all lifecycle events for passports in a batch, including serial numbers.
+func (r *Repository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.AuditEventRow, error) {
+	query := `SELECT e.id, e.passport_id, e.event_type, COALESCE(e.action, ''), e.actor,
+	                 COALESCE(e.actor_type, ''), COALESCE(e.actor_role, ''), COALESCE(e.actor_identifier, ''), COALESCE(e.source, ''),
+	                 COALESCE(e.status_from, ''), COALESCE(e.status_to, ''), COALESCE(e.ip_address, ''),
+	                 e.metadata, e.created_at, COALESCE(e.hash, ''), COALESCE(e.previous_hash, ''),
+	                 p.serial_number
+	          FROM public.passport_events e
+	          JOIN public.passports p ON p.uuid = e.passport_id
+	          WHERE p.batch_id = $1
+	          ORDER BY e.created_at ASC`
+
+	rows, err := r.db.Pool.Query(ctx, query, batchID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get batch events: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*models.AuditEventRow
+	for rows.Next() {
+		row := &models.AuditEventRow{}
+		var metadataJSON []byte
+		if err := rows.Scan(
+			&row.ID,
+			&row.PassportID,
+			&row.EventType,
+			&row.Action,
+			&row.Actor,
+			&row.ActorType,
+			&row.ActorRole,
+			&row.ActorID,
+			&row.Source,
+			&row.StatusFrom,
+			&row.StatusTo,
+			&row.IPAddress,
+			&metadataJSON,
+			&row.CreatedAt,
+			&row.Hash,
+			&row.PreviousHash,
+			&row.SerialNumber,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan audit event row: %w", err)
+		}
+
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &row.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal event metadata: %w", err)
+			}
+		}
+
+		results = append(results, row)
+	}
+
+	return results, nil
+}
+
 // CreatePassportEventBatch inserts multiple passport events efficiently using COPY
 func (r *Repository) CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error {
 	return copyPassportEvents(ctx, r.db.Pool, events)

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,9 +27,9 @@ func main() {
 	// Load .env file from the current directory
 	// Using Overload to force .env values to override system environment variables
 	if err := godotenv.Overload(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+		slog.Info("No .env file found, using system environment variables")
 	} else {
-		log.Println("✅ Loaded .env file (overriding system env vars)")
+		slog.Info("Loaded .env file (overriding system env vars)")
 	}
 
 	// Initialize structured logger
@@ -41,11 +41,12 @@ func main() {
 	// Initialize database connection
 	database, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer database.Close()
 
-	log.Println("✅ Connected to PostgreSQL database")
+	slog.Info("Connected to PostgreSQL database")
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
@@ -56,7 +57,7 @@ func main() {
 	repo := repository.New(database)
 
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService, cfg.RegulatorAPIKey)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize OAuth service and handler
@@ -81,7 +82,12 @@ func main() {
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
 
-	// Initialize export job services and handler
+	// Initialize BMS Telemetry services
+	deviceTokenService := services.NewDeviceTokenService(repo)
+	telemetryService := services.NewTelemetryService(repo)
+
+	// Initialize additional handlers
+	telemetryHandler := handlers.NewTelemetryHandler(telemetryService, deviceTokenService)
 	var exportJobHandler *handlers.ExportJobHandler
 	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
 		slogger := logger.Logger
@@ -100,9 +106,9 @@ func main() {
 			slogger,
 		)
 		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
-		log.Println("✅ Export job handler initialized")
+		slog.Info("Export job handler initialized")
 	} else {
-		log.Println("⚠️ Export job handler not initialized (missing SUPABASE config)")
+		slog.Warn("Export job handler not initialized (missing SUPABASE config)")
 	}
 
 	// Initialize magic link handler (with reward service for scan-to-earn and email service)
@@ -114,7 +120,8 @@ func main() {
 	// Initialize reward handler
 	rewardHandler := handlers.NewRewardHandler(rewardService, cfg.JWTSecret)
 
-	// Setup routes
+	// Initialize additional middleware
+	deviceAuth := middleware.NewDeviceAuth(deviceTokenService)
 	mux := http.NewServeMux()
 
 	// Health check endpoint (public)
@@ -203,6 +210,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/download", authMiddleware.Protect(http.HandlerFunc(h.DownloadQRCodes)))
 	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
+	mux.Handle("GET /api/v1/batches/{id}/audit-export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchAuditCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
@@ -269,6 +277,31 @@ func main() {
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
 	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(http.HandlerFunc(h.CreateRazorpayOrder)))
 	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(http.HandlerFunc(h.VerifyRazorpayPayment)))
+
+	// ============================================
+	// CARBON CALCULATOR ROUTES (Protected)
+	// ============================================
+	carbonService := services.NewCarbonCalculatorService(repo)
+	carbonHandler := handlers.NewCarbonHandler(carbonService)
+	mux.Handle("POST /api/v1/carbon/calculate", authMiddleware.Protect(http.HandlerFunc(carbonHandler.CalculateCarbon)))
+
+	// ============================================
+	// BMS TELEMETRY ROUTES (Device Token Authenticated)
+	// ============================================
+	mux.Handle("POST /api/v1/telemetry", deviceAuth.Authenticate(http.HandlerFunc(telemetryHandler.IngestTelemetry)))
+	mux.Handle("POST /api/v1/telemetry/batch", deviceAuth.Authenticate(http.HandlerFunc(telemetryHandler.IngestTelemetryBatch)))
+
+	// ============================================
+	// BMS TELEMETRY MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/passports/{uuid}/telemetry", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.GetTelemetryHistory)))
+
+	// ============================================
+	// DEVICE TOKEN MANAGEMENT (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/device-tokens", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.CreateDeviceToken)))
+	mux.Handle("GET /api/v1/device-tokens", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.ListDeviceTokens)))
+	mux.Handle("DELETE /api/v1/device-tokens/{id}", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.RevokeDeviceToken)))
 
 	// ============================================
 	// WEBHOOK ROUTES (Public - for payment providers)
@@ -379,25 +412,27 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("🚀 Server starting on http://localhost:%s", cfg.Port)
+		slog.Info("Server starting", "addr", "http://localhost:"+cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
+			slog.Error("Server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	// Wait for shutdown signal
 	<-done
-	log.Println("⏳ Shutting down server...")
+	slog.Info("Shutting down server...")
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		slog.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("✅ Server exited gracefully")
+	slog.Info("Server exited gracefully")
 }
 
 // loggingMiddleware logs incoming HTTP requests
@@ -405,7 +440,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+		slog.Info("HTTP request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start))
 	})
 }
 
@@ -428,12 +463,13 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 				} else {
-					log.Printf("⚠️ CORS Blocked Origin: %s (Allowed: %v)", origin, allowedOrigins)
+					slog.Warn("CORS Blocked Origin", "origin", origin, "allowed", allowedOrigins)
 				}
 			}
 
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Device-Token")
 
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)

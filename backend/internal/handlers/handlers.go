@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/db"
@@ -12,7 +12,7 @@ import (
 
 // Handler holds dependencies for HTTP handlers
 type Handler struct {
-	repo              *repository.Repository
+	repo              repository.RepositoryInterface
 	csvService        *services.CSVService
 	qrService         *services.QRService
 	geoService        *services.GeoIPService
@@ -21,10 +21,11 @@ type Handler struct {
 	validationService *services.ValidationService // India compliance validation
 	lifecycleService  *services.LifecycleService  // Passport lifecycle & audit
 	emailService      *services.EmailService      // Email service for invites
+	regulatorAPIKey   string                      // Art 78 regulator access key
 }
 
 // New creates a new Handler with the given database connection
-func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string, emailService *services.EmailService) *Handler {
+func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string, emailService *services.EmailService, regulatorAPIKey string) *Handler {
 	var razorpayService *services.RazorpayService
 	if razorpayKeyID != "" && razorpayKeySecret != "" {
 		razorpayService = services.NewRazorpayService(razorpayKeyID, razorpayKeySecret)
@@ -42,6 +43,7 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 		validationService: services.NewValidationService(),
 		lifecycleService:  services.NewLifecycleService(repo),
 		emailService:      emailService,
+		regulatorAPIKey:   regulatorAPIKey,
 	}
 }
 
@@ -50,7 +52,7 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Failed to encode JSON response: %v", err)
+		slog.Error("Failed to encode JSON response", "error", err)
 	}
 }
 

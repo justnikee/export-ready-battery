@@ -93,7 +93,7 @@ func ParseWebhookEvent(body []byte) (*WebhookEvent, error) {
 // GetPaymentNotes extracts notes from the payment or order
 func (e *WebhookEvent) GetPaymentNotes() map[string]interface{} {
 	// Try to get notes from payment first
-	if e.Payload.Payment.Entity.Notes != nil && len(e.Payload.Payment.Entity.Notes) > 0 {
+	if len(e.Payload.Payment.Entity.Notes) > 0 {
 		return e.Payload.Payment.Entity.Notes
 	}
 	// Fall back to order notes

@@ -3,41 +3,52 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-    Truck, Wrench, Recycle, X,
+    Truck, Wrench, Recycle, X, XCircle,
     Mail, Loader2, CheckCircle, AlertCircle,
     Key, ArrowRight
 } from "lucide-react"
+import { createTranslator, type Locale } from "@/lib/i18n/i18n"
 
 interface RequestMagicLinkModalProps {
     passportId: string
     onClose: () => void
+    locale?: Locale
 }
 
-const ACTIONS = [
-    {
-        action: "SHIP",
-        label: "I'm shipping this battery",
-        icon: Truck,
-        color: "blue",
-        role: "LOGISTICS"
-    },
-    {
-        action: "INSTALL",
-        label: "I'm installing this battery",
-        icon: Wrench,
-        color: "emerald",
-        role: "TECHNICIAN"
-    },
-    {
-        action: "RECYCLE",
-        label: "I'm recycling this battery",
-        icon: Recycle,
-        color: "purple",
-        role: "RECYCLER"
-    },
-]
+export function RequestMagicLinkModal({ passportId, onClose, locale = 'en' }: RequestMagicLinkModalProps) {
+    const t = createTranslator(locale)
 
-export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkModalProps) {
+    const ACTIONS = [
+        {
+            action: "SHIP",
+            label: t("modal_action_ship"),
+            icon: Truck,
+            color: "blue",
+            role: "LOGISTICS"
+        },
+        {
+            action: "INSTALL",
+            label: t("modal_action_install"),
+            icon: Wrench,
+            color: "emerald",
+            role: "TECHNICIAN"
+        },
+        {
+            action: "RECYCLE",
+            label: t("modal_action_recycle"),
+            icon: Recycle,
+            color: "purple",
+            role: "RECYCLER"
+        },
+        {
+            action: "CLOSE",
+            label: t("modal_action_close"),
+            icon: XCircle,
+            color: "red",
+            role: "RECYCLER"
+        },
+    ]
+
     const [step, setStep] = useState<"select" | "email" | "success" | "error">("select")
     const [selectedAction, setSelectedAction] = useState<typeof ACTIONS[0] | null>(null)
     const [email, setEmail] = useState("")
@@ -73,7 +84,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                 if (data.requires_code) {
                     setRequiresCode(true)
                     setShowPartnerCode(true)
-                    setError(data.error || "Partner code required")
+                    setError(data.error || t("modal_partner_code"))
                 } else {
                     throw new Error(data.error || "Failed to send magic link")
                 }
@@ -109,10 +120,10 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 border-b border-slate-800">
                         <h2 className="text-lg font-semibold text-white">
-                            {step === "select" && "What would you like to do?"}
-                            {step === "email" && "Verify your identity"}
-                            {step === "success" && "Check your email!"}
-                            {step === "error" && "Something went wrong"}
+                            {step === "select" && t("modal_select_title")}
+                            {step === "email" && t("modal_verify_title")}
+                            {step === "success" && t("modal_success_title")}
+                            {step === "error" && t("modal_error_title")}
                         </h2>
                         <button onClick={onClose} className="text-slate-400 hover:text-white">
                             <X className="h-5 w-5" />
@@ -159,7 +170,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                 </div>
 
                                 <div>
-                                    <label className="block text-slate-400 text-sm mb-2">Your Email</label>
+                                    <label className="block text-slate-400 text-sm mb-2">{t("modal_your_email")}</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
                                         <input
@@ -171,7 +182,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                         />
                                     </div>
                                     <p className="text-slate-500 text-xs mt-2">
-                                        We&apos;ll send a verification link to confirm this action.
+                                        {t("modal_email_hint")}
                                     </p>
                                 </div>
 
@@ -179,7 +190,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                 {(showPartnerCode || requiresCode) && (
                                     <div>
                                         <label className="block text-slate-400 text-sm mb-2">
-                                            Partner Code {requiresCode && <span className="text-red-400">*</span>}
+                                            {t("modal_partner_code")} {requiresCode && <span className="text-red-400">*</span>}
                                         </label>
                                         <div className="relative">
                                             <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
@@ -201,10 +212,10 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                             className="text-emerald-400 text-sm hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
                                         >
                                             <Key className="h-4 w-4" />
-                                            I have a partner access code
+                                            {t("modal_have_code")}
                                         </button>
                                         <p className="text-slate-600 text-xs mt-1 ml-6">
-                                            For mechanics, logistics, and recycling partners
+                                            {t("modal_code_hint")}
                                         </p>
                                     </div>
                                 )}
@@ -226,7 +237,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                         }}
                                         className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
                                     >
-                                        Back
+                                        {t("modal_back")}
                                     </button>
                                     <button
                                         onClick={handleSubmit}
@@ -237,7 +248,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                             <Loader2 className="h-5 w-5 animate-spin" />
                                         ) : (
                                             <>
-                                                Send Link
+                                                {t("modal_send")}
                                                 <ArrowRight className="h-4 w-4" />
                                             </>
                                         )}
@@ -252,19 +263,18 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                 <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
                                     <CheckCircle className="h-8 w-8 text-emerald-400" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-white mb-2">Magic Link Sent!</h3>
+                                <h3 className="text-xl font-semibold text-white mb-2">{t("modal_success_heading")}</h3>
                                 <p className="text-slate-400 mb-4">
-                                    Check your inbox at <span className="text-white">{email}</span>
+                                    {t("modal_check_inbox")} <span className="text-white">{email}</span>
                                 </p>
                                 <p className="text-slate-500 text-sm">
-                                    Click the link in the email to verify and complete the action.
-                                    The link expires in 1 hour.
+                                    {t("modal_link_expiry")}
                                 </p>
                                 <button
                                     onClick={onClose}
                                     className="mt-6 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
                                 >
-                                    Done
+                                    {t("modal_done")}
                                 </button>
                             </div>
                         )}
@@ -275,7 +285,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                 <div className="mx-auto w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
                                     <AlertCircle className="h-8 w-8 text-red-400" />
                                 </div>
-                                <h3 className="text-xl font-semibold text-white mb-2">Request Failed</h3>
+                                <h3 className="text-xl font-semibold text-white mb-2">{t("modal_failed_heading")}</h3>
                                 <p className="text-slate-400 mb-4">{error}</p>
                                 <button
                                     onClick={() => {
@@ -284,7 +294,7 @@ export function RequestMagicLinkModal({ passportId, onClose }: RequestMagicLinkM
                                     }}
                                     className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
                                 >
-                                    Try Again
+                                    {t("modal_try_again")}
                                 </button>
                             </div>
                         )}

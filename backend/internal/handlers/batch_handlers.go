@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -75,7 +75,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !hasCE {
-			log.Printf("Warning: EU batch created without CE certification")
+			slog.Warn("EU batch created without CE certification")
 		}
 	}
 
@@ -91,28 +91,25 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		if req.CellSource == "IMPORTED" {
 			// Force all imported cells to be PLI ineligible
 			if req.PLICompliant {
-				log.Printf("⚠️ SECURITY OVERRIDE: Forced PLICompliant=false for IMPORTED cells (TenantID=%s, BatchName=%s)",
-					req.TenantID, req.BatchName)
+				slog.Warn("SECURITY OVERRIDE: Forced PLICompliant=false for IMPORTED cells", "tenant_id", req.TenantID, "batch_name", req.BatchName)
 				req.PLICompliant = false
 			}
 
 			// Force DVA to zero for imports (no domestic value addition)
 			if req.DomesticValueAdd > 0 {
-				log.Printf("⚠️ SECURITY OVERRIDE: Forced DomesticValueAdd=0 for IMPORTED cells (was %.2f%%, TenantID=%s)",
-					req.DomesticValueAdd, req.TenantID)
+				slog.Warn("SECURITY OVERRIDE: Forced DomesticValueAdd=0 for IMPORTED cells", "was", req.DomesticValueAdd, "tenant_id", req.TenantID)
 				req.DomesticValueAdd = 0
 			}
 
 			// Block audited DVA certificates for imported cells
 			if req.AuditedDomesticValueAdd != nil {
-				log.Printf("⚠️ SECURITY OVERRIDE: Blocked AuditedDVA upload for IMPORTED cells (TenantID=%s)", req.TenantID)
+				slog.Warn("SECURITY OVERRIDE: Blocked AuditedDVA upload for IMPORTED cells", "tenant_id", req.TenantID)
 				req.AuditedDomesticValueAdd = nil
 			}
 
 			// Force DVA source to ESTIMATED (no CA audits for imports)
 			if req.DVASource != "" && req.DVASource != services.DVASourceEstimated {
-				log.Printf("⚠️ SECURITY OVERRIDE: Forced DVASource=ESTIMATED for IMPORTED cells (was %s, TenantID=%s)",
-					req.DVASource, req.TenantID)
+				slog.Warn("SECURITY OVERRIDE: Forced DVASource=ESTIMATED for IMPORTED cells", "was", req.DVASource, "tenant_id", req.TenantID)
 			}
 			req.DVASource = services.DVASourceEstimated
 		}
@@ -140,7 +137,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 				respondError(w, http.StatusBadRequest, "Audited DVA mode requires audited_domestic_value_add value")
 				return
 			}
-			log.Printf("DVA AUDITED Mode: AuditedDVA=%.2f%%", calculatedDVA)
+			slog.Info("DVA AUDITED Mode", "audited_dva", calculatedDVA)
 		} else {
 			// ESTIMATED: Calculate DVA server-side from specs financial fields
 			// Never trust client-provided domestic_value_add to prevent PLI fraud
@@ -152,8 +149,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			}
 			// Override any client-provided DVA with server-calculated value
 			req.DomesticValueAdd = calculatedDVA
-			log.Printf("DVA ESTIMATED Mode: SalePrice=%.2f, ImportCost=%.2f, Calculated DVA=%.2f%%",
-				req.Specs.SalePriceINR, req.Specs.ImportCostINR, calculatedDVA)
+			slog.Info("DVA ESTIMATED Mode", "sale_price", req.Specs.SalePriceINR, "import_cost", req.Specs.ImportCostINR, "calculated_dva", calculatedDVA)
 		}
 
 		// India Mode + IMPORTED: Require customs declaration fields
@@ -185,7 +181,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 						fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Calculated DVA: %.2f%%. Minimum 50%% required for PLI Benefits.", req.DomesticValueAdd))
 					return
 				}
-				log.Printf("✅ PLI Eligibility Check Passed: DVA=%.2f%% (TenantID=%s)", req.DomesticValueAdd, req.TenantID)
+				slog.Info("PLI Eligibility Check Passed", "dva", req.DomesticValueAdd, "tenant_id", req.TenantID)
 			}
 		}
 
@@ -200,7 +196,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	tenantID := req.TenantID
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("ERROR: Failed to retrieve tenant details for ID %s: %v", tenantID, err)
+		slog.Error("Failed to retrieve tenant details", "tenant_id", tenantID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
@@ -209,8 +205,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	if tenant.IECCode != "" {
 		iecResult := h.validationService.ValidateIECCode(tenant.IECCode)
 		if !iecResult.Valid {
-			log.Printf("WARNING: Tenant %s has invalid IEC Code format: %s - %s",
-				tenant.CompanyName, tenant.IECCode, iecResult.Message)
+			slog.Warn("Invalid IEC Code format", "company", tenant.CompanyName, "iec_code", tenant.IECCode, "message", iecResult.Message)
 		}
 	}
 
@@ -267,8 +262,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the batch
-	log.Printf("DEBUG Handler CreateBatch: TenantID=%s, BatchName=%s, MarketRegion=%s, Specs=%+v",
-		req.TenantID, req.BatchName, req.MarketRegion, req.Specs)
+	slog.Debug("CreateBatch", "tenant_id", req.TenantID, "batch_name", req.BatchName, "market_region", req.MarketRegion)
 
 	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
 		TenantID:               req.TenantID,
@@ -291,7 +285,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		EPRNumber:              req.EPRNumber,
 	})
 	if err != nil {
-		log.Printf("Failed to create batch: %v", err)
+		slog.Error("Failed to create batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create batch")
 		return
 	}
@@ -330,7 +324,7 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 
 	batches, totalCount, err := h.repo.ListBatches(r.Context(), tenantID, limit, offset)
 	if err != nil {
-		log.Printf("Failed to list batches: %v", err)
+		slog.Error("Failed to list batches", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list batches")
 		return
 	}
@@ -371,7 +365,7 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Batch not found")
 			return
 		}
-		log.Printf("Failed to get batch: %v", err)
+		slog.Error("Failed to get batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get batch")
 		return
 	}
@@ -428,17 +422,17 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 	// Get all passports for this batch (no limit for QR download)
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
-	log.Printf("Generating %d QR codes for batch %s", len(passports), batch.BatchName)
+	slog.Info("Generating QR codes", "count", len(passports), "batch_name", batch.BatchName)
 
 	// Generate QR codes and create ZIP
 	zipReader, zipSize, err := h.qrService.GenerateAndZip(passports)
 	if err != nil {
-		log.Printf("Failed to generate QR codes: %v", err)
+		slog.Error("Failed to generate QR codes", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate QR codes")
 		return
 	}
@@ -451,7 +445,7 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 
 	// Stream the ZIP to the response
 	if _, err := io.Copy(w, zipReader); err != nil {
-		log.Printf("Failed to send ZIP: %v", err)
+		slog.Error("Failed to send ZIP", "error", err)
 	}
 }
 
@@ -489,7 +483,7 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	// Get tenant for compliance fields (EPR, BIS, etc.)
 	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
 	if err != nil {
-		log.Printf("Failed to get tenant: %v", err)
+		slog.Error("Failed to get tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
 		return
 	}
@@ -512,15 +506,18 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 	// Get all passports for this batch (no limit)
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
 
+	// Parse optional language parameter for label translations
+	lang := services.NormalizeLang(r.URL.Query().Get("lang"))
+
 	// Generate PDF with enhanced service
-	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant)
+	pdfBuffer, err := h.pdfService.GenerateLabelSheet(batch, passports, tenant, lang)
 	if err != nil {
-		log.Printf("Failed to generate PDF labels: %v", err)
+		slog.Error("Failed to generate PDF labels", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate PDF labels")
 		return
 	}
@@ -581,7 +578,7 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	// Get all passports
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
@@ -589,7 +586,7 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	// Generate CSV
 	csvBytes, err := h.csvService.ExportPassports(passports)
 	if err != nil {
-		log.Printf("Failed to generate CSV: %v", err)
+		slog.Error("Failed to generate CSV", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate CSV export")
 		return
 	}
@@ -601,6 +598,62 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))
 
 	// Write CSV to response
+	w.Write(csvBytes)
+}
+
+// ExportBatchAuditCSV handles GET /api/v1/batches/{id}/audit-export
+// Downloads the full audit trail (lifecycle events) for all passports in a batch as CSV.
+func (h *Handler) ExportBatchAuditCSV(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Verify batch ownership
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Get all audit events for this batch
+	events, err := h.repo.GetEventsByBatch(r.Context(), batchID)
+	if err != nil {
+		slog.Error("Failed to get batch events", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve audit events")
+		return
+	}
+
+	if len(events) == 0 {
+		respondError(w, http.StatusNotFound, "No lifecycle events found for this batch")
+		return
+	}
+
+	// Generate CSV
+	csvBytes, err := h.csvService.ExportAuditEvents(events)
+	if err != nil {
+		slog.Error("Failed to generate audit CSV", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate audit CSV export")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_audit_log.csv", sanitizeBatchName(batch.BatchName))
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(csvBytes)))
+
 	w.Write(csvBytes)
 }
 
@@ -633,7 +686,7 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, limit, offset)
 	if err != nil {
-		log.Printf("Failed to get passports: %v", err)
+		slog.Error("Failed to get passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve passports")
 		return
 	}
@@ -676,7 +729,7 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Batch not found")
 			return
 		}
-		log.Printf("Failed to get batch: %v", err)
+		slog.Error("Failed to get batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get batch")
 		return
 	}
@@ -707,12 +760,12 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		log.Printf("Failed to duplicate batch: %v", err)
+		slog.Error("Failed to duplicate batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to duplicate batch")
 		return
 	}
 
-	log.Printf("Batch %s duplicated to %s", batchID, newBatch.ID)
+	slog.Info("Batch duplicated", "original_id", batchID, "new_id", newBatch.ID)
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"success":      true,
 		"new_batch_id": newBatch.ID,

@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/middleware"
@@ -103,7 +103,7 @@ func (h *Handler) GetBalance(w http.ResponseWriter, r *http.Request) {
 
 	balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to get quota balance: %v", err)
+		slog.Error("Failed to get quota balance", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve balance")
 		return
 	}
@@ -129,7 +129,7 @@ func (h *Handler) GetTransactions(w http.ResponseWriter, r *http.Request) {
 
 	transactions, err := h.repo.ListTransactions(r.Context(), tenantID, 50)
 	if err != nil {
-		log.Printf("Failed to get transactions: %v", err)
+		slog.Error("Failed to get transactions", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve transactions")
 		return
 	}
@@ -200,7 +200,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	// Check quota balance
 	balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to get quota balance: %v", err)
+		slog.Error("Failed to get quota balance", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to check quota")
 		return
 	}
@@ -213,7 +213,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	// Deduct quota (atomic operation)
 	err = h.repo.DeductQuota(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to deduct quota: %v", err)
+		slog.Error("Failed to deduct quota", "error", err)
 		if err.Error() == "insufficient quota" {
 			respondError(w, http.StatusPaymentRequired, "Insufficient quota")
 		} else {
@@ -225,7 +225,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	// Set batch status to ACTIVE
 	err = h.repo.SetBatchStatus(r.Context(), batchID, models.BatchStatusActive)
 	if err != nil {
-		log.Printf("Failed to activate batch: %v", err)
+		slog.Error("Failed to activate batch", "error", err)
 		// Try to refund quota if activation fails
 		_ = h.repo.AddQuota(r.Context(), tenantID, 1)
 		respondError(w, http.StatusInternalServerError, "Failed to activate batch")
@@ -241,7 +241,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.repo.CreateTransaction(r.Context(), tx)
 	if err != nil {
-		log.Printf("Failed to log transaction: %v", err)
+		slog.Warn("Failed to log transaction", "error", err)
 		// Non-critical, don't fail the request
 	}
 
@@ -282,7 +282,7 @@ func (h *Handler) TopUpQuota(w http.ResponseWriter, r *http.Request) {
 	// Add quota
 	err = h.repo.AddQuota(r.Context(), tenantID, req.Amount)
 	if err != nil {
-		log.Printf("Failed to add quota: %v", err)
+		slog.Error("Failed to add quota", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to add quota")
 		return
 	}
@@ -295,7 +295,7 @@ func (h *Handler) TopUpQuota(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.repo.CreateTransaction(r.Context(), tx)
 	if err != nil {
-		log.Printf("Failed to log transaction: %v", err)
+		slog.Warn("Failed to log transaction", "error", err)
 	}
 
 	// Get new balance

@@ -112,9 +112,9 @@ func validateEUActivation(batch *models.Batch, tenant *models.Tenant, missing *[
 		*missing = append(*missing, "tenant.eu_contact_email")
 	}
 
-	// Batch-level EU compliance
-	if batch.Specs.CarbonFootprint == "" {
-		*missing = append(*missing, "batch.specs.carbon_footprint")
+	// Batch-level EU compliance: prefer structured calculator result, fall back to freetext
+	if len(batch.CarbonFootprintResult) == 0 && batch.Specs.CarbonFootprint == "" {
+		*missing = append(*missing, "batch.carbon_footprint_result (use carbon calculator or provide specs.carbon_footprint)")
 	}
 	if batch.Specs.MaterialComposition == nil {
 		*missing = append(*missing, "batch.specs.material_composition")

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -94,7 +94,7 @@ func (h *TrustedPartnerHandler) CreateTrustedPartner(w http.ResponseWriter, r *h
 	}
 
 	if err := h.repo.CreateTrustedPartner(r.Context(), partner); err != nil {
-		log.Printf("Failed to create trusted partner: %v", err)
+		slog.Error("Failed to create trusted partner", "error", err)
 		if strings.Contains(err.Error(), "unique_trusted_partner") {
 			respondError(w, http.StatusConflict, "This email domain is already registered for this role")
 			return
@@ -103,7 +103,7 @@ func (h *TrustedPartnerHandler) CreateTrustedPartner(w http.ResponseWriter, r *h
 		return
 	}
 
-	log.Printf("✅ Trusted partner created: %s (%s) for tenant %s", req.CompanyName, req.EmailDomain, tenantID)
+	slog.Info("Trusted partner created", "company", req.CompanyName, "domain", req.EmailDomain, "tenant", tenantID)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"success": true,
@@ -126,7 +126,7 @@ func (h *TrustedPartnerHandler) ListTrustedPartners(w http.ResponseWriter, r *ht
 
 	partners, err := h.repo.ListTrustedPartners(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to list trusted partners: %v", err)
+		slog.Error("Failed to list trusted partners", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list trusted partners")
 		return
 	}
@@ -155,7 +155,7 @@ func (h *TrustedPartnerHandler) DeleteTrustedPartner(w http.ResponseWriter, r *h
 	}
 
 	if err := h.repo.DeleteTrustedPartner(r.Context(), id); err != nil {
-		log.Printf("Failed to delete trusted partner: %v", err)
+		slog.Error("Failed to delete trusted partner", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete trusted partner")
 		return
 	}
@@ -232,7 +232,7 @@ func (h *TrustedPartnerHandler) CreatePartnerCode(w http.ResponseWriter, r *http
 	}
 
 	if err := h.repo.CreatePartnerCode(r.Context(), partnerCode); err != nil {
-		log.Printf("Failed to create partner code: %v", err)
+		slog.Error("Failed to create partner code", "error", err)
 		if strings.Contains(err.Error(), "unique_partner_code") {
 			respondError(w, http.StatusConflict, "This code already exists")
 			return
@@ -241,7 +241,7 @@ func (h *TrustedPartnerHandler) CreatePartnerCode(w http.ResponseWriter, r *http
 		return
 	}
 
-	log.Printf("✅ Partner code created: %s (%s) for tenant %s", code, req.Role, tenantID)
+	slog.Info("Partner code created", "code", code, "role", req.Role, "tenant", tenantID)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"success": true,
@@ -264,7 +264,7 @@ func (h *TrustedPartnerHandler) ListPartnerCodes(w http.ResponseWriter, r *http.
 
 	codes, err := h.repo.ListPartnerCodes(r.Context(), tenantID)
 	if err != nil {
-		log.Printf("Failed to list partner codes: %v", err)
+		slog.Error("Failed to list partner codes", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list partner codes")
 		return
 	}
@@ -293,7 +293,7 @@ func (h *TrustedPartnerHandler) DeactivatePartnerCode(w http.ResponseWriter, r *
 	}
 
 	if err := h.repo.DeactivatePartnerCode(r.Context(), id); err != nil {
-		log.Printf("Failed to deactivate partner code: %v", err)
+		slog.Error("Failed to deactivate partner code", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to deactivate partner code")
 		return
 	}

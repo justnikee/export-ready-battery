@@ -1,7 +1,7 @@
 package services
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"strings"
 
@@ -20,10 +20,10 @@ type GeoIPService struct {
 func NewGeoIPService(dbPath string) *GeoIPService {
 	db, err := geoip2.Open(dbPath)
 	if err != nil {
-		log.Printf("⚠️  GeoIP database not found at %s, running in fallback mode", dbPath)
+		slog.Warn("GeoIP database not found, running in fallback mode", "path", dbPath)
 		return &GeoIPService{fallback: true}
 	}
-	log.Println("✅ GeoIP database loaded successfully")
+	slog.Info("GeoIP database loaded successfully")
 	return &GeoIPService{db: db}
 }
 

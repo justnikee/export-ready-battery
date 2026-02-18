@@ -101,10 +101,6 @@ export default function OnboardingPage() {
         }
 
         try {
-            console.log("Submitting profile update...", {
-                ...formData,
-                company_name: companyName, // Override with validated companyName
-            })
 
             const response = await api.put("/auth/profile", {
                 company_name: companyName,
@@ -120,8 +116,6 @@ export default function OnboardingPage() {
                 eu_contact_email: formData.eu_contact_email,
             })
 
-            console.log("Profile update response:", response.data)
-
             // OPTIMISTIC UPDATE: Update context immediately with local state
             // This prevents the race condition where refreshUser() might be too slow
             if (response.data) {
@@ -131,8 +125,13 @@ export default function OnboardingPage() {
                 updateUser({ onboarding_completed: true })
             }
 
-            // Trigger background refresh for consistency
-            refreshUser()
+            // Await refresh so user state is fully settled before navigating.
+            // Wrapped in try/catch so a transient /auth/me failure wont nuke the session.
+            try {
+                await refreshUser()
+            } catch {
+                // updateUser() already set onboarding_completed - safe to proceed
+            }
 
             router.push("/dashboard")
         } catch (err: unknown) {

@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"exportready-battery/internal/middleware"
@@ -67,7 +67,7 @@ func (h *Handler) CreateRazorpayOrder(w http.ResponseWriter, r *http.Request) {
 	// Create Razorpay order
 	orderResp, err := h.razorpayService.CreateOrder(req.PackageID, tenantIDStr)
 	if err != nil {
-		log.Printf("Failed to create Razorpay order: %v", err)
+		slog.Error("Failed to create Razorpay order", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create payment order")
 		return
 	}
@@ -93,13 +93,13 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 	// Verify signature
 	valid, err := h.razorpayService.VerifyPayment(&req)
 	if err != nil {
-		log.Printf("Payment verification error: %v", err)
+		slog.Error("Payment verification error", "error", err)
 		respondError(w, http.StatusInternalServerError, "Payment verification failed")
 		return
 	}
 
 	if !valid {
-		log.Printf("⚠️ FRAUD ALERT: Invalid payment signature for order %s", req.OrderID)
+		slog.Warn("FRAUD ALERT: Invalid payment signature", "order_id", req.OrderID)
 		respondError(w, http.StatusBadRequest, "Invalid payment signature")
 		return
 	}
@@ -126,7 +126,7 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 	// Add quota to tenant
 	err = h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits)
 	if err != nil {
-		log.Printf("Failed to add quota: %v", err)
+		slog.Error("Failed to add quota", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update quota balance")
 		return
 	}
@@ -139,14 +139,14 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 	}
 	err = h.repo.CreateTransaction(r.Context(), tx)
 	if err != nil {
-		log.Printf("Failed to log transaction: %v", err)
+		slog.Warn("Failed to log transaction", "error", err)
 		// Non-critical, continue
 	}
 
 	// Get new balance
 	newBalance, _ := h.repo.GetQuotaBalance(r.Context(), tenantID)
 
-	log.Printf("✅ Payment verified: Tenant %s purchased %s (+%d quota)", tenantIDStr[:8], pkg.Name, pkg.QuotaUnits)
+	slog.Info("Payment verified", "tenant", tenantIDStr[:8], "package", pkg.Name, "quota_added", pkg.QuotaUnits)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":       true,
