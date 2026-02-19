@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ type Config struct {
 	Port        string
 	DatabaseURL string
 	BaseURL     string // For QR code URLs (e.g., https://app.com)
+	BackendURL  string // Backend public URL for OAuth callbacks
 	Environment string // development, staging, production
 
 	// JWT Configuration
@@ -64,10 +66,13 @@ func Load() *Config {
 		os.Exit(1)
 	}
 
+	port := getEnv("PORT", "8080")
+
 	return &Config{
-		Port:              getEnv("PORT", "8080"),
+		Port:              port,
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable"),
 		BaseURL:           getEnv("BASE_URL", "http://localhost:3000"),
+		BackendURL:        getEnv("BACKEND_URL", fmt.Sprintf("http://localhost:%s", port)),
 		Environment:       env,
 		JWTSecret:         jwtSecret,
 		JWTExpiry:         parseDuration(getEnv("JWT_EXPIRY", "15m")),

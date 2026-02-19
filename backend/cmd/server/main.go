@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -61,11 +60,10 @@ func main() {
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize OAuth service and handler
-	backendURL := fmt.Sprintf("http://localhost:%s", cfg.Port)
 	oauthService := services.NewOAuthService(
 		cfg.GoogleClientID, cfg.GoogleClientSecret,
 		cfg.MicrosoftClientID, cfg.MicrosoftClientSecret,
-		backendURL,
+		cfg.BackendURL,
 	)
 	oauthHandler := handlers.NewOAuthHandler(database, repo, authService, oauthService, cfg.FrontendURL)
 
