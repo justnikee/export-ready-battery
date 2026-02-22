@@ -55,8 +55,11 @@ func main() {
 	// Initialize repository
 	repo := repository.New(database)
 
+	// Initialize data access service
+	dataAccessService := services.NewDataAccessService(repo)
+
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService, cfg.RegulatorAPIKey)
+	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService, dataAccessService, cfg.RegulatorAPIKey)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize OAuth service and handler
@@ -94,6 +97,7 @@ func main() {
 		qrService := services.NewQRService(cfg.BaseURL)
 		pdfService := services.NewPDFService(cfg.BaseURL)
 		csvService := services.NewCSVService()
+		auditExportService := services.NewAuditExportService(database.Pool)
 		exportJobService := services.NewExportJobService(
 			database.Pool,
 			storageService,
@@ -101,6 +105,7 @@ func main() {
 			pdfService,
 			csvService,
 			exportEmailService,
+			auditExportService,
 			slogger,
 		)
 		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
@@ -368,6 +373,14 @@ func main() {
 	mux.Handle("POST /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreatePartnerCode)))
 	mux.Handle("GET /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListPartnerCodes)))
 	mux.Handle("DELETE /api/v1/partners/codes/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeactivatePartnerCode)))
+
+	// ============================================
+	// DATA ACCESS TOKENS (Protected - Tenant Admin)
+	// ============================================
+	dataAccessHandler := handlers.NewDataAccessHandler(dataAccessService)
+	mux.Handle("POST /api/v1/data-access/tokens", authMiddleware.Protect(http.HandlerFunc(dataAccessHandler.CreateToken)))
+	mux.Handle("GET /api/v1/data-access/tokens", authMiddleware.Protect(http.HandlerFunc(dataAccessHandler.ListTokens)))
+	mux.Handle("DELETE /api/v1/data-access/tokens/{id}", authMiddleware.Protect(http.HandlerFunc(dataAccessHandler.RevokeToken)))
 
 	// ============================================
 	// REWARDS/GAMIFICATION ROUTES (Magic Link Authenticated)

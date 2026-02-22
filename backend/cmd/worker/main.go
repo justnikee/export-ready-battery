@@ -58,6 +58,7 @@ func main() {
 	pdfService := services.NewPDFService(cfg.BaseURL)
 	csvService := services.NewCSVService()
 	emailService := services.NewEmailService(cfg.BaseURL)
+	auditExportService := services.NewAuditExportService(database.Pool)
 
 	exportJobService := services.NewExportJobService(
 		database.Pool,
@@ -66,6 +67,7 @@ func main() {
 		pdfService,
 		csvService,
 		emailService,
+		auditExportService,
 		logger,
 	)
 

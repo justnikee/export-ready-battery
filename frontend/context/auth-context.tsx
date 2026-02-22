@@ -32,6 +32,8 @@ interface User {
     pli_status?: string;
     // Onboarding status from DB
     onboarding_completed?: boolean;
+    // Data Visibility Preferences
+    data_visibility?: Record<string, string>;
 }
 
 interface AuthContextType {

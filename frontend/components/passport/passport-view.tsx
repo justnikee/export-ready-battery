@@ -4,6 +4,7 @@ import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Smartphone, Shie
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
+import { TelemetryChart } from "./telemetry-chart"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -642,7 +643,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                     </div>
                                 )}
 
-                                
+
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-3 rounded-lg bg-white/5 border border-white/5">
                                         <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recycled Content</div>
@@ -853,6 +854,15 @@ export function PassportView({ passport }: PassportViewProps) {
                     </div>
                 </GlowCard>
             </motion.div>
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                TELEMETRY CHARTS (BMS Data — SoH / Voltage / Temp / Current)
+            ═══════════════════════════════════════════════════════════════════ */}
+            {passportData.uuid && (
+                <motion.div variants={itemVariants}>
+                    <TelemetryChart passportUuid={passportData.uuid} />
+                </motion.div>
+            )}
 
             {/* ═══════════════════════════════════════════════════════════════════
                 SECURITY FOOTER

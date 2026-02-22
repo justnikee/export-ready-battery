@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2 } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Key } from "lucide-react"
 import { toast } from "sonner"
+import { DataAccessTokens } from "@/components/settings/data-access-tokens"
+import { DataVisibility } from "@/components/settings/data-visibility"
 
 // Document Upload Component with Verification Status
 function DocumentUpload({
@@ -263,7 +265,9 @@ export default function SettingsPage() {
         // EU Authorized Representative Fields
         eu_authorized_representative_name: "",
         eu_authorized_representative_address: "",
-        eu_contact_email: ""
+        eu_contact_email: "",
+        // Data Visibility Rules
+        data_visibility: {} as Record<string, string>
     })
 
     // Certificate paths state
@@ -289,7 +293,8 @@ export default function SettingsPage() {
                 iec_code: user.iec_code || "",
                 eu_authorized_representative_name: user.eu_authorized_representative_name || "",
                 eu_authorized_representative_address: user.eu_authorized_representative_address || "",
-                eu_contact_email: user.eu_contact_email || ""
+                eu_contact_email: user.eu_contact_email || "",
+                data_visibility: user.data_visibility || {}
             })
             setCertificatePaths({
                 epr_certificate_path: user.epr_certificate_path || "",
@@ -632,6 +637,12 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Data Visibility Config */}
+                <DataVisibility dataVisibility={formData.data_visibility} onChange={(v) => setFormData({ ...formData, data_visibility: v })} />
+
+                {/* Data Access Tokens Card */}
+                <DataAccessTokens />
 
                 {/* Feedback Message & Submit */}
                 <div className="bg-white border border-slate-200 rounded-lg p-6">

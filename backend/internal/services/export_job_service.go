@@ -25,13 +25,14 @@ const (
 
 // ExportJobService handles async export job operations
 type ExportJobService struct {
-	db             *pgxpool.Pool
-	storageService *StorageService
-	qrService      *QRService
-	pdfService     *PDFService
-	csvService     *CSVService
-	emailService   *EmailService
-	logger         *slog.Logger
+	db                 *pgxpool.Pool
+	storageService     *StorageService
+	qrService          *QRService
+	pdfService         *PDFService
+	csvService         *CSVService
+	emailService       *EmailService
+	auditExportService *AuditExportService
+	logger             *slog.Logger
 }
 
 // NewExportJobService creates a new export job service
@@ -42,16 +43,18 @@ func NewExportJobService(
 	pdfService *PDFService,
 	csvService *CSVService,
 	emailService *EmailService,
+	auditExportService *AuditExportService,
 	logger *slog.Logger,
 ) *ExportJobService {
 	return &ExportJobService{
-		db:             db,
-		storageService: storageService,
-		qrService:      qrService,
-		pdfService:     pdfService,
-		csvService:     csvService,
-		emailService:   emailService,
-		logger:         logger,
+		db:                 db,
+		storageService:     storageService,
+		qrService:          qrService,
+		pdfService:         pdfService,
+		csvService:         csvService,
+		emailService:       emailService,
+		auditExportService: auditExportService,
+		logger:             logger,
 	}
 }
 
@@ -325,6 +328,12 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 		data, contentType, err = s.generateCSV(passports)
 	case models.ExportJobTypeDueDiligence:
 		data, contentType, err = s.generateDueDiligence(ctx, batch, tenant)
+	case models.ExportJobTypeComplianceDeclaration:
+		data, contentType, err = s.generateComplianceDeclaration(ctx, batch, tenant)
+	case models.ExportJobTypeAuditCSV:
+		data, contentType, err = s.generateAuditCSV(ctx, job.BatchID)
+	case models.ExportJobTypeAuditPDF:
+		data, contentType, err = s.generateAuditPDF(ctx, job.BatchID, batch, tenant)
 	default:
 		err = fmt.Errorf("unknown job type: %s", job.JobType)
 	}
@@ -494,6 +503,50 @@ func (s *ExportJobService) generateDueDiligence(ctx context.Context, batch *mode
 	return data, "application/pdf", nil
 }
 
+// generateComplianceDeclaration generates the EU Article 7 carbon footprint declaration PDF.
+// Re-queries batch to get full carbon_footprint_result and specs.
+func (s *ExportJobService) generateComplianceDeclaration(ctx context.Context, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
+	// Re-query the full batch with carbon footprint result
+	fullBatchQuery := `
+		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
+		       b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
+		       b.carbon_footprint_result
+		FROM batches b
+		WHERE b.id = $1`
+	fullBatch := &models.Batch{}
+	err := s.db.QueryRow(ctx, fullBatchQuery, batch.ID).Scan(
+		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
+		&fullBatch.Status, &fullBatch.CreatedAt,
+		&fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
+		&fullBatch.CarbonFootprintResult,
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load full batch for compliance declaration: %w", err)
+	}
+
+	// Re-query tenant with EU representative fields
+	fullTenantQuery := `
+		SELECT id, company_name, address, logo_url, support_email, website,
+		       eu_authorized_representative_name, eu_authorized_representative_address, eu_contact_email
+		FROM tenants WHERE id = $1`
+	fullTenant := &models.Tenant{}
+	err = s.db.QueryRow(ctx, fullTenantQuery, tenant.ID).Scan(
+		&fullTenant.ID, &fullTenant.CompanyName, &fullTenant.Address,
+		&fullTenant.LogoURL, &fullTenant.SupportEmail, &fullTenant.Website,
+		&fullTenant.EUAuthorizedRepresentativeName, &fullTenant.EUAuthorizedRepresentativeAddress,
+		&fullTenant.EUContactEmail,
+	)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load full tenant for compliance declaration: %w", err)
+	}
+
+	data, err := GenerateComplianceDeclaration(fullBatch, fullTenant)
+	if err != nil {
+		return nil, "", err
+	}
+	return data, "application/pdf", nil
+}
+
 // getUserEmail retrieves user email for notifications
 func (s *ExportJobService) getUserEmail(ctx context.Context, userID uuid.UUID) (string, error) {
 	var email string
@@ -549,4 +602,18 @@ func (s *ExportJobService) RefreshDownloadURL(ctx context.Context, jobID uuid.UU
 	}
 
 	return downloadURL, nil
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Audit trail export helpers
+// ──────────────────────────────────────────────────────────────────────────────
+
+func (s *ExportJobService) generateAuditCSV(ctx context.Context, batchID uuid.UUID) ([]byte, string, error) {
+	data, err := s.auditExportService.ExportAuditTrailCSV(ctx, batchID)
+	return data, "text/csv", err
+}
+
+func (s *ExportJobService) generateAuditPDF(ctx context.Context, batchID uuid.UUID, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
+	data, err := s.auditExportService.ExportAuditTrailPDF(ctx, batchID, batch, tenant)
+	return data, "application/pdf", err
 }

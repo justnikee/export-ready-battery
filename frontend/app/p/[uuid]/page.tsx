@@ -269,6 +269,7 @@ export default function PublicPassportPage() {
                     passportId={params.uuid as string}
                     onClose={() => setShowActionModal(false)}
                     locale={locale}
+                    status={passport.passport?.status}
                 />
             )}
         </div>

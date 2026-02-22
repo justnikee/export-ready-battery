@@ -80,6 +80,9 @@ const EVIDENCE_FIELDS: Record<string, { key: string; label: string; placeholder?
         { key: "recall_reason", label: "Recall Reason", placeholder: "Recall reason" },
         { key: "recall_reference", label: "Recall Reference", placeholder: "Incident / reference ID" },
     ],
+    CLOSE: [
+        { key: "certificate_reference", label: "Certificate Reference", placeholder: "Certificate number from recycling" },
+    ],
 }
 
 function PassportActionContent() {

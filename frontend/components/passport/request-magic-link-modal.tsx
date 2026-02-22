@@ -13,9 +13,10 @@ interface RequestMagicLinkModalProps {
     passportId: string
     onClose: () => void
     locale?: Locale
+    status?: string
 }
 
-export function RequestMagicLinkModal({ passportId, onClose, locale = 'en' }: RequestMagicLinkModalProps) {
+export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', status }: RequestMagicLinkModalProps) {
     const t = createTranslator(locale)
 
     const ACTIONS = [
@@ -48,6 +49,11 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en' }: Re
             role: "RECYCLER"
         },
     ]
+
+    // Only show CLOSE action if the battery is already RECYCLED
+    const filteredActions = status === "RECYCLED"
+        ? ACTIONS
+        : ACTIONS.filter(a => a.action !== "CLOSE")
 
     const [step, setStep] = useState<"select" | "email" | "success" | "error">("select")
     const [selectedAction, setSelectedAction] = useState<typeof ACTIONS[0] | null>(null)
@@ -135,7 +141,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en' }: Re
                         {/* Step 1: Select Action */}
                         {step === "select" && (
                             <div className="space-y-3">
-                                {ACTIONS.map((action) => {
+                                {filteredActions.map((action) => {
                                     const Icon = action.icon
                                     return (
                                         <button

@@ -78,6 +78,8 @@ type Tenant struct {
 	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
 	BISRNumber            string `json:"bis_r_number,omitempty"`            // BIS CRS registration (IS 16046)
 	IECCode               string `json:"iec_code,omitempty"`                // Import Export Code (for importers)
+	MorthManufacturerCode string `json:"morth_manufacturer_code,omitempty"` // MoRTH manufacturer code
+	MorthFactoryCodes     string `json:"morth_factory_codes,omitempty"`     // MoRTH factory codes
 
 	// Certificate Document Paths (Compliance Vault)
 	EPRCertificatePath string `json:"epr_certificate_path,omitempty"` // Path to EPR certificate PDF
@@ -97,6 +99,9 @@ type Tenant struct {
 
 	// BPAN V2: 3-char manufacturer code for serial number generation
 	ManufacturerCode string `json:"manufacturer_code,omitempty"` // e.g. "TEN", auto-derived from company name
+
+	// Field Visibility Config
+	DataVisibility map[string]string `json:"data_visibility,omitempty"`
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile
@@ -116,6 +121,11 @@ type UpdateProfileRequest struct {
 	EPRRegistrationNumber string `json:"epr_registration_number"`
 	BISRNumber            string `json:"bis_r_number"`
 	IECCode               string `json:"iec_code"`
+	MorthManufacturerCode string `json:"morth_manufacturer_code"`
+	MorthFactoryCodes     string `json:"morth_factory_codes"`
+
+	// Field Visibility Config
+	DataVisibility map[string]string `json:"data_visibility"`
 }
 
 // ============================================================================
@@ -878,10 +888,13 @@ const (
 type ExportJobType string
 
 const (
-	ExportJobTypeQRZip    ExportJobType = "QR_ZIP"
-	ExportJobTypeLabelPDF ExportJobType = "LABELS_PDF"
-	ExportJobTypeCSV          ExportJobType = "CSV"
-	ExportJobTypeDueDiligence ExportJobType = "DUE_DILIGENCE"
+	ExportJobTypeQRZip                 ExportJobType = "QR_ZIP"
+	ExportJobTypeLabelPDF              ExportJobType = "LABELS_PDF"
+	ExportJobTypeCSV                   ExportJobType = "CSV"
+	ExportJobTypeDueDiligence          ExportJobType = "DUE_DILIGENCE"
+	ExportJobTypeComplianceDeclaration ExportJobType = "COMPLIANCE_DECLARATION"
+	ExportJobTypeAuditCSV              ExportJobType = "AUDIT_CSV"
+	ExportJobTypeAuditPDF              ExportJobType = "AUDIT_PDF"
 )
 
 // ExportJob represents an async background export job
@@ -938,6 +951,12 @@ func (e *ExportJob) GetFilename(batchName string) string {
 		return fmt.Sprintf("%s_export.csv", sanitizedBatchName)
 	case ExportJobTypeDueDiligence:
 		return fmt.Sprintf("%s_due_diligence.pdf", sanitizedBatchName)
+	case ExportJobTypeComplianceDeclaration:
+		return fmt.Sprintf("%s_carbon_declaration.pdf", sanitizedBatchName)
+	case ExportJobTypeAuditCSV:
+		return fmt.Sprintf("%s_audit_trail.csv", sanitizedBatchName)
+	case ExportJobTypeAuditPDF:
+		return fmt.Sprintf("%s_audit_trail.pdf", sanitizedBatchName)
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}

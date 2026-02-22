@@ -159,4 +159,11 @@ type RepositoryInterface interface {
 	InsertTelemetry(ctx context.Context, reading *TelemetryReading) error
 	UpdatePassportDynamicFields(ctx context.Context, passportID uuid.UUID, soh *float64, cycleCount *int, temp *float64, voltage *float64, thermalIncrement int, recordedAt time.Time) error
 	GetTelemetryHistory(ctx context.Context, passportID uuid.UUID, limit, offset int, from, to *time.Time) ([]*TelemetryReading, int, error)
+
+	// data_access.go
+	CreateDataAccessToken(ctx context.Context, req CreateDataAccessTokenRequest) (*DataAccessToken, error)
+	GetDataAccessTokenByHash(ctx context.Context, tokenHash string) (*DataAccessToken, error)
+	ListDataAccessTokens(ctx context.Context, tenantID uuid.UUID) ([]*DataAccessToken, error)
+	RevokeDataAccessToken(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
+	UpdateDataAccessTokenLastUsed(ctx context.Context, tokenID uuid.UUID) error
 }
