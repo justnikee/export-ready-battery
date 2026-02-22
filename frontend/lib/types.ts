@@ -207,6 +207,9 @@ export interface Batch {
     dva_source?: string;
     audited_domestic_value_add?: number | null;
     pli_certificate_url?: string;
+
+    // EU Carbon Calculator Result (Article 7)
+    carbon_footprint_result?: Record<string, unknown> | null;
 }
 
 // ============================================================================

@@ -38,7 +38,9 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
 	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED'),
 	          COALESCE(onboarding_completed, FALSE),
-	          COALESCE(manufacturer_code, '')
+	          COALESCE(manufacturer_code, ''),
+	          COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''),
+	          COALESCE(data_visibility, '{}'::jsonb)
 	          FROM public.tenants WHERE id = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -64,6 +66,9 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 		&tenant.PLIStatus,
 		&tenant.OnboardingCompleted,
 		&tenant.ManufacturerCode,
+		&tenant.MorthManufacturerCode,
+		&tenant.MorthFactoryCodes,
+		&tenant.DataVisibility,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -87,18 +92,21 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		    eu_authorized_representative_name = $10,
 		    eu_authorized_representative_address = $11,
 		    eu_contact_email = $12,
-		    onboarding_completed = $13
+		    onboarding_completed = $13,
+		    morth_manufacturer_code = $14,
+		    morth_factory_codes = $15,
+		    data_visibility = $16
 		WHERE id = $1 
 		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
 		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
 		          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
-		          onboarding_completed`
+		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''), COALESCE(data_visibility, '{}'::jsonb)`
 
 	tenant := &models.Tenant{}
 	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
 		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode,
 		req.EUAuthorizedRepresentativeName, req.EUAuthorizedRepresentativeAddress, req.EUContactEmail,
-		onboardingComplete).Scan(
+		onboardingComplete, req.MorthManufacturerCode, req.MorthFactoryCodes, req.DataVisibility).Scan(
 		&tenant.ID,
 		&tenant.CompanyName,
 		&tenant.Address,
@@ -113,6 +121,9 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		&tenant.EUAuthorizedRepresentativeAddress,
 		&tenant.EUContactEmail,
 		&tenant.OnboardingCompleted,
+		&tenant.MorthManufacturerCode,
+		&tenant.MorthFactoryCodes,
+		&tenant.DataVisibility,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update tenant profile: %w", err)

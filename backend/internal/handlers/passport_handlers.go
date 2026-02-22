@@ -63,6 +63,7 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 //
 // Priority: Regulator > Partner > Public
 // - X-Regulator-Key header → matched against env REGULATOR_API_KEY
+// - ?access_token=<token> → validated against data_access_tokens
 // - Authorization: Bearer <token> → validated as an unused magic-link token for this passport
 // - No auth → public
 func (h *Handler) detectAccessTier(r *http.Request, passportID uuid.UUID) models.AccessTier {
@@ -74,7 +75,18 @@ func (h *Handler) detectAccessTier(r *http.Request, passportID uuid.UUID) models
 		// Invalid key — fall through to partner/public
 	}
 
-	// 2. Partner check via magic-link access_token
+	// 2. Data Access Token (query param ?access_token=...)
+	if accessToken := r.URL.Query().Get("access_token"); accessToken != "" && h.dataAccessService != nil {
+		token, err := h.dataAccessService.ValidateToken(r.Context(), accessToken)
+		if err == nil && token != nil {
+			if token.AccessTier == "REGULATOR" {
+				return models.AccessTierRegulator
+			}
+			return models.AccessTierPartner
+		}
+	}
+
+	// 3. Partner check via magic-link access_token
 	if tokenString := extractBearerToken(r); tokenString != "" {
 		tokenHash := auth.HashToken(tokenString)
 		record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
@@ -84,7 +96,7 @@ func (h *Handler) detectAccessTier(r *http.Request, passportID uuid.UUID) models
 		}
 	}
 
-	// 3. Default: public
+	// 4. Default: public
 	return models.AccessTierPublic
 }
 

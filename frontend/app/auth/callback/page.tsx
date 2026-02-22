@@ -10,7 +10,11 @@ function CallbackHandler() {
     const searchParams = useSearchParams()
     const { login } = useAuth()
     const loginRef = useRef(login)
-    loginRef.current = login
+
+    useEffect(() => {
+        loginRef.current = login
+    }, [login])
+
     const [error, setError] = useState<string | null>(null)
     const hasRun = useRef(false)
 

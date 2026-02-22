@@ -112,9 +112,9 @@ func validateEUActivation(batch *models.Batch, tenant *models.Tenant, missing *[
 		*missing = append(*missing, "tenant.eu_contact_email")
 	}
 
-	// Batch-level EU compliance: prefer structured calculator result, fall back to freetext
-	if len(batch.CarbonFootprintResult) == 0 && batch.Specs.CarbonFootprint == "" {
-		*missing = append(*missing, "batch.carbon_footprint_result (use carbon calculator or provide specs.carbon_footprint)")
+	// Batch-level EU compliance: strictly require calculator result (free-text not accepted)
+	if len(batch.CarbonFootprintResult) == 0 {
+		*missing = append(*missing, "batch.carbon_footprint_result (use carbon calculator — free-text not accepted)")
 	}
 	if batch.Specs.MaterialComposition == nil {
 		*missing = append(*missing, "batch.specs.material_composition")
@@ -123,12 +123,27 @@ func validateEUActivation(batch *models.Batch, tenant *models.Tenant, missing *[
 		if mc.CobaltPct <= 0 && mc.LithiumPct <= 0 && mc.NickelPct <= 0 && mc.ManganesePct <= 0 && mc.GraphitePct <= 0 && mc.LeadPct <= 0 {
 			*missing = append(*missing, "batch.specs.material_composition (non-zero values required)")
 		}
+
+		// EU Art 8: Soft warnings for recycled content targets (not strictly blockages yet)
+		if mc.CobaltPct > 0 && mc.RecycledCobaltPct <= 0 {
+			*errors = append(*errors, "Soft Warning: Recycled Cobalt content missing (EU target: 16% by 2030)")
+		}
+		if mc.LithiumPct > 0 && mc.RecycledLithiumPct <= 0 {
+			*errors = append(*errors, "Soft Warning: Recycled Lithium content missing (EU target: 6% by 2030)")
+		}
+		if mc.NickelPct > 0 && mc.RecycledNickelPct <= 0 {
+			*errors = append(*errors, "Soft Warning: Recycled Nickel content missing (EU target: 6% by 2030)")
+		}
+		if mc.LeadPct > 0 && mc.RecycledLeadPct <= 0 {
+			*errors = append(*errors, "Soft Warning: Recycled Lead content missing (EU target: 85% by 2030)")
+		}
 	}
 	if batch.Specs.HazardousSubstances == nil || batch.Specs.HazardousSubstances.Declaration == "" {
 		*missing = append(*missing, "batch.specs.hazardous_substances.declaration")
 	}
-	if batch.Specs.RecycledContentPct == nil {
-		*missing = append(*missing, "batch.specs.recycled_content_pct")
+	// The overall recycled content is now covered per-material above, but keep legacy field check as warning
+	if batch.Specs.RecycledContentPct == nil || *batch.Specs.RecycledContentPct <= 0 {
+		*errors = append(*errors, "Soft Warning: Overall recycled content percentage not declared")
 	}
 	if batch.Specs.ExpectedLifetimeCycles == nil || *batch.Specs.ExpectedLifetimeCycles <= 0 {
 		*missing = append(*missing, "batch.specs.expected_lifetime_cycles")

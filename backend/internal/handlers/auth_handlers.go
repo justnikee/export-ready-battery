@@ -475,6 +475,9 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"eu_authorized_representative_name":    tenant.EUAuthorizedRepresentativeName,
 		"eu_authorized_representative_address": tenant.EUAuthorizedRepresentativeAddress,
 		"eu_contact_email":                     tenant.EUContactEmail,
+		"morth_manufacturer_code":              tenant.MorthManufacturerCode,
+		"morth_factory_codes":                  tenant.MorthFactoryCodes,
+		"data_visibility":                      tenant.DataVisibility,
 		// Certificate Document Paths
 		"epr_certificate_path": tenant.EPRCertificatePath,
 		"bis_certificate_path": tenant.BISCertificatePath,

@@ -5,7 +5,7 @@ export interface ExportJob {
     id: string;
     batch_id: string;
     batch_name: string;
-    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE';
+    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF';
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     passport_count: number;
     file_size_bytes?: number;
@@ -26,7 +26,7 @@ export interface ExportJobListResponse {
 
 export interface CreateExportJobRequest {
     batch_id: string;
-    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE';
+    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF';
 }
 
 // Create a new async export job
@@ -73,6 +73,9 @@ export const formatJobType = (type: ExportJob['job_type']): string => {
         case 'LABELS_PDF': return 'Labels (PDF)';
         case 'CSV': return 'Data Export (CSV)';
         case 'DUE_DILIGENCE': return 'Due Diligence Report (PDF)';
+        case 'COMPLIANCE_DECLARATION': return 'Carbon Declaration (PDF)';
+        case 'AUDIT_CSV': return 'Audit Trail (CSV)';
+        case 'AUDIT_PDF': return 'Audit Trail (PDF)';
         default: return type;
     }
 };

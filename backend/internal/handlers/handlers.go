@@ -21,11 +21,12 @@ type Handler struct {
 	validationService *services.ValidationService // India compliance validation
 	lifecycleService  *services.LifecycleService  // Passport lifecycle & audit
 	emailService      *services.EmailService      // Email service for invites
+	dataAccessService *services.DataAccessService // Data Access Tokens
 	regulatorAPIKey   string                      // Art 78 regulator access key
 }
 
 // New creates a new Handler with the given database connection
-func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string, emailService *services.EmailService, regulatorAPIKey string) *Handler {
+func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razorpayKeySecret string, emailService *services.EmailService, dataAccessService *services.DataAccessService, regulatorAPIKey string) *Handler {
 	var razorpayService *services.RazorpayService
 	if razorpayKeyID != "" && razorpayKeySecret != "" {
 		razorpayService = services.NewRazorpayService(razorpayKeyID, razorpayKeySecret)
@@ -43,6 +44,7 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 		validationService: services.NewValidationService(),
 		lifecycleService:  services.NewLifecycleService(repo),
 		emailService:      emailService,
+		dataAccessService: dataAccessService,
 		regulatorAPIKey:   regulatorAPIKey,
 	}
 }

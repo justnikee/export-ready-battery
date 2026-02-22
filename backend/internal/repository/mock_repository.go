@@ -802,3 +802,41 @@ func (m *MockRepository) GetTelemetryHistory(ctx context.Context, passportID uui
 	}
 	return args.Get(0).([]*TelemetryReading), args.Int(1), args.Error(2)
 }
+
+// ============================================================================
+// data_access.go
+// ============================================================================
+
+func (m *MockRepository) CreateDataAccessToken(ctx context.Context, req CreateDataAccessTokenRequest) (*DataAccessToken, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*DataAccessToken), args.Error(1)
+}
+
+func (m *MockRepository) GetDataAccessTokenByHash(ctx context.Context, tokenHash string) (*DataAccessToken, error) {
+	args := m.Called(ctx, tokenHash)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*DataAccessToken), args.Error(1)
+}
+
+func (m *MockRepository) ListDataAccessTokens(ctx context.Context, tenantID uuid.UUID) ([]*DataAccessToken, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*DataAccessToken), args.Error(1)
+}
+
+func (m *MockRepository) RevokeDataAccessToken(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateDataAccessTokenLastUsed(ctx context.Context, tokenID uuid.UUID) error {
+	args := m.Called(ctx, tokenID)
+	return args.Error(0)
+}
