@@ -114,6 +114,8 @@ export default function OnboardingPage() {
                 eu_authorized_representative_name: formData.eu_authorized_representative_name,
                 eu_authorized_representative_address: formData.eu_authorized_representative_address,
                 eu_contact_email: formData.eu_contact_email,
+                // Persist market selection in data_visibility (no dedicated column yet)
+                data_visibility: { primary_market: formData.primary_market },
             })
 
             // OPTIMISTIC UPDATE: Update context immediately with local state
@@ -144,7 +146,8 @@ export default function OnboardingPage() {
     }
 
     // Validation for each step
-    const isStep1Valid = formData.company_name?.trim() !== "" && formData.address.trim() !== "" && formData.support_email.trim() !== ""
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.support_email)
+    const isStep1Valid = formData.company_name?.trim() !== "" && formData.address.trim() !== "" && emailValid
     const isStep2Valid = true // Market selection always valid (has default)
     const isStep3Valid = true // Optional step
 

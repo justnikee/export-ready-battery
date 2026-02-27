@@ -1,8 +1,8 @@
 # ExportReady-Battery — Regulatory Compliance Implementation Plan
 
 > **Created:** 2026-02-15  
-> **Last Updated:** 2026-02-19  
-> **Status:** � IN PROGRESS — EU Carbon Footprint Declaration deadline passed (Feb 18). Backend services built; frontend carbon calculator + compliance PDF not yet wired.  
+> **Last Updated:** 2026-02-27  
+> **Status:** ✅ COMPLETE — All compliance features implemented. EU Carbon Footprint, BPAN V2, Telemetry, Three-Layer Access, i18n, Recycled Content, Audit Export, Due Diligence, MoRTH Settings UI — all done.  
 > **Objective:** Close all regulatory gaps for EU Battery Regulation 2023/1542 and India Battery Aadhaar (BPAN).
 
 ---
@@ -33,14 +33,14 @@
 
 | Requirement         | Current Code                                                                                                                        | Gap                                                              |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| BPAN 21-char format | `bpan_service.go` — `GenerateBPANv2()` produces strict 21-char format. V1 `GenerateBPAN()` in `models.go` still exists for compat.  | 🟢 **DONE** — V2 active in production |
-| EU Carbon Footprint | `carbon_calculator.go` — JRC-aligned BOM calculator. `carbon_factors.go` — DB factor lookup. `carbon_handler.go` — API endpoints. `carbon-calculator.tsx` — interactive frontend form. `compliance_declaration_pdf.go` — Article 7 PDF.  | 🟢 **DONE** — Full stack: calculator, PDF declaration, frontend UI |
-| Dynamic SoH Data    | `telemetry_service.go` + `telemetry_handlers.go` — webhook receiver. `device_token_service.go` + `device_auth.go` — BMS auth. `telemetry-chart.tsx` — SoH/Voltage/Temp charts.  | 🟢 **DONE** — Backend + frontend chart implemented |
-| Three-Layer Access  | `passport_handlers.go` — `detectAccessTier()` → Public / Partner / Regulator. `access_views.go` — `BuildPublicView()`, `BuildPartnerView()`, `BuildRegulatorView()`. Regulator uses `X-Regulator-Key` header; Partner uses magic-link `access_token`. | 🟢 **DONE** — Three-tier access with filtered views active in production |
-| Recycled Content    | `recycled_content_pct` field in `models.go`. No UI input flow.                                                                      | 🟡 Schema only, no UI |
-| Audit Log Export    | `audit_export_service.go` — CSV + PDF export of `passport_events` per batch. Wired as `AUDIT_CSV` / `AUDIT_PDF` export job types.   | 🟢 **DONE** — CSV + PDF audit trail export via async job system |
-| Due Diligence       | `due_diligence_pdf.go` exists                                                                                                       | 🟡 **Partial** — Service exists, needs verification |
-| Multi-Language      | `lib/i18n/i18n.ts` skeleton exists, no locale JSON files (EN/FR/DE)                                                                 | 🔴 **NOT STARTED** — Need locale files + label integration |
+| BPAN 21-char format | `bpan_service.go` — `GenerateBPANv2()` produces strict 21-char format. V1 `GenerateBPAN()` in `models.go` still exists for compat.  | ✅ **DONE** — V2 active in production |
+| EU Carbon Footprint | `carbon_calculator.go` — JRC-aligned BOM calculator. `carbon_factors.go` — DB factor lookup. `carbon_handler.go` — API endpoints. `carbon-calculator.tsx` — interactive frontend form. `compliance_declaration_pdf.go` — Article 7 PDF.  | ✅ **DONE** — Full stack: calculator, PDF declaration, frontend UI |
+| Dynamic SoH Data    | `telemetry_service.go` + `telemetry_handlers.go` — webhook receiver. `device_token_service.go` + `device_auth.go` — BMS auth. `telemetry-chart.tsx` — SoH/Voltage/Temp charts.  | ✅ **DONE** — Backend + frontend chart implemented |
+| Three-Layer Access  | `passport_handlers.go` — `detectAccessTier()` → Public / Partner / Regulator. `access_views.go` — `BuildPublicView()`, `BuildPartnerView()`, `BuildRegulatorView()`. Regulator uses `X-Regulator-Key` header; Partner uses magic-link `access_token`. | ✅ **DONE** — Three-tier access with filtered views active in production |
+| Recycled Content    | `recycled_content_pct` field in `models.go`. Per-material recycled % inputs in `create-batch-dialog.tsx`. Compliance warnings in `activation_compliance.go`.           | ✅ **DONE** — UI input flow + soft compliance warnings implemented |
+| Audit Log Export    | `audit_export_service.go` — CSV + PDF export of `passport_events` per batch. Wired as `AUDIT_CSV` / `AUDIT_PDF` export job types.   | ✅ **DONE** — CSV + PDF audit trail export via async job system |
+| Due Diligence       | `due_diligence_pdf.go` — Full report generator                                                                                       | ✅ **DONE** — Service implemented |
+| Multi-Language      | `lib/i18n/i18n.ts` + `en.json`, `fr.json`, `de.json` — full locale files with safety, disposal, and labels.                          | ✅ **DONE** — EN/FR/DE locales implemented and wired into passport-view |
 
 ---
 
@@ -938,13 +938,15 @@ Compiles:
 
 | Metric                       | Target                                       | Status   |
 | ---------------------------- | -------------------------------------------- | -------- |
-| EU Carbon Footprint coverage | 100% of EU batches have calculated values    | 🟡 Backend API ready, no frontend UI yet |
+| EU Carbon Footprint coverage | 100% of EU batches have calculated values    | ✅ Full stack — Backend API + `carbon-calculator.tsx` frontend UI + PDF compliance declaration |
 | BPAN V2 compliance           | 100% of new India batches use 21-char format | ✅ Done  |
-| Compliance Declaration PDF   | Available for all ACTIVE EU batches          | ❌ Not built |
+| MoRTH Settings UI            | Factory codes + manufacturer code configurable | ✅ Done — Settings page updated |
+| Compliance Declaration PDF   | Available for all ACTIVE EU batches          | ✅ Done — `compliance_declaration_pdf.go` wired |
 | Telemetry ingestion          | < 500ms p99 latency                          | ✅ Backend ready |
+| Telemetry Frontend           | SoH/cycle/temp chart on passport page        | ✅ Done — `telemetry-chart.tsx` implemented |
 | Three-layer access           | Regulator tokens operational                 | ✅ Done |
 | Multi-language labels        | EN/FR/DE available                           | ✅ Done |
-| Audit export                 | CSV + PDF available                          | ❌ Not started |
+| Audit export                 | CSV + PDF available                          | ✅ Done — export button wired in batch detail page |
 | OAuth production             | Google + Microsoft working                   | ✅ Fixed (BACKEND_URL env var) |
 | Code quality                 | Structured logging, no XSS, clean builds     | ✅ Done  |
 

@@ -100,8 +100,9 @@ type Tenant struct {
 	// BPAN V2: 3-char manufacturer code for serial number generation
 	ManufacturerCode string `json:"manufacturer_code,omitempty"` // e.g. "TEN", auto-derived from company name
 
-	// Field Visibility Config
-	DataVisibility map[string]string `json:"data_visibility,omitempty"`
+	// Field Visibility Config stored as JSONB.
+	// Must be json.RawMessage ([]byte) — pgx SimpleProtocol cannot encode map types into JSONB.
+	DataVisibility json.RawMessage `json:"data_visibility,omitempty"`
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile
@@ -124,8 +125,9 @@ type UpdateProfileRequest struct {
 	MorthManufacturerCode string `json:"morth_manufacturer_code"`
 	MorthFactoryCodes     string `json:"morth_factory_codes"`
 
-	// Field Visibility Config
-	DataVisibility map[string]string `json:"data_visibility"`
+	// Field Visibility Config stored as JSONB.
+	// Must be json.RawMessage ([]byte) — pgx SimpleProtocol cannot encode map types into JSONB.
+	DataVisibility json.RawMessage `json:"data_visibility"`
 }
 
 // ============================================================================
