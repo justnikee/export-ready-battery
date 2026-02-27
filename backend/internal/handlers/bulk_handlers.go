@@ -1,12 +1,9 @@
 package handlers
 
 import (
-	"encoding/json"
+	"exportready-battery/internal/middleware"
 	"log/slog"
 	"net/http"
-
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
@@ -27,205 +24,36 @@ type BulkDeleteRequest struct {
 }
 
 // BulkUpdateStatus handles POST /api/v1/passports/bulk/status
+//
+// COMPLIANCE LOCK: Direct status mutation is permanently disabled.
+// All passport state changes must go through POST /passports/bulk/transition,
+// which enforces: actor authentication, state-machine validation, evidence
+// capture, and an immutable hash-chained audit event per passport.
+// Bypassing this via a raw status write would corrupt the audit chain.
 func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusForbidden, "Bulk status updates are disabled. Use /passports/bulk/transition to preserve audit events.")
-	return
-
-	var req BulkUpdateStatusRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Validate request
-	if len(req.PassportIDs) == 0 {
-		respondError(w, http.StatusBadRequest, "passport_ids is required")
-		return
-	}
-
-	if len(req.PassportIDs) > 1000 {
-		respondError(w, http.StatusBadRequest, "Maximum 1000 passports per request")
-		return
-	}
-
-	if !repository.IsValidPassportStatus(req.Status) {
-		respondError(w, http.StatusBadRequest, "Invalid status. Must be: CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, RECALLED, or END_OF_LIFE")
-		return
-	}
-
-	// Get tenant ID for authorization
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Not authenticated")
-		return
-	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
-
-	// Parse passport IDs
-	passportIDs := make([]uuid.UUID, 0, len(req.PassportIDs))
-	for _, idStr := range req.PassportIDs {
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid passport ID: "+idStr)
-			return
-		}
-		passportIDs = append(passportIDs, id)
-	}
-
-	// Verify all passports belong to this tenant's batches
-	passports, err := h.repo.GetPassportsByIDs(r.Context(), passportIDs)
-	if err != nil {
-		slog.Error("Failed to get passports", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to validate passports")
-		return
-	}
-
-	if len(passports) != len(passportIDs) {
-		respondError(w, http.StatusBadRequest, "Some passports not found")
-		return
-	}
-
-	// Check each passport's batch belongs to tenant (enforced by GetBatch with tenantID)
-	for _, p := range passports {
-		_, err := h.repo.GetBatch(r.Context(), p.BatchID, tenantID)
-		if err != nil {
-			respondError(w, http.StatusForbidden, "Access denied to one or more passports")
-			return
-		}
-	}
-
-	// Perform bulk update
-	updated, err := h.repo.BulkUpdatePassportStatus(r.Context(), passportIDs, req.Status)
-	if err != nil {
-		slog.Error("Failed to bulk update passports", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to update passports")
-		return
-	}
-
-	slog.Info("Bulk status update", "count", updated, "status", req.Status, "tenant", tenantIDStr[:8])
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"updated": updated,
-		"status":  req.Status,
-		"message": formatMessage(int(updated), "passport", "updated to "+req.Status),
-	})
+	respondError(w, http.StatusForbidden,
+		"Bulk status updates are disabled. Use POST /passports/bulk/transition to preserve audit events.")
 }
 
 // BulkDeletePassports handles POST /api/v1/passports/bulk/delete
+//
+// COMPLIANCE LOCK: Passport deletion is permanently disabled.
+// Passports are immutable compliance records. To correct data:
+//   - Use PATCH /passports/{id} for metadata corrections.
+//   - Use POST /batches/{id}/archive to retire an erroneous batch.
+//   - Use POST /passports/{id}/transition action=recall to remove from service.
 func (h *Handler) BulkDeletePassports(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusForbidden, "Passport deletion is not permitted. Passports are immutable for compliance.")
-	return
-
-	var req BulkDeleteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Validate request
-	if len(req.PassportIDs) == 0 {
-		respondError(w, http.StatusBadRequest, "passport_ids is required")
-		return
-	}
-
-	if len(req.PassportIDs) > 1000 {
-		respondError(w, http.StatusBadRequest, "Maximum 1000 passports per request")
-		return
-	}
-
-	// Get tenant ID for authorization
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Not authenticated")
-		return
-	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
-
-	// Parse passport IDs
-	passportIDs := make([]uuid.UUID, 0, len(req.PassportIDs))
-	for _, idStr := range req.PassportIDs {
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid passport ID: "+idStr)
-			return
-		}
-		passportIDs = append(passportIDs, id)
-	}
-
-	// Verify all passports belong to this tenant's batches
-	passports, err := h.repo.GetPassportsByIDs(r.Context(), passportIDs)
-	if err != nil {
-		slog.Error("Failed to get passports", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to validate passports")
-		return
-	}
-
-	for _, p := range passports {
-		_, err := h.repo.GetBatch(r.Context(), p.BatchID, tenantID)
-		if err != nil {
-			respondError(w, http.StatusForbidden, "Access denied to one or more passports")
-			return
-		}
-	}
-
-	// Perform bulk delete
-	deleted, err := h.repo.BulkDeletePassports(r.Context(), passportIDs)
-	if err != nil {
-		slog.Error("Failed to bulk delete passports", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to delete passports")
-		return
-	}
-
-	slog.Info("Bulk delete", "count", deleted, "tenant", tenantIDStr[:8])
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"deleted": deleted,
-		"message": formatMessage(int(deleted), "passport", "deleted"),
-	})
+	respondError(w, http.StatusForbidden,
+		"Passport deletion is not permitted. Passports are immutable compliance records.")
 }
 
 // DeleteBatch handles DELETE /api/v1/batches/{id}
+//
+// COMPLIANCE LOCK: Batch deletion is permanently disabled.
+// Use POST /batches/{id}/archive to retire a batch while preserving passport records.
 func (h *Handler) DeleteBatch(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusForbidden, "Batch deletion is not permitted. Use archive/clone to correct data.")
-	return
-
-	batchIDStr := r.PathValue("id")
-	batchID, err := uuid.Parse(batchIDStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid batch ID")
-		return
-	}
-
-	// Get tenant ID for authorization
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Not authenticated")
-		return
-	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
-
-	// Verify batch belongs to tenant (enforced at DB level)
-	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
-	if err != nil {
-		respondError(w, http.StatusNotFound, "Batch not found")
-		return
-	}
-
-	// Delete batch and all passports
-	deletedPassports, err := h.repo.DeleteBatchWithPassports(r.Context(), batchID)
-	if err != nil {
-		slog.Error("Failed to delete batch", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to delete batch")
-		return
-	}
-
-	slog.Info("Deleted batch", "batch_name", batch.BatchName, "passports", deletedPassports, "tenant", tenantIDStr[:8])
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"deleted_passports": deletedPassports,
-		"batch_name":        batch.BatchName,
-		"message":           "Batch and " + formatMessage(int(deletedPassports), "passport", "") + " deleted",
-	})
+	respondError(w, http.StatusForbidden,
+		"Batch deletion is not permitted. Use POST /batches/{id}/archive instead.")
 }
 
 // formatMessage creates a message like "500 passports updated"

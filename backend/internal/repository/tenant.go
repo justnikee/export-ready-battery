@@ -108,19 +108,19 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		    eu_contact_email = $12,
 		    onboarding_completed = (COALESCE(onboarding_completed, false) OR $13),
 		    morth_manufacturer_code = $14,
-		    morth_factory_codes = $15,
-		    data_visibility = $16::jsonb
+		    morth_factory_codes = $15
 		WHERE id = $1 
 		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
 		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
 		          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
-		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''), COALESCE(data_visibility, '{}'::jsonb)`
+		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''),
+		          COALESCE(data_visibility, '{}'::jsonb)`
 
 	tenant := &models.Tenant{}
 	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
 		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode,
 		req.EUAuthorizedRepresentativeName, req.EUAuthorizedRepresentativeAddress, req.EUContactEmail,
-		newlyComplete, req.MorthManufacturerCode, req.MorthFactoryCodes, safeJSONStr(req.DataVisibility)).Scan(
+		newlyComplete, req.MorthManufacturerCode, req.MorthFactoryCodes).Scan(
 		&tenant.ID,
 		&tenant.CompanyName,
 		&tenant.Address,
