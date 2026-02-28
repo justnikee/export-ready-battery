@@ -8,12 +8,14 @@ import { Suspense } from "react"
 
 function CallbackHandler() {
     const searchParams = useSearchParams()
-    const { login } = useAuth()
+    const { login, refreshUser } = useAuth()
     const loginRef = useRef(login)
+    const refreshRef = useRef(refreshUser)
 
     useEffect(() => {
         loginRef.current = login
-    }, [login])
+        refreshRef.current = refreshUser
+    }, [login, refreshUser])
 
     const [error, setError] = useState<string | null>(null)
     const hasRun = useRef(false)
@@ -39,12 +41,30 @@ function CallbackHandler() {
             return
         }
 
-        // Use AuthContext login — sets token, cookie, user state, and navigates
-        loginRef.current(token, refreshToken, {
-            id: tenantId,
-            tenant_id: tenantId,
-            email: email,
-            company_name: companyName,
+        // Store tokens first so refreshUser (→ /auth/me) can send the Authorization header
+        localStorage.setItem("token", token)
+        localStorage.setItem("refresh_token", refreshToken)
+        document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
+
+        // Fetch full user from /auth/me so onboarding_completed is populated.
+        // login() will then route correctly: /onboarding for new accounts, /dashboard for existing.
+        refreshRef.current().then(() => {
+            // refreshUser() updated the auth context — login() will now see the real onboarding state
+            loginRef.current(token, refreshToken, {
+                id: tenantId,
+                tenant_id: tenantId,
+                email: email,
+                company_name: companyName,
+                // onboarding_completed not set here — refreshUser already updated context
+            })
+        }).catch(() => {
+            // /auth/me failed — fall back to minimal user; dashboard layout will fix the redirect
+            loginRef.current(token, refreshToken, {
+                id: tenantId,
+                tenant_id: tenantId,
+                email: email,
+                company_name: companyName,
+            })
         })
     }, [searchParams])
 

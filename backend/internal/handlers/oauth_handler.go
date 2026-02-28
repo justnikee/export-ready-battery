@@ -62,13 +62,16 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store state in a short-lived cookie (5 minutes)
+	// Store state in a short-lived cookie (5 minutes).
+	// Secure must be true in production (HTTPS) — without it the browser
+	// will NOT send the cookie back on the callback, causing a state mismatch.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -95,13 +98,16 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Store state in a short-lived cookie (5 minutes)
+	// Store state in a short-lived cookie (5 minutes).
+	// Secure must be true in production (HTTPS) — without it the browser
+	// will NOT send the cookie back on the callback, causing a state mismatch.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -179,20 +185,27 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		"UPDATE public.tenants SET last_login = $1 WHERE id = $2",
 		time.Now(), tenantID)
 
-	// Generate tokens
-	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email)
+	// Generate tokens (OAuth users are pre-verified owners)
+	const oauthRole = "owner"
+	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email, oauthRole)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
 
-	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email)
+	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email, oauthRole)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
+
+	// Persist JTI for refresh token revocation
+	expires := time.Now().Add(h.authService.GetRefreshExpiry())
+	h.db.Pool.Exec(r.Context(),
+		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
+		jti, expires, tenantID)
 
 	// Redirect to frontend callback page with tokens
 	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&refresh_token=%s&tenant_id=%s&email=%s&company_name=%s",
@@ -235,8 +248,8 @@ func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services
 	companyName = profile.Name // Could be user's display name; onboarding will ask for real company name
 
 	_, err = h.db.Pool.Exec(ctx,
-		`INSERT INTO public.tenants (id, company_name, email, oauth_provider, oauth_provider_id, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		`INSERT INTO public.tenants (id, company_name, email, oauth_provider, oauth_provider_id, email_verified, created_at)
+		 VALUES ($1, $2, $3, $4, $5, true, $6)`,
 		tenantID, companyName, profile.Email, profile.Provider, profile.ProviderID, time.Now())
 	if err != nil {
 		return uuid.UUID{}, "", fmt.Errorf("failed to create tenant: %w", err)

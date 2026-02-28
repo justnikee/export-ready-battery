@@ -75,6 +75,7 @@ func main() {
 	apiKeyService := services.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyAuth(repo, apiKeyService)
 	authRateLimiter := middleware.NewAuthRateLimiter()
+	apiRateLimiter := middleware.NewAPIRateLimiter()
 
 	// Initialize lifecycle service and handler
 	lifecycleService := services.NewLifecycleService(repo)
@@ -187,6 +188,9 @@ func main() {
 	authMux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
 	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	// Email verification (public, rate-limited)
+	authMux.HandleFunc("GET /api/v1/auth/verify-email", authHandler.VerifyEmail)
+	authMux.HandleFunc("POST /api/v1/auth/resend-verification", authHandler.ResendVerification)
 	// OAuth routes
 	authMux.HandleFunc("GET /api/v1/auth/google", oauthHandler.GoogleRedirect)
 	authMux.HandleFunc("GET /api/v1/auth/google/callback", oauthHandler.GoogleCallback)
@@ -200,6 +204,8 @@ func main() {
 	// ============================================
 	mux.Handle("GET /api/v1/auth/me", authMiddleware.Protect(http.HandlerFunc(authHandler.Me)))
 	mux.Handle("PUT /api/v1/auth/profile", authMiddleware.Protect(http.HandlerFunc(authHandler.UpdateProfile)))
+	// Logout — clears refresh token JTI (requires valid access token)
+	mux.Handle("POST /api/v1/auth/logout", authMiddleware.Protect(http.HandlerFunc(authHandler.Logout)))
 
 	// ============================================
 	// BATCH ROUTES (Protected)
@@ -223,7 +229,8 @@ func main() {
 	// BULK OPERATIONS (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/bulk/status", authMiddleware.Protect(http.HandlerFunc(h.BulkUpdateStatus)))
-	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(http.HandlerFunc(h.BulkDeletePassports)))
+	// RBAC: bulk delete requires owner or operator
+	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(middleware.RequireRole("owner", "operator")(http.HandlerFunc(h.BulkDeletePassports))))
 	mux.Handle("POST /api/v1/passports/bulk/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports)))
 
 	// ============================================
@@ -251,8 +258,9 @@ func main() {
 	// ============================================
 	mux.Handle("GET /api/v1/team", authMiddleware.Protect(http.HandlerFunc(h.ListTeamMembers)))
 	mux.Handle("POST /api/v1/team/invite", authMiddleware.Protect(http.HandlerFunc(h.InviteUser)))
-	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(http.HandlerFunc(h.RemoveTeamMember)))
-	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(http.HandlerFunc(h.UpdateTeamMemberRole)))
+	// RBAC: only owners can remove members or change roles
+	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(middleware.RequireRole("owner")(http.HandlerFunc(h.RemoveTeamMember))))
+	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(middleware.RequireRole("owner")(http.HandlerFunc(h.UpdateTeamMemberRole))))
 	mux.HandleFunc("POST /api/v1/team/accept", h.AcceptInvite) // Public for invite links
 
 	// ============================================
@@ -337,17 +345,18 @@ func main() {
 	// ============================================
 	// ADMIN ROUTES (Secret - for document verification)
 	// ============================================
-	mux.Handle("POST /api/v1/admin/verify-doc", authMiddleware.Protect(http.HandlerFunc(h.AdminVerifyDocument)))
+	// RBAC: only owners can trigger admin document verification
+	mux.Handle("POST /api/v1/admin/verify-doc", authMiddleware.Protect(middleware.RequireRole("owner")(http.HandlerFunc(h.AdminVerifyDocument))))
 
 	// ============================================
-	// SCAN ROUTES (Public - called from passport page)
+	// SCAN ROUTES (Public - rate limited to prevent abuse)
 	// ============================================
-	mux.HandleFunc("POST /api/v1/scans/record", h.RecordScan)
+	mux.Handle("POST /api/v1/scans/record", apiRateLimiter.Limit(http.HandlerFunc(h.RecordScan)))
 
 	// ============================================
-	// PASSPORT ROUTES (Public - for QR code scanning)
+	// PASSPORT ROUTES (Public - rate limited to prevent enumeration)
 	// ============================================
-	mux.HandleFunc("GET /api/v1/passports/{uuid}", h.GetPassport)
+	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
 
 	// ============================================
 	// MAGIC LINK PASSPORT ROUTES (Token Authenticated)

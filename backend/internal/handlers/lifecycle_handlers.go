@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -27,8 +29,16 @@ type LifecycleHandler struct {
 	roleResolver TeamRoleResolver
 }
 
-// NewLifecycleHandler creates a new lifecycle handler
+// NewLifecycleHandler creates a new lifecycle handler.
+// Panics if roleResolver is nil — misconfiguration must fail at startup,
+// not silently at the first authenticated request.
 func NewLifecycleHandler(service *services.LifecycleService, roleResolver TeamRoleResolver) *LifecycleHandler {
+	if roleResolver == nil {
+		panic("NewLifecycleHandler: roleResolver must not be nil — all lifecycle transitions require actor role resolution")
+	}
+	if service == nil {
+		panic("NewLifecycleHandler: service must not be nil")
+	}
 	return &LifecycleHandler{service: service, roleResolver: roleResolver}
 }
 
@@ -196,6 +206,11 @@ type BulkLifecycleTransitionRequest struct {
 	Evidence    models.Evidence `json:"evidence,omitempty"`
 }
 
+// maxBulkTransitionSize caps a single bulk-transition request.
+// Without this cap, the per-passport sequential loop in BulkTransitionPassports
+// can exhaust memory and hold the DB connection indefinitely.
+const maxBulkTransitionSize = 500
+
 // BulkTransitionPassports handles POST /api/v1/passports/bulk/transition
 // @Summary Bulk apply lifecycle actions
 // @Description Apply a lifecycle action to multiple passports with validation
@@ -233,6 +248,15 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// Hard cap prevents memory exhaustion and indefinite DB connection hold.
+	// Callers must split larger batches into ≤500-passport chunks.
+	if len(req.PassportIDs) > maxBulkTransitionSize {
+		respondError(w, http.StatusBadRequest,
+			fmt.Sprintf("too many passports: %d exceeds the %d-passport limit per request. Split into smaller batches.",
+				len(req.PassportIDs), maxBulkTransitionSize))
+		return
+	}
+
 	if req.Action == "" {
 		respondError(w, http.StatusBadRequest, "action is required")
 		return
@@ -260,6 +284,7 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		Action:       req.Action,
 		ActorContext: actorContext,
 		Evidence:     req.Evidence,
+		IPAddress:    getRequestIP(r),
 	})
 
 	if err != nil {
@@ -284,6 +309,31 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 			return
 		}
 		respondError(w, http.StatusInternalServerError, "Failed to process bulk transition")
+		return
+	}
+
+	// 207 Multi-Status: some passports transitioned, some failed.
+	// This is not a server error — each failed passport includes its reason.
+	// The caller must inspect failed_ids and retry or investigate individually.
+	if result.Failed > 0 {
+		slog.Warn("Partial bulk transition",
+			"action", req.Action,
+			"total", result.Total,
+			"succeeded", result.Succeeded,
+			"failed", result.Failed,
+			"failed_ids", result.FailedIDs,
+		)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMultiStatus)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"partial":    true,
+			"message":    fmt.Sprintf("%d/%d passports transitioned. %d failed — check failed_ids.", result.Succeeded, result.Total, result.Failed),
+			"succeeded":  result.Succeeded,
+			"failed":     result.Failed,
+			"total":      result.Total,
+			"failed_ids": result.FailedIDs,
+			"errors":     result.Errors,
+		})
 		return
 	}
 

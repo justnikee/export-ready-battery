@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,6 +11,17 @@ import (
 
 	"exportready-battery/internal/models"
 )
+
+// safeJSONStr encodes a json.RawMessage as a Go string for pgx SimpleProtocol.
+// In SimpleProtocol mode pgx encodes []byte as PostgreSQL bytea (hex: \x...) which
+// PostgreSQL CANNOT cast to JSONB. A Go string is sent as a plain text literal
+// which PostgreSQL CAN cast with ::jsonb. Always returns valid JSON (minimum "{}").
+func safeJSONStr(v json.RawMessage) string {
+	if len(v) == 0 {
+		return "{}"
+	}
+	return string(v)
+}
 
 // CreateTenant creates a new tenant
 func (r *Repository) CreateTenant(ctx context.Context, companyName string) (*models.Tenant, error) {
@@ -82,8 +94,10 @@ func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenan
 
 // UpdateTenantProfile updates the tenant's profile information
 func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error) {
-	// Set onboarding_completed = TRUE when address and support_email are provided
-	onboardingComplete := req.Address != "" && req.SupportEmail != ""
+	// onboarding_completed is a one-way latch: once TRUE it stays TRUE regardless of future edits.
+	// The SQL merges the existing value (COALESCE to false) with the new eligibility check,
+	// so clearing address/support_email in Settings can never un-complete onboarding.
+	newlyComplete := req.Address != "" && req.SupportEmail != ""
 
 	query := `
 		UPDATE public.tenants 
@@ -92,21 +106,21 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		    eu_authorized_representative_name = $10,
 		    eu_authorized_representative_address = $11,
 		    eu_contact_email = $12,
-		    onboarding_completed = $13,
+		    onboarding_completed = (COALESCE(onboarding_completed, false) OR $13),
 		    morth_manufacturer_code = $14,
-		    morth_factory_codes = $15,
-		    data_visibility = $16
+		    morth_factory_codes = $15
 		WHERE id = $1 
 		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
 		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
 		          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
-		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''), COALESCE(data_visibility, '{}'::jsonb)`
+		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''),
+		          COALESCE(data_visibility, '{}'::jsonb)`
 
 	tenant := &models.Tenant{}
 	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
 		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode,
 		req.EUAuthorizedRepresentativeName, req.EUAuthorizedRepresentativeAddress, req.EUContactEmail,
-		onboardingComplete, req.MorthManufacturerCode, req.MorthFactoryCodes, req.DataVisibility).Scan(
+		newlyComplete, req.MorthManufacturerCode, req.MorthFactoryCodes).Scan(
 		&tenant.ID,
 		&tenant.CompanyName,
 		&tenant.Address,

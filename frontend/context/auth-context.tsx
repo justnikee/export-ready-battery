@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { authApi } from '@/lib/auth-api';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -18,6 +19,8 @@ interface User {
     epr_registration_number?: string;
     bis_r_number?: string;
     iec_code?: string;
+    morth_manufacturer_code?: string;
+    morth_factory_codes?: string;
     // EU Authorized Representative Fields
     eu_authorized_representative_name?: string;
     eu_authorized_representative_address?: string;
@@ -91,15 +94,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set cookie for middleware auth check (edge-level protection)
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         setUser(newUser);
-        router.push(redirectTo || '/dashboard');
+        // Route to onboarding if profile is not yet completed; explicit redirectTo always wins
+        const destination = redirectTo
+            ? redirectTo
+            : newUser.onboarding_completed
+                ? '/dashboard'
+                : '/onboarding'
+        router.push(destination);
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('onboarding_completed');
-        // Clear auth cookie for middleware
-        document.cookie = 'auth_token=; path=/; max-age=0';
+    const logout = async () => {
+        await authApi.logout(); // revokes JTI server-side, clears localStorage + cookie
         setUser(null);
         router.push('/login');
     };

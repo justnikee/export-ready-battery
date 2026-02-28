@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Key } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash } from "lucide-react"
 import { toast } from "sonner"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
@@ -262,6 +262,9 @@ export default function SettingsPage() {
         epr_registration_number: "",
         bis_r_number: "",
         iec_code: "",
+        // MoRTH BPAN Fields
+        morth_manufacturer_code: "",
+        morth_factory_codes: "",
         // EU Authorized Representative Fields
         eu_authorized_representative_name: "",
         eu_authorized_representative_address: "",
@@ -291,6 +294,8 @@ export default function SettingsPage() {
                 epr_registration_number: user.epr_registration_number || "",
                 bis_r_number: user.bis_r_number || "",
                 iec_code: user.iec_code || "",
+                morth_manufacturer_code: user.morth_manufacturer_code || "",
+                morth_factory_codes: user.morth_factory_codes || "",
                 eu_authorized_representative_name: user.eu_authorized_representative_name || "",
                 eu_authorized_representative_address: user.eu_authorized_representative_address || "",
                 eu_contact_email: user.eu_contact_email || "",
@@ -565,6 +570,47 @@ export default function SettingsPage() {
                                     currentStatus={certificatePaths.pli_status}
                                     onUploadSuccess={handleUploadSuccess}
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MoRTH BPAN Configuration */}
+                    <div className="border-t border-slate-100 px-6 py-4">
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-4">MoRTH BPAN Configuration</p>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none text-slate-700">
+                                    MoRTH Manufacturer Code
+                                </label>
+                                <div className="relative">
+                                    <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
+                                    <input
+                                        type="text"
+                                        maxLength={3}
+                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="NKY"
+                                        value={formData.morth_manufacturer_code}
+                                        onChange={(e) => setFormData({ ...formData, morth_manufacturer_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium leading-none text-slate-700">
+                                    Factory Codes
+                                </label>
+                                <div className="relative">
+                                    <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
+                                    <input
+                                        type="text"
+                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder='[{"code":"01","name":"Pune Plant"},{"code":"02","name":"Chennai Plant"}]'
+                                        value={formData.morth_factory_codes}
+                                        onChange={(e) => setFormData({ ...formData, morth_factory_codes: e.target.value })}
+                                    />
+                                </div>
+                                <p className="text-xs text-slate-500">JSON array of 2-char factory codes used in the BI section of BPAN. E.g. <code className="bg-slate-100 px-1 rounded">&#91;&#123;&quot;code&quot;:&quot;01&quot;,&quot;name&quot;:&quot;Pune Plant&quot;&#125;&#93;</code></p>
                             </div>
                         </div>
                     </div>

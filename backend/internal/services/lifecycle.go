@@ -325,6 +325,8 @@ type BulkTransitionRequest struct {
 	Action       string              `json:"action"`
 	ActorContext models.ActorContext `json:"actor_context"`
 	Evidence     models.Evidence     `json:"evidence,omitempty"`
+	// IPAddress of the originating HTTP request, threaded into each audit event.
+	IPAddress string `json:"-"`
 }
 
 // BulkTransitionResult contains results for bulk transitions
@@ -363,6 +365,7 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 			Action:       req.Action,
 			ActorContext: req.ActorContext,
 			Evidence:     req.Evidence,
+			IPAddress:    req.IPAddress, // propagate real client IP to every event in the chain
 		}
 
 		transitionResult, err := s.ApplyTransition(ctx, transitionReq)
