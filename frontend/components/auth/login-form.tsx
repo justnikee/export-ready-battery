@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Loader2, Eye, EyeOff, AlertCircle, RefreshCw } from "lucide-react"
 import { authApi } from "@/lib/auth-api"
 import { useAuth } from "@/context/auth-context"
 import { toast } from "sonner"
@@ -18,15 +18,24 @@ export function LoginForm() {
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    // Track when server tells us email isn't verified
+    const [emailNotVerified, setEmailNotVerified] = useState(false)
+    const [isResending, setIsResending] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
+        setEmailNotVerified(false)
 
         try {
             const response = await authApi.login(email, password)
 
             if (response.error) {
+                // Special gate: email not yet verified
+                if (response.code === "email_not_verified") {
+                    setEmailNotVerified(true)
+                    return
+                }
                 toast.error(response.error)
                 return
             }
@@ -48,6 +57,18 @@ export function LoginForm() {
         }
     }
 
+    const handleResendVerification = async () => {
+        setIsResending(true)
+        try {
+            await authApi.resendVerification(email)
+            toast.success("Verification email sent! Check your inbox.")
+        } catch {
+            toast.error("Failed to resend. Please try again.")
+        } finally {
+            setIsResending(false)
+        }
+    }
+
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
@@ -64,7 +85,7 @@ export function LoginForm() {
                         type="email"
                         placeholder="you@yourcompany.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => { setEmail(e.target.value); setEmailNotVerified(false) }}
                         required
                         className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
@@ -110,6 +131,34 @@ export function LoginForm() {
                     </button>
                 </div>
             </div>
+
+            {/* Email not verified banner */}
+            {emailNotVerified && (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                    <div className="flex-1 space-y-2">
+                        <p className="text-sm font-medium text-amber-800">
+                            Please verify your email first
+                        </p>
+                        <p className="text-xs text-amber-700">
+                            Check your inbox for a verification link. If you didn&apos;t receive it, click below.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={isResending}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900 disabled:opacity-60"
+                        >
+                            {isResending ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                            )}
+                            Resend verification email
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Submit Button */}
             <Button

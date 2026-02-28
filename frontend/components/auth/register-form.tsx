@@ -4,13 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Mail, Lock, Building2, Loader2, Eye, EyeOff, Check, X } from "lucide-react"
+import { Mail, Lock, Building2, Loader2, Eye, EyeOff, Check, X, MailCheck } from "lucide-react"
 import { authApi } from "@/lib/auth-api"
-import { useAuth } from "@/context/auth-context"
 import { toast } from "sonner"
 
 export function RegisterForm() {
-    const { login } = useAuth()
     const [companyName, setCompanyName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
@@ -19,6 +17,8 @@ export function RegisterForm() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [passwordFocused, setPasswordFocused] = useState(false)
+    // After successful registration, show verify-email screen
+    const [registered, setRegistered] = useState(false)
 
     // Password requirements
     const passwordRequirements = [
@@ -58,15 +58,8 @@ export function RegisterForm() {
                 return
             }
 
-            toast.success("Account created successfully!")
-
-            // Use AuthContext login — sets token, cookie, user state, and navigates
-            login(response.token, response.refresh_token, {
-                id: response.tenant_id,
-                tenant_id: response.tenant_id,
-                email: response.email,
-                company_name: response.company_name,
-            }, "/dashboard")
+            // 202 — server sends verification email, no tokens yet
+            setRegistered(true)
         } catch {
             toast.error("Something went wrong. Please try again.")
         } finally {
@@ -74,6 +67,37 @@ export function RegisterForm() {
         }
     }
 
+    // ── Verify-email confirmation screen ───────────────────────────────────────
+    if (registered) {
+        return (
+            <div className="flex flex-col items-center gap-5 py-4 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1F7A5F]/10">
+                    <MailCheck className="h-8 w-8 text-[#1F7A5F]" />
+                </div>
+
+                <div className="space-y-2">
+                    <h2 className="text-xl font-bold text-[#0B1F3B]">Check your email</h2>
+                    <p className="text-sm text-slate-600">
+                        We sent a verification link to{" "}
+                        <span className="font-semibold text-[#0B1F3B]">{email}</span>.
+                        <br />
+                        Click the link to activate your account and sign in.
+                    </p>
+                </div>
+
+                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-left space-y-1">
+                    <p className="text-xs font-medium text-slate-500">Didn&apos;t get it?</p>
+                    <ul className="text-xs text-slate-500 list-disc list-inside space-y-0.5">
+                        <li>Check your spam / junk folder</li>
+                        <li>The link expires in 24 hours</li>
+                    </ul>
+                    <ResendButton email={email} />
+                </div>
+            </div>
+        )
+    }
+
+    // ── Registration form ──────────────────────────────────────────────────────
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {/* Company Name */}
@@ -283,5 +307,37 @@ export function RegisterForm() {
                 </Button>
             </div>
         </form>
+    )
+}
+
+// ── Small inline component for resend button ───────────────────────────────────
+function ResendButton({ email }: { email: string }) {
+    const [sent, setSent] = useState(false)
+    const [loading, setLoading] = useState(false)
+
+    const handleResend = async () => {
+        setLoading(true)
+        try {
+            await authApi.resendVerification(email)
+            setSent(true)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (sent) {
+        return <p className="mt-2 text-xs font-medium text-[#1F7A5F]">✓ Email sent again!</p>
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={handleResend}
+            disabled={loading}
+            className="mt-2 flex items-center gap-1 text-xs font-medium text-[#1F7A5F] underline underline-offset-2 hover:text-[#0B1F3B] disabled:opacity-60"
+        >
+            {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+            Resend verification email
+        </button>
     )
 }

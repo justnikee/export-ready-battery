@@ -113,6 +113,42 @@ If you didn't request this, please ignore this email.
 	return e.sendEmail(toEmail, "Reset Your Password - ExportReady", htmlBuf.String(), plainText)
 }
 
+// SendVerificationEmail sends an email with a link to verify the user's email address.
+// In dev mode (enabled=false), the link is logged to console.
+func (e *EmailService) SendVerificationEmail(toEmail, verificationToken string) error {
+	verifyLink := fmt.Sprintf("%s/auth/verify-email?token=%s", e.baseURL, verificationToken)
+
+	if !e.enabled {
+		slog.Info("Email verification link generated (mock)", "to", toEmail, "link", verifyLink)
+		return nil
+	}
+
+	plainText := fmt.Sprintf(`Verify Your Email Address
+
+Please click the link below to verify your email address:
+
+%s
+
+This link expires in 24 hours.
+If you did not create an ExportReady account, please ignore this email.
+
+© 2026 ExportReady Battery
+`, verifyLink)
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+<h2>Verify Your Email Address</h2>
+<p>Thank you for signing up for ExportReady Battery.</p>
+<p>Please click the link below to verify your email address:</p>
+<p><a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px">Verify Email</a></p>
+<p>Or copy this link: %s</p>
+<p><small>This link expires in 24 hours. If you did not create an account, please ignore this email.</small></p>
+<p>© 2026 ExportReady Battery</p>
+</body></html>`, verifyLink, verifyLink)
+
+	return e.sendEmail(toEmail, "Verify your email - ExportReady", html, plainText)
+}
+
 // ResendEmailRequest is the Resend API request structure
 type ResendEmailRequest struct {
 	From    string   `json:"from"`

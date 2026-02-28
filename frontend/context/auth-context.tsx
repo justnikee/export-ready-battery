@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { authApi } from '@/lib/auth-api';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -102,11 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push(destination);
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
-        // Clear auth cookie for middleware
-        document.cookie = 'auth_token=; path=/; max-age=0';
+    const logout = async () => {
+        await authApi.logout(); // revokes JTI server-side, clears localStorage + cookie
         setUser(null);
         router.push('/login');
     };

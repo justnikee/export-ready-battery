@@ -305,7 +305,7 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	tenantID := uuid.New().String()
 	email := "test@example.com"
 
-	token, err := authService.GenerateToken(tenantID, email)
+	token, err := authService.GenerateToken(tenantID, email, "owner")
 	if err != nil {
 		t.Fatalf("Failed to generate token: %v", err)
 	}
@@ -328,6 +328,9 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	if claims.Email != email {
 		t.Errorf("Expected email %s, got %s", email, claims.Email)
 	}
+	if claims.Role != "owner" {
+		t.Errorf("Expected role 'owner', got %s", claims.Role)
+	}
 }
 
 // TestAuthService_GenerateRefreshToken tests refresh token generation
@@ -337,13 +340,16 @@ func TestAuthService_GenerateRefreshToken(t *testing.T) {
 	tenantID := uuid.New().String()
 	email := "test@example.com"
 
-	refreshToken, err := authService.GenerateRefreshToken(tenantID, email)
+	refreshToken, jti, err := authService.GenerateRefreshToken(tenantID, email, "owner")
 	if err != nil {
 		t.Fatalf("Failed to generate refresh token: %v", err)
 	}
 
 	if refreshToken == "" {
 		t.Error("Refresh token should not be empty")
+	}
+	if jti == "" {
+		t.Error("JTI should not be empty")
 	}
 
 	// Validate the refresh token
@@ -354,6 +360,10 @@ func TestAuthService_GenerateRefreshToken(t *testing.T) {
 
 	if claims.TenantID != tenantID {
 		t.Errorf("Expected tenant ID %s, got %s", tenantID, claims.TenantID)
+	}
+	// JTI must match the registered claim
+	if claims.RegisteredClaims.ID != jti {
+		t.Errorf("Expected JTI %s in claims, got %s", jti, claims.RegisteredClaims.ID)
 	}
 }
 

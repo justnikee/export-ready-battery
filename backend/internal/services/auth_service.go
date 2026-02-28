@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -48,6 +49,7 @@ func NewAuthService(jwtSecret string, jwtExpiry, refreshExpiry time.Duration) *A
 type Claims struct {
 	TenantID string `json:"tenant_id"`
 	Email    string `json:"email"`
+	Role     string `json:"role"` // RBAC: owner | operator | viewer
 	jwt.RegisteredClaims
 }
 
@@ -66,11 +68,12 @@ func (s *AuthService) CheckPassword(password, hash string) bool {
 	return err == nil
 }
 
-// GenerateToken generates a JWT access token
-func (s *AuthService) GenerateToken(tenantID, email string) (string, error) {
+// GenerateToken generates a JWT access token with role embedded
+func (s *AuthService) GenerateToken(tenantID, email, role string) (string, error) {
 	claims := &Claims{
 		TenantID: tenantID,
 		Email:    email,
+		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -82,12 +85,16 @@ func (s *AuthService) GenerateToken(tenantID, email string) (string, error) {
 	return token.SignedString(s.jwtSecret)
 }
 
-// GenerateRefreshToken generates a refresh token (longer expiry)
-func (s *AuthService) GenerateRefreshToken(tenantID, email string) (string, error) {
+// GenerateRefreshToken generates a refresh token with a unique JTI for revocation.
+// Returns (tokenString, jti, error). Callers MUST persist the jti in the DB.
+func (s *AuthService) GenerateRefreshToken(tenantID, email, role string) (string, string, error) {
+	jti := uuid.New().String()
 	claims := &Claims{
 		TenantID: tenantID,
 		Email:    email,
+		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.refreshExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "exportready-battery",
@@ -95,7 +102,16 @@ func (s *AuthService) GenerateRefreshToken(tenantID, email string) (string, erro
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.jwtSecret)
+	tokenStr, err := token.SignedString(s.jwtSecret)
+	if err != nil {
+		return "", "", err
+	}
+	return tokenStr, jti, nil
+}
+
+// GetRefreshExpiry returns the duration of refresh token validity
+func (s *AuthService) GetRefreshExpiry() time.Duration {
+	return s.refreshExpiry
 }
 
 // ValidateToken validates a JWT token and returns the claims

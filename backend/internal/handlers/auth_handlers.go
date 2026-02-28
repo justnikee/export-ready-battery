@@ -70,6 +70,22 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: persist refresh token JTI
+// ─────────────────────────────────────────────────────────────────────────────
+
+func (h *AuthHandler) saveRefreshJTI(ctx context.Context, tenantID uuid.UUID, jti string) error {
+	expires := time.Now().Add(h.authService.GetRefreshExpiry())
+	_, err := h.db.Pool.Exec(ctx,
+		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
+		jti, expires, tenantID)
+	return err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Register
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Register handles POST /api/v1/auth/register
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
@@ -111,12 +127,23 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create tenant
+	// Generate email verification token
+	verificationToken, err := h.authService.GenerateResetToken()
+	if err != nil {
+		slog.Error("Failed to generate verification token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to register")
+		return
+	}
+	verificationExpires := time.Now().Add(24 * time.Hour)
+
+	// Create tenant (email_verified=false by default)
 	tenantID := uuid.New()
 	_, err = h.db.Pool.Exec(r.Context(),
-		`INSERT INTO public.tenants (id, company_name, email, password_hash, created_at) 
-		 VALUES ($1, $2, $3, $4, $5)`,
-		tenantID, req.CompanyName, req.Email, passwordHash, time.Now())
+		`INSERT INTO public.tenants
+			(id, company_name, email, password_hash, email_verified, email_verification_token, email_verification_expires, created_at)
+		 VALUES ($1, $2, $3, $4, false, $5, $6, $7)`,
+		tenantID, req.CompanyName, req.Email, passwordHash,
+		verificationToken, verificationExpires, time.Now())
 	if err != nil {
 		slog.Error("Failed to create tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
@@ -127,8 +154,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	pendingInvites, err := h.repo.GetPendingInvitesByEmail(r.Context(), req.Email)
 	if err == nil {
 		for _, invite := range pendingInvites {
-			// Activate the team member and link to the new user
-			// We pass the new tenantID as the userID
 			if err := h.repo.UpdateTeamMemberStatus(r.Context(), invite.ID, models.TeamStatusActive, &tenantID); err != nil {
 				slog.Warn("Failed to activate pending invite", "team_id", invite.TenantID, "error", err)
 			}
@@ -137,30 +162,132 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("Failed to check pending invites", "error", err)
 	}
 
-	// Generate tokens
-	token, err := h.authService.GenerateToken(tenantID.String(), req.Email)
-	if err != nil {
-		slog.Error("Failed to generate token", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to generate token")
-		return
+	// Send verification email (logs to console in dev mode)
+	if err := h.emailService.SendVerificationEmail(req.Email, verificationToken); err != nil {
+		slog.Warn("Failed to send verification email", "error", err)
+		// Non-fatal: registration still succeeds
 	}
 
-	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email)
-	if err != nil {
-		slog.Error("Failed to generate refresh token", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to generate token")
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, AuthResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		TenantID:     tenantID.String(),
-		Email:        req.Email,
-		CompanyName:  req.CompanyName,
-		ExpiresIn:    900, // 15 minutes in seconds
+	respondJSON(w, http.StatusAccepted, map[string]string{
+		"message": "Registration successful. Please check your email to verify your account before logging in.",
 	})
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VerifyEmail
+// ─────────────────────────────────────────────────────────────────────────────
+
+// VerifyEmail handles GET /api/v1/auth/verify-email?token=xxx
+func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		respondError(w, http.StatusBadRequest, "token is required")
+		return
+	}
+
+	var tenantID uuid.UUID
+	var expires time.Time
+	err := h.db.Pool.QueryRow(r.Context(),
+		`SELECT id, email_verification_expires FROM public.tenants
+		 WHERE email_verification_token = $1 AND email_verified = false`,
+		token).Scan(&tenantID, &expires)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			respondError(w, http.StatusBadRequest, "Invalid or already used verification token")
+			return
+		}
+		slog.Error("Failed to find verification token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to verify email")
+		return
+	}
+
+	if time.Now().After(expires) {
+		respondError(w, http.StatusBadRequest, "Verification token has expired. Please request a new one.")
+		return
+	}
+
+	_, err = h.db.Pool.Exec(r.Context(),
+		`UPDATE public.tenants
+		 SET email_verified = true, email_verification_token = NULL, email_verification_expires = NULL
+		 WHERE id = $1`,
+		tenantID)
+	if err != nil {
+		slog.Error("Failed to verify email", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to verify email")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"message": "Email verified successfully. You can now log in.",
+	})
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ResendVerification
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ResendVerification handles POST /api/v1/auth/resend-verification
+func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+		respondError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+
+	// Lookup tenant — do NOT reveal if email exists
+	var tenantID uuid.UUID
+	var emailVerified bool
+	err := h.db.Pool.QueryRow(r.Context(),
+		"SELECT id, email_verified FROM public.tenants WHERE email = $1", req.Email).
+		Scan(&tenantID, &emailVerified)
+	if err != nil {
+		// Silently succeed to prevent email enumeration
+		respondJSON(w, http.StatusOK, map[string]string{
+			"message": "If your email is registered and unverified, a new verification link has been sent.",
+		})
+		return
+	}
+
+	if emailVerified {
+		respondJSON(w, http.StatusOK, map[string]string{
+			"message": "If your email is registered and unverified, a new verification link has been sent.",
+		})
+		return
+	}
+
+	newToken, err := h.authService.GenerateResetToken()
+	if err != nil {
+		slog.Error("Failed to generate verification token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to resend verification")
+		return
+	}
+	newExpires := time.Now().Add(24 * time.Hour)
+
+	_, err = h.db.Pool.Exec(r.Context(),
+		`UPDATE public.tenants
+		 SET email_verification_token = $1, email_verification_expires = $2
+		 WHERE id = $3`,
+		newToken, newExpires, tenantID)
+	if err != nil {
+		slog.Error("Failed to update verification token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to resend verification")
+		return
+	}
+
+	if err := h.emailService.SendVerificationEmail(req.Email, newToken); err != nil {
+		slog.Warn("Failed to send verification email", "error", err)
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"message": "If your email is registered and unverified, a new verification link has been sent.",
+	})
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Login
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Login handles POST /api/v1/auth/login
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -180,9 +307,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var companyName string
 	var passwordHash *string
 	var oauthProvider *string
+	var emailVerified bool
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, company_name, password_hash, oauth_provider FROM public.tenants WHERE email = $1`,
-		req.Email).Scan(&tenantID, &companyName, &passwordHash, &oauthProvider)
+		`SELECT id, company_name, password_hash, oauth_provider, COALESCE(email_verified, true)
+		 FROM public.tenants WHERE email = $1`,
+		req.Email).Scan(&tenantID, &companyName, &passwordHash, &oauthProvider, &emailVerified)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusUnauthorized, "Invalid email or password")
@@ -205,22 +334,41 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Gate login behind email verification
+	if !emailVerified {
+		respondJSON(w, http.StatusForbidden, map[string]string{
+			"error": "Please verify your email before logging in. Check your inbox or request a new verification link.",
+			"code":  "email_not_verified",
+		})
+		return
+	}
+
 	// Update last login
 	h.db.Pool.Exec(r.Context(),
 		"UPDATE public.tenants SET last_login = $1 WHERE id = $2",
 		time.Now(), tenantID)
 
+	// Determine role: direct-tenant owners get "owner"
+	role := "owner"
+
 	// Generate tokens
-	token, err := h.authService.GenerateToken(tenantID.String(), req.Email)
+	token, err := h.authService.GenerateToken(tenantID.String(), req.Email, role)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
-	refreshToken, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email)
+	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email, role)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	// Persist JTI for revocation
+	if err := h.saveRefreshJTI(r.Context(), tenantID, jti); err != nil {
+		slog.Error("Failed to save refresh JTI", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
@@ -235,6 +383,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Refresh
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Refresh handles POST /api/v1/auth/refresh
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -245,26 +397,94 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate refresh token
+	// Validate JWT signature + expiry
 	claims, err := h.authService.ValidateToken(req.RefreshToken)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "Invalid or expired refresh token")
 		return
 	}
 
+	// Validate JTI against DB (revocation check)
+	tenantID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid refresh token claims")
+		return
+	}
+
+	var storedJTI *string
+	err = h.db.Pool.QueryRow(r.Context(),
+		"SELECT refresh_token_jti FROM public.tenants WHERE id = $1", tenantID).
+		Scan(&storedJTI)
+	if err != nil || storedJTI == nil || *storedJTI != claims.RegisteredClaims.ID {
+		respondError(w, http.StatusUnauthorized, "Refresh token has been revoked")
+		return
+	}
+
 	// Generate new access token
-	token, err := h.authService.GenerateToken(claims.TenantID, claims.Email)
+	token, err := h.authService.GenerateToken(claims.TenantID, claims.Email, claims.Role)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
+	// Rotate refresh token (issue new JTI, invalidate old one)
+	newRefreshToken, newJTI, err := h.authService.GenerateRefreshToken(claims.TenantID, claims.Email, claims.Role)
+	if err != nil {
+		slog.Error("Failed to generate refresh token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	if err := h.saveRefreshJTI(r.Context(), tenantID, newJTI); err != nil {
+		slog.Error("Failed to rotate refresh JTI", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"token":      token,
-		"expires_in": 900,
+		"token":         token,
+		"refresh_token": newRefreshToken,
+		"expires_in":    900,
 	})
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Logout
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Logout handles POST /api/v1/auth/logout — revokes the current refresh token
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return
+	}
+
+	// Revoke by clearing the stored JTI
+	_, err = h.db.Pool.Exec(r.Context(),
+		"UPDATE public.tenants SET refresh_token_jti = NULL, refresh_token_expires = NULL WHERE id = $1",
+		tenantID)
+	if err != nil {
+		slog.Error("Failed to revoke refresh token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to logout")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"message": "Logged out successfully",
+	})
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ForgotPassword / ResetPassword
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ForgotPassword handles POST /api/v1/auth/forgot-password
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -343,7 +563,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var tenantID uuid.UUID
 	var expires time.Time
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, reset_token_expires FROM public.tenants 
+		`SELECT id, reset_token_expires FROM public.tenants
 		 WHERE reset_token = $1 AND reset_token IS NOT NULL`,
 		req.Token).Scan(&tenantID, &expires)
 	if err != nil {
@@ -370,10 +590,11 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update password and clear reset token
+	// Update password, clear reset token, and also revoke any active refresh token
 	_, err = h.db.Pool.Exec(r.Context(),
-		`UPDATE public.tenants 
-		 SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL 
+		`UPDATE public.tenants
+		 SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL,
+		     refresh_token_jti = NULL, refresh_token_expires = NULL
 		 WHERE id = $2`,
 		passwordHash, tenantID)
 	if err != nil {
@@ -386,6 +607,10 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		"message": "Password reset successfully",
 	})
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UpdateProfile / Me
+// ─────────────────────────────────────────────────────────────────────────────
 
 // UpdateProfile handles PUT /api/v1/auth/profile
 func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
@@ -488,6 +713,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"pli_status": tenant.PLIStatus,
 		// Onboarding Status
 		"onboarding_completed": tenant.OnboardingCompleted,
+		// Role from JWT
+		"role": middleware.GetRole(r.Context()),
 	})
 }
 
