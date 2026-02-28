@@ -62,13 +62,16 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store state in a short-lived cookie (5 minutes)
+	// Store state in a short-lived cookie (5 minutes).
+	// Secure must be true in production (HTTPS) — without it the browser
+	// will NOT send the cookie back on the callback, causing a state mismatch.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -95,13 +98,16 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Store state in a short-lived cookie (5 minutes)
+	// Store state in a short-lived cookie (5 minutes).
+	// Secure must be true in production (HTTPS) — without it the browser
+	// will NOT send the cookie back on the callback, causing a state mismatch.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
 
