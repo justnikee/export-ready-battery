@@ -2,124 +2,223 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, FileText, Clock } from "lucide-react";
+import { ArrowRight, ChevronRight, CheckCircle2 } from "lucide-react";
+import { GridBeams } from "./GridBeams";
+
+const passportRows = [
+  { id: "#EU-8842", region: "EU (2023/1542)", status: "Verified", ms: "38ms" },
+  { id: "#IN-2291", region: "India BPAN", status: "Verified", ms: "41ms" },
+  { id: "#UK-1102", region: "UK (UKCA)", status: "Pending", ms: "—" },
+];
+
+const barHeights = [55, 40, 70, 45, 75, 60, 80];
+
+// Glass style shared across all cards
+const glass = {
+  background: "rgba(10,22,18,0.45)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+} as React.CSSProperties;
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-white pt-32 pb-24 min-h-[85vh] flex items-center border-b border-slate-200">
-      {/* Subtle background pattern */}
+    <section
+      className="relative overflow-hidden"
+      style={{ background: "var(--ld-bg-dark)" }}
+    >
+      {/* === Grid lines — subtle, center-only === */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,rgba(11,31,59,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(11,31,59,0.03)_1px,transparent_1px)] bg-[size:48px_48px]"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px)",
+          backgroundSize: "96px 96px",
+          // Invisible top 25% → visible center → fade out bottom
+          WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 60%, black 20%, transparent 80%)",
+          maskImage: "radial-gradient(ellipse 80% 70% at 50% 60%, black 20%, transparent 80%)",
+        }}
       />
 
-      {/* Urgency Badge - Desktop Only */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="absolute top-28 right-8 hidden xl:block"
-      >
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-lg shadow-amber-100/50 max-w-[200px]">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-4 w-4 text-amber-600" />
-            <span className="text-xs font-semibold text-amber-700">
-              EU Deadline
-            </span>
-          </div>
-          <p className="text-lg font-bold text-amber-900">Feb 2027</p>
-          <p className="text-[11px] text-amber-600">11 months away</p>
-        </div>
-      </motion.div>
+      {/* Accent glow blob — top right */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-40 right-0 w-[600px] h-[500px] pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at top right, rgba(14,163,113,0.14) 0%, transparent 65%)",
+        }}
+      />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4">
-        <div className="mx-auto max-w-4xl text-center">
+      {/* Animated beam pulses on the grid */}
+      <GridBeams />
+
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "var(--ld-accent)" }} />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1320px] px-6 pt-32 pb-24">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+          {/* LEFT: Text */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center justify-center gap-2 mb-8"
+            transition={{ duration: 0.6 }}
           >
-            <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1F7A5F]/10 border border-[#1F7A5F]/20 rounded-full">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1F7A5F] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#1F7A5F]"></span>
-              </span>
-              <span className="text-xs font-medium text-[#0B1F3B]">
-                Regulatory Compliance Infrastructure
-              </span>
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold tracking-tight text-[#0B1F3B] leading-[1.1]"
-          >
-            Battery Passports,
-            <span className="block text-[#1F7A5F]">Built for Enforcement.</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-6 text-lg sm:text-xl text-slate-600 max-w-[55ch] mx-auto leading-relaxed"
-          >
-            ExportLens delivers audit-grade passports for EU and India with
-            lifecycle evidence, immutable records, and regulator-ready
-            compliance by default.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-10 flex flex-wrap items-center justify-center gap-4"
-          >
-            {/* Primary CTA - Enhanced */}
-            <Link
-              href="/contact"
-              className="group inline-flex items-center justify-center gap-2 bg-[#0B1F3B] px-8 py-4 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#1F7A5F] hover:shadow-xl hover:shadow-[#1F7A5F]/20 active:scale-[0.98]"
+            {/* Alert badge */}
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium mb-8"
+              style={{
+                ...glass,
+                borderColor: "rgba(14,163,113,0.35)",
+                color: "var(--ld-accent)",
+              }}
             >
-              Book a Demo
-              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Link>
-
-            {/* Secondary CTA - Ghost Style */}
-            <Link
-              href="/docs"
-              className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-medium text-[#0B1F3B] border-2 border-[#0B1F3B]/20 transition-all duration-300 hover:border-[#0B1F3B] hover:bg-[#0B1F3B]/5"
-            >
-              <FileText className="h-4 w-4" />
-              Read Documentation
-            </Link>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-16 flex items-center justify-center gap-6 text-xs text-slate-500"
-          >
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#0B1F3B]" />
-              <span className="font-mono">
-                EU Battery Regulation (2023/1542)
-              </span>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--ld-accent)" }} />
+              Urgent: EU Battery Regulation 2023/1542
             </div>
-            <div className="h-4 w-px bg-slate-300" />
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#1F7A5F]" />
-              <span className="font-mono">India Battery Aadhaar</span>
+
+            <h1 className="text-5xl sm:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+              Battery compliance infrastructure for{" "}
+              <span style={{ color: "var(--ld-accent)" }}>global scale.</span>
+            </h1>
+
+            <p className="text-lg leading-relaxed mb-10 max-w-[50ch]" style={{ color: "var(--ld-text-muted)" }}>
+              Automate EU &amp; India regulatory validation with a strict, audit-ready platform. Real-time compliance checks, automated documentation, and audit trails for high-volume manufacturers.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 mb-12">
+              <Link
+                href="/contact"
+                className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-sm font-semibold text-white transition-all duration-200 hover:opacity-90"
+                style={{ background: "var(--ld-accent)" }}
+              >
+                Get Started
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/docs"
+                className="group inline-flex items-center gap-2 px-7 py-3.5 text-sm font-medium rounded-lg transition-all duration-200"
+                style={{ ...glass, color: "var(--ld-text-muted)" }}
+              >
+                View Compliance Coverage
+                <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100" />
+              </Link>
+            </div>
+
+            {/* Trust marks */}
+            <div className="flex flex-wrap items-center gap-6">
+              {["Regulatory SLA", "99.99% Uptime", "dashboard.exportready.io/compliance/overview"].map((t) => (
+                <span key={t} className="text-xs font-mono" style={{ color: "rgba(157,184,175,0.5)" }}>{t}</span>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* RIGHT: Dashboard widget */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-3"
+          >
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Compliance Score */}
+              <div className="rounded-xl p-5" style={glass}>
+                <p className="text-[10px] font-medium uppercase tracking-widest mb-3" style={{ color: "var(--ld-text-muted)" }}>
+                  Global Compliance Score
+                </p>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-black text-white">99.8%</span>
+                  <span className="text-xs font-mono mb-1" style={{ color: "var(--ld-accent)" }}>▲ 0.4%</span>
+                </div>
+                <div className="mt-3 h-10 flex items-end gap-[3px]">
+                  {barHeights.map((h, i) => (
+                    <div key={i} className="flex-1 rounded-sm" style={{ height: `${h}%`, background: i === 6 ? "var(--ld-accent)" : "rgba(14,163,113,0.2)" }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Active Batches */}
+              <div className="rounded-xl p-5" style={glass}>
+                <p className="text-[10px] font-medium uppercase tracking-widest text-right mb-3" style={{ color: "var(--ld-text-muted)" }}>
+                  Active Batches
+                </p>
+                <div className="text-right">
+                  <span className="text-3xl font-black text-white">14,208</span>
+                </div>
+                <div className="mt-3 h-10 flex items-end gap-[3px]">
+                  {[30, 50, 35, 70, 55, 80, 65].map((h, i) => (
+                    <div key={i} className="flex-1 rounded-sm" style={{ height: `${h}%`, background: i === 5 ? "rgba(14,163,113,0.75)" : "rgba(14,163,113,0.15)" }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Mini passport table */}
+            <div className="rounded-xl overflow-hidden" style={glass}>
+              <div
+                className="flex items-center justify-between px-4 py-2.5 border-b"
+                style={{ borderColor: "rgba(255,255,255,0.07)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--ld-accent)" }} />
+                  <span className="text-xs font-medium text-white">EU (Passport)</span>
+                </div>
+                <span className="text-[10px] font-mono" style={{ color: "var(--ld-text-muted)" }}>Live</span>
+              </div>
+
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    {["ID", "Region", "Status", "ms"].map(h => (
+                      <th key={h} className="px-3 py-2 text-left font-medium" style={{ color: "var(--ld-text-muted)" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {passportRows.map(row => (
+                    <tr key={row.id} className="hover:bg-white/5 transition-colors" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      <td className="px-3 py-2 font-mono text-white">{row.id}</td>
+                      <td className="px-3 py-2" style={{ color: "var(--ld-text-muted)" }}>{row.region}</td>
+                      <td className="px-3 py-2">
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          style={row.status === "Verified"
+                            ? { background: "rgba(14,163,113,0.15)", border: "1px solid rgba(14,163,113,0.3)", color: "var(--ld-accent)" }
+                            : { background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.2)", color: "#eab308" }
+                          }
+                        >
+                          {row.status === "Verified" && <CheckCircle2 className="h-2.5 w-2.5" />}
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 font-mono" style={{ color: "var(--ld-text-muted)" }}>{row.ms}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Code snippet preview */}
+              <div
+                className="px-4 py-3 border-t font-mono text-[10px]"
+                style={{
+                  background: "rgba(0,0,0,0.25)",
+                  borderColor: "rgba(255,255,255,0.06)",
+                  color: "var(--ld-text-muted)",
+                }}
+              >
+                <span style={{ color: "rgba(157,184,175,0.5)" }}>{"// Initiate compliance check"}</span><br />
+                <span className="text-blue-300">client</span>
+                <span className="text-white">{".check({"}</span>
+                <span style={{ color: "var(--ld-accent)" }}>&apos;EU_2023_1542&apos;</span>
+                <span className="text-white">{"});"}</span>
+              </div>
             </div>
           </motion.div>
         </div>
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none" />
     </section>
   );
 }

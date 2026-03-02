@@ -32,6 +32,11 @@ export default function RootLayout({
       <head>
         {/* Razorpay Checkout Script */}
         <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+        {/* Material Symbols for landing icons */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
       </head>
       <body
         className={`${sourceSans.variable} ${inter.variable} ${jetbrainsMono.variable} ${lexend.variable} font-sans antialiased`}
