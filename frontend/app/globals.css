@@ -75,72 +75,62 @@
 :root {
   --radius: 8px;
 
-  /* Industrial Precision Color Palette */
-  --background: #F8FAFC;
-  /* Slate-50: Off-white page */
-  --foreground: #0F172A;
-  /* Slate-900: Primary text */
-  --card: #FFFFFF;
-  /* White cards */
-  --card-foreground: #0F172A;
-  /* Slate-900 */
-  --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  /* Base Colors */
+  --background: #f6f8f7;
+  --foreground: #0d1614;
+  --card: #ffffff;
+  --card-foreground: #0d1614;
+  --popover: #ffffff;
+  --popover-foreground: #0d1614;
 
-  /* Primary: Deep Navy (Audit Ready) */
-  --primary: #111827;
-  /* Slate-900 for buttons */
-  --primary-foreground: #FFFFFF;
+  /* Primary: Stitch Bright Emerald */
+  --primary: #0ea371;
+  --primary-foreground: #ffffff;
 
-  /* Secondary: Subtle */
-  --secondary: #F1F5F9;
-  /* Slate-100 */
-  --secondary-foreground: #334155;
-  /* Slate-700 */
+  /* Secondary */
+  --secondary: #f6f8f7;
+  --secondary-foreground: #2d423b;
 
   /* Muted */
-  --muted: #F1F5F9;
-  /* Slate-100 */
-  --muted-foreground: #64748B;
-  /* Slate-500 */
+  --muted: #f6f8f7;
+  --muted-foreground: #9db8af;
 
-  /* Accent: Blue for links/active states */
-  --accent: #2563EB;
-  /* Blue-600 */
-  --accent-foreground: #FFFFFF;
+  /* Accent */
+  --accent: #0ea371;
+  --accent-foreground: #ffffff;
 
   --destructive: #DC2626;
-  /* Red-600 */
-  --border: #E2E8F0;
-  /* Slate-200 */
-  --input: #E2E8F0;
-  /* Slate-200 */
-  --ring: #0F172A;
-  /* Slate-900 */
+  --border: #2d423b;
+  --input: #1a2c26;
+  --ring: #0ea371;
 
-  /* Charts - Clean enterprise palette */
-  --chart-1: #10B981;
-  /* Emerald-500 */
-  --chart-2: #3B82F6;
-  /* Blue-500 */
+  /* Charts */
+  --chart-1: #0ea371;
+  --chart-2: #17cf91;
   --chart-3: #F59E0B;
-  /* Amber-500 */
-  --chart-4: #8B5CF6;
-  /* Violet-500 */
+  --chart-4: #3B82F6;
   --chart-5: #EF4444;
-  /* Red-500 */
 
   /* Sidebar - Light */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #334155;
-  --sidebar-primary: #0F172A;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F5F9;
-  --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #0F172A;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2d423b;
+  --sidebar-primary: #0d1614;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6f8f7;
+  --sidebar-accent-foreground: #0d1614;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #0ea371;
 
-
+  /* ── Stitch Landing Tokens ── */
+  --ld-bg-dark:    #0d1614;   /* Hero / CTA dark bg          */
+  --ld-bg-surface: #11211c;   /* Card bg on dark sections    */
+  --ld-bg-mid:     #1a2c26;   /* Elevated card / code bg     */
+  --ld-bg-light:   #f6f8f7;   /* Alternating light sections  */
+  --ld-border:     #2d423b;   /* Borders on dark sections    */
+  --ld-border-mid: #3e5850;   /* Subtler borders             */
+  --ld-text-muted: #9db8af;   /* Dim body text on dark bg    */
+  --ld-accent:     #0ea371;   /* Primary action / highlight  */
+  --ld-accent-hi:  #17cf91;   /* Hover / vivid accent        */
 }
 
 /* Dark mode disabled for Enterprise */

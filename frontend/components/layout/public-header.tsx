@@ -15,40 +15,40 @@ export function PublicHeader() {
 
     if (isAuthPage) return null
 
-    const linkClass = isHome
-        ? "text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-        : "text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+    const linkClass = "text-sm font-medium transition-colors hover:text-white"
 
     return (
         <header
-            className={`fixed top-0 w-full z-50 backdrop-blur-xl border-b ${isHome ? "bg-white/90 border-slate-200" : "bg-zinc-950/80 border-zinc-800"
-                }`}
+            className="fixed top-0 w-full z-50 border-b"
+            style={{
+                background: "rgba(8,18,14,0.85)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderColor: "var(--ld-border)",
+            }}
         >
-            <div className="mx-auto w-full max-w-6xl px-4 h-16 flex items-center justify-between">
+            <div className="mx-auto w-full max-w-[1320px] px-6 h-16 flex items-center justify-between">
                 <Link href="/" className="flex items-center gap-2 group">
-                    <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
-                    <span className={`text-xl font-bold tracking-tight ${isHome ? "text-[#0B1F3B]" : "text-white"}`}>EXPORTLENS</span>
+                    <BarChart3 className="h-7 w-7" style={{ color: "#0ea371" }} />
+                    <span className="text-xl font-bold tracking-tight text-white">EXPORTLENS</span>
                 </Link>
 
                 {/* Desktop Nav */}
                 <nav className="hidden md:flex items-center gap-8">
-                    <Link href="/pricing" className={linkClass}>
+                    <Link href="/pricing" className={linkClass} style={{ color: "var(--ld-text-muted)" }}>
                         Pricing
                     </Link>
-                    <Link href="/docs" className={linkClass}>
+                    <Link href="/docs" className={linkClass} style={{ color: "var(--ld-text-muted)" }}>
                         Documentation
                     </Link>
-                    <div className={`h-4 w-px ${isHome ? "bg-slate-200" : "bg-zinc-700"}`} />
-                    <Link href="/login" className={linkClass}>
+                    <div className="h-4 w-px" style={{ background: "var(--ld-border)" }} />
+                    <Link href="/login" className={linkClass} style={{ color: "var(--ld-text-muted)" }}>
                         Login
                     </Link>
                     <Link
                         href="/contact"
-                        className={
-                            isHome
-                                ? "inline-flex items-center justify-center bg-[#0B1F3B] px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#1F7A5F]"
-                                : "inline-flex items-center justify-center bg-white px-6 py-2.5 text-sm font-semibold text-[#0B1F3B] transition-all duration-200 hover:bg-[#1F7A5F] hover:text-white"
-                        }
+                        className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90 rounded-lg"
+                        style={{ background: "#0ea371" }}
                     >
                         Book a Demo
                     </Link>
@@ -60,7 +60,7 @@ export function PublicHeader() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className={isHome ? "text-slate-900" : "text-white"}
+                        className="text-white"
                     >
                         {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </Button>
@@ -69,33 +69,15 @@ export function PublicHeader() {
 
             {/* Mobile Menu */}
             {mobileMenuOpen && (
-                <div
-                    className={`md:hidden border-t ${isHome ? "bg-white border-slate-200" : "bg-zinc-950 border-zinc-800"
-                        }`}
-                >
-                    <div className="mx-auto w-full max-w-6xl px-4 py-4 space-y-4">
-                        <Link
-                            href="/pricing"
-                            className={`block py-2 ${isHome ? "text-slate-600 hover:text-slate-900" : "text-zinc-400 hover:text-white"}`}
-                        >
-                            Pricing
-                        </Link>
-                        <Link
-                            href="/docs"
-                            className={`block py-2 ${isHome ? "text-slate-600 hover:text-slate-900" : "text-zinc-400 hover:text-white"}`}
-                        >
-                            Documentation
-                        </Link>
-                        <Link
-                            href="/login"
-                            className={`block py-2 ${isHome ? "text-slate-600 hover:text-slate-900" : "text-zinc-400 hover:text-white"}`}
-                        >
-                            Login
-                        </Link>
+                <div className="md:hidden border-t" style={{ background: "var(--ld-bg-dark)", borderColor: "var(--ld-border)" }}>
+                    <div className="mx-auto w-full max-w-[1320px] px-6 py-4 space-y-4">
+                        <Link href="/pricing" className="block py-2 hover:text-white transition-colors" style={{ color: "var(--ld-text-muted)" }}>Pricing</Link>
+                        <Link href="/docs" className="block py-2 hover:text-white transition-colors" style={{ color: "var(--ld-text-muted)" }}>Documentation</Link>
+                        <Link href="/login" className="block py-2 hover:text-white transition-colors" style={{ color: "var(--ld-text-muted)" }}>Login</Link>
                         <Link
                             href="/contact"
-                            className={`w-full inline-flex items-center justify-center px-6 py-3 text-sm font-semibold transition-all duration-200 ${isHome ? "bg-[#0B1F3B] text-white hover:bg-[#1F7A5F]" : "bg-white text-[#0B1F3B] hover:bg-[#1F7A5F] hover:text-white"
-                                }`}
+                            className="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white transition-all duration-200 rounded-lg hover:opacity-90"
+                            style={{ background: "#0ea371" }}
                         >
                             Book a Demo
                         </Link>

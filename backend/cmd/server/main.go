@@ -91,6 +91,7 @@ func main() {
 	// Initialize additional handlers
 	telemetryHandler := handlers.NewTelemetryHandler(telemetryService, deviceTokenService)
 	var exportJobHandler *handlers.ExportJobHandler
+	var exportJobService *services.ExportJobService
 	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
 		slogger := logger.Logger
 		storageService := services.NewStorageService(slogger)
@@ -99,7 +100,7 @@ func main() {
 		pdfService := services.NewPDFService(cfg.BaseURL)
 		csvService := services.NewCSVService()
 		auditExportService := services.NewAuditExportService(database.Pool)
-		exportJobService := services.NewExportJobService(
+		exportJobService = services.NewExportJobService(
 			database.Pool,
 			storageService,
 			qrService,
@@ -110,7 +111,7 @@ func main() {
 			slogger,
 		)
 		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
-		slog.Info("Export job handler initialized")
+		slog.Info("Export job handler initialized with embedded worker")
 	} else {
 		slog.Warn("Export job handler not initialized (missing SUPABASE config)")
 	}
@@ -429,6 +430,52 @@ func main() {
 	// Graceful shutdown channel
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Create a cancellable context for background workers
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+
+	// Start embedded export worker (polls every 5s for pending jobs)
+	if exportJobService != nil {
+		go func() {
+			const pollInterval = 5 * time.Second
+			const maxConcurrent = 3
+			semaphore := make(chan struct{}, maxConcurrent)
+			ticker := time.NewTicker(pollInterval)
+			defer ticker.Stop()
+			slog.Info("Embedded export worker started", "pollInterval", pollInterval)
+			for {
+				select {
+				case <-workerCtx.Done():
+					slog.Info("Export worker shutting down")
+					return
+				case <-ticker.C:
+					jobs, err := exportJobService.GetPendingJobs(workerCtx, maxConcurrent)
+					if err != nil {
+						slog.Error("Worker failed to get pending jobs", "error", err)
+						continue
+					}
+					for i := range jobs {
+						job := jobs[i]
+						select {
+						case <-workerCtx.Done():
+							return
+						case semaphore <- struct{}{}:
+							go func() {
+								defer func() { <-semaphore }()
+								slog.Info("Processing export job", "jobId", job.ID, "type", job.JobType)
+								if err := exportJobService.ProcessJob(workerCtx, &job); err != nil {
+									slog.Error("Export job failed", "jobId", job.ID, "error", err)
+								} else {
+									slog.Info("Export job completed", "jobId", job.ID)
+								}
+							}()
+						}
+					}
+				}
+			}
+		}()
+	}
 
 	// Start server in goroutine
 	go func() {
