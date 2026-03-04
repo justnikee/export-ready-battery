@@ -221,6 +221,8 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/labels", authMiddleware.Protect(http.HandlerFunc(h.DownloadLabels)))
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/audit-export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchAuditCSV)))
+	mux.Handle("GET /api/v1/batches/{id}/compliance-declaration", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceDeclaration)))
+	mux.Handle("GET /api/v1/batches/{id}/due-diligence-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDueDiligenceReport)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
@@ -253,6 +255,12 @@ func main() {
 	mux.Handle("GET /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.ListTemplates)))
 	mux.Handle("GET /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetTemplate)))
 	mux.Handle("DELETE /api/v1/templates/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteTemplate)))
+
+	// ============================================
+	// EPR OBLIGATION ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/epr/obligation", authMiddleware.Protect(http.HandlerFunc(h.GetEPRObligation)))
+	mux.Handle("GET /api/v1/epr/obligation/summary", authMiddleware.Protect(http.HandlerFunc(h.GetEPRMultiYear)))
 
 	// ============================================
 	// TEAM MANAGEMENT ROUTES (Protected)

@@ -377,6 +377,12 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		mfrCode = services.DeriveManufacturerCode(tenant.CompanyName)
 	}
 
+	// Prefer MoRTH-registered manufacturer code when set in profile
+	if tenant.MorthManufacturerCode != "" {
+		mfrCode = tenant.MorthManufacturerCode
+		slog.Info("Using MoRTH manufacturer code for BPAN", "morth_code", mfrCode)
+	}
+
 	bpanPrefix := services.BuildBPANPrefix(regionPrefix, mfrCode, chemCode, year)
 
 	// Atomically reserve a batch of sequence numbers

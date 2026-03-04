@@ -268,48 +268,56 @@ export default function BatchDetailsPage() {
     const handleExportDueDiligence = async () => {
         if (!batch) return
         try {
-            toast.loading("Creating Due Diligence Report...", { id: 'dd-export' });
-            const job = await createExportJob({
-                batch_id: params.id as string,
-                job_type: 'DUE_DILIGENCE'
+            toast.loading("Generating Due Diligence Report...", { id: 'dd-download' });
+            const response = await api.get(`/batches/${params.id}/due-diligence-report`, {
+                responseType: 'blob'
             });
-            toast.success(`Due Diligence Report export job created!`, {
-                id: 'dd-export',
-                description: `Go to Exports page to download when ready.`,
-                duration: 10000,
-                action: {
-                    label: 'View Exports',
-                    onClick: () => router.push('/exports')
-                }
-            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_due_diligence_report.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Due Diligence Report downloaded!", { id: 'dd-download' });
         } catch (error: unknown) {
             const apiError = toApiError(error)
-            console.error("Failed to create DD report export", error);
-            toast.error(apiError.response?.data?.error || "Failed to create Due Diligence export job", { id: 'dd-export' });
+            console.error("Failed to download due diligence report", error);
+            if (apiError.response?.status === 403) {
+                toast.error("Batch must be activated before generating the Due Diligence Report.", { id: 'dd-download' });
+            } else {
+                toast.error(apiError.response?.data?.error || "Failed to download Due Diligence Report", { id: 'dd-download' });
+            }
         }
     }
 
     const handleExportComplianceDeclaration = async () => {
         if (!batch) return
         try {
-            toast.loading("Creating Compliance Declaration...", { id: 'cd-export' });
-            const job = await createExportJob({
-                batch_id: params.id as string,
-                job_type: 'COMPLIANCE_DECLARATION'
+            toast.loading("Generating Carbon Declaration...", { id: 'cd-download' });
+            const response = await api.get(`/batches/${params.id}/compliance-declaration`, {
+                responseType: 'blob'
             });
-            toast.success(`Compliance Declaration export job created!`, {
-                id: 'cd-export',
-                description: `Go to Exports page to download when ready.`,
-                duration: 10000,
-                action: {
-                    label: 'View Exports',
-                    onClick: () => router.push('/exports')
-                }
-            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${batch.batch_name}_compliance_declaration.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success("Compliance Declaration downloaded!", { id: 'cd-download' });
         } catch (error: unknown) {
             const apiError = toApiError(error)
-            console.error("Failed to create compliance declaration export", error);
-            toast.error(apiError.response?.data?.error || "Failed to create Compliance Declaration export job", { id: 'cd-export' });
+            console.error("Failed to download compliance declaration", error);
+            if (apiError.response?.status === 400) {
+                toast.error("No carbon footprint data available. Run the Carbon Calculator first.", { id: 'cd-download' });
+            } else {
+                toast.error(apiError.response?.data?.error || "Failed to download Compliance Declaration", { id: 'cd-download' });
+            }
         }
     }
 

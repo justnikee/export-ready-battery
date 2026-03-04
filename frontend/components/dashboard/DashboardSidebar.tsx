@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation"
 import {
     LogOut, X, Home, Box, Truck, Users,
     Trophy, CreditCard, Settings, UserPlus, FileDown,
-    ChevronLeft, ChevronRight, Key, BookOpen, BarChart3
+    ChevronLeft, ChevronRight, Key, BookOpen, BarChart3,
+    LayoutTemplate, TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,6 +32,7 @@ const navGroups: NavGroup[] = [
         label: "Main",
         items: [
             { name: "Dashboard", href: "/dashboard", icon: Home },
+            { name: "Analytics", href: "/analytics", icon: TrendingUp },
             { name: "Batches", href: "/batches", icon: Box },
             { name: "Dispatch", href: "/dashboard/dispatch", icon: Truck },
         ]
@@ -39,6 +41,7 @@ const navGroups: NavGroup[] = [
         label: "Operations",
         items: [
             { name: "Partners", href: "/partners", icon: Users },
+            { name: "Templates", href: "/templates", icon: LayoutTemplate },
             { name: "Exports", href: "/exports", icon: FileDown },
             { name: "Team", href: "/team", icon: UserPlus },
         ]
