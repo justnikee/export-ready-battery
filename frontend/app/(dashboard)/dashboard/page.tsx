@@ -96,11 +96,19 @@ export default function DashboardPage() {
         if (!user) return
 
         try {
-            const [statsRes, batchesRes, scansRes] = await Promise.all([
+            // Fetch stats and batches together (critical)
+            const [statsRes, batchesRes] = await Promise.all([
                 api.get<DashboardStats>(`/dashboard/stats?tenant_id=${user.tenant_id}`),
                 api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}`),
-                api.get<ScansResponse>(`/scans/feed?tenant_id=${user.tenant_id}&limit=6`)
             ])
+
+            // Fetch scans separately — non-critical, shouldn't break dashboard
+            let scansRes: { data: ScansResponse } = { data: { scans: [] } }
+            try {
+                scansRes = await api.get<ScansResponse>(`/scans/feed?tenant_id=${user.tenant_id}&limit=20`)
+            } catch (scanError) {
+                console.warn("Scan feed unavailable:", scanError)
+            }
 
             setStats(statsRes.data)
             const allBatches = batchesRes.data.batches || []

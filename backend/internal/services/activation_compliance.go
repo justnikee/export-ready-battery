@@ -65,6 +65,9 @@ func validateIndiaActivation(batch *models.Batch, tenant *models.Tenant, missing
 	if tenant.IECCode == "" {
 		*missing = append(*missing, "tenant.iec_code")
 	}
+	if tenant.MorthManufacturerCode == "" {
+		*missing = append(*missing, "tenant.morth_manufacturer_code")
+	}
 
 	// Batch-level India compliance
 	if batch.CellSource == "" {
@@ -91,6 +94,25 @@ func validateIndiaActivation(batch *models.Batch, tenant *models.Tenant, missing
 	// PLI claim requires DVA >= 50%
 	if batch.PLICompliant && batch.DomesticValueAdd < 50 {
 		*errors = append(*errors, fmt.Sprintf("PLI claim invalid: domestic_value_add %.1f%% < 50%%", batch.DomesticValueAdd))
+	}
+
+	// AIS-156 / AIS-038 Safety Type-Approval Certificates
+	// Required for India market export-readiness per MoRTH notification
+	hasAIS156 := false
+	hasAIS038 := false
+	for _, cert := range batch.Specs.Certifications {
+		switch cert {
+		case "AIS-156":
+			hasAIS156 = true
+		case "AIS-038":
+			hasAIS038 = true
+		}
+	}
+	if !hasAIS156 {
+		*missing = append(*missing, "batch.specs.certifications: AIS-156 (safety type-approval for traction batteries)")
+	}
+	if !hasAIS038 {
+		*missing = append(*missing, "batch.specs.certifications: AIS-038 (rev.2 — battery safety for EVs)")
 	}
 }
 

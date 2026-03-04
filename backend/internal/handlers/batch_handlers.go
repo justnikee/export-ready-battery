@@ -657,6 +657,120 @@ func (h *Handler) ExportBatchAuditCSV(w http.ResponseWriter, r *http.Request) {
 	w.Write(csvBytes)
 }
 
+// DownloadComplianceDeclaration handles GET /api/v1/batches/{id}/compliance-declaration
+// Downloads the EU Article 7 carbon footprint declaration PDF for a batch.
+func (h *Handler) DownloadComplianceDeclaration(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Verify batch ownership
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Carbon footprint data is required for this declaration
+	if len(batch.CarbonFootprintResult) == 0 {
+		respondError(w, http.StatusBadRequest, "No carbon footprint data available. Run the carbon calculator first.")
+		return
+	}
+
+	// Get tenant for manufacturer details
+	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
+	if err != nil {
+		slog.Error("Failed to get tenant", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
+		return
+	}
+
+	// Generate PDF
+	pdfBytes, err := services.GenerateComplianceDeclaration(batch, tenant)
+	if err != nil {
+		slog.Error("Failed to generate compliance declaration PDF", "error", err, "batch_id", batchID)
+		respondError(w, http.StatusInternalServerError, "Failed to generate compliance declaration PDF")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_compliance_declaration.pdf", sanitizeBatchName(batch.BatchName))
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+
+	w.Write(pdfBytes)
+}
+
+// DownloadDueDiligenceReport handles GET /api/v1/batches/{id}/due-diligence-report
+// Downloads the full due diligence report PDF for a batch.
+func (h *Handler) DownloadDueDiligenceReport(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	// Parse batch ID
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Verify batch ownership
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// Batch must be ACTIVE to generate due diligence report
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be activated before generating the due diligence report")
+		return
+	}
+
+	// Get tenant for company details
+	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
+	if err != nil {
+		slog.Error("Failed to get tenant", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
+		return
+	}
+
+	// Generate PDF
+	pdfBytes, err := services.GenerateDueDiligenceReport(batch, tenant)
+	if err != nil {
+		slog.Error("Failed to generate due diligence report PDF", "error", err, "batch_id", batchID)
+		respondError(w, http.StatusInternalServerError, "Failed to generate due diligence report PDF")
+		return
+	}
+
+	// Set headers for file download
+	filename := fmt.Sprintf("%s_due_diligence_report.pdf", sanitizeBatchName(batch.BatchName))
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+
+	w.Write(pdfBytes)
+}
+
 // GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
