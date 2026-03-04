@@ -44,7 +44,7 @@ interface AuthContextType {
     loading: boolean;
     login: (token: string, refreshToken: string, user: User, redirectTo?: string) => void;
     logout: () => void;
-    refreshUser: () => Promise<void>;
+    refreshUser: () => Promise<User | null>;
     updateUser: (user: Partial<User>) => void;
 }
 
@@ -59,16 +59,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuth();
     }, []);
 
-    const checkAuth = async () => {
+    const checkAuth = async (): Promise<User | null> => {
         const token = localStorage.getItem('token');
         if (!token) {
             setLoading(false);
-            return;
+            return null;
         }
 
         try {
             const response = await api.get('/auth/me');
             setUser(response.data);
+            return response.data as User;
         } catch (error: unknown) {
             console.error('Auth check failed:', error);
             // Only clear tokens on genuine auth failures (401/403).
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             // For non-auth errors (network timeout, 500, etc.) we
             // leave tokens in place so the user isn't randomly logged out.
+            return null;
         } finally {
             setLoading(false);
         }
@@ -109,8 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/login');
     };
 
-    const refreshUser = async () => {
-        await checkAuth();
+    const refreshUser = async (): Promise<User | null> => {
+        return await checkAuth();
     };
 
     const updateUser = (updatedUser: Partial<User>) => {

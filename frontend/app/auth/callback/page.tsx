@@ -47,16 +47,17 @@ function CallbackHandler() {
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
 
         // Fetch full user from /auth/me so onboarding_completed is populated.
-        // login() will then route correctly: /onboarding for new accounts, /dashboard for existing.
-        refreshRef.current().then(() => {
-            // refreshUser() updated the auth context — login() will now see the real onboarding state
-            loginRef.current(token, refreshToken, {
+        // refreshUser() now returns the fetched user so we can pass it directly
+        // to login() — avoiding the React state timing issue.
+        refreshRef.current().then((freshUser) => {
+            // Use the returned user which includes onboarding_completed from the DB
+            const userForLogin = freshUser || {
                 id: tenantId,
                 tenant_id: tenantId,
                 email: email,
                 company_name: companyName,
-                // onboarding_completed not set here — refreshUser already updated context
-            })
+            }
+            loginRef.current(token, refreshToken, userForLogin)
         }).catch(() => {
             // /auth/me failed — fall back to minimal user; dashboard layout will fix the redirect
             loginRef.current(token, refreshToken, {
