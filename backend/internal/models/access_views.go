@@ -63,6 +63,7 @@ type PublicPassportView struct {
 	DomesticValueAdd float64    `json:"domestic_value_add,omitempty"`
 	PLICompliant     bool       `json:"pli_compliant,omitempty"`
 	HSNCode          string     `json:"hsn_code,omitempty"`
+	DVASource        string     `json:"dva_source,omitempty"`
 	BillOfEntryNo    string     `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin  string     `json:"country_of_origin,omitempty"`
 	CustomsDate      *time.Time `json:"customs_date,omitempty"`
@@ -186,6 +187,7 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		DomesticValueAdd: full.DomesticValueAdd,
 		PLICompliant:     full.PLICompliant,
 		HSNCode:          full.HSNCode,
+		DVASource:        full.DVASource,
 		BillOfEntryNo:    full.BillOfEntryNo,
 		CountryOfOrigin:  full.CountryOfOrigin,
 		CustomsDate:      full.CustomsDate,

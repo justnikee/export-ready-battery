@@ -705,6 +705,7 @@ type PassportWithSpecs struct {
 	PLICompliant     bool       `json:"pli_compliant,omitempty"`
 	CustomsDate      *time.Time `json:"customs_date,omitempty"`
 	HSNCode          string     `json:"hsn_code,omitempty"`
+	DVASource        string     `json:"dva_source,omitempty"`
 	// EU fields from specs are already in BatchSpec
 	// Materials composition is in specs.material_composition
 }
@@ -962,4 +963,61 @@ func (e *ExportJob) GetFilename(batchName string) string {
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}
+}
+
+// ============================================================================
+// EPR CERTIFICATE LEDGER (India BWM Rules 2022)
+// ============================================================================
+
+// EPRCertificate represents a purchased EPR certificate from a registered recycler
+type EPRCertificate struct {
+	ID                uuid.UUID  `json:"id"`
+	TenantID          uuid.UUID  `json:"tenant_id"`
+	CertificateNumber string     `json:"certificate_number"`
+	RecyclerName      string     `json:"recycler_name"`
+	RecyclerEprID     string     `json:"recycler_epr_id,omitempty"`
+	WeightKg          float64    `json:"weight_kg"`
+	BatteryType       string     `json:"battery_type,omitempty"`
+	FinancialYear     string     `json:"financial_year"`
+	IssuedDate        time.Time  `json:"issued_date"`
+	ExpiryDate        *time.Time `json:"expiry_date,omitempty"`
+	Status            string     `json:"status"`
+	RetiredAt         *time.Time `json:"retired_at,omitempty"`
+	DocumentPath      string     `json:"document_path,omitempty"`
+	Notes             string     `json:"notes,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+// EPR Certificate status constants
+const (
+	EPRCertStatusActive   = "ACTIVE"
+	EPRCertStatusRetired  = "RETIRED"
+	EPRCertStatusExpired  = "EXPIRED"
+	EPRCertStatusRejected = "REJECTED"
+)
+
+// CreateEPRCertificateRequest is the request body for adding a certificate
+type CreateEPRCertificateRequest struct {
+	CertificateNumber string  `json:"certificate_number"`
+	RecyclerName      string  `json:"recycler_name"`
+	RecyclerEprID     string  `json:"recycler_epr_id,omitempty"`
+	WeightKg          float64 `json:"weight_kg"`
+	BatteryType       string  `json:"battery_type,omitempty"`
+	FinancialYear     string  `json:"financial_year"`
+	IssuedDate        string  `json:"issued_date"`
+	ExpiryDate        string  `json:"expiry_date,omitempty"`
+	DocumentPath      string  `json:"document_path,omitempty"`
+	Notes             string  `json:"notes,omitempty"`
+}
+
+// EPRLedgerSummary shows obligation vs certificates for a financial year
+type EPRLedgerSummary struct {
+	FinancialYear    string  `json:"financial_year"`
+	ObligationKg     float64 `json:"obligation_kg"`
+	CertifiedKg      float64 `json:"certified_kg"`
+	DeficitKg        float64 `json:"deficit_kg"`
+	SurplusKg        float64 `json:"surplus_kg"`
+	CertificateCount int     `json:"certificate_count"`
+	ComplianceStatus string  `json:"compliance_status"`
 }

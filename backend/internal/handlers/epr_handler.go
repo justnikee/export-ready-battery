@@ -45,7 +45,15 @@ func (h *Handler) GetEPRObligation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := services.CalculateEPRObligation(tenant, batches, year)
+	// Query actual EPR certificate weight for this year's FY
+	fy := services.ToFinancialYear(year)
+	certifiedKg, _, err := h.repo.GetEPRCertificateSummary(r.Context(), tenantID, fy)
+	if err != nil {
+		// Non-fatal: fall back to 0 if table doesn't exist or query fails
+		certifiedKg = 0
+	}
+
+	result := services.CalculateEPRObligation(tenant, batches, year, certifiedKg)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
@@ -73,7 +81,19 @@ func (h *Handler) GetEPRMultiYear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := services.CalculateEPRMultiYear(tenant, batches)
+	// Build multi-year summary with real certificate data per FY
+	currentYear := time.Now().Year()
+	years := []int{currentYear - 1, currentYear, currentYear + 1}
+	results := make([]services.EPRObligation, 0, len(years))
+
+	for _, y := range years {
+		fy := services.ToFinancialYear(y)
+		certifiedKg, _, err := h.repo.GetEPRCertificateSummary(r.Context(), tenantID, fy)
+		if err != nil {
+			certifiedKg = 0
+		}
+		results = append(results, services.CalculateEPRObligation(tenant, batches, y, certifiedKg))
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)

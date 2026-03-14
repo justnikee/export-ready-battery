@@ -41,6 +41,9 @@ type QRResult struct {
 type QRLabelContext struct {
 	// CarbonPerKWh is the per-kWh carbon footprint in kgCO2e (0 = not available).
 	CarbonPerKWh float64
+	// EPRNumber is the producer's EPR registration number (India market).
+	// When set and the BPAN region is India (IN), this is embedded in the QR payload.
+	EPRNumber string
 }
 
 // GenerateQRCode generates a single QR code PNG.
@@ -94,6 +97,11 @@ func (s *QRService) BuildQRPayload(passportUUID uuid.UUID, serialNumber string, 
 	// Add carbon footprint if available (EU/Global)
 	if ctx != nil && ctx.CarbonPerKWh > 0 {
 		params.Set("co2", fmt.Sprintf("%.2f", ctx.CarbonPerKWh))
+	}
+
+	// Add EPR registration number for Indian-market batteries (BWMR compliance)
+	if ctx != nil && ctx.EPRNumber != "" && comp.Region == "IN" {
+		params.Set("epr", ctx.EPRNumber)
 	}
 
 	return fmt.Sprintf("%s?%s", base, params.Encode())

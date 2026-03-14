@@ -1,0 +1,608 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import {
+    Shield, Plus, Download, Trash2, Archive,
+    CheckCircle2, AlertTriangle, XCircle, TrendingUp,
+    FileSpreadsheet, RefreshCw, Loader2, ChevronDown
+} from 'lucide-react';
+import {
+    listCertificates,
+    createCertificate,
+    retireCertificate,
+    deleteCertificate,
+    getMultiYearSummary,
+    downloadCPCBExport,
+    getCurrentFinancialYear,
+    getFinancialYearOptions,
+    type EPRCertificate,
+    type CreateEPRCertificateRequest,
+    type EPRObligation,
+} from '@/lib/api/epr';
+import { useAuth } from '@/context/auth-context';
+
+type Tab = 'overview' | 'certificates' | 'export';
+
+// ============================================================================
+// MAIN PAGE
+// ============================================================================
+
+export default function CompliancePage() {
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const eprRegistered = !!user?.epr_registration_number;
+
+    const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+        { id: 'overview', label: 'Obligation Overview', icon: TrendingUp },
+        { id: 'certificates', label: 'Certificate Ledger', icon: Shield },
+        { id: 'export', label: 'CPCB Export', icon: FileSpreadsheet },
+    ];
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-6">
+            <div className="w-full mx-auto space-y-6">
+                {/* Page Header */}
+                <div>
+                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                        EPR Compliance
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Manage your Extended Producer Responsibility obligations under India BWM Rules 2022
+                    </p>
+                </div>
+
+                {/* EPR Registration Banner */}
+                {!eprRegistered && (
+                    <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                        <div>
+                            <p className="text-sm font-medium text-amber-800">EPR Registration Missing</p>
+                            <p className="text-xs text-amber-600 mt-0.5">
+                                Add your CPCB EPR registration number in{' '}
+                                <a href="/settings" className="underline font-medium">Settings → India Compliance</a>{' '}
+                                to unlock full compliance tracking.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Tabs */}
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                    {tabs.map(tab => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                                    activeTab === tab.id
+                                        ? 'bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'overview' && <OverviewTab />}
+                {activeTab === 'certificates' && <CertificatesTab />}
+                {activeTab === 'export' && <ExportTab />}
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// OVERVIEW TAB — Multi-year obligation summary
+// ============================================================================
+
+function OverviewTab() {
+    const [obligations, setObligations] = useState<EPRObligation[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const data = await getMultiYearSummary();
+            setObligations(data || []);
+        } catch {
+            setError('Failed to load obligation data');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+    if (loading) return <LoadingState />;
+    if (error) return <ErrorState message={error} onRetry={fetchData} />;
+    if (obligations.length === 0) return <EmptyState message="No obligation data available" />;
+
+    return (
+        <div className="space-y-4">
+            {obligations.map(ob => (
+                <div key={ob.year} className="bg-white border border-slate-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-slate-900">FY {ob.financial_year}</h3>
+                            <StatusBadge status={ob.status} />
+                        </div>
+                        {ob.epr_registered && (
+                            <span className="text-xs text-slate-400 font-mono">{ob.epr_number}</span>
+                        )}
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <StatCard label="Batches" value={ob.total_batches} />
+                        <StatCard label="Production Weight" value={`${ob.total_weight_kg.toFixed(1)} kg`} />
+                        <StatCard
+                            label={`Target (${ob.collection_target_pct}%)`}
+                            value={`${ob.required_collection_kg.toFixed(1)} kg`}
+                        />
+                        <StatCard
+                            label="Collected (Certs)"
+                            value={`${ob.collected_kg.toFixed(1)} kg`}
+                            highlight={ob.collected_kg >= ob.required_collection_kg ? 'green' : undefined}
+                        />
+                        <StatCard
+                            label={ob.deficit_kg > 0 ? 'Deficit' : 'Surplus'}
+                            value={`${(ob.deficit_kg > 0 ? ob.deficit_kg : ob.surplus_kg).toFixed(1)} kg`}
+                            highlight={ob.deficit_kg > 0 ? 'red' : 'green'}
+                        />
+                    </div>
+
+                    {/* Progress Bar */}
+                    {ob.required_collection_kg > 0 && (
+                        <div className="mt-4">
+                            <div className="flex justify-between text-xs text-slate-500 mb-1">
+                                <span>Progress toward target</span>
+                                <span>{Math.min(100, (ob.collected_kg / ob.required_collection_kg * 100)).toFixed(0)}%</span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                        ob.collected_kg >= ob.required_collection_kg
+                                            ? 'bg-emerald-500'
+                                            : ob.collected_kg > 0
+                                                ? 'bg-amber-500'
+                                                : 'bg-slate-300'
+                                    }`}
+                                    style={{ width: `${Math.min(100, ob.required_collection_kg > 0 ? (ob.collected_kg / ob.required_collection_kg * 100) : 0)}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ============================================================================
+// CERTIFICATES TAB — CRUD Table
+// ============================================================================
+
+function CertificatesTab() {
+    const [certificates, setCertificates] = useState<EPRCertificate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [selectedFY, setSelectedFY] = useState(getCurrentFinancialYear());
+    const [showForm, setShowForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const fyOptions = getFinancialYearOptions();
+
+    const fetchCerts = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const data = await listCertificates(selectedFY);
+            setCertificates(data || []);
+        } catch {
+            setError('Failed to load certificates');
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedFY]);
+
+    useEffect(() => { fetchCerts(); }, [fetchCerts]);
+
+    const handleCreate = async (data: CreateEPRCertificateRequest) => {
+        setSaving(true);
+        try {
+            await createCertificate(data);
+            setShowForm(false);
+            fetchCerts();
+        } catch {
+            alert('Failed to create certificate');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleRetire = async (id: string) => {
+        if (!confirm('Retire this certificate? It will no longer count toward your obligation.')) return;
+        try {
+            await retireCertificate(id);
+            fetchCerts();
+        } catch {
+            alert('Failed to retire certificate');
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Permanently delete this certificate?')) return;
+        try {
+            await deleteCertificate(id);
+            fetchCerts();
+        } catch {
+            alert('Failed to delete certificate');
+        }
+    };
+
+    const activeCerts = certificates.filter(c => c.status === 'ACTIVE');
+    const totalWeight = activeCerts.reduce((sum, c) => sum + c.weight_kg, 0);
+
+    return (
+        <div className="space-y-4">
+            {/* Header Row */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <select
+                            value={selectedFY}
+                            onChange={e => setSelectedFY(e.target.value)}
+                            className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        >
+                            {fyOptions.map(fy => (
+                                <option key={fy} value={fy}>FY {fy}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                    <span className="text-sm text-slate-500">
+                        {activeCerts.length} active · {totalWeight.toFixed(1)} kg certified
+                    </span>
+                </div>
+                <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                    Add Certificate
+                </button>
+            </div>
+
+            {/* Create Form */}
+            {showForm && (
+                <CertificateForm
+                    defaultFY={selectedFY}
+                    onSubmit={handleCreate}
+                    onCancel={() => setShowForm(false)}
+                    saving={saving}
+                />
+            )}
+
+            {/* Error */}
+            {error && <ErrorState message={error} onRetry={fetchCerts} />}
+
+            {/* Table */}
+            {loading ? (
+                <LoadingState />
+            ) : certificates.length === 0 ? (
+                <EmptyState message="No certificates for this financial year" />
+            ) : (
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <table className="w-full">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Certificate</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Recycler</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Weight</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Issued</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {certificates.map(cert => (
+                                <tr key={cert.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-4">
+                                        <div className="text-sm font-medium text-slate-900">{cert.certificate_number}</div>
+                                        {cert.battery_type && (
+                                            <div className="text-xs text-slate-500">{cert.battery_type}</div>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <div className="text-sm text-slate-900">{cert.recycler_name}</div>
+                                        {cert.recycler_epr_id && (
+                                            <div className="text-xs text-slate-400 font-mono">{cert.recycler_epr_id}</div>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-4 text-sm font-medium text-slate-900">
+                                        {cert.weight_kg.toFixed(1)} kg
+                                    </td>
+                                    <td className="px-4 py-4 text-sm text-slate-500">
+                                        {new Date(cert.issued_date).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <CertStatusBadge status={cert.status} />
+                                    </td>
+                                    <td className="px-4 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            {cert.status === 'ACTIVE' && (
+                                                <button
+                                                    onClick={() => handleRetire(cert.id)}
+                                                    title="Retire"
+                                                    className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                                >
+                                                    <Archive className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDelete(cert.id)}
+                                                title="Delete"
+                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// EXPORT TAB — CPCB Form 3 CSV Download
+// ============================================================================
+
+function ExportTab() {
+    const [selectedFY, setSelectedFY] = useState(getCurrentFinancialYear());
+    const [downloading, setDownloading] = useState(false);
+    const fyOptions = getFinancialYearOptions();
+
+    const handleDownload = async () => {
+        setDownloading(true);
+        try {
+            await downloadCPCBExport(selectedFY);
+        } catch {
+            alert('Failed to download CPCB export. Ensure you have batch data for this financial year.');
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    return (
+        <div className="bg-white border border-slate-200 rounded-lg p-8">
+            <div className="max-w-lg mx-auto text-center space-y-6">
+                <div className="p-4 bg-emerald-50 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                    <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-slate-900">CPCB Annual Return — Form 3</h3>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Generate a CSV for your CPCB portal submission. Includes production data,
+                        recycler certificates, and battery category aggregations.
+                    </p>
+                </div>
+
+                <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                        <select
+                            value={selectedFY}
+                            onChange={e => setSelectedFY(e.target.value)}
+                            className="appearance-none pl-4 pr-10 py-2.5 text-sm border border-slate-200 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        >
+                            {fyOptions.map(fy => (
+                                <option key={fy} value={fy}>FY {fy}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+
+                    <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50"
+                    >
+                        {downloading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4" />
+                        )}
+                        Download Form 3 CSV
+                    </button>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                    Upload this CSV to the CPCB EPR portal at{' '}
+                    <a
+                        href="https://eprportal.cpcb.gov.in"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                    >
+                        eprportal.cpcb.gov.in
+                    </a>
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// CERTIFICATE CREATE FORM
+// ============================================================================
+
+function CertificateForm({
+    defaultFY,
+    onSubmit,
+    onCancel,
+    saving,
+}: {
+    defaultFY: string;
+    onSubmit: (data: CreateEPRCertificateRequest) => void;
+    onCancel: () => void;
+    saving: boolean;
+}) {
+    const [form, setForm] = useState<CreateEPRCertificateRequest>({
+        certificate_number: '',
+        recycler_name: '',
+        recycler_epr_id: '',
+        weight_kg: 0,
+        battery_type: '',
+        financial_year: defaultFY,
+        issued_date: new Date().toISOString().split('T')[0],
+    });
+
+    const update = (field: string, value: string | number) =>
+        setForm(prev => ({ ...prev, [field]: value }));
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.certificate_number || !form.recycler_name || form.weight_kg <= 0) {
+            alert('Certificate number, recycler name, and weight are required.');
+            return;
+        }
+        onSubmit(form);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
+            <h4 className="text-sm font-semibold text-slate-900">Add EPR Certificate</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input label="Certificate Number *" value={form.certificate_number} onChange={v => update('certificate_number', v)} placeholder="EPR/WP/CERT/2025/001" />
+                <Input label="Recycler Name *" value={form.recycler_name} onChange={v => update('recycler_name', v)} placeholder="GreenRecycle India Pvt Ltd" />
+                <Input label="Recycler EPR ID" value={form.recycler_epr_id || ''} onChange={v => update('recycler_epr_id', v)} placeholder="EPR/WP/R/2024/00123" />
+                <Input label="Weight (kg) *" type="number" value={String(form.weight_kg)} onChange={v => update('weight_kg', parseFloat(v) || 0)} placeholder="500" />
+                <Input label="Battery Type" value={form.battery_type || ''} onChange={v => update('battery_type', v)} placeholder="LFP, NMC, etc." />
+                <Input label="Issued Date *" type="date" value={form.issued_date} onChange={v => update('issued_date', v)} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50">
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Save Certificate
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// ============================================================================
+// SHARED COMPONENTS
+// ============================================================================
+
+function Input({ label, value, onChange, placeholder, type = 'text' }: {
+    label: string; value: string; onChange: (v: string) => void;
+    placeholder?: string; type?: string;
+}) {
+    return (
+        <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+            <input
+                type={type}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            />
+        </div>
+    );
+}
+
+function StatCard({ label, value, highlight }: { label: string; value: string | number; highlight?: 'green' | 'red' }) {
+    return (
+        <div className="p-3 bg-slate-50 rounded-lg">
+            <p className="text-xs text-slate-500 mb-1">{label}</p>
+            <p className={`text-lg font-semibold ${
+                highlight === 'green' ? 'text-emerald-600' :
+                highlight === 'red' ? 'text-red-600' :
+                'text-slate-900'
+            }`}>
+                {value}
+            </p>
+        </div>
+    );
+}
+
+function StatusBadge({ status }: { status: string }) {
+    const map: Record<string, { icon: React.ElementType; classes: string; label: string }> = {
+        COMPLIANT: { icon: CheckCircle2, classes: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Compliant' },
+        NON_COMPLIANT: { icon: AlertTriangle, classes: 'bg-red-50 text-red-700 border-red-200', label: 'Non-Compliant' },
+        NOT_REGISTERED: { icon: XCircle, classes: 'bg-slate-100 text-slate-500 border-slate-200', label: 'Not Registered' },
+        PARTIAL: { icon: AlertTriangle, classes: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Partial' },
+    };
+    const s = map[status] || map.NON_COMPLIANT;
+    const Icon = s.icon;
+    return (
+        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${s.classes}`}>
+            <Icon className="w-3 h-3" />
+            {s.label}
+        </span>
+    );
+}
+
+function CertStatusBadge({ status }: { status: string }) {
+    const classes: Record<string, string> = {
+        ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        RETIRED: 'bg-slate-100 text-slate-500 border-slate-200',
+        EXPIRED: 'bg-amber-50 text-amber-700 border-amber-200',
+        REJECTED: 'bg-red-50 text-red-700 border-red-200',
+    };
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${classes[status] || classes.ACTIVE}`}>
+            {status}
+        </span>
+    );
+}
+
+function LoadingState() {
+    return (
+        <div className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+        </div>
+    );
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+    return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <p className="text-sm text-red-700">{message}</p>
+            <button onClick={onRetry} className="mt-3 inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800">
+                <RefreshCw className="w-3 h-3" /> Retry
+            </button>
+        </div>
+    );
+}
+
+function EmptyState({ message }: { message: string }) {
+    return (
+        <div className="bg-white border border-slate-200 rounded-lg p-12">
+            <div className="flex flex-col items-center justify-center text-center">
+                <div className="p-4 bg-slate-100 rounded-full mb-4">
+                    <Shield className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-1">No Data</h3>
+                <p className="text-sm text-slate-500">{message}</p>
+            </div>
+        </div>
+    );
+}

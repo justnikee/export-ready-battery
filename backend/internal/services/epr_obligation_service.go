@@ -49,11 +49,13 @@ type EPRObligation struct {
 }
 
 // CalculateEPRObligation computes EPR obligation for a tenant based on their India-market batches.
+// collectedKg is the total weight covered by EPR certificates for this year.
 // This is a read-only computation — no DB writes.
 func CalculateEPRObligation(
 	tenant *models.Tenant,
 	batches []*models.Batch,
 	year int,
+	collectedKg float64,
 ) EPRObligation {
 	target := getCollectionTarget(year)
 
@@ -97,9 +99,8 @@ func CalculateEPRObligation(
 	// Required collection = total weight × target %
 	result.RequiredCollectionKg = math.Round(totalWeightKg*target) / 100
 
-	// CollectedKg: In production this would query recycled passport count × unit weight.
-	// For now, placeholder at 0 — will be wired when recycling flow is complete.
-	result.CollectedKg = 0
+	// CollectedKg from EPR certificates purchased from registered recyclers
+	result.CollectedKg = collectedKg
 
 	result.DeficitKg = math.Max(0, result.RequiredCollectionKg-result.CollectedKg)
 	result.PenaltyExposureINR = math.Round(result.DeficitKg*penaltyRatePerKg*100) / 100
@@ -183,7 +184,7 @@ func CalculateEPRMultiYear(
 
 	results := make([]EPRObligation, 0, len(years))
 	for _, y := range years {
-		results = append(results, CalculateEPRObligation(tenant, batches, y))
+		results = append(results, CalculateEPRObligation(tenant, batches, y, 0))
 	}
 	return results
 }

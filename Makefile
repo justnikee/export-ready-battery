@@ -1,4 +1,4 @@
-.PHONY: run build test clean deps migrate-up migrate-down migrate-create migrate-force
+.PHONY: run build test clean deps migrate-up migrate-down migrate-create migrate-force migrate-verify
 
 # Load .env file for database URL (from backend for consistency)
 include backend/.env
@@ -59,3 +59,7 @@ migrate-force:
 migrate-create:
 	@read -p "Enter migration name: " name; \
 	migrate create -ext sql -dir ./backend/internal/db/migrations -seq $$name
+
+# Verify schema matches expected tables/columns
+migrate-verify:
+	cd backend && go run ./cmd/migrate

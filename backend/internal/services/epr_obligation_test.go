@@ -31,7 +31,7 @@ func TestEPR_NoRegistration(t *testing.T) {
 	tenant := makeEPRTenant("")
 	batches := []*models.Batch{}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.Status != "NOT_REGISTERED" {
 		t.Errorf("expected NOT_REGISTERED, got %s", result.Status)
@@ -42,7 +42,7 @@ func TestEPR_NoData(t *testing.T) {
 	tenant := makeEPRTenant("EPR/WP/2024/00001")
 	batches := []*models.Batch{}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.Status != "NO_DATA" {
 		t.Errorf("expected NO_DATA, got %s", result.Status)
@@ -56,7 +56,7 @@ func TestEPR_BasicCalculation(t *testing.T) {
 		makeIndiaBatch("1.2kg", 50, 2026), // 50 × 1.2kg = 60kg
 	}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.TotalBatches != 2 {
 		t.Errorf("expected 2 batches, got %d", result.TotalBatches)
@@ -84,7 +84,7 @@ func TestEPR_SkipsEUBatches(t *testing.T) {
 
 	batches := []*models.Batch{euBatch}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.TotalBatches != 0 {
 		t.Errorf("EU batches should be skipped, got %d batches", result.TotalBatches)
@@ -101,7 +101,7 @@ func TestEPR_SkipsDraftBatches(t *testing.T) {
 
 	batches := []*models.Batch{draft}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.TotalBatches != 0 {
 		t.Errorf("DRAFT batches should be skipped, got %d batches", result.TotalBatches)
@@ -115,7 +115,7 @@ func TestEPR_IncludesGlobalBatches(t *testing.T) {
 
 	batches := []*models.Batch{globalBatch}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.TotalBatches != 1 {
 		t.Errorf("GLOBAL batches should be included for India EPR, got %d", result.TotalBatches)
@@ -132,7 +132,7 @@ func TestEPR_YearFilter(t *testing.T) {
 		makeIndiaBatch("500g", 100, 2026), // Target year
 	}
 
-	result := CalculateEPRObligation(tenant, batches, 2026)
+	result := CalculateEPRObligation(tenant, batches, 2026, 0)
 
 	if result.TotalBatches != 1 {
 		t.Errorf("expected 1 batch for 2026, got %d (year filter failed)", result.TotalBatches)

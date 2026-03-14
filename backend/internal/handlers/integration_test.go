@@ -82,6 +82,7 @@ func TestGetEPRObligation_Success(t *testing.T) {
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return(batches, 2, nil)
+	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation?year=2026", nil)
 	req = setAuthContext(req, tenantID, "admin@test.com")
@@ -165,6 +166,7 @@ func TestGetEPRObligation_NotRegistered(t *testing.T) {
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return([]*models.Batch{}, 0, nil)
+	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation?year=2026", nil)
 	req = setAuthContext(req, tenantID, "admin@test.com")
@@ -204,6 +206,7 @@ func TestGetEPRMultiYear_Success(t *testing.T) {
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return([]*models.Batch{}, 0, nil)
+	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation/summary", nil)
 	req = setAuthContext(req, tenantID, "admin@test.com")

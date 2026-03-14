@@ -263,6 +263,20 @@ func main() {
 	mux.Handle("GET /api/v1/epr/obligation/summary", authMiddleware.Protect(http.HandlerFunc(h.GetEPRMultiYear)))
 
 	// ============================================
+	// EPR CERTIFICATE LEDGER ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/epr/certificates", authMiddleware.Protect(http.HandlerFunc(h.CreateEPRCertificate)))
+	mux.Handle("GET /api/v1/epr/certificates", authMiddleware.Protect(http.HandlerFunc(h.ListEPRCertificates)))
+	mux.Handle("GET /api/v1/epr/ledger", authMiddleware.Protect(http.HandlerFunc(h.GetEPRLedger)))
+	mux.Handle("PUT /api/v1/epr/certificates/{id}/retire", authMiddleware.Protect(http.HandlerFunc(h.RetireEPRCertificate)))
+	mux.Handle("DELETE /api/v1/epr/certificates/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteEPRCertificate)))
+
+	// ============================================
+	// CPCB EXPORT ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/epr/cpcb-export", authMiddleware.Protect(http.HandlerFunc(h.ExportCPCBForm3)))
+
+	// ============================================
 	// TEAM MANAGEMENT ROUTES (Protected)
 	// ============================================
 	mux.Handle("GET /api/v1/team", authMiddleware.Protect(http.HandlerFunc(h.ListTeamMembers)))

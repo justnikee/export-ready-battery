@@ -4,9 +4,10 @@ import { Battery, Calendar, CheckCircle, Leaf, MapPin, Recycle, Smartphone, Shie
 import Link from "next/link"
 import clsx from "clsx"
 import { motion } from "framer-motion"
+import { useState } from "react"
 import { TelemetryChart } from "./telemetry-chart"
 
-// Market region type
+// ─── Types ───────────────────────────────────────────────────────────────────
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
 
 interface PassportViewProps {
@@ -32,8 +33,11 @@ interface PassportViewData {
         country_of_origin?: string
         manufacturer?: string
         manufacturer_address?: string
-        manufacturer_email?: string
-        recyclable?: boolean
+        eu_representative?: string
+        eu_representative_email?: string
+        hsn_code?: string
+        epr_number?: string
+        bis_number?: string
         material_composition?: {
             cobalt_pct?: number
             lithium_pct?: number
@@ -41,12 +45,20 @@ interface PassportViewData {
             manganese_pct?: number
             graphite_pct?: number
             lead_pct?: number
+            recycled_cobalt_pct?: number
+            recycled_lithium_pct?: number
+            recycled_nickel_pct?: number
+            recycled_lead_pct?: number
         }
         recycled_content_pct?: number | null
         warranty_months?: number | null
         expected_lifetime_cycles?: number | null
         hazardous_substances?: {
+            lead_present?: boolean
+            mercury_present?: boolean
+            cadmium_present?: boolean
             declaration?: string
+            exemptions?: string
         }
     }
     tenant?: {
@@ -57,6 +69,7 @@ interface PassportViewData {
         bis_r_number?: string
     }
     batch_name?: string
+    model_name?: string
     market_region?: MarketRegion
     domestic_value_add?: number
     pli_compliant?: boolean
@@ -64,170 +77,70 @@ interface PassportViewData {
     bill_of_entry_no?: string
     country_of_origin?: string
     customs_date?: string
+    dva_source?: string
+    hsn_code?: string
+    manufacturing_start_date?: string
+    manufacturing_end_date?: string
 }
 
-// Animated gradient border wrapper
-function GlowCard({ children, className, glowColor = "emerald" }: { children: React.ReactNode; className?: string; glowColor?: "emerald" | "orange" | "blue" | "purple" }) {
-    const glowColors = {
-        emerald: "from-emerald-500/20 via-teal-500/20 to-cyan-500/20",
-        orange: "from-orange-500/20 via-amber-500/20 to-yellow-500/20",
-        blue: "from-blue-500/20 via-indigo-500/20 to-purple-500/20",
-        purple: "from-purple-500/20 via-pink-500/20 to-rose-500/20"
-    }
+// ─── Helper Components ───────────────────────────────────────────────────────
 
-    return (
-        <div className={clsx("relative group", className)}>
-            <div className={clsx("absolute -inset-0.5 bg-gradient-to-r rounded-2xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity duration-300", glowColors[glowColor])} />
-            <div className="relative bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-white/10">
-                {children}
-            </div>
-        </div>
-    )
-}
-
-// Status badge with animated pulse
-function StatusBadge({ status }: { status: string }) {
-    const configs: Record<string, { bg: string; ring: string; dot: string; text: string; label: string }> = {
-        CREATED: { bg: "bg-slate-500/20", ring: "ring-slate-500/50", dot: "bg-slate-400", text: "text-slate-400", label: "Created" },
-        ACTIVE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400", text: "text-emerald-400", label: "Active" },
-        SHIPPED: { bg: "bg-blue-500/20", ring: "ring-blue-500/50", dot: "bg-blue-400", text: "text-blue-400", label: "Shipped" },
-        IN_SERVICE: { bg: "bg-emerald-500/20", ring: "ring-emerald-500/50", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-400", label: "In Service" },
-        RECALLED: { bg: "bg-red-500/20", ring: "ring-red-500/50", dot: "bg-red-400 animate-pulse", text: "text-red-400", label: "Recalled" },
-        RECYCLED: { bg: "bg-purple-500/20", ring: "ring-purple-500/50", dot: "bg-purple-400", text: "text-purple-400", label: "Recycled" },
-        END_OF_LIFE: { bg: "bg-slate-700/20", ring: "ring-slate-500/50", dot: "bg-slate-500", text: "text-slate-400", label: "End of Life" },
-    }
-
-    const config = configs[status] || configs.ACTIVE
-
+function Section({ children, className }: { children: React.ReactNode; className?: string }) {
     return (
         <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className={clsx("inline-flex items-center gap-2 px-4 py-2 rounded-full ring-1", config.bg, config.ring)}
-        >
-            <span className={clsx("h-2 w-2 rounded-full", config.dot)} />
-            <span className={clsx("text-sm font-semibold", config.text)}>{config.label}</span>
-        </motion.div>
-    )
-}
-
-// Market Badge with flag
-function MarketBadge({ region, pliEligible }: { region: MarketRegion; pliEligible?: boolean }) {
-    if (region === "INDIA") {
-        return (
-            <motion.span
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 ring-1 ring-orange-500/50 text-orange-400 text-sm font-bold"
-            >
-                {pliEligible ? "🇮🇳 PLI Eligible" : "🇮🇳 India Market"}
-            </motion.span>
-        )
-    }
-    if (region === "EU") {
-        return (
-            <motion.span
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-indigo-500/20 ring-1 ring-blue-500/50 text-blue-400 text-sm font-bold"
-            >
-                🇪🇺 EU Battery Passport
-            </motion.span>
-        )
-    }
-    return null
-}
-
-// Verified badge with animation
-function VerifiedBadge() {
-    return (
-        <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 ring-1 ring-emerald-500/50"
-        >
-            <BadgeCheck className="h-5 w-5 text-emerald-400" />
-            <span className="text-emerald-400 font-semibold text-sm">Verified Authentic</span>
-        </motion.div>
-    )
-}
-
-// Spec card component
-function SpecCard({ icon: Icon, label, value, unit, color = "slate" }: { icon: LucideIcon; label: string; value: string | number; unit?: string; color?: string }) {
-    const colorClasses: Record<string, string> = {
-        slate: "from-slate-500/10 to-slate-600/10 text-slate-400",
-        emerald: "from-emerald-500/10 to-teal-500/10 text-emerald-400",
-        blue: "from-blue-500/10 to-indigo-500/10 text-blue-400",
-        orange: "from-orange-500/10 to-amber-500/10 text-orange-400",
-        purple: "from-purple-500/10 to-pink-500/10 text-purple-400"
-    }
-
-    return (
-        <motion.div
-            initial={{ y: 10, opacity: 0 }}
+            initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className={clsx("p-4 rounded-xl bg-gradient-to-br border border-white/5", colorClasses[color])}
+            transition={{ duration: 0.5 }}
+            className={clsx("relative rounded-2xl border border-white/[0.06] bg-slate-900/80 backdrop-blur-xl overflow-hidden", className)}
         >
-            <div className="flex items-center gap-2 mb-2">
-                <Icon className="h-4 w-4 opacity-70" />
-                <span className="text-xs uppercase tracking-wider font-medium opacity-70">{label}</span>
-            </div>
-            <div className="text-white font-bold text-xl">
-                {value}
-                {unit && <span className="text-sm font-normal opacity-50 ml-1">{unit}</span>}
-            </div>
+            {children}
         </motion.div>
     )
 }
 
-// Progress bar with glow
-function GlowProgress({ value, max = 100, color = "emerald" }: { value: number; max?: number; color?: string }) {
-    const percentage = Math.min((value / max) * 100, 100)
-    const colorClasses: Record<string, string> = {
-        emerald: "from-emerald-500 to-teal-500",
-        orange: "from-orange-500 to-amber-500",
-        blue: "from-blue-500 to-indigo-500"
+function SectionHeader({ icon: Icon, title, badge, badgeColor = "teal" }: { icon: LucideIcon; title: string; badge?: string; badgeColor?: string }) {
+    const badgeColors: Record<string, string> = {
+        teal: "bg-teal-500/15 text-teal-400 ring-teal-500/25",
+        orange: "bg-orange-500/15 text-orange-400 ring-orange-500/25",
+        blue: "bg-blue-500/15 text-blue-400 ring-blue-500/25",
+        amber: "bg-amber-500/15 text-amber-400 ring-amber-500/25",
+        emerald: "bg-emerald-500/15 text-emerald-400 ring-emerald-500/25",
     }
-
     return (
-        <div className="relative h-2 w-full bg-white/5 rounded-full overflow-hidden">
-            <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${percentage}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className={clsx("h-full rounded-full bg-gradient-to-r", colorClasses[color] || colorClasses.emerald)}
-            />
-            <div className={clsx("absolute inset-0 bg-gradient-to-r opacity-50 blur-sm", colorClasses[color] || colorClasses.emerald)} style={{ width: `${percentage}%` }} />
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <div className="flex items-center gap-2.5">
+                <Icon className="h-4.5 w-4.5 text-slate-400" />
+                <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">{title}</h2>
+            </div>
+            {badge && (
+                <span className={clsx("text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ring-1", badgeColors[badgeColor])}>{badge}</span>
+            )}
         </div>
     )
 }
 
-// Timeline event
-function TimelineEvent({ title, date, icon: Icon, color = "emerald", pending = false }: { title: string; date?: string; icon: LucideIcon; color?: string; pending?: boolean }) {
-    const colorClasses: Record<string, string> = {
-        emerald: "bg-emerald-500 shadow-emerald-500/50",
-        orange: "bg-orange-500 shadow-orange-500/50",
-        blue: "bg-blue-500 shadow-blue-500/50",
-        slate: "bg-slate-600 shadow-none"
+function StatusBadge({ status }: { status: string }) {
+    const configs: Record<string, { bg: string; dot: string; text: string; label: string }> = {
+        CREATED: { bg: "bg-slate-500/10 ring-1 ring-slate-500/30", dot: "bg-slate-400", text: "text-slate-300", label: "Created" },
+        ACTIVE: { bg: "bg-emerald-500/10 ring-1 ring-emerald-500/30", dot: "bg-emerald-400", text: "text-emerald-300", label: "Active" },
+        SHIPPED: { bg: "bg-sky-500/10 ring-1 ring-sky-500/30", dot: "bg-sky-400", text: "text-sky-300", label: "Shipped" },
+        IN_SERVICE: { bg: "bg-emerald-500/10 ring-1 ring-emerald-500/30", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-300", label: "In Service" },
+        RECALLED: { bg: "bg-red-500/10 ring-1 ring-red-500/30", dot: "bg-red-400 animate-pulse", text: "text-red-300", label: "Recalled" },
+        RECYCLED: { bg: "bg-teal-500/10 ring-1 ring-teal-500/30", dot: "bg-teal-400", text: "text-teal-300", label: "Recycled" },
+        END_OF_LIFE: { bg: "bg-slate-700/10 ring-1 ring-slate-600/30", dot: "bg-slate-500", text: "text-slate-400", label: "End of Life" },
     }
-
+    const c = configs[status] || configs.ACTIVE
     return (
-        <div className={clsx("relative flex items-start gap-4", pending && "opacity-40")}>
-            <div className={clsx("relative z-10 flex h-10 w-10 items-center justify-center rounded-full shadow-lg", colorClasses[color])}>
-                <Icon className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex-1 pt-1.5">
-                <p className={clsx("font-semibold", pending ? "text-slate-500" : "text-white")}>{title}</p>
-                {date && <p className="text-sm text-slate-500 mt-0.5">{date}</p>}
-            </div>
-        </div>
+        <span className={clsx("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold", c.bg, c.text)}>
+            <span className={clsx("h-1.5 w-1.5 rounded-full", c.dot)} />
+            {c.label}
+        </span>
     )
 }
 
-// CE Mark
 function CEMark({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 170 120" className={clsx("h-8 w-auto", className)} fill="currentColor">
+        <svg viewBox="0 0 170 120" className={clsx("h-7 w-auto", className)} fill="currentColor">
             <path d="M60,60 m-50,0 a50,50 0 1,0 100,0 a50,50 0 1,0 -100,0 M60,60 m-35,0 a35,35 0 1,1 70,0 a35,35 0 1,1 -70,0 M25,60 L60,60 M25,45 L50,45 M25,75 L50,75"
                 fill="none" stroke="currentColor" strokeWidth="8" />
             <path d="M110,10 L110,110 L145,110 M110,60 L135,60 M110,10 L145,10"
@@ -236,656 +149,709 @@ function CEMark({ className }: { className?: string }) {
     )
 }
 
-// BIS Mark
 function BISMark() {
     return (
-        <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-orange-400 text-orange-400 text-[10px] font-bold bg-orange-500/10">
+        <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-orange-400 text-orange-400 text-[9px] font-bold bg-orange-500/10">
             BIS
         </div>
     )
 }
 
-// Material chip
-function MaterialChip({ element, value }: { element: string; value: number }) {
-    const colors: Record<string, string> = {
-        cobalt: "from-blue-500/20 to-blue-600/20 text-blue-400 ring-blue-500/30",
-        lithium: "from-purple-500/20 to-purple-600/20 text-purple-400 ring-purple-500/30",
-        nickel: "from-teal-500/20 to-teal-600/20 text-teal-400 ring-teal-500/30",
-        manganese: "from-amber-500/20 to-orange-500/20 text-amber-400 ring-amber-500/30",
-        graphite: "from-slate-500/20 to-slate-600/20 text-slate-300 ring-slate-500/30",
-        lead: "from-slate-500/20 to-slate-600/20 text-slate-400 ring-slate-500/30",
-    }
+// Circular gauge for SoH
+function SoHGauge({ value, lastUpdate }: { value?: number | null; lastUpdate?: string | null }) {
+    const hasValue = value !== null && value !== undefined && lastUpdate
+    const pct = hasValue ? value : 0
+    const circumference = 2 * Math.PI * 54
+    const offset = circumference - (pct / 100) * circumference
+    const color = pct >= 80 ? "text-emerald-400" : pct >= 50 ? "text-amber-400" : "text-red-400"
+    const trackColor = pct >= 80 ? "text-emerald-500/15" : pct >= 50 ? "text-amber-500/15" : "text-red-500/15"
 
     return (
-        <span className={clsx("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r ring-1", colors[element] || colors.lead)}>
-            <Atom className="h-3.5 w-3.5" />
-            {element.charAt(0).toUpperCase() + element.slice(1)}: {value}%
-        </span>
+        <div className="flex flex-col items-center gap-2">
+            <div className="relative h-32 w-32">
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="54" fill="none" strokeWidth="8" className={trackColor} stroke="currentColor" />
+                    {hasValue && (
+                        <motion.circle
+                            cx="60" cy="60" r="54" fill="none" strokeWidth="8"
+                            strokeLinecap="round" className={color} stroke="currentColor"
+                            strokeDasharray={circumference}
+                            initial={{ strokeDashoffset: circumference }}
+                            animate={{ strokeDashoffset: offset }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                        />
+                    )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={clsx("text-3xl font-bold", hasValue ? color : "text-slate-500")}>
+                        {hasValue ? `${pct}%` : "—"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">SoH</span>
+                </div>
+            </div>
+            {hasValue && lastUpdate && (
+                <span className="text-[10px] text-slate-500">Updated {new Date(lastUpdate).toLocaleDateString()}</span>
+            )}
+            {!hasValue && <span className="text-[10px] text-slate-500">No telemetry data</span>}
+        </div>
     )
 }
+
+// Stacked material bar
+function MaterialBar({ composition }: { composition: NonNullable<NonNullable<PassportViewData["specs"]>["material_composition"]> }) {
+    const materials = [
+        { key: "cobalt_pct", label: "Co", color: "bg-sky-500", text: "text-sky-400" },
+        { key: "lithium_pct", label: "Li", color: "bg-teal-500", text: "text-teal-400" },
+        { key: "nickel_pct", label: "Ni", color: "bg-cyan-500", text: "text-cyan-400" },
+        { key: "manganese_pct", label: "Mn", color: "bg-amber-500", text: "text-amber-400" },
+        { key: "graphite_pct", label: "C", color: "bg-slate-500", text: "text-slate-400" },
+        { key: "lead_pct", label: "Pb", color: "bg-slate-600", text: "text-slate-500" },
+    ] as const
+
+    const active = materials.filter(m => {
+        const v = composition[m.key as keyof typeof composition]
+        return v !== undefined && v !== null && (v as number) > 0
+    })
+
+    if (active.length === 0) return null
+
+    return (
+        <div className="space-y-3">
+            <div className="flex h-5 w-full rounded-full overflow-hidden bg-white/5">
+                {active.map(m => {
+                    const v = composition[m.key as keyof typeof composition] as number
+                    return (
+                        <motion.div
+                            key={m.key}
+                            className={clsx("h-full", m.color)}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${v}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                        />
+                    )
+                })}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {active.map(m => {
+                    const v = composition[m.key as keyof typeof composition] as number
+                    return (
+                        <div key={m.key} className="flex items-center gap-1.5 text-xs">
+                            <span className={clsx("h-2 w-2 rounded-full", m.color)} />
+                            <span className="text-slate-400">{m.label}</span>
+                            <span className="text-white font-semibold">{v}%</span>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
+// Horizontal lifecycle stepper
+function LifecycleStepper({ steps }: { steps: { label: string; date?: string; active: boolean; pending: boolean; icon: LucideIcon }[] }) {
+    return (
+        <div className="flex items-start justify-between relative">
+            {/* connector line */}
+            <div className="absolute top-5 left-5 right-5 h-0.5 bg-slate-800" />
+            <div className="absolute top-5 left-5 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500"
+                style={{ width: `${(steps.filter(s => s.active).length / steps.length) * 100}%` }} />
+
+            {steps.map((step, i) => (
+                <div key={i} className="relative flex flex-col items-center text-center z-10" style={{ width: `${100 / steps.length}%` }}>
+                    <div className={clsx(
+                        "flex items-center justify-center h-10 w-10 rounded-full border-2 transition-all",
+                        step.active ? "border-emerald-500 bg-emerald-500/20 text-emerald-400" :
+                        step.pending ? "border-slate-700 bg-slate-800 text-slate-500" :
+                        "border-cyan-500 bg-cyan-500/20 text-cyan-400"
+                    )}>
+                        <step.icon className="h-4 w-4" />
+                    </div>
+                    <span className={clsx("text-[11px] font-medium mt-2 leading-tight",
+                        step.active ? "text-white" : step.pending ? "text-slate-600" : "text-slate-400"
+                    )}>{step.label}</span>
+                    {step.date && <span className="text-[9px] text-slate-500 mt-0.5">{step.date}</span>}
+                </div>
+            ))}
+        </div>
+    )
+}
+
+// Compliance tab button
+function TabButton({ active, children, onClick, color = "teal" }: { active: boolean; children: React.ReactNode; onClick: () => void; color?: string }) {
+    const colors: Record<string, string> = {
+        teal: active ? "bg-teal-500/15 text-teal-400 ring-teal-500/30" : "text-slate-500 hover:text-slate-300",
+        orange: active ? "bg-orange-500/15 text-orange-400 ring-orange-500/30" : "text-slate-500 hover:text-slate-300",
+        blue: active ? "bg-blue-500/15 text-blue-400 ring-blue-500/30" : "text-slate-500 hover:text-slate-300",
+    }
+    return (
+        <button
+            onClick={onClick}
+            className={clsx(
+                "px-4 py-2 rounded-lg text-sm font-semibold transition-all ring-1",
+                active ? colors[color] : "ring-transparent " + colors[color]
+            )}
+        >
+            {children}
+        </button>
+    )
+}
+
+// Data row helper
+function DataRow({ label, value, icon: Icon, valueColor, children }: {
+    label: string; value?: string | React.ReactNode; icon?: LucideIcon; valueColor?: string; children?: React.ReactNode
+}) {
+    return (
+        <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-b-0">
+            <div className="flex items-center gap-2.5">
+                {Icon && <Icon className="h-4 w-4 text-slate-500" />}
+                <span className="text-sm text-slate-400">{label}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                {children || <span className={clsx("text-sm font-medium", valueColor || "text-white")}>{value || "—"}</span>}
+            </div>
+        </div>
+    )
+}
+
+// Progress bar
+function ProgressBar({ value, max = 100, color = "emerald" }: { value: number; max?: number; color?: string }) {
+    const pct = Math.min((value / max) * 100, 100)
+    const colors: Record<string, string> = {
+        emerald: "from-emerald-500 to-teal-400",
+        orange: "from-orange-500 to-amber-400",
+        blue: "from-blue-500 to-cyan-400",
+    }
+    return (
+        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+            <motion.div
+                className={clsx("h-full rounded-full bg-gradient-to-r", colors[color] || colors.emerald)}
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+            />
+        </div>
+    )
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function PassportView({ passport }: PassportViewProps) {
     const specs = passport.specs || {}
     const passportData = passport.passport || {}
     const tenant = passport.tenant || {}
     const batchName = passport.batch_name || "Battery Passport"
+    const modelName = passport.model_name || ""
     const status = passportData.status || "CREATED"
-    const eprNumber = tenant.epr_registration_number || ""
-    const bisNumber = tenant.bis_r_number || ""
+
+    const eprNumber = specs.epr_number || tenant.epr_registration_number || ""
+    const bisNumber = specs.bis_number || tenant.bis_r_number || ""
 
     const marketRegion = (passport.market_region || "GLOBAL") as MarketRegion
-    const isIndia = marketRegion === "INDIA"
-    const isEU = marketRegion === "EU"
+    const isIndia = marketRegion === "INDIA" || marketRegion === "GLOBAL"
+    const isEU = marketRegion === "EU" || marketRegion === "GLOBAL"
+    const isGlobal = marketRegion === "GLOBAL"
 
     const domesticValueAdd = passport.domestic_value_add
     const hasDomesticValueAdd = domesticValueAdd !== null && domesticValueAdd !== undefined
     const pliEligible = passport.pli_compliant && hasDomesticValueAdd && domesticValueAdd >= 50
+    const dvaSource = passport.dva_source || ""
+    const hsnCode = passport.hsn_code || specs.hsn_code || ""
 
     const cellSource = passport.cell_source || ""
     const isImported = cellSource === "IMPORTED"
     const materialComposition = specs.material_composition || null
     const hasMaterials = materialComposition && (
-        materialComposition.cobalt_pct ||
-        materialComposition.lithium_pct ||
-        materialComposition.nickel_pct ||
-        materialComposition.manganese_pct ||
-        materialComposition.graphite_pct ||
-        materialComposition.lead_pct
+        materialComposition.cobalt_pct || materialComposition.lithium_pct ||
+        materialComposition.nickel_pct || materialComposition.manganese_pct ||
+        materialComposition.graphite_pct || materialComposition.lead_pct
+    )
+    const hasRecycledMaterials = materialComposition && (
+        materialComposition.recycled_cobalt_pct || materialComposition.recycled_lithium_pct ||
+        materialComposition.recycled_nickel_pct || materialComposition.recycled_lead_pct
     )
     const recycledContentLabel = specs.recycled_content_pct !== null && specs.recycled_content_pct !== undefined
-        ? `${specs.recycled_content_pct}%`
-        : "Missing"
+        ? `${specs.recycled_content_pct}%` : "—"
     const warrantyLabel = specs.warranty_months !== null && specs.warranty_months !== undefined
-        ? `${specs.warranty_months} months`
-        : "Missing"
+        ? `${specs.warranty_months} mo` : "—"
     const lifetimeLabel = specs.expected_lifetime_cycles !== null && specs.expected_lifetime_cycles !== undefined
-        ? `${specs.expected_lifetime_cycles} cycles`
-        : "Missing"
-    const hazardousDeclaration = specs.hazardous_substances?.declaration || ""
-    const recyclableLabel = specs.recyclable === true ? "Recyclable" : specs.recyclable === false ? "Non-Recyclable" : "Missing"
-    const recyclableColor = specs.recyclable === true ? "text-emerald-400" : specs.recyclable === false ? "text-slate-500" : "text-red-400"
+        ? `${specs.expected_lifetime_cycles} cycles` : "—"
+    const hazSub = specs.hazardous_substances
+    const hazardousDeclaration = hazSub?.declaration || ""
 
-    // India import/customs fields
+    const mfgStart = passport.manufacturing_start_date
+    const mfgEnd = passport.manufacturing_end_date
     const billOfEntryNo = passport.bill_of_entry_no || ""
     const cellCountryOfOrigin = passport.country_of_origin || ""
     const customsDate = passport.customs_date || ""
 
+    // Compliance tab state
+    const [complianceTab, setComplianceTab] = useState<"eu" | "india">(
+        marketRegion === "INDIA" ? "india" : "eu"
+    )
+    const showBothTabs = isGlobal || (isIndia && isEU)
+
+    // Lifecycle steps
+    const lifecycleSteps = [
+        { label: "Manufactured", date: passportData.manufacture_date ? new Date(passportData.manufacture_date).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : undefined, active: true, pending: false, icon: Factory },
+        { label: isIndia ? "Aadhaar Issued" : "Passport Issued", date: passportData.created_at ? new Date(passportData.created_at).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : undefined, active: true, pending: false, icon: BadgeCheck },
+        { label: "In Service", active: status === "IN_SERVICE" || status === "ACTIVE", pending: status === "CREATED" || status === "SHIPPED", icon: Activity },
+        { label: "End of Life", active: status === "END_OF_LIFE" || status === "RECYCLED", pending: true, icon: Recycle },
+    ]
+
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-        }
-    }
-
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: { y: 0, opacity: 1 }
+        visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
     }
 
     return (
         <motion.div
-            className="w-full max-w-2xl mx-auto space-y-5"
+            className="w-full max-w-2xl mx-auto space-y-4"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
         >
-            {/* ═══════════════════════════════════════════════════════════════════
-                HEADER - Identity & Badges
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                {/* Status Badges Row */}
-                <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-                    <VerifiedBadge />
-                    <MarketBadge region={marketRegion} pliEligible={pliEligible} />
-                    <StatusBadge status={status} />
-                </div>
+            {/* ▓▓▓ HERO BANNER ▓▓▓ */}
+            <Section>
+                <div className="relative overflow-hidden">
+                    {/* Background mesh gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+                    <div className={clsx(
+                        "absolute inset-0 opacity-30",
+                        isIndia ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-600/40 via-transparent to-transparent"
+                            : isEU ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-600/40 via-transparent to-transparent"
+                            : "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-600/40 via-transparent to-transparent"
+                    )} />
 
-                {/* Product Name */}
-                <div className="text-center mb-6">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">{batchName}</h1>
-                    <p className="text-slate-400 text-lg">{specs.manufacturer || "Battery Manufacturer"}</p>
-                </div>
-
-                {/* Serial Number Card */}
-                <GlowCard glowColor={isIndia ? "orange" : isEU ? "blue" : "emerald"}>
-                    <div className="p-6 text-center">
-                        <div className="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold mb-3 flex items-center justify-center gap-2">
-                            <QrCode className="h-4 w-4" />
-                            {isIndia ? "Battery Aadhaar Number (BPAN)" : "Passport Serial Number"}
-                        </div>
-                        <code className={clsx(
-                            "font-mono text-2xl md:text-3xl font-bold tracking-wider",
-                            isIndia ? "text-orange-400" : isEU ? "text-blue-400" : "text-emerald-400"
-                        )}>
-                            {passportData.serial_number || "N/A"}
-                        </code>
-                        <div className="mt-4 text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Issued: {passportData.created_at ? new Date(passportData.created_at).toLocaleDateString(undefined, {
-                                year: 'numeric', month: 'long', day: 'numeric'
-                            }) : "-"}
-                        </div>
-                    </div>
-                </GlowCard>
-            </motion.div>
-
-            {/* ═══════════════════════════════════════════════════════════════════
-                TECHNICAL SPECIFICATIONS GRID
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                <GlowCard>
-                    <div className="p-5">
-                        <div className="flex items-center gap-3 mb-5">
-                            <div className="p-2 rounded-lg bg-blue-500/10">
-                                <Battery className="h-5 w-5 text-blue-400" />
-                            </div>
-                            <h2 className="text-lg font-bold text-white">Technical Specifications</h2>
+                    <div className="relative px-5 py-6 md:px-8 md:py-8">
+                        {/* Top row badges */}
+                        <div className="flex flex-wrap items-center gap-2 mb-5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                                <BadgeCheck className="h-3.5 w-3.5" /> Verified
+                            </span>
+                            {marketRegion === "INDIA" && (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/10 ring-1 ring-orange-500/30 text-orange-400 text-xs font-semibold">
+                                    {pliEligible ? "🇮🇳 PLI Eligible" : "🇮🇳 India"}
+                                </span>
+                            )}
+                            {marketRegion === "EU" && (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/30 text-blue-400 text-xs font-semibold">
+                                    🇪🇺 EU Battery Passport
+                                </span>
+                            )}
+                            {isGlobal && (
+                                <>
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/10 ring-1 ring-orange-500/30 text-orange-400 text-xs font-semibold">
+                                        🇮🇳 India
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/30 text-blue-400 text-xs font-semibold">
+                                        🇪🇺 EU
+                                    </span>
+                                </>
+                            )}
+                            {dvaSource === "AUDITED" && (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-teal-500/10 ring-1 ring-teal-500/30 text-teal-400 text-xs font-semibold">
+                                    <FileCheck className="h-3 w-3" /> CA Audited
+                                </span>
+                            )}
+                            <StatusBadge status={status} />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <SpecCard icon={Atom} label="Chemistry" value={specs.chemistry || "-"} color="purple" />
-                            <SpecCard icon={Zap} label="Capacity" value={specs.capacity || "-"} color="emerald" />
-                            <SpecCard icon={ThermometerSun} label="Voltage" value={specs.voltage || "-"} color="blue" />
-                            <SpecCard icon={Weight} label="Weight" value={specs.weight || "-"} color="orange" />
-                        </div>
+                        {/* Identity */}
+                        <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{batchName}</h1>
+                        {modelName && <p className="text-slate-500 text-sm font-mono mt-1">{modelName}</p>}
+                        <p className="text-slate-400 text-base mt-1">{specs.manufacturer || tenant.company_name || "Battery Manufacturer"}</p>
 
-                        {/* State of Health */}
-                        <div className="mt-4 p-4 rounded-xl bg-linear-to-br from-emerald-500/10 to-teal-500/10 border border-white/5">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-emerald-500/10">
-                                        <Activity className="h-5 w-5 text-emerald-400" />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">State of Health</div>
-                                        <div className="text-white font-semibold mt-0.5 flex items-center gap-2">
-                                            {(() => {
-                                                const soh = passportData.state_of_health
-                                                const lastUpdate = passportData.last_soh_update_timestamp
-                                                if (soh === null || soh === undefined || !lastUpdate) {
-                                                    return <span className="text-red-400">Missing</span>
-                                                }
-
-                                                return (
-                                                    <>
-                                                        <span className="text-emerald-400 text-xl">{soh}%</span>
-                                                        <span className="text-xs text-slate-500">
-                                                            Updated {new Date(lastUpdate).toLocaleDateString()}
-                                                        </span>
-                                                    </>
-                                                )
-                                            })()}
-                                        </div>
-                                    </div>
+                        {/* Serial number strip */}
+                        <div className="mt-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                            <QrCode className={clsx("h-5 w-5 shrink-0", isIndia ? "text-orange-400" : isEU ? "text-blue-400" : "text-teal-400")} />
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+                                    {isIndia ? "Battery Aadhaar (BPAN)" : "Passport Serial"}
                                 </div>
+                                <code className={clsx("text-lg md:text-xl font-bold font-mono tracking-wider block truncate",
+                                    isIndia ? "text-orange-400" : isEU ? "text-blue-400" : "text-teal-400"
+                                )}>
+                                    {passportData.serial_number || "N/A"}
+                                </code>
                             </div>
-                        </div>
-
-                        {/* Origin */}
-                        <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-slate-600/10 border border-white/5 flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-500/10">
-                                <MapPin className="h-5 w-5 text-emerald-400" />
-                            </div>
-                            <div>
-                                {isImported ? (
-                                    <>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Origin</div>
-                                        <div className="text-white font-semibold mt-0.5">
-                                            Imported from {cellCountryOfOrigin || specs.country_of_origin || "Missing"}
-                                        </div>
-                                    </>
-                                ) : cellSource === "DOMESTIC" ? (
-                                    <>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Country of Origin</div>
-                                        <div className="text-white font-semibold mt-0.5">
-                                            Made in {specs.country_of_origin || "Missing"}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Origin</div>
-                                        <div className="text-white font-semibold mt-0.5">
-                                            Missing
-                                        </div>
-                                    </>
-                                )}
+                            <div className="text-right shrink-0">
+                                <div className="text-[10px] text-slate-600">Issued</div>
+                                <div className="text-xs text-slate-400 font-medium">
+                                    {passportData.created_at
+                                        ? new Date(passportData.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                                        : "—"}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </GlowCard>
-            </motion.div>
+                </div>
+            </Section>
 
-            {/* ═══════════════════════════════════════════════════════════════════
-                COMPLIANCE CARD (Dynamic by Market)
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                {isIndia ? (
-                    <GlowCard glowColor="orange">
-                        <div className="p-5">
-                            <div className="flex items-center justify-between mb-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-orange-500/10">
-                                        <Flag className="h-5 w-5 text-orange-400" />
-                                    </div>
-                                    <h2 className="text-lg font-bold text-white">🇮🇳 Regulatory Compliance</h2>
-                                </div>
-                                <BISMark />
+            {/* ▓▓▓ KEY METRICS STRIP + SOH ▓▓▓ */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                {/* Specs strip */}
+                <Section>
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.04]">
+                        {[
+                            { icon: Atom, label: "Chemistry", value: specs.chemistry || "—", accent: "text-cyan-400" },
+                            { icon: Zap, label: "Capacity", value: specs.capacity || "—", accent: "text-emerald-400" },
+                            { icon: ThermometerSun, label: "Voltage", value: specs.voltage || "—", accent: "text-sky-400" },
+                            { icon: Weight, label: "Weight", value: specs.weight || "—", accent: "text-amber-400" },
+                        ].map((s, i) => (
+                            <div key={i} className="px-4 py-4 text-center">
+                                <s.icon className={clsx("h-4 w-4 mx-auto mb-1.5", s.accent)} />
+                                <div className={clsx("text-lg font-bold text-white")}>{s.value}</div>
+                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mt-0.5">{s.label}</div>
                             </div>
+                        ))}
+                    </div>
+                </Section>
 
-                            <div className="space-y-4">
-                                {/* DVA Progress */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-slate-300">Domestic Value Add</span>
-                                        <span className={clsx(
-                                            "text-2xl font-bold",
-                                            hasDomesticValueAdd
-                                                ? (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400")
-                                                : "text-slate-500"
-                                        )}>
-                                            {hasDomesticValueAdd ? `${domesticValueAdd}%` : "Missing"}
-                                        </span>
-                                    </div>
-                                    {hasDomesticValueAdd ? (
-                                        <>
-                                            <GlowProgress value={domesticValueAdd} color={domesticValueAdd >= 50 ? "emerald" : "orange"} />
-                                            <p className="text-xs text-slate-500 mt-2">
-                                                {cellSource === "IMPORTED" ? "Imported cells (DVA may be 0%)" : "PLI Requirement: >= 50%"}
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <p className="text-xs text-slate-500 mt-2">Missing</p>
+                {/* SoH gauge */}
+                <Section className="flex items-center justify-center px-6 py-4">
+                    <SoHGauge value={passportData.state_of_health} lastUpdate={passportData.last_soh_update_timestamp} />
+                </Section>
+            </div>
+
+            {/* ▓▓▓ ORIGIN & MANUFACTURING ▓▓▓ */}
+            <Section>
+                <SectionHeader icon={MapPin} title="Origin & Manufacturing" />
+                <div className="px-5 pb-5">
+                    <DataRow label="Country of Origin" icon={Globe}
+                        value={isImported
+                            ? `Imported from ${cellCountryOfOrigin || specs.country_of_origin || "—"}`
+                            : cellSource === "DOMESTIC"
+                                ? `Made in ${specs.country_of_origin || "India"}`
+                                : specs.country_of_origin || "—"
+                        }
+                    />
+                    {cellSource && (
+                        <DataRow label="Cell Source" icon={Factory}>
+                            <span className={clsx("text-sm font-medium", cellSource === "DOMESTIC" ? "text-emerald-400" : "text-amber-400")}>
+                                {cellSource === "DOMESTIC" ? "Domestic 🇮🇳" : "Imported"}
+                            </span>
+                            {cellSource === "DOMESTIC" && (
+                                <span className="text-[10px] bg-orange-500/15 text-orange-400 px-2 py-0.5 rounded-full font-semibold ring-1 ring-orange-500/25 ml-2">
+                                    Atmanirbhar
+                                </span>
+                            )}
+                        </DataRow>
+                    )}
+                    {mfgStart && (
+                        <DataRow label="Manufacturing Window" icon={Calendar}
+                            value={`${new Date(mfgStart).toLocaleDateString(undefined, { month: "short", year: "numeric" })}${mfgEnd ? ` – ${new Date(mfgEnd).toLocaleDateString(undefined, { month: "short", year: "numeric" })}` : ""}`}
+                        />
+                    )}
+                    {passportData.manufacture_date && (
+                        <DataRow label="Manufacture Date" icon={Calendar}
+                            value={new Date(passportData.manufacture_date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                        />
+                    )}
+                </div>
+            </Section>
+
+            {/* ▓▓▓ COMPLIANCE PANEL ▓▓▓ */}
+            <Section>
+                <div className="px-5 pt-5 pb-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <Shield className="h-4.5 w-4.5 text-slate-400" />
+                            <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">Regulatory Compliance</h2>
+                        </div>
+                        {showBothTabs && (
+                            <div className="flex gap-1.5">
+                                <TabButton active={complianceTab === "eu"} onClick={() => setComplianceTab("eu")} color="blue">🇪🇺 EU</TabButton>
+                                <TabButton active={complianceTab === "india"} onClick={() => setComplianceTab("india")} color="orange">🇮🇳 India</TabButton>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* EU Compliance */}
+                {(complianceTab === "eu" || (!showBothTabs && isEU)) && (
+                    <div className="px-5 pb-5 space-y-4">
+                        {/* Carbon Footprint */}
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                            <div className="flex items-center gap-3">
+                                <Leaf className="h-5 w-5 text-emerald-400" />
+                                <div>
+                                    <div className="text-xs text-slate-500 uppercase tracking-wider font-medium">Carbon Footprint</div>
+                                    <div className="text-white font-bold text-lg">{specs.carbon_footprint || "—"} <span className="text-sm font-normal text-slate-500">kg CO₂e</span></div>
+                                </div>
+                            </div>
+                            {specs.carbon_footprint && (
+                                <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-full font-bold ring-1 ring-emerald-500/25">Certified</span>
+                            )}
+                        </div>
+
+                        {/* Material Composition */}
+                        {hasMaterials && materialComposition && (
+                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Atom className="h-4 w-4 text-cyan-400" />
+                                    <span className="text-sm font-medium text-slate-300">Material Composition</span>
+                                    <span className="text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded font-semibold">EU Required</span>
+                                </div>
+                                <MaterialBar composition={materialComposition} />
+                            </div>
+                        )}
+
+                        {/* Recycled Content Per-Material */}
+                        {hasRecycledMaterials && materialComposition && (
+                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Recycle className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Per-Material Recycled Content</span>
+                                    <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Art. 8</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {materialComposition.recycled_cobalt_pct != null && materialComposition.recycled_cobalt_pct > 0 && (
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
+                                            <span className="text-sky-400">Cobalt</span>
+                                            <span className="text-white font-bold">{materialComposition.recycled_cobalt_pct}%</span>
+                                        </div>
+                                    )}
+                                    {materialComposition.recycled_lithium_pct != null && materialComposition.recycled_lithium_pct > 0 && (
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
+                                            <span className="text-teal-400">Lithium</span>
+                                            <span className="text-white font-bold">{materialComposition.recycled_lithium_pct}%</span>
+                                        </div>
+                                    )}
+                                    {materialComposition.recycled_nickel_pct != null && materialComposition.recycled_nickel_pct > 0 && (
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
+                                            <span className="text-cyan-400">Nickel</span>
+                                            <span className="text-white font-bold">{materialComposition.recycled_nickel_pct}%</span>
+                                        </div>
+                                    )}
+                                    {materialComposition.recycled_lead_pct != null && materialComposition.recycled_lead_pct > 0 && (
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
+                                            <span className="text-slate-400">Lead</span>
+                                            <span className="text-white font-bold">{materialComposition.recycled_lead_pct}%</span>
+                                        </div>
                                     )}
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Cell Source */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Factory className={clsx("h-5 w-5", cellSource === "DOMESTIC" ? "text-emerald-400" : cellSource === "IMPORTED" ? "text-amber-400" : "text-slate-500")} />
-                                        <div>
-                                            <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Cell Source</div>
-                                            <div className="font-semibold text-white mt-0.5">
-                                                {cellSource === "DOMESTIC" ? "Domestic ????" : cellSource === "IMPORTED" ? "Imported" : "Missing"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {cellSource === "DOMESTIC" && (
-                                        <span className="text-xs bg-orange-500/20 text-orange-400 px-3 py-1.5 rounded-full font-semibold ring-1 ring-orange-500/30">
-                                            Atmanirbhar
-                                        </span>
-                                    )}
+                        {/* Sustainability metrics row */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">Recycled</div>
+                                <div className="text-white font-bold mt-0.5">{recycledContentLabel}</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">Warranty</div>
+                                <div className="text-white font-bold mt-0.5">{warrantyLabel}</div>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                                <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">Lifetime</div>
+                                <div className="text-white font-bold mt-0.5">{lifetimeLabel}</div>
+                            </div>
+                        </div>
+
+                        {/* Hazardous Substances */}
+                        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                            <div className="text-xs uppercase tracking-wider text-slate-500 font-medium mb-2">Hazardous Substances</div>
+                            <div className="text-sm text-white">{hazardousDeclaration || "—"}</div>
+                            {hazSub && (hazSub.lead_present || hazSub.mercury_present || hazSub.cadmium_present) && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {hazSub.lead_present && <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/15 text-red-400 ring-1 ring-red-500/25">Lead</span>}
+                                    {hazSub.mercury_present && <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/15 text-red-400 ring-1 ring-red-500/25">Mercury</span>}
+                                    {hazSub.cadmium_present && <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/15 text-red-400 ring-1 ring-red-500/25">Cadmium</span>}
                                 </div>
+                            )}
+                            {hazSub?.exemptions && <div className="text-xs text-slate-500 mt-1">Exemptions: {hazSub.exemptions}</div>}
+                        </div>
 
-                                {/* EPR with Registration Number */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <FileCheck className="h-5 w-5 text-emerald-400" />
-                                        <div className="flex-1">
-                                            <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">EPR Registration</div>
-                                            <div className={clsx("font-semibold flex items-center gap-1.5 mt-0.5", eprNumber ? "text-emerald-400" : "text-red-400")}>
-                                                {eprNumber ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                                                {eprNumber || "Missing"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-                                        <BISMark />
-                                        <div>
-                                            <div className="text-xs text-slate-500">BIS R-Number (IS 16046)</div>
-                                            <div className="text-blue-400 text-sm font-mono">{bisNumber ? `R-${bisNumber}` : "Missing"}</div>
-                                        </div>
-                                    </div>
+                        {/* EU Authorized Representative (Art. 77) */}
+                        {(specs.eu_representative || specs.eu_representative_email) && (
+                            <div className="p-4 rounded-xl bg-blue-500/[0.06] border border-blue-500/15">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Building2 className="h-4 w-4 text-blue-400" />
+                                    <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">EU Authorized Representative</span>
                                 </div>
-
-                                {/* Import Details for IMPORTED cells */}
-                                {isImported && (
-                                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Truck className="h-4 w-4 text-amber-400" />
-                                            <span className="text-sm font-medium text-amber-400">Import Declaration</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <div className="text-xs text-slate-500">Imported from</div>
-                                                <div className="text-white font-medium">{cellCountryOfOrigin || "Missing"}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-slate-500">Bill of Entry</div>
-                                                <div className="text-white font-mono text-sm">{billOfEntryNo || "Missing"}</div>
-                                            </div>
-                                        </div>
-                                        {customsDate ? (
-                                            <div className="mt-2 text-xs text-slate-500">
-                                                Cleared: {new Date(customsDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                                            </div>
-                                        ) : (
-                                            <div className="mt-2 text-xs text-slate-500">
-                                                Cleared: Missing
-                                            </div>
-                                        )}
-                                    </div>
+                                {specs.eu_representative && <div className="text-white font-medium text-sm">{specs.eu_representative}</div>}
+                                {specs.eu_representative_email && (
+                                    <a href={`mailto:${specs.eu_representative_email}`} className="text-blue-400 hover:text-blue-300 transition-colors text-sm">{specs.eu_representative_email}</a>
                                 )}
                             </div>
-                        </div>
-                    </GlowCard>
-                ) : isEU ? (
-                    <GlowCard glowColor="blue">
-                        <div className="p-5">
-                            <div className="flex items-center justify-between mb-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-blue-500/10">
-                                        <Leaf className="h-5 w-5 text-blue-400" />
-                                    </div>
-                                    <h2 className="text-lg font-bold text-white">🇪🇺 Sustainability & Composition</h2>
-                                </div>
-                                <CEMark className="text-blue-400/60" />
-                            </div>
-
-                            <div className="space-y-4">
-                                {/* Carbon Footprint */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-full bg-emerald-500/10">
-                                            <Leaf className="h-5 w-5 text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Carbon Footprint</div>
-                                            <div className="text-xl font-bold text-white mt-0.5">
-                                                {specs.carbon_footprint || "Missing"} <span className="text-sm font-normal text-slate-500">kg CO₂e</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {specs.carbon_footprint && (
-                                        <span className="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-500/30">
-                                            Certified
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Materials */}
-                                {hasMaterials ? (
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Shield className="h-4 w-4 text-amber-400" />
-                                            <span className="text-sm font-medium text-slate-300">Material Composition</span>
-                                            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-medium">EU Required</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {materialComposition?.cobalt_pct && materialComposition.cobalt_pct > 0 && (
-                                                <MaterialChip element="cobalt" value={materialComposition.cobalt_pct} />
-                                            )}
-                                            {materialComposition?.lithium_pct && materialComposition.lithium_pct > 0 && (
-                                                <MaterialChip element="lithium" value={materialComposition.lithium_pct} />
-                                            )}
-                                            {materialComposition?.nickel_pct && materialComposition.nickel_pct > 0 && (
-                                                <MaterialChip element="nickel" value={materialComposition.nickel_pct} />
-                                            )}
-                                            {materialComposition?.manganese_pct && materialComposition.manganese_pct > 0 && (
-                                                <MaterialChip element="manganese" value={materialComposition.manganese_pct} />
-                                            )}
-                                            {materialComposition?.graphite_pct && materialComposition.graphite_pct > 0 && (
-                                                <MaterialChip element="graphite" value={materialComposition.graphite_pct} />
-                                            )}
-                                            {materialComposition?.lead_pct && materialComposition.lead_pct > 0 && (
-                                                <MaterialChip element="lead" value={materialComposition.lead_pct} />
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Shield className="h-4 w-4 text-amber-400" />
-                                            <span className="text-sm font-medium text-slate-300">Material Composition</span>
-                                            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-medium">EU Required</span>
-                                        </div>
-                                        <span className="text-red-400 text-sm">Missing</span>
-                                    </div>
-                                )}
-
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recycled Content</div>
-                                        <div className="text-white font-semibold">{recycledContentLabel}</div>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Warranty Period</div>
-                                        <div className="text-white font-semibold">{warrantyLabel}</div>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Expected Lifetime</div>
-                                        <div className="text-white font-semibold">{lifetimeLabel}</div>
-                                    </div>
-                                </div>
-                                <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                                    <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Hazardous Substances Declaration</div>
-                                    <div className="text-white text-sm">{hazardousDeclaration || "Missing"}</div>
-                                </div>
-
-                                {/* Recyclability */}
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Recycle className={clsx("h-5 w-5", recyclableColor)} />
-                                    <div>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recyclability</div>
-                                        <div className={clsx("font-semibold mt-0.5", recyclableColor)}>
-                                            {recyclableLabel}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </GlowCard>
-                ) : (
-                    <GlowCard>
-                        <div className="p-5">
-                            <div className="flex items-center gap-3 mb-5">
-                                <div className="p-2 rounded-lg bg-emerald-500/10">
-                                    <Globe className="h-5 w-5 text-emerald-400" />
-                                </div>
-                                <h2 className="text-lg font-bold text-white">Sustainability Data</h2>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Leaf className="h-5 w-5 text-emerald-400" />
-                                    <div>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Carbon Footprint</div>
-                                        <div className="font-semibold text-white mt-0.5">{specs.carbon_footprint || "Not specified"}</div>
-                                    </div>
-                                </div>
-                                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                                    <Recycle className={clsx("h-5 w-5", recyclableColor)} />
-                                    <div>
-                                        <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Recyclability</div>
-                                        <div className={clsx("font-semibold mt-0.5", recyclableColor)}>
-                                            {recyclableLabel}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </GlowCard>
+                        )}
+                    </div>
                 )}
-            </motion.div>
 
-            {/* ═══════════════════════════════════════════════════════════════════
-                INDIA RECYCLING INSTRUCTIONS (BWM Compliance)
-            ═══════════════════════════════════════════════════════════════════ */}
-            {isIndia && (
-                <motion.div variants={itemVariants}>
-                    <GlowCard glowColor="emerald">
-                        <div className="p-5">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 rounded-lg bg-emerald-500/10">
-                                    <Recycle className="h-5 w-5 text-emerald-400" />
-                                </div>
-                                <h2 className="text-lg font-bold text-white">♻️ Recycling Instructions (BWM Rules 2022)</h2>
+                {/* India Compliance */}
+                {(complianceTab === "india" || (!showBothTabs && isIndia && !isEU)) && (
+                    <div className="px-5 pb-5 space-y-4">
+                        {/* DVA Progress */}
+                        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-slate-300">Domestic Value Add</span>
+                                <span className={clsx("text-xl font-bold",
+                                    hasDomesticValueAdd ? (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400") : "text-slate-500"
+                                )}>
+                                    {hasDomesticValueAdd ? `${domesticValueAdd}%` : "—"}
+                                </span>
                             </div>
+                            {hasDomesticValueAdd && (
+                                <>
+                                    <ProgressBar value={domesticValueAdd} color={domesticValueAdd >= 50 ? "emerald" : "orange"} />
+                                    <p className="text-[10px] text-slate-500 mt-1.5">
+                                        {cellSource === "IMPORTED" ? "Imported cells (DVA may be 0%)" : "PLI Requirement: ≥ 50%"}
+                                    </p>
+                                </>
+                            )}
+                        </div>
 
-                            <div className="flex flex-col md:flex-row items-center gap-6">
-                                {/* Crossed-out Wheeled Bin Symbol */}
-                                <div className="shrink-0">
-                                    <svg viewBox="0 0 100 120" className="h-24 w-auto text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3">
-                                        {/* Bin Body */}
-                                        <rect x="20" y="30" width="60" height="60" rx="4" />
-                                        {/* Bin Lid */}
-                                        <path d="M15 30 L85 30" strokeWidth="4" />
-                                        <rect x="35" y="22" width="30" height="8" rx="2" />
-                                        {/* Wheels */}
-                                        <circle cx="32" cy="95" r="5" fill="currentColor" />
-                                        <circle cx="68" cy="95" r="5" fill="currentColor" />
-                                        {/* Cross-out Line */}
-                                        <line x1="10" y1="110" x2="90" y2="20" strokeWidth="6" className="text-red-500" />
-                                    </svg>
+                        {/* EPR + BIS */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <FileCheck className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">EPR</span>
                                 </div>
-
-                                <div className="flex-1 space-y-3">
-                                    <div className="flex items-start gap-2">
-                                        <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                                        <p className="text-sm text-slate-300">
-                                            <strong className="text-white">Do not dispose in regular waste.</strong> This battery must be collected separately through authorized recyclers.
-                                        </p>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                        <p className="text-sm text-emerald-400">
-                                            📞 For collection, contact the manufacturer or visit <strong>eprregistration.cpcb.gov.in</strong> to locate your nearest recycler.
-                                        </p>
-                                    </div>
-                                    {tenant.support_email && (
-                                        <p className="text-xs text-slate-500">
-                                            Producer Responsibility: {tenant.company_name} • <a href={`mailto:${tenant.support_email}`} className="text-emerald-400 hover:underline">{tenant.support_email}</a>
-                                        </p>
-                                    )}
+                                <div className={clsx("text-sm font-semibold flex items-center gap-1", eprNumber ? "text-emerald-400" : "text-red-400")}>
+                                    {eprNumber ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                                    <span className="truncate">{eprNumber || "Missing"}</span>
                                 </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <BISMark />
+                                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">BIS (IS 16046)</span>
+                                </div>
+                                <div className="text-sm font-mono text-sky-400 truncate">{bisNumber ? `R-${bisNumber}` : "Missing"}</div>
                             </div>
                         </div>
-                    </GlowCard>
-                </motion.div>
+
+                        {/* HSN + DVA Source */}
+                        <div className="grid grid-cols-2 gap-3">
+                            {hsnCode && (
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-1">HSN Code</div>
+                                    <div className="text-white font-mono font-bold">{hsnCode}</div>
+                                </div>
+                            )}
+                            {dvaSource && (
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+                                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-medium mb-1">DVA Verification</div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-white font-semibold text-sm">{dvaSource === "AUDITED" ? "CA-Audited" : "Self-Estimated"}</span>
+                                        <span className={clsx("text-[9px] px-2 py-0.5 rounded-full font-bold ring-1",
+                                            dvaSource === "AUDITED" ? "bg-emerald-500/15 text-emerald-400 ring-emerald-500/25" : "bg-amber-500/15 text-amber-400 ring-amber-500/25"
+                                        )}>
+                                            {dvaSource === "AUDITED" ? "Verified" : "Pending"}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Import Details */}
+                        {isImported && (
+                            <div className="p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Truck className="h-4 w-4 text-amber-400" />
+                                    <span className="text-xs font-medium text-amber-400">Import Declaration</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Imported from</div>
+                                        <div className="text-white font-medium">{cellCountryOfOrigin || "—"}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-slate-500 uppercase tracking-wider">Bill of Entry</div>
+                                        <div className="text-white font-mono text-sm">{billOfEntryNo || "—"}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-[10px] text-slate-500">
+                                    Cleared: {customsDate ? new Date(customsDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—"}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Section>
+
+            {/* ▓▓▓ INDIA RECYCLING INSTRUCTIONS ▓▓▓ */}
+            {isIndia && (
+                <Section>
+                    <div className="px-5 py-5 flex flex-col md:flex-row items-center gap-5">
+                        <div className="shrink-0">
+                            <svg viewBox="0 0 100 120" className="h-20 w-auto text-emerald-400" fill="none" stroke="currentColor" strokeWidth="3">
+                                <rect x="20" y="30" width="60" height="60" rx="4" />
+                                <path d="M15 30 L85 30" strokeWidth="4" />
+                                <rect x="35" y="22" width="30" height="8" rx="2" />
+                                <circle cx="32" cy="95" r="5" fill="currentColor" />
+                                <circle cx="68" cy="95" r="5" fill="currentColor" />
+                                <line x1="10" y1="110" x2="90" y2="20" strokeWidth="6" className="text-red-500" />
+                            </svg>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Recycle className="h-4 w-4 text-emerald-400" />
+                                <span className="text-sm font-bold text-white">Recycling Instructions (BWM Rules 2022)</span>
+                            </div>
+                            <p className="text-xs text-slate-400"><strong className="text-white">Do not dispose in regular waste.</strong> This battery must be collected separately through authorized recyclers.</p>
+                            <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15">
+                                <p className="text-xs text-emerald-400">📞 For collection, contact the manufacturer or visit <strong>eprregistration.cpcb.gov.in</strong></p>
+                            </div>
+                            {tenant.support_email && (
+                                <p className="text-[10px] text-slate-500">
+                                    Producer: {tenant.company_name} • <a href={`mailto:${tenant.support_email}`} className="text-emerald-400 hover:underline">{tenant.support_email}</a>
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </Section>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════════
-                LIFECYCLE TIMELINE
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                <GlowCard>
-                    <div className="p-5">
-                        <div className="flex items-center gap-3 mb-5">
-                            <div className="p-2 rounded-lg bg-purple-500/10">
-                                <Sparkles className="h-5 w-5 text-purple-400" />
-                            </div>
-                            <h2 className="text-lg font-bold text-white">Lifecycle Timeline</h2>
-                        </div>
+            {/* ▓▓▓ LIFECYCLE STEPPER ▓▓▓ */}
+            <Section>
+                <SectionHeader icon={Sparkles} title="Lifecycle" />
+                <div className="px-5 pb-6">
+                    <LifecycleStepper steps={lifecycleSteps} />
+                </div>
+            </Section>
 
-                        <div className="relative">
-                            {/* Vertical line */}
-                            <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-gradient-to-b from-emerald-500 via-blue-500 to-slate-700" />
+            {/* ▓▓▓ MANUFACTURER CONTACT ▓▓▓ */}
+            <Section>
+                <SectionHeader icon={Building2} title="Manufacturer" />
+                <div className="px-5 pb-5">
+                    <DataRow label="Company" icon={Factory} value={specs.manufacturer || tenant.company_name || "—"} />
+                    <DataRow label="Address" icon={MapPin} value={specs.manufacturer_address || tenant.address || "—"} />
+                    <DataRow label="Contact" icon={Mail}>
+                        {tenant.support_email ? (
+                            <a href={`mailto:${tenant.support_email}`} className="text-sm text-sky-400 hover:text-sky-300 transition-colors">{tenant.support_email}</a>
+                        ) : (
+                            <span className="text-sm text-slate-500">—</span>
+                        )}
+                    </DataRow>
+                </div>
+            </Section>
 
-                            <div className="space-y-8">
-                                <TimelineEvent
-                                    icon={Factory}
-                                    title="Manufacturing Complete"
-                                    date={passportData.manufacture_date ? new Date(passportData.manufacture_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : undefined}
-                                    color="emerald"
-                                />
-                                <TimelineEvent
-                                    icon={BadgeCheck}
-                                    title={isIndia ? "Battery Aadhaar Issued" : "Digital Passport Issued"}
-                                    date={passportData.created_at ? new Date(passportData.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : undefined}
-                                    color={isIndia ? "orange" : "blue"}
-                                />
-                                <TimelineEvent
-                                    icon={Recycle}
-                                    title="End of Life / Recycling"
-                                    color="slate"
-                                    pending
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </GlowCard>
-            </motion.div>
-
-            {/* ═══════════════════════════════════════════════════════════════════
-                MANUFACTURER CONTACT
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                <GlowCard>
-                    <div className="p-5">
-                        <div className="flex items-center gap-3 mb-5">
-                            <div className="p-2 rounded-lg bg-slate-500/10">
-                                <Building2 className="h-5 w-5 text-slate-400" />
-                            </div>
-                            <h2 className="text-lg font-bold text-white">Manufacturer Contact</h2>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Factory className="h-4 w-4 text-slate-500" />
-                                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Company</span>
-                                </div>
-                                <p className="text-white font-medium text-sm">
-                                    {specs.manufacturer || tenant.company_name || "Missing"}
-                                </p>
-                            </div>
-                            <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <MapPin className="h-4 w-4 text-slate-500" />
-                                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Address</span>
-                                </div>
-                                <p className="text-slate-300 text-sm">
-                                    {specs.manufacturer_address || tenant.address || "Missing"}
-                                </p>
-                            </div>
-                            <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Mail className="h-4 w-4 text-blue-400" />
-                                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Contact</span>
-                                </div>
-                                {(specs.manufacturer_email || tenant.support_email) ? (
-                                    <a href={`mailto:${specs.manufacturer_email || tenant.support_email}`} className="text-blue-400 hover:text-blue-300 transition-colors text-sm">
-                                        {specs.manufacturer_email || tenant.support_email}
-                                    </a>
-                                ) : (
-                                    <span className="text-slate-500 text-sm">Missing</span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </GlowCard>
-            </motion.div>
-
-            {/* ═══════════════════════════════════════════════════════════════════
-                TELEMETRY CHARTS (BMS Data — SoH / Voltage / Temp / Current)
-            ═══════════════════════════════════════════════════════════════════ */}
+            {/* ▓▓▓ TELEMETRY ▓▓▓ */}
             {passportData.uuid && (
-                <motion.div variants={itemVariants}>
+                <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
                     <TelemetryChart passportUuid={passportData.uuid} />
                 </motion.div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════════
-                SECURITY FOOTER
-            ═══════════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants} className="pt-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            {/* ▓▓▓ TRUST FOOTER ▓▓▓ */}
+            <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="pt-2 pb-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-slate-600">
                     <div className="flex items-center gap-2">
                         <Smartphone className="h-3.5 w-3.5" />
-                        <span>Secured by ExportReady™ Digital Passport System</span>
-                        <span className="hidden md:inline">•</span>
-                        <Link href="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+                        <span>Secured by ExportReady™</span>
                         <span>•</span>
-                        <Link href="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+                        <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
+                        <span>•</span>
+                        <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
                     </div>
                     <div className="flex items-center gap-3">
-                        {isEU && <CEMark className="h-6 text-slate-600" />}
+                        {isEU && <CEMark className="h-5 text-slate-700" />}
                         {isIndia && <BISMark />}
-                        <span className="text-[10px] text-slate-600 font-mono">
-                            EPR: {tenant.epr_registration_number || "Missing"}
-                        </span>
-                        <span className="text-[10px] text-slate-600 font-mono">
-                            R-{tenant.bis_r_number || "Missing"}
-                        </span>
+                        <span className="font-mono text-slate-700">EPR: {eprNumber || "—"}</span>
+                        <span className="font-mono text-slate-700">R-{bisNumber || "—"}</span>
                     </div>
                 </div>
             </motion.div>

@@ -133,8 +133,11 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// Generate enriched QR code
 	var qrCtx *QRLabelContext
-	if carbonPerKWh > 0 {
-		qrCtx = &QRLabelContext{CarbonPerKWh: carbonPerKWh}
+	if carbonPerKWh > 0 || tenant.EPRRegistrationNumber != "" {
+		qrCtx = &QRLabelContext{
+			CarbonPerKWh: carbonPerKWh,
+			EPRNumber:    tenant.EPRRegistrationNumber,
+		}
 	}
 	qrURL := (&QRService{baseURL: s.baseURL}).BuildQRPayload(passport.UUID, passport.SerialNumber, qrCtx)
 	qrPNG, err := qrcode.Encode(qrURL, qrcode.Medium, 128)

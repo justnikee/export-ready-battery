@@ -190,7 +190,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       b.batch_name, COALESCE(b.model_name, ''), b.specs, b.market_region,
        b.manufacturing_start_date, b.manufacturing_end_date,
        COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
-       b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''),
+       b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''), COALESCE(b.dva_source, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
 		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, ''),
 		       COALESCE(t.epr_certificate_path, ''), COALESCE(t.bis_certificate_path, ''), COALESCE(t.pli_certificate_path, ''),
@@ -208,7 +208,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var specsJSON []byte
 	var marketRegion models.MarketRegion
 	var manufacturingStartDate, manufacturingEndDate *time.Time
-	var cellSource, billOfEntry, countryOrigin, hsnCode string
+	var cellSource, billOfEntry, countryOrigin, hsnCode, dvaSource string
 	var domesticValueAdd float64
 	var pliCompliant bool
 	var customsDate *time.Time
@@ -260,6 +260,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&pliCompliant,
 		&customsDate,
 		&hsnCode,
+		&dvaSource,
 		&tenant.CompanyName,
 		&tenant.Address,
 		&tenant.LogoURL,
@@ -334,6 +335,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		PLICompliant:           pliCompliant,
 		CustomsDate:            customsDate,
 		HSNCode:                hsnCode,
+		DVASource:              dvaSource,
 	}, nil
 }
 

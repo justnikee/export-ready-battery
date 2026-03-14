@@ -166,4 +166,11 @@ type RepositoryInterface interface {
 	ListDataAccessTokens(ctx context.Context, tenantID uuid.UUID) ([]*DataAccessToken, error)
 	RevokeDataAccessToken(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
 	UpdateDataAccessTokenLastUsed(ctx context.Context, tokenID uuid.UUID) error
+
+	// epr_certificate_repository.go
+	CreateEPRCertificate(ctx context.Context, cert *models.EPRCertificate) error
+	ListEPRCertificates(ctx context.Context, tenantID uuid.UUID, financialYear string) ([]*models.EPRCertificate, error)
+	GetEPRCertificateSummary(ctx context.Context, tenantID uuid.UUID, financialYear string) (float64, int, error)
+	RetireEPRCertificate(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
+	DeleteEPRCertificate(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
 }
