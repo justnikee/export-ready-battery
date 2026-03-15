@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,12 +52,11 @@ type LoginRequest struct {
 
 // AuthResponse is the response for auth operations
 type AuthResponse struct {
-	Token        string `json:"token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	TenantID     string `json:"tenant_id"`
-	Email        string `json:"email"`
-	CompanyName  string `json:"company_name"`
-	ExpiresIn    int    `json:"expires_in"` // seconds
+	Token       string `json:"token"`
+	TenantID    string `json:"tenant_id"`
+	Email       string `json:"email"`
+	CompanyName string `json:"company_name"`
+	ExpiresIn   int    `json:"expires_in"` // seconds
 }
 
 // ForgotPasswordRequest is the request for password reset
@@ -80,6 +80,41 @@ func (h *AuthHandler) saveRefreshJTI(ctx context.Context, tenantID uuid.UUID, jt
 		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
 		jti, expires, tenantID)
 	return err
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: set / clear the HttpOnly refresh-token cookie
+// ─────────────────────────────────────────────────────────────────────────────
+
+func setRefreshCookie(w http.ResponseWriter, token string, expiry time.Duration) {
+	maxAge := int(expiry.Seconds())
+	secure := os.Getenv("APP_ENV") == "production"
+	sameSite := http.SameSiteStrictMode
+	if !secure {
+		// SameSite=Strict blocks the cookie during top-level navigations in dev
+		// (e.g. after Google OAuth redirect), so use Lax in local dev.
+		sameSite = http.SameSiteLaxMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    token,
+		Path:     "/api/v1/auth", // Only sent to auth endpoints
+		MaxAge:   maxAge,
+		HttpOnly: true,  // Not accessible via document.cookie
+		Secure:   secure, // HTTPS only in production
+		SameSite: sameSite,
+	})
+}
+
+func clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/api/v1/auth",
+		MaxAge:   -1, // Immediate deletion
+		HttpOnly: true,
+		Secure:   os.Getenv("APP_ENV") == "production",
+	})
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -373,13 +408,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set refresh token as HttpOnly cookie (not accessible to JS)
+	setRefreshCookie(w, refreshToken, h.authService.GetRefreshExpiry())
+
 	respondJSON(w, http.StatusOK, AuthResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		TenantID:     tenantID.String(),
-		Email:        req.Email,
-		CompanyName:  companyName,
-		ExpiresIn:    900,
+		Token:       token,
+		TenantID:    tenantID.String(),
+		Email:       req.Email,
+		CompanyName: companyName,
+		ExpiresIn:   900,
 	})
 }
 
@@ -389,16 +426,16 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Refresh handles POST /api/v1/auth/refresh
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		RefreshToken string `json:"refresh_token"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
+	// Read refresh token from HttpOnly cookie (not from request body)
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Refresh token cookie missing")
 		return
 	}
+	refreshTokenStr := cookie.Value
 
 	// Validate JWT signature + expiry
-	claims, err := h.authService.ValidateToken(req.RefreshToken)
+	claims, err := h.authService.ValidateToken(refreshTokenStr)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "Invalid or expired refresh token")
 		return
@@ -442,10 +479,12 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Rotate the cookie with the new refresh token
+	setRefreshCookie(w, newRefreshToken, h.authService.GetRefreshExpiry())
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"token":         token,
-		"refresh_token": newRefreshToken,
-		"expires_in":    900,
+		"token":      token,
+		"expires_in": 900,
 	})
 }
 
@@ -476,6 +515,9 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Failed to logout")
 		return
 	}
+
+	// Clear the HttpOnly refresh cookie on the client
+	clearRefreshCookie(w)
 
 	respondJSON(w, http.StatusOK, map[string]string{
 		"message": "Logged out successfully",

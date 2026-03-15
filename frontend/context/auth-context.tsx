@@ -42,7 +42,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (token: string, refreshToken: string, user: User, redirectTo?: string) => void;
+    login: (token: string, user: User, redirectTo?: string) => void;
     logout: () => void;
     refreshUser: () => Promise<void>;
     updateUser: (user: Partial<User>) => void;
@@ -78,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const status = (error as { response?: { status?: number } })?.response?.status;
             if (status === 401 || status === 403) {
                 localStorage.removeItem('token');
-                localStorage.removeItem('refresh_token');
                 document.cookie = 'auth_token=; path=/; max-age=0';
             }
             // For non-auth errors (network timeout, 500, etc.) we
@@ -88,10 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const login = (token: string, refreshToken: string, newUser: User, redirectTo?: string) => {
+    const login = (token: string, newUser: User, redirectTo?: string) => {
         localStorage.setItem('token', token);
-        localStorage.setItem('refresh_token', refreshToken);
-        // Set cookie for middleware auth check (edge-level protection)
+        // Set plain cookie for Next.js edge middleware auth check
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         setUser(newUser);
         // Route to onboarding if profile is not yet completed; explicit redirectTo always wins

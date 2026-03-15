@@ -773,10 +773,25 @@ func (h *Handler) DownloadDueDiligenceReport(w http.ResponseWriter, r *http.Requ
 
 // GetBatchPassports handles GET /api/v1/batches/{id}/passports?page=1&limit=50
 func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
 	idStr := r.PathValue("id")
 	batchID, err := uuid.Parse(idStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	// Verify the batch belongs to the requesting tenant (prevents IDOR)
+	_, err = h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
 		return
 	}
 

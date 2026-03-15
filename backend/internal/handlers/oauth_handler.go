@@ -207,11 +207,16 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
 		jti, expires, tenantID)
 
-	// Redirect to frontend callback page with tokens
-	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&refresh_token=%s&tenant_id=%s&email=%s&company_name=%s",
+	// Set the refresh token in an HttpOnly cookie (same helper used by Login/Refresh)
+	// This must be done BEFORE the redirect so the Set-Cookie header is sent
+	// with this response. Passing tokens in URLs leaks them to browser history
+	// and server access logs.
+	setRefreshCookie(w, refreshToken, h.authService.GetRefreshExpiry())
+
+	// Redirect to frontend callback page — no refresh_token in URL
+	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&tenant_id=%s&email=%s&company_name=%s",
 		h.frontendURL,
 		url.QueryEscape(token),
-		url.QueryEscape(refreshToken),
 		url.QueryEscape(tenantID.String()),
 		url.QueryEscape(profile.Email),
 		url.QueryEscape(companyName),

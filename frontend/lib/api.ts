@@ -29,7 +29,6 @@ api.interceptors.request.use(
 );
 
 // Add a response interceptor to handle 401 errors (token expired)
-// Add a response interceptor to handle 401 errors (token expired)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -38,39 +37,34 @@ api.interceptors.response.use(
     // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refresh_token');
 
-      if (refreshToken) {
-        try {
-          // Call refresh endpoint
-          // We use axios directly to avoid interceptors loop if this fails (though strict loop avoidance needs more care, this is a distinct call)
-          // Actually, using a separate instance or just avoiding the detailed interceptor logic is safer.
-          // But here, we just make a post call.
-          const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
-            refresh_token: refreshToken
-          });
+      try {
+        // The HttpOnly refresh_token cookie is sent automatically by the browser.
+        // We just need to call the refresh endpoint with credentials included.
+        const response = await axios.post(
+          `${api.defaults.baseURL}/auth/refresh`,
+          {},                        // no body needed
+          { withCredentials: true }  // ensures cookies are sent cross-origin if needed
+        );
 
-          if (response.data.token) {
-            // Update tokens
-            localStorage.setItem('token', response.data.token);
-            // Sync cookie so Next.js middleware sees the fresh token
-            document.cookie = `auth_token=${response.data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-            // Update defaults and original request
-            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-            originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
-
-            // Retry original request
-            return api(originalRequest);
-          }
-        } catch (refreshError) {
-          console.error("Token refresh failed:", refreshError);
+        if (response.data.token) {
+          // Store the new access token
+          localStorage.setItem('token', response.data.token);
+          // Sync cookie so Next.js middleware sees the fresh token
+          document.cookie = `auth_token=${response.data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+          // Update defaults and original request
+          api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+          originalRequest.headers['Authorization'] = `Bearer ${response.data.token}`;
+          // Retry original request
+          return api(originalRequest);
         }
+      } catch (refreshError) {
+        console.error("Token refresh failed:", refreshError);
       }
 
-      // If refresh failed or no refresh token, logout
+      // Refresh failed — clear access token and redirect to login
       localStorage.removeItem('token');
-      localStorage.removeItem('refresh_token');
-      document.cookie = 'auth_token=; path=/; max-age=0'; // Clear cookie to prevent middleware redirect loop
+      document.cookie = 'auth_token=; path=/; max-age=0';
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }

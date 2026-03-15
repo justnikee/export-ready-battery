@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,7 @@ export function RegisterForm() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [passwordFocused, setPasswordFocused] = useState(false)
+    const [tosAccepted, setTosAccepted] = useState(false)
     // After successful registration, show verify-email screen
     const [registered, setRegistered] = useState(false)
 
@@ -41,6 +43,11 @@ export function RegisterForm() {
 
         if (password !== confirmPassword) {
             toast.error("Passwords do not match")
+            return
+        }
+
+        if (!tosAccepted) {
+            toast.error("Please accept the Terms of Service and Privacy Policy to continue")
             return
         }
 
@@ -233,23 +240,46 @@ export function RegisterForm() {
                 )}
             </div>
 
-            {/* Terms */}
-            <p className="text-xs text-slate-500">
-                By creating an account, you agree to our{" "}
-                <a href="/terms" className="text-[#1F7A5F] hover:text-[#0B1F3B] underline">
-                    Terms of Service
-                </a>{" "}
-                and{" "}
-                <a href="/privacy" className="text-[#1F7A5F] hover:text-[#0B1F3B] underline">
-                    Privacy Policy
-                </a>
-                .
-            </p>
+            {/* Terms — explicit consent required by GDPR Art.7 & India DPDP Act 2023 */}
+            <div className="flex items-start gap-3">
+                <Checkbox
+                    id="tos-accept"
+                    checked={tosAccepted}
+                    onCheckedChange={(checked) => setTosAccepted(checked === true)}
+                    className="mt-0.5 border-slate-400 data-[state=checked]:border-[#1F7A5F] data-[state=checked]:bg-[#1F7A5F]"
+                />
+                <label
+                    htmlFor="tos-accept"
+                    className="text-xs text-slate-500 leading-relaxed cursor-pointer select-none"
+                >
+                    I have read and agree to the{" "}
+                    <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#1F7A5F] hover:text-[#0B1F3B] underline"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        Terms of Service
+                    </a>
+                    {" "}and{" "}
+                    <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#1F7A5F] hover:text-[#0B1F3B] underline"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        Privacy Policy
+                    </a>
+                    . <span className="text-red-500">*</span>
+                </label>
+            </div>
 
             {/* Submit Button */}
             <Button
                 type="submit"
-                disabled={isLoading || !allRequirementsMet || !passwordsMatch}
+                disabled={isLoading || !allRequirementsMet || !passwordsMatch || !tosAccepted}
                 className="w-full h-12 bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
             >
                 {isLoading ? (

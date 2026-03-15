@@ -2,7 +2,6 @@ import api from './api';
 
 export interface AuthResponse {
     token: string;
-    refresh_token: string;
     tenant_id: string;
     email: string;
     company_name: string;
@@ -31,7 +30,6 @@ export interface LoginErrorResponse {
 const emptyAuth = (error: string): AuthResponse => ({
     error,
     token: '',
-    refresh_token: '',
     tenant_id: '',
     email: '',
     company_name: '',
@@ -97,8 +95,8 @@ export const authApi = {
             // Silently ignore — still clear local state
         } finally {
             localStorage.removeItem('token');
-            localStorage.removeItem('refresh_token');
             document.cookie = 'auth_token=; path=/; max-age=0';
+            // The HttpOnly refresh_token cookie is cleared by the backend Set-Cookie header
         }
     },
 };

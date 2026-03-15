@@ -44,7 +44,7 @@ export function LoginForm() {
 
             // Use AuthContext login — sets token, cookie, user state, and navigates
             const redirectTo = searchParams.get("redirect") || "/dashboard"
-            login(response.token, response.refresh_token, {
+            login(response.token, {
                 id: response.tenant_id,
                 tenant_id: response.tenant_id,
                 email: response.email,

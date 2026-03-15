@@ -25,7 +25,6 @@ function CallbackHandler() {
         hasRun.current = true
 
         const token = searchParams.get("token")
-        const refreshToken = searchParams.get("refresh_token")
         const tenantId = searchParams.get("tenant_id")
         const email = searchParams.get("email")
         const companyName = searchParams.get("company_name") || ""
@@ -36,21 +35,21 @@ function CallbackHandler() {
             return
         }
 
-        if (!token || !refreshToken || !tenantId || !email) {
+        if (!token || !tenantId || !email) {
             setError("Missing authentication data. Please try again.")
             return
         }
 
-        // Store tokens first so refreshUser (→ /auth/me) can send the Authorization header
+        // Store access token so /auth/me can be called with Authorization header
+        // The HttpOnly refresh_token cookie is already set by the backend redirect
         localStorage.setItem("token", token)
-        localStorage.setItem("refresh_token", refreshToken)
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`
 
         // Fetch full user from /auth/me so onboarding_completed is populated.
         // login() will then route correctly: /onboarding for new accounts, /dashboard for existing.
         refreshRef.current().then(() => {
             // refreshUser() updated the auth context — login() will now see the real onboarding state
-            loginRef.current(token, refreshToken, {
+            loginRef.current(token, {
                 id: tenantId,
                 tenant_id: tenantId,
                 email: email,
@@ -59,7 +58,7 @@ function CallbackHandler() {
             })
         }).catch(() => {
             // /auth/me failed — fall back to minimal user; dashboard layout will fix the redirect
-            loginRef.current(token, refreshToken, {
+            loginRef.current(token, {
                 id: tenantId,
                 tenant_id: tenantId,
                 email: email,
