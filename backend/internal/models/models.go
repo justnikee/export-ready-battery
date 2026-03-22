@@ -166,6 +166,12 @@ type Batch struct {
 	CreatedAt time.Time `json:"created_at"`
 	Status    string    `json:"status"` // DRAFT, ACTIVE, ARCHIVED
 
+	// v2: Product-agnostic fields
+	ProductType   ProductType     `json:"product_type"`          // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
+	SchemaVersion int             `json:"schema_version"`        // Schema version used for specs validation
+	ComplianceScore float64       `json:"compliance_score"`      // 0-100, computed by compliance engine
+	ComplianceGaps json.RawMessage `json:"compliance_gaps,omitempty"` // [{field, market, regulation}]
+
 	// Manufacturing window (legal declaration)
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
@@ -261,7 +267,7 @@ type HazardousSubstances struct {
 // PASSPORT
 // ============================================================================
 
-// Passport represents a single battery's digital passport
+// Passport represents a single product's digital passport
 type Passport struct {
 	UUID            uuid.UUID `json:"uuid"`
 	BatchID         uuid.UUID `json:"batch_id"`
@@ -269,6 +275,10 @@ type Passport struct {
 	ManufactureDate time.Time `json:"manufacture_date"`
 	Status          string    `json:"status"` // CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, END_OF_LIFE, RECALLED
 	CreatedAt       time.Time `json:"created_at"`
+
+	// v2: Product-agnostic fields
+	ProductType ProductType     `json:"product_type"` // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
+	Telemetry   json.RawMessage `json:"telemetry,omitempty"` // IoT telemetry data (product-specific)
 
 	// Immutable snapshot of batch data at creation time
 	BatchSnapshot json.RawMessage `json:"batch_snapshot,omitempty"`
@@ -642,10 +652,11 @@ type CSVRow struct {
 
 // CreateBatchRequest is the request body for creating a new batch
 type CreateBatchRequest struct {
-	TenantID  uuid.UUID `json:"tenant_id"`
-	BatchName string    `json:"batch_name"`
-	ModelName string    `json:"model_name"`
-	Specs     BatchSpec `json:"specs"`
+	TenantID    uuid.UUID   `json:"tenant_id"`
+	BatchName   string      `json:"batch_name"`
+	ModelName   string      `json:"model_name"`
+	ProductType ProductType `json:"product_type,omitempty"` // v2: defaults to BATTERY if empty
+	Specs       BatchSpec   `json:"specs"`
 
 	// Dual-Mode Fields
 	MarketRegion     MarketRegion `json:"market_region"`                // INDIA, EU, or GLOBAL

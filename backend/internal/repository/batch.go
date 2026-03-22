@@ -19,6 +19,7 @@ type CreateBatchRequest struct {
 	ModelName        string
 	Specs            models.BatchSpec
 	MarketRegion     models.MarketRegion
+	ProductType      models.ProductType // v2: defaults to BATTERY if empty
 	PLICompliant     bool
 	DomesticValueAdd float64
 	CellSource       string
@@ -50,6 +51,12 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		marketRegion = models.MarketRegionGlobal
 	}
 
+	// v2: Default product type to BATTERY
+	productType := req.ProductType
+	if !productType.IsValid() {
+		productType = models.DefaultProductType()
+	}
+
 	batch := &models.Batch{
 		ID:                     uuid.New(),
 		TenantID:               req.TenantID,
@@ -57,6 +64,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		ModelName:              req.ModelName,
 		Specs:                  req.Specs,
 		CreatedAt:              time.Now(),
+		ProductType:            productType,
+		SchemaVersion:          1,
 		MarketRegion:           marketRegion,
 		PLICompliant:           req.PLICompliant,
 		DomesticValueAdd:       req.DomesticValueAdd,
@@ -88,8 +97,9 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	query := `INSERT INTO public.batches 
 		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
 		 manufacturing_start_date, manufacturing_end_date,
-		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result) 
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb)`
+		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result,
+		 product_type, schema_version) 
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23, $24)`
 
 	// Handle nullable import fields
 	var billOfEntry, countryOrigin, hsnCode interface{}
@@ -144,6 +154,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		bisNumber,
 		eprNumber,
 		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
+		string(productType),
+		batch.SchemaVersion,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create batch: %w", err)
@@ -181,9 +193,14 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	          pli_certificate_url,
 	          bis_number,
 	          epr_number,
-	          carbon_footprint_result
+	          carbon_footprint_result,
+	          COALESCE(product_type, 'BATTERY') as product_type,
+	          COALESCE(schema_version, 1) as schema_version,
+	          COALESCE(compliance_score, 0) as compliance_score,
+	          compliance_gaps
 	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
 
+	var productType string
 	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
 		&batch.ID,
 		&batch.TenantID,
@@ -207,6 +224,10 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&bisNumber,
 		&eprNumber,
 		&batch.CarbonFootprintResult,
+		&productType,
+		&batch.SchemaVersion,
+		&batch.ComplianceScore,
+		&batch.ComplianceGaps,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -220,6 +241,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	}
 
 	batch.MarketRegion = models.MarketRegion(marketRegion)
+	batch.ProductType = models.ProductType(productType)
 
 	if cellSource != nil {
 		batch.CellSource = *cellSource
@@ -290,6 +312,10 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	          b.bis_number,
 	          b.epr_number,
 	          b.carbon_footprint_result,
+	          COALESCE(b.product_type, 'BATTERY') as product_type,
+	          COALESCE(b.schema_version, 1) as schema_version,
+	          COALESCE(b.compliance_score, 0) as compliance_score,
+	          b.compliance_gaps,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
@@ -299,7 +325,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
 	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
 	                   b.dva_source, b.pli_certificate_url, b.bis_number, b.epr_number,
-	                   b.carbon_footprint_result
+	                   b.carbon_footprint_result, b.product_type, b.schema_version, b.compliance_score, b.compliance_gaps
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
@@ -320,6 +346,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 		var manufacturingStart, manufacturingEnd *time.Time
 		var dvaSource, pliCertURL *string
 		var bisNumber, eprNumber *string
+		var productType string
 
 		if err := rows.Scan(
 			&batch.ID,
@@ -344,6 +371,10 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 			&bisNumber,
 			&eprNumber,
 			&batch.CarbonFootprintResult,
+			&productType,
+			&batch.SchemaVersion,
+			&batch.ComplianceScore,
+			&batch.ComplianceGaps,
 			&batch.TotalPassports,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan batch: %w", err)
@@ -356,6 +387,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 		}
 
 		batch.MarketRegion = models.MarketRegion(marketRegion)
+		batch.ProductType = models.ProductType(productType)
 
 		if cellSource != nil {
 			batch.CellSource = *cellSource
