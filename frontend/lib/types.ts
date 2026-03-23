@@ -87,6 +87,10 @@ export interface Passport {
     recycling_status?: string;
     recycler_epr_id?: string;
     recycling_date?: string;
+
+    // v2: Product-agnostic (Phase 3+)
+    product_type?: ProductType;
+    telemetry?: Record<string, unknown>;
 }
 
 export type PassportEventType =
@@ -210,6 +214,66 @@ export interface Batch {
 
     // EU Carbon Calculator Result (Article 7)
     carbon_footprint_result?: Record<string, unknown> | null;
+
+    // v2: Product-agnostic fields (Phase 3+)
+    product_type?: ProductType;
+    schema_version?: number;
+    compliance_score?: number;        // 0–100, computed by compliance engine
+    compliance_gaps?: ComplianceGap[];  // structured gap list from engine
+}
+
+// ============================================================================
+// PRODUCT SCHEMA & COMPLIANCE TYPES (v2 Dynamic Engine)
+// ============================================================================
+
+export type ProductType = 'BATTERY' | 'TEXTILE' | 'ELECTRONICS';
+
+export interface ComplianceGap {
+    field: string;
+    message: string;
+    severity: 'CRITICAL' | 'WARNING' | 'INFO';
+    regulation: string;
+}
+
+export interface ComplianceCheckResult {
+    product_type: ProductType;
+    market_region: MarketRegion;
+    score: number;
+    passed: boolean;
+    gaps: ComplianceGap[];
+    checked_at: string;
+}
+
+export interface SchemaFieldConstraint {
+    min?: number;
+    max?: number;
+    min_length?: number;
+    max_length?: number;
+    pattern?: string;
+    enum?: string[];
+}
+
+export interface SchemaField {
+    type: string;
+    label: string;
+    description?: string;
+    required?: boolean;
+    unit?: string;
+    constraints?: SchemaFieldConstraint;
+    properties?: Record<string, SchemaField>;   // nested object
+    items?: SchemaField;                          // array items
+}
+
+export interface ProductSchemaDefinition {
+    product_type: ProductType;
+    version: number;
+    fields: Record<string, SchemaField>;
+}
+
+export interface ProductSchemaListItem {
+    product_type: ProductType;
+    version: number;
+    created_at: string;
 }
 
 // ============================================================================

@@ -160,8 +160,30 @@ export function DownloadLabelsDialog({
                                 </li>
                             )}
                             <li>Compliance info (EPR, BIS, cell source)</li>
+                            {marketRegion === "INDIA" && (
+                                <li className="text-orange-400">AIS-156 compliance mark</li>
+                            )}
                         </ul>
                     </div>
+
+                    {/* BPAN Serial Format Preview */}
+                    {marketRegion === "INDIA" && (
+                        <div className="bg-orange-500/5 rounded-lg p-3 border border-orange-500/20">
+                            <h4 className="text-sm font-medium text-orange-400 mb-2">
+                                BPAN Serial Format (21-char)
+                            </h4>
+                            <div className="font-mono text-sm text-white bg-slate-900 rounded px-3 py-2 tracking-wider text-center">
+                                IN-XXX-{chemistry || "LFP"}-2025-00001
+                            </div>
+                            <div className="flex justify-between mt-2 text-[10px] text-slate-500 px-1">
+                                <span>Region</span>
+                                <span>Mfr</span>
+                                <span>Chem</span>
+                                <span>Year</span>
+                                <span>Seq</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>

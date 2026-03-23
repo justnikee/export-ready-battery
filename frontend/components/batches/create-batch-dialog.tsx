@@ -51,6 +51,7 @@ type BatchPayload = {
     manufacturing_start_date?: string
     manufacturing_end_date?: string
     market_region: MarketRegion
+    product_type?: string
     specs: Record<string, unknown>
     pli_compliant?: boolean
     hsn_code?: string
@@ -444,6 +445,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 manufacturing_start_date: manufacturingStartDate || undefined,
                 manufacturing_end_date: manufacturingEndDate || undefined,
                 market_region: marketRegion,
+                product_type: "BATTERY",
                 specs: {
                     capacity,
                     voltage,
@@ -727,6 +729,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <div className="font-semibold text-sm">Global</div>
                                     <div className="text-xs opacity-70">Both Markets</div>
                                 </button>
+                            </div>
+
+                            {/* Product Type (future expansion) */}
+                            <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+                                <span className="text-lg">🔋</span>
+                                <div>
+                                    <span className="text-sm font-medium text-slate-700">Battery</span>
+                                    <span className="text-xs text-slate-400 ml-2">Product Type</span>
+                                </div>
                             </div>
                         </div>
 

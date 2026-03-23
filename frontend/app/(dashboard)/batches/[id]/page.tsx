@@ -81,6 +81,9 @@ export default function BatchDetailsPage() {
     const [labelsDialogOpen, setLabelsDialogOpen] = useState(false)
     const [confirmArchive, setConfirmArchive] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
+    const [complianceScore, setComplianceScore] = useState<number | null>(null)
+    const [complianceGaps, setComplianceGaps] = useState<import("@/lib/types").ComplianceGap[]>([])
+    const [complianceLoading, setComplianceLoading] = useState(false)
 
     const fetchBatch = useCallback(async () => {
         try {
@@ -113,7 +116,21 @@ export default function BatchDetailsPage() {
     useEffect(() => {
         fetchBatch()
         fetchPassports(1, 50)
-    }, [fetchBatch, fetchPassports])
+        // Fetch compliance data (non-blocking)
+        const fetchCompliance = async () => {
+            setComplianceLoading(true)
+            try {
+                const res = await api.get(`/batches/${params.id}/compliance`)
+                setComplianceScore(res.data.compliance_score ?? null)
+                setComplianceGaps(res.data.compliance_gaps ?? [])
+            } catch {
+                // Compliance data may not exist for draft batches
+            } finally {
+                setComplianceLoading(false)
+            }
+        }
+        fetchCompliance()
+    }, [fetchBatch, fetchPassports, params.id])
 
     const handleUploadComplete = () => {
         fetchBatch()
@@ -318,6 +335,28 @@ export default function BatchDetailsPage() {
             } else {
                 toast.error(apiError.response?.data?.error || "Failed to download Compliance Declaration", { id: 'cd-download' });
             }
+        }
+    }
+
+    const handleDownloadComplianceReport = async () => {
+        if (!batch) return
+        try {
+            toast.loading("Generating Compliance Report...", { id: 'cr-download' })
+            const response = await api.get(`/batches/${params.id}/compliance-report`, {
+                responseType: 'blob'
+            })
+            const url = window.URL.createObjectURL(new Blob([response.data]))
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `${batch.batch_name}_compliance_report.pdf`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            toast.success("Compliance Report downloaded!", { id: 'cr-download' })
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            toast.error(apiError.response?.data?.error || "Failed to download Compliance Report", { id: 'cr-download' })
         }
     }
 
@@ -950,6 +989,99 @@ export default function BatchDetailsPage() {
                             </Card>
                         )}
 
+                        {/* Compliance Engine Score Card */}
+                        {batch.status === 'ACTIVE' && (
+                            <Card className="bg-white border-slate-200 border-l-4 border-l-emerald-500">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="flex items-center gap-3 text-slate-900">
+                                        <div className="p-2 rounded-lg bg-emerald-50">
+                                            <Shield className="h-5 w-5 text-emerald-600" />
+                                        </div>
+                                        <span>Compliance Score</span>
+                                        {complianceScore !== null && (
+                                            <Badge className={`ml-auto ${complianceScore >= 80
+                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                : complianceScore >= 50
+                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    : 'bg-red-50 text-red-700 border-red-200'
+                                                }`}>
+                                                {complianceScore >= 80 ? 'Passed' : complianceScore >= 50 ? 'Partial' : 'Failing'}
+                                            </Badge>
+                                        )}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {complianceLoading ? (
+                                        <div className="h-16 bg-slate-100 rounded animate-pulse" />
+                                    ) : complianceScore !== null ? (
+                                        <div className="space-y-4">
+                                            {/* Score gauge */}
+                                            <div className="flex items-end gap-3">
+                                                <span className={`text-4xl font-bold ${complianceScore >= 80 ? 'text-emerald-600'
+                                                    : complianceScore >= 50 ? 'text-amber-500' : 'text-red-500'
+                                                    }`}>
+                                                    {complianceScore}%
+                                                </span>
+                                                <span className="text-sm text-slate-500 mb-1">compliance score</span>
+                                            </div>
+                                            <div className="w-full bg-slate-100 rounded-full h-2">
+                                                <div
+                                                    className={`h-2 rounded-full transition-all ${complianceScore >= 80 ? 'bg-emerald-500'
+                                                        : complianceScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                                        }`}
+                                                    style={{ width: `${complianceScore}%` }}
+                                                />
+                                            </div>
+
+                                            {/* Gaps */}
+                                            {complianceGaps.length > 0 && (
+                                                <div className="mt-4 space-y-2">
+                                                    <h4 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                        Compliance Gaps ({complianceGaps.length})
+                                                    </h4>
+                                                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                                        {complianceGaps.map((gap, i) => (
+                                                            <div key={i} className={`flex items-start gap-2 text-sm p-2 rounded-lg ${gap.severity === 'CRITICAL' ? 'bg-red-50' : gap.severity === 'WARNING' ? 'bg-amber-50' : 'bg-blue-50'
+                                                                }`}>
+                                                                <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${gap.severity === 'CRITICAL' ? 'text-red-500' : gap.severity === 'WARNING' ? 'text-amber-500' : 'text-blue-500'
+                                                                    }`} />
+                                                                <div>
+                                                                    <span className="font-medium text-slate-700">{gap.field}</span>
+                                                                    <span className="text-slate-500 ml-1">— {gap.message}</span>
+                                                                    <span className="block text-xs text-slate-400 mt-0.5">{gap.regulation}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {complianceGaps.length === 0 && (
+                                                <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 p-3 rounded-lg">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    All compliance checks passed
+                                                </div>
+                                            )}
+
+                                            {/* Download Report */}
+                                            <Button
+                                                variant="outline"
+                                                className="w-full mt-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                                onClick={handleDownloadComplianceReport}
+                                            >
+                                                <FileCheck className="mr-2 h-4 w-4" />
+                                                Download Compliance Report (PDF)
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-500">
+                                            Compliance score will be calculated when the batch is activated.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Carbon Footprint Calculator - EU & GLOBAL only */}
                         {(isEU || batch.market_region === 'GLOBAL') && (
                             <CarbonCalculator
@@ -1053,6 +1185,17 @@ export default function BatchDetailsPage() {
                                         {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
                                     </Button>
                                 )}
+
+                                {/* Compliance Engine Report */}
+                                <Button
+                                    className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                    onClick={handleDownloadComplianceReport}
+                                    disabled={isDraft}
+                                >
+                                    <FileCheck className="mr-2 h-4 w-4 text-emerald-600" />
+                                    Compliance Report (PDF)
+                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                </Button>
                             </CardContent>
                         </Card>
 

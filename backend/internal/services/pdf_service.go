@@ -167,23 +167,37 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// --- Row 2: Serial Number (monospace, prominent) ---
 	textY += 5
-	pdf.SetFont("Courier", "B", 6.5)
-	pdf.SetTextColor(0, 0, 0)
-	pdf.SetXY(textX, textY)
+	comp := ParseBPAN(passport.SerialNumber)
 	serial := passport.SerialNumber
-	if len(serial) > 25 {
-		serial = serial[:25] + ".."
+
+	// For India-market BPAN serials, show "BPAN:" prefix label
+	if comp != nil && models.MarketRegion(batch.MarketRegion) == models.MarketRegionIndia {
+		pdf.SetFont("Arial", "B", 5)
+		pdf.SetTextColor(180, 80, 0)
+		pdf.SetXY(textX, textY)
+		pdf.CellFormat(10, 3, "BPAN", "", 0, "L", false, 0, "")
+
+		pdf.SetFont("Courier", "B", 7)
+		pdf.SetTextColor(0, 0, 0)
+		pdf.SetXY(textX+10, textY)
+		pdf.CellFormat(textWidth-10, 3.5, serial, "", 0, "L", false, 0, "")
+	} else {
+		pdf.SetFont("Courier", "B", 6.5)
+		pdf.SetTextColor(0, 0, 0)
+		pdf.SetXY(textX, textY)
+		if len(serial) > 25 {
+			serial = serial[:25] + ".."
+		}
+		pdf.CellFormat(textWidth, 3.5, serial, "", 0, "L", false, 0, "")
 	}
-	pdf.CellFormat(textWidth, 3.5, serial, "", 0, "L", false, 0, "")
 
 	// --- Row 3: Decoded BPAN info (if parseable) ---
 	textY += 4
-	comp := ParseBPAN(passport.SerialNumber)
 	if comp != nil {
 		pdf.SetFont("Arial", "", 5.5)
 		pdf.SetTextColor(80, 80, 80)
 		pdf.SetXY(textX, textY)
-		bdsLine := fmt.Sprintf("%s | %d | Seq #%d", comp.Chemistry, comp.Year, comp.Sequence)
+		bdsLine := fmt.Sprintf("%s-%s | %s | %d | #%05d", comp.Region, comp.Manufacturer, comp.Chemistry, comp.Year, comp.Sequence)
 		pdf.CellFormat(textWidth, 3, bdsLine, "", 0, "L", false, 0, "")
 	}
 
@@ -239,6 +253,17 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 		bisText := fmt.Sprintf("BIS: R-%s", tenant.BISRNumber)
 		pdf.CellFormat(textWidth, 2.5, bisText, "", 0, "L", false, 0, "")
 		footerY += 2.5
+	}
+
+	// AIS-156 compliance mark for India market
+	if models.MarketRegion(batch.MarketRegion) == models.MarketRegionIndia {
+		pdf.SetXY(textX, footerY)
+		pdf.SetFont("Arial", "B", 4.5)
+		pdf.SetTextColor(0, 100, 0)
+		pdf.CellFormat(textWidth, 2.5, "AIS-156 Compliant", "", 0, "L", false, 0, "")
+		footerY += 2.5
+		pdf.SetTextColor(60, 60, 60)
+		pdf.SetFont("Arial", "", 4.5)
 	}
 
 	// Carbon Footprint (EU/Global batches)

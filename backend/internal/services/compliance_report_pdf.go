@@ -2,6 +2,8 @@ package services
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -174,6 +176,27 @@ func GenerateComplianceReport(batch *models.Batch, tenant *models.Tenant) ([]byt
 
 	pdf.Ln(6)
 
+	// ---- India AIS-156 / EPR / BIS Checklist (when market = INDIA or GLOBAL) ----
+	if batch.MarketRegion == "INDIA" || batch.MarketRegion == "GLOBAL" {
+		d.addIndiaChecklistSection(batch, tenant)
+	}
+
+	// ---- EU 2023/1542 Regulatory References (when market = EU or GLOBAL) ----
+	if batch.MarketRegion == "EU" || batch.MarketRegion == "GLOBAL" {
+		d.addEURegulatorySection(batch)
+	}
+
+	// ---- Cryptographic Integrity Hash ----
+	specsHash := computeSpecsHash(batch)
+	pdf.Ln(4)
+	pdf.SetFont("Helvetica", "B", 9)
+	d.colPrimary()
+	pdf.CellFormat(d.contentW, 6, "Data Integrity", "", 1, "L", false, 0, "")
+	pdf.SetFont("Courier", "", 7)
+	d.colSecondary()
+	pdf.CellFormat(d.contentW, 5, fmt.Sprintf("SHA-256: %s", specsHash), "", 1, "L", false, 0, "")
+	pdf.Ln(4)
+
 	// ---- Footer disclaimer ----
 	pdf.SetFont("Helvetica", "I", 8)
 	d.colSecondary()
@@ -206,4 +229,152 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max-1] + "…"
+}
+
+// ---- India AIS-156 / EPR / BIS Checklist ----
+
+type ais156Check struct {
+	Item   string
+	Status string // PASS, FAIL, N/A
+	Detail string
+}
+
+func (d *crPDF) addIndiaChecklistSection(batch *models.Batch, tenant *models.Tenant) {
+	pdf := d.pdf
+
+	pdf.SetFont("Helvetica", "B", 13)
+	d.colPrimary()
+	pdf.CellFormat(d.contentW, 8, "India Regulatory Checklist (AIS-156 / EPR / BIS)", "", 1, "L", false, 0, "")
+	pdf.Ln(2)
+
+	// Build checklist items
+	checks := []ais156Check{
+		d.checkBISRegistration(tenant),
+		d.checkEPRCertificate(tenant),
+		d.checkDVAThreshold(batch),
+		d.checkHSNCode(batch),
+		d.checkCountryOfOrigin(batch),
+		d.checkBatteryChemistry(batch),
+	}
+
+	// Render table
+	colW := []float64{d.contentW * 0.35, d.contentW * 0.12, d.contentW * 0.53}
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(255, 247, 237) // warm orange tint
+	d.colPrimary()
+	pdf.CellFormat(colW[0], 7, "Requirement", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(colW[1], 7, "Status", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(colW[2], 7, "Details", "1", 0, "L", true, 0, "")
+	pdf.Ln(-1)
+
+	pdf.SetFont("Helvetica", "", 8)
+	for _, c := range checks {
+		d.colBlack()
+		pdf.CellFormat(colW[0], 6, c.Item, "1", 0, "L", false, 0, "")
+		switch c.Status {
+		case "PASS":
+			d.colGreen()
+		case "FAIL":
+			d.colRed()
+		default:
+			d.colSecondary()
+		}
+		pdf.CellFormat(colW[1], 6, c.Status, "1", 0, "C", false, 0, "")
+		d.colBlack()
+		pdf.CellFormat(colW[2], 6, truncate(c.Detail, 70), "1", 0, "L", false, 0, "")
+		pdf.Ln(-1)
+	}
+	pdf.Ln(4)
+}
+
+func (d *crPDF) checkBISRegistration(tenant *models.Tenant) ais156Check {
+	if tenant != nil && tenant.BISRNumber != "" {
+		return ais156Check{"BIS CRS Registration (IS 16046)", "PASS", fmt.Sprintf("R-No: %s", tenant.BISRNumber)}
+	}
+	return ais156Check{"BIS CRS Registration (IS 16046)", "FAIL", "No BIS R-number found on tenant profile"}
+}
+
+func (d *crPDF) checkEPRCertificate(tenant *models.Tenant) ais156Check {
+	if tenant != nil && tenant.EPRRegistrationNumber != "" {
+		return ais156Check{"EPR Registration (BWM Rules 2022)", "PASS", fmt.Sprintf("EPR-ID: %s", tenant.EPRRegistrationNumber)}
+	}
+	return ais156Check{"EPR Registration (BWM Rules 2022)", "FAIL", "No EPR registration number found"}
+}
+
+func (d *crPDF) checkDVAThreshold(batch *models.Batch) ais156Check {
+	dva := batch.DomesticValueAdd
+	if dva >= 25.0 {
+		return ais156Check{"Domestic Value Add (PLI ≥25%)", "PASS", fmt.Sprintf("DVA: %.1f%%", dva)}
+	}
+	if dva > 0 {
+		return ais156Check{"Domestic Value Add (PLI ≥25%)", "FAIL", fmt.Sprintf("DVA: %.1f%% — below 25%% threshold", dva)}
+	}
+	return ais156Check{"Domestic Value Add (PLI ≥25%)", "N/A", "DVA not declared"}
+}
+
+func (d *crPDF) checkHSNCode(batch *models.Batch) ais156Check {
+	if batch.HSNCode != "" {
+		return ais156Check{"HSN Code (Customs)", "PASS", fmt.Sprintf("HSN: %s", batch.HSNCode)}
+	}
+	return ais156Check{"HSN Code (Customs)", "FAIL", "HSN code not provided"}
+}
+
+func (d *crPDF) checkCountryOfOrigin(batch *models.Batch) ais156Check {
+	if batch.CountryOfOrigin != "" {
+		return ais156Check{"Country of Origin Declaration", "PASS", batch.CountryOfOrigin}
+	}
+	return ais156Check{"Country of Origin Declaration", "FAIL", "Country of origin not declared"}
+}
+
+func (d *crPDF) checkBatteryChemistry(batch *models.Batch) ais156Check {
+	chem := batch.Specs.Chemistry
+	if chem != "" {
+		return ais156Check{"Battery Chemistry (AIS-156 Cat.)", "PASS", chem}
+	}
+	return ais156Check{"Battery Chemistry (AIS-156 Cat.)", "FAIL", "Chemistry not declared"}
+}
+
+// ---- EU 2023/1542 Regulatory References ----
+
+func (d *crPDF) addEURegulatorySection(batch *models.Batch) {
+	pdf := d.pdf
+
+	pdf.SetFont("Helvetica", "B", 13)
+	d.colPrimary()
+	pdf.CellFormat(d.contentW, 8, "EU Battery Regulation 2023/1542 References", "", 1, "L", false, 0, "")
+	pdf.Ln(2)
+
+	refs := []struct {
+		Article string
+		Title   string
+	}{
+		{"Art. 7", "Carbon Footprint Declaration"},
+		{"Art. 8", "Recycled Content Disclosure"},
+		{"Art. 10", "Due Diligence in Supply Chain"},
+		{"Art. 11", "Performance & Durability Requirements"},
+		{"Art. 13", "Labelling & Marking"},
+		{"Art. 77", "Battery Passport (Digital Product Passport)"},
+	}
+
+	pdf.SetFont("Helvetica", "", 8)
+	for _, r := range refs {
+		d.colPrimary()
+		pdf.SetFont("Helvetica", "B", 8)
+		pdf.CellFormat(25, 5, r.Article, "", 0, "L", false, 0, "")
+		pdf.SetFont("Helvetica", "", 8)
+		d.colBlack()
+		pdf.CellFormat(d.contentW-25, 5, r.Title, "", 1, "L", false, 0, "")
+	}
+	pdf.Ln(4)
+}
+
+// ---- Cryptographic Hash ----
+
+func computeSpecsHash(batch *models.Batch) string {
+	specsJSON, _ := json.Marshal(batch.Specs)
+	data := []byte(fmt.Sprintf("%s|%s|%s|%.1f|%s",
+		batch.BatchName, batch.ProductType, batch.MarketRegion,
+		batch.ComplianceScore, string(specsJSON)))
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
 }

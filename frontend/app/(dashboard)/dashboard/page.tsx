@@ -5,7 +5,7 @@ import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import dynamic from 'next/dynamic'
 import { formatDistanceToNow, format, parseISO } from "date-fns"
-import { Package, Globe, Zap, AlertCircle, QrCode, FolderPlus, MoreHorizontal, ArrowUpRight, ArrowRight, Trash2 } from "lucide-react"
+import { Package, Globe, Zap, AlertCircle, QrCode, FolderPlus, MoreHorizontal, ArrowUpRight, ArrowRight, Trash2, Shield } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -18,6 +18,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
+import { ComplianceScoreCard } from "@/components/dashboard/ComplianceScoreCard"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
@@ -230,8 +231,8 @@ export default function DashboardPage() {
                     </Link>
                 </div>
 
-                {/* Stats Row - 5 Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Stats Row - 5 Cards + Compliance */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                     {/* Total Passports */}
                     <div className="bg-white border border-slate-200 rounded-lg p-5">
                         <div className="flex items-center justify-between mb-3">
@@ -304,6 +305,9 @@ export default function DashboardPage() {
                             </div>
                         )}
                     </div>
+
+                    {/* Compliance Score */}
+                    <ComplianceScoreCard batches={batches} />
                 </div>
 
                 {/* Charts Row */}

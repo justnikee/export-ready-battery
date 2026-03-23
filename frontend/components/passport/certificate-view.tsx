@@ -93,6 +93,7 @@ export interface PassportViewData {
     bill_of_entry_no?: string
     country_of_origin?: string
     customs_date?: string
+    product_type?: string
 }
 
 interface CertificateViewProps {
@@ -163,6 +164,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     // Market
     const isIndia = marketRegion === "india"
     const isImported = cellSource === "imported"
+    const productType = passportData.product_type || 'BATTERY'
+    const isBattery = productType.toUpperCase() === 'BATTERY'
 
     // SoH
     const soh = passport.state_of_health
@@ -201,6 +204,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 text-emerald-400 text-xs font-medium">
+                        {isBattery ? '🔋' : '📦'} {productType}
+                    </span>
                     <span className="flex items-center gap-1.5">
                         <Barcode className="w-4 h-4" /> {model}
                     </span>
@@ -475,8 +481,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                 <div className="space-y-0">
                     <DataRow label={t("label_current_owner")} value={passport.current_owner_identifier} mono />
-                    <DataRow label={t("label_soh")} value={stateOfHealthLabel} />
-                    <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />
+                    {isBattery && <DataRow label={t("label_soh")} value={stateOfHealthLabel} />}
+                    {isBattery && <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />}
                     <DataRow label={t("label_ownership_records")} value={ownershipCount} />
                     <DataRow label={t("label_repair_events")} value={repairCount} />
                     <DataRow label={t("label_replacement_events")} value={replacementCount} />

@@ -279,3 +279,35 @@ func BuildRegulatorView(full *PassportWithSpecs, events []*PassportEvent) *Regul
 		AccessTier:        AccessTierRegulator,
 	}
 }
+
+// ApplyDisplayConfigToPublicView removes or redacts spec fields on a
+// PublicPassportView based on the display_config access rules.
+// This is called after BuildPublicView when a DisplayConfig is available.
+func ApplyDisplayConfigToPublicView(view *PublicPassportView, dc DisplayConfig) {
+	if view == nil || view.Specs == nil || dc.FieldVisibility == nil {
+		return
+	}
+	tier := view.AccessTier
+
+	if !dc.IsFieldVisible("manufacturer_address", tier) {
+		fa := dc.FieldVisibility["manufacturer_address"]
+		if fa.Redacted {
+			view.Specs.ManufacturerAddress = "[Restricted]"
+		} else {
+			view.Specs.ManufacturerAddress = ""
+		}
+	}
+}
+
+// ApplyDisplayConfigToPartnerView removes or redacts fields on a
+// PartnerPassportView based on the display_config access rules.
+func ApplyDisplayConfigToPartnerView(view *PartnerPassportView, dc DisplayConfig) {
+	if view == nil || dc.FieldVisibility == nil {
+		return
+	}
+	// Partners inherit the public view — apply the same rules at PARTNER tier
+	// The PublicPassportView embedded in the PartnerPassportView will already
+	// have the correct AccessTier set to PARTNER, so fields accessible to
+	// PARTNER or PUBLIC will remain visible.
+	ApplyDisplayConfigToPublicView(&view.PublicPassportView, dc)
+}
