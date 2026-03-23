@@ -33,6 +33,9 @@ const indiaTotalCheckpoints = 14
 // Implements compliance.Validator and compliance.BatchValidator.
 type IndiaValidator struct{}
 
+// NewIndiaValidator returns a ready-to-use IndiaValidator.
+func NewIndiaValidator() *IndiaValidator { return &IndiaValidator{} }
+
 // Validate implements compliance.Validator.
 // It unmarshals specs into a Batch's Spec field and delegates to ValidateBatch
 // with an empty Tenant — tenant-level checks will appear as missing fields.

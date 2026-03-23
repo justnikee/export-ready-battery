@@ -34,6 +34,12 @@ type RepositoryInterface interface {
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
 	SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error
+	UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error
+
+	// schema_repository.go
+	GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error)
+	GetSchemaByVersion(ctx context.Context, productType models.ProductType, version int) (*models.ProductSchema, error)
+	UpsertProductSchema(ctx context.Context, s *models.ProductSchema) error
 
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)

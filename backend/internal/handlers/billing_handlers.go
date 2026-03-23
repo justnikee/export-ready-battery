@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 
+	"exportready-battery/internal/events"
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
 	"exportready-battery/internal/services"
@@ -243,6 +245,28 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Warn("Failed to log transaction", "error", err)
 		// Non-critical, don't fail the request
+	}
+
+	// Phase 3: run compliance engine asynchronously (non-blocking).
+	// If batchService is not wired (tests / legacy startup), skip gracefully.
+	if h.batchService != nil {
+		// Re-fetch the batch now that it is ACTIVE so validators see the correct status.
+		activeBatch, fetchErr := h.repo.GetBatch(r.Context(), batchID, tenantID)
+		if fetchErr == nil {
+			go h.batchService.RunAndSaveCompliance(context.Background(), batchID, activeBatch, tenant)
+		} else {
+			slog.Warn("ActivateBatch: could not re-fetch batch for compliance run", "error", fetchErr)
+		}
+	}
+
+	// Phase 3: publish domain event (non-blocking).
+	if h.eventBus != nil {
+		h.eventBus.Publish(&events.BatchActivatedPayload{
+			BatchID:      batchID.String(),
+			TenantID:     tenantID.String(),
+			ProductType:  string(batch.ProductType),
+			MarketRegion: string(batch.MarketRegion),
+		})
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{

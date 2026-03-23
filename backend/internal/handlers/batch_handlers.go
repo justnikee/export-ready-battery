@@ -62,6 +62,34 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ===== PHASE 3: SCHEMA VALIDATION =====
+	// Validate specs JSON against the active product schema before any further processing.
+	// Returns HTTP 422 with structured field errors when required spec fields are missing.
+	if h.batchService != nil {
+		specsJSON, marshalErr := json.Marshal(req.Specs)
+		if marshalErr != nil {
+			slog.Error("Failed to marshal specs for schema validation", "error", marshalErr)
+			respondError(w, http.StatusBadRequest, "Invalid specs format")
+			return
+		}
+		// ProductType defaults to BATTERY if not set on the request
+		pt := models.ProductType(req.ProductType)
+		if !pt.IsValid() {
+			pt = models.DefaultProductType()
+		}
+		validationResult, validationErr := h.batchService.ValidateSpecs(r.Context(), pt, specsJSON)
+		if validationErr != nil {
+			// Infrastructure failure (schema unreachable) — log and continue.
+			slog.Warn("Schema validation unavailable, skipping", "error", validationErr)
+		} else if !validationResult.Valid {
+			respondJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
+				"error":  "Spec validation failed: required fields are missing or invalid",
+				"fields": validationResult.Errors,
+			})
+			return
+		}
+	}
+
 	// ===== DUAL-MODE VALIDATION =====
 
 	// EU Mode: allow draft creation without full compliance (hard-block at activation)

@@ -1,6 +1,9 @@
 package compliance
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"log/slog"
+)
 
 // Gap represents a single compliance gap — a missing or invalid data point
 // that maps directly to a regulatory requirement.
@@ -28,7 +31,11 @@ func (r Result) GapsJSON() json.RawMessage {
 	if len(r.Gaps) == 0 {
 		return json.RawMessage("[]")
 	}
-	b, _ := json.Marshal(r.Gaps)
+	b, err := json.Marshal(r.Gaps)
+	if err != nil {
+		slog.Error("compliance: failed to marshal gaps", "error", err, "gap_count", len(r.Gaps))
+		return json.RawMessage("[]")
+	}
 	return json.RawMessage(b)
 }
 

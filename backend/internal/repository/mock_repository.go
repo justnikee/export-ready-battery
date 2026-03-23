@@ -145,6 +145,36 @@ func (m *MockRepository) SaveCarbonFootprintResult(ctx context.Context, batchID,
 	return args.Error(0)
 }
 
+func (m *MockRepository) UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error {
+	args := m.Called(ctx, batchID, score, gapsJSON)
+	return args.Error(0)
+}
+
+// ============================================================================
+// schema_repository.go
+// ============================================================================
+
+func (m *MockRepository) GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error) {
+	args := m.Called(ctx, productType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ProductSchema), args.Error(1)
+}
+
+func (m *MockRepository) GetSchemaByVersion(ctx context.Context, productType models.ProductType, version int) (*models.ProductSchema, error) {
+	args := m.Called(ctx, productType, version)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ProductSchema), args.Error(1)
+}
+
+func (m *MockRepository) UpsertProductSchema(ctx context.Context, s *models.ProductSchema) error {
+	args := m.Called(ctx, s)
+	return args.Error(0)
+}
+
 // ============================================================================
 // bulk.go
 // ============================================================================

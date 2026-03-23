@@ -473,6 +473,26 @@ func (r *Repository) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID
 	return models.MarketRegion(region), nil
 }
 
+// UpdateBatchComplianceResult saves the compliance engine score and gap list for a batch.
+// Called after ActivateBatch runs the compliance validators.
+// gapsJSON must be valid JSON (e.g. `[]` or `[{"field":"...","regulation":"..."}]`).
+func (r *Repository) UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error {
+	if len(gapsJSON) == 0 {
+		gapsJSON = []byte("[]")
+	}
+	query := `UPDATE public.batches
+	          SET compliance_score = $2, compliance_gaps = $3::jsonb
+	          WHERE id = $1`
+	tag, err := r.db.Pool.Exec(ctx, query, batchID, score, string(gapsJSON))
+	if err != nil {
+		return fmt.Errorf("failed to update compliance result: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("batch not found")
+	}
+	return nil
+}
+
 // SaveCarbonFootprintResult stores the carbon calculator result on a batch
 func (r *Repository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error {
 	query := `UPDATE public.batches SET carbon_footprint_result = $3::jsonb WHERE id = $1 AND tenant_id = $2`

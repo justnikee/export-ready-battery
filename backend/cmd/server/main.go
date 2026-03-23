@@ -13,12 +13,18 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"exportready-battery/internal/compliance"
+	battery "exportready-battery/internal/compliance/battery"
 	"exportready-battery/internal/config"
 	"exportready-battery/internal/db"
+	"exportready-battery/internal/events"
 	"exportready-battery/internal/handlers"
 	"exportready-battery/internal/logger"
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/models"
 	"exportready-battery/internal/repository"
+	"exportready-battery/internal/schema"
+	schemaSeeds "exportready-battery/internal/schema/seeds"
 	"exportready-battery/internal/services"
 )
 
@@ -58,8 +64,49 @@ func main() {
 	// Initialize data access service
 	dataAccessService := services.NewDataAccessService(repo)
 
+	// =========================================================================
+	// Phase 3: Initialise pluggable engines
+	// =========================================================================
+
+	// 1. Schema Registry — seeded with battery_v1 JSON; DB-backed for future schemas.
+	schemaRegistry := schema.NewRegistry(repo)
+	if batteryV1, seedErr := schemaSeeds.LoadBatteryV1(); seedErr != nil {
+		slog.Warn("Failed to load battery_v1 seed schema — schema validation will be skipped", "error", seedErr)
+	} else {
+		schemaRegistry.Seed(batteryV1)
+		// Attempt to upsert into DB so the registry can cache it on next lookup.
+		if upsertErr := repo.UpsertProductSchema(context.Background(), batteryV1); upsertErr != nil {
+			slog.Warn("Failed to upsert battery_v1 schema to DB — using in-memory seed only", "error", upsertErr)
+		} else {
+			slog.Info("Battery v1 schema seeded into product_schemas table")
+		}
+	}
+
+	// 2. Compliance Registry — India and EU battery validators registered.
+	complianceRegistry := compliance.NewRegistry()
+	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionIndia, battery.NewIndiaValidator())
+	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionEU, battery.NewEUValidator())
+
+	// 3. Event Bus — async domain event dispatch.
+	eventBus := events.NewBus()
+
+	// 4. BatchService — schema validation + async compliance runner.
+	batchService := services.NewBatchService(schemaRegistry, complianceRegistry, repo)
+
+	// 5. PassportService — BPAN-V2 serial generation.
+	passportService := services.NewPassportService()
+
+	// =========================================================================
 	// Initialize handlers
-	h := handlers.New(database, cfg.BaseURL, "assets/GeoLite2-City.mmdb", cfg.RazorpayKeyID, cfg.RazorpayKeySecret, magicLinkEmailService, dataAccessService, cfg.RegulatorAPIKey)
+	// =========================================================================
+	h := handlers.New(
+		database, cfg.BaseURL, "assets/GeoLite2-City.mmdb",
+		cfg.RazorpayKeyID, cfg.RazorpayKeySecret,
+		magicLinkEmailService, dataAccessService, cfg.RegulatorAPIKey,
+		handlers.WithBatchService(batchService),
+		handlers.WithPassportService(passportService),
+		handlers.WithEventBus(eventBus),
+	)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
 	// Initialize OAuth service and handler

@@ -30,6 +30,9 @@ const euTotalCheckpoints = 12
 // Implements compliance.Validator and compliance.BatchValidator.
 type EUValidator struct{}
 
+// NewEUValidator returns a ready-to-use EUValidator.
+func NewEUValidator() *EUValidator { return &EUValidator{} }
+
 // Validate implements compliance.Validator.
 // Unmarshals specs into BatchSpec and delegates to ValidateBatch with an empty
 // Tenant so that tenant-level checks surface as missing fields.
