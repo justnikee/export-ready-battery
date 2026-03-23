@@ -82,3 +82,16 @@ func (s *BatchService) RunAndSaveCompliance(ctx context.Context, batchID uuid.UU
 		"gaps", len(result.Gaps),
 	)
 }
+
+// GetActiveSchema returns the active schema for the given product type.
+// Exposed for the schema API handler.
+func (s *BatchService) GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error) {
+	return s.schemaRegistry.GetActive(ctx, productType)
+}
+
+// RunComplianceCheck executes a dry-run compliance check against raw specs JSON
+// without persisting anything. Used by the POST /api/v1/compliance/check endpoint
+// so the frontend can show real-time compliance feedback as the user edits data.
+func (s *BatchService) RunComplianceCheck(ctx context.Context, productType models.ProductType, marketRegion models.MarketRegion, specsJSON json.RawMessage) (compliance.Result, error) {
+	return s.complianceRegistry.Validate(productType, marketRegion, specsJSON)
+}

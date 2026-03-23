@@ -175,6 +175,14 @@ func (m *MockRepository) UpsertProductSchema(ctx context.Context, s *models.Prod
 	return args.Error(0)
 }
 
+func (m *MockRepository) ListProductSchemas(ctx context.Context) ([]*models.ProductSchema, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.ProductSchema), args.Error(1)
+}
+
 // ============================================================================
 // bulk.go
 // ============================================================================

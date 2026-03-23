@@ -129,3 +129,46 @@ func (r *Repository) UpsertProductSchema(ctx context.Context, s *models.ProductS
 	}
 	return nil
 }
+
+// ListProductSchemas returns all product schemas ordered by product type and descending version.
+func (r *Repository) ListProductSchemas(ctx context.Context) ([]*models.ProductSchema, error) {
+	query := `SELECT id, product_type, version, schema_json,
+	                 COALESCE(display_config, '{}'::jsonb),
+	                 COALESCE(compliance_fields, '{}'::jsonb),
+	                 is_active, created_at
+	          FROM public.product_schemas
+	          ORDER BY product_type, version DESC`
+
+	rows, err := r.db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list product schemas: %w", err)
+	}
+	defer rows.Close()
+
+	var schemas []*models.ProductSchema
+	for rows.Next() {
+		s := &models.ProductSchema{}
+		var schemaJSON, displayConfig, complianceFields []byte
+		var productTypeStr string
+
+		if err := rows.Scan(
+			&s.ID,
+			&productTypeStr,
+			&s.Version,
+			&schemaJSON,
+			&displayConfig,
+			&complianceFields,
+			&s.IsActive,
+			&s.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan product schema: %w", err)
+		}
+
+		s.ProductType = models.ProductType(productTypeStr)
+		s.SchemaJSON = schemaJSON
+		s.DisplayConfig = displayConfig
+		s.ComplianceFields = complianceFields
+		schemas = append(schemas, s)
+	}
+	return schemas, nil
+}

@@ -40,6 +40,7 @@ type RepositoryInterface interface {
 	GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error)
 	GetSchemaByVersion(ctx context.Context, productType models.ProductType, version int) (*models.ProductSchema, error)
 	UpsertProductSchema(ctx context.Context, s *models.ProductSchema) error
+	ListProductSchemas(ctx context.Context) ([]*models.ProductSchema, error)
 
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)

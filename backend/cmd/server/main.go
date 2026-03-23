@@ -256,6 +256,17 @@ func main() {
 	mux.Handle("POST /api/v1/auth/logout", authMiddleware.Protect(http.HandlerFunc(authHandler.Logout)))
 
 	// ============================================
+	// SCHEMA ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/schemas", authMiddleware.Protect(http.HandlerFunc(h.ListSchemas)))
+	mux.Handle("GET /api/v1/schemas/{product_type}", authMiddleware.Protect(http.HandlerFunc(h.GetSchema)))
+
+	// ============================================
+	// COMPLIANCE ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/compliance/check", authMiddleware.Protect(http.HandlerFunc(h.ComplianceCheck)))
+
+	// ============================================
 	// BATCH ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.CreateBatch)))
@@ -269,6 +280,8 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/audit-export", authMiddleware.Protect(http.HandlerFunc(h.ExportBatchAuditCSV)))
 	mux.Handle("GET /api/v1/batches/{id}/compliance-declaration", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceDeclaration)))
+	mux.Handle("GET /api/v1/batches/{id}/compliance-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceReport)))
+	mux.Handle("GET /api/v1/batches/{id}/compliance", authMiddleware.Protect(http.HandlerFunc(h.GetBatchCompliance)))
 	mux.Handle("GET /api/v1/batches/{id}/due-diligence-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDueDiligenceReport)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
