@@ -42,9 +42,10 @@ export function LoginForm() {
 
             toast.success("Welcome back!")
 
-            // Use AuthContext login — sets token, cookie, user state, and navigates
+            // Use AuthContext login — sets token, cookie, fetches full user, and navigates.
+            // Awaiting ensures the loading spinner stays visible until navigation begins.
             const redirectTo = searchParams.get("redirect") || "/dashboard"
-            login(response.token, {
+            await login(response.token, {
                 id: response.tenant_id,
                 tenant_id: response.tenant_id,
                 email: response.email,

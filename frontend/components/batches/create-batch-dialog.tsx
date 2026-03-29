@@ -227,6 +227,22 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         }
     }, [open, fetchTemplates])
 
+    // Set default certifications when market region changes
+    useEffect(() => {
+        if (marketRegion === "INDIA") {
+            setCertifications(prev => {
+                const indiaCerts = ["AIS-156", "AIS-038"]
+                const merged = Array.from(new Set([...prev.filter(c => !["CE"].includes(c)), ...indiaCerts]))
+                return merged
+            })
+        } else if (marketRegion === "EU") {
+            setCertifications(prev => {
+                if (!prev.includes("CE")) return ["CE"]
+                return prev
+            })
+        }
+    }, [marketRegion])
+
     // Auto-disable PLI and validate IEC for IMPORTED cells
     useEffect(() => {
         if (cellSource === "IMPORTED") {
@@ -516,6 +532,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
             // Add India-specific fields
             if (marketRegion === "INDIA") {
+                // Required safety certifications for Indian traction batteries
+                payload.specs.certifications = certifications
+
                 // PLI Compliant flag
                 payload.pli_compliant = pliCompliant
                 payload.hsn_code = hsnCode
@@ -1180,6 +1199,47 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             />
                                             <p className="text-[10px] text-slate-500">Override tenant default for this batch</p>
                                         </div>
+                                    </div>
+
+                                    {/* Safety Certifications — Required for India activation */}
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700 flex items-center gap-1">
+                                            Safety Certifications
+                                            <span className="text-red-500">*</span>
+                                            <span className="text-[10px] text-slate-500 ml-1">Required for activation</span>
+                                        </Label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {[
+                                                { value: "AIS-156", label: "AIS-156", desc: "MoRTH traction battery type-approval (required)" },
+                                                { value: "AIS-038", label: "AIS-038 Rev.2", desc: "Battery safety for EVs (required)" },
+                                                { value: "BIS", label: "BIS CRS", desc: "IS 16046 (recommended)" },
+                                            ].map(({ value, label, desc }) => (
+                                                <div key={value} className="flex items-start space-x-2 p-2 rounded-md bg-white/60 border border-slate-200">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`cert-${value}`}
+                                                        checked={certifications.includes(value)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setCertifications(prev => [...prev, value])
+                                                            } else {
+                                                                setCertifications(prev => prev.filter(c => c !== value))
+                                                            }
+                                                        }}
+                                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                                                    />
+                                                    <Label htmlFor={`cert-${value}`} className="cursor-pointer leading-tight">
+                                                        <span className="text-sm font-medium text-slate-800">{label}</span>
+                                                        <span className="block text-[10px] text-slate-500">{desc}</span>
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {(!certifications.includes("AIS-156") || !certifications.includes("AIS-038")) && (
+                                            <p className="text-[10px] text-red-500 flex items-center gap-1">
+                                                ⚠ AIS-156 and AIS-038 are required to activate this batch
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* DVA Calculation Section - HIDE for IMPORTED cells */}

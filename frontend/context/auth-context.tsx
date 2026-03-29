@@ -42,7 +42,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (token: string, user: User, redirectTo?: string) => void;
+    login: (token: string, user: User, redirectTo?: string) => Promise<void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
     updateUser: (user: Partial<User>) => void;
@@ -87,15 +87,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const login = (token: string, newUser: User, redirectTo?: string) => {
+    const login = async (token: string, newUser: User, redirectTo?: string) => {
         localStorage.setItem('token', token);
         // Set plain cookie for Next.js edge middleware auth check
         document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-        setUser(newUser);
-        // Route to onboarding if profile is not yet completed; explicit redirectTo always wins
+
+        // Fetch the full user profile before committing state and navigating.
+        // The minimal payload from /auth/login lacks onboarding_completed, which
+        // causes DashboardLayoutInner to wrongly redirect existing users to /onboarding.
+        // Fetching /auth/me here ensures the correct flag is present before the
+        // dashboard layout ever mounts.
+        let resolvedUser: User = newUser;
+        try {
+            const response = await api.get('/auth/me');
+            resolvedUser = response.data;
+        } catch {
+            // /auth/me failed — fall back to the minimal user. The dashboard
+            // layout will handle the redirect correctly on the next page load.
+        }
+
+        setUser(resolvedUser);
+
+        // Route to onboarding only when no explicit destination is given and the
+        // profile is genuinely incomplete; explicit redirectTo always wins.
         const destination = redirectTo
             ? redirectTo
-            : newUser.onboarding_completed
+            : resolvedUser.onboarding_completed
                 ? '/dashboard'
                 : '/onboarding'
         router.push(destination);
