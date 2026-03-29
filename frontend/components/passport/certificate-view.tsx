@@ -53,6 +53,8 @@ export interface PassportViewData {
         carbon_footprint?: string
         expected_lifetime_cycles?: number | null
         warranty_months?: number | null
+        bis_number?: string
+        epr_number?: string
         hazardous_substances?: {
             declaration?: string
             lead_present?: boolean
@@ -129,8 +131,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     const warrantyMonths = specs?.warranty_months || null
     const hazardousSubs = specs?.hazardous_substances?.declaration || null
     const carbonFootprint = specs?.carbon_footprint || null
-    const eprNumber = tenant.epr_registration_number || null
-    const bisRNumber = tenant.bis_r_number || null
+    const eprNumber = specs?.epr_number || tenant.epr_registration_number || null
+    const bisRNumber = specs?.bis_number || tenant.bis_r_number || null
     const certifications = tenant.certifications || []
     const cellSource = passportData.cell_source || null
     const marketRegion = passportData.market_region || null
@@ -180,8 +182,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     const currentStatusStyles = statusStyleMap[currentStatus.color] || statusStyleMap.slate
 
     // Market
-    const isIndia = marketRegion === "india"
-    const isImported = cellSource === "imported"
+    const isIndia = marketRegion?.toUpperCase() === "INDIA"
+    const isImported = cellSource?.toUpperCase() === "IMPORTED"
     const productType = passportData.product_type || 'BATTERY'
     const isBattery = productType.toUpperCase() === 'BATTERY'
 
@@ -198,7 +200,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
     // Cell-source label
     const cellSourceLabel = cellSource
-        ? cellSource === "imported" ? t("cell_source_imported") : t("cell_source_domestic")
+        ? cellSource.toUpperCase() === "IMPORTED" ? t("cell_source_imported") : t("cell_source_domestic")
         : null
 
     return (
@@ -345,10 +347,10 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                         {isIndia && dvaPercent != null && <DataRow label={t("label_dva")} value={`${dvaPercent}%`} />}
                         {isIndia && <DataRow label={t("label_pli")} value={pliCompliant ? "✅ Yes" : "No"} />}
                         {isIndia && <DataRow label={t("label_bis")} value={bisRNumber} mono />}
-                        <DataRow label={t("label_carbon_footprint")} value={carbonFootprint} />
-                        <DataRow label={t("label_hazardous")} value={hazardousSubs} />
-                        <DataRow label={t("label_warranty")} value={warrantyMonths ? t("label_months", { count: warrantyMonths }) : null} />
-                        <DataRow label={t("label_lifetime")} value={cycleLife ? t("label_cycles", { count: cycleLife }) : null} />
+                        {!isIndia && <DataRow label={t("label_carbon_footprint")} value={carbonFootprint} />}
+                        {!isIndia && <DataRow label={t("label_hazardous")} value={hazardousSubs} />}
+                        {!isIndia && <DataRow label={t("label_warranty")} value={warrantyMonths ? t("label_months", { count: warrantyMonths }) : null} />}
+                        {!isIndia && <DataRow label={t("label_lifetime")} value={cycleLife ? t("label_cycles", { count: cycleLife }) : null} />}
                     </div>
 
                     {/* Document Downloads */}

@@ -88,6 +88,9 @@ type PublicSpecsView struct {
 	WarrantyMonths         *int                 `json:"warranty_months,omitempty"`
 	ExpectedLifetimeCycles *int                 `json:"expected_lifetime_cycles,omitempty"`
 	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`
+	// India compliance identifiers (from batch specs)
+	BISNumber              string               `json:"bis_number,omitempty"`
+	EPRNumber              string               `json:"epr_number,omitempty"`
 }
 
 // PublicTenantView is the consumer-safe subset of Tenant
@@ -212,6 +215,8 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 			WarrantyMonths:         full.Specs.WarrantyMonths,
 			ExpectedLifetimeCycles: full.Specs.ExpectedLifetimeCycles,
 			RecycledContentPct:     full.Specs.RecycledContentPct,
+			BISNumber:              full.Specs.BISNumber,
+			EPRNumber:              full.Specs.EPRNumber,
 		}
 	}
 

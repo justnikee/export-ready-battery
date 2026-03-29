@@ -195,7 +195,8 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, ''),
 		       COALESCE(t.epr_certificate_path, ''), COALESCE(t.bis_certificate_path, ''), COALESCE(t.pli_certificate_path, ''),
 		       COALESCE(t.eu_authorized_representative_name, ''), COALESCE(t.eu_authorized_representative_address, ''), COALESCE(t.eu_contact_email, ''),
-		       t.id
+		       t.id,
+		       b.carbon_footprint_result
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
@@ -222,6 +223,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var recyclingStatus sql.NullString
 	var recyclerEprID sql.NullString
 	var ownerID *uuid.UUID
+	var carbonFootprintResultJSON []byte
 	tenant := &models.Tenant{}
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -275,6 +277,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&tenant.EUAuthorizedRepresentativeAddress,
 		&tenant.EUContactEmail,
 		&tenant.ID,
+		&carbonFootprintResultJSON,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -287,6 +290,19 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	if len(specsJSON) > 0 {
 		if err := json.Unmarshal(specsJSON, specs); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+		}
+	}
+
+	// If carbon_footprint was not manually entered but a calculator result exists, derive it.
+	if specs.CarbonFootprint == "" && len(carbonFootprintResultJSON) > 0 {
+		var cr struct {
+			TotalKgCO2e  float64 `json:"total_kg_co2e"`
+			PerKWhKgCO2e float64 `json:"per_kwh_kg_co2e"`
+		}
+		if err := json.Unmarshal(carbonFootprintResultJSON, &cr); err != nil {
+			slog.Warn("failed to parse carbon_footprint_result JSON", "error", err, "payload", string(carbonFootprintResultJSON))
+		} else if cr.TotalKgCO2e > 0 {
+			specs.CarbonFootprint = fmt.Sprintf("%.2f kg CO₂e (%.3f kg CO₂e/kWh)", cr.TotalKgCO2e, cr.PerKWhKgCO2e)
 		}
 	}
 
