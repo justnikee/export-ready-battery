@@ -60,11 +60,8 @@ func ParseBPAN(serial string) *models.BPANComponents {
 		return nil
 	}
 
-	// Determine version: V1 if region is IN (India-only original), V2 for all
+	// Default to BPANv2 for all regions
 	version := models.BPANv2
-	if region == "IN" {
-		version = models.BPANv1 // Backward compat: IN serials could be V1 or V2 (identical format)
-	}
 
 	return &models.BPANComponents{
 		Region:       region,
@@ -180,11 +177,24 @@ func MapChemistryCode(chemistry string) string {
 		return "LMO"
 	case "SODIUM", "NA-ION", "NAION":
 		return "NAI"
+	// Li-ion and common freetext variants — map to LIO (alphanumeric-safe)
+	case "LI-ION", "LIION", "LI_ION", "LION", "LITHIUM-ION", "LITHIUMION", "LI":
+		return "LIO"
 	default:
-		// Take first 3 chars if unrecognized
-		if len(upper) >= 3 {
-			return upper[:3]
+		// Strip non-alphanumeric chars first to avoid hyphens/spaces in the code.
+		var alnum []rune
+		for _, r := range upper {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				alnum = append(alnum, r)
+			}
 		}
-		return upper
+		cleaned := string(alnum)
+		if len(cleaned) >= 3 {
+			return cleaned[:3]
+		}
+		if len(cleaned) >= 2 {
+			return cleaned
+		}
+		return "UNK"
 	}
 }

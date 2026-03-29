@@ -46,14 +46,21 @@ export interface PassportViewData {
     }
     specs: {
         chemistry?: string
-        capacity_ah?: number
-        nominal_voltage?: number
-        weight_kg?: number
-        cycle_life?: number
-        warranty_months?: number
-        hazardous_substances?: string
-        carbon_footprint_kg_co2?: number | null
-        critical_raw_materials?: {
+        // Field names match backend PublicSpecsView JSON keys exactly
+        capacity?: string
+        voltage?: string
+        weight?: string
+        carbon_footprint?: string
+        expected_lifetime_cycles?: number | null
+        warranty_months?: number | null
+        hazardous_substances?: {
+            declaration?: string
+            lead_present?: boolean
+            mercury_present?: boolean
+            cadmium_present?: boolean
+            exemptions?: string
+        } | null
+        material_composition?: {
             cobalt_pct?: number
             lithium_pct?: number
             nickel_pct?: number
@@ -115,13 +122,13 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     const model = passportData.model_name || tenant.company_name || t("label_missing")
     const serialNumber = passport.serial_number || t("label_missing")
     const chemistry = specs?.chemistry || null
-    const capacityAh = specs?.capacity_ah || null
-    const voltage = specs?.nominal_voltage || null
-    const weightKg = specs?.weight_kg || null
-    const cyclLife = specs?.cycle_life || null
+    const capacityAh = specs?.capacity || null
+    const voltage = specs?.voltage || null
+    const weightKg = specs?.weight || null
+    const cycleLife = specs?.expected_lifetime_cycles || null
     const warrantyMonths = specs?.warranty_months || null
-    const hazardousSubs = specs?.hazardous_substances || null
-    const carbonFootprint = specs?.carbon_footprint_kg_co2 || null
+    const hazardousSubs = specs?.hazardous_substances?.declaration || null
+    const carbonFootprint = specs?.carbon_footprint || null
     const eprNumber = tenant.epr_registration_number || null
     const bisRNumber = tenant.bis_r_number || null
     const certifications = tenant.certifications || []
@@ -148,9 +155,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     const showEURepresentative = euRepresentativeName || euRepresentativeAddress || euRepresentativeEmail
 
     // Critical raw materials
-    const crm = specs?.critical_raw_materials
+    const crm = specs?.material_composition
 
-    // Status
+    // Status with static Tailwind class mappings
     const status = passport.status || "created"
     const statusConfig: Record<string, { label: string; color: string }> = {
         created: { label: t("status_created"), color: "slate" },
@@ -159,7 +166,18 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
         recycled: { label: t("status_recycled"), color: "purple" },
         eol: { label: t("status_eol"), color: "red" },
     }
+    
+    // Static Tailwind class map to avoid dynamic string interpolation
+    const statusStyleMap: Record<string, { container: string; dot: string }> = {
+        slate: { container: "bg-slate-500/20 text-slate-400 border-slate-500/30", dot: "bg-slate-400" },
+        emerald: { container: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
+        amber: { container: "bg-amber-500/20 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
+        purple: { container: "bg-purple-500/20 text-purple-400 border-purple-500/30", dot: "bg-purple-400" },
+        red: { container: "bg-red-500/20 text-red-400 border-red-500/30", dot: "bg-red-400" },
+    }
+    
     const currentStatus = statusConfig[status] || statusConfig.created
+    const currentStatusStyles = statusStyleMap[currentStatus.color] || statusStyleMap.slate
 
     // Market
     const isIndia = marketRegion === "india"
@@ -197,8 +215,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                         <h1 className="text-2xl md:text-3xl font-bold font-mono tracking-tight">{bpan}</h1>
                     </div>
 
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-${currentStatus.color}-500/20 text-${currentStatus.color}-400 border border-${currentStatus.color}-500/30`}>
-                        <span className={`w-1.5 h-1.5 rounded-full bg-${currentStatus.color}-400`} />
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${currentStatusStyles.container} border`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${currentStatusStyles.dot}`} />
                         {currentStatus.label}
                     </span>
                 </div>
@@ -217,7 +235,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                     )}
                     {capacityAh && (
                         <span className="flex items-center gap-1.5">
-                            <Battery className="w-4 h-4" /> {capacityAh} Ah
+                            <Battery className="w-4 h-4" /> {capacityAh}
                         </span>
                     )}
                 </div>
@@ -272,9 +290,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                     <div className="space-y-0">
                         <DataRow label={t("label_chemistry")} value={chemistry} />
-                        <DataRow label={t("label_capacity")} value={capacityAh ? `${capacityAh} Ah` : null} />
-                        <DataRow label={t("label_voltage")} value={voltage ? `${voltage} V` : null} />
-                        <DataRow label={t("label_weight")} value={weightKg ? `${weightKg} kg` : null} />
+                        <DataRow label={t("label_capacity")} value={capacityAh} />
+                        <DataRow label={t("label_voltage")} value={voltage} />
+                        <DataRow label={t("label_weight")} value={weightKg} />
                     </div>
                 </div>
             </div>
@@ -327,10 +345,10 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                         {isIndia && dvaPercent != null && <DataRow label={t("label_dva")} value={`${dvaPercent}%`} />}
                         {isIndia && <DataRow label={t("label_pli")} value={pliCompliant ? "✅ Yes" : "No"} />}
                         {isIndia && <DataRow label={t("label_bis")} value={bisRNumber} mono />}
-                        <DataRow label={t("label_carbon_footprint")} value={carbonFootprint ? `${carbonFootprint} kg CO₂e` : null} />
+                        <DataRow label={t("label_carbon_footprint")} value={carbonFootprint} />
                         <DataRow label={t("label_hazardous")} value={hazardousSubs} />
                         <DataRow label={t("label_warranty")} value={warrantyMonths ? t("label_months", { count: warrantyMonths }) : null} />
-                        <DataRow label={t("label_lifetime")} value={cyclLife ? t("label_cycles", { count: cyclLife }) : null} />
+                        <DataRow label={t("label_lifetime")} value={cycleLife ? t("label_cycles", { count: cycleLife }) : null} />
                     </div>
 
                     {/* Document Downloads */}
