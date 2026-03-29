@@ -240,6 +240,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 if (!prev.includes("CE")) return ["CE"]
                 return prev
             })
+        } else if (marketRegion === "GLOBAL") {
+            setCertifications(prev => prev.filter(c => !["AIS-156", "AIS-038", "BIS", "CE"].includes(c)))
         }
     }, [marketRegion])
 
