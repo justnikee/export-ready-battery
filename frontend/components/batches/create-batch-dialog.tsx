@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { PlusCircle, Sparkles, Save, Globe, Leaf, Flag, FileText, Calendar, Calculator, Shield, Activity, Users, FileCheck } from "lucide-react"
@@ -145,7 +146,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [manufacturingEndDate, setManufacturingEndDate] = useState("")
     const [capacity, setCapacity] = useState("")
     const [voltage, setVoltage] = useState("")
-    const [chemistry, setChemistry] = useState("Li-ion")
+    const [chemistry, setChemistry] = useState("LFP")
     const [manufacturer, setManufacturer] = useState(user?.company_name || "")
     const [manufacturerAddress, setManufacturerAddress] = useState("")
     const [manufacturerEmail, setManufacturerEmail] = useState("")
@@ -227,6 +228,24 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         }
     }, [open, fetchTemplates])
 
+    // Set default certifications when market region changes
+    useEffect(() => {
+        if (marketRegion === "INDIA") {
+            setCertifications(prev => {
+                const indiaCerts = ["AIS-156", "AIS-038"]
+                const merged = Array.from(new Set([...prev.filter(c => !["CE"].includes(c)), ...indiaCerts]))
+                return merged
+            })
+        } else if (marketRegion === "EU") {
+            setCertifications(prev => {
+                if (!prev.includes("CE")) return ["CE"]
+                return prev
+            })
+        } else if (marketRegion === "GLOBAL") {
+            setCertifications(prev => prev.filter(c => !["AIS-156", "AIS-038", "BIS", "CE"].includes(c)))
+        }
+    }, [marketRegion])
+
     // Auto-disable PLI and validate IEC for IMPORTED cells
     useEffect(() => {
         if (cellSource === "IMPORTED") {
@@ -262,7 +281,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             // Core specifications
             setCapacity(template.specs.capacity || "")
             setVoltage(template.specs.voltage || "")
-            setChemistry(template.specs.chemistry || "Li-ion")
+            setChemistry(template.specs.chemistry || "LFP")
             setManufacturer(template.specs.manufacturer || user?.company_name || "")
             setWeight(template.specs.weight || "")
             setCarbonFootprint(template.specs.carbon_footprint || "")
@@ -516,6 +535,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
             // Add India-specific fields
             if (marketRegion === "INDIA") {
+                // Required safety certifications for Indian traction batteries
+                payload.specs.certifications = certifications
+
                 // PLI Compliant flag
                 payload.pli_compliant = pliCompliant
                 payload.hsn_code = hsnCode
@@ -607,6 +629,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setManufacturingEndDate("")
         setCapacity("")
         setVoltage("")
+        setChemistry("LFP")
         setWeight("")
         setCarbonFootprint("")
         setCountryOfOrigin("")
@@ -827,12 +850,23 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="chemistry">Chemistry <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        id="chemistry"
-                                        value={chemistry}
-                                        onChange={(e) => setChemistry(e.target.value)}
-                                        required
-                                    />
+                                    <Select value={chemistry} onValueChange={setChemistry}>
+                                        <SelectTrigger id="chemistry">
+                                            <SelectValue placeholder="Select chemistry" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="LFP">LFP — Lithium Iron Phosphate</SelectItem>
+                                            <SelectItem value="NMC">NMC — Nickel Manganese Cobalt</SelectItem>
+                                            <SelectItem value="NMC811">NMC811</SelectItem>
+                                            <SelectItem value="NMC622">NMC622</SelectItem>
+                                            <SelectItem value="NCA">NCA — Nickel Cobalt Aluminium</SelectItem>
+                                            <SelectItem value="LCO">LCO — Lithium Cobalt Oxide</SelectItem>
+                                            <SelectItem value="LTO">LTO — Lithium Titanate</SelectItem>
+                                            <SelectItem value="LMO">LMO — Lithium Manganese Oxide</SelectItem>
+                                            <SelectItem value="Sodium-ion">Sodium-ion</SelectItem>
+                                            <SelectItem value="Li-ion">Li-ion (generic)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
@@ -899,8 +933,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <Input
                                         id="country"
                                         value={countryOfOrigin}
-                                        onChange={(e) => setCountryOfOrigin(e.target.value)}
-                                        placeholder={isIndiaMode ? "India" : "e.g. Germany"}
+                                        onChange={(e) => setCountryOfOrigin(e.target.value.slice(0, 2).toUpperCase())}
+                                        onKeyDown={(e) => {
+                                            if (e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab' && countryOfOrigin.length >= 2) {
+                                                e.preventDefault()
+                                            }
+                                        }}
+                                        maxLength={2}
+                                        placeholder={isIndiaMode ? "IN" : "e.g. DE"}
+                                        title="ISO 3166-1 alpha-2 country code (2 characters)"
                                     />
                                 </div>
                             </div>
@@ -1180,6 +1221,47 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             />
                                             <p className="text-[10px] text-slate-500">Override tenant default for this batch</p>
                                         </div>
+                                    </div>
+
+                                    {/* Safety Certifications — Required for India activation */}
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-700 flex items-center gap-1">
+                                            Safety Certifications
+                                            <span className="text-red-500">*</span>
+                                            <span className="text-[10px] text-slate-500 ml-1">Required for activation</span>
+                                        </Label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {[
+                                                { value: "AIS-156", label: "AIS-156", desc: "MoRTH traction battery type-approval (required)" },
+                                                { value: "AIS-038", label: "AIS-038 Rev.2", desc: "Battery safety for EVs (required)" },
+                                                { value: "BIS", label: "BIS CRS", desc: "IS 16046 (recommended)" },
+                                            ].map(({ value, label, desc }) => (
+                                                <div key={value} className="flex items-start space-x-2 p-2 rounded-md bg-white/60 border border-slate-200">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`cert-${value}`}
+                                                        checked={certifications.includes(value)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setCertifications(prev => [...prev, value])
+                                                            } else {
+                                                                setCertifications(prev => prev.filter(c => c !== value))
+                                                            }
+                                                        }}
+                                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                                                    />
+                                                    <Label htmlFor={`cert-${value}`} className="cursor-pointer leading-tight">
+                                                        <span className="text-sm font-medium text-slate-800">{label}</span>
+                                                        <span className="block text-[10px] text-slate-500">{desc}</span>
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {(!certifications.includes("AIS-156") || !certifications.includes("AIS-038")) && (
+                                            <p className="text-[10px] text-red-500 flex items-center gap-1">
+                                                ⚠ AIS-156 and AIS-038 are required to activate this batch
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* DVA Calculation Section - HIDE for IMPORTED cells */}
@@ -1468,8 +1550,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     <Input
                                                         id="cellCountryOfOrigin"
                                                         value={cellCountryOfOrigin}
-                                                        onChange={(e) => setCellCountryOfOrigin(e.target.value)}
-                                                        placeholder="e.g. China, South Korea"
+                                                        onChange={(e) => setCellCountryOfOrigin(e.target.value.slice(0, 2).toUpperCase())}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab' && cellCountryOfOrigin.length >= 2) {
+                                                                e.preventDefault()
+                                                            }
+                                                        }}
+                                                        maxLength={2}
+                                                        placeholder="e.g. CN, KR"
+                                                        title="ISO 3166-1 alpha-2 country code (2 characters)"
                                                         required
                                                         className="bg-white border-slate-200 text-slate-900"
                                                     />
