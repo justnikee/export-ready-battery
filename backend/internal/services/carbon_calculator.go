@@ -50,6 +50,7 @@ type CarbonBreakdown struct {
 	CellEnergy     float64 `json:"cell_energy_kg_co2e"` // Grid energy for cell manufacturing
 	Assembly       float64 `json:"assembly_kg_co2e"`
 	Transport      float64 `json:"transport_kg_co2e"`
+	EOLRecycling   float64 `json:"eol_recycling_kg_co2e"` // End-of-life collection, transport to recycler, recycling process
 }
 
 // FactorUsed records a factor used in the calculation for audit purposes.
@@ -164,16 +165,40 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 		Source:      transportFactor.Source,
 	})
 
-	// 5. Calculate total CO2
-	totalKgCO2e := breakdown.CellProduction + breakdown.CellEnergy + breakdown.Assembly + breakdown.Transport
+	// 5. End-of-life recycling phase (EU Art 7 lifecycle carbon)
+	// Uses EOL factor from DB if available, otherwise uses default per-kWh factor
+	eolFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "EOL_RECYCLING", input.Chemistry)
+	if err == nil && eolFactor != nil {
+		breakdown.EOLRecycling = eolFactor.FactorValue * input.CapacityKWh
+		factorsUsed = append(factorsUsed, FactorUsed{
+			Category:    eolFactor.Category,
+			Subcategory: eolFactor.Subcategory,
+			Value:       eolFactor.FactorValue,
+			Unit:        eolFactor.Unit,
+			Source:      eolFactor.Source,
+		})
+	} else {
+		// Default: ~10 kgCO2e/kWh for collection + hydrometallurgical recycling (JRC 2024 estimate)
+		breakdown.EOLRecycling = 10.0 * input.CapacityKWh
+		factorsUsed = append(factorsUsed, FactorUsed{
+			Category:    "EOL_RECYCLING",
+			Subcategory: input.Chemistry,
+			Value:       10.0,
+			Unit:        "kgCO2e/kWh",
+			Source:      "JRC_2024_DEFAULT",
+		})
+	}
 
-	// 6. Calculate per kWh CO2
+	// 6. Calculate total CO2
+	totalKgCO2e := breakdown.CellProduction + breakdown.CellEnergy + breakdown.Assembly + breakdown.Transport + breakdown.EOLRecycling
+
+	// 7. Calculate per kWh CO2
 	var perKWhKgCO2e float64
 	if input.CapacityKWh > 0 {
 		perKWhKgCO2e = totalKgCO2e / input.CapacityKWh
 	}
 
-	// 7. Generate declaration text
+	// 8. Generate declaration text
 	calculationDate := time.Now().UTC().Format(time.RFC3339)
 	declarationText := fmt.Sprintf(
 		"Carbon footprint calculated in accordance with EU Regulation 2023/1542 Article 7 using JRC 2024 methodology. Declared value: %.2f kgCO2e/kWh.",

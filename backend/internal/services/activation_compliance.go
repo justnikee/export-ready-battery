@@ -117,6 +117,13 @@ func validateIndiaActivation(batch *models.Batch, tenant *models.Tenant, missing
 }
 
 func validateEUActivation(batch *models.Batch, tenant *models.Tenant, missing *[]string, errors *[]string) {
+	// Battery Category is required for all EU-destined batteries (Art 2)
+	if batch.Specs.BatteryCategory == "" {
+		*missing = append(*missing, "batch.specs.battery_category (EV, LMT, INDUSTRIAL, PORTABLE, or SLI)")
+	} else if !batch.Specs.BatteryCategory.IsValid() {
+		*errors = append(*errors, fmt.Sprintf("Invalid battery_category: %s (must be EV, LMT, INDUSTRIAL, PORTABLE, or SLI)", batch.Specs.BatteryCategory))
+	}
+
 	// Tenant-level EU compliance
 	if tenant.CompanyName == "" {
 		*missing = append(*missing, "tenant.company_name")

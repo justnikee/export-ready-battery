@@ -52,6 +52,31 @@ func (m MarketRegion) IsValid() bool {
 }
 
 // ============================================================================
+// BATTERY CATEGORY (EU 2023/1542 Art 2)
+// ============================================================================
+
+// BatteryCategory classifies batteries per EU Battery Regulation scope
+type BatteryCategory string
+
+const (
+	BatteryCategoryEV         BatteryCategory = "EV"          // Electric vehicle (>25 kWh)
+	BatteryCategoryLMT        BatteryCategory = "LMT"         // Light means of transport (e-bikes, e-scooters)
+	BatteryCategoryIndustrial BatteryCategory = "INDUSTRIAL"   // Industrial batteries (>2 kWh, stationary storage)
+	BatteryCategoryPortable   BatteryCategory = "PORTABLE"     // Portable batteries (<5 kg, consumer)
+	BatteryCategorySLI        BatteryCategory = "SLI"          // Starting, Lighting, Ignition (automotive 12V)
+)
+
+// IsValid checks if the battery category is valid
+func (c BatteryCategory) IsValid() bool {
+	switch c {
+	case BatteryCategoryEV, BatteryCategoryLMT, BatteryCategoryIndustrial,
+		BatteryCategoryPortable, BatteryCategorySLI:
+		return true
+	}
+	return false
+}
+
+// ============================================================================
 // TENANT
 // ============================================================================
 
@@ -233,6 +258,12 @@ type BatchSpec struct {
 	WarrantyMonths         *int                 `json:"warranty_months,omitempty"`          // Warranty period in months
 	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`     // % recycled content (stored as literal: 15.5 = 15.5%)
 	HazardousSubstances    *HazardousSubstances `json:"hazardous_substances,omitempty"`     // REACH/RoHS compliance
+
+	// EU Battery Regulation 2023/1542 - STRUCTURED DATA (Art 2, Art 7, Art 57, Art 39)
+	BatteryCategory       BatteryCategory        `json:"battery_category,omitempty"`        // EV, LMT, INDUSTRIAL, PORTABLE, SLI
+	PerformanceSpec       *PerformanceSpec       `json:"performance_spec,omitempty"`        // Rated electrical/thermal specs (Annex IV)
+	DisassemblyGuide      *DisassemblyGuide      `json:"disassembly_guide,omitempty"`       // Disassembly & recycling info (Art 57)
+	SupplyChainProvenance *SupplyChainProvenance `json:"supply_chain_provenance,omitempty"` // Raw material sourcing (Art 39)
 }
 
 // MaterialComposition holds the critical raw material percentages (EU Battery Regulation)
@@ -256,11 +287,62 @@ type MaterialComposition struct {
 
 // HazardousSubstances holds REACH/RoHS compliance declarations
 type HazardousSubstances struct {
-	LeadPresent    bool   `json:"lead_present"`          // Does product contain lead?
-	MercuryPresent bool   `json:"mercury_present"`       // Does product contain mercury?
-	CadmiumPresent bool   `json:"cadmium_present"`       // Does product contain cadmium?
+	LeadPresent    bool   `json:"lead_present"`         // Does product contain lead?
+	MercuryPresent bool   `json:"mercury_present"`      // Does product contain mercury?
+	CadmiumPresent bool   `json:"cadmium_present"`      // Does product contain cadmium?
 	Declaration    string `json:"declaration,omitempty"` // Compliance statement
-	Exemptions     string `json:"exemptions,omitempty"`  // Any RoHS exemptions claimed
+	Exemptions     string `json:"exemptions,omitempty"` // Any RoHS exemptions claimed
+}
+
+// ============================================================================
+// EU STRUCTURED SPECS (EU 2023/1542 Art 7, Art 10, Art 57)
+// ============================================================================
+
+// PerformanceSpec holds rated electrical/thermal performance data (EU Annex IV)
+type PerformanceSpec struct {
+	RatedCapacityAh    *float64 `json:"rated_capacity_ah,omitempty"`               // Nominal capacity in Ah
+	RatedCapacityWh    *float64 `json:"rated_capacity_wh,omitempty"`               // Nominal energy in Wh
+	RatedVoltage       *float64 `json:"rated_voltage,omitempty"`                   // Nominal voltage (V)
+	MinVoltage         *float64 `json:"min_voltage,omitempty"`                     // Minimum voltage (V)
+	MaxVoltage         *float64 `json:"max_voltage,omitempty"`                     // Maximum voltage (V)
+	InternalResistance *float64 `json:"internal_resistance_mohm,omitempty"`        // Initial internal resistance (mΩ)
+	MaxChargeCRate     *float64 `json:"max_charge_c_rate,omitempty"`               // Max charge C-rate
+	MaxDischargeCRate  *float64 `json:"max_discharge_c_rate,omitempty"`            // Max discharge C-rate
+	OperatingTempMin   *float64 `json:"operating_temp_min_c,omitempty"`            // Min operating temp (°C)
+	OperatingTempMax   *float64 `json:"operating_temp_max_c,omitempty"`            // Max operating temp (°C)
+	CapacityAt80SoH    *float64 `json:"capacity_at_80_soh_ah,omitempty"`           // Capacity at 80% SoH threshold (Ah)
+	RoundTripEffPct    *float64 `json:"round_trip_efficiency_pct,omitempty"`        // Energy round-trip efficiency (%)
+	CathodeMaterial    string   `json:"cathode_material,omitempty"`                // e.g., "LiFePO4", "LiNiMnCoO2"
+	AnodeMaterial      string   `json:"anode_material,omitempty"`                  // e.g., "Graphite", "Li4Ti5O12"
+}
+
+// DisassemblyGuide holds battery disassembly/recycling info (EU Art 57)
+type DisassemblyGuide struct {
+	DocumentURL      string   `json:"document_url,omitempty"`      // URL to full disassembly PDF/manual
+	Steps            []string `json:"steps,omitempty"`             // Ordered disassembly steps
+	ToolsRequired    []string `json:"tools_required,omitempty"`    // Required tools
+	Hazards          []string `json:"hazards,omitempty"`           // Safety hazards
+	SafetyGuidelines []string `json:"safety_guidelines,omitempty"` // Safety procedures
+	EOLInstructions  string   `json:"eol_instructions,omitempty"`  // End-of-life handling notes
+	RecyclerURL      string   `json:"recycler_url,omitempty"`      // Link to authorized recycler portal
+}
+
+// SupplyChainProvenance holds due diligence and raw material sourcing info (EU Art 39)
+type SupplyChainProvenance struct {
+	DueDiligencePolicy string            `json:"due_diligence_policy,omitempty"` // URL to supply chain due diligence policy
+	Tiers              []SupplyChainTier `json:"tiers,omitempty"`
+}
+
+// SupplyChainTier represents one material source in the supply chain
+type SupplyChainTier struct {
+	Material        string  `json:"material"`                       // cobalt, lithium, nickel, manganese, graphite
+	SupplierName    string  `json:"supplier_name,omitempty"`        // Supplier company name
+	CountryOfOrigin string  `json:"country_of_origin"`              // ISO Alpha-2
+	MineOrRefinery  string  `json:"mine_or_refinery,omitempty"`     // Name of mine or refinery
+	Certified       bool    `json:"certified"`                      // Third-party audited?
+	CertBody        string  `json:"certification_body,omitempty"`   // e.g., "RMI", "IRMA"
+	RecycledSource  bool    `json:"recycled_source"`                // From recycled material?
+	Percentage      float64 `json:"percentage,omitempty"`           // % of total material from this source
 }
 
 // ============================================================================

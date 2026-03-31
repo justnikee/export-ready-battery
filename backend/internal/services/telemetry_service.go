@@ -129,6 +129,30 @@ func (s *TelemetryService) Ingest(ctx context.Context, req IngestRequest, device
 		slog.Warn("Failed to update passport dynamic fields", "passport_id", req.PassportID, "error", err)
 	}
 
+	// Log SOH_UPDATED event for every SoH change (EU audit trail requirement)
+	if req.StateOfHealth != nil {
+		var previousSoH *float64
+		if passport.StateOfHealth != nil {
+			v := *passport.StateOfHealth
+			previousSoH = &v
+		}
+		sohMeta := map[string]interface{}{
+			"soh_new":    *req.StateOfHealth,
+			"source":     "telemetry",
+			"recorded_at": req.RecordedAt,
+		}
+		if previousSoH != nil {
+			sohMeta["soh_previous"] = *previousSoH
+		}
+		if req.CycleCount != nil {
+			sohMeta["cycle_count"] = *req.CycleCount
+		}
+		sohEvent := s.buildEvent(req.PassportID, models.PassportEventSOHUpdated, sohMeta, time.Now().UTC())
+		if err := s.repo.CreatePassportEvent(ctx, sohEvent); err != nil {
+			slog.Warn("Failed to create SOH_UPDATED event", "passport_id", req.PassportID, "error", err)
+		}
+	}
+
 	// Auto-generate lifecycle events
 	result := &IngestResult{
 		ReadingID:  readingID,

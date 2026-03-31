@@ -88,6 +88,9 @@ type PublicSpecsView struct {
 	WarrantyMonths         *int                 `json:"warranty_months,omitempty"`
 	ExpectedLifetimeCycles *int                 `json:"expected_lifetime_cycles,omitempty"`
 	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`
+	// EU Battery Regulation structured fields (public)
+	BatteryCategory        BatteryCategory      `json:"battery_category,omitempty"`
+	PerformanceSpec        *PerformanceSpec     `json:"performance_spec,omitempty"`
 	// India compliance identifiers (from batch specs)
 	BISNumber              string               `json:"bis_number,omitempty"`
 	EPRNumber              string               `json:"epr_number,omitempty"`
@@ -130,6 +133,10 @@ type PartnerPassportView struct {
 	// EU mandatory dynamic data (partner-level visibility)
 	RepairEvents      json.RawMessage `json:"repair_events,omitempty"`
 	ReplacementEvents json.RawMessage `json:"replacement_events,omitempty"`
+
+	// EU Art 57 / Art 39 (partner-level only)
+	DisassemblyGuide      *DisassemblyGuide      `json:"disassembly_guide,omitempty"`
+	SupplyChainProvenance *SupplyChainProvenance `json:"supply_chain_provenance,omitempty"`
 
 	// Telemetry summary
 	CycleCount      *int       `json:"cycle_count,omitempty"`
@@ -215,6 +222,8 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 			WarrantyMonths:         full.Specs.WarrantyMonths,
 			ExpectedLifetimeCycles: full.Specs.ExpectedLifetimeCycles,
 			RecycledContentPct:     full.Specs.RecycledContentPct,
+			BatteryCategory:        full.Specs.BatteryCategory,
+			PerformanceSpec:        full.Specs.PerformanceSpec,
 			BISNumber:              full.Specs.BISNumber,
 			EPRNumber:              full.Specs.EPRNumber,
 		}
@@ -251,7 +260,7 @@ func BuildPartnerView(full *PassportWithSpecs) *PartnerPassportView {
 	publicView := BuildPublicView(full)
 	publicView.AccessTier = AccessTierPartner
 
-	return &PartnerPassportView{
+	view := &PartnerPassportView{
 		PublicPassportView: *publicView,
 
 		CurrentOwnerIdentifier: p.CurrentOwnerIdentifier,
@@ -274,6 +283,13 @@ func BuildPartnerView(full *PassportWithSpecs) *PartnerPassportView {
 		RecyclerEprID:   p.RecyclerEprID,
 		RecyclingDate:   p.RecyclingDate,
 	}
+
+	if full.Specs != nil {
+		view.DisassemblyGuide = full.Specs.DisassemblyGuide
+		view.SupplyChainProvenance = full.Specs.SupplyChainProvenance
+	}
+
+	return view
 }
 
 // BuildRegulatorView creates a RegulatorPassportView from full passport data + events.
