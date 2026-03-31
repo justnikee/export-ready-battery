@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2 } from "lucide-react"
+import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2, Cpu, Radio } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 
@@ -49,24 +49,47 @@ interface APIKey {
     created_at: string
 }
 
+interface DeviceToken {
+    id: string
+    name: string
+    token_prefix: string
+    batch_id: string | null
+    permissions: string
+    rate_limit: number
+    is_active: boolean
+    created_at: string
+    last_used_at: string | null
+}
+
 interface NewKeyResponse extends APIKey {
     key: string
 }
 
 export default function DeveloperPage() {
     const [apiKeys, setApiKeys] = useState<APIKey[]>([])
+    const [deviceTokens, setDeviceTokens] = useState<DeviceToken[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadingTokens, setLoadingTokens] = useState(true)
     const [creating, setCreating] = useState(false)
+    const [creatingToken, setCreatingToken] = useState(false)
     const [showCreateDialog, setShowCreateDialog] = useState(false)
+    const [showCreateTokenDialog, setShowCreateTokenDialog] = useState(false)
     const [showKeyReveal, setShowKeyReveal] = useState(false)
+    const [showTokenReveal, setShowTokenReveal] = useState(false)
     const [newKeyData, setNewKeyData] = useState<NewKeyResponse | null>(null)
+    const [newTokenRaw, setNewTokenRaw] = useState("")
     const [copied, setCopied] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<APIKey | null>(null)
+    const [deleteTokenTarget, setDeleteTokenTarget] = useState<DeviceToken | null>(null)
 
-    // Form state
+    // API Key form state
     const [keyName, setKeyName] = useState("")
     const [keyScope, setKeyScope] = useState("read")
     const [keyTier, setKeyTier] = useState("starter")
+
+    // Device Token form state
+    const [tokenName, setTokenName] = useState("")
+    const [tokenBatchId, setTokenBatchId] = useState("")
 
     const toApiError = (error: unknown): { response?: { data?: { error?: string } } } => {
         if (typeof error === "object" && error !== null) {
@@ -77,6 +100,7 @@ export default function DeveloperPage() {
 
     useEffect(() => {
         fetchAPIKeys()
+        fetchDeviceTokens()
     }, [])
 
     const fetchAPIKeys = async () => {
@@ -145,6 +169,57 @@ export default function DeveloperPage() {
             setTimeout(() => setCopied(false), 2000)
         } catch {
             toast.error("Failed to copy")
+        }
+    }
+
+    // Device Token functions
+    const fetchDeviceTokens = async () => {
+        try {
+            const response = await api.get("/device-tokens")
+            setDeviceTokens(response.data.tokens || [])
+        } catch (error) {
+            console.error("Failed to fetch device tokens:", error)
+        } finally {
+            setLoadingTokens(false)
+        }
+    }
+
+    const handleCreateToken = async () => {
+        if (!tokenName.trim()) {
+            toast.error("Name is required")
+            return
+        }
+        setCreatingToken(true)
+        try {
+            const response = await api.post("/device-tokens", {
+                name: tokenName,
+                batch_id: tokenBatchId || undefined,
+            })
+            setNewTokenRaw(response.data.raw_token || response.data.token?.id || "")
+            setShowCreateTokenDialog(false)
+            setShowTokenReveal(true)
+            fetchDeviceTokens()
+            setTokenName("")
+            setTokenBatchId("")
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            toast.error(apiError.response?.data?.error || "Failed to create device token")
+        } finally {
+            setCreatingToken(false)
+        }
+    }
+
+    const handleDeleteToken = async () => {
+        if (!deleteTokenTarget) return
+        try {
+            await api.delete(`/device-tokens/${deleteTokenTarget.id}`)
+            toast.success("Device token revoked")
+            fetchDeviceTokens()
+        } catch (error: unknown) {
+            const apiError = toApiError(error)
+            toast.error(apiError.response?.data?.error || "Failed to revoke token")
+        } finally {
+            setDeleteTokenTarget(null)
         }
     }
 
@@ -355,6 +430,160 @@ export default function DeveloperPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Device Token Management */}
+                <Card className="bg-white border-slate-200">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="text-slate-900 flex items-center gap-2">
+                                <Cpu className="h-5 w-5" />
+                                Device Tokens
+                            </CardTitle>
+                            <CardDescription className="text-slate-500">
+                                Authenticate BMS devices for telemetry ingestion
+                            </CardDescription>
+                        </div>
+                        <Dialog open={showCreateTokenDialog} onOpenChange={setShowCreateTokenDialog}>
+                            <DialogTrigger asChild>
+                                <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+                                    <Plus className="w-4 h-4 mr-1" /> New Token
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-white border-slate-200">
+                                <DialogHeader>
+                                    <DialogTitle className="text-slate-900">Create Device Token</DialogTitle>
+                                    <DialogDescription className="text-slate-500">
+                                        Generate a token for BMS device telemetry. Scope it to a specific batch for security.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="tokenName">Token Name</Label>
+                                        <Input
+                                            id="tokenName"
+                                            placeholder="e.g., BMS-Gateway-Factory-A"
+                                            value={tokenName}
+                                            onChange={(e) => setTokenName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="tokenBatchId">Batch ID (optional)</Label>
+                                        <Input
+                                            id="tokenBatchId"
+                                            placeholder="Scope token to a specific batch UUID"
+                                            value={tokenBatchId}
+                                            onChange={(e) => setTokenBatchId(e.target.value)}
+                                        />
+                                        <p className="text-xs text-slate-500">Leave empty to allow telemetry for any passport</p>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setShowCreateTokenDialog(false)}>Cancel</Button>
+                                    <Button onClick={handleCreateToken} disabled={creatingToken} className="bg-teal-600 hover:bg-teal-700 text-white">
+                                        {creatingToken ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Radio className="w-4 h-4 mr-1" />}
+                                        Create Token
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingTokens ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            </div>
+                        ) : deviceTokens.length === 0 ? (
+                            <div className="text-center py-8">
+                                <Cpu className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                                <p className="text-slate-500 text-sm">No device tokens yet</p>
+                                <p className="text-slate-400 text-xs mt-1">Create a token to start sending BMS telemetry data</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {deviceTokens.map((token) => (
+                                    <div key={token.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <Cpu className="h-4 w-4 text-teal-600" />
+                                            <div>
+                                                <span className="text-sm font-medium text-slate-900">{token.name}</span>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    {!token.is_active && <Badge variant="outline" className="text-red-500 border-red-300">Revoked</Badge>}
+                                                    {token.batch_id && (
+                                                        <span className="text-xs text-slate-400">Batch: {token.batch_id.slice(0, 8)}…</span>
+                                                    )}
+                                                    <span className="text-xs text-slate-400">
+                                                        Created {formatDistanceToNow(new Date(token.created_at), { addSuffix: true })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => setDeleteTokenTarget(token)}>
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Sample payload */}
+                        <div className="mt-4 p-3 bg-slate-900 rounded-lg">
+                            <p className="text-xs text-slate-400 mb-2">Sample telemetry request:</p>
+                            <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre">{`curl -X POST /api/v1/telemetry \\
+  -H "Authorization: Bearer <device_token>" \\
+  -d '{
+    "passport_id": "<uuid>",
+    "state_of_health": 92.3,
+    "cycle_count": 145,
+    "temperature": 28.4,
+    "voltage": 48.2
+  }'`}</pre>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Token Reveal Dialog */}
+                <Dialog open={showTokenReveal} onOpenChange={setShowTokenReveal}>
+                    <DialogContent className="bg-white border-slate-200">
+                        <DialogHeader>
+                            <DialogTitle className="text-slate-900">Device Token Created</DialogTitle>
+                            <DialogDescription className="text-slate-500">
+                                Flash this token into your BMS firmware. It will not be shown again.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-amber-800 text-sm font-medium">
+                                <AlertTriangle className="h-4 w-4" />
+                                Copy this token now — it will only be shown once!
+                            </div>
+                        </div>
+                        <div className="p-3 bg-slate-900 rounded-lg flex items-center justify-between">
+                            <code className="text-green-400 text-sm break-all">{newTokenRaw}</code>
+                            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(newTokenRaw)}
+                                className="text-slate-400 hover:text-white shrink-0 ml-2">
+                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete Token Confirmation */}
+                <AlertDialog open={!!deleteTokenTarget} onOpenChange={() => setDeleteTokenTarget(null)}>
+                    <AlertDialogContent className="bg-white border-slate-200">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-slate-900">Revoke Device Token?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-500">
+                                This will permanently revoke &quot;{deleteTokenTarget?.name}&quot;. Any devices using this token will stop sending telemetry.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteToken} className="bg-red-600 hover:bg-red-700 text-white">
+                                Revoke Token
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {/* External API Documentation Link */}
                 <Card className="bg-white border-slate-200">

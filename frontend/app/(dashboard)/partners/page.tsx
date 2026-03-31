@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import {
     Building2, Plus, Trash2, AlertCircle, CheckCircle,
     Loader2, Key, Users, Copy,
-    Calendar, Hash
+    Calendar, Hash, Radio
 } from "lucide-react"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
@@ -42,7 +42,7 @@ interface PartnerCodePayload {
 const ROLES = ["TECHNICIAN", "RECYCLER", "LOGISTICS"]
 
 export default function PartnersPage() {
-    const [activeTab, setActiveTab] = useState<"trusted" | "codes">("trusted")
+    const [activeTab, setActiveTab] = useState<"trusted" | "codes" | "webhooks">("trusted")
     const [pendingDeletePartner, setPendingDeletePartner] = useState<string | null>(null)
     const [pendingDeactivateCode, setPendingDeactivateCode] = useState<string | null>(null)
 
@@ -72,6 +72,22 @@ export default function PartnersPage() {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState("")
+
+    // Webhook state
+    interface OutboundWebhook {
+        id: string
+        url: string
+        secret: string
+        events: string[]
+        is_active: boolean
+        created_at: string
+    }
+    const [webhooks, setWebhooks] = useState<OutboundWebhook[]>([])
+    const [loadingWebhooks, setLoadingWebhooks] = useState(true)
+    const [showAddWebhook, setShowAddWebhook] = useState(false)
+    const [newWebhookUrl, setNewWebhookUrl] = useState("")
+    const [newWebhookSecret, setNewWebhookSecret] = useState("")
+    const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>(["passport.shipped", "passport.installed"])
 
     const getAuthHeaders = useCallback(() => {
         const token = localStorage.getItem("token")
@@ -120,6 +136,7 @@ export default function PartnersPage() {
     useEffect(() => {
         fetchPartners()
         fetchCodes()
+        fetchWebhooks()
     }, [fetchCodes, fetchPartners])
 
     // Add trusted partner
@@ -228,6 +245,73 @@ export default function PartnersPage() {
         setTimeout(() => setSuccess(""), 3000)
     }
 
+    // Webhook functions
+    const fetchWebhooks = async () => {
+        try {
+            const res = await fetch(`${apiUrl}/outbound-webhooks`, { headers: getAuthHeaders() })
+            if (res.ok) {
+                const data = await res.json()
+                setWebhooks(data.webhooks || [])
+            }
+        } catch {
+            console.error("Failed to fetch webhooks")
+        } finally {
+            setLoadingWebhooks(false)
+        }
+    }
+
+    const handleAddWebhook = async () => {
+        if (!newWebhookUrl.trim()) { setError("Webhook URL is required"); return }
+        setSubmitting(true)
+        setError("")
+        try {
+            const res = await fetch(`${apiUrl}/outbound-webhooks`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    url: newWebhookUrl,
+                    secret: newWebhookSecret,
+                    events: newWebhookEvents,
+                })
+            })
+            if (res.ok) {
+                setShowAddWebhook(false)
+                setNewWebhookUrl("")
+                setNewWebhookSecret("")
+                setNewWebhookEvents(["passport.shipped", "passport.installed"])
+                fetchWebhooks()
+                setSuccess("Outbound webhook registered")
+                setTimeout(() => setSuccess(""), 3000)
+            } else {
+                const data = await res.json()
+                setError(data.error || "Failed to register webhook")
+            }
+        } catch {
+            setError("Failed to register webhook")
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    const handleDeleteWebhook = async (id: string) => {
+        try {
+            await fetch(`${apiUrl}/outbound-webhooks/${id}`, {
+                method: "DELETE",
+                headers: getAuthHeaders()
+            })
+            fetchWebhooks()
+        } catch {
+            console.error("Failed to delete webhook")
+        }
+    }
+
+    const WEBHOOK_EVENT_OPTIONS = [
+        "passport.shipped", "passport.installed", "passport.recalled",
+        "passport.recycled", "passport.repaired", "passport.replaced",
+        "telemetry.soh_update", "telemetry.thermal_event",
+        "telemetry.second_life_threshold"
+    ]
+
     return (
         <>
             <div className="min-h-screen bg-slate-50 p-6 md:p-8 w-full mx-auto">
@@ -285,6 +369,16 @@ export default function PartnersPage() {
                     >
                         <Key className="h-4 w-4" />
                         Partner Codes (Tier B)
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("webhooks")}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "webhooks"
+                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                            : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                            }`}
+                    >
+                        <Radio className="h-4 w-4" />
+                        Webhooks
                     </button>
                 </div>
 
@@ -601,6 +695,127 @@ export default function PartnersPage() {
                                         </div>
                                     )
                                 })}
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {/* Webhooks Tab */}
+                {activeTab === "webhooks" && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold text-slate-900">Outbound Webhooks</h2>
+                                <p className="text-sm text-slate-500">
+                                    Get notified when lifecycle events occur on your passports
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddWebhook(!showAddWebhook)}
+                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm font-medium"
+                            >
+                                <Plus className="h-4 w-4" />
+                                Add Webhook
+                            </button>
+                        </div>
+
+                        {showAddWebhook && (
+                            <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Webhook URL</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://your-server.com/webhook"
+                                        value={newWebhookUrl}
+                                        onChange={(e) => setNewWebhookUrl(e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Signing Secret <span className="text-slate-400">(optional)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="HMAC-SHA256 secret for payload verification"
+                                        value={newWebhookSecret}
+                                        onChange={(e) => setNewWebhookSecret(e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Events to subscribe</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {WEBHOOK_EVENT_OPTIONS.map(evt => (
+                                            <button
+                                                key={evt}
+                                                onClick={() => {
+                                                    setNewWebhookEvents(prev =>
+                                                        prev.includes(evt) ? prev.filter(e => e !== evt) : [...prev, evt]
+                                                    )
+                                                }}
+                                                className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
+                                                    newWebhookEvents.includes(evt)
+                                                        ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                                }`}
+                                            >
+                                                {evt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <button
+                                        onClick={() => setShowAddWebhook(false)}
+                                        className="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddWebhook}
+                                        disabled={submitting}
+                                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        Register Webhook
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {loadingWebhooks ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            </div>
+                        ) : webhooks.length === 0 ? (
+                            <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
+                                <Radio className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                                <p className="text-slate-500 text-sm">No outbound webhooks configured</p>
+                                <p className="text-slate-400 text-xs mt-1">Add a webhook to receive event notifications via HTTP POST</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {webhooks.map(wh => (
+                                    <div key={wh.id} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                        <div>
+                                            <code className="text-sm text-slate-700 font-mono">{wh.url}</code>
+                                            <div className="flex gap-1 mt-1 flex-wrap">
+                                                {wh.events.map(evt => (
+                                                    <span key={evt} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                                                        {evt}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteWebhook(wh.id)}
+                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </motion.div>

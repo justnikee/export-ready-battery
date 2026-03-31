@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 import { ComplianceScoreCard } from "@/components/dashboard/ComplianceScoreCard"
+import { EUComplianceChecklist } from "@/components/dashboard/EUComplianceChecklist"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
@@ -334,7 +335,8 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-
+                {/* EU Compliance Checklist Widget */}
+                <EUComplianceChecklist batches={batches} />
 
                 {/* Data Tables Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

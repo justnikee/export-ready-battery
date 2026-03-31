@@ -4,7 +4,7 @@ import {
     Battery, Zap, Weight, FlaskConical,
     Calendar, Shield, Barcode, Globe,
     AlertTriangle, Recycle, FileText, Download,
-    Truck, MapPin, Mail
+    Truck, MapPin, Mail, Wrench, Replace
 } from "lucide-react"
 import { createTranslator, type Locale } from "@/lib/i18n/i18n"
 
@@ -21,6 +21,35 @@ function DataRow({ label, value, mono }: { label: string; value: string | number
             <span className={`text-slate-900 text-sm text-right ${mono ? 'font-mono' : ''}`}>
                 {value ?? <span className="text-slate-300">—</span>}
             </span>
+        </div>
+    )
+}
+
+function SoHGauge({ soh }: { soh: number }) {
+    const clampedSoh = Math.max(0, Math.min(100, soh))
+    const thresholdPct = 80
+    const color = clampedSoh >= thresholdPct ? "text-emerald-600" : clampedSoh >= 60 ? "text-amber-500" : "text-red-500"
+    const bgColor = clampedSoh >= thresholdPct ? "bg-emerald-500" : clampedSoh >= 60 ? "bg-amber-500" : "bg-red-500"
+    const label = clampedSoh >= thresholdPct ? "Healthy" : clampedSoh >= 60 ? "Degraded" : "Critical"
+
+    return (
+        <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+            <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-500 font-medium">State of Health</span>
+                    <span className={`text-sm font-bold ${color}`}>{clampedSoh.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2.5 relative">
+                    <div className={`h-2.5 rounded-full ${bgColor} transition-all duration-500`} style={{ width: `${clampedSoh}%` }} />
+                    {/* 80% threshold marker */}
+                    <div className="absolute top-0 h-2.5 w-0.5 bg-slate-400" style={{ left: `${thresholdPct}%` }} title="80% second-life threshold" />
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-slate-400">0%</span>
+                    <span className={`text-[10px] ${color} font-medium`}>{label}</span>
+                    <span className="text-[10px] text-slate-400">100%</span>
+                </div>
+            </div>
         </div>
     )
 }
@@ -499,14 +528,57 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                     {t("section_lifecycle")}
                 </h3>
 
-                <div className="space-y-0">
+                {/* SoH Gauge */}
+                {isBattery && soh != null && <SoHGauge soh={soh} />}
+
+                <div className="space-y-0 mt-3">
                     <DataRow label={t("label_current_owner")} value={passport.current_owner_identifier} mono />
-                    {isBattery && <DataRow label={t("label_soh")} value={stateOfHealthLabel} />}
+                    {isBattery && soh == null && <DataRow label={t("label_soh")} value={stateOfHealthLabel} />}
                     {isBattery && <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />}
                     <DataRow label={t("label_ownership_records")} value={ownershipCount} />
                     <DataRow label={t("label_repair_events")} value={repairCount} />
                     <DataRow label={t("label_replacement_events")} value={replacementCount} />
                 </div>
+
+                {/* Expanded Repair History (EU Art 14) */}
+                {repairCount > 0 && passport.repair_events && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <h4 className="text-slate-700 text-sm font-medium mb-2 flex items-center gap-1.5">
+                            <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                            Repair History
+                        </h4>
+                        <div className="space-y-2">
+                            {passport.repair_events.map((evt, i) => (
+                                <div key={i} className="flex items-start gap-3 p-2 bg-slate-50 rounded text-sm">
+                                    <span className="text-slate-400 text-xs whitespace-nowrap mt-0.5">
+                                        {evt.timestamp ? new Date(evt.timestamp).toLocaleDateString('en-GB') : '—'}
+                                    </span>
+                                    <span className="text-slate-700">{evt.description || 'Repair performed'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Expanded Replacement History */}
+                {replacementCount > 0 && passport.replacement_events && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <h4 className="text-slate-700 text-sm font-medium mb-2 flex items-center gap-1.5">
+                            <Replace className="w-3.5 h-3.5 text-slate-400" />
+                            Replacement History
+                        </h4>
+                        <div className="space-y-2">
+                            {passport.replacement_events.map((evt, i) => (
+                                <div key={i} className="flex items-start gap-3 p-2 bg-slate-50 rounded text-sm">
+                                    <span className="text-slate-400 text-xs whitespace-nowrap mt-0.5">
+                                        {evt.timestamp ? new Date(evt.timestamp).toLocaleDateString('en-GB') : '—'}
+                                    </span>
+                                    <span className="text-slate-700">{evt.description || 'Component replaced'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {isIndia && (
                     <div className="mt-4 pt-4 border-t border-slate-100">

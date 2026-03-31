@@ -7,7 +7,7 @@ import {
     LogOut, X, Home, Box, Truck, Users,
     Trophy, CreditCard, Settings, UserPlus, FileDown,
     ChevronLeft, ChevronRight, Key, BookOpen, BarChart3,
-    LayoutTemplate, TrendingUp, Shield
+    LayoutTemplate, TrendingUp, Shield, Activity
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -40,6 +40,7 @@ const navGroups: NavGroup[] = [
     {
         label: "Operations",
         items: [
+            { name: "Lifecycle", href: "/lifecycle", icon: Activity },
             { name: "Partners", href: "/partners", icon: Users },
             { name: "Templates", href: "/templates", icon: LayoutTemplate },
             { name: "Exports", href: "/exports", icon: FileDown },

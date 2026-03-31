@@ -147,6 +147,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [capacity, setCapacity] = useState("")
     const [voltage, setVoltage] = useState("")
     const [chemistry, setChemistry] = useState("LFP")
+    const [batteryCategory, setBatteryCategory] = useState("")
     const [manufacturer, setManufacturer] = useState(user?.company_name || "")
     const [manufacturerAddress, setManufacturerAddress] = useState("")
     const [manufacturerEmail, setManufacturerEmail] = useState("")
@@ -282,6 +283,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             setCapacity(template.specs.capacity || "")
             setVoltage(template.specs.voltage || "")
             setChemistry(template.specs.chemistry || "LFP")
+            setBatteryCategory(template.specs.battery_category || "")
             setManufacturer(template.specs.manufacturer || user?.company_name || "")
             setWeight(template.specs.weight || "")
             setCarbonFootprint(template.specs.carbon_footprint || "")
@@ -469,6 +471,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     capacity,
                     voltage,
                     chemistry,
+                    battery_category: batteryCategory || undefined,
                     manufacturer,
                     manufacturer_address: manufacturerAddress,
                     manufacturer_email: manufacturerEmail,
@@ -630,6 +633,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setCapacity("")
         setVoltage("")
         setChemistry("LFP")
+        setBatteryCategory("")
         setWeight("")
         setCarbonFootprint("")
         setCountryOfOrigin("")
@@ -869,6 +873,31 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     </Select>
                                 </div>
                             </div>
+
+                            {/* Row 3a: Battery Category (EU required) */}
+                            {(marketRegion === "EU" || marketRegion === "GLOBAL") && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="batteryCategory">
+                                            Battery Category <span className="text-red-500">*</span>
+                                            <span className="text-xs text-slate-500 ml-1">(EU Reg. Art 2)</span>
+                                        </Label>
+                                        <Select value={batteryCategory} onValueChange={setBatteryCategory}>
+                                            <SelectTrigger id="batteryCategory">
+                                                <SelectValue placeholder="Select EU battery category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="EV">EV — Electric Vehicle Battery</SelectItem>
+                                                <SelectItem value="LMT">LMT — Light Means of Transport</SelectItem>
+                                                <SelectItem value="INDUSTRIAL">Industrial Battery (&gt;2 kWh)</SelectItem>
+                                                <SelectItem value="PORTABLE">Portable Battery</SelectItem>
+                                                <SelectItem value="SLI">SLI — Starting, Lighting, Ignition</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div />
+                                </div>
+                            )}
 
                             {/* Row 3b: Manufacturer Address & Email */}
                             <div className="grid grid-cols-2 gap-4">
