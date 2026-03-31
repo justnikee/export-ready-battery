@@ -32,6 +32,7 @@ type LifecycleService struct {
 type LifecycleRepository interface {
 	GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error)
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
+	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
 	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
 	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
@@ -319,6 +320,23 @@ func (s *LifecycleService) GetPassportForTransition(ctx context.Context, passpor
 	return s.repo.GetPassportByUUID(ctx, passportID)
 }
 
+// VerifyPassportTenantOwnership checks that a passport's batch belongs to the given tenant.
+// Returns nil if the passport belongs to the tenant, or an error if not.
+func (s *LifecycleService) VerifyPassportTenantOwnership(ctx context.Context, passportID uuid.UUID, tenantID uuid.UUID) error {
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	batchTenantID, err := s.repo.GetBatchTenantID(ctx, passport.BatchID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if batchTenantID != tenantID {
+		return fmt.Errorf("passport not found: unauthorized")
+	}
+	return nil
+}
+
 // BulkTransitionRequest represents a request to transition multiple passports
 type BulkTransitionRequest struct {
 	PassportIDs  []uuid.UUID         `json:"passport_ids"`
@@ -425,12 +443,22 @@ func (s *LifecycleService) GetPassportEvents(ctx context.Context, passportID uui
 	return s.repo.GetPassportEvents(ctx, passportID)
 }
 
-// TransferPassport handles ownership transfer with audit logging
-func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID, actor string) error {
+// TransferPassport handles ownership transfer with audit logging.
+// tenantID is the authenticated caller's tenant — used to verify ownership before transfer.
+func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID, actor string, tenantID uuid.UUID) error {
 	// Get current passport to log previous owner
 	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
 	if err != nil {
 		return fmt.Errorf("passport not found: %w", err)
+	}
+
+	// S1 Security fix: Verify the passport's batch belongs to the caller's tenant
+	batchTenantID, err := s.repo.GetBatchTenantID(ctx, passport.BatchID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if batchTenantID != tenantID {
+		return fmt.Errorf("passport not found: unauthorized")
 	}
 
 	// Store previous owner for audit
@@ -521,8 +549,9 @@ func (s *LifecycleService) BuildLifecycleEvents(passports []*models.Passport, ev
 	events := make([]*models.PassportEvent, len(passports))
 
 	for i, p := range passports {
-		// Genesis events have no previous hash (they are the first in the chain)
-		previousHash := ""
+		// S4 Security fix: Genesis events anchor the hash chain to the passport identity.
+		// This binds the chain irrevocably to the passport, making chain replacement detectable.
+		previousHash := "GENESIS:" + p.UUID.String() + ":" + p.SerialNumber
 
 		event := &models.PassportEvent{
 			ID:           uuid.New(),

@@ -140,6 +140,11 @@ func (m *MockRepository) GetBatchMarketRegion(ctx context.Context, batchID uuid.
 	return args.Get(0).(models.MarketRegion), args.Error(1)
 }
 
+func (m *MockRepository) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
+	args := m.Called(ctx, batchID)
+	return args.Get(0).(uuid.UUID), args.Error(1)
+}
+
 func (m *MockRepository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error {
 	args := m.Called(ctx, batchID, tenantID, resultJSON)
 	return args.Error(0)

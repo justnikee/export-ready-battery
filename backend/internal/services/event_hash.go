@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,6 +80,11 @@ func VerifyEventChain(events []ChainEvent) (bool, int) {
 		// For events after the first, verify chain link
 		if i > 0 {
 			if event.Data.PreviousHash != events[i-1].Hash {
+				return false, i
+			}
+		} else {
+			// Genesis event: PreviousHash must be either the GENESIS anchor or empty (legacy)
+			if event.Data.PreviousHash != "" && !strings.HasPrefix(event.Data.PreviousHash, "GENESIS:") {
 				return false, i
 			}
 		}

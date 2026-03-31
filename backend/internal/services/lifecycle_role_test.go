@@ -35,6 +35,10 @@ func (f *fakeLifecycleRepo) GetBatchMarketRegion(ctx context.Context, batchID uu
 	return models.MarketRegionGlobal, nil
 }
 
+func (f *fakeLifecycleRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, nil
+}
+
 func (f *fakeLifecycleRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
 	if f.applyErr != nil {
 		return f.applyErr

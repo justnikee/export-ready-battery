@@ -473,6 +473,16 @@ func (r *Repository) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID
 	return models.MarketRegion(region), nil
 }
 
+// GetBatchTenantID returns the tenant_id for a batch. Used for ownership verification.
+func (r *Repository) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
+	var tenantID uuid.UUID
+	query := `SELECT tenant_id FROM public.batches WHERE id = $1 AND deleted_at IS NULL`
+	if err := r.db.Pool.QueryRow(ctx, query, batchID).Scan(&tenantID); err != nil {
+		return uuid.Nil, fmt.Errorf("failed to get batch tenant: %w", err)
+	}
+	return tenantID, nil
+}
+
 // UpdateBatchComplianceResult saves the compliance engine score and gap list for a batch.
 // Called after ActivateBatch runs the compliance validators.
 // gapsJSON must be valid JSON (e.g. `[]` or `[{"field":"...","regulation":"..."}]`).

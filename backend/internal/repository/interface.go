@@ -33,6 +33,7 @@ type RepositoryInterface interface {
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
+	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
 	SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error
 	UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error
 

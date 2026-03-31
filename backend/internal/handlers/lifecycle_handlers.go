@@ -126,6 +126,17 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// S2 Security fix: Verify the passport belongs to the authenticated tenant
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr != "" {
+		if tenantUUID, parseErr := uuid.Parse(tenantIDStr); parseErr == nil {
+			if ownerErr := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantUUID); ownerErr != nil {
+				respondError(w, http.StatusForbidden, "Passport not found")
+				return
+			}
+		}
+	}
+
 	// Parse request body (and reject any status-based mutation)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -464,6 +475,11 @@ func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Reque
 		respondError(w, http.StatusUnauthorized, "Unauthorized - tenant context required")
 		return
 	}
+	tenantUUID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
 
 	// Get actor from context for audit logging
 	actor := middleware.GetEmail(r.Context())
@@ -472,7 +488,7 @@ func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Perform transfer
-	if err := h.service.TransferPassport(r.Context(), passportID, req.NewOwnerID, actor); err != nil {
+	if err := h.service.TransferPassport(r.Context(), passportID, req.NewOwnerID, actor, tenantUUID); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			respondError(w, http.StatusNotFound, "Passport not found")
 			return

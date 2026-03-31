@@ -41,6 +41,12 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 	// Detect access tier
 	tier := h.detectAccessTier(r, passportUUID)
 
+	// S5 Security fix: Parse tenant's DataVisibility config for view filtering
+	var displayConfig models.DisplayConfig
+	if passportWithSpecs.Tenant != nil {
+		displayConfig = models.ParseDisplayConfig(passportWithSpecs.Tenant.DataVisibility)
+	}
+
 	switch tier {
 	case models.AccessTierRegulator:
 		events, err := h.repo.GetPassportEvents(r.Context(), passportUUID)
@@ -52,10 +58,14 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusOK, models.BuildRegulatorView(passportWithSpecs, events))
 
 	case models.AccessTierPartner:
-		respondJSON(w, http.StatusOK, models.BuildPartnerView(passportWithSpecs))
+		partnerView := models.BuildPartnerView(passportWithSpecs)
+		models.ApplyDisplayConfigToPartnerView(partnerView, displayConfig)
+		respondJSON(w, http.StatusOK, partnerView)
 
 	default:
-		respondJSON(w, http.StatusOK, models.BuildPublicView(passportWithSpecs))
+		publicView := models.BuildPublicView(passportWithSpecs)
+		models.ApplyDisplayConfigToPublicView(publicView, displayConfig)
+		respondJSON(w, http.StatusOK, publicView)
 	}
 }
 
