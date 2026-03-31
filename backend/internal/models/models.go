@@ -1114,3 +1114,56 @@ type EPRLedgerSummary struct {
 	CertificateCount int     `json:"certificate_count"`
 	ComplianceStatus string  `json:"compliance_status"`
 }
+
+// ============================================================================
+// OUTBOUND WEBHOOKS (tenant event notifications)
+// ============================================================================
+
+// OutboundWebhook represents a tenant-configured webhook endpoint
+type OutboundWebhook struct {
+	ID              uuid.UUID  `json:"id"`
+	TenantID        uuid.UUID  `json:"tenant_id"`
+	URL             string     `json:"url"`
+	Secret          string     `json:"-"`                            // HMAC-SHA256 signing secret (never exposed)
+	EventTypes      []string   `json:"event_types"`                 // e.g., ["STATUS_CHANGED","SOH_UPDATED","TRANSFER"]
+	IsActive        bool       `json:"is_active"`
+	FailureCount    int        `json:"failure_count"`
+	LastTriggeredAt *time.Time `json:"last_triggered_at,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+}
+
+// CreateOutboundWebhookRequest is the request to register a webhook
+type CreateOutboundWebhookRequest struct {
+	URL        string   `json:"url"`
+	EventTypes []string `json:"event_types"`
+}
+
+// WebhookPayload is the envelope sent to tenant webhook URLs
+type WebhookPayload struct {
+	Event      string                 `json:"event"`       // e.g., "STATUS_CHANGED"
+	PassportID string                 `json:"passport_id"` // UUID of affected passport
+	TenantID   string                 `json:"tenant_id"`
+	Timestamp  string                 `json:"timestamp"`   // ISO 8601
+	Data       map[string]interface{} `json:"data"`        // Event-specific payload
+}
+
+// ============================================================================
+// EU COMPLIANCE ATTRIBUTE SCORE (BatteryPass consortium 80-attribute mapping)
+// ============================================================================
+
+// ComplianceAttribute represents one EU-required data point and its fill status
+type ComplianceAttribute struct {
+	ID       string `json:"id"`       // e.g., "EU-7.1"
+	Name     string `json:"name"`     // e.g., "Battery Category"
+	Category string `json:"category"` // e.g., "General Information"
+	RegRef   string `json:"reg_ref"`  // e.g., "Art 2(1)"
+	Filled   bool   `json:"filled"`
+}
+
+// ComplianceScoreResult holds the overall compliance attribute coverage
+type ComplianceScoreResult struct {
+	Score      float64                `json:"score"`       // 0-100%
+	Filled     int                    `json:"filled"`
+	Total      int                    `json:"total"`
+	Attributes []ComplianceAttribute  `json:"attributes"`
+}

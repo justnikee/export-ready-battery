@@ -201,6 +201,23 @@ func (s *TelemetryService) generateAutoEvents(ctx context.Context, passport *mod
 	var events []*models.PassportEvent
 	now := time.Now().UTC()
 
+	// SECOND_LIFE_THRESHOLD: battery is below manufacturer's second-life SoH threshold
+	// This signals the battery should be evaluated for second-life or recycling (EU Art 14)
+	if req.StateOfHealth != nil && passport.StateOfHealth != nil {
+		secondLifeThreshold := 80.0 // default EU threshold
+		// Check if there's a batch-specific threshold via SoH threshold in passport metadata
+		// (set during batch creation from PerformanceSpec)
+		if *req.StateOfHealth < secondLifeThreshold && *passport.StateOfHealth >= secondLifeThreshold {
+			metadata := map[string]interface{}{
+				"state_of_health":      *req.StateOfHealth,
+				"threshold":            secondLifeThreshold,
+				"recommendation":       "EVALUATE_SECOND_LIFE",
+				"source":               "telemetry_auto",
+			}
+			events = append(events, s.buildEvent(req.PassportID, "SECOND_LIFE_THRESHOLD", metadata, now))
+		}
+	}
+
 	// SOH_DEGRADATION_WARNING when SoH drops below 80%
 	if req.StateOfHealth != nil && *req.StateOfHealth < 80 && *req.StateOfHealth >= 50 {
 		// Only generate if passport's previous SoH was >= 80 (avoid duplicate warnings)

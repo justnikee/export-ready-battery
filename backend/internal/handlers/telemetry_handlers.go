@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -253,5 +256,126 @@ func (h *TelemetryHandler) RevokeDeviceToken(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "device token revoked",
+	})
+}
+
+// ============================================================================
+// CSV SOH BATCH UPLOAD (JWT Auth)
+// ============================================================================
+
+// UploadSoHCSV handles POST /api/v1/telemetry/soh-upload
+// Accepts a CSV with columns: passport_uuid, soh_pct, cycle_count, measured_at
+func (h *TelemetryHandler) UploadSoHCSV(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		http.Error(w, `{"error":"missing tenant context"}`, http.StatusUnauthorized)
+		return
+	}
+
+	// Limit upload to 5MB
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, `{"error":"missing CSV file in 'file' form field"}`, http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	header, err := reader.Read()
+	if err != nil {
+		http.Error(w, `{"error":"failed to read CSV header"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Map column indices
+	colMap := make(map[string]int)
+	for i, col := range header {
+		colMap[col] = i
+	}
+	requiredCols := []string{"passport_uuid", "soh_pct"}
+	for _, col := range requiredCols {
+		if _, ok := colMap[col]; !ok {
+			http.Error(w, fmt.Sprintf(`{"error":"missing required CSV column: %s"}`, col), http.StatusBadRequest)
+			return
+		}
+	}
+
+	var (
+		accepted int
+		rejected int
+		errors   []string
+	)
+
+	// Use a synthetic device token ID for CSV uploads
+	syntheticDeviceTokenID := uuid.Nil
+
+	for rowNum := 2; ; rowNum++ {
+		row, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("row %d: parse error: %s", rowNum, err.Error()))
+			rejected++
+			continue
+		}
+
+		passportUUID, err := uuid.Parse(row[colMap["passport_uuid"]])
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("row %d: invalid passport_uuid", rowNum))
+			rejected++
+			continue
+		}
+
+		sohPct, err := strconv.ParseFloat(row[colMap["soh_pct"]], 64)
+		if err != nil || sohPct < 0 || sohPct > 100 {
+			errors = append(errors, fmt.Sprintf("row %d: invalid soh_pct (must be 0-100)", rowNum))
+			rejected++
+			continue
+		}
+
+		// Optional columns
+		var cycleCount *int
+		if idx, ok := colMap["cycle_count"]; ok && idx < len(row) && row[idx] != "" {
+			cc, err := strconv.Atoi(row[idx])
+			if err == nil {
+				cycleCount = &cc
+			}
+		}
+
+		measuredAt := time.Now().UTC()
+		if idx, ok := colMap["measured_at"]; ok && idx < len(row) && row[idx] != "" {
+			if parsed, err := time.Parse(time.RFC3339, row[idx]); err == nil {
+				measuredAt = parsed
+			} else if parsed, err := time.Parse("2006-01-02", row[idx]); err == nil {
+				measuredAt = parsed
+			}
+		}
+
+		req := services.IngestRequest{
+			PassportID:    passportUUID,
+			StateOfHealth: &sohPct,
+			CycleCount:    cycleCount,
+			RecordedAt:    measuredAt,
+			Source:        "csv_soh_upload",
+		}
+
+		_, err = h.telemetryService.Ingest(r.Context(), req, syntheticDeviceTokenID)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("row %d: %s", rowNum, err.Error()))
+			rejected++
+		} else {
+			accepted++
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"accepted": accepted,
+		"rejected": rejected,
+		"errors":   errors,
 	})
 }

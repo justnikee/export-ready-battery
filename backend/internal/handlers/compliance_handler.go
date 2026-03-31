@@ -167,3 +167,44 @@ func (h *Handler) DownloadComplianceReport(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
 	w.Write(pdfBytes)
 }
+
+// GetBatchEUAttributeScore handles GET /api/v1/batches/{id}/eu-attribute-score
+// Evaluates the batch against the EU BatteryPass consortium's 56 mandatory
+// attributes and returns per-attribute coverage with regulation references.
+func (h *Handler) GetBatchEUAttributeScore(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant")
+		return
+	}
+
+	result := services.CalculateComplianceScore(batch, tenant)
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"batch_id":   batchID,
+		"score":      result.Score,
+		"filled":     result.Filled,
+		"total":      result.Total,
+		"attributes": result.Attributes,
+	})
+}

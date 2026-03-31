@@ -282,6 +282,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/compliance-declaration", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceDeclaration)))
 	mux.Handle("GET /api/v1/batches/{id}/compliance-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceReport)))
 	mux.Handle("GET /api/v1/batches/{id}/compliance", authMiddleware.Protect(http.HandlerFunc(h.GetBatchCompliance)))
+	mux.Handle("GET /api/v1/batches/{id}/eu-attribute-score", authMiddleware.Protect(http.HandlerFunc(h.GetBatchEUAttributeScore)))
 	mux.Handle("GET /api/v1/batches/{id}/due-diligence-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDueDiligenceReport)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
@@ -398,10 +399,23 @@ func main() {
 	mux.Handle("DELETE /api/v1/device-tokens/{id}", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.RevokeDeviceToken)))
 
 	// ============================================
+	// CSV SOH UPLOAD (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/telemetry/soh-upload", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.UploadSoHCSV)))
+
+	// ============================================
 	// WEBHOOK ROUTES (Public - for payment providers)
 	// ============================================
 	webhookHandler := handlers.NewWebhookHandler(h.RazorpayService(), repo)
 	mux.HandleFunc("POST /api/v1/webhooks/razorpay", webhookHandler.RazorpayWebhook)
+
+	// ============================================
+	// OUTBOUND WEBHOOK MANAGEMENT (Protected)
+	// ============================================
+	outboundWHHandler := handlers.NewOutboundWebhookHandler(nil)
+	mux.Handle("POST /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.CreateOutboundWebhook)))
+	mux.Handle("GET /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.ListOutboundWebhooks)))
+	mux.Handle("DELETE /api/v1/outbound-webhooks/{id}", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.DeleteOutboundWebhook)))
 
 	// ============================================
 	// DOCUMENT UPLOAD ROUTES (Protected)

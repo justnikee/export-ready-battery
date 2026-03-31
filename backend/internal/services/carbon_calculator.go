@@ -37,11 +37,33 @@ type CarbonInput struct {
 type CarbonResult struct {
 	TotalKgCO2e     float64         `json:"total_kg_co2e"`
 	PerKWhKgCO2e    float64         `json:"per_kwh_kg_co2e"`
+	CarbonClass     string          `json:"carbon_class"`     // EU performance class A-G
 	Breakdown       CarbonBreakdown `json:"breakdown"`
 	Methodology     string          `json:"methodology"`      // "JRC_2024_DECLARED"
 	CalculationDate string          `json:"calculation_date"` // ISO 8601
 	DeclarationText string          `json:"declaration_text"` // Legal declaration
 	FactorsUsed     []FactorUsed    `json:"factors_used"`     // Audit trail of factors
+}
+
+// ClassifyCarbonClass assigns EU carbon performance class A (best) to G (worst)
+// based on kgCO2e/kWh thresholds aligned with EU delegated act proposals.
+func ClassifyCarbonClass(perKWhKgCO2e float64) string {
+	switch {
+	case perKWhKgCO2e <= 40:
+		return "A"
+	case perKWhKgCO2e <= 60:
+		return "B"
+	case perKWhKgCO2e <= 80:
+		return "C"
+	case perKWhKgCO2e <= 100:
+		return "D"
+	case perKWhKgCO2e <= 120:
+		return "E"
+	case perKWhKgCO2e <= 150:
+		return "F"
+	default:
+		return "G"
+	}
 }
 
 // CarbonBreakdown provides detailed breakdown of carbon footprint components.
@@ -208,6 +230,7 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 	return &CarbonResult{
 		TotalKgCO2e:     totalKgCO2e,
 		PerKWhKgCO2e:    perKWhKgCO2e,
+		CarbonClass:     ClassifyCarbonClass(perKWhKgCO2e),
 		Breakdown:       breakdown,
 		Methodology:     "JRC_2024_DECLARED",
 		CalculationDate: calculationDate,
