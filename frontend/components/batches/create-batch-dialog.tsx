@@ -137,7 +137,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     const [fieldsAnimating, setFieldsAnimating] = useState(false)
 
     // ===== DUAL-MODE: Market Region =====
-    const [marketRegion, setMarketRegion] = useState<MarketRegion>("GLOBAL")
+    const [marketRegion, setMarketRegion] = useState<MarketRegion>("INDIA")
 
     // Form states - Common
     const [batchName, setBatchName] = useState("")
@@ -641,14 +641,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         setSelectedTemplate("")
         setSaveAsTemplate(false)
         setTemplateName("")
-        setMarketRegion("GLOBAL")
+        setMarketRegion("INDIA")
         setPliCompliant(false)
         // Reset India Enterprise Fields
         setHsnCode("")
         setSalePrice("")
         setImportCost("")
         setCellSource("")
-        setCertifications(["CE"])
+        setCertifications(["AIS-156", "AIS-038"])
         setMaterialComposition({
             cobalt: "",
             lithium: "",
@@ -731,6 +731,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <Flag className="h-5 w-5 mx-auto mb-1" />
                                     <div className="font-semibold text-sm">India</div>
                                     <div className="text-xs opacity-70">Battery Aadhaar</div>
+                                    <div className="text-[10px] opacity-50 mt-0.5">Includes BIS IS 16046, EPR, and PLI compliance tracking</div>
                                 </button>
                                 <button
                                     type="button"
@@ -743,6 +744,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <Leaf className="h-5 w-5 mx-auto mb-1" />
                                     <div className="font-semibold text-sm">EU Export</div>
                                     <div className="text-xs opacity-70">Battery Passport</div>
+                                    <div className="text-[10px] opacity-50 mt-0.5">EU Battery Regulation 2023/1542 compliance</div>
                                 </button>
                                 <button
                                     type="button"

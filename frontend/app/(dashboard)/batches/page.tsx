@@ -41,7 +41,7 @@ import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton"
 
 // Types
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
-type FilterType = "ALL" | "DRAFT" | "ACTIVE"
+type FilterType = "ALL" | "DRAFT" | "ACTIVE" | "ARCHIVED"
 
 interface BatchesResponse {
     batches: Batch[]
@@ -148,6 +148,14 @@ export default function BatchesPage() {
                 </span>
             )
         }
+        if (status === 'ARCHIVED') {
+            return (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    Archived
+                </span>
+            )
+        }
         return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
                 <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
@@ -249,7 +257,7 @@ export default function BatchesPage() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 h-9 text-sm">
                                     <Filter className="h-4 w-4 mr-2" />
-                                    {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : "Draft"}
+                                    {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : filter === "ARCHIVED" ? "Archived" : "Draft"}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="bg-white border border-slate-200 shadow-lg min-w-[140px]">
@@ -270,6 +278,12 @@ export default function BatchesPage() {
                                     className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
                                 >
                                     Active Only
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setFilter("ARCHIVED")}
+                                    className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                >
+                                    Archived
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -294,10 +308,14 @@ export default function BatchesPage() {
                         <tbody className="divide-y divide-slate-100">
                             {paginatedBatches.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="h-32 text-center text-slate-500">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Package className="h-8 w-8 text-slate-300" />
-                                            <span>No batches found</span>
+                                    <td colSpan={6} className="h-48 text-center text-slate-500">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Package className="h-10 w-10 text-slate-300" />
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-700">No batches found</p>
+                                                <p className="text-xs text-slate-500 mt-1">Create your first production batch to start generating battery passports</p>
+                                            </div>
+                                            <CreateBatchDialog onBatchCreated={fetchBatches} />
                                         </div>
                                     </td>
                                 </tr>
