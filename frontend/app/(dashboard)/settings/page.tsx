@@ -347,6 +347,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-slate-500 mt-1">Manage your company profile and compliance documents</p>
                 </div>
 
+                <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Company Profile Card */}
                 <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                     <div className="border-b border-slate-100 px-6 py-4">
@@ -361,7 +362,7 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div className="p-6 space-y-6">
                         {/* Company Name */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none text-slate-700">
@@ -469,7 +470,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 {/* India Compliance Vault Card */}
@@ -484,6 +485,31 @@ export default function SettingsPage() {
                                 <p className="text-xs text-slate-500">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
                             </div>
                         </div>
+                        {/* Compliance Readiness Indicator */}
+                        {(() => {
+                            const checks = [
+                                { label: 'EPR', done: !!formData.epr_registration_number },
+                                { label: 'BIS', done: !!formData.bis_r_number },
+                                { label: 'IEC', done: !!formData.iec_code },
+                                { label: 'PLI', done: certificatePaths.pli_status === 'VERIFIED' || certificatePaths.pli_status === 'PENDING' },
+                                { label: 'MoRTH', done: !!formData.morth_manufacturer_code },
+                            ];
+                            const completed = checks.filter(c => c.done).length;
+                            return (
+                                <div className="mt-3">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs text-slate-500">{completed} of {checks.length} configured</span>
+                                        <span className="text-xs font-medium text-slate-700">{Math.round((completed / checks.length) * 100)}%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                        <div
+                                            className={`h-1.5 rounded-full transition-all ${completed === checks.length ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                                            style={{ width: `${(completed / checks.length) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     <div className="p-6 grid gap-6 md:grid-cols-2">
@@ -684,39 +710,33 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Save All Settings */}
+                <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 -mx-6 px-6 py-4 mt-6 flex items-center justify-between">
+                    {message && (
+                        <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {message.text}
+                        </p>
+                    )}
+                    <div className="ml-auto">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50"
+                        >
+                            {loading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : null}
+                            Save All Settings
+                        </button>
+                    </div>
+                </div>
+                </form>
+
                 {/* Data Visibility Config */}
                 <DataVisibility dataVisibility={formData.data_visibility} onChange={(v) => setFormData({ ...formData, data_visibility: v })} />
 
                 {/* Data Access Tokens Card */}
                 <DataAccessTokens />
-
-                {/* Feedback Message & Submit */}
-                <div className="bg-white border border-slate-200 rounded-lg p-6">
-                    {message && (
-                        <div className={`rounded-md p-3 text-sm mb-4 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
-                            }`}>
-                            {message.text}
-                        </div>
-                    )}
-
-                    <div className="flex justify-end">
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors"
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                "Save Changes"
-                            )}
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     )
