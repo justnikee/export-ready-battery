@@ -44,7 +44,7 @@ export function DeleteTemplateDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-white border-slate-200 text-slate-700 hover:bg-zinc-700 hover:text-white">
+                    <AlertDialogCancel className="bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-700 hover:text-white">
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction

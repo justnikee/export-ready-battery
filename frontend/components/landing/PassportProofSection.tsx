@@ -48,7 +48,7 @@ export function PassportProofSection() {
             <h2 className="text-2xl md:text-3xl font-heading font-semibold text-[#0B1F3B] mb-3">
               Every passport is proof.
             </h2>
-            <p className="text-sm text-slate-600 max-w-[55ch] mx-auto">
+            <p className="text-sm text-zinc-600 max-w-[55ch] mx-auto">
               A real ExportLens battery passport, structured for audit review.
             </p>
           </motion.div>
@@ -58,7 +58,7 @@ export function PassportProofSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-xl shadow-slate-200/50"
+            className="bg-zinc-50 rounded-2xl border border-zinc-200 overflow-hidden shadow-xl shadow-zinc-200/50"
           >
             {/* Header */}
             <div className="bg-[#0B1F3B] px-6 py-4 flex items-center justify-between">
@@ -68,26 +68,26 @@ export function PassportProofSection() {
                   Battery Passport — INB-2024-XHFC9
                 </span>
               </div>
-              <span className="text-xs font-mono text-slate-400 bg-white/10 px-2 py-1 rounded">
+              <span className="text-xs font-mono text-zinc-400 bg-white/10 px-2 py-1 rounded">
                 EU + India Compliant
               </span>
             </div>
 
             {/* Core fields */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-slate-200">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-zinc-200">
               {passportFields.map((field, i) => {
                 const Icon = field.icon;
                 return (
                   <div
                     key={i}
-                    className="bg-white p-4 text-left hover:bg-slate-50 transition-colors"
+                    className="bg-white p-4 text-left hover:bg-zinc-50 transition-colors"
                   >
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wide mb-1">
                       {field.label}
                     </p>
                     <div className="flex items-center gap-1.5">
                       {Icon && <Icon className="h-3.5 w-3.5 text-[#1F7A5F]" />}
-                      <p className="font-mono text-sm text-slate-800">
+                      <p className="font-mono text-sm text-zinc-800">
                         {field.value}
                       </p>
                     </div>
@@ -97,10 +97,10 @@ export function PassportProofSection() {
             </div>
 
             {/* Event log */}
-            <div className="border-t border-slate-200 p-5 bg-white">
+            <div className="border-t border-zinc-200 p-5 bg-white">
               <div className="flex items-center gap-2 mb-3">
                 <History className="h-4 w-4 text-[#0B1F3B]" />
-                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wide">
                   Lifecycle Events
                 </span>
               </div>
@@ -108,14 +108,14 @@ export function PassportProofSection() {
                 {eventLogs.map((log, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-3 font-mono text-xs text-slate-600"
+                    className="flex items-center gap-3 font-mono text-xs text-zinc-600"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5 text-[#1F7A5F]" />
                     <span className="text-[#0B1F3B] font-medium">
                       {log.event}
                     </span>
-                    <span className="text-slate-400">by {log.actor}</span>
-                    <span className="ml-auto text-slate-400">
+                    <span className="text-zinc-400">by {log.actor}</span>
+                    <span className="ml-auto text-zinc-400">
                       {new Date(log.timestamp).toLocaleDateString()}
                     </span>
                   </div>
@@ -132,11 +132,11 @@ export function PassportProofSection() {
             transition={{ delay: 0.2 }}
             className="mt-6 flex flex-wrap items-center justify-center gap-4"
           >
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:border-[#1F7A5F]/30 hover:shadow-md transition-all duration-300">
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-700 hover:border-[#1F7A5F]/30 hover:shadow-md transition-all duration-300">
               <QrCode className="h-4 w-4" />
               Scan QR Demo
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:border-[#1F7A5F]/30 hover:shadow-md transition-all duration-300">
+            <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm text-zinc-700 hover:border-[#1F7A5F]/30 hover:shadow-md transition-all duration-300">
               <Download className="h-4 w-4" />
               Download Sample PDF
             </button>
@@ -147,7 +147,7 @@ export function PassportProofSection() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-500"
+            className="mt-8 flex items-center justify-center gap-6 text-sm text-zinc-500"
           >
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#1F7A5F]" />
@@ -158,7 +158,7 @@ export function PassportProofSection() {
               Signed
             </span>
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-slate-400" />
+              <span className="h-2 w-2 rounded-full bg-zinc-400" />
               Regulator-ready
             </span>
           </motion.div>

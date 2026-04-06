@@ -17,7 +17,7 @@ export default function ContactPage() {
                     <h1 className="text-4xl md:text-5xl font-heading font-semibold text-[#0B1F3B]">
                         Contact ExportReady
                     </h1>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                    <p className="text-lg text-zinc-600 max-w-2xl mx-auto">
                         Reach out for product questions, compliance support, or sales. We respond within 1 business day.
                     </p>
                 </motion.div>
@@ -29,12 +29,12 @@ export default function ContactPage() {
                     viewport={{ once: true }}
                     className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-16"
                 >
-                    <div className="p-8 rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="p-8 rounded-xl border border-zinc-200 bg-zinc-50">
                         <div className="w-10 h-10 rounded-lg bg-[#0B1F3B]/10 flex items-center justify-center mb-4">
                             <Headphones className="h-5 w-5 text-[#0B1F3B]" />
                         </div>
                         <h2 className="text-xl font-semibold text-[#0B1F3B] mb-2">Support</h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-zinc-600">
                             For technical help or account issues, email us at{" "}
                             <a className="text-[#1F7A5F] font-medium hover:underline" href="mailto:support@exportready.com">
                                 support@exportready.com
@@ -42,12 +42,12 @@ export default function ContactPage() {
                             .
                         </p>
                     </div>
-                    <div className="p-8 rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="p-8 rounded-xl border border-zinc-200 bg-zinc-50">
                         <div className="w-10 h-10 rounded-lg bg-[#1F7A5F]/10 flex items-center justify-center mb-4">
                             <BadgeDollarSign className="h-5 w-5 text-[#1F7A5F]" />
                         </div>
                         <h2 className="text-xl font-semibold text-[#0B1F3B] mb-2">Sales</h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-zinc-600">
                             Want a demo or a custom plan? Email{" "}
                             <a className="text-[#1F7A5F] font-medium hover:underline" href="mailto:sales@exportready.com">
                                 sales@exportready.com

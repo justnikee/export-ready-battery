@@ -128,7 +128,7 @@ function DocumentUpload({
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="text-xs text-slate-500 hover:text-slate-700"
+                        className="text-xs text-zinc-500 hover:text-zinc-700"
                     >
                         {uploading ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -142,7 +142,7 @@ function DocumentUpload({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-50"
                 >
                     {uploading ? (
                         <>
@@ -228,7 +228,7 @@ function LogoUpload({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-50"
             >
                 {uploading ? (
                     <>
@@ -340,16 +340,16 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Organization Settings</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage your company profile and compliance documents</p>
+                    <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Organization Settings</h1>
+                    <p className="text-sm text-zinc-500 mt-1">Manage your company profile and compliance documents</p>
                 </div>
 
                 {/* Settings Tabs */}
-                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                <div className="flex gap-1 bg-zinc-100 rounded-lg p-1">
                     {[
                         { id: 'profile' as const, label: 'Profile' },
                         { id: 'compliance' as const, label: 'India Compliance' },
@@ -362,8 +362,8 @@ export default function SettingsPage() {
                             onClick={() => setActiveSettingsTab(tab.id)}
                             className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
                                 activeSettingsTab === tab.id
-                                    ? 'bg-white text-slate-900 shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                    ? 'bg-white text-zinc-900 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700'
                             }`}
                         >
                             {tab.label}
@@ -374,15 +374,15 @@ export default function SettingsPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                 {activeSettingsTab === 'profile' && (<>
                 {/* Company Profile Card */}
-                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                    <div className="border-b border-slate-100 px-6 py-4">
+                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-zinc-100 px-6 py-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
                                 <Building2 className="h-5 w-5 text-blue-600" />
                             </div>
                             <div>
-                                <h2 className="text-base font-medium text-slate-900">Company Profile</h2>
-                                <p className="text-xs text-slate-500">Basic information displayed on battery passports</p>
+                                <h2 className="text-base font-medium text-zinc-900">Company Profile</h2>
+                                <p className="text-xs text-zinc-500">Basic information displayed on battery passports</p>
                             </div>
                         </div>
                     </div>
@@ -390,14 +390,14 @@ export default function SettingsPage() {
                     <div className="p-6 space-y-6">
                         {/* Company Name */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 Company Name
                             </label>
                             <div className="relative">
-                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Acme Battery Co."
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -408,32 +408,32 @@ export default function SettingsPage() {
 
                         {/* Address */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 Manufacturer Address
                             </label>
                             <div className="relative">
-                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                                 <textarea
-                                    className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 pl-9 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex min-h-[80px] w-full rounded-md border border-zinc-200 bg-white px-3 py-2 pl-9 text-sm text-zinc-900 shadow-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="123 Industrial Park, Energy City, Country"
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">This address will appear on your battery passports.</p>
+                            <p className="text-xs text-zinc-500">This address will appear on your battery passports.</p>
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
                             {/* Support Email */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-slate-700">
+                                <label className="text-sm font-medium leading-none text-zinc-700">
                                     Support Email
                                 </label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
                                     <input
                                         type="email"
-                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="support@acme.com"
                                         value={formData.support_email}
                                         onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
@@ -443,14 +443,14 @@ export default function SettingsPage() {
 
                             {/* Website */}
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-slate-700">
+                                <label className="text-sm font-medium leading-none text-zinc-700">
                                     Website
                                 </label>
                                 <div className="relative">
-                                    <Globe className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Globe className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
                                     <input
                                         type="url"
-                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="https://acme.com"
                                         value={formData.website}
                                         onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -461,12 +461,12 @@ export default function SettingsPage() {
 
                         {/* Logo Upload */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 Company Logo
                             </label>
                             <div className="flex items-start gap-4">
                                 {/* Logo Preview */}
-                                <div className="relative h-20 w-20 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                                <div className="relative h-20 w-20 rounded-lg border border-zinc-200 bg-zinc-50 flex items-center justify-center overflow-hidden shrink-0">
                                     {formData.logo_url && !logoError ? (
                                         <Image
                                             src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
@@ -477,7 +477,7 @@ export default function SettingsPage() {
                                             onError={() => setLogoError(true)}
                                         />
                                     ) : null}
-                                    <div className={`flex flex-col items-center justify-center text-slate-400 ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
+                                    <div className={`flex flex-col items-center justify-center text-zinc-400 ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
                                         <ImageIcon className="h-8 w-8" />
                                     </div>
                                 </div>
@@ -491,7 +491,7 @@ export default function SettingsPage() {
                                             await refreshUser()
                                         }}
                                     />
-                                    <p className="text-xs text-slate-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
+                                    <p className="text-xs text-zinc-500">PNG or JPEG, max 2MB. Displayed on passports and labels.</p>
                                 </div>
                             </div>
                         </div>
@@ -501,15 +501,15 @@ export default function SettingsPage() {
 
                 {activeSettingsTab === 'compliance' && (<>
                 {/* India Compliance Vault Card */}
-                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                    <div className="border-b border-slate-100 px-6 py-4">
+                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-zinc-100 px-6 py-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
                                 <ShieldCheck className="h-5 w-5 text-emerald-600" />
                             </div>
                             <div>
-                                <h3 className="text-base font-medium text-slate-900">India Compliance Vault</h3>
-                                <p className="text-xs text-slate-500">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
+                                <h3 className="text-base font-medium text-zinc-900">India Compliance Vault</h3>
+                                <p className="text-xs text-zinc-500">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
                             </div>
                         </div>
                         {/* Compliance Readiness Indicator */}
@@ -525,10 +525,10 @@ export default function SettingsPage() {
                             return (
                                 <div className="mt-3">
                                     <div className="flex items-center justify-between mb-1.5">
-                                        <span className="text-xs text-slate-500">{completed} of {checks.length} configured</span>
-                                        <span className="text-xs font-medium text-slate-700">{Math.round((completed / checks.length) * 100)}%</span>
+                                        <span className="text-xs text-zinc-500">{completed} of {checks.length} configured</span>
+                                        <span className="text-xs font-medium text-zinc-700">{Math.round((completed / checks.length) * 100)}%</span>
                                     </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                    <div className="w-full bg-zinc-100 rounded-full h-1.5">
                                         <div
                                             className={`h-1.5 rounded-full transition-all ${completed === checks.length ? 'bg-emerald-500' : 'bg-amber-400'}`}
                                             style={{ width: `${(completed / checks.length) * 100}%` }}
@@ -542,20 +542,20 @@ export default function SettingsPage() {
                     <div className="p-6 grid gap-6 md:grid-cols-2">
                         {/* EPR Registration Number */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 EPR Registration Number
                             </label>
                             <div className="relative">
                                 <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="EPR/B/2024/XXXX"
                                     value={formData.epr_registration_number}
                                     onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">CPCB Extended Producer Responsibility registration.</p>
+                            <p className="text-xs text-zinc-500">CPCB Extended Producer Responsibility registration.</p>
                             <DocumentUpload
                                 label="EPR"
                                 documentType="epr"
@@ -566,20 +566,20 @@ export default function SettingsPage() {
 
                         {/* BIS R-Number */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 BIS R-Number (IS 16046)
                             </label>
                             <div className="relative">
                                 <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="R-12345678"
                                     value={formData.bis_r_number}
                                     onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">BIS CRS registration for IS 16046 safety standard.</p>
+                            <p className="text-xs text-zinc-500">BIS CRS registration for IS 16046 safety standard.</p>
                             <DocumentUpload
                                 label="BIS"
                                 documentType="bis"
@@ -592,29 +592,29 @@ export default function SettingsPage() {
                     {/* IEC Code with PLI Certificate */}
                     <div className="grid gap-6 md:grid-cols-2 px-6 pb-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 IEC Code (Import Export Code)
                             </label>
                             <div className="relative">
                                 <FileText className="absolute left-3 top-2.5 h-4 w-4 text-amber-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="AAACT1234A"
                                     value={formData.iec_code}
                                     onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">Required for importers of battery cells.</p>
+                            <p className="text-xs text-zinc-500">Required for importers of battery cells.</p>
                         </div>
 
                         {/* PLI Certificate */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 PLI Scheme Certificate
                             </label>
-                            <div className="p-3 rounded-md border border-slate-200 bg-slate-50">
-                                <p className="text-xs text-slate-500 mb-2">
+                            <div className="p-3 rounded-md border border-zinc-200 bg-zinc-50">
+                                <p className="text-xs text-zinc-500 mb-2">
                                     Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
                                 </p>
                                 <DocumentUpload
@@ -628,11 +628,11 @@ export default function SettingsPage() {
                     </div>
 
                     {/* MoRTH BPAN Configuration */}
-                    <div className="border-t border-slate-100 px-6 py-4">
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-4">MoRTH BPAN Configuration</p>
+                    <div className="border-t border-zinc-100 px-6 py-4">
+                        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide mb-4">MoRTH BPAN Configuration</p>
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-slate-700">
+                                <label className="text-sm font-medium leading-none text-zinc-700">
                                     MoRTH Manufacturer Code
                                 </label>
                                 <div className="relative">
@@ -640,30 +640,30 @@ export default function SettingsPage() {
                                     <input
                                         type="text"
                                         maxLength={3}
-                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="NKY"
                                         value={formData.morth_manufacturer_code}
                                         onChange={(e) => setFormData({ ...formData, morth_manufacturer_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
                                     />
                                 </div>
-                                <p className="text-xs text-slate-500">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
+                                <p className="text-xs text-zinc-500">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium leading-none text-slate-700">
+                                <label className="text-sm font-medium leading-none text-zinc-700">
                                     Factory Codes
                                 </label>
                                 <div className="relative">
                                     <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
                                     <input
                                         type="text"
-                                        className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder='[{"code":"01","name":"Pune Plant"},{"code":"02","name":"Chennai Plant"}]'
                                         value={formData.morth_factory_codes}
                                         onChange={(e) => setFormData({ ...formData, morth_factory_codes: e.target.value })}
                                     />
                                 </div>
-                                <p className="text-xs text-slate-500">JSON array of 2-char factory codes used in the BI section of BPAN. E.g. <code className="bg-slate-100 px-1 rounded">&#91;&#123;&quot;code&quot;:&quot;01&quot;,&quot;name&quot;:&quot;Pune Plant&quot;&#125;&#93;</code></p>
+                                <p className="text-xs text-zinc-500">JSON array of 2-char factory codes used in the BI section of BPAN. E.g. <code className="bg-zinc-100 px-1 rounded">&#91;&#123;&quot;code&quot;:&quot;01&quot;,&quot;name&quot;:&quot;Pune Plant&quot;&#125;&#93;</code></p>
                             </div>
                         </div>
                     </div>
@@ -672,69 +672,69 @@ export default function SettingsPage() {
 
                 {/* EU Compliance Contact Card */}
                 {activeSettingsTab === 'profile' && (
-                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                    <div className="border-b border-slate-100 px-6 py-4">
+                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                    <div className="border-b border-zinc-100 px-6 py-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
                                 <Globe className="h-5 w-5 text-indigo-600" />
                             </div>
                             <div>
-                                <h3 className="text-base font-medium text-slate-900">EU Authorized Representative</h3>
-                                <p className="text-xs text-slate-500">Required for EU Battery Passport compliance</p>
+                                <h3 className="text-base font-medium text-zinc-900">EU Authorized Representative</h3>
+                                <p className="text-xs text-zinc-500">Required for EU Battery Passport compliance</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="p-6 grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 EU Authorized Representative Name
                             </label>
                             <div className="relative">
                                 <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="EU Rep GmbH"
                                     value={formData.eu_authorized_representative_name}
                                     onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">Legal representative for EU compliance.</p>
+                            <p className="text-xs text-zinc-500">Legal representative for EU compliance.</p>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 EU Contact Email
                             </label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
                                 <input
                                     type="email"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="compliance@eurep.eu"
                                     value={formData.eu_contact_email}
                                     onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">Regulatory contact email for EU.</p>
+                            <p className="text-xs text-zinc-500">Regulatory contact email for EU.</p>
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
-                            <label className="text-sm font-medium leading-none text-slate-700">
+                            <label className="text-sm font-medium leading-none text-zinc-700">
                                 EU Authorized Representative Address
                             </label>
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
                                 <input
                                     type="text"
-                                    className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 py-1 pl-9 text-sm text-slate-900 shadow-sm transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-1 pl-9 text-sm text-zinc-900 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                                     placeholder="Street, City, Country"
                                     value={formData.eu_authorized_representative_address}
                                     onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
                                 />
                             </div>
-                            <p className="text-xs text-slate-500">Official address of EU representative.</p>
+                            <p className="text-xs text-zinc-500">Official address of EU representative.</p>
                         </div>
                     </div>
                 </div>
@@ -742,7 +742,7 @@ export default function SettingsPage() {
 
                 {/* Save All Settings */}
                 {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
-                <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 -mx-6 px-6 py-4 mt-6 flex items-center justify-between">
+                <div className="sticky bottom-0 bg-zinc-50 border-t border-zinc-200 -mx-6 px-6 py-4 mt-6 flex items-center justify-between">
                     {message && (
                         <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
                             {message.text}
@@ -752,7 +752,7 @@ export default function SettingsPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50"
                         >
                             {loading ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />

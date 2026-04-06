@@ -60,12 +60,12 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
         fetchCompliance()
     }, [batches])
 
-    const scoreColor = avgScore === null ? "text-slate-400"
+    const scoreColor = avgScore === null ? "text-zinc-400"
         : avgScore >= 80 ? "text-emerald-600"
             : avgScore >= 50 ? "text-amber-500"
                 : "text-red-500"
 
-    const barColor = avgScore === null ? "bg-slate-200"
+    const barColor = avgScore === null ? "bg-zinc-200"
         : avgScore >= 80 ? "bg-emerald-500"
             : avgScore >= 50 ? "bg-amber-500"
                 : "bg-red-500"
@@ -75,23 +75,23 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
             : AlertTriangle
 
     return (
-        <div className="bg-white border border-slate-200 rounded-lg p-5">
+        <div className="bg-white border border-zinc-200 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Compliance</span>
+                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Compliance</span>
                 <StatusIcon className={`h-4 w-4 ${scoreColor}`} />
             </div>
 
             {loading ? (
-                <div className="h-8 bg-slate-100 rounded animate-pulse" />
+                <div className="h-8 bg-zinc-100 rounded animate-pulse" />
             ) : avgScore === null ? (
                 <>
-                    <div className="text-2xl font-semibold text-slate-400">—</div>
-                    <div className="text-xs text-slate-500 mt-2">No active batches</div>
+                    <div className="text-2xl font-semibold text-zinc-400">—</div>
+                    <div className="text-xs text-zinc-500 mt-2">No active batches</div>
                 </>
             ) : (
                 <>
                     <div className={`text-2xl font-semibold ${scoreColor}`}>{avgScore}%</div>
-                    <div className="w-full bg-slate-100 rounded h-1.5 mt-2">
+                    <div className="w-full bg-zinc-100 rounded h-1.5 mt-2">
                         <div className={`h-1.5 rounded ${barColor}`} style={{ width: `${avgScore}%` }} />
                     </div>
                     {totalGaps > 0 && (

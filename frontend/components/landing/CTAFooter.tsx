@@ -45,7 +45,7 @@ export function CTAFooter() {
                         <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-4">
                             Compliance you don&apos;t have to explain.
                         </h2>
-                        <p className="text-lg text-slate-300 mb-8">
+                        <p className="text-lg text-zinc-300 mb-8">
                             Your batteries are already regulated. The only question is whether your data is audit-ready.
                         </p>
 
@@ -68,7 +68,7 @@ export function CTAFooter() {
                             <Link href="/" className="text-xl font-heading font-bold text-white">
                                 ExportLens
                             </Link>
-                            <p className="text-sm text-slate-400 mt-3">
+                            <p className="text-sm text-zinc-400 mt-3">
                                 Audit-grade battery passports for India and the EU.
                             </p>
                         </div>
@@ -84,7 +84,7 @@ export function CTAFooter() {
                                         <li key={j}>
                                             <Link
                                                 href={item.href}
-                                                className="text-sm text-slate-400 hover:text-[#1F7A5F] transition-colors"
+                                                className="text-sm text-zinc-400 hover:text-[#1F7A5F] transition-colors"
                                             >
                                                 {item.label}
                                             </Link>
@@ -96,18 +96,18 @@ export function CTAFooter() {
                     </div>
 
                     {/* Bottom */}
-                    <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-slate-800">
-                        <p className="text-sm text-slate-500">
+                    <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-zinc-800">
+                        <p className="text-sm text-zinc-500">
                             © {new Date().getFullYear()} ExportLens. All rights reserved.
                         </p>
                         <div className="flex items-center gap-4 mt-4 md:mt-0">
-                            <Link href="mailto:hello@exportlens.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                            <Link href="mailto:hello@exportlens.com" className="text-zinc-500 hover:text-[#1F7A5F] transition-colors">
                                 <Mail className="h-5 w-5" />
                             </Link>
-                            <Link href="https://linkedin.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                            <Link href="https://linkedin.com" className="text-zinc-500 hover:text-[#1F7A5F] transition-colors">
                                 <Linkedin className="h-5 w-5" />
                             </Link>
-                            <Link href="https://twitter.com" className="text-slate-500 hover:text-[#1F7A5F] transition-colors">
+                            <Link href="https://twitter.com" className="text-zinc-500 hover:text-[#1F7A5F] transition-colors">
                                 <Twitter className="h-5 w-5" />
                             </Link>
                         </div>

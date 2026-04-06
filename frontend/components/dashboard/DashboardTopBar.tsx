@@ -17,7 +17,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
     const isLowQuota = quotaBalance <= 2
 
     return (
-        <header className="sticky top-0 z-30 h-14 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 md:px-6">
+        <header className="sticky top-0 z-30 h-14 bg-white/95 backdrop-blur border-b border-zinc-200 flex items-center justify-between px-4 md:px-6">
             {/* Left: Mobile Menu Button */}
             <div className="flex items-center gap-3">
                 <Button
@@ -26,7 +26,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                     className="h-9 w-9 md:hidden"
                     onClick={onMenuClick}
                 >
-                    <Menu className="h-5 w-5 text-slate-700" />
+                    <Menu className="h-5 w-5 text-zinc-700" />
                 </Button>
 
                 {/* Breadcrumb or Page Title could go here */}
@@ -55,7 +55,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-slate-500 hover:text-slate-700"
+                    className="h-9 w-9 text-zinc-500 hover:text-zinc-700"
                     asChild
                 >
                     <a href="mailto:support@exportready.in">

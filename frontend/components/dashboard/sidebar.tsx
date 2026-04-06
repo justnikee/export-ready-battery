@@ -40,8 +40,8 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-slate-100",
-                                    isActive ? "bg-slate-100 text-primary" : "text-slate-500"
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-zinc-100",
+                                    isActive ? "bg-zinc-100 text-primary" : "text-zinc-500"
                                 )}
                             >
                                 <Icon className="h-5 w-5" />

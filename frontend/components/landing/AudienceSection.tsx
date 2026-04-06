@@ -72,7 +72,7 @@ export function AudienceSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-semibold text-[#0B1F3B] mb-4">
             Built for the full battery ecosystem.
           </h2>
-          <p className="text-base text-slate-600 max-w-[55ch] mx-auto">
+          <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
             From production floor to recycling facility — compliance that
             follows the battery.
           </p>
@@ -88,7 +88,7 @@ export function AudienceSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-8 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50/50 p-8 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-zinc-200/50 hover:-translate-y-1"
               >
                 {/* Top gradient line */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0B1F3B] to-[#1F7A5F] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -101,7 +101,7 @@ export function AudienceSection() {
                     <div className="text-2xl font-bold text-[#0B1F3B]">
                       {audience.stat}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-zinc-500">
                       {audience.statLabel}
                     </div>
                   </div>
@@ -110,7 +110,7 @@ export function AudienceSection() {
                 <h3 className="text-lg font-semibold text-[#0B1F3B] mb-2">
                   {audience.title}
                 </h3>
-                <p className="text-slate-600 leading-relaxed mb-4 text-sm">
+                <p className="text-zinc-600 leading-relaxed mb-4 text-sm">
                   {audience.description}
                 </p>
 
@@ -119,7 +119,7 @@ export function AudienceSection() {
                     <span className="h-1.5 w-1.5 rounded-full bg-[#1F7A5F]" />
                     {audience.benefit}
                   </div>
-                  <ArrowUpRight className="h-5 w-5 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:text-[#1F7A5F] transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                  <ArrowUpRight className="h-5 w-5 text-zinc-300 opacity-0 group-hover:opacity-100 group-hover:text-[#1F7A5F] transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
                 </div>
               </motion.div>
             );

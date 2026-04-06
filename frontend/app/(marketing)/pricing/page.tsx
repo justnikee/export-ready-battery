@@ -27,7 +27,7 @@ export default function PricingPage() {
                                 Every Scale
                             </span>
                         </h1>
-                        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                        <p className="text-lg text-zinc-600 max-w-2xl mx-auto">
                             Purchase batch activation quotas as detailed below. Licenses never expire and can be topped up at any time.
                         </p>
                     </motion.div>
@@ -96,7 +96,7 @@ export default function PricingPage() {
                         initial={{ opacity: 0, y: 16 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-slate-50 border border-slate-200 rounded-xl p-8"
+                        className="bg-zinc-50 border border-zinc-200 rounded-xl p-8"
                     >
                         <h3 className="text-xl font-semibold text-[#0B1F3B] mb-6 text-center font-heading">All Licenses Include</h3>
                         <div className="grid md:grid-cols-4 gap-6">
@@ -106,7 +106,7 @@ export default function PricingPage() {
                                 "99.9% Uptime SLA",
                                 "Secure Cloud Storage"
                             ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                                <div key={i} className="flex items-center gap-2 text-sm text-zinc-700">
                                     <Check className="h-4 w-4 text-[#1F7A5F]" />
                                     {item}
                                 </div>
@@ -115,7 +115,7 @@ export default function PricingPage() {
                     </motion.div>
 
                     <div className="mt-12 text-center">
-                        <p className="text-slate-600">
+                        <p className="text-zinc-600">
                             Need a custom enterprise plan?{" "}
                             <Link href="/contact" className="text-[#1F7A5F] font-semibold hover:underline transition-colors">
                                 Contact us

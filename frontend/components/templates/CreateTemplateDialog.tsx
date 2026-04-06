@@ -94,13 +94,13 @@ export function CreateTemplateDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[550px] bg-slate-900 border-slate-800 text-slate-100">
+            <DialogContent className="sm:max-w-[550px] bg-zinc-900 border-zinc-800 text-zinc-100">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-slate-900">
+                    <DialogTitle className="flex items-center gap-2 text-zinc-900">
                         <Sparkles className="h-5 w-5 text-teal-400" />
                         Create New Template
                     </DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-zinc-400">
                         Save battery specifications as a reusable template for faster batch creation.
                     </DialogDescription>
                 </DialogHeader>
@@ -109,7 +109,7 @@ export function CreateTemplateDialog({
                     <div className="grid gap-5 py-4">
                         {/* Template Name */}
                         <div className="grid gap-2">
-                            <Label htmlFor="name" className="text-slate-300">
+                            <Label htmlFor="name" className="text-zinc-300">
                                 Template Name <span className="text-red-400">*</span>
                             </Label>
                             <Input
@@ -117,7 +117,7 @@ export function CreateTemplateDialog({
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g., E-Bike Standard Pack"
-                                className="bg-slate-800 border-slate-700 text-slate-900"
+                                className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 required
                             />
                         </div>
@@ -125,7 +125,7 @@ export function CreateTemplateDialog({
                         {/* Chemistry & Voltage */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="chemistry" className="text-slate-300">
+                                <Label htmlFor="chemistry" className="text-zinc-300">
                                     Chemistry
                                 </Label>
                                 <Input
@@ -133,7 +133,7 @@ export function CreateTemplateDialog({
                                     value={chemistry}
                                     onChange={(e) => setChemistry(e.target.value)}
                                     placeholder="e.g., Li-ion NMC"
-                                    className="bg-slate-800 border-slate-700 text-slate-900"
+                                    className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -145,7 +145,7 @@ export function CreateTemplateDialog({
                                     value={voltage}
                                     onChange={(e) => setVoltage(e.target.value)}
                                     placeholder="e.g., 48V"
-                                    className="bg-slate-800 border-slate-700 text-slate-900"
+                                    className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 />
                             </div>
                         </div>
@@ -161,7 +161,7 @@ export function CreateTemplateDialog({
                                     value={capacity}
                                     onChange={(e) => setCapacity(e.target.value)}
                                     placeholder="e.g., 20Ah"
-                                    className="bg-white border-slate-200 text-slate-900"
+                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -173,7 +173,7 @@ export function CreateTemplateDialog({
                                     value={weight}
                                     onChange={(e) => setWeight(e.target.value)}
                                     placeholder="e.g., 12kg"
-                                    className="bg-white border-slate-200 text-slate-900"
+                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                         </div>
@@ -189,7 +189,7 @@ export function CreateTemplateDialog({
                                     value={manufacturer}
                                     onChange={(e) => setManufacturer(e.target.value)}
                                     placeholder={user?.company_name || "Company name"}
-                                    className="bg-white border-slate-200 text-slate-900"
+                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
@@ -201,7 +201,7 @@ export function CreateTemplateDialog({
                                     value={countryOfOrigin}
                                     onChange={(e) => setCountryOfOrigin(e.target.value)}
                                     placeholder="e.g., India"
-                                    className="bg-white border-slate-200 text-slate-900"
+                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                         </div>
@@ -221,7 +221,7 @@ export function CreateTemplateDialog({
                                         value={carbonFootprint}
                                         onChange={(e) => setCarbonFootprint(e.target.value)}
                                         placeholder="e.g., 85 kg CO₂e"
-                                        className="bg-white border-slate-200 text-slate-900"
+                                        className="bg-white border-zinc-200 text-zinc-900"
                                     />
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -230,7 +230,7 @@ export function CreateTemplateDialog({
                                         id="recyclable"
                                         checked={recyclable}
                                         onChange={(e) => setRecyclable(e.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-teal-600 focus:ring-teal-500"
+                                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-teal-600 focus:ring-teal-500"
                                     />
                                     <Label htmlFor="recyclable" className="text-zinc-300 cursor-pointer">
                                         Recyclable materials
@@ -245,7 +245,7 @@ export function CreateTemplateDialog({
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="text-slate-400 hover:text-slate-900"
+                            className="text-zinc-400 hover:text-zinc-900"
                         >
                             Cancel
                         </Button>

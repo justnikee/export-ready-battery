@@ -21,7 +21,7 @@ export function CTASection() {
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-white mb-4">
                         Compliance you don&apos;t have to explain.
                     </h2>
-                    <p className="text-base md:text-lg text-slate-300 mb-10 max-w-[55ch] mx-auto">
+                    <p className="text-base md:text-lg text-zinc-300 mb-10 max-w-[55ch] mx-auto">
                         Your batteries are already regulated. The only question is whether your data is audit-ready.
                     </p>
 

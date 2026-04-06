@@ -95,12 +95,12 @@ function ChartCard({
                     <div className={`p-1.5 rounded-lg ${iconColor}`}>
                         <Icon className="h-4 w-4" />
                     </div>
-                    <span className="text-sm font-medium text-slate-300">{title}</span>
+                    <span className="text-sm font-medium text-zinc-300">{title}</span>
                 </div>
                 {latestValue !== null && latestValue !== undefined && (
                     <span className="text-lg font-bold text-white font-mono">
                         {typeof latestValue === "number" ? latestValue.toFixed(1) : latestValue}
-                        <span className="text-xs text-slate-500 ml-1">{unit}</span>
+                        <span className="text-xs text-zinc-500 ml-1">{unit}</span>
                     </span>
                 )}
             </div>
@@ -112,25 +112,25 @@ function ChartCard({
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                         <XAxis
                             dataKey="time"
-                            tick={{ fill: "#64748b", fontSize: 10 }}
+                            tick={{ fill: "#71717A", fontSize: 10 }}
                             tickLine={false}
                             axisLine={{ stroke: "rgba(255,255,255,0.05)" }}
                         />
                         <YAxis
                             domain={domain || ["auto", "auto"]}
-                            tick={{ fill: "#64748b", fontSize: 10 }}
+                            tick={{ fill: "#71717A", fontSize: 10 }}
                             tickLine={false}
                             axisLine={false}
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: "#1e293b",
+                                backgroundColor: "#18181B",
                                 border: "1px solid rgba(255,255,255,0.1)",
                                 borderRadius: "8px",
                                 fontSize: "12px",
-                                color: "#e2e8f0",
+                                color: "#E4E4E7",
                             }}
-                            labelStyle={{ color: "#94a3b8" }}
+                            labelStyle={{ color: "#A1A1AA" }}
                             formatter={(value: number | undefined) => [`${value?.toFixed(2) ?? "—"} ${unit}`, title]}
                             labelFormatter={(label) => `${label}`}
                         />
@@ -140,7 +140,7 @@ function ChartCard({
                             stroke={color}
                             strokeWidth={2}
                             dot={false}
-                            activeDot={{ r: 4, fill: color, stroke: "#0f172a", strokeWidth: 2 }}
+                            activeDot={{ r: 4, fill: color, stroke: "#09090B", strokeWidth: 2 }}
                             connectNulls
                         />
                         {thermalEvents?.map((evt, i) => (
@@ -150,7 +150,7 @@ function ChartCard({
                                 y={evt.y}
                                 r={5}
                                 fill="#ef4444"
-                                stroke="#0f172a"
+                                stroke="#09090B"
                                 strokeWidth={2}
                             />
                         ))}
@@ -271,7 +271,7 @@ export function TelemetryChart({ passportUuid, className }: TelemetryChartProps)
             transition={{ duration: 0.5 }}
             className={className}
         >
-            <div className="bg-linear-to-br from-slate-900/80 to-slate-800/60 border border-white/10 rounded-2xl overflow-hidden">
+            <div className="bg-linear-to-br from-zinc-900/80 to-zinc-800/60 border border-white/10 rounded-2xl overflow-hidden">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-white/5">
                     <div className="flex items-center justify-between">
@@ -281,7 +281,7 @@ export function TelemetryChart({ passportUuid, className }: TelemetryChartProps)
                             </div>
                             <div>
                                 <h3 className="text-base font-semibold text-white">BMS Telemetry</h3>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-zinc-500">
                                     {total > 0 ? `${total} readings` : "No readings"}
                                 </p>
                             </div>
@@ -295,7 +295,7 @@ export function TelemetryChart({ passportUuid, className }: TelemetryChartProps)
                                     onClick={() => setRange(r)}
                                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${range.label === r.label
                                         ? "bg-blue-500/20 text-blue-400 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-300"
+                                        : "text-zinc-500 hover:text-zinc-300"
                                         }`}
                                 >
                                     {r.label}
@@ -309,8 +309,8 @@ export function TelemetryChart({ passportUuid, className }: TelemetryChartProps)
                 <div className="p-6">
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
-                            <div className="flex items-center gap-3 text-slate-500">
-                                <div className="h-5 w-5 border-2 border-slate-600 border-t-blue-400 rounded-full animate-spin" />
+                            <div className="flex items-center gap-3 text-zinc-500">
+                                <div className="h-5 w-5 border-2 border-zinc-600 border-t-blue-400 rounded-full animate-spin" />
                                 <span className="text-sm">Loading telemetry…</span>
                             </div>
                         </div>
@@ -322,7 +322,7 @@ export function TelemetryChart({ passportUuid, className }: TelemetryChartProps)
                             </div>
                         </div>
                     ) : chartData.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                        <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
                             <Activity className="h-8 w-8 mb-3 opacity-40" />
                             <span className="text-sm">No telemetry readings for this period</span>
                         </div>

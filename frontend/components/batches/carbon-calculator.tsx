@@ -178,10 +178,10 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
     const maxBreakdownValue = breakdownItems.length > 0 ? Math.max(...breakdownItems.map(i => i.value)) : 1
 
     return (
-        <Card className="bg-white border-slate-200 border-l-4 border-l-emerald-500">
+        <Card className="bg-white border-zinc-200 border-l-4 border-l-emerald-500">
             <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
                 <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-3 text-slate-900">
+                    <CardTitle className="flex items-center gap-3 text-zinc-900">
                         <div className="p-2 rounded-lg bg-emerald-50">
                             <Leaf className="h-5 w-5 text-emerald-600" />
                         </div>
@@ -192,11 +192,11 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                             </Badge>
                         )}
                     </CardTitle>
-                    <Button variant="ghost" size="icon" className="text-slate-400">
+                    <Button variant="ghost" size="icon" className="text-zinc-400">
                         {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                 </div>
-                <CardDescription className="text-slate-500">
+                <CardDescription className="text-zinc-500">
                     EU Battery Regulation 2023/1542 Article 7 — JRC methodology carbon footprint declaration
                 </CardDescription>
             </CardHeader>
@@ -207,11 +207,11 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                     <div className="grid grid-cols-2 gap-4">
                         {/* Chemistry */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
                                 <Atom className="h-3.5 w-3.5" /> Chemistry
                             </Label>
                             <Select value={form.chemistry} onValueChange={v => updateField("chemistry", v)}>
-                                <SelectTrigger className="bg-slate-50 border-slate-200">
+                                <SelectTrigger className="bg-zinc-50 border-zinc-200">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -224,7 +224,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
                         {/* Capacity */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
                                 <Zap className="h-3.5 w-3.5" /> Capacity (kWh)
                             </Label>
                             <Input
@@ -232,15 +232,15 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                                 step="0.1"
                                 value={form.capacity_kwh}
                                 onChange={e => updateField("capacity_kwh", parseFloat(e.target.value) || 0)}
-                                className="bg-slate-50 border-slate-200"
+                                className="bg-zinc-50 border-zinc-200"
                             />
                         </div>
 
                         {/* Cell Source Country */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600">Cell Source Country</Label>
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600">Cell Source Country</Label>
                             <Select value={form.cell_source_country} onValueChange={v => updateField("cell_source_country", v)}>
-                                <SelectTrigger className="bg-slate-50 border-slate-200">
+                                <SelectTrigger className="bg-zinc-50 border-zinc-200">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -253,11 +253,11 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
                         {/* Factory Country */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
                                 <Factory className="h-3.5 w-3.5" /> Assembly Factory Country
                             </Label>
                             <Select value={form.factory_country} onValueChange={v => updateField("factory_country", v)}>
-                                <SelectTrigger className="bg-slate-50 border-slate-200">
+                                <SelectTrigger className="bg-zinc-50 border-zinc-200">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -270,35 +270,35 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
                         {/* Assembly Energy */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600">Assembly Energy (kWh / pack)</Label>
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600">Assembly Energy (kWh / pack)</Label>
                             <Input
                                 type="number"
                                 step="0.1"
                                 value={form.assembly_energy_kwh}
                                 onChange={e => updateField("assembly_energy_kwh", parseFloat(e.target.value) || 0)}
-                                className="bg-slate-50 border-slate-200"
+                                className="bg-zinc-50 border-zinc-200"
                             />
                         </div>
 
                         {/* Battery Weight */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600">Battery Weight (kg)</Label>
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600">Battery Weight (kg)</Label>
                             <Input
                                 type="number"
                                 step="0.1"
                                 value={form.battery_weight_kg}
                                 onChange={e => updateField("battery_weight_kg", parseFloat(e.target.value) || 0)}
-                                className="bg-slate-50 border-slate-200"
+                                className="bg-zinc-50 border-zinc-200"
                             />
                         </div>
 
                         {/* Transport Mode */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
                                 <Truck className="h-3.5 w-3.5" /> Transport Mode
                             </Label>
                             <Select value={form.transport_mode} onValueChange={v => updateField("transport_mode", v)}>
-                                <SelectTrigger className="bg-slate-50 border-slate-200">
+                                <SelectTrigger className="bg-zinc-50 border-zinc-200">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -311,13 +311,13 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
                         {/* Transport Distance */}
                         <div className="space-y-2">
-                            <Label className="text-xs uppercase tracking-wider text-slate-600">Transport Distance (km)</Label>
+                            <Label className="text-xs uppercase tracking-wider text-zinc-600">Transport Distance (km)</Label>
                             <Input
                                 type="number"
                                 step="100"
                                 value={form.transport_distance_km}
                                 onChange={e => updateField("transport_distance_km", parseFloat(e.target.value) || 0)}
-                                className="bg-slate-50 border-slate-200"
+                                className="bg-zinc-50 border-zinc-200"
                             />
                         </div>
                     </div>
@@ -357,18 +357,18 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                             </div>
 
                             {/* Breakdown Bar Chart */}
-                            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                                <div className="text-xs text-slate-600 uppercase tracking-wider font-medium">Breakdown</div>
+                            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 space-y-3">
+                                <div className="text-xs text-zinc-600 uppercase tracking-wider font-medium">Breakdown</div>
                                 {breakdownItems.map(item => (
                                     <div key={item.label} className="space-y-1">
                                         <div className="flex items-center justify-between text-sm">
-                                            <span className="flex items-center gap-2 text-slate-700">
-                                                <item.icon className="h-3.5 w-3.5 text-slate-400" />
+                                            <span className="flex items-center gap-2 text-zinc-700">
+                                                <item.icon className="h-3.5 w-3.5 text-zinc-400" />
                                                 {item.label}
                                             </span>
-                                            <span className="font-mono text-slate-900">{item.value.toFixed(1)} kg</span>
+                                            <span className="font-mono text-zinc-900">{item.value.toFixed(1)} kg</span>
                                         </div>
-                                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                        <div className="h-2 bg-zinc-200 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full ${item.color} transition-all duration-500`}
                                                 style={{ width: `${(item.value / maxBreakdownValue) * 100}%` }}
@@ -379,13 +379,13 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                             </div>
 
                             {/* Declaration */}
-                            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200">
                                 <div className="flex items-start gap-2">
-                                    <Info className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                                    <Info className="h-4 w-4 text-zinc-400 mt-0.5 shrink-0" />
                                     <div>
-                                        <div className="text-xs text-slate-600 uppercase tracking-wider font-medium mb-1">Declaration</div>
-                                        <p className="text-sm text-slate-700 leading-relaxed">{result.declaration_text}</p>
-                                        <p className="text-xs text-slate-500 mt-2">Methodology: {result.methodology} · Calculated: {new Date(result.calculation_date).toLocaleDateString()}</p>
+                                        <div className="text-xs text-zinc-600 uppercase tracking-wider font-medium mb-1">Declaration</div>
+                                        <p className="text-sm text-zinc-700 leading-relaxed">{result.declaration_text}</p>
+                                        <p className="text-xs text-zinc-500 mt-2">Methodology: {result.methodology} · Calculated: {new Date(result.calculation_date).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                             </div>
@@ -395,15 +395,15 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                                 <div>
                                     <button
                                         onClick={() => setShowFactors(!showFactors)}
-                                        className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 transition-colors"
+                                        className="text-xs text-zinc-500 hover:text-zinc-700 flex items-center gap-1 transition-colors"
                                     >
                                         {showFactors ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                         {showFactors ? "Hide" : "Show"} factors used ({result.factors_used.length})
                                     </button>
                                     {showFactors && (
-                                        <div className="mt-2 rounded-lg border border-slate-200 overflow-hidden">
+                                        <div className="mt-2 rounded-lg border border-zinc-200 overflow-hidden">
                                             <table className="w-full text-xs">
-                                                <thead className="bg-slate-50 text-slate-600">
+                                                <thead className="bg-zinc-50 text-zinc-600">
                                                     <tr>
                                                         <th className="text-left px-3 py-2">Category</th>
                                                         <th className="text-left px-3 py-2">Subcategory</th>
@@ -412,14 +412,14 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
                                                         <th className="text-left px-3 py-2">Source</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-100">
+                                                <tbody className="divide-y divide-zinc-100">
                                                     {result.factors_used.map((f, i) => (
-                                                        <tr key={i} className="text-slate-700">
+                                                        <tr key={i} className="text-zinc-700">
                                                             <td className="px-3 py-2">{f.category}</td>
                                                             <td className="px-3 py-2">{f.subcategory}</td>
                                                             <td className="px-3 py-2 text-right font-mono">{f.value.toFixed(4)}</td>
                                                             <td className="px-3 py-2">{f.unit}</td>
-                                                            <td className="px-3 py-2 text-slate-500">{f.source}</td>
+                                                            <td className="px-3 py-2 text-zinc-500">{f.source}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

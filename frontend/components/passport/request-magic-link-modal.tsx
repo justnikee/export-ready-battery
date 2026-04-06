@@ -121,17 +121,17 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-slate-900 rounded-2xl border border-slate-800 w-full max-w-md overflow-hidden"
+                    className="bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-md overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-slate-800">
+                    <div className="flex items-center justify-between p-4 border-b border-zinc-800">
                         <h2 className="text-lg font-semibold text-white">
                             {step === "select" && t("modal_select_title")}
                             {step === "email" && t("modal_verify_title")}
                             {step === "success" && t("modal_success_title")}
                             {step === "error" && t("modal_error_title")}
                         </h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <button onClick={onClose} className="text-zinc-400 hover:text-white">
                             <X className="h-5 w-5" />
                         </button>
                     </div>
@@ -150,14 +150,14 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                                 setSelectedAction(action)
                                                 setStep("email")
                                             }}
-                                            className="w-full p-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-800/50 hover:bg-slate-800 transition-all text-left group"
+                                            className="w-full p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 transition-all text-left group"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`h-10 w-10 rounded-lg bg-${action.color}-500/10 flex items-center justify-center`}>
                                                     <Icon className={`h-5 w-5 text-${action.color}-400`} />
                                                 </div>
                                                 <span className="text-white font-medium flex-1">{action.label}</span>
-                                                <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors" />
+                                                <ArrowRight className="h-4 w-4 text-zinc-500 group-hover:text-white transition-colors" />
                                             </div>
                                         </button>
                                     )
@@ -176,18 +176,18 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                 </div>
 
                                 <div>
-                                    <label className="block text-slate-400 text-sm mb-2">{t("modal_your_email")}</label>
+                                    <label className="block text-zinc-400 text-sm mb-2">{t("modal_your_email")}</label>
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
                                         <input
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="you@company.com"
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                                            className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                                         />
                                     </div>
-                                    <p className="text-slate-500 text-xs mt-2">
+                                    <p className="text-zinc-500 text-xs mt-2">
                                         {t("modal_email_hint")}
                                     </p>
                                 </div>
@@ -195,24 +195,24 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                 {/* Partner Code Section */}
                                 {(showPartnerCode || requiresCode) && (
                                     <div>
-                                        <label className="block text-slate-400 text-sm mb-2">
+                                        <label className="block text-zinc-400 text-sm mb-2">
                                             {t("modal_partner_code")} {requiresCode && <span className="text-red-400">*</span>}
                                         </label>
                                         <div className="relative">
-                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500" />
                                             <input
                                                 type="text"
                                                 value={partnerCode}
                                                 onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
                                                 placeholder="INSTALL-2026"
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                                                className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 font-mono"
                                             />
                                         </div>
                                     </div>
                                 )}
 
                                 {!showPartnerCode && !requiresCode && (
-                                    <div className="pt-2 border-t border-slate-800">
+                                    <div className="pt-2 border-t border-zinc-800">
                                         <button
                                             onClick={() => setShowPartnerCode(true)}
                                             className="text-emerald-400 text-sm hover:text-emerald-300 flex items-center gap-2 font-medium transition-colors"
@@ -220,7 +220,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                             <Key className="h-4 w-4" />
                                             {t("modal_have_code")}
                                         </button>
-                                        <p className="text-slate-600 text-xs mt-1 ml-6">
+                                        <p className="text-zinc-600 text-xs mt-1 ml-6">
                                             {t("modal_code_hint")}
                                         </p>
                                     </div>
@@ -241,7 +241,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                             setStep("select")
                                             setError("")
                                         }}
-                                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
                                     >
                                         {t("modal_back")}
                                     </button>
@@ -270,15 +270,15 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                     <CheckCircle className="h-8 w-8 text-emerald-400" />
                                 </div>
                                 <h3 className="text-xl font-semibold text-white mb-2">{t("modal_success_heading")}</h3>
-                                <p className="text-slate-400 mb-4">
+                                <p className="text-zinc-400 mb-4">
                                     {t("modal_check_inbox")} <span className="text-white">{email}</span>
                                 </p>
-                                <p className="text-slate-500 text-sm">
+                                <p className="text-zinc-500 text-sm">
                                     {t("modal_link_expiry")}
                                 </p>
                                 <button
                                     onClick={onClose}
-                                    className="mt-6 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                                    className="mt-6 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
                                 >
                                     {t("modal_done")}
                                 </button>
@@ -292,13 +292,13 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
                                     <AlertCircle className="h-8 w-8 text-red-400" />
                                 </div>
                                 <h3 className="text-xl font-semibold text-white mb-2">{t("modal_failed_heading")}</h3>
-                                <p className="text-slate-400 mb-4">{error}</p>
+                                <p className="text-zinc-400 mb-4">{error}</p>
                                 <button
                                     onClick={() => {
                                         setStep("email")
                                         setError("")
                                     }}
-                                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                                    className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors"
                                 >
                                     {t("modal_try_again")}
                                 </button>

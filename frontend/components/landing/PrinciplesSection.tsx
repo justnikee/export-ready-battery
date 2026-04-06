@@ -43,7 +43,7 @@ const principles = [
 
 export function PrinciplesSection() {
   return (
-    <section className="py-24 bg-slate-50 border-y border-slate-200 relative overflow-hidden">
+    <section className="py-24 bg-zinc-50 border-y border-zinc-200 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#1F7A5F]/5 rounded-full blur-3xl" />
@@ -65,7 +65,7 @@ export function PrinciplesSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-semibold text-[#0B1F3B] mb-4">
             Designed around regulation, not convenience.
           </h2>
-          <p className="text-base text-slate-600 max-w-[55ch] mx-auto">
+          <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
             Core principles that make ExportLens audit-ready from day one.
           </p>
         </motion.div>
@@ -80,7 +80,7 @@ export function PrinciplesSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1"
+                className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-zinc-200/50 hover:-translate-y-1"
               >
                 {/* Gradient Top Border */}
                 <div
@@ -94,10 +94,10 @@ export function PrinciplesSection() {
                     <Icon className="h-7 w-7" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400 mb-2">
                       {principle.title}
                     </p>
-                    <p className="text-base text-slate-700 leading-relaxed">
+                    <p className="text-base text-zinc-700 leading-relaxed">
                       {principle.description}
                     </p>
                   </div>

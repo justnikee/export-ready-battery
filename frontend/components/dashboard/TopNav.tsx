@@ -43,7 +43,7 @@ export function TopNav() {
 
     return (
         <>
-            <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white">
+            <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white">
                 <div className="flex h-14 items-center justify-between px-4 md:px-6">
                     {/* Left: Mobile Menu + Logo */}
                     <div className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export function TopNav() {
                             className="md:hidden h-9 w-9"
                             onClick={() => setMobileMenuOpen(true)}
                         >
-                            <Menu className="h-5 w-5 text-slate-700" />
+                            <Menu className="h-5 w-5 text-zinc-700" />
                         </Button>
 
                         {/* Logo */}
@@ -78,7 +78,7 @@ export function TopNav() {
                                         "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                                         isActive
                                             ? "text-blue-700 border-b-2 border-blue-500 rounded-none pb-4"
-                                            : "text-slate-600 hover:text-slate-900 pb-4"
+                                            : "text-zinc-600 hover:text-zinc-900 pb-4"
                                     )}
                                 >
                                     {item.name}
@@ -106,26 +106,26 @@ export function TopNav() {
                         {/* User Avatar Dropdown */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-slate-100">
-                                    <Avatar className="h-8 w-8 border border-slate-200">
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-zinc-100">
+                                    <Avatar className="h-8 w-8 border border-zinc-200">
                                         <AvatarImage src={user?.logo_url} />
-                                        <AvatarFallback className="bg-slate-100 text-slate-700 text-xs font-medium">
+                                        <AvatarFallback className="bg-zinc-100 text-zinc-700 text-xs font-medium">
                                             {initials}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 bg-white border-slate-200 text-slate-900" align="end" forceMount>
+                            <DropdownMenuContent className="w-56 bg-white border-zinc-200 text-zinc-900" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none text-slate-900">{user?.company_name || 'Account'}</p>
-                                        <p className="text-xs leading-none text-slate-500">
+                                        <p className="text-sm font-medium leading-none text-zinc-900">{user?.company_name || 'Account'}</p>
+                                        <p className="text-xs leading-none text-zinc-500">
                                             {user?.email}
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-slate-200" />
-                                <DropdownMenuItem asChild className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 cursor-pointer">
+                                <DropdownMenuSeparator className="bg-zinc-200" />
+                                <DropdownMenuItem asChild className="text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer">
                                     <a href="mailto:support@exportready.in">
                                         <HelpCircle className="mr-2 h-4 w-4" />
                                         <span>Support</span>
@@ -153,7 +153,7 @@ export function TopNav() {
                     {/* Slide-out Menu */}
                     <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
                         {/* Menu Header */}
-                        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+                        <div className="flex items-center justify-between border-b border-zinc-200 p-4">
                             <Link
                                 href="/dashboard"
                                 className="flex items-center gap-2 group"
@@ -168,7 +168,7 @@ export function TopNav() {
                                 className="h-8 w-8"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                <X className="h-5 w-5 text-slate-500" />
+                                <X className="h-5 w-5 text-zinc-500" />
                             </Button>
                         </div>
 
@@ -188,7 +188,7 @@ export function TopNav() {
                                             "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                                             isActive
                                                 ? "bg-blue-50 text-blue-700"
-                                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
                                         )}
                                     >
                                         <Icon className="h-5 w-5" />
@@ -199,17 +199,17 @@ export function TopNav() {
                         </nav>
 
                         {/* User Info at Bottom */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
+                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-zinc-200 bg-zinc-50">
                             <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10 border border-slate-200">
+                                <Avatar className="h-10 w-10 border border-zinc-200">
                                     <AvatarImage src={user?.logo_url} />
-                                    <AvatarFallback className="bg-slate-100 text-slate-700 text-sm font-medium">
+                                    <AvatarFallback className="bg-zinc-100 text-zinc-700 text-sm font-medium">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-900 truncate">{user?.company_name || 'Account'}</p>
-                                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                                    <p className="text-sm font-medium text-zinc-900 truncate">{user?.company_name || 'Account'}</p>
+                                    <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
                                 </div>
                             </div>
                             <Button

@@ -314,11 +314,11 @@ export default function PartnersPage() {
 
     return (
         <>
-            <div className="min-h-screen bg-slate-50 p-6 md:p-8 w-full mx-auto">
+            <div className="min-h-screen bg-zinc-50 p-6 md:p-8 w-full mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-slate-900">Partner Management</h1>
-                    <p className="text-slate-500 mt-1">
+                    <h1 className="text-2xl font-bold text-zinc-900">Partner Management</h1>
+                    <p className="text-zinc-500 mt-1">
                         Manage trusted partners and access codes for external users
                     </p>
                 </div>
@@ -354,7 +354,7 @@ export default function PartnersPage() {
                         onClick={() => setActiveTab("trusted")}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "trusted"
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                            : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                            : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
                             }`}
                     >
                         <Building2 className="h-4 w-4" />
@@ -364,7 +364,7 @@ export default function PartnersPage() {
                         onClick={() => setActiveTab("codes")}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "codes"
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                            : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                            : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
                             }`}
                     >
                         <Key className="h-4 w-4" />
@@ -374,7 +374,7 @@ export default function PartnersPage() {
                         onClick={() => setActiveTab("webhooks")}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === "webhooks"
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                            : "bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                            : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50"
                             }`}
                     >
                         <Radio className="h-4 w-4" />
@@ -411,39 +411,39 @@ export default function PartnersPage() {
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
-                                className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm"
+                                className="bg-white rounded-lg border border-zinc-200 p-6 shadow-sm"
                             >
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4">Add Trusted Partner</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-4">Add Trusted Partner</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Company Name</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Company Name</label>
                                         <input
                                             type="text"
                                             value={newPartner.company_name}
                                             onChange={(e) => setNewPartner({ ...newPartner, company_name: e.target.value })}
                                             placeholder="Green Recycling GmbH"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Email Domain</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Email Domain</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">@</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">@</span>
                                             <input
                                                 type="text"
                                                 value={newPartner.email_domain}
                                                 onChange={(e) => setNewPartner({ ...newPartner, email_domain: e.target.value.replace("@", "") })}
                                                 placeholder="greenrecycler.eu"
-                                                className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                className="w-full pl-8 pr-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Role</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Role</label>
                                         <select
                                             value={newPartner.role}
                                             onChange={(e) => setNewPartner({ ...newPartner, role: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         >
                                             {ROLES.map((role) => (
                                                 <option key={role} value={role}>{role}</option>
@@ -451,13 +451,13 @@ export default function PartnersPage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Contact Email (Optional)</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Contact Email (Optional)</label>
                                         <input
                                             type="email"
                                             value={newPartner.contact_email}
                                             onChange={(e) => setNewPartner({ ...newPartner, contact_email: e.target.value })}
                                             placeholder="contact@greenrecycler.eu"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         />
                                     </div>
                                 </div>
@@ -471,7 +471,7 @@ export default function PartnersPage() {
                                     </button>
                                     <button
                                         onClick={() => setShowAddPartner(false)}
-                                        className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-colors"
+                                        className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg font-medium transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -482,10 +482,10 @@ export default function PartnersPage() {
                         {/* Partners List */}
                         {loadingPartners ? (
                             <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+                                <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
                             </div>
                         ) : partners.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500">
+                            <div className="text-center py-12 text-zinc-500">
                                 <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                                 <p>No trusted partners yet</p>
                             </div>
@@ -494,22 +494,22 @@ export default function PartnersPage() {
                                 {partners.map((partner) => (
                                     <div
                                         key={partner.id}
-                                        className="bg-white rounded-lg border border-slate-200 p-4 flex items-center justify-between shadow-sm"
+                                        className="bg-white rounded-lg border border-zinc-200 p-4 flex items-center justify-between shadow-sm"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                                                 <Building2 className="h-5 w-5 text-emerald-600" />
                                             </div>
                                             <div>
-                                                <p className="text-slate-900 font-medium">{partner.company_name}</p>
-                                                <p className="text-slate-500 text-sm">
+                                                <p className="text-zinc-900 font-medium">{partner.company_name}</p>
+                                                <p className="text-zinc-500 text-sm">
                                                     @{partner.email_domain} • {partner.role}
                                                 </p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => setPendingDeletePartner(partner.id)}
-                                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                            className="p-2 text-zinc-400 hover:text-red-500 transition-colors"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
@@ -549,27 +549,27 @@ export default function PartnersPage() {
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
-                                className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm"
+                                className="bg-white rounded-lg border border-zinc-200 p-6 shadow-sm"
                             >
-                                <h3 className="text-lg font-semibold text-slate-900 mb-4">Create Partner Code</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-4">Create Partner Code</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Code</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Code</label>
                                         <input
                                             type="text"
                                             value={newCode.code}
                                             onChange={(e) => setNewCode({ ...newCode, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "") })}
                                             placeholder="INSTALL-2026"
                                             maxLength={20}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Role</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Role</label>
                                         <select
                                             value={newCode.role}
                                             onChange={(e) => setNewCode({ ...newCode, role: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         >
                                             {ROLES.map((role) => (
                                                 <option key={role} value={role}>{role}</option>
@@ -577,33 +577,33 @@ export default function PartnersPage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Description</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Description</label>
                                         <input
                                             type="text"
                                             value={newCode.description}
                                             onChange={(e) => setNewCode({ ...newCode, description: e.target.value })}
                                             placeholder="Q1 2026 Installation Partners"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Max Uses (Optional)</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Max Uses (Optional)</label>
                                         <input
                                             type="number"
                                             value={newCode.max_uses}
                                             onChange={(e) => setNewCode({ ...newCode, max_uses: e.target.value })}
                                             placeholder="Unlimited"
                                             min="1"
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         />
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-slate-700 text-sm font-medium mb-1">Expires At (Optional)</label>
+                                        <label className="block text-zinc-700 text-sm font-medium mb-1">Expires At (Optional)</label>
                                         <input
                                             type="datetime-local"
                                             value={newCode.expires_at}
                                             onChange={(e) => setNewCode({ ...newCode, expires_at: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-zinc-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                         />
                                     </div>
                                 </div>
@@ -617,7 +617,7 @@ export default function PartnersPage() {
                                     </button>
                                     <button
                                         onClick={() => setShowAddCode(false)}
-                                        className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-colors"
+                                        className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg font-medium transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -628,10 +628,10 @@ export default function PartnersPage() {
                         {/* Codes List */}
                         {loadingCodes ? (
                             <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+                                <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
                             </div>
                         ) : codes.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500">
+                            <div className="text-center py-12 text-zinc-500">
                                 <Key className="h-12 w-12 mx-auto mb-3 opacity-50" />
                                 <p>No partner codes yet</p>
                             </div>
@@ -645,38 +645,38 @@ export default function PartnersPage() {
                                     return (
                                         <div
                                             key={code.id}
-                                            className={`bg-white rounded-lg border p-4 shadow-sm ${isDisabled ? "border-slate-200 opacity-60" : "border-slate-200"
+                                            className={`bg-white rounded-lg border p-4 shadow-sm ${isDisabled ? "border-zinc-200 opacity-60" : "border-zinc-200"
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isDisabled ? "bg-slate-100" : "bg-amber-100"
+                                                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isDisabled ? "bg-zinc-100" : "bg-amber-100"
                                                         }`}>
-                                                        <Key className={`h-5 w-5 ${isDisabled ? "text-slate-400" : "text-amber-600"}`} />
+                                                        <Key className={`h-5 w-5 ${isDisabled ? "text-zinc-400" : "text-amber-600"}`} />
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-2">
-                                                            <code className="text-slate-900 font-mono font-semibold">{code.code}</code>
+                                                            <code className="text-zinc-900 font-mono font-semibold">{code.code}</code>
                                                             <button
                                                                 onClick={() => copyCode(code.code)}
-                                                                className="p-1 text-slate-400 hover:text-slate-700"
+                                                                className="p-1 text-zinc-400 hover:text-zinc-700"
                                                             >
                                                                 <Copy className="h-3 w-3" />
                                                             </button>
                                                         </div>
-                                                        <p className="text-slate-500 text-sm">
+                                                        <p className="text-zinc-500 text-sm">
                                                             {code.role} • {code.description || "No description"}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4">
                                                     <div className="text-right">
-                                                        <p className="text-slate-600 text-sm">
+                                                        <p className="text-zinc-600 text-sm">
                                                             <Hash className="h-3 w-3 inline mr-1" />
                                                             {code.current_uses}{code.max_uses ? `/${code.max_uses}` : ""} uses
                                                         </p>
                                                         {code.expires_at && (
-                                                            <p className="text-slate-500 text-xs">
+                                                            <p className="text-zinc-500 text-xs">
                                                                 <Calendar className="h-3 w-3 inline mr-1" />
                                                                 {isExpired ? "Expired" : `Expires ${new Date(code.expires_at).toLocaleDateString()}`}
                                                             </p>
@@ -685,7 +685,7 @@ export default function PartnersPage() {
                                                     {!isDisabled && (
                                                         <button
                                                             onClick={() => setPendingDeactivateCode(code.id)}
-                                                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                            className="p-2 text-zinc-400 hover:text-red-500 transition-colors"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
@@ -705,8 +705,8 @@ export default function PartnersPage() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">Outbound Webhooks</h2>
-                                <p className="text-sm text-slate-500">
+                                <h2 className="text-lg font-semibold text-zinc-900">Outbound Webhooks</h2>
+                                <p className="text-sm text-zinc-500">
                                     Get notified when lifecycle events occur on your passports
                                 </p>
                             </div>
@@ -720,31 +720,31 @@ export default function PartnersPage() {
                         </div>
 
                         {showAddWebhook && (
-                            <div className="bg-white border border-slate-200 rounded-lg p-6 space-y-4">
+                            <div className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Webhook URL</label>
+                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Webhook URL</label>
                                     <input
                                         type="url"
                                         placeholder="https://your-server.com/webhook"
                                         value={newWebhookUrl}
                                         onChange={(e) => setNewWebhookUrl(e.target.value)}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                                        Signing Secret <span className="text-slate-400">(optional)</span>
+                                    <label className="block text-sm font-medium text-zinc-700 mb-1">
+                                        Signing Secret <span className="text-zinc-400">(optional)</span>
                                     </label>
                                     <input
                                         type="text"
                                         placeholder="HMAC-SHA256 secret for payload verification"
                                         value={newWebhookSecret}
                                         onChange={(e) => setNewWebhookSecret(e.target.value)}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Events to subscribe</label>
+                                    <label className="block text-sm font-medium text-zinc-700 mb-2">Events to subscribe</label>
                                     <div className="flex flex-wrap gap-2">
                                         {WEBHOOK_EVENT_OPTIONS.map(evt => (
                                             <button
@@ -757,7 +757,7 @@ export default function PartnersPage() {
                                                 className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
                                                     newWebhookEvents.includes(evt)
                                                         ? "bg-emerald-100 text-emerald-700 border-emerald-300"
-                                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                                                        : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300"
                                                 }`}
                                             >
                                                 {evt}
@@ -768,7 +768,7 @@ export default function PartnersPage() {
                                 <div className="flex gap-2 justify-end">
                                     <button
                                         onClick={() => setShowAddWebhook(false)}
-                                        className="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50"
+                                        className="px-4 py-2 text-sm border border-zinc-200 rounded-lg hover:bg-zinc-50"
                                     >
                                         Cancel
                                     </button>
@@ -786,23 +786,23 @@ export default function PartnersPage() {
 
                         {loadingWebhooks ? (
                             <div className="flex justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                             </div>
                         ) : webhooks.length === 0 ? (
-                            <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
-                                <Radio className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                                <p className="text-slate-500 text-sm">No outbound webhooks configured</p>
-                                <p className="text-slate-400 text-xs mt-1">Add a webhook to receive event notifications via HTTP POST</p>
+                            <div className="bg-white border border-zinc-200 rounded-lg p-8 text-center">
+                                <Radio className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
+                                <p className="text-zinc-500 text-sm">No outbound webhooks configured</p>
+                                <p className="text-zinc-400 text-xs mt-1">Add a webhook to receive event notifications via HTTP POST</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {webhooks.map(wh => (
-                                    <div key={wh.id} className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                    <div key={wh.id} className="bg-white border border-zinc-200 rounded-lg p-4 flex items-center justify-between">
                                         <div>
-                                            <code className="text-sm text-slate-700 font-mono">{wh.url}</code>
+                                            <code className="text-sm text-zinc-700 font-mono">{wh.url}</code>
                                             <div className="flex gap-1 mt-1 flex-wrap">
                                                 {wh.events.map(evt => (
-                                                    <span key={evt} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                                                    <span key={evt} className="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">
                                                         {evt}
                                                     </span>
                                                 ))}

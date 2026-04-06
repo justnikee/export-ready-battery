@@ -27,8 +27,8 @@ const deviceColors: Record<string, string> = {
     Mobile: "text-emerald-600 bg-emerald-50",
     Desktop: "text-blue-600 bg-blue-50",
     Tablet: "text-orange-600 bg-orange-50",
-    Bot: "text-slate-500 bg-slate-100",
-    Unknown: "text-slate-400 bg-slate-100",
+    Bot: "text-zinc-500 bg-zinc-100",
+    Unknown: "text-zinc-400 bg-zinc-100",
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -50,7 +50,7 @@ function formatRelativeTime(dateStr: string): string {
 export function LiveScanFeed({ scans }: LiveScanFeedProps) {
     if (scans.length === 0) {
         return (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-zinc-500">
                 <Smartphone className="h-10 w-10 mx-auto mb-3 opacity-50" />
                 <p>No scans recorded yet</p>
                 <p className="text-sm mt-1">Scans will appear here in real-time</p>
@@ -68,7 +68,7 @@ export function LiveScanFeed({ scans }: LiveScanFeedProps) {
                 return (
                     <div
                         key={`${scan.serial_number}-${index}`}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                        className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 hover:bg-zinc-100 transition-colors"
                     >
                         {/* Device Icon */}
                         <div className={`p-2 rounded-lg ${colorClass}`}>
@@ -78,17 +78,17 @@ export function LiveScanFeed({ scans }: LiveScanFeedProps) {
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <span className="font-medium text-slate-900 text-sm truncate">
+                                <span className="font-medium text-zinc-900 text-sm truncate">
                                     {scan.city || "Unknown"}, {scan.country || "Unknown"}
                                 </span>
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-zinc-400">
                                     {formatRelativeTime(scan.scanned_at)}
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-600 truncate mt-1">
+                            <p className="text-xs text-zinc-600 truncate mt-1">
                                 {scan.batch_name}
                             </p>
-                            <p className="text-xs text-slate-400 font-mono truncate">
+                            <p className="text-xs text-zinc-400 font-mono truncate">
                                 {scan.serial_number}
                             </p>
                         </div>

@@ -59,7 +59,7 @@ export function ProblemSection() {
               </span>
             </h2>
 
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-[50ch]">
+            <p className="text-base sm:text-lg text-zinc-600 leading-relaxed max-w-[50ch]">
               A single missing field, invalid lifecycle event, or unverifiable
               QR scan can block exports, fail EU audits, or invalidate PLI
               claims — even years later.
@@ -73,7 +73,7 @@ export function ProblemSection() {
               transition={{ delay: 0.3 }}
               className="pt-4"
             >
-              <div className="flex items-center gap-3 text-sm text-slate-600">
+              <div className="flex items-center gap-3 text-sm text-zinc-600">
                 <span className="font-medium">Compliance Risk Level:</span>
                 <div className="flex items-center gap-1">
                   <div className="h-2 w-8 rounded-full bg-rose-500" />
@@ -98,7 +98,7 @@ export function ProblemSection() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="group bg-white rounded-xl border border-slate-200 p-5 transition-all duration-300 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-100/50 hover:-translate-y-0.5"
+                  className="group bg-white rounded-xl border border-zinc-200 p-5 transition-all duration-300 hover:border-rose-200 hover:shadow-lg hover:shadow-rose-100/50 hover:-translate-y-0.5"
                 >
                   <div className="flex items-start gap-4">
                     <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-rose-500 shrink-0 transition-colors group-hover:bg-rose-100">
@@ -119,7 +119,7 @@ export function ProblemSection() {
                           {problem.impact}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-600 leading-relaxed">
+                      <p className="text-sm text-zinc-600 leading-relaxed">
                         {problem.text}
                       </p>
                     </div>

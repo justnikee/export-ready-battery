@@ -36,7 +36,7 @@ const steps = [
 
 export function ComplianceFlowSection() {
   return (
-    <section className="py-24 bg-slate-50 border-y border-slate-200 overflow-hidden relative">
+    <section className="py-24 bg-zinc-50 border-y border-zinc-200 overflow-hidden relative">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white to-transparent" />
@@ -58,7 +58,7 @@ export function ComplianceFlowSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-semibold text-[#0B1F3B] mb-4">
             Three steps to audit-ready.
           </h2>
-          <p className="text-base text-slate-600 max-w-[50ch] mx-auto">
+          <p className="text-base text-zinc-600 max-w-[50ch] mx-auto">
             From battery intake to regulator-ready passport in minutes.
           </p>
         </motion.div>
@@ -78,7 +78,7 @@ export function ComplianceFlowSection() {
                 transition={{ delay: i * 0.15 }}
                 className="relative group"
               >
-                <div className="bg-white rounded-2xl border border-slate-200 p-8 h-full transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 relative z-10">
+                <div className="bg-white rounded-2xl border border-zinc-200 p-8 h-full transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-zinc-200/50 hover:-translate-y-1 relative z-10">
                   {/* Step Number Badge */}
                   <div className="absolute top-4 left-6 px-3 py-1 bg-[#0B1F3B] text-white text-xs font-mono font-bold rounded-full shadow-lg shadow-[#0B1F3B]/20">
                     Step {step.step}
@@ -96,7 +96,7 @@ export function ComplianceFlowSection() {
                   <h3 className="text-lg font-semibold text-[#0B1F3B] mb-3">
                     {step.title}
                   </h3>
-                  <p className="text-slate-600 leading-relaxed mb-5 text-sm">
+                  <p className="text-zinc-600 leading-relaxed mb-5 text-sm">
                     {step.description}
                   </p>
 
@@ -105,7 +105,7 @@ export function ComplianceFlowSection() {
                     {step.features.map((feature, fi) => (
                       <div
                         key={fi}
-                        className="flex items-center gap-2 text-xs text-slate-500"
+                        className="flex items-center gap-2 text-xs text-zinc-500"
                       >
                         <Check className="h-3.5 w-3.5 text-[#1F7A5F]" />
                         <span>{feature}</span>

@@ -104,7 +104,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
             case "EU":
                 return "bg-blue-100 text-blue-700 border-blue-200"
             default:
-                return "bg-slate-100 text-slate-700 border-slate-200"
+                return "bg-zinc-100 text-zinc-700 border-zinc-200"
         }
     }
 
@@ -120,7 +120,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-slate-600" />
+                            <FileText className="h-5 w-5 text-zinc-600" />
                             Product SKU Templates
                         </DialogTitle>
                         <DialogDescription>
@@ -131,13 +131,13 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                     <div className="flex-1 overflow-y-auto mt-4">
                         {loading ? (
                             <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                             </div>
                         ) : templates.length === 0 ? (
                             <div className="text-center py-12">
-                                <FileText className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-                                <p className="text-slate-500">No templates saved yet</p>
-                                <p className="text-sm text-slate-400 mt-1">
+                                <FileText className="h-12 w-12 mx-auto text-zinc-300 mb-3" />
+                                <p className="text-zinc-500">No templates saved yet</p>
+                                <p className="text-sm text-zinc-400 mt-1">
                                     Create a batch and check &quot;Save as Template&quot; to save your first template
                                 </p>
                             </div>
@@ -146,12 +146,12 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                                 {templates.map((template) => (
                                     <div
                                         key={template.id}
-                                        className="border border-slate-200 rounded-lg p-4 hover:border-slate-300 transition-colors bg-white"
+                                        className="border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 transition-colors bg-white"
                                     >
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="font-medium text-slate-900">{template.name}</h3>
+                                                    <h3 className="font-medium text-zinc-900">{template.name}</h3>
                                                     <Badge
                                                         variant="outline"
                                                         className={`text-xs flex items-center gap-1 ${getMarketColor(template.market_region || "GLOBAL")}`}
@@ -161,18 +161,18 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                                                     </Badge>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-500">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-zinc-500">
                                                     {template.specs.chemistry && (
-                                                        <span>Chemistry: <span className="text-slate-700">{template.specs.chemistry}</span></span>
+                                                        <span>Chemistry: <span className="text-zinc-700">{template.specs.chemistry}</span></span>
                                                     )}
                                                     {template.specs.capacity && (
-                                                        <span>Capacity: <span className="text-slate-700">{template.specs.capacity}</span></span>
+                                                        <span>Capacity: <span className="text-zinc-700">{template.specs.capacity}</span></span>
                                                     )}
                                                     {template.specs.voltage && (
-                                                        <span>Voltage: <span className="text-slate-700">{template.specs.voltage}</span></span>
+                                                        <span>Voltage: <span className="text-zinc-700">{template.specs.voltage}</span></span>
                                                     )}
                                                     {template.specs.manufacturer && (
-                                                        <span>Mfr: <span className="text-slate-700">{template.specs.manufacturer}</span></span>
+                                                        <span>Mfr: <span className="text-zinc-700">{template.specs.manufacturer}</span></span>
                                                     )}
                                                 </div>
 
@@ -197,7 +197,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                                                     </div>
                                                 )}
 
-                                                <p className="text-xs text-slate-400 mt-2">
+                                                <p className="text-xs text-zinc-400 mt-2">
                                                     Created {new Date(template.created_at).toLocaleDateString()}
                                                 </p>
                                             </div>
@@ -222,8 +222,8 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
                         )}
                     </div>
 
-                    <div className="border-t border-slate-200 pt-4 mt-4">
-                        <p className="text-xs text-slate-500 text-center">
+                    <div className="border-t border-zinc-200 pt-4 mt-4">
+                        <p className="text-xs text-zinc-500 text-center">
                             💡 Tip: To use a template, open &quot;Create New Batch&quot; and select it from the template dropdown
                         </p>
                     </div>

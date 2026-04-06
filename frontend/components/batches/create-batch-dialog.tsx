@@ -705,8 +705,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     Create Batch
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[640px] w-full h-full overflow-y-auto bg-white border-slate-200 text-slate-900 p-0">
-                <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+            <DialogContent className="sm:max-w-[640px] w-full h-full overflow-y-auto bg-white border-zinc-200 text-zinc-900 p-0">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b border-zinc-100">
                     <DialogTitle>Create New Batch</DialogTitle>
                     <DialogDescription>
                         Enter the specifications for this batch of batteries.
@@ -715,7 +715,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                     <div className="grid gap-6 px-6 py-4 overflow-y-auto flex-1">
                         {/* ===== MARKET REGION TOGGLE ===== */}
-                        <div className="grid gap-3 pb-4 border-b border-slate-200">
+                        <div className="grid gap-3 pb-4 border-b border-zinc-200">
                             <Label className="flex items-center gap-2">
                                 <Globe className="h-4 w-4 text-blue-500" />
                                 Target Market <span className="text-red-500">*</span>
@@ -726,7 +726,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     onClick={() => setMarketRegion("INDIA")}
                                     className={`p-3 rounded-lg border-2 text-center transition-all ${isIndiaMode
                                         ? "border-orange-500 bg-orange-500/10 text-orange-400"
-                                        : "border-slate-200 hover:border-slate-300 text-slate-500"
+                                        : "border-zinc-200 hover:border-zinc-300 text-zinc-500"
                                         }`}
                                 >
                                     <Flag className="h-5 w-5 mx-auto mb-1" />
@@ -739,7 +739,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     onClick={() => setMarketRegion("EU")}
                                     className={`p-3 rounded-lg border-2 text-center transition-all ${isEUMode
                                         ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                                        : "border-slate-200 hover:border-slate-300 text-slate-500"
+                                        : "border-zinc-200 hover:border-zinc-300 text-zinc-500"
                                         }`}
                                 >
                                     <Leaf className="h-5 w-5 mx-auto mb-1" />
@@ -752,7 +752,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     onClick={() => setMarketRegion("GLOBAL")}
                                     className={`p-3 rounded-lg border-2 text-center transition-all ${marketRegion === "GLOBAL"
                                         ? "border-teal-500 bg-teal-500/10 text-teal-400"
-                                        : "border-slate-200 hover:border-slate-300 text-slate-500"
+                                        : "border-zinc-200 hover:border-zinc-300 text-zinc-500"
                                         }`}
                                 >
                                     <Globe className="h-5 w-5 mx-auto mb-1" />
@@ -762,19 +762,19 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             </div>
 
                             {/* Product Type (future expansion) */}
-                            <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+                            <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200">
                                 <span className="text-lg">🔋</span>
                                 <div>
-                                    <span className="text-sm font-medium text-slate-700">Battery</span>
-                                    <span className="text-xs text-slate-400 ml-2">Product Type</span>
+                                    <span className="text-sm font-medium text-zinc-700">Battery</span>
+                                    <span className="text-xs text-zinc-400 ml-2">Product Type</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Template Selector */}
                         {templates.length > 0 && (
-                            <div className="grid gap-2 pb-2 border-b border-slate-200">
-                                <Label htmlFor="template" className="flex items-center gap-2 text-slate-700">
+                            <div className="grid gap-2 pb-2 border-b border-zinc-200">
+                                <Label htmlFor="template" className="flex items-center gap-2 text-zinc-700">
                                     <Sparkles className="h-4 w-4 text-amber-500" />
                                     Load Template
                                 </Label>
@@ -782,7 +782,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     id="template"
                                     value={selectedTemplate}
                                     onChange={(e) => handleTemplateSelect(e.target.value)}
-                                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                    className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                                 >
                                     <option value="">-- Select a template --</option>
                                     {templates.map((template) => (
@@ -883,7 +883,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <div className="grid gap-2">
                                         <Label htmlFor="batteryCategory">
                                             Battery Category <span className="text-red-500">*</span>
-                                            <span className="text-xs text-slate-500 ml-1">(EU Reg. Art 2)</span>
+                                            <span className="text-xs text-zinc-500 ml-1">(EU Reg. Art 2)</span>
                                         </Label>
                                         <Select value={batteryCategory} onValueChange={setBatteryCategory}>
                                             <SelectTrigger id="batteryCategory">
@@ -988,7 +988,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="carbon" className="text-slate-700">
+                                        <Label htmlFor="carbon" className="text-zinc-700">
                                             Carbon Footprint (kg CO₂e)
                                             {isEUMode && <span className="text-red-500">*</span>}
                                         </Label>
@@ -998,7 +998,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             onChange={(e) => setCarbonFootprint(e.target.value)}
                                             placeholder="e.g. 10 kg CO2e"
                                             required={isEUMode}
-                                            className="bg-white border-slate-200 text-slate-900"
+                                            className="bg-white border-zinc-200 text-zinc-900"
                                         />
                                     </div>
 
@@ -1011,7 +1011,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         <div className="grid grid-cols-3 gap-3">
                                             {materialKeys.map((key) => (
                                                 <div key={key} className="grid gap-1">
-                                                    <Label htmlFor={key} className="text-xs capitalize text-slate-500">{key} %</Label>
+                                                    <Label htmlFor={key} className="text-xs capitalize text-zinc-500">{key} %</Label>
                                                     <Input
                                                         id={key}
                                                         type="number"
@@ -1021,7 +1021,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         value={materialComposition[key]}
                                                         onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
                                                         placeholder="0.0"
-                                                        className="h-8 text-xs bg-white border-slate-200"
+                                                        className="h-8 text-xs bg-white border-zinc-200"
                                                     />
                                                 </div>
                                             ))}
@@ -1043,7 +1043,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 { key: "recycled_lead" as const, label: "Lead", target: "85% by 2030" },
                                             ]).map(({ key, label, target }) => (
                                                 <div key={key} className="grid gap-1">
-                                                    <Label htmlFor={key} className="text-xs text-slate-500">
+                                                    <Label htmlFor={key} className="text-xs text-zinc-500">
                                                         {label} <span className="text-[10px] text-emerald-500">({target})</span>
                                                     </Label>
                                                     <Input
@@ -1055,7 +1055,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         value={materialComposition[key]}
                                                         onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
                                                         placeholder="0.0"
-                                                        className="h-8 text-xs bg-white border-slate-200"
+                                                        className="h-8 text-xs bg-white border-zinc-200"
                                                     />
                                                 </div>
                                             ))}
@@ -1070,34 +1070,34 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="grid gap-1">
-                                                <Label htmlFor="euRep" className="text-xs text-slate-500">EU Representative</Label>
+                                                <Label htmlFor="euRep" className="text-xs text-zinc-500">EU Representative</Label>
                                                 <Input
                                                     id="euRep"
                                                     value={euRepresentative}
                                                     onChange={(e) => setEuRepresentative(e.target.value)}
                                                     placeholder="Company Name"
-                                                    className="h-8 text-xs bg-white border-slate-200"
+                                                    className="h-8 text-xs bg-white border-zinc-200"
                                                 />
                                             </div>
                                             <div className="grid gap-1">
-                                                <Label htmlFor="euRepEmail" className="text-xs text-slate-500">Rep Email</Label>
+                                                <Label htmlFor="euRepEmail" className="text-xs text-zinc-500">Rep Email</Label>
                                                 <Input
                                                     id="euRepEmail"
                                                     value={euRepresentativeEmail}
                                                     onChange={(e) => setEuRepresentativeEmail(e.target.value)}
                                                     placeholder="email@eu-rep.com"
-                                                    className="h-8 text-xs bg-white border-slate-200"
+                                                    className="h-8 text-xs bg-white border-zinc-200"
                                                 />
                                             </div>
                                             <div className="grid gap-1">
-                                                <Label htmlFor="recycled" className="text-xs text-slate-500">Recycled Content (%)</Label>
+                                                <Label htmlFor="recycled" className="text-xs text-zinc-500">Recycled Content (%)</Label>
                                                 <Input
                                                     id="recycled"
                                                     type="number"
                                                     value={recycledContent}
                                                     onChange={(e) => setRecycledContent(e.target.value)}
                                                     placeholder="0.0"
-                                                    className="h-8 text-xs bg-white border-slate-200"
+                                                    className="h-8 text-xs bg-white border-zinc-200"
                                                 />
                                             </div>
                                         </div>
@@ -1111,31 +1111,31 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="grid gap-1">
-                                                <Label htmlFor="lifecycle" className="text-xs text-slate-500">Lifetime (Cycles)</Label>
+                                                <Label htmlFor="lifecycle" className="text-xs text-zinc-500">Lifetime (Cycles)</Label>
                                                 <Input
                                                     id="lifecycle"
                                                     type="number"
                                                     value={expectedLifetime}
                                                     onChange={(e) => setExpectedLifetime(e.target.value)}
                                                     placeholder="e.g. 1000"
-                                                    className="h-8 text-xs bg-white border-slate-200"
+                                                    className="h-8 text-xs bg-white border-zinc-200"
                                                 />
                                             </div>
                                             <div className="grid gap-1">
-                                                <Label htmlFor="warranty" className="text-xs text-slate-500">Warranty (Months)</Label>
+                                                <Label htmlFor="warranty" className="text-xs text-zinc-500">Warranty (Months)</Label>
                                                 <Input
                                                     id="warranty"
                                                     type="number"
                                                     value={warrantyMonths}
                                                     onChange={(e) => setWarrantyMonths(e.target.value)}
                                                     placeholder="e.g. 24"
-                                                    className="h-8 text-xs bg-white border-slate-200"
+                                                    className="h-8 text-xs bg-white border-zinc-200"
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="grid gap-2 pt-1">
-                                            <Label className="text-xs text-slate-500">Hazardous Substances (Check if present)</Label>
+                                            <Label className="text-xs text-zinc-500">Hazardous Substances (Check if present)</Label>
                                             <div className="flex gap-4">
                                                 {Object.entries(hazardousSubstances).map(([key, checked]) => (
                                                     <div key={key} className="flex items-center space-x-2">
@@ -1144,9 +1144,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                             id={`haz-${key}`}
                                                             checked={checked}
                                                             onChange={(e) => setHazardousSubstances(prev => ({ ...prev, [key]: e.target.checked }))}
-                                                            className="h-3.5 w-3.5 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500"
+                                                            className="h-3.5 w-3.5 rounded border-zinc-300 bg-white text-blue-500 focus:ring-blue-500"
                                                         />
-                                                        <Label htmlFor={`haz-${key}`} className="text-xs capitalize font-normal cursor-pointer text-slate-700">
+                                                        <Label htmlFor={`haz-${key}`} className="text-xs capitalize font-normal cursor-pointer text-zinc-700">
                                                             {key}
                                                         </Label>
                                                     </div>
@@ -1155,13 +1155,13 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="hazardDeclaration" className="text-xs text-slate-500">Hazardous Substances Declaration</Label>
+                                            <Label htmlFor="hazardDeclaration" className="text-xs text-zinc-500">Hazardous Substances Declaration</Label>
                                             <Input
                                                 id="hazardDeclaration"
                                                 value={hazardousDeclaration}
                                                 onChange={(e) => setHazardousDeclaration(e.target.value)}
                                                 placeholder="Declaration statement required for EU compliance"
-                                                className="h-8 text-xs bg-white border-slate-200"
+                                                className="h-8 text-xs bg-white border-zinc-200"
                                             />
                                         </div>
                                     </div>
@@ -1172,9 +1172,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             id="recyclable"
                                             checked={recyclable}
                                             onChange={(e) => setRecyclable(e.target.checked)}
-                                            className="h-4 w-4 rounded border-slate-300 bg-white text-blue-500 focus:ring-blue-500"
+                                            className="h-4 w-4 rounded border-zinc-300 bg-white text-blue-500 focus:ring-blue-500"
                                         />
-                                        <Label htmlFor="recyclable" className="font-normal cursor-pointer text-slate-700">
+                                        <Label htmlFor="recyclable" className="font-normal cursor-pointer text-zinc-700">
                                             Recyclable materials
                                         </Label>
                                     </div>
@@ -1211,56 +1211,56 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                                     {/* Compliance Details */}
                                     <div className="grid gap-2 mb-4">
-                                        <Label htmlFor="hsnCode" className="text-slate-700">HSN Code <span className="text-red-500">*</span></Label>
+                                        <Label htmlFor="hsnCode" className="text-zinc-700">HSN Code <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="hsnCode"
                                             value={hsnCode}
                                             onChange={(e) => setHsnCode(e.target.value)}
                                             placeholder="e.g. 85076000"
-                                            className="bg-white border-slate-200 text-slate-900"
+                                            className="bg-white border-zinc-200 text-zinc-900"
                                             maxLength={8}
                                         />
-                                        <p className="text-[10px] text-slate-500">Must start with 8507 (Li-ion accumulators)</p>
+                                        <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
                                     </div>
 
                                     {/* Batch-Level Compliance Fields (Optional) */}
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="bisNumber" className="text-slate-700 flex items-center gap-1">
+                                            <Label htmlFor="bisNumber" className="text-zinc-700 flex items-center gap-1">
                                                 BIS R-Number
-                                                <span className="text-[10px] text-slate-500">(optional)</span>
+                                                <span className="text-[10px] text-zinc-500">(optional)</span>
                                             </Label>
                                             <Input
                                                 id="bisNumber"
                                                 value={bisNumber}
                                                 onChange={(e) => setBisNumber(e.target.value)}
                                                 placeholder="e.g. R-12345678"
-                                                className="bg-white border-slate-200 text-slate-900"
+                                                className="bg-white border-zinc-200 text-zinc-900"
                                             />
-                                            <p className="text-[10px] text-slate-500">Override tenant default for this batch</p>
+                                            <p className="text-[10px] text-zinc-500">Override tenant default for this batch</p>
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label htmlFor="eprNumber" className="text-slate-700 flex items-center gap-1">
+                                            <Label htmlFor="eprNumber" className="text-zinc-700 flex items-center gap-1">
                                                 EPR Number
-                                                <span className="text-[10px] text-slate-500">(optional)</span>
+                                                <span className="text-[10px] text-zinc-500">(optional)</span>
                                             </Label>
                                             <Input
                                                 id="eprNumber"
                                                 value={eprNumber}
                                                 onChange={(e) => setEprNumber(e.target.value)}
                                                 placeholder="e.g. EPR/E-Waste/2024/00001"
-                                                className="bg-white border-slate-200 text-slate-900"
+                                                className="bg-white border-zinc-200 text-zinc-900"
                                             />
-                                            <p className="text-[10px] text-slate-500">Override tenant default for this batch</p>
+                                            <p className="text-[10px] text-zinc-500">Override tenant default for this batch</p>
                                         </div>
                                     </div>
 
                                     {/* Safety Certifications — Required for India activation */}
                                     <div className="space-y-2">
-                                        <Label className="text-slate-700 flex items-center gap-1">
+                                        <Label className="text-zinc-700 flex items-center gap-1">
                                             Safety Certifications
                                             <span className="text-red-500">*</span>
-                                            <span className="text-[10px] text-slate-500 ml-1">Required for activation</span>
+                                            <span className="text-[10px] text-zinc-500 ml-1">Required for activation</span>
                                         </Label>
                                         <div className="grid grid-cols-1 gap-2">
                                             {[
@@ -1268,7 +1268,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 { value: "AIS-038", label: "AIS-038 Rev.2", desc: "Battery safety for EVs (required)" },
                                                 { value: "BIS", label: "BIS CRS", desc: "IS 16046 (recommended)" },
                                             ].map(({ value, label, desc }) => (
-                                                <div key={value} className="flex items-start space-x-2 p-2 rounded-md bg-white/60 border border-slate-200">
+                                                <div key={value} className="flex items-start space-x-2 p-2 rounded-md bg-white/60 border border-zinc-200">
                                                     <input
                                                         type="checkbox"
                                                         id={`cert-${value}`}
@@ -1280,11 +1280,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                 setCertifications(prev => prev.filter(c => c !== value))
                                                             }
                                                         }}
-                                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                                                        className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-orange-500 focus:ring-orange-500"
                                                     />
                                                     <Label htmlFor={`cert-${value}`} className="cursor-pointer leading-tight">
-                                                        <span className="text-sm font-medium text-slate-800">{label}</span>
-                                                        <span className="block text-[10px] text-slate-500">{desc}</span>
+                                                        <span className="text-sm font-medium text-zinc-800">{label}</span>
+                                                        <span className="block text-[10px] text-zinc-500">{desc}</span>
                                                     </Label>
                                                 </div>
                                             ))}
@@ -1300,9 +1300,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     {cellSource !== "IMPORTED" && (
                                         <>
                                             {/* DVA Calculation Method Selection */}
-                                            <div className="flex items-center justify-between mb-4 bg-white/50 p-3 rounded-lg border border-slate-200">
+                                            <div className="flex items-center justify-between mb-4 bg-white/50 p-3 rounded-lg border border-zinc-200">
                                                 <Label htmlFor="auditedMode" className="cursor-pointer flex items-center gap-2">
-                                                    <Shield className={`h-4 w-4 ${dvaSource === "AUDITED" ? "text-emerald-400" : "text-slate-500"}`} />
+                                                    <Shield className={`h-4 w-4 ${dvaSource === "AUDITED" ? "text-emerald-400" : "text-zinc-500"}`} />
                                                     <span>I have an Audited CA Certificate</span>
                                                 </Label>
                                                 <input
@@ -1310,7 +1310,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     id="auditedMode"
                                                     checked={dvaSource === "AUDITED"}
                                                     onChange={(e) => setDvaSource(e.target.checked ? "AUDITED" : "ESTIMATED")}
-                                                    className="h-4 w-4 rounded border-slate-300 bg-white text-emerald-500 focus:ring-emerald-500"
+                                                    className="h-4 w-4 rounded border-zinc-300 bg-white text-emerald-500 focus:ring-emerald-500"
                                                 />
                                             </div>
 
@@ -1329,7 +1329,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     </div>
 
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="auditedDva" className="text-slate-700">
+                                                        <Label htmlFor="auditedDva" className="text-zinc-700">
                                                             Audited DVA % <span className="text-red-500">*</span>
                                                         </Label>
                                                         <Input
@@ -1341,25 +1341,25 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                             value={auditedDva}
                                                             onChange={(e) => setAuditedDva(e.target.value)}
                                                             placeholder="e.g. 55.5"
-                                                            className="bg-white border-slate-200 text-slate-900"
+                                                            className="bg-white border-zinc-200 text-zinc-900"
                                                         />
                                                     </div>
 
                                                     <div className="grid gap-2">
-                                                        <Label className="text-slate-700">Upload CA Certificate (PDF)</Label>
+                                                        <Label className="text-zinc-700">Upload CA Certificate (PDF)</Label>
 
                                                         {/* Upload Zone */}
                                                         {!uploadedFileUrl ? (
                                                             <div className="flex items-center justify-center w-full">
                                                                 <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading
                                                                     ? 'border-emerald-500 bg-emerald-50'
-                                                                    : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                                                                    : 'border-zinc-300 bg-zinc-50 hover:bg-zinc-100'
                                                                     }`}>
                                                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                                         {isUploading ? (
                                                                             <>
                                                                                 <div className="w-full px-8 mb-3">
-                                                                                    <div className="w-full bg-slate-200 rounded-full h-2">
+                                                                                    <div className="w-full bg-zinc-200 rounded-full h-2">
                                                                                         <div
                                                                                             className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
                                                                                             style={{ width: `${uploadProgress}%` }}
@@ -1370,11 +1370,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                             </>
                                                                         ) : (
                                                                             <>
-                                                                                <FileText className="w-8 h-8 mb-3 text-slate-500" />
-                                                                                <p className="text-sm text-slate-500">
+                                                                                <FileText className="w-8 h-8 mb-3 text-zinc-500" />
+                                                                                <p className="text-sm text-zinc-500">
                                                                                     <span className="font-semibold">Click to upload</span> or drag and drop
                                                                                 </p>
-                                                                                <p className="text-xs text-slate-500">PDF only (MAX. 5MB)</p>
+                                                                                <p className="text-xs text-zinc-500">PDF only (MAX. 5MB)</p>
                                                                             </>
                                                                         )}
                                                                     </div>
@@ -1423,7 +1423,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setUploadedFileUrl(null)}
-                                                                            className="text-xs px-3 py-1 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 transition-colors"
+                                                                            className="text-xs px-3 py-1 bg-zinc-100 text-zinc-700 rounded hover:bg-zinc-200 transition-colors"
                                                                         >
                                                                             Replace
                                                                         </button>
@@ -1436,14 +1436,14 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             ) : (
                                                 // ESTIMATED Mode UI (Original Calculator)
                                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                    <div className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                                                         <Calculator className="h-4 w-4 text-indigo-400" />
                                                         Indicative DVA Estimator
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="grid gap-2">
-                                                            <Label htmlFor="salePrice" className="text-slate-700">Sale Price (₹)</Label>
+                                                            <Label htmlFor="salePrice" className="text-zinc-700">Sale Price (₹)</Label>
                                                             <Input
                                                                 id="salePrice"
                                                                 type="number"
@@ -1451,11 +1451,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                 value={salePrice}
                                                                 onChange={(e) => setSalePrice(e.target.value)}
                                                                 placeholder="0.00"
-                                                                className="bg-white border-slate-200 text-slate-900"
+                                                                className="bg-white border-zinc-200 text-zinc-900"
                                                             />
                                                         </div>
                                                         <div className="grid gap-2">
-                                                            <Label htmlFor="importCost" className="text-slate-700">Imp. Material Cost (₹)</Label>
+                                                            <Label htmlFor="importCost" className="text-zinc-700">Imp. Material Cost (₹)</Label>
                                                             <Input
                                                                 id="importCost"
                                                                 type="number"
@@ -1463,7 +1463,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                 value={importCost}
                                                                 onChange={(e) => setImportCost(e.target.value)}
                                                                 placeholder="0.00"
-                                                                className="bg-white border-slate-200 text-slate-900"
+                                                                className="bg-white border-zinc-200 text-zinc-900"
                                                             />
                                                         </div>
                                                     </div>
@@ -1498,16 +1498,16 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                                     {/* Cell Source Selection */}
                                     <div className="grid gap-2 pt-2">
-                                        <Label htmlFor="cellSource" className="text-slate-700">
+                                        <Label htmlFor="cellSource" className="text-zinc-700">
                                             Cell Source <span className="text-red-500">*</span>
                                         </Label>
                                         <select
                                             id="cellSource"
                                             value={cellSource}
                                             onChange={(e) => setCellSource(e.target.value as CellSource)}
-                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
+                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-zinc-900 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
                                                 ? "border-red-500/50 bg-white"
-                                                : "border-slate-200 bg-white"
+                                                : "border-zinc-200 bg-white"
                                                 }`}
                                             required
                                         >
@@ -1515,7 +1515,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             <option value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</option>
                                             <option value="IMPORTED">📦 Imported (Requires IEC Code)</option>
                                         </select>
-                                        <p className="text-[10px] text-slate-500">
+                                        <p className="text-[10px] text-zinc-500">
                                             Required for India compliance. Determines customs and PLI eligibility.
                                         </p>
                                     </div>
@@ -1529,12 +1529,12 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 checked={pliCompliant}
                                                 onChange={(e) => setPliCompliant(e.target.checked)}
                                                 disabled={cellSource === "IMPORTED"}
-                                                className={`h-4 w-4 rounded border-slate-300 bg-white text-orange-500 focus:ring-orange-500 ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""
+                                                className={`h-4 w-4 rounded border-zinc-300 bg-white text-orange-500 focus:ring-orange-500 ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""
                                                     }`}
                                             />
                                             <Label
                                                 htmlFor="pliCompliant"
-                                                className={`font-normal cursor-pointer text-slate-700 ${cellSource === "IMPORTED" ? "opacity-50" : ""
+                                                className={`font-normal cursor-pointer text-zinc-700 ${cellSource === "IMPORTED" ? "opacity-50" : ""
                                                     }`}
                                             >
                                                 PLI Subsidy Eligible
@@ -1563,7 +1563,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="billOfEntry" className="text-slate-700">
+                                                    <Label htmlFor="billOfEntry" className="text-zinc-700">
                                                         Bill of Entry No. <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
@@ -1572,11 +1572,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         onChange={(e) => setBillOfEntryNo(e.target.value)}
                                                         placeholder="e.g. 1234567"
                                                         required
-                                                        className="bg-white border-slate-200 text-slate-900"
+                                                        className="bg-white border-zinc-200 text-zinc-900"
                                                     />
                                                 </div>
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="cellCountryOfOrigin" className="text-slate-700">
+                                                    <Label htmlFor="cellCountryOfOrigin" className="text-zinc-700">
                                                         Cell Country of Origin <span className="text-red-500">*</span>
                                                     </Label>
                                                     <Input
@@ -1592,13 +1592,13 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         placeholder="e.g. CN, KR"
                                                         title="ISO 3166-1 alpha-2 country code (2 characters)"
                                                         required
-                                                        className="bg-white border-slate-200 text-slate-900"
+                                                        className="bg-white border-zinc-200 text-zinc-900"
                                                     />
                                                 </div>
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="customsDate" className="flex items-center gap-2 text-slate-700">
+                                                <Label htmlFor="customsDate" className="flex items-center gap-2 text-zinc-700">
                                                     <Calendar className="h-4 w-4 text-amber-400" />
                                                     Import Date <span className="text-red-500">*</span>
                                                 </Label>
@@ -1608,7 +1608,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     value={customsDate}
                                                     onChange={(e) => setCustomsDate(e.target.value)}
                                                     required
-                                                    className="max-w-[200px] bg-white border-slate-200 text-slate-900"
+                                                    className="max-w-[200px] bg-white border-zinc-200 text-zinc-900"
                                                 />
                                             </div>
                                         </div>
@@ -1634,7 +1634,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 <div className="grid grid-cols-5 gap-2">
                                     {materialKeyLabels.map(({ key, label }) => (
                                         <div key={key} className="grid gap-1">
-                                            <Label htmlFor={key} className="text-[10px] uppercase text-slate-500 truncate" title={label}>
+                                            <Label htmlFor={key} className="text-[10px] uppercase text-zinc-500 truncate" title={label}>
                                                 {label} %
                                             </Label>
                                             <Input
@@ -1646,7 +1646,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 value={materialComposition[key]}
                                                 onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
                                                 placeholder="0.0"
-                                                className="h-8 text-xs bg-white border-slate-200 px-2"
+                                                className="h-8 text-xs bg-white border-zinc-200 px-2"
                                             />
                                         </div>
                                     ))}
@@ -1660,17 +1660,17 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                         </div>
 
                         {/* Save as Template Section */}
-                        <div className="border-t border-slate-200 pt-4 space-y-3">
+                        <div className="border-t border-zinc-200 pt-4 space-y-3">
                             <div className="flex items-center space-x-2">
                                 <input
                                     type="checkbox"
                                     id="saveTemplate"
                                     checked={saveAsTemplate}
                                     onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 bg-white text-teal-500 focus:ring-teal-500"
+                                    className="h-4 w-4 rounded border-zinc-300 bg-white text-teal-500 focus:ring-teal-500"
                                 />
-                                <Label htmlFor="saveTemplate" className="font-normal cursor-pointer flex items-center gap-2 text-slate-700">
-                                    <Save className="h-4 w-4 text-slate-500" />
+                                <Label htmlFor="saveTemplate" className="font-normal cursor-pointer flex items-center gap-2 text-zinc-700">
+                                    <Save className="h-4 w-4 text-zinc-500" />
                                     Save these settings as a new template
                                 </Label>
                             </div>
@@ -1680,13 +1680,13 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         value={templateName}
                                         onChange={(e) => setTemplateName(e.target.value)}
                                         placeholder="Template name (e.g. E-Bike Standard Pack)"
-                                        className="max-w-sm bg-white border-slate-200 text-slate-900"
+                                        className="max-w-sm bg-white border-zinc-200 text-zinc-900"
                                     />
                                 </div>
                             )}
                         </div>
                     </div>
-                    <DialogFooter className="border-t border-slate-100 px-6 py-4">
+                    <DialogFooter className="border-t border-zinc-100 px-6 py-4">
                         <Button type="submit" disabled={isLoading || iecError}>
                             {isLoading ? "Creating..." : "Create Batch"}
                         </Button>

@@ -101,7 +101,7 @@ export default function ExportsPage() {
             case 'DUE_DILIGENCE':
                 return <Shield className="w-5 h-5 text-indigo-500" />;
             default:
-                return <FileText className="w-5 h-5 text-slate-500" />;
+                return <FileText className="w-5 h-5 text-zinc-500" />;
         }
     };
 
@@ -111,26 +111,26 @@ export default function ExportsPage() {
 
     if (loading && exports.length === 0) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+            <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="w-full mx-auto space-y-6">
 
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Export History</h1>
-                        <p className="text-sm text-slate-500 mt-1">View and download your previous exports</p>
+                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Export History</h1>
+                        <p className="text-sm text-zinc-500 mt-1">View and download your previous exports</p>
                     </div>
                     <button
                         onClick={fetchExports}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -139,42 +139,42 @@ export default function ExportsPage() {
 
                 {/* Empty State */}
                 {exports.length === 0 ? (
-                    <div className="bg-white border border-slate-200 rounded-lg p-12">
+                    <div className="bg-white border border-zinc-200 rounded-lg p-12">
                         <div className="flex flex-col items-center justify-center text-center">
-                            <div className="p-4 bg-slate-100 rounded-full mb-4">
-                                <FileArchive className="w-8 h-8 text-slate-400" />
+                            <div className="p-4 bg-zinc-100 rounded-full mb-4">
+                                <FileArchive className="w-8 h-8 text-zinc-400" />
                             </div>
-                            <h3 className="text-lg font-medium text-slate-900 mb-1">No exports yet</h3>
-                            <p className="text-sm text-slate-500">Exports will appear here when you download large batches</p>
+                            <h3 className="text-lg font-medium text-zinc-900 mb-1">No exports yet</h3>
+                            <p className="text-sm text-zinc-500">Exports will appear here when you download large batches</p>
                         </div>
                     </div>
                 ) : (
                     /* Data Table */
-                    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
                         <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-zinc-50 border-b border-zinc-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Size</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Requested</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Type</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Batch</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Size</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Requested</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {exports.map((job) => (
-                                    <tr key={job.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                                    <tr key={job.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
                                         <td className="px-4 py-4">
                                             <div className="flex items-center gap-2">
                                                 {getJobIcon(job.job_type)}
-                                                <span className="text-sm font-medium text-slate-900">{formatJobType(job.job_type)}</span>
+                                                <span className="text-sm font-medium text-zinc-900">{formatJobType(job.job_type)}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
                                             <div>
-                                                <div className="text-sm font-medium text-slate-900">{job.batch_name}</div>
-                                                <div className="text-xs text-slate-500">{job.passport_count} passports</div>
+                                                <div className="text-sm font-medium text-zinc-900">{job.batch_name}</div>
+                                                <div className="text-xs text-zinc-500">{job.passport_count} passports</div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
@@ -194,17 +194,17 @@ export default function ExportsPage() {
                                                 <p className="text-xs text-red-600 mt-1">{job.error_message}</p>
                                             )}
                                         </td>
-                                        <td className="px-4 py-4 text-sm text-slate-600">
+                                        <td className="px-4 py-4 text-sm text-zinc-600">
                                             {formatFileSize(job.file_size_bytes)}
                                         </td>
-                                        <td className="px-4 py-4 text-sm text-slate-500">
+                                        <td className="px-4 py-4 text-sm text-zinc-500">
                                             {formatDate(job.requested_at)}
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {job.status === 'COMPLETED' && job.download_url && (
                                                 <button
                                                     onClick={() => handleDownload(job)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-white rounded-md hover:bg-zinc-800 transition-colors"
                                                 >
                                                     <Download className="w-4 h-4" />
                                                     Download
@@ -230,22 +230,22 @@ export default function ExportsPage() {
 
                         {/* Pagination */}
                         {total > limit && (
-                            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-                                <p className="text-sm text-slate-500">
+                            <div className="px-4 py-3 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between">
+                                <p className="text-sm text-zinc-500">
                                     Showing {page * limit + 1} to {Math.min((page + 1) * limit, total)} of {total} exports
                                 </p>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setPage(p => Math.max(0, p - 1))}
                                         disabled={page === 0}
-                                        className="px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="px-3 py-1.5 text-sm font-medium border border-zinc-200 rounded-md bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         Previous
                                     </button>
                                     <button
                                         onClick={() => setPage(p => p + 1)}
                                         disabled={(page + 1) * limit >= total}
-                                        className="px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="px-3 py-1.5 text-sm font-medium border border-zinc-200 rounded-md bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         Next
                                     </button>

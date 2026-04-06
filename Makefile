@@ -6,7 +6,7 @@ export
 
 # Run the server
 run:
-	cd backend && go run ./cmd/server
+	go run backend/cmd/server/main.go
 
 # Build the binary
 build:

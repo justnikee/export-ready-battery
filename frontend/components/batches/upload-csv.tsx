@@ -426,7 +426,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
                             </div>
 
                             {/* Live Preview */}
-                            <div className="rounded-md bg-slate-100 p-4 text-center">
+                            <div className="rounded-md bg-zinc-100 p-4 text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Preview</p>
                                 <p className="font-mono text-sm">
                                     Generates <span className="font-bold text-blue-600">{previewStart}</span> to{" "}

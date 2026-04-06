@@ -117,7 +117,7 @@ export function DashboardSidebar({
 
             {/* Sidebar */}
             <aside className={clsx(
-                "fixed left-0 top-0 z-50 h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300",
+                "fixed left-0 top-0 z-50 h-full bg-white border-r border-zinc-200 flex flex-col transition-all duration-300",
                 // Mobile: slide in/out
                 "md:translate-x-0",
                 isOpen ? "translate-x-0" : "-translate-x-full",
@@ -127,7 +127,7 @@ export function DashboardSidebar({
             )}>
                 {/* Header */}
                 <div className={clsx(
-                    "flex items-center border-b border-slate-200 h-14 px-4",
+                    "flex items-center border-b border-zinc-200 h-14 px-4",
                     isCollapsed ? "md:justify-center" : "justify-between"
                 )}>
                     <Link href="/dashboard" className="flex items-center gap-2" onClick={onClose}>
@@ -142,7 +142,7 @@ export function DashboardSidebar({
                         className="h-8 w-8 md:hidden"
                         onClick={onClose}
                     >
-                        <X className="h-5 w-5 text-slate-500" />
+                        <X className="h-5 w-5 text-zinc-500" />
                     </Button>
 
                     {/* Desktop Collapse Toggle */}
@@ -151,14 +151,14 @@ export function DashboardSidebar({
                         size="icon"
                         className={clsx(
                             "h-7 w-7 hidden md:flex",
-                            isCollapsed && "md:absolute md:-right-3 md:top-4 md:bg-white md:border md:border-slate-200 md:shadow-sm md:rounded-full"
+                            isCollapsed && "md:absolute md:-right-3 md:top-4 md:bg-white md:border md:border-zinc-200 md:shadow-sm md:rounded-full"
                         )}
                         onClick={onToggleCollapse}
                     >
                         {isCollapsed ? (
-                            <ChevronRight className="h-4 w-4 text-slate-500" />
+                            <ChevronRight className="h-4 w-4 text-zinc-500" />
                         ) : (
-                            <ChevronLeft className="h-4 w-4 text-slate-500" />
+                            <ChevronLeft className="h-4 w-4 text-zinc-500" />
                         )}
                     </Button>
                 </div>
@@ -176,7 +176,7 @@ export function DashboardSidebar({
                                     <button
                                         onClick={() => setDevExpanded((prev: boolean) => !prev)}
                                         className={clsx(
-                                            "flex items-center justify-between w-full px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors",
+                                            "flex items-center justify-between w-full px-3 mb-2 text-xs font-medium text-zinc-400 uppercase tracking-wider hover:text-zinc-600 transition-colors",
                                             isCollapsed && "md:hidden"
                                         )}
                                     >
@@ -189,7 +189,7 @@ export function DashboardSidebar({
                                     </button>
                                 ) : (
                                     <div className={clsx(
-                                        "px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider",
+                                        "px-3 mb-2 text-xs font-medium text-zinc-400 uppercase tracking-wider",
                                         isCollapsed && "md:hidden"
                                     )}>
                                         {group.label}
@@ -215,8 +215,8 @@ export function DashboardSidebar({
                                                     className={clsx(
                                                         "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                                                         active
-                                                            ? "bg-linear-to-r from-slate-900 to-slate-800 text-white shadow-md"
-                                                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                                                            ? "bg-linear-to-r from-zinc-900 to-zinc-800 text-white shadow-md"
+                                                            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
                                                         isCollapsed && "md:justify-center md:px-0"
                                                     )}
                                                 >
@@ -226,7 +226,7 @@ export function DashboardSidebar({
                                                     )}
                                                     <Icon className={clsx(
                                                         "h-5 w-5 shrink-0 transition-colors",
-                                                        active ? "text-amber-400" : "text-slate-400 group-hover:text-slate-600"
+                                                        active ? "text-amber-400" : "text-zinc-400 group-hover:text-zinc-600"
                                                     )} />
                                                     <span className={clsx(
                                                         isCollapsed && "md:hidden"
@@ -244,14 +244,14 @@ export function DashboardSidebar({
                 </nav>
 
                 {/* User Section */}
-                <div className="border-t border-slate-200 p-3">
+                <div className="border-t border-zinc-200 p-3">
                     <div className={clsx(
-                        "flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors",
+                        "flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 transition-colors",
                         isCollapsed && "md:justify-center"
                     )}>
-                        <Avatar className="h-9 w-9 border border-slate-200 shrink-0">
+                        <Avatar className="h-9 w-9 border border-zinc-200 shrink-0">
                             <AvatarImage src={user?.logo_url} />
-                            <AvatarFallback className="bg-slate-100 text-slate-700 text-xs font-medium">
+                            <AvatarFallback className="bg-zinc-100 text-zinc-700 text-xs font-medium">
                                 {initials}
                             </AvatarFallback>
                         </Avatar>
@@ -259,10 +259,10 @@ export function DashboardSidebar({
                             "flex-1 min-w-0",
                             isCollapsed && "md:hidden"
                         )}>
-                            <p className="text-sm font-medium text-slate-900 truncate">
+                            <p className="text-sm font-medium text-zinc-900 truncate">
                                 {user?.company_name || 'Account'}
                             </p>
-                            <p className="text-xs text-slate-500 truncate">
+                            <p className="text-xs text-zinc-500 truncate">
                                 {user?.email}
                             </p>
                         </div>

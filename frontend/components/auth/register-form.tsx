@@ -84,7 +84,7 @@ export function RegisterForm() {
 
                 <div className="space-y-2">
                     <h2 className="text-xl font-bold text-[#0B1F3B]">Check your email</h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-zinc-600">
                         We sent a verification link to{" "}
                         <span className="font-semibold text-[#0B1F3B]">{email}</span>.
                         <br />
@@ -92,9 +92,9 @@ export function RegisterForm() {
                     </p>
                 </div>
 
-                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-left space-y-1">
-                    <p className="text-xs font-medium text-slate-500">Didn&apos;t get it?</p>
-                    <ul className="text-xs text-slate-500 list-disc list-inside space-y-0.5">
+                <div className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-left space-y-1">
+                    <p className="text-xs font-medium text-zinc-500">Didn&apos;t get it?</p>
+                    <ul className="text-xs text-zinc-500 list-disc list-inside space-y-0.5">
                         <li>Check your spam / junk folder</li>
                         <li>The link expires in 24 hours</li>
                     </ul>
@@ -113,7 +113,7 @@ export function RegisterForm() {
                     Company / Manufacturer name
                 </Label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
                         <Building2 className="h-5 w-5" />
                     </div>
                     <Input
@@ -122,7 +122,7 @@ export function RegisterForm() {
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
                         required
-                        className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                 </div>
             </div>
@@ -133,7 +133,7 @@ export function RegisterForm() {
                     Business email
                 </Label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
                         <Mail className="h-5 w-5" />
                     </div>
                     <Input
@@ -143,7 +143,7 @@ export function RegisterForm() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="pl-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                 </div>
             </div>
@@ -154,7 +154,7 @@ export function RegisterForm() {
                     Password
                 </Label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
                         <Lock className="h-5 w-5" />
                     </div>
                     <Input
@@ -166,12 +166,12 @@ export function RegisterForm() {
                         onFocus={() => setPasswordFocused(true)}
                         onBlur={() => setPasswordFocused(false)}
                         required
-                        className="pl-10 pr-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 pr-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0B1F3B] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#0B1F3B] transition-colors"
                     >
                         {showPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -183,17 +183,17 @@ export function RegisterForm() {
 
                 {/* Password Requirements */}
                 {(passwordFocused || password.length > 0) && (
-                    <div className="mt-3 p-3 bg-white border border-slate-200 rounded-lg">
-                        <p className="text-xs font-medium text-slate-500 mb-2">Password requirements:</p>
+                    <div className="mt-3 p-3 bg-white border border-zinc-200 rounded-lg">
+                        <p className="text-xs font-medium text-zinc-500 mb-2">Password requirements:</p>
                         <div className="grid grid-cols-2 gap-1.5">
                             {passwordRequirements.map((req, index) => (
                                 <div key={index} className="flex items-center gap-1.5">
                                     {req.met ? (
                                         <Check className="h-3.5 w-3.5 text-[#1F7A5F]" />
                                     ) : (
-                                        <X className="h-3.5 w-3.5 text-slate-300" />
+                                        <X className="h-3.5 w-3.5 text-zinc-300" />
                                     )}
-                                    <span className={`text-xs ${req.met ? "text-[#1F7A5F]" : "text-slate-400"}`}>
+                                    <span className={`text-xs ${req.met ? "text-[#1F7A5F]" : "text-zinc-400"}`}>
                                         {req.label}
                                     </span>
                                 </div>
@@ -209,7 +209,7 @@ export function RegisterForm() {
                     Confirm password
                 </Label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
                         <Lock className="h-5 w-5" />
                     </div>
                     <Input
@@ -219,12 +219,12 @@ export function RegisterForm() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
-                        className="pl-10 pr-10 h-12 bg-white border-slate-300 text-[#0B1F3B] placeholder:text-slate-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 pr-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                     <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0B1F3B] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#0B1F3B] transition-colors"
                     >
                         {showConfirmPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -246,11 +246,11 @@ export function RegisterForm() {
                     id="tos-accept"
                     checked={tosAccepted}
                     onCheckedChange={(checked) => setTosAccepted(checked === true)}
-                    className="mt-0.5 border-slate-400 data-[state=checked]:border-[#1F7A5F] data-[state=checked]:bg-[#1F7A5F]"
+                    className="mt-0.5 border-zinc-400 data-[state=checked]:border-[#1F7A5F] data-[state=checked]:bg-[#1F7A5F]"
                 />
                 <label
                     htmlFor="tos-accept"
-                    className="text-xs text-slate-500 leading-relaxed cursor-pointer select-none"
+                    className="text-xs text-zinc-500 leading-relaxed cursor-pointer select-none"
                 >
                     I have read and agree to the{" "}
                     <a
@@ -295,10 +295,10 @@ export function RegisterForm() {
             {/* Divider */}
             <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-200" />
+                    <div className="w-full border-t border-zinc-200" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-50 px-2 text-slate-400">
+                    <span className="bg-zinc-50 px-2 text-zinc-400">
                         or continue with
                     </span>
                 </div>
@@ -309,7 +309,7 @@ export function RegisterForm() {
                 <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-11 border-slate-300 hover:bg-slate-100 text-[#0B1F3B] rounded-none"
+                    className="w-full h-11 border-zinc-300 hover:bg-zinc-100 text-[#0B1F3B] rounded-none"
                     onClick={() => {
                         const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1', '')
                         window.location.href = `${apiBase}/api/v1/auth/google`

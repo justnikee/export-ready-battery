@@ -54,7 +54,7 @@ function TestimonialCard({
       transition={{ delay: index * 0.15 }}
       className="group relative h-full"
     >
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 h-full transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-8 h-full transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-xl hover:shadow-zinc-200/50 hover:-translate-y-1">
         {/* Quote Icon */}
         <div className="absolute -top-3 left-8">
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#1F7A5F] to-[#2a9d75] flex items-center justify-center shadow-lg shadow-[#1F7A5F]/20">
@@ -70,7 +70,7 @@ function TestimonialCard({
         </div>
 
         {/* Quote */}
-        <p className="text-slate-700 leading-relaxed mb-6 text-[15px]">
+        <p className="text-zinc-700 leading-relaxed mb-6 text-[15px]">
           &ldquo;{testimonial.quote}&rdquo;
         </p>
 
@@ -83,7 +83,7 @@ function TestimonialCard({
         </div>
 
         {/* Author */}
-        <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+        <div className="flex items-center gap-4 pt-4 border-t border-zinc-100">
           {/* Avatar */}
           <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#0B1F3B] to-[#1F7A5F] flex items-center justify-center text-white font-semibold text-sm shadow-lg">
             {testimonial.initials}
@@ -92,7 +92,7 @@ function TestimonialCard({
             <p className="font-semibold text-[#0B1F3B] text-sm">
               {testimonial.author}
             </p>
-            <p className="text-xs text-slate-500">{testimonial.role}</p>
+            <p className="text-xs text-zinc-500">{testimonial.role}</p>
             <p className="text-xs text-[#1F7A5F] font-medium">
               {testimonial.company} · {testimonial.location}
             </p>
@@ -105,7 +105,7 @@ function TestimonialCard({
 
 export function TestimonialsSection() {
   return (
-    <section className="py-24 bg-slate-50 border-y border-slate-200 relative overflow-hidden">
+    <section className="py-24 bg-zinc-50 border-y border-zinc-200 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-1/4 left-0 w-96 h-96 bg-[#1F7A5F]/5 rounded-full blur-3xl" />
@@ -127,7 +127,7 @@ export function TestimonialsSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-semibold text-[#0B1F3B] mb-4">
             Trusted by battery manufacturers worldwide
           </h2>
-          <p className="text-base text-slate-600 max-w-[55ch] mx-auto">
+          <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
             See how companies are simplifying compliance with ExportLens.
           </p>
         </motion.div>
@@ -146,17 +146,17 @@ export function TestimonialsSection() {
           transition={{ delay: 0.5 }}
           className="mt-16 text-center"
         >
-          <p className="text-sm text-slate-500 mb-4 font-medium">
+          <p className="text-sm text-zinc-500 mb-4 font-medium">
             Compliance-ready for major regulations
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <span className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-600 shadow-sm">
+            <span className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono text-zinc-600 shadow-sm">
               EU Battery Regulation 2023/1542
             </span>
-            <span className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-600 shadow-sm">
+            <span className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono text-zinc-600 shadow-sm">
               India EPR Compliance
             </span>
-            <span className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-600 shadow-sm">
+            <span className="px-4 py-2 bg-white border border-zinc-200 rounded-lg text-xs font-mono text-zinc-600 shadow-sm">
               BIS Certification Ready
             </span>
           </div>
@@ -170,7 +170,7 @@ export function TestimonialsSection() {
           transition={{ delay: 0.6 }}
           className="mt-12 text-center"
         >
-          <button className="group inline-flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-[#1F7A5F]/30 hover:shadow-lg transition-all duration-300">
+          <button className="group inline-flex items-center gap-3 px-6 py-3 bg-white border border-zinc-200 rounded-xl text-sm font-medium text-zinc-700 hover:border-[#1F7A5F]/30 hover:shadow-lg transition-all duration-300">
             <div className="h-10 w-10 rounded-full bg-[#1F7A5F] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <Play className="h-4 w-4 text-white ml-0.5" />
             </div>
@@ -178,7 +178,7 @@ export function TestimonialsSection() {
               <p className="font-semibold text-[#0B1F3B]">
                 Watch Customer Stories
               </p>
-              <p className="text-xs text-slate-500">3 min · Real results</p>
+              <p className="text-xs text-zinc-500">3 min · Real results</p>
             </div>
           </button>
         </motion.div>

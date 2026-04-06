@@ -116,12 +116,12 @@ export default function PublicPassportPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-zinc-100 flex items-center justify-center p-4">
                 <div className="flex flex-col items-center gap-6">
-                    <Loader2 className="h-10 w-10 text-slate-600 animate-spin" />
+                    <Loader2 className="h-10 w-10 text-zinc-600 animate-spin" />
                     <div className="text-center">
-                        <p className="text-slate-900 font-semibold text-lg">{t("loading_title")}</p>
-                        <p className="text-slate-500 text-sm mt-1">{t("loading_subtitle")}</p>
+                        <p className="text-zinc-900 font-semibold text-lg">{t("loading_title")}</p>
+                        <p className="text-zinc-500 text-sm mt-1">{t("loading_subtitle")}</p>
                     </div>
                 </div>
             </div>
@@ -130,16 +130,16 @@ export default function PublicPassportPage() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-slate-100 p-6 flex items-center justify-center">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-slate-200 p-8 text-center">
+            <div className="min-h-screen bg-zinc-100 p-6 flex items-center justify-center">
+                <div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-zinc-200 p-8 text-center">
                     <div className="mx-auto w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-6">
                         <AlertCircle className="h-8 w-8 text-red-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("error_title")}</h2>
-                    <p className="text-slate-600 mb-6">{error}</p>
+                    <h2 className="text-xl font-bold text-zinc-900 mb-2">{t("error_title")}</h2>
+                    <p className="text-zinc-600 mb-6">{error}</p>
                     <button
                         onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg font-medium transition-colors"
                     >
                         {t("error_retry")}
                     </button>
@@ -150,16 +150,16 @@ export default function PublicPassportPage() {
 
     if (!passport) {
         return (
-            <div className="min-h-screen bg-slate-100 p-6 flex items-center justify-center">
-                <div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-slate-200 p-8 text-center">
+            <div className="min-h-screen bg-zinc-100 p-6 flex items-center justify-center">
+                <div className="max-w-md w-full bg-white rounded-lg shadow-lg border border-zinc-200 p-8 text-center">
                     <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-6">
                         <AlertCircle className="h-8 w-8 text-amber-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t("unavailable_title")}</h2>
-                    <p className="text-slate-600 mb-6">{t("unavailable_subtitle")}</p>
+                    <h2 className="text-xl font-bold text-zinc-900 mb-2">{t("unavailable_title")}</h2>
+                    <p className="text-zinc-600 mb-6">{t("unavailable_subtitle")}</p>
                     <button
                         onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg font-medium transition-colors"
                     >
                         {t("error_retry")}
                     </button>
@@ -169,17 +169,17 @@ export default function PublicPassportPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-100 pb-24 md:pb-8">
+        <div className="min-h-screen bg-zinc-100 pb-24 md:pb-8">
             {/* Official Header Bar */}
-            <header className="w-full bg-white border-b border-slate-200 py-3 px-4 md:px-8 sticky top-0 z-20 shadow-sm print:hidden">
+            <header className="w-full bg-white border-b border-zinc-200 py-3 px-4 md:px-8 sticky top-0 z-20 shadow-sm print:hidden">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
                             <span className="font-bold text-sm">ER</span>
                         </div>
                         <div className="hidden sm:block">
-                            <p className="text-slate-900 font-bold text-sm tracking-tight">EXPORTREADY</p>
-                            <p className="text-slate-500 text-xs">{t("header_registry")}</p>
+                            <p className="text-zinc-900 font-bold text-sm tracking-tight">EXPORTREADY</p>
+                            <p className="text-zinc-500 text-xs">{t("header_registry")}</p>
                         </div>
                     </div>
 
@@ -188,7 +188,7 @@ export default function PublicPassportPage() {
                         <div className="relative">
                             <button
                                 onClick={() => setShowLangMenu(!showLangMenu)}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-lg border border-slate-200 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 font-medium text-sm rounded-lg border border-zinc-200 transition-colors"
                             >
                                 <Globe className="h-4 w-4" />
                                 <span className="hidden sm:inline">{SUPPORTED_LOCALES.find(l => l.code === locale)?.flag} {locale.toUpperCase()}</span>
@@ -197,12 +197,12 @@ export default function PublicPassportPage() {
                             {showLangMenu && (
                                 <>
                                     <div className="fixed inset-0 z-30" onClick={() => setShowLangMenu(false)} />
-                                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-40 min-w-[160px] overflow-hidden">
+                                    <div className="absolute right-0 top-full mt-1 bg-white border border-zinc-200 rounded-lg shadow-lg z-40 min-w-[160px] overflow-hidden">
                                         {SUPPORTED_LOCALES.map(({ code, label, flag }) => (
                                             <button
                                                 key={code}
                                                 onClick={() => switchLang(code)}
-                                                className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${locale === code ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                                className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${locale === code ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-zinc-700 hover:bg-zinc-50'}`}
                                             >
                                                 <span>{flag}</span>
                                                 <span>{label}</span>
@@ -216,7 +216,7 @@ export default function PublicPassportPage() {
                         {/* Download PDF Button */}
                         <button
                             onClick={() => window.print()}
-                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-lg border border-slate-200 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-zinc-50 text-zinc-700 font-medium text-sm rounded-lg border border-zinc-200 transition-colors"
                         >
                             <Download className="h-4 w-4" />
                             <span className="hidden sm:inline">{t("header_download")}</span>
@@ -238,18 +238,18 @@ export default function PublicPassportPage() {
             <main className="px-4 md:px-6 pt-6 md:pt-8">
                 <div className="max-w-4xl mx-auto">
                     {/* The Certificate Paper */}
-                    <div className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden print:shadow-none print:border-0">
+                    <div className="bg-white rounded-lg shadow-lg border border-zinc-200 overflow-hidden print:shadow-none print:border-0">
                         <CertificateView passport={passport} locale={locale} />
                     </div>
                 </div>
             </main>
 
             {/* Mobile Sticky CTA */}
-            <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-slate-200 md:hidden z-30 shadow-lg print:hidden">
+            <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-zinc-200 md:hidden z-30 shadow-lg print:hidden">
                 <div className="flex gap-2">
                     <button
                         onClick={() => window.print()}
-                        className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                        className="flex-1 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
                     >
                         <Download className="h-4 w-4" />
                         PDF

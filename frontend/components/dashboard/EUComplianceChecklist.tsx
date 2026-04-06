@@ -75,26 +75,26 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
         })
     }
 
-    const scoreColor = !scoreData ? "text-slate-400"
+    const scoreColor = !scoreData ? "text-zinc-400"
         : scoreData.score >= 80 ? "text-emerald-600"
             : scoreData.score >= 50 ? "text-amber-500"
                 : "text-red-500"
 
     return (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
                 <div>
-                    <h3 className="text-base font-medium text-slate-900 flex items-center gap-2">
+                    <h3 className="text-base font-medium text-zinc-900 flex items-center gap-2">
                         <Shield className="h-4 w-4 text-blue-600" />
                         EU Battery Passport Checklist
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-zinc-500 mt-0.5">
                         BatteryPass consortium attribute coverage
                     </p>
                 </div>
                 {euBatches.length > 1 && (
                     <select
-                        className="text-xs border border-slate-200 rounded px-2 py-1 text-slate-600"
+                        className="text-xs border border-zinc-200 rounded px-2 py-1 text-zinc-600"
                         value={selectedBatchId || ""}
                         onChange={(e) => { setSelectedBatchId(e.target.value); setLoading(true) }}
                     >
@@ -107,10 +107,10 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
             <div className="p-6">
                 {loading ? (
                     <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                        <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
                     </div>
                 ) : !scoreData ? (
-                    <p className="text-sm text-slate-500 text-center py-4">
+                    <p className="text-sm text-zinc-500 text-center py-4">
                         EU attribute scoring not available for this batch
                     </p>
                 ) : (
@@ -120,14 +120,14 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
                             <div className={`text-3xl font-bold ${scoreColor}`}>
                                 {Math.round(scoreData.score)}%
                             </div>
-                            <div className="text-sm text-slate-600">
+                            <div className="text-sm text-zinc-600">
                                 <span className="font-medium">{scoreData.filled}</span> of{" "}
                                 <span className="font-medium">{scoreData.total}</span> attributes filled
                             </div>
                         </div>
 
                         {/* Progress bar */}
-                        <div className="w-full bg-slate-100 rounded-full h-2 mb-4">
+                        <div className="w-full bg-zinc-100 rounded-full h-2 mb-4">
                             <div
                                 className={`h-2 rounded-full transition-all ${
                                     scoreData.score >= 80 ? "bg-emerald-500" : scoreData.score >= 50 ? "bg-amber-500" : "bg-red-500"
@@ -141,7 +141,7 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
                             <div className="space-y-2 max-h-48 overflow-y-auto">
                                 {Object.entries(missingByCategory).map(([category, attrs]) => (
                                     <div key={category}>
-                                        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1">
+                                        <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 mb-1">
                                             <XCircle className="h-3 w-3 text-red-400" />
                                             {category} — {attrs.length} missing
                                         </div>
@@ -163,7 +163,7 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
                         )}
 
                         {/* Feb 2027 deadline */}
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
                             <div className="flex items-center gap-1.5 text-xs text-amber-600">
                                 <AlertTriangle className="h-3 w-3" />
                                 EU Battery Regulation deadline: Feb 18, 2027

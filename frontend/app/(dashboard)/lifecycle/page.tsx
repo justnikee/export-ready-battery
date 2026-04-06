@@ -20,13 +20,13 @@ interface PassportSummary {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    CREATED: "bg-slate-100 text-slate-700",
+    CREATED: "bg-zinc-100 text-zinc-700",
     ACTIVE: "bg-blue-100 text-blue-700",
     SHIPPED: "bg-amber-100 text-amber-700",
     IN_SERVICE: "bg-emerald-100 text-emerald-700",
     RECALLED: "bg-red-100 text-red-700",
     RECYCLED: "bg-purple-100 text-purple-700",
-    END_OF_LIFE: "bg-slate-200 text-slate-600",
+    END_OF_LIFE: "bg-zinc-200 text-zinc-600",
 }
 
 const STATUS_ICONS: Record<string, typeof Package> = {
@@ -112,12 +112,12 @@ export default function LifecyclePage() {
     }, {} as Record<string, number>)
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Lifecycle Operations</h1>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <h1 className="text-2xl font-semibold text-zinc-900">Lifecycle Operations</h1>
+                    <p className="text-sm text-zinc-500 mt-1">
                         Track, transition, and manage battery passports across their lifecycle
                     </p>
                 </div>
@@ -133,15 +133,15 @@ export default function LifecyclePage() {
                                 onClick={() => setStatusFilter(isActive ? "ALL" : status)}
                                 className={`p-3 rounded-lg border text-left transition-all ${
                                     isActive
-                                        ? "border-slate-900 bg-slate-50 ring-1 ring-slate-300"
-                                        : "border-slate-200 bg-white hover:border-slate-300"
+                                        ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-300"
+                                        : "border-zinc-200 bg-white hover:border-zinc-300"
                                 }`}
                             >
                                 <div className="flex items-center gap-1.5 mb-1">
-                                    <Icon className="h-3.5 w-3.5 text-slate-500" />
-                                    <span className="text-xs font-medium text-slate-600">{status.replace(/_/g, " ")}</span>
+                                    <Icon className="h-3.5 w-3.5 text-zinc-500" />
+                                    <span className="text-xs font-medium text-zinc-600">{status.replace(/_/g, " ")}</span>
                                 </div>
-                                <span className="text-lg font-bold text-slate-900">{statusCounts[status] || 0}</span>
+                                <span className="text-lg font-bold text-zinc-900">{statusCounts[status] || 0}</span>
                             </button>
                         )
                     })}
@@ -150,11 +150,11 @@ export default function LifecyclePage() {
                 {/* Controls Bar */}
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                         <input
                             type="text"
                             placeholder="Search by serial number or UUID..."
-                            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
+                            className="w-full pl-9 pr-4 py-2 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-zinc-400"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -162,9 +162,9 @@ export default function LifecyclePage() {
 
                     {selectedIds.size > 0 && (
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-600">{selectedIds.size} selected</span>
+                            <span className="text-sm text-zinc-600">{selectedIds.size} selected</span>
                             <select
-                                className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                                className="border border-zinc-200 rounded-lg px-3 py-2 text-sm"
                                 value={bulkAction}
                                 onChange={(e) => setBulkAction(e.target.value)}
                             >
@@ -178,7 +178,7 @@ export default function LifecyclePage() {
                             <button
                                 onClick={handleBulkTransition}
                                 disabled={!bulkAction || processing}
-                                className="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-1"
+                                className="px-4 py-2 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-1"
                             >
                                 {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                                 Apply
@@ -186,22 +186,22 @@ export default function LifecyclePage() {
                         </div>
                     )}
 
-                    <button onClick={fetchPassports} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-100">
-                        <RefreshCw className="h-4 w-4 text-slate-500" />
+                    <button onClick={fetchPassports} className="p-2 border border-zinc-200 rounded-lg hover:bg-zinc-100">
+                        <RefreshCw className="h-4 w-4 text-zinc-500" />
                     </button>
                 </div>
 
                 {/* Passport Table */}
-                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
                     {loading ? (
                         <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                         </div>
                     ) : passports.length === 0 ? (
                         <div className="text-center py-12">
-                            <Package className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-700 text-sm font-medium">No passports found</p>
-                            <p className="text-slate-400 text-xs mt-1 max-w-sm mx-auto">
+                            <Package className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
+                            <p className="text-zinc-700 text-sm font-medium">No passports found</p>
+                            <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
                                 {statusFilter !== "ALL"
                                     ? `No passports with "${statusFilter.replace(/_/g, " ")}" status. Try a different filter.`
                                     : "Generate passports from a batch first, then manage their lifecycle here."}
@@ -209,7 +209,7 @@ export default function LifecyclePage() {
                             {statusFilter === "ALL" && (
                                 <Link
                                     href="/batches"
-                                    className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+                                    className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors"
                                 >
                                     <Package className="h-4 w-4" />
                                     Go to Batches
@@ -218,34 +218,34 @@ export default function LifecyclePage() {
                         </div>
                     ) : (
                         <table className="w-full">
-                            <thead className="bg-slate-50 border-b border-slate-200">
+                            <thead className="bg-zinc-50 border-b border-zinc-200">
                                 <tr>
                                     <th className="px-4 py-3 text-left">
                                         <input
                                             type="checkbox"
                                             checked={selectedIds.size === passports.length && passports.length > 0}
                                             onChange={toggleAll}
-                                            className="rounded border-slate-300"
+                                            className="rounded border-zinc-300"
                                         />
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Serial</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Batch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">SoH</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Updated</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Serial</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Batch</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">SoH</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase">Updated</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-zinc-100">
                                 {passports.map(p => {
                                     const colorClass = STATUS_COLORS[p.status] || STATUS_COLORS.CREATED
                                     return (
-                                        <tr key={p.uuid} className="hover:bg-slate-50">
+                                        <tr key={p.uuid} className="hover:bg-zinc-50">
                                             <td className="px-4 py-3">
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedIds.has(p.uuid)}
                                                     onChange={() => toggleSelect(p.uuid)}
-                                                    className="rounded border-slate-300"
+                                                    className="rounded border-zinc-300"
                                                 />
                                             </td>
                                             <td className="px-4 py-3">
@@ -253,7 +253,7 @@ export default function LifecyclePage() {
                                                     {p.serial_number || p.uuid.slice(0, 12) + "…"}
                                                 </a>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-slate-600">{p.batch_name || "—"}</td>
+                                            <td className="px-4 py-3 text-sm text-zinc-600">{p.batch_name || "—"}</td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
                                                     {p.status.replace(/_/g, " ")}
@@ -267,10 +267,10 @@ export default function LifecyclePage() {
                                                         {p.state_of_health}%
                                                     </span>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400">—</span>
+                                                    <span className="text-xs text-zinc-400">—</span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-slate-400">
+                                            <td className="px-4 py-3 text-xs text-zinc-400">
                                                 {p.updated_at ? new Date(p.updated_at).toLocaleDateString() : "—"}
                                             </td>
                                         </tr>

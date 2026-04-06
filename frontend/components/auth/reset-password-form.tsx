@@ -90,7 +90,7 @@ export function ResetPasswordForm() {
                         <XCircle className="h-8 w-8 text-red-400" />
                     </div>
 
-                    <p className="text-slate-400">
+                    <p className="text-zinc-400">
                         Please request a new password reset link.
                     </p>
 
@@ -101,7 +101,7 @@ export function ResetPasswordForm() {
                             </Button>
                         </Link>
                         <Link href="/login" className="w-full">
-                            <Button variant="ghost" className="w-full h-11 text-slate-400">
+                            <Button variant="ghost" className="w-full h-11 text-zinc-400">
                                 Back to login
                             </Button>
                         </Link>
@@ -127,7 +127,7 @@ export function ResetPasswordForm() {
                         <CheckCircle className="h-8 w-8 text-emerald-400" />
                     </div>
 
-                    <p className="text-slate-300">
+                    <p className="text-zinc-300">
                         Redirecting you to login...
                     </p>
 
@@ -155,12 +155,12 @@ export function ResetPasswordForm() {
                     transition={{ delay: 0.1 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
+                    <Label htmlFor="password" className="text-zinc-300 text-sm font-medium">
                         New Password
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                            <Lock className="h-4 w-4 text-zinc-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="password"
@@ -169,12 +169,12 @@ export function ResetPasswordForm() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="pl-10 pr-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+                            className="pl-10 pr-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -183,15 +183,15 @@ export function ResetPasswordForm() {
                     {/* Password strength indicators */}
                     {password.length > 0 && (
                         <div className="space-y-1 mt-2">
-                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.minLength ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.minLength ? 'text-emerald-400' : 'text-zinc-500'}`}>
                                 {passwordChecks.minLength ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                                 At least 8 characters
                             </div>
-                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasLetter ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasLetter ? 'text-emerald-400' : 'text-zinc-500'}`}>
                                 {passwordChecks.hasLetter ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                                 Contains a letter
                             </div>
-                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasNumber ? 'text-emerald-400' : 'text-slate-500'}`}>
+                            <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasNumber ? 'text-emerald-400' : 'text-zinc-500'}`}>
                                 {passwordChecks.hasNumber ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
                                 Contains a number
                             </div>
@@ -206,12 +206,12 @@ export function ResetPasswordForm() {
                     transition={{ delay: 0.2 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="confirmPassword" className="text-slate-300 text-sm font-medium">
+                    <Label htmlFor="confirmPassword" className="text-zinc-300 text-sm font-medium">
                         Confirm Password
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Lock className="h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                            <Lock className="h-4 w-4 text-zinc-500 group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="confirmPassword"
@@ -220,12 +220,12 @@ export function ResetPasswordForm() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             required
-                            className="pl-10 pr-10 h-12 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+                            className="pl-10 pr-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors"
                         >
                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>

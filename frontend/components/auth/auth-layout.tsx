@@ -115,7 +115,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-white">{feature.title}</h3>
-                                        <p className="text-sm text-slate-300">{feature.description}</p>
+                                        <p className="text-sm text-zinc-300">{feature.description}</p>
                                     </div>
                                 </motion.div>
                             ))}
@@ -127,7 +127,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.6 }}
-                        className="text-slate-400 text-sm"
+                        className="text-zinc-400 text-sm"
                     >
                         Powering compliance for battery manufacturers across India & Europe
                     </motion.div>
@@ -135,8 +135,8 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
             </div>
 
             {/* Right Panel - Form */}
-            <div className="flex-1 flex flex-col bg-slate-50">
-                <div className="lg:hidden p-6 border-b border-slate-200">
+            <div className="flex-1 flex flex-col bg-zinc-50">
+                <div className="lg:hidden p-6 border-b border-zinc-200">
                     <Link
                         href="/"
                         className="flex items-center gap-2"
@@ -150,7 +150,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                 <div className="p-6 lg:p-8">
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#0B1F3B] transition-colors group"
+                        className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-[#0B1F3B] transition-colors group"
                     >
                         <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                         Back to home
@@ -168,15 +168,15 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                         {/* Title */}
                         <div className="mb-8">
                             <h1 className="text-3xl font-bold text-[#0B1F3B] mb-2">{title}</h1>
-                            <p className="text-slate-500">{subtitle}</p>
+                            <p className="text-zinc-500">{subtitle}</p>
                         </div>
 
                         {/* Form */}
                         {children}
 
                         {/* Footer Links */}
-                        <div className="mt-8 pt-6 border-t border-slate-200">
-                            <p className="text-center text-sm text-slate-500">
+                        <div className="mt-8 pt-6 border-t border-zinc-200">
+                            <p className="text-center text-sm text-zinc-500">
                                 {type === "login" ? (
                                     <>
                                         Don&apos;t have an account?{" "}
@@ -198,7 +198,7 @@ export function AuthLayout({ children, title, subtitle, type }: AuthLayoutProps)
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 text-center text-xs text-slate-400">
+                <div className="p-6 text-center text-xs text-zinc-400">
                     © 2026 ExportReady. All rights reserved.
                 </div>
             </div>

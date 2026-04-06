@@ -49,7 +49,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
         }
         return {
             icon: <Activity className="h-3.5 w-3.5" />,
-            accent: 'text-slate-400 bg-slate-800 border-slate-700',
+            accent: 'text-zinc-400 bg-zinc-800 border-zinc-700',
             title: originalTitle
         }
     }
@@ -68,10 +68,10 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
     }
 
     return (
-        <Card className="bg-white border-slate-200 text-slate-100 h-full flex flex-col">
+        <Card className="bg-white border-zinc-200 text-zinc-100 h-full flex flex-col">
             {/* Header - Matches RecentBatches */}
-            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-200">
-                <CardTitle className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-200">
+                <CardTitle className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">
                     Audit Log
                 </CardTitle>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -85,18 +85,18 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
 
             <CardContent className="p-0 flex-1 overflow-hidden">
                 {activities.length === 0 ? (
-                    <div className="py-12 text-center text-slate-500 text-sm">
+                    <div className="py-12 text-center text-zinc-500 text-sm">
                         No activity yet
                     </div>
                 ) : (
-                    <div className="overflow-y-auto max-h-[380px]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#334155 transparent' }}>
+                    <div className="overflow-y-auto max-h-[380px]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3F3F46 transparent' }}>
                         {activities.map((activity, idx) => {
                             const data = getEventData(activity.type, activity.title)
 
                             return (
                                 <div
                                     key={activity.id}
-                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-slate-800/30 transition-colors ${idx !== activities.length - 1 ? 'border-b border-slate-200/30' : ''
+                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors ${idx !== activities.length - 1 ? 'border-b border-zinc-200/30' : ''
                                         }`}
                                 >
                                     {/* Icon - Compact, color-coded */}
@@ -107,14 +107,14 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-sm font-medium text-slate-100">
+                                            <span className="text-sm font-medium text-zinc-100">
                                                 {data.title}
                                             </span>
-                                            <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">
+                                            <span className="text-[10px] text-zinc-500 font-mono flex-shrink-0">
                                                 {formatTime(activity.time)}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                        <p className="text-xs text-zinc-500 mt-0.5 truncate">
                                             {activity.description}
                                         </p>
                                     </div>

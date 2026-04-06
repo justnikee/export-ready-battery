@@ -277,7 +277,7 @@ export default function BillingPage() {
                     contact: ""
                 },
                 theme: {
-                    color: "#0f172a" // Slate-900
+                    color: "#09090B" // Slate-900
                 },
                 modal: {
                     ondismiss: function () {
@@ -312,18 +312,18 @@ export default function BillingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
+                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-amber-50 border border-amber-100">
                                 <CreditCard className="h-5 w-5 text-amber-600" />
                             </div>
                             Production Capacity
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-zinc-500 mt-1">
                             Purchase licenses to activate batches and generate compliant labels.
                         </p>
                     </div>
@@ -333,9 +333,9 @@ export default function BillingPage() {
                 <LiveBalanceBanner />
 
                 {/* Transaction History */}
-                <Card className="bg-white border-slate-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-slate-100">
-                        <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <Card className="bg-white border-zinc-200">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-zinc-100">
+                        <CardTitle className="text-sm font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-2">
                             <Receipt className="h-4 w-4" />
                             Transaction History
                         </CardTitle>
@@ -343,23 +343,23 @@ export default function BillingPage() {
                     <CardContent className="pt-4">
                         {loadingTransactions ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                             </div>
                         ) : transactions.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-sm">
+                            <div className="text-center py-8 text-zinc-500 text-sm">
                                 No transactions yet. Purchase a license to get started.
                             </div>
                         ) : (
-                            <div className="divide-y divide-slate-100">
+                            <div className="divide-y divide-zinc-100">
                                 {transactions.slice(0, 10).map((tx) => (
                                     <div key={tx.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                            <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center">
                                                 {getTransactionIcon(tx.quota_change)}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-900">{tx.description}</p>
-                                                <p className="text-xs text-slate-500">
+                                                <p className="text-sm font-medium text-zinc-900">{tx.description}</p>
+                                                <p className="text-xs text-zinc-500">
                                                     {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                                                 </p>
                                             </div>
@@ -391,19 +391,19 @@ export default function BillingPage() {
                 </div>
 
                 {/* FAQ Section */}
-                <div className="pt-8 border-t border-slate-200">
+                <div className="pt-8 border-t border-zinc-200">
                     <div className="max-w-3xl mx-auto">
                         <div className="text-center mb-8">
-                            <h2 className="text-xl font-semibold text-slate-900 flex items-center justify-center gap-2">
-                                <HelpCircle className="h-5 w-5 text-slate-500" />
+                            <h2 className="text-xl font-semibold text-zinc-900 flex items-center justify-center gap-2">
+                                <HelpCircle className="h-5 w-5 text-zinc-500" />
                                 Frequently Asked Questions
                             </h2>
                         </div>
                         <Accordion className="w-full">
                             {faqs.map((faq, i) => (
                                 <AccordionItem key={i} value={`item-${i}`}>
-                                    <AccordionTrigger className="text-slate-900">{faq.question}</AccordionTrigger>
-                                    <AccordionContent className="text-slate-600">
+                                    <AccordionTrigger className="text-zinc-900">{faq.question}</AccordionTrigger>
+                                    <AccordionContent className="text-zinc-600">
                                         {faq.answer}
                                     </AccordionContent>
                                 </AccordionItem>

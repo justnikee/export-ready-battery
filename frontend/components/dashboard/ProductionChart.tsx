@@ -17,16 +17,16 @@ export function ProductionChart({ data }: ProductionChartProps) {
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" vertical={false} />
                     <XAxis
                         dataKey="name"
-                        stroke="#94a3b8"
+                        stroke="#A1A1AA"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                     />
                     <YAxis
-                        stroke="#94a3b8"
+                        stroke="#A1A1AA"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
@@ -36,12 +36,12 @@ export function ProductionChart({ data }: ProductionChartProps) {
                     <Tooltip
                         contentStyle={{
                             backgroundColor: '#ffffff',
-                            borderColor: '#e2e8f0',
+                            borderColor: '#E4E4E7',
                             borderRadius: '4px',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}
-                        itemStyle={{ color: '#334155' }}
-                        labelStyle={{ color: '#64748b', fontWeight: 500 }}
+                        itemStyle={{ color: '#3F3F46' }}
+                        labelStyle={{ color: '#71717A', fontWeight: 500 }}
                     />
                     <Area
                         type="monotone"

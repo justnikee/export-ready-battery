@@ -38,7 +38,7 @@ function VerifyEmailContent() {
         return (
             <div className="flex flex-col items-center gap-4 text-center py-8">
                 <Loader2 className="h-10 w-10 animate-spin text-[#1F7A5F]" />
-                <p className="text-sm text-slate-600">Verifying your email…</p>
+                <p className="text-sm text-zinc-600">Verifying your email…</p>
             </div>
         )
     }
@@ -51,7 +51,7 @@ function VerifyEmailContent() {
                 </div>
                 <div className="space-y-1">
                     <h2 className="text-xl font-bold text-[#0B1F3B]">Email verified!</h2>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-zinc-600">
                         Your account is now active. You can sign in anytime.
                     </p>
                 </div>
@@ -73,12 +73,12 @@ function VerifyEmailContent() {
             </div>
             <div className="space-y-1">
                 <h2 className="text-xl font-bold text-[#0B1F3B]">Verification failed</h2>
-                <p className="text-sm text-slate-600">{message}</p>
+                <p className="text-sm text-zinc-600">{message}</p>
             </div>
             <Button
                 onClick={() => router.push("/login")}
                 variant="outline"
-                className="h-11 w-full border-slate-300 text-[#0B1F3B] rounded-none"
+                className="h-11 w-full border-zinc-300 text-[#0B1F3B] rounded-none"
             >
                 Back to Sign in
             </Button>
@@ -92,7 +92,7 @@ export default function VerifyEmailPage() {
             <div className="space-y-1 text-center">
                 <h1 className="text-2xl font-bold text-[#0B1F3B]">Email Verification</h1>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
                 <Suspense fallback={
                     <div className="flex justify-center py-8">
                         <Loader2 className="h-8 w-8 animate-spin text-[#1F7A5F]" />

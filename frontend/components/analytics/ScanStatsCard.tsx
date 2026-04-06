@@ -13,17 +13,17 @@ interface ScanStatsCardProps {
 
 export function ScanStatsCard({ icon, label, value, iconColor, bgColor }: ScanStatsCardProps) {
     return (
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-white border-zinc-200">
             <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                     <div className={`p-3 rounded-lg ${bgColor}`}>
                         <div className={iconColor}>{icon}</div>
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-slate-900">
+                        <p className="text-2xl font-bold text-zinc-900">
                             {value.toLocaleString()}
                         </p>
-                        <p className="text-sm text-slate-500">{label}</p>
+                        <p className="text-sm text-zinc-500">{label}</p>
                     </div>
                 </div>
             </CardContent>

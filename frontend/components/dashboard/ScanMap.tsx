@@ -56,7 +56,7 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
             <div
                 className="absolute inset-0"
                 style={{
-                    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)",
+                    background: "linear-gradient(135deg, #FAFAFA 0%, #f1f5f9 50%, #E4E4E7 100%)",
                 }}
             />
 
@@ -99,12 +99,12 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
                                 <Geography
                                     key={feature.rsmKey}
                                     geography={geo}
-                                fill="#cbd5e1"
-                                stroke="#94a3b8"
+                                fill="#D4D4D8"
+                                stroke="#A1A1AA"
                                 strokeWidth={0.4}
                                 style={{
                                     default: { outline: "none" },
-                                    hover: { outline: "none", fill: "#94a3b8" },
+                                    hover: { outline: "none", fill: "#A1A1AA" },
                                     pressed: { outline: "none" },
                                 }}
                                 />
@@ -177,19 +177,19 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
 
             {/* Top-left title badge */}
             <div className="absolute top-3 left-3 flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-md border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-md border border-zinc-200 shadow-sm">
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span className="text-xs font-medium text-slate-700">Live Scans</span>
+                    <span className="text-xs font-medium text-zinc-700">Live Scans</span>
                 </div>
             </div>
 
             {/* Bottom-right stats */}
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                <div className="px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-md border border-slate-200 shadow-sm">
-                    <span className="text-xs font-medium text-slate-600">
+                <div className="px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-md border border-zinc-200 shadow-sm">
+                    <span className="text-xs font-medium text-zinc-600">
                         {markers.length} {markers.length === 1 ? "location" : "locations"}
                     </span>
                 </div>
@@ -199,9 +199,9 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
             {markers.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3">
                             <svg
-                                className="w-6 h-6 text-slate-400"
+                                className="w-6 h-6 text-zinc-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -214,7 +214,7 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
                                 />
                             </svg>
                         </div>
-                        <p className="text-sm text-slate-500">No scan locations yet</p>
+                        <p className="text-sm text-zinc-500">No scan locations yet</p>
                     </div>
                 </div>
             )}

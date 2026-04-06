@@ -178,7 +178,7 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-4">
             {/* Background decoration */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-1/4 -left-20 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl" />
@@ -194,21 +194,21 @@ export default function OnboardingPage() {
                                 initial={{ scale: 0.8 }}
                                 animate={{
                                     scale: currentStep >= step.id ? 1 : 0.8,
-                                    backgroundColor: currentStep >= step.id ? "#14b8a6" : "#334155"
+                                    backgroundColor: currentStep >= step.id ? "#14b8a6" : "#3F3F46"
                                 }}
                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${currentStep > step.id ? "bg-teal-500" :
                                     currentStep === step.id ? "bg-teal-500 ring-4 ring-teal-500/30" :
-                                        "bg-slate-700"
+                                        "bg-zinc-700"
                                     }`}
                             >
                                 {currentStep > step.id ? (
                                     <CheckCircle2 className="w-5 h-5 text-white" />
                                 ) : (
-                                    <step.icon className={`w-5 h-5 ${currentStep >= step.id ? "text-white" : "text-slate-400"}`} />
+                                    <step.icon className={`w-5 h-5 ${currentStep >= step.id ? "text-white" : "text-zinc-400"}`} />
                                 )}
                             </motion.div>
                             {index < STEPS.length - 1 && (
-                                <div className={`w-12 h-1 mx-1 rounded-full transition-colors ${currentStep > step.id ? "bg-teal-500" : "bg-slate-700"
+                                <div className={`w-12 h-1 mx-1 rounded-full transition-colors ${currentStep > step.id ? "bg-teal-500" : "bg-zinc-700"
                                     }`} />
                             )}
                         </div>
@@ -237,7 +237,7 @@ export default function OnboardingPage() {
                         key={`desc-${currentStep}`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-slate-400"
+                        className="text-zinc-400"
                     >
                         {STEPS[currentStep - 1].description}
                     </motion.p>
@@ -245,7 +245,7 @@ export default function OnboardingPage() {
 
                 {/* Form Card */}
                 <motion.div
-                    className="bg-slate-900/80 backdrop-blur-xl p-8 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden"
+                    className="bg-zinc-900/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-800 shadow-2xl overflow-hidden"
                     layout
                 >
                     <AnimatePresence mode="wait" custom={direction}>
@@ -271,15 +271,15 @@ export default function OnboardingPage() {
                                         </ul>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-zinc-300">
                                             Company Name <span className="text-red-400">*</span>
                                         </label>
                                         <div className="relative">
-                                            <Building2 className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                            <Building2 className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                             <input
                                                 type="text"
                                                 required
-                                                className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                 placeholder="Acme Corp"
                                                 value={formData.company_name}
                                                 onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -288,34 +288,34 @@ export default function OnboardingPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-zinc-300">
                                             Manufacturer Address <span className="text-red-400">*</span>
                                         </label>
                                         <div className="relative">
-                                            <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                            <MapPin className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                             <textarea
                                                 required
-                                                className="w-full min-h-[100px] rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all resize-none"
+                                                className="w-full min-h-[100px] rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all resize-none"
                                                 placeholder="123 Industrial Park, Energy City, Country"
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                             />
                                         </div>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs text-zinc-500">
                                             This will appear on all your battery passports
                                         </p>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-zinc-300">
                                             Support Email <span className="text-red-400">*</span>
                                         </label>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                            <Mail className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                             <input
                                                 type="email"
                                                 required
-                                                className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                 placeholder="support@company.com"
                                                 value={formData.support_email}
                                                 onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
@@ -324,14 +324,14 @@ export default function OnboardingPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-300">
-                                            Website <span className="text-slate-500">(optional)</span>
+                                        <label className="text-sm font-medium text-zinc-300">
+                                            Website <span className="text-zinc-500">(optional)</span>
                                         </label>
                                         <div className="relative">
-                                            <Globe className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                            <Globe className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                             <input
                                                 type="url"
-                                                className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                 placeholder="https://company.com"
                                                 value={formData.website}
                                                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -344,7 +344,7 @@ export default function OnboardingPage() {
                             {/* Step 2: Target Markets */}
                             {currentStep === 2 && (
                                 <div className="space-y-6">
-                                    <p className="text-slate-400 text-sm">
+                                    <p className="text-zinc-400 text-sm">
                                         Select the markets where you plan to sell your batteries. This helps us show relevant compliance requirements.
                                     </p>
 
@@ -362,14 +362,14 @@ export default function OnboardingPage() {
                                                 onClick={() => setFormData({ ...formData, primary_market: market.id })}
                                                 className={`w-full p-4 rounded-xl border text-left transition-all ${formData.primary_market === market.id
                                                     ? "border-teal-500 bg-teal-500/10 ring-2 ring-teal-500/30"
-                                                    : "border-slate-700 bg-slate-800/30 hover:border-slate-600"
+                                                    : "border-zinc-700 bg-zinc-800/30 hover:border-zinc-600"
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <span className="text-3xl">{market.icon}</span>
                                                     <div>
                                                         <p className="font-semibold text-white">{market.label}</p>
-                                                        <p className="text-sm text-slate-400">{market.desc}</p>
+                                                        <p className="text-sm text-zinc-400">{market.desc}</p>
                                                     </div>
                                                     {formData.primary_market === market.id && (
                                                         <CheckCircle2 className="ml-auto h-6 w-6 text-teal-500" />
@@ -397,37 +397,37 @@ export default function OnboardingPage() {
                                                 <h3 className="text-sm font-semibold text-teal-400 uppercase tracking-wider">🇮🇳 India Compliance (Required)</h3>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-slate-300">
+                                                <label className="text-sm font-medium text-zinc-300">
                                                     EPR Registration Number
                                                 </label>
                                                 <div className="relative">
-                                                    <FileCheck className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <FileCheck className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                                     <input
                                                         type="text"
-                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                         placeholder="EPR-XXXX-XXXX"
                                                         value={formData.epr_registration_number}
                                                         onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
                                                     />
                                                 </div>
-                                                <p className="text-xs text-slate-500">CPCB Extended Producer Responsibility</p>
+                                                <p className="text-xs text-zinc-500">CPCB Extended Producer Responsibility</p>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-slate-300">
+                                                <label className="text-sm font-medium text-zinc-300">
                                                     BIS-R Number
                                                 </label>
                                                 <div className="relative">
-                                                    <Shield className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <Shield className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                                     <input
                                                         type="text"
-                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                         placeholder="R-XXXXX"
                                                         value={formData.bis_r_number}
                                                         onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
                                                     />
                                                 </div>
-                                                <p className="text-xs text-slate-500">BIS CRS registration (IS 16046)</p>
+                                                <p className="text-xs text-zinc-500">BIS CRS registration (IS 16046)</p>
                                             </div>
                                         </>
                                     )}
@@ -435,17 +435,17 @@ export default function OnboardingPage() {
                                     {(formData.primary_market === "eu" || formData.primary_market === "both") && (
                                         <>
                                             <div className="mt-4 mb-1">
-                                                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">🇪🇺 EU Compliance (Optional)</h3>
+                                                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">🇪🇺 EU Compliance (Optional)</h3>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-slate-300">
+                                                <label className="text-sm font-medium text-zinc-300">
                                                     EU Authorized Representative Name
                                                 </label>
                                                 <div className="relative">
-                                                    <Building2 className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <Building2 className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                                     <input
                                                         type="text"
-                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                         placeholder="EU Rep GmbH"
                                                         value={formData.eu_authorized_representative_name}
                                                         onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
@@ -454,14 +454,14 @@ export default function OnboardingPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-slate-300">
+                                                <label className="text-sm font-medium text-zinc-300">
                                                     EU Contact Email
                                                 </label>
                                                 <div className="relative">
-                                                    <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <Mail className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                                     <input
                                                         type="email"
-                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                         placeholder="compliance@eurep.eu"
                                                         value={formData.eu_contact_email}
                                                         onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
@@ -470,14 +470,14 @@ export default function OnboardingPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-slate-300">
+                                                <label className="text-sm font-medium text-zinc-300">
                                                     EU Authorized Representative Address
                                                 </label>
                                                 <div className="relative">
-                                                    <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                                    <MapPin className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                                     <input
                                                         type="text"
-                                                        className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                        className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                         placeholder="Street, City, Country"
                                                         value={formData.eu_authorized_representative_address}
                                                         onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
@@ -488,20 +488,20 @@ export default function OnboardingPage() {
                                     )}
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-300">
+                                        <label className="text-sm font-medium text-zinc-300">
                                             IEC Code
                                         </label>
                                         <div className="relative">
-                                            <Globe className="absolute left-3 top-3 h-5 w-5 text-slate-500" />
+                                            <Globe className="absolute left-3 top-3 h-5 w-5 text-zinc-500" />
                                             <input
                                                 type="text"
-                                                className="w-full h-12 rounded-xl border border-slate-700 bg-slate-800/50 px-4 pl-11 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
+                                                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 pl-11 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 transition-all"
                                                 placeholder="XXXXXXXXXX"
                                                 value={formData.iec_code}
                                                 onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
                                             />
                                         </div>
-                                        <p className="text-xs text-slate-500">Import Export Code for importers</p>
+                                        <p className="text-xs text-zinc-500">Import Export Code for importers</p>
                                     </div>
                                 </div>
                             )}
@@ -519,19 +519,19 @@ export default function OnboardingPage() {
                                             <CheckCircle2 className="w-10 h-10 text-white" />
                                         </motion.div>
                                         <h2 className="text-xl font-semibold text-white">You&apos;re all set!</h2>
-                                        <p className="text-slate-400 mt-1">Here&apos;s a summary of your profile</p>
+                                        <p className="text-zinc-400 mt-1">Here&apos;s a summary of your profile</p>
                                     </div>
 
                                     <div className="flex justify-center">
-                                        <Link href="/batches" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+                                        <Link href="/batches" className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors">
                                             Create Your First Batch
                                         </Link>
                                     </div>
 
-                                    <div className="space-y-4 bg-slate-800/50 rounded-xl p-4">
+                                    <div className="space-y-4 bg-zinc-800/50 rounded-xl p-4">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <p className="text-xs text-slate-500 uppercase tracking-wider">Address</p>
+                                                <p className="text-xs text-zinc-500 uppercase tracking-wider">Address</p>
                                                 <p className="text-white">{formData.address || "-"}</p>
                                             </div>
                                             <button
@@ -542,25 +542,25 @@ export default function OnboardingPage() {
                                                 Edit
                                             </button>
                                         </div>
-                                        <div className="border-t border-slate-700" />
+                                        <div className="border-t border-zinc-700" />
                                         <div className="flex justify-between">
                                             <div>
-                                                <p className="text-xs text-slate-500 uppercase tracking-wider">Support Email</p>
+                                                <p className="text-xs text-zinc-500 uppercase tracking-wider">Support Email</p>
                                                 <p className="text-white">{formData.support_email || "-"}</p>
                                             </div>
                                         </div>
-                                        <div className="border-t border-slate-700" />
+                                        <div className="border-t border-zinc-700" />
                                         <div className="flex justify-between">
                                             <div>
-                                                <p className="text-xs text-slate-500 uppercase tracking-wider">Target Market</p>
+                                                <p className="text-xs text-zinc-500 uppercase tracking-wider">Target Market</p>
                                                 <p className="text-white capitalize">{formData.primary_market === "both" ? "EU & India" : formData.primary_market.toUpperCase()}</p>
                                             </div>
                                         </div>
                                         {formData.epr_registration_number && (
                                             <>
-                                                <div className="border-t border-slate-700" />
+                                                <div className="border-t border-zinc-700" />
                                                 <div>
-                                                    <p className="text-xs text-slate-500 uppercase tracking-wider">EPR Number</p>
+                                                    <p className="text-xs text-zinc-500 uppercase tracking-wider">EPR Number</p>
                                                     <p className="text-white">{formData.epr_registration_number}</p>
                                                 </div>
                                             </>
@@ -572,14 +572,14 @@ export default function OnboardingPage() {
                     </AnimatePresence>
 
                     {/* Navigation buttons */}
-                    <div className="flex justify-between mt-8 pt-6 border-t border-slate-800">
+                    <div className="flex justify-between mt-8 pt-6 border-t border-zinc-800">
                         <button
                             type="button"
                             onClick={handleBack}
                             disabled={currentStep === 1}
                             className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${currentStep === 1
-                                ? "text-slate-600 cursor-not-allowed"
-                                : "text-slate-300 hover:text-white hover:bg-slate-800"
+                                ? "text-zinc-600 cursor-not-allowed"
+                                : "text-zinc-300 hover:text-white hover:bg-zinc-800"
                                 }`}
                         >
                             <ArrowLeft className="w-4 h-4" />
@@ -591,7 +591,7 @@ export default function OnboardingPage() {
                                 type="button"
                                 onClick={handleNext}
                                 disabled={!canProceed()}
-                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                                 Continue
                                 <ArrowRight className="w-4 h-4" />
@@ -601,7 +601,7 @@ export default function OnboardingPage() {
                                 type="button"
                                 onClick={handleComplete}
                                 disabled={loading}
-                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-linear-to-r from-teal-500 to-emerald-500 text-white text-sm font-semibold hover:from-teal-400 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-linear-to-r from-teal-500 to-emerald-500 text-white text-sm font-semibold hover:from-teal-400 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
                                 {loading ? (
                                     <>
@@ -624,7 +624,7 @@ export default function OnboardingPage() {
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-center text-slate-500 text-sm"
+                        className="text-center text-zinc-500 text-sm"
                     >
                         Don&apos;t have these details?{" "}
                         <button

@@ -60,7 +60,7 @@ export function LiveBalanceBanner() {
     const isLow = (balance || 0) < 2
 
     return (
-        <Card className={`relative overflow-hidden border-slate-200 ${isLow ? 'bg-red-950/10' : 'bg-white/50'}`}>
+        <Card className={`relative overflow-hidden border-zinc-200 ${isLow ? 'bg-red-950/10' : 'bg-white/50'}`}>
             <div className={`absolute inset-0 bg-linear-to-r ${isLow ? 'from-red-500/10 via-transparent to-transparent' : 'from-emerald-500/10 via-transparent to-transparent'} pointer-events-none`} />
 
             <CardContent className="p-8 flex items-center justify-between relative z-10">

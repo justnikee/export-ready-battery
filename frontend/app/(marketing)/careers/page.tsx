@@ -17,7 +17,7 @@ export default function CareersPage() {
                     <h1 className="text-4xl md:text-5xl font-heading font-semibold text-[#0B1F3B]">
                         Careers at ExportReady
                     </h1>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                    <p className="text-lg text-zinc-600 max-w-2xl mx-auto">
                         We are building compliance infrastructure for the global battery supply chain.
                         If you want to work on high-stakes systems with real-world impact, we should talk.
                     </p>
@@ -30,12 +30,12 @@ export default function CareersPage() {
                     viewport={{ once: true }}
                     className="max-w-2xl mx-auto mb-16"
                 >
-                    <div className="p-8 rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="p-8 rounded-xl border border-zinc-200 bg-zinc-50">
                         <div className="w-10 h-10 rounded-lg bg-[#1F7A5F]/10 flex items-center justify-center mb-4">
                             <Briefcase className="h-5 w-5 text-[#1F7A5F]" />
                         </div>
                         <h2 className="text-xl font-semibold text-[#0B1F3B] mb-2">Open Roles</h2>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-zinc-600">
                             We are currently growing our product, engineering, and compliance teams. Send a short intro and
                             your resume to{" "}
                             <a className="text-[#1F7A5F] font-medium hover:underline" href="mailto:careers@exportready.com">

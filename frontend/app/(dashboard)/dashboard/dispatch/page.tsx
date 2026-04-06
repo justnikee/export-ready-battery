@@ -270,18 +270,18 @@ export default function DispatchPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+        <div className="min-h-screen bg-zinc-50 p-6 md:p-8">
             <div className="w-full mx-auto flex flex-col gap-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
                                 <Truck className="h-5 w-5 text-white" />
                             </div>
                             Rapid Dispatch
                         </h1>
-                        <p className="text-slate-500 mt-1 ml-[52px]">
+                        <p className="text-zinc-500 mt-1 ml-[52px]">
                             High-volume scanning • Keyboard-first • Auto-dispatch
                         </p>
                     </div>
@@ -291,14 +291,14 @@ export default function DispatchPage() {
                             size="icon"
                             onClick={() => setSoundEnabled(!soundEnabled)}
                             title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
-                            className="text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                            className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100"
                         >
                             {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                         </Button>
                         <Button
                             variant="outline"
                             onClick={() => router.push('/dashboard')}
-                            className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                            className="border-zinc-300 text-zinc-700 hover:bg-zinc-100"
                         >
                             Exit Mode
                         </Button>
@@ -316,7 +316,7 @@ export default function DispatchPage() {
                             {/* Animated glow effect when focused */}
                             <div className={`absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 rounded-xl blur-lg transition-opacity duration-500 ${isFocused ? 'opacity-20' : 'opacity-0'}`} />
 
-                            <Card className={`relative p-6 bg-white border-2 transition-colors duration-300 shadow-sm ${isFocused ? 'border-amber-500' : 'border-slate-200'}`}>
+                            <Card className={`relative p-6 bg-white border-2 transition-colors duration-300 shadow-sm ${isFocused ? 'border-amber-500' : 'border-zinc-200'}`}>
                                 {/* Targeting corners */}
                                 <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-amber-500/40" />
                                 <div className="absolute top-3 right-3 w-4 h-4 border-r-2 border-t-2 border-amber-500/40" />
@@ -342,12 +342,12 @@ export default function DispatchPage() {
                                         onFocus={() => setIsFocused(true)}
                                         onBlur={() => setIsFocused(false)}
                                         placeholder="Waiting to scan..."
-                                        className="h-20 text-2xl font-mono bg-slate-50 border-slate-200 text-slate-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-slate-400"
+                                        className="h-20 text-2xl font-mono bg-zinc-50 border-zinc-200 text-zinc-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-zinc-400"
                                         autoComplete="off"
                                     />
-                                    <div className="flex justify-between text-xs text-slate-500">
+                                    <div className="flex justify-between text-xs text-zinc-500">
                                         <span className="flex items-center gap-1">
-                                            <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] font-mono text-slate-600">Enter</kbd>
+                                            <kbd className="px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 rounded text-[10px] font-mono text-zinc-600">Enter</kbd>
                                             to submit scan
                                         </span>
                                         <span>Supported: UUIDs, QR URLs</span>
@@ -357,31 +357,31 @@ export default function DispatchPage() {
                         </div>
 
                         {/* Pending List */}
-                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 p-5 min-h-[300px] shadow-sm">
+                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-zinc-200 p-5 min-h-[300px] shadow-sm">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                                <h2 className="font-semibold text-lg text-zinc-900 flex items-center gap-2">
                                     <Package className="h-5 w-5 text-amber-500" />
                                     Pending Scans
                                 </h2>
                                 <span className={`px-3 py-1 rounded-full text-sm font-mono font-bold transition-all duration-300 ${scannedItems.length > 0
                                     ? 'bg-amber-100 text-amber-700 shadow-sm'
-                                    : 'bg-slate-100 text-slate-500'
+                                    : 'bg-zinc-100 text-zinc-500'
                                     }`}>
                                     {scannedItems.length} units
                                 </span>
                             </div>
 
                             {scannedItems.length === 0 ? (
-                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-lg bg-zinc-50/50">
                                     {/* Animated target icon */}
                                     <div className="relative mb-4">
-                                        <Target className="h-16 w-16 text-slate-300" />
+                                        <Target className="h-16 w-16 text-zinc-300" />
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="w-2 h-2 bg-amber-500/50 rounded-full animate-ping" />
                                         </div>
                                     </div>
-                                    <p className="text-slate-500 font-medium">Scan items to build list</p>
-                                    <p className="text-slate-400 text-sm mt-1">Items appear here after scanning</p>
+                                    <p className="text-zinc-500 font-medium">Scan items to build list</p>
+                                    <p className="text-zinc-400 text-sm mt-1">Items appear here after scanning</p>
                                 </div>
                             ) : (
                                 <div className="flex-1 overflow-y-auto space-y-2 pr-2">
@@ -390,7 +390,7 @@ export default function DispatchPage() {
                                             key={item.id}
                                             className={`p-3 rounded-lg border flex items-center justify-between group animate-in slide-in-from-top-2 duration-200 ${item.failed
                                                 ? 'bg-red-50 border-red-200'
-                                                : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                                                : 'bg-zinc-50 border-zinc-200 hover:border-zinc-300'
                                                 }`}
                                             style={{ animationDelay: `${idx * 50}ms` }}
                                         >
@@ -402,11 +402,11 @@ export default function DispatchPage() {
                                                     {item.failed ? '!' : scannedItems.length - idx}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className={`font-mono text-sm font-medium truncate ${item.failed ? 'text-red-700' : 'text-slate-900'
+                                                    <div className={`font-mono text-sm font-medium truncate ${item.failed ? 'text-red-700' : 'text-zinc-900'
                                                         }`}>
                                                         {item.id.split('-')[0]}...{item.id.split('-').pop()}
                                                     </div>
-                                                    <div className="text-xs text-slate-500">
+                                                    <div className="text-xs text-zinc-500">
                                                         {item.timestamp.toLocaleTimeString()}
                                                     </div>
                                                     {item.failed && item.error && (
@@ -434,48 +434,48 @@ export default function DispatchPage() {
 
                     {/* Right Col: Action Panel */}
                     <div className="flex flex-col">
-                        <Card className="p-6 flex flex-col gap-6 h-full bg-white border-slate-200 shadow-sm">
+                        <Card className="p-6 flex flex-col gap-6 h-full bg-white border-zinc-200 shadow-sm">
                             <div className="space-y-2">
-                                <h2 className="font-bold text-xl text-slate-900 flex items-center gap-2">
+                                <h2 className="font-bold text-xl text-zinc-900 flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center">
                                         <Truck className="h-4 w-4 text-amber-600" />
                                     </div>
                                     Dispatch Details
                                 </h2>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-zinc-500">
                                     Applied to all <span className="text-amber-600 font-mono font-medium">{scannedItems.length}</span> items in the current batch.
                                 </p>
                             </div>
 
                             <div className="space-y-4 flex-1">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="shipment-reference" className="text-slate-700 font-medium">Shipment Reference</Label>
+                                    <Label htmlFor="shipment-reference" className="text-zinc-700 font-medium">Shipment Reference</Label>
                                     <Input
                                         id="shipment-reference"
                                         value={shipmentReference}
                                         onChange={(e) => setShipmentReference(e.target.value)}
                                         placeholder="e.g. AWB-12345678"
-                                        className="bg-slate-50 border-slate-200 text-slate-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-slate-400"
+                                        className="bg-zinc-50 border-zinc-200 text-zinc-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-zinc-400"
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="shipment-date" className="text-slate-700 font-medium">Shipment Date</Label>
+                                    <Label htmlFor="shipment-date" className="text-zinc-700 font-medium">Shipment Date</Label>
                                     <Input
                                         id="shipment-date"
                                         type="date"
                                         value={shipmentDate}
                                         onChange={(e) => setShipmentDate(e.target.value)}
-                                        className="bg-slate-50 border-slate-200 text-slate-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-slate-400"
+                                        className="bg-zinc-50 border-zinc-200 text-zinc-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/30 placeholder:text-zinc-400"
                                     />
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-slate-200">
+                            <div className="pt-6 border-t border-zinc-200">
                                 {/* 3D Tactile Button */}
                                 <Button
                                     className={`w-full h-16 text-lg font-bold transition-all duration-200 ${scannedItems.length > 0 && !isSubmitting
                                         ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm'
-                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                        : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
                                         }`}
                                     onClick={handleConfirmDispatch}
                                     disabled={scannedItems.length === 0 || isSubmitting}
@@ -488,7 +488,7 @@ export default function DispatchPage() {
                                     {isSubmitting ? "PROCESSING..." : `CONFIRM DISPATCH (${scannedItems.length})`}
                                 </Button>
 
-                                <p className="text-center text-xs text-slate-500 mt-4">
+                                <p className="text-center text-xs text-zinc-500 mt-4">
                                     This will activate (if needed) and mark {scannedItems.length} passports as
                                     <span className="text-amber-600 font-mono mx-1 font-medium">SHIPPED</span>
                                     and record dispatch evidence.

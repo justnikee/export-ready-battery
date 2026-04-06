@@ -18,9 +18,9 @@ export function BulkActionToolbar({
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-200">
-            <div className="bg-zinc-900 border border-slate-200 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4">
+            <div className="bg-zinc-900 border border-zinc-200 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-slate-900 font-semibold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-zinc-900 font-semibold text-sm">
                         {selectedIds.length}
                     </div>
                     <span className="text-zinc-300 text-sm">selected</span>
@@ -38,7 +38,7 @@ export function BulkActionToolbar({
                     variant="ghost"
                     size="sm"
                     onClick={onClearSelection}
-                    className="text-zinc-400 hover:text-slate-900"
+                    className="text-zinc-400 hover:text-zinc-900"
                 >
                     <X className="w-4 h-4" />
                 </Button>

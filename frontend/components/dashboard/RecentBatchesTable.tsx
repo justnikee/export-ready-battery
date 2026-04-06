@@ -39,10 +39,10 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
     }
 
     return (
-        <Card className="bg-white border-slate-200 text-slate-100 h-full">
+        <Card className="bg-white border-zinc-200 text-zinc-100 h-full">
             {/* Header */}
-            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-200">
-                <CardTitle className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-200">
+                <CardTitle className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">
                     Recent Batches
                 </CardTitle>
                 <Link
@@ -56,7 +56,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
 
             <CardContent className="p-0">
                 {/* Table header */}
-                <div className="flex items-center px-5 py-2.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider bg-white/50 border-b border-slate-200/50">
+                <div className="flex items-center px-5 py-2.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider bg-white/50 border-b border-zinc-200/50">
                     <span className="flex-1">Batch</span>
                     <span className="w-20 text-right">Volume</span>
                     <span className="w-20 text-center">Status</span>
@@ -64,7 +64,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                 </div>
 
                 {batches.length === 0 ? (
-                    <div className="py-12 text-center text-slate-500 text-sm">
+                    <div className="py-12 text-center text-zinc-500 text-sm">
                         No batches created yet
                     </div>
                 ) : (
@@ -72,7 +72,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                         {batches.map((batch, idx) => (
                             <div
                                 key={batch.id}
-                                className={`flex items-center px-5 py-3 hover:bg-slate-800/40 transition-colors cursor-pointer group ${idx !== batches.length - 1 ? 'border-b border-slate-200/30' : ''
+                                className={`flex items-center px-5 py-3 hover:bg-zinc-800/40 transition-colors cursor-pointer group ${idx !== batches.length - 1 ? 'border-b border-zinc-200/30' : ''
                                     }`}
                                 onClick={() => window.location.href = `/batches/${batch.id}`}
                             >
@@ -83,13 +83,13 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                                     ) : batch.market_region === 'EU' ? (
                                         <span className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 shrink-0" />
                                     ) : (
-                                        <Globe className="h-4 w-4 text-slate-500 shrink-0" />
+                                        <Globe className="h-4 w-4 text-zinc-500 shrink-0" />
                                     )}
                                     <div className="min-w-0">
-                                        <p className="font-medium text-slate-100 group-hover:text-slate-900 truncate text-sm">
+                                        <p className="font-medium text-zinc-100 group-hover:text-zinc-900 truncate text-sm">
                                             {batch.name}
                                         </p>
-                                        <p className="text-[11px] text-slate-500 mt-0.5">
+                                        <p className="text-[11px] text-zinc-500 mt-0.5">
                                             {batch.specs?.chemistry || 'Li-ion'} · {batch.specs?.voltage || '48'}V
                                         </p>
                                     </div>
@@ -97,8 +97,8 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
 
                                 {/* Volume */}
                                 <div className="w-20 text-right shrink-0">
-                                    <span className="text-sm font-semibold text-slate-900">{batch.units}</span>
-                                    <span className="text-xs text-slate-500 ml-1">units</span>
+                                    <span className="text-sm font-semibold text-zinc-900">{batch.units}</span>
+                                    <span className="text-xs text-zinc-500 ml-1">units</span>
                                 </div>
 
                                 {/* Status Badge */}
@@ -109,8 +109,8 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                                             Active
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-400 border border-slate-700">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium text-zinc-400 border border-zinc-700">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
                                             Draft
                                         </span>
                                     )}
@@ -122,14 +122,14 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-7 w-7 text-slate-400 hover:text-slate-900 hover:bg-slate-700"
+                                            className="h-7 w-7 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-700"
                                             onClick={(e) => handleDownload(batch.id, e)}
                                             title="Download Labels"
                                         >
                                             <Download className="h-3.5 w-3.5" />
                                         </Button>
                                     ) : (
-                                        <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                                        <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
                                     )}
                                 </div>
                             </div>

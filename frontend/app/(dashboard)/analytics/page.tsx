@@ -108,25 +108,25 @@ export default function AnalyticsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent"></div>
+            <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent"></div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
+                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
                                 <BarChart3 className="h-5 w-5 text-emerald-600" />
                             </div>
                             Scan Analytics
                         </h1>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-zinc-500 mt-1">
                             Track QR code scans and passport verifications
                         </p>
                     </div>
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
                         onClick={() => fetchAnalytics(true)}
                         disabled={refreshing}
                         variant="outline"
-                        className="border-slate-200 text-slate-700 hover:bg-slate-100"
+                        className="border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                     >
                         <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                         Refresh
@@ -178,9 +178,9 @@ export default function AnalyticsPage() {
                     {/* Charts Column */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Country Chart */}
-                        <Card className="bg-white border-slate-200">
+                        <Card className="bg-white border-zinc-200">
                             <CardHeader>
-                                <CardTitle className="text-slate-900 flex items-center gap-2">
+                                <CardTitle className="text-zinc-900 flex items-center gap-2">
                                     <Globe className="h-5 w-5 text-purple-600" />
                                     Scans by Country
                                 </CardTitle>
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
                                 {data.countryBreakdown.length > 0 ? (
                                     <CountryChart data={data.countryBreakdown} />
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500">
+                                    <div className="text-center py-8 text-zinc-500">
                                         No scan data available yet
                                     </div>
                                 )}
@@ -197,9 +197,9 @@ export default function AnalyticsPage() {
                         </Card>
 
                         {/* Device Chart */}
-                        <Card className="bg-white border-slate-200">
+                        <Card className="bg-white border-zinc-200">
                             <CardHeader>
-                                <CardTitle className="text-slate-900 flex items-center gap-2">
+                                <CardTitle className="text-zinc-900 flex items-center gap-2">
                                     <Smartphone className="h-5 w-5 text-amber-600" />
                                     Device Distribution
                                 </CardTitle>
@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
                                 {data.deviceBreakdown.length > 0 ? (
                                     <DeviceChart data={data.deviceBreakdown} />
                                 ) : (
-                                    <div className="text-center py-8 text-slate-500">
+                                    <div className="text-center py-8 text-zinc-500">
                                         No scan data available yet
                                     </div>
                                 )}
@@ -218,9 +218,9 @@ export default function AnalyticsPage() {
 
                     {/* Live Feed Column */}
                     <div>
-                        <Card className="bg-white border-slate-200 h-full">
+                        <Card className="bg-white border-zinc-200 h-full">
                             <CardHeader>
-                                <CardTitle className="text-slate-900 flex items-center gap-2">
+                                <CardTitle className="text-zinc-900 flex items-center gap-2">
                                     <Activity className="h-5 w-5 text-emerald-600" />
                                     Live Scan Feed
                                     <span className="ml-auto flex h-2 w-2">

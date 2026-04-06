@@ -32,7 +32,7 @@ const features = [
 
 export function RegulatorSection() {
   return (
-    <section className="py-24 bg-slate-50 border-y border-slate-200 relative overflow-hidden">
+    <section className="py-24 bg-zinc-50 border-y border-zinc-200 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 left-1/4 w-64 h-64 bg-[#1F7A5F]/5 rounded-full blur-3xl" />
@@ -55,7 +55,7 @@ export function RegulatorSection() {
             <h2 className="text-2xl md:text-3xl font-heading font-semibold text-[#0B1F3B] mb-3">
               Built for regulator inspection.
             </h2>
-            <p className="text-sm text-slate-600 max-w-[55ch] mx-auto">
+            <p className="text-sm text-zinc-600 max-w-[55ch] mx-auto">
               Every passport is designed to be directly inspected by EU and
               India authorities — no formatting, no exports.
             </p>
@@ -72,7 +72,7 @@ export function RegulatorSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="group bg-white rounded-xl border border-slate-200 p-6 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-lg hover:shadow-slate-200/50 hover:-translate-y-1"
+                className="group bg-white rounded-xl border border-zinc-200 p-6 transition-all duration-300 hover:border-[#1F7A5F]/30 hover:shadow-lg hover:shadow-zinc-200/50 hover:-translate-y-1"
               >
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#0B1F3B]/5 border border-[#0B1F3B]/10 text-[#0B1F3B] mb-4 transition-transform duration-300 group-hover:scale-110">
                   <Icon className="h-5 w-5" />
@@ -80,7 +80,7 @@ export function RegulatorSection() {
                 <h3 className="text-sm font-semibold text-[#0B1F3B] mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm text-zinc-600 leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>

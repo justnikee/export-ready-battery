@@ -51,14 +51,14 @@ const mainStates = [
   {
     key: "COLLECTED",
     label: "COLLECTED",
-    color: "bg-slate-400",
+    color: "bg-zinc-400",
     icon: RotateCcw,
     desc: "Returned",
   },
   {
     key: "RECYCLED",
     label: "RECYCLED",
-    color: "bg-slate-600",
+    color: "bg-zinc-600",
     icon: Recycle,
     desc: "Processed",
   },
@@ -83,7 +83,7 @@ function StateNode({
       className="group relative flex flex-col items-center"
     >
       {/* Node Card */}
-      <div className="bg-white border-2 border-slate-200 rounded-xl px-4 py-3 shadow-sm transition-all duration-300 group-hover:border-[#1F7A5F] group-hover:shadow-lg group-hover:-translate-y-1">
+      <div className="bg-white border-2 border-zinc-200 rounded-xl px-4 py-3 shadow-sm transition-all duration-300 group-hover:border-[#1F7A5F] group-hover:shadow-lg group-hover:-translate-y-1">
         <div className="flex items-center gap-3">
           <div
             className={`h-10 w-10 rounded-lg ${state.color} flex items-center justify-center text-white transition-transform duration-300 group-hover:scale-110`}
@@ -91,16 +91,16 @@ function StateNode({
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] font-mono font-semibold text-slate-700">
+            <p className="text-[11px] font-mono font-semibold text-zinc-700">
               {state.label}
             </p>
-            <p className="text-[10px] text-slate-500">{state.desc}</p>
+            <p className="text-[10px] text-zinc-500">{state.desc}</p>
           </div>
         </div>
       </div>
 
       {/* Step Number */}
-      <div className="mt-3 text-xs font-mono text-slate-400">
+      <div className="mt-3 text-xs font-mono text-zinc-400">
         Step {index + 1}
       </div>
 
@@ -111,7 +111,7 @@ function StateNode({
             animate={{ x: [0, 4, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.2 }}
           >
-            <ArrowRight className="h-4 w-4 text-slate-300" />
+            <ArrowRight className="h-4 w-4 text-zinc-300" />
           </motion.div>
         </div>
       )}
@@ -142,7 +142,7 @@ export function LifecycleSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-semibold text-[#0B1F3B] mb-4">
             One lifecycle. Zero shortcuts.
           </h2>
-          <p className="text-base text-slate-600 max-w-[55ch] mx-auto">
+          <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
             The 7 lifecycle states required by EU Battery Regulation, enforced
             by ExportLens at the system level.
           </p>
@@ -184,7 +184,7 @@ export function LifecycleSection() {
                     }}
                     className="ml-4"
                   >
-                    <ArrowRight className="h-4 w-4 text-slate-300 rotate-90" />
+                    <ArrowRight className="h-4 w-4 text-zinc-300 rotate-90" />
                   </motion.div>
                 )}
               </div>
@@ -214,7 +214,7 @@ export function LifecycleSection() {
                     Exception State
                   </span>
                 </div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-zinc-600">
                   Can transition from any active state. Triggers immediate
                   notification workflows and audit logging.
                 </p>

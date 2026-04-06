@@ -157,8 +157,8 @@ export default function BatchesPage() {
             )
         }
         return (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-600 border border-zinc-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
                 Draft
             </span>
         )
@@ -182,7 +182,7 @@ export default function BatchesPage() {
             )
         }
         return (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-zinc-100 text-zinc-600 border border-zinc-200">
                 <Globe className="h-3 w-3" />
                 Global
             </span>
@@ -194,14 +194,14 @@ export default function BatchesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div className="min-h-screen bg-zinc-50 p-6">
             <div className="w-full mx-auto space-y-6">
 
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Production Batches</h1>
-                        <p className="text-sm text-slate-500 mt-1">Manage battery production runs and passport generation</p>
+                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Production Batches</h1>
+                        <p className="text-sm text-zinc-500 mt-1">Manage battery production runs and passport generation</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <TemplatesDialog />
@@ -211,43 +211,43 @@ export default function BatchesPage() {
 
                 {/* Stats Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                            <Package className="h-5 w-5 text-slate-600" />
+                    <div className="bg-white rounded-lg border border-zinc-200 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
+                            <Package className="h-5 w-5 text-zinc-600" />
                         </div>
                         <div>
-                            <p className="text-2xl font-semibold text-slate-900">{totalCount}</p>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Batches</p>
+                            <p className="text-2xl font-semibold text-zinc-900">{totalCount}</p>
+                            <p className="text-xs text-zinc-500 uppercase tracking-wider">Total Batches</p>
                         </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-4">
+                    <div className="bg-white rounded-lg border border-zinc-200 p-4 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
                             <Zap className="h-5 w-5 text-emerald-600" />
                         </div>
                         <div>
                             <p className="text-2xl font-semibold text-emerald-600">{batches.filter(b => b.status === 'ACTIVE').length}</p>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Active</p>
+                            <p className="text-xs text-zinc-500 uppercase tracking-wider">Active</p>
                         </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                            <Battery className="h-5 w-5 text-slate-500" />
+                    <div className="bg-white rounded-lg border border-zinc-200 p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center">
+                            <Battery className="h-5 w-5 text-zinc-500" />
                         </div>
                         <div>
-                            <p className="text-2xl font-semibold text-slate-600">{batches.filter(b => b.status !== 'ACTIVE').length}</p>
-                            <p className="text-xs text-slate-500 uppercase tracking-wider">Drafts</p>
+                            <p className="text-2xl font-semibold text-zinc-600">{batches.filter(b => b.status !== 'ACTIVE').length}</p>
+                            <p className="text-xs text-zinc-500 uppercase tracking-wider">Drafts</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Toolbar */}
-                <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-lg border border-zinc-200">
                     <div className="flex items-center gap-3 flex-1">
                         <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                             <Input
                                 placeholder="Search batches..."
-                                className="bg-white border-slate-200 pl-10 h-9 text-sm focus:border-slate-400 focus:ring-0"
+                                className="bg-white border-zinc-200 pl-10 h-9 text-sm focus:border-zinc-400 focus:ring-0"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -255,33 +255,33 @@ export default function BatchesPage() {
 
                         <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 h-9 text-sm">
+                                <Button variant="outline" className="border-zinc-200 text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 h-9 text-sm">
                                     <Filter className="h-4 w-4 mr-2" />
                                     {filter === "ALL" ? "All Status" : filter === "ACTIVE" ? "Active" : filter === "ARCHIVED" ? "Archived" : "Draft"}
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="bg-white border border-slate-200 shadow-lg min-w-[140px]">
+                            <DropdownMenuContent align="start" className="bg-white border border-zinc-200 shadow-lg min-w-[140px]">
                                 <DropdownMenuItem
                                     onClick={() => setFilter("ALL")}
-                                    className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                    className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                 >
                                     All Status
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => setFilter("DRAFT")}
-                                    className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                    className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                 >
                                     Drafts Only
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => setFilter("ACTIVE")}
-                                    className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                    className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                 >
                                     Active Only
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => setFilter("ARCHIVED")}
-                                    className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                    className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                 >
                                     Archived
                                 </DropdownMenuItem>
@@ -293,27 +293,27 @@ export default function BatchesPage() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-slate-200 bg-slate-50">
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Batch Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Market</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Specifications</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Passports</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider pr-4">Actions</th>
+                            <tr className="border-b border-zinc-200 bg-zinc-50">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Batch Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Market</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Specifications</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Passports</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider pr-4">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-zinc-100">
                             {paginatedBatches.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="h-48 text-center text-slate-500">
+                                    <td colSpan={6} className="h-48 text-center text-zinc-500">
                                         <div className="flex flex-col items-center gap-3">
-                                            <Package className="h-10 w-10 text-slate-300" />
+                                            <Package className="h-10 w-10 text-zinc-300" />
                                             <div>
-                                                <p className="text-sm font-medium text-slate-700">No batches found</p>
-                                                <p className="text-xs text-slate-500 mt-1">Create your first production batch to start generating battery passports</p>
+                                                <p className="text-sm font-medium text-zinc-700">No batches found</p>
+                                                <p className="text-xs text-zinc-500 mt-1">Create your first production batch to start generating battery passports</p>
                                             </div>
                                             <CreateBatchDialog onBatchCreated={fetchBatches} />
                                         </div>
@@ -323,22 +323,22 @@ export default function BatchesPage() {
                                 paginatedBatches.map((batch) => (
                                     <tr
                                         key={batch.id}
-                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                        className="hover:bg-zinc-50 transition-colors cursor-pointer"
                                         onClick={() => router.push(`/batches/${batch.id}`)}
                                     >
 
                                         {/* Batch Name */}
                                         <td className="px-4 py-4">
                                             <div className="flex flex-col gap-1">
-                                                <span className="font-medium text-slate-900 hover:text-slate-700">
+                                                <span className="font-medium text-zinc-900 hover:text-zinc-700">
                                                     {batch.batch_name}
                                                 </span>
                                                 <div className="flex items-center gap-2">
-                                                    <code className="text-xs text-slate-600 font-mono bg-white border border-slate-200 px-1.5 py-0.5 rounded">
+                                                    <code className="text-xs text-zinc-600 font-mono bg-white border border-zinc-200 px-1.5 py-0.5 rounded">
                                                         {batch.id.substring(0, 14)}...
                                                     </code>
                                                     <button
-                                                        className="text-slate-400 hover:text-slate-600"
+                                                        className="text-zinc-400 hover:text-zinc-600"
                                                         onClick={(e) => copyToClipboard(batch.id, e)}
                                                     >
                                                         <Copy className="h-3 w-3" />
@@ -355,7 +355,7 @@ export default function BatchesPage() {
                                                     <span className="text-xs text-orange-600 font-medium">PLI Eligible</span>
                                                 )}
                                                 {batch.domestic_value_add !== undefined && batch.market_region === "INDIA" && (
-                                                    <span className={`text-xs ${batch.domestic_value_add >= 50 ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                    <span className={`text-xs ${batch.domestic_value_add >= 50 ? 'text-emerald-600' : 'text-zinc-500'}`}>
                                                         DVA: {batch.domestic_value_add.toFixed(1)}%
                                                     </span>
                                                 )}
@@ -365,10 +365,10 @@ export default function BatchesPage() {
                                         {/* Specs */}
                                         <td className="px-4 py-4">
                                             <div className="flex flex-col gap-0.5">
-                                                <span className="text-sm text-slate-900 font-medium">
+                                                <span className="text-sm text-zinc-900 font-medium">
                                                     {batch.specs?.chemistry || "N/A"}
                                                 </span>
-                                                <span className="text-xs text-slate-500">
+                                                <span className="text-xs text-zinc-500">
                                                     {batch.specs?.voltage ? `${batch.specs.voltage}V` : ""}
                                                     {batch.specs?.voltage && batch.specs?.capacity ? " • " : ""}
                                                     {batch.specs?.capacity || ""}
@@ -379,10 +379,10 @@ export default function BatchesPage() {
                                         {/* Passports */}
                                         <td className="px-4 py-4">
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-lg font-semibold text-slate-900">
+                                                <span className="text-lg font-semibold text-zinc-900">
                                                     {(batch.total_passports || 0).toLocaleString()}
                                                 </span>
-                                                <span className="text-xs text-slate-500">units</span>
+                                                <span className="text-xs text-zinc-500">units</span>
                                             </div>
                                         </td>
 
@@ -395,18 +395,18 @@ export default function BatchesPage() {
                                         <td className="text-right pr-4 py-4">
                                             <DropdownMenu modal={false}>
                                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                                    <button className="p-1.5 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                                                    <button className="p-1.5 rounded text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100">
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="bg-white border border-slate-200 shadow-lg min-w-[180px]">
-                                                    <DropdownMenuLabel className="text-slate-500 text-xs uppercase tracking-wider">Actions</DropdownMenuLabel>
+                                                <DropdownMenuContent align="end" className="bg-white border border-zinc-200 shadow-lg min-w-[180px]">
+                                                    <DropdownMenuLabel className="text-zinc-500 text-xs uppercase tracking-wider">Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem
                                                         onClick={(e) => {
                                                             e.stopPropagation()
                                                             router.push(`/batches/${batch.id}`)
                                                         }}
-                                                        className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                                        className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                                     >
                                                         <ArrowRight className="mr-2 h-4 w-4" /> View Details
                                                     </DropdownMenuItem>
@@ -437,7 +437,7 @@ export default function BatchesPage() {
                                                                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
                                                                 window.open(`${apiUrl}/batches/${batch.id}/labels?tenant_id=${user?.tenant_id}`, '_blank')
                                                             }}
-                                                            className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                                            className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                                         >
                                                             <Download className="mr-2 h-4 w-4" /> Download Labels
                                                         </DropdownMenuItem>
@@ -448,12 +448,12 @@ export default function BatchesPage() {
                                                             e.stopPropagation()
                                                             handleDuplicate(batch.id)
                                                         }}
-                                                        className="cursor-pointer text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:text-slate-900"
+                                                        className="cursor-pointer text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:text-zinc-900"
                                                     >
                                                         <Copy className="mr-2 h-4 w-4" /> Duplicate
                                                     </DropdownMenuItem>
 
-                                                    <DropdownMenuSeparator className="bg-slate-200" />
+                                                    <DropdownMenuSeparator className="bg-zinc-200" />
 
                                                     {/* Archive - only for ACTIVE batches */}
                                                     {batch.status === 'ACTIVE' && (
@@ -493,7 +493,7 @@ export default function BatchesPage() {
                 {/* Pagination */}
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between">
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-zinc-500">
                             Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} of {totalCount}
                         </p>
                         <div className="flex items-center gap-2">
@@ -502,7 +502,7 @@ export default function BatchesPage() {
                                 size="sm"
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 h-8"
+                                className="border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 h-8"
                             >
                                 <ChevronLeft className="h-4 w-4 mr-1" />
                                 Previous
@@ -526,8 +526,8 @@ export default function BatchesPage() {
                                             variant={pageNum === currentPage ? "default" : "ghost"}
                                             size="sm"
                                             className={`w-8 h-8 p-0 ${pageNum === currentPage
-                                                ? "bg-slate-900 text-white hover:bg-slate-800"
-                                                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                                                ? "bg-zinc-900 text-white hover:bg-zinc-800"
+                                                : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
                                                 }`}
                                             onClick={() => setCurrentPage(pageNum)}
                                         >
@@ -542,7 +542,7 @@ export default function BatchesPage() {
                                 size="sm"
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 h-8"
+                                className="border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 h-8"
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4 ml-1" />

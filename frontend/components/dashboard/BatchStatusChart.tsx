@@ -41,24 +41,24 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                                     <Cell key={`cell-${index}`} fill={COLORS[data.findIndex(d => d.name === entry.name)]} />
                                 ))
                             ) : (
-                                <Cell fill="#e2e8f0" />
+                                <Cell fill="#E4E4E7" />
                             )}
                         </Pie>
                         <Tooltip
                             contentStyle={{
                                 backgroundColor: '#ffffff',
-                                borderColor: '#e2e8f0',
+                                borderColor: '#E4E4E7',
                                 borderRadius: '4px',
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                             }}
-                            itemStyle={{ color: '#334155' }}
+                            itemStyle={{ color: '#3F3F46' }}
                         />
                     </PieChart>
                 </ResponsiveContainer>
                 {/* Total Center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-bold text-slate-900">{total}</span>
-                    <span className="text-xs text-slate-500">Total</span>
+                    <span className="text-2xl font-bold text-zinc-900">{total}</span>
+                    <span className="text-xs text-zinc-500">Total</span>
                 </div>
             </div>
 
@@ -68,9 +68,9 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                     <div key={item.name} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                            <span className="text-slate-600">{item.name}</span>
+                            <span className="text-zinc-600">{item.name}</span>
                         </div>
-                        <span className="font-semibold text-slate-900">{item.value}</span>
+                        <span className="font-semibold text-zinc-900">{item.value}</span>
                     </div>
                 ))}
             </div>

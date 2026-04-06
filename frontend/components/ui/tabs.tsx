@@ -32,7 +32,7 @@ interface TabsListProps {
 
 export function TabsList({ children, className }: TabsListProps) {
     return (
-        <div className={`inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500 ${className || ""}`}>
+        <div className={`inline-flex h-10 items-center justify-center rounded-md bg-zinc-100 p-1 text-zinc-500 ${className || ""}`}>
             {children}
         </div>
     )
@@ -54,9 +54,9 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
         <button
             type="button"
             onClick={() => context.setActiveTab(value)}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${isActive
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${isActive
+                    ? "bg-white text-zinc-950 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-900"
                 } ${className || ""}`}
         >
             {children}
@@ -77,7 +77,7 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
     if (context.activeTab !== value) return null
 
     return (
-        <div className={`mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 ${className || ""}`}>
+        <div className={`mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 ${className || ""}`}>
             {children}
         </div>
     )
