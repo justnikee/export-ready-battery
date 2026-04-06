@@ -22,7 +22,7 @@ import {
 } from '@/lib/api/epr';
 import { useAuth } from '@/context/auth-context';
 
-type Tab = 'overview' | 'certificates' | 'export' | 'eu';
+type Tab = 'overview' | 'certificates' | 'bis' | 'export' | 'eu';
 
 // ============================================================================
 // MAIN PAGE
@@ -34,8 +34,9 @@ export default function CompliancePage() {
     const eprRegistered = !!user?.epr_registration_number;
 
     const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-        { id: 'overview', label: 'Obligation Overview', icon: TrendingUp },
+        { id: 'overview', label: 'EPR Obligations', icon: TrendingUp },
         { id: 'certificates', label: 'Certificate Ledger', icon: Shield },
+        { id: 'bis', label: 'BIS Tracker', icon: Shield },
         { id: 'export', label: 'CPCB Export', icon: FileSpreadsheet },
         { id: 'eu', label: 'EU Regulation', icon: CheckCircle2 },
     ];
@@ -46,10 +47,10 @@ export default function CompliancePage() {
                 {/* Page Header */}
                 <div>
                     <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
-                        EPR Compliance
+                        India Compliance Hub
                     </h1>
                     <p className="text-sm text-slate-500 mt-1">
-                        Manage your Extended Producer Responsibility obligations under India BWM Rules 2022
+                        BIS, EPR &amp; PLI compliance tracking for Indian battery manufacturers
                     </p>
                 </div>
 
@@ -67,6 +68,71 @@ export default function CompliancePage() {
                         </div>
                     </div>
                 )}
+
+                {/* India Compliance Readiness */}
+                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-semibold text-slate-900">Compliance Readiness</h3>
+                        <a href="/settings" className="text-xs text-slate-500 hover:text-slate-700 underline">
+                            Manage in Settings
+                        </a>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        {[
+                            {
+                                label: 'EPR Registration',
+                                status: user?.epr_status || 'NOT_UPLOADED',
+                                detail: user?.epr_registration_number || 'Not configured',
+                                rule: 'BWM Rules 2022',
+                            },
+                            {
+                                label: 'BIS Certificate',
+                                status: user?.bis_status || 'NOT_UPLOADED',
+                                detail: user?.bis_r_number || 'Not configured',
+                                rule: 'IS 16046',
+                            },
+                            {
+                                label: 'PLI Scheme',
+                                status: user?.pli_status || 'NOT_UPLOADED',
+                                detail: 'Production Linked Incentive',
+                                rule: 'ACC PLI Phase II',
+                            },
+                        ].map((item) => {
+                            const isVerified = item.status === 'VERIFIED';
+                            const isPending = item.status === 'PENDING';
+                            const isRejected = item.status === 'REJECTED';
+                            return (
+                                <div
+                                    key={item.label}
+                                    className={`p-4 rounded-lg border ${
+                                        isVerified
+                                            ? 'bg-emerald-50 border-emerald-200'
+                                            : isPending
+                                              ? 'bg-amber-50 border-amber-200'
+                                              : isRejected
+                                                ? 'bg-red-50 border-red-200'
+                                                : 'bg-slate-50 border-slate-200'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {isVerified ? (
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                        ) : isPending ? (
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                        ) : isRejected ? (
+                                            <XCircle className="h-4 w-4 text-red-500" />
+                                        ) : (
+                                            <Shield className="h-4 w-4 text-slate-400" />
+                                        )}
+                                        <span className="text-sm font-medium text-slate-900">{item.label}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 truncate">{item.detail}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1">{item.rule}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
 
                 {/* Tabs */}
                 <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
@@ -92,6 +158,7 @@ export default function CompliancePage() {
                 {/* Tab Content */}
                 {activeTab === 'overview' && <OverviewTab />}
                 {activeTab === 'certificates' && <CertificatesTab />}
+                {activeTab === 'bis' && <BISTrackerTab />}
                 {activeTab === 'export' && <ExportTab />}
                 {activeTab === 'eu' && <EURegulationTab />}
             </div>
@@ -505,6 +572,90 @@ function CertificateForm({
                 </button>
             </div>
         </form>
+    );
+}
+
+// ============================================================================
+// BIS TRACKER TAB
+// ============================================================================
+
+function BISTrackerTab() {
+    const { user } = useAuth();
+    const bisStatus = user?.bis_status || 'NOT_UPLOADED';
+    const bisNumber = user?.bis_r_number || '';
+
+    return (
+        <div className="space-y-6">
+            {/* BIS Status Card */}
+            <div className="bg-white border border-slate-200 rounded-lg p-6">
+                <h3 className="text-base font-semibold text-slate-900 mb-4">BIS CRS Registration — IS 16046</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <p className="text-xs text-slate-500 mb-1">R-Number</p>
+                        <p className="text-sm font-mono text-slate-900">{bisNumber || '—'}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 mb-1">Certificate Status</p>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
+                            bisStatus === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            bisStatus === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            bisStatus === 'REJECTED' ? 'bg-red-50 text-red-700 border border-red-200' :
+                            'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                            {bisStatus === 'VERIFIED' ? '✅ Verified' :
+                             bisStatus === 'PENDING' ? '⏳ Pending Review' :
+                             bisStatus === 'REJECTED' ? '❌ Rejected' :
+                             'Not Uploaded'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* BIS Requirements Checklist */}
+            <div className="bg-white border border-slate-200 rounded-lg">
+                <div className="px-6 py-4 border-b border-slate-100">
+                    <h3 className="text-sm font-semibold text-slate-900">IS 16046 Requirements Checklist</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Safety requirements for lithium-ion batteries used in portable electronics and EVs</p>
+                </div>
+                <div className="divide-y divide-slate-50">
+                    {[
+                        { test: 'Continuous low-rate charging', section: '10.1', done: bisStatus === 'VERIFIED' },
+                        { test: 'Vibration test', section: '10.2', done: bisStatus === 'VERIFIED' },
+                        { test: 'High-temperature operation', section: '10.3', done: bisStatus === 'VERIFIED' },
+                        { test: 'Short circuit (external)', section: '10.4', done: bisStatus === 'VERIFIED' },
+                        { test: 'Impact / crush test', section: '10.5', done: bisStatus === 'VERIFIED' },
+                        { test: 'Thermal abuse test', section: '10.6', done: bisStatus === 'VERIFIED' },
+                        { test: 'Overcharge protection', section: '10.7', done: bisStatus === 'VERIFIED' },
+                        { test: 'Forced internal short circuit', section: '10.8', done: bisStatus === 'VERIFIED' },
+                    ].map(item => (
+                        <div key={item.section} className="px-6 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {item.done ? (
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                ) : (
+                                    <XCircle className="h-4 w-4 text-slate-300 shrink-0" />
+                                )}
+                                <span className="text-sm text-slate-700">{item.test}</span>
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono">§{item.section}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Action Link */}
+            {bisStatus !== 'VERIFIED' && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <Shield className="w-5 h-5 text-blue-600 shrink-0" />
+                    <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-800">Upload your BIS certificate</p>
+                        <p className="text-xs text-blue-600 mt-0.5">
+                            Go to <a href="/settings" className="underline font-medium">Settings → India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
+                        </p>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
