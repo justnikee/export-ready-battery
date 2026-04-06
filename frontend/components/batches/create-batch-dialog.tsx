@@ -4,14 +4,14 @@ import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+    Sheet as Dialog,
+    SheetContent as DialogContent,
+    SheetDescription as DialogDescription,
+    SheetFooter as DialogFooter,
+    SheetHeader as DialogHeader,
+    SheetTitle as DialogTitle,
+    SheetTrigger as DialogTrigger,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -704,15 +704,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     Create Batch
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto bg-white border-slate-200 text-slate-900">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[640px] w-full h-full overflow-y-auto bg-white border-slate-200 text-slate-900 p-0">
+                <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
                     <DialogTitle>Create New Batch</DialogTitle>
                     <DialogDescription>
                         Enter the specifications for this batch of batteries.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                    <div className="grid gap-6 py-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                    <div className="grid gap-6 px-6 py-4 overflow-y-auto flex-1">
                         {/* ===== MARKET REGION TOGGLE ===== */}
                         <div className="grid gap-3 pb-4 border-b border-slate-200">
                             <Label className="flex items-center gap-2">
@@ -1685,7 +1685,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             )}
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="border-t border-slate-100 px-6 py-4">
                         <Button type="submit" disabled={isLoading || iecError}>
                             {isLoading ? "Creating..." : "Create Batch"}
                         </Button>
