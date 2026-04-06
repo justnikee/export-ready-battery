@@ -77,6 +77,7 @@ interface Template {
         capacity: string
         voltage: string
         chemistry: string
+        battery_category?: string
         manufacturer: string
         weight: string
         carbon_footprint: string
@@ -1692,6 +1693,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog >
+        </Dialog>
     )
 }
