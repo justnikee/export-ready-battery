@@ -45,10 +45,10 @@ export function DeviceChart({ data }: DeviceChartProps) {
                     </Pie>
                     <Tooltip
                         contentStyle={{
-                            backgroundColor: "#18181b",
-                            border: "1px solid #27272a",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #e2e8f0",
                             borderRadius: "8px",
-                            color: "#fff",
+                            color: "#0f172a",
                         }}
                         formatter={(value, name) => [
                             `${value ?? 0} scans`,
@@ -62,9 +62,9 @@ export function DeviceChart({ data }: DeviceChartProps) {
                         formatter={(value, entry: LegendPayload) => {
                             const percentage = (entry.payload as { percentage?: string } | undefined)?.percentage ?? "0.0"
                             return (
-                                <span className="text-zinc-300 text-sm">
+                                <span className="text-slate-700 text-sm">
                                     {value}{" "}
-                                    <span className="text-zinc-500">
+                                    <span className="text-slate-400">
                                         ({percentage}%)
                                     </span>
                                 </span>

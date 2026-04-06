@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import {
@@ -132,13 +133,13 @@ export default function LifecyclePage() {
                                 onClick={() => setStatusFilter(isActive ? "ALL" : status)}
                                 className={`p-3 rounded-lg border text-left transition-all ${
                                     isActive
-                                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200"
+                                        ? "border-slate-900 bg-slate-50 ring-1 ring-slate-300"
                                         : "border-slate-200 bg-white hover:border-slate-300"
                                 }`}
                             >
                                 <div className="flex items-center gap-1.5 mb-1">
                                     <Icon className="h-3.5 w-3.5 text-slate-500" />
-                                    <span className="text-xs font-medium text-slate-600">{status.replace("_", " ")}</span>
+                                    <span className="text-xs font-medium text-slate-600">{status.replace(/_/g, " ")}</span>
                                 </div>
                                 <span className="text-lg font-bold text-slate-900">{statusCounts[status] || 0}</span>
                             </button>
@@ -153,7 +154,7 @@ export default function LifecyclePage() {
                         <input
                             type="text"
                             placeholder="Search by serial number or UUID..."
-                            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -177,7 +178,7 @@ export default function LifecyclePage() {
                             <button
                                 onClick={handleBulkTransition}
                                 disabled={!bulkAction || processing}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
+                                className="px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 disabled:opacity-50 flex items-center gap-1"
                             >
                                 {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                                 Apply
@@ -199,10 +200,21 @@ export default function LifecyclePage() {
                     ) : passports.length === 0 ? (
                         <div className="text-center py-12">
                             <Package className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-500 text-sm">No passports found</p>
-                            <p className="text-slate-400 text-xs mt-1">
-                                {statusFilter !== "ALL" ? "Try a different status filter" : "Generate passports from a batch first"}
+                            <p className="text-slate-700 text-sm font-medium">No passports found</p>
+                            <p className="text-slate-400 text-xs mt-1 max-w-sm mx-auto">
+                                {statusFilter !== "ALL"
+                                    ? `No passports with "${statusFilter.replace(/_/g, " ")}" status. Try a different filter.`
+                                    : "Generate passports from a batch first, then manage their lifecycle here."}
                             </p>
+                            {statusFilter === "ALL" && (
+                                <Link
+                                    href="/batches"
+                                    className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+                                >
+                                    <Package className="h-4 w-4" />
+                                    Go to Batches
+                                </Link>
+                            )}
                         </div>
                     ) : (
                         <table className="w-full">
@@ -244,7 +256,7 @@ export default function LifecyclePage() {
                                             <td className="px-4 py-3 text-sm text-slate-600">{p.batch_name || "—"}</td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
-                                                    {p.status.replace("_", " ")}
+                                                    {p.status.replace(/_/g, " ")}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">

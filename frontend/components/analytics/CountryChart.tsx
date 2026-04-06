@@ -30,25 +30,25 @@ export function CountryChart({ data }: CountryChartProps) {
                 >
                     <XAxis
                         type="number"
-                        stroke="#52525b"
-                        tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                        stroke="#cbd5e1"
+                        tick={{ fill: "#64748b", fontSize: 12 }}
                     />
                     <YAxis
                         dataKey="country"
                         type="category"
-                        stroke="#52525b"
-                        tick={{ fill: "#e4e4e7", fontSize: 12 }}
+                        stroke="#cbd5e1"
+                        tick={{ fill: "#334155", fontSize: 12 }}
                         width={80}
                     />
                     <Tooltip
                         contentStyle={{
-                            backgroundColor: "#18181b",
-                            border: "1px solid #27272a",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #e2e8f0",
                             borderRadius: "8px",
-                            color: "#fff",
+                            color: "#0f172a",
                         }}
                         formatter={(value) => [`${value ?? 0} scans`, "Count"]}
-                        labelStyle={{ color: "#a1a1aa" }}
+                        labelStyle={{ color: "#475569" }}
                     />
                     <Bar
                         dataKey="count"
