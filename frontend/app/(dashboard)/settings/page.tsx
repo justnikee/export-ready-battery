@@ -251,6 +251,7 @@ export default function SettingsPage() {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [logoError, setLogoError] = useState(false)
+    const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>('profile')
 
     const [formData, setFormData] = useState({
         company_name: "",
@@ -347,7 +348,31 @@ export default function SettingsPage() {
                     <p className="text-sm text-slate-500 mt-1">Manage your company profile and compliance documents</p>
                 </div>
 
+                {/* Settings Tabs */}
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                    {[
+                        { id: 'profile' as const, label: 'Profile' },
+                        { id: 'compliance' as const, label: 'India Compliance' },
+                        { id: 'privacy' as const, label: 'Data Privacy' },
+                        { id: 'tokens' as const, label: 'API Tokens' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveSettingsTab(tab.id)}
+                            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                                activeSettingsTab === tab.id
+                                    ? 'bg-white text-slate-900 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
+                {activeSettingsTab === 'profile' && (<>
                 {/* Company Profile Card */}
                 <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                     <div className="border-b border-slate-100 px-6 py-4">
@@ -472,7 +497,9 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
+                </>)}
 
+                {activeSettingsTab === 'compliance' && (<>
                 {/* India Compliance Vault Card */}
                 <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                     <div className="border-b border-slate-100 px-6 py-4">
@@ -641,8 +668,10 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
+                </>)}
 
                 {/* EU Compliance Contact Card */}
+                {activeSettingsTab === 'profile' && (
                 <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                     <div className="border-b border-slate-100 px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -709,8 +738,10 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* Save All Settings */}
+                {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
                 <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 -mx-6 px-6 py-4 mt-6 flex items-center justify-between">
                     {message && (
                         <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -730,13 +761,16 @@ export default function SettingsPage() {
                         </button>
                     </div>
                 </div>
+                )}
                 </form>
 
-                {/* Data Visibility Config */}
-                <DataVisibility dataVisibility={formData.data_visibility} onChange={(v) => setFormData({ ...formData, data_visibility: v })} />
+                {activeSettingsTab === 'privacy' && (
+                    <DataVisibility dataVisibility={formData.data_visibility} onChange={(v) => setFormData({ ...formData, data_visibility: v })} />
+                )}
 
-                {/* Data Access Tokens Card */}
-                <DataAccessTokens />
+                {activeSettingsTab === 'tokens' && (
+                    <DataAccessTokens />
+                )}
             </div>
         </div>
     )
