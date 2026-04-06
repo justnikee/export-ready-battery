@@ -18,6 +18,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { Batch, Passport } from "@/lib/types"
 
 import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton"
+import { clsx } from "clsx"
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
@@ -84,6 +85,7 @@ export default function BatchDetailsPage() {
     const [complianceScore, setComplianceScore] = useState<number | null>(null)
     const [complianceGaps, setComplianceGaps] = useState<import("@/lib/types").ComplianceGap[]>([])
     const [complianceLoading, setComplianceLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState<'overview' | 'passports' | 'upload' | 'compliance' | 'reports'>('overview')
 
     const fetchBatch = useCallback(async () => {
         try {
@@ -604,9 +606,36 @@ export default function BatchDetailsPage() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
-                    {/* Main Info */}
-                    <div className="md:col-span-2 space-y-6">
+
+                {/* Tab Navigation */}
+                <div className="bg-white border border-slate-200 rounded-lg">
+                    <div className="flex border-b border-slate-200 px-4">
+                        {[
+                            { id: 'overview', label: 'Overview' },
+                            { id: 'passports', label: `Passports (${passportCount})` },
+                            { id: 'upload', label: 'Upload & Generate' },
+                            { id: 'compliance', label: 'Compliance' },
+                            { id: 'reports', label: 'Reports' },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                                className={clsx(
+                                    "px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px",
+                                    activeTab === tab.id
+                                        ? "border-slate-900 text-slate-900"
+                                        : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                                )}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="p-6">
+
+                        {/* Overview Tab */}
+                        {activeTab === 'overview' && (
+                            <div className="space-y-6">
                         {/* Common Specifications - LIGHT THEME */}
                         <Card className="bg-white border-slate-200">
                             <CardHeader>
@@ -989,6 +1018,149 @@ export default function BatchDetailsPage() {
                             </Card>
                         )}
 
+                                {/* Summary & Market Info */}
+                                <div className="grid gap-6 md:grid-cols-2">
+                        {/* Summary Card - DARK THEME */}
+                        <Card className={`bg-white border-slate-200 ${isIndia ? "border-l-4 border-l-orange-500" :
+                            isEU ? "border-l-4 border-l-blue-500" :
+                                "border-l-4 border-l-emerald-500"
+                            }`}>
+                            <CardHeader>
+                                <CardTitle className="text-slate-900">Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-4xl font-bold ${isIndia ? "text-orange-400" :
+                                    isEU ? "text-blue-400" :
+                                        "text-emerald-400"
+                                    }`}>
+                                    {passportCount.toLocaleString()}
+                                </div>
+                                <p className="text-sm mt-1 text-slate-500">
+                                    {isIndia ? "Battery Aadhaar IDs" : isEU ? "EU Passports" : "Total Passports"} Generated
+                                </p>
+                            </CardContent>
+                        </Card>
+                        {/* Market Info Badge - DARK THEME */}
+                        <Card className="bg-white border-slate-200">
+                            <CardContent className="pt-6">
+                                <div className="text-center">
+                                    <div className="text-5xl mb-3">
+                                        {isIndia ? "🇮🇳" : isEU ? "🇪🇺" : "🌍"}
+                                    </div>
+                                    <p className="font-bold text-xl text-slate-900">
+                                        {isIndia ? "India Market" : isEU ? "EU Export" : "Global"}
+                                    </p>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        {isIndia ? "Battery Aadhaar Compliant" : isEU ? "EU Battery Regulation" : "Multi-Market Ready"}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Passports Tab */}
+                        {activeTab === 'passports' && (
+                            <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">Generated Passports</h2>
+                        {pagination.total > 0 && (
+                            <p className="text-sm text-slate-500">
+                                Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
+                            </p>
+                        )}
+                    </div>
+
+                    <PassportList passports={passports} />
+
+                    {/* Pagination Controls */}
+                    {pagination.totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 mt-6">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                                disabled={pagination.page <= 1}
+                                className="border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Previous
+                            </Button>
+
+                            <div className="flex items-center gap-1">
+                                {/* Page numbers */}
+                                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                    let pageNum: number
+                                    if (pagination.totalPages <= 5) {
+                                        pageNum = i + 1
+                                    } else if (pagination.page <= 3) {
+                                        pageNum = i + 1
+                                    } else if (pagination.page >= pagination.totalPages - 2) {
+                                        pageNum = pagination.totalPages - 4 + i
+                                    } else {
+                                        pageNum = pagination.page - 2 + i
+                                    }
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={pageNum === pagination.page ? "default" : "ghost"}
+                                            size="sm"
+                                            className={`w-8 h-8 p-0 ${pageNum === pagination.page ? "" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}
+                                            onClick={() => handlePageChange(pageNum)}
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    )
+                                })}
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                                disabled={!pagination.hasMore}
+                                className="border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                    )}
+                            </div>
+                        )}
+
+                        {/* Upload Tab */}
+                        {activeTab === 'upload' && (
+                            <div className="space-y-6">
+                        {/* Upload Section - LIGHT THEME */}
+                        <Card className="bg-white border-slate-200">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-slate-900">
+                                    <div className="p-2 rounded-lg bg-teal-50">
+                                        <FileSpreadsheet className="h-5 w-5 text-teal-600" />
+                                    </div>
+                                    Upload Data
+                                </CardTitle>
+                                <CardDescription className="text-slate-500">
+                                    Upload a CSV file containing passport data for this batch.
+                                    {isIndia && (
+                                        <span className="block mt-2 text-orange-400 font-medium">
+                                            💡 Auto-generates BPAN format: IN-NKY-{batch.specs.chemistry}-2026-00001 to ...{passportCount || 'N'}
+                                        </span>
+                                    )}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} onUploadComplete={handleUploadComplete} />
+                            </CardContent>
+                        </Card>
+                            </div>
+                        )}
+
+                        {/* Compliance Tab */}
+                        {activeTab === 'compliance' && (
+                            <div className="space-y-6">
                         {/* Compliance Engine Score Card */}
                         {batch.status === 'ACTIVE' && (
                             <Card className="bg-white border-slate-200 border-l-4 border-l-emerald-500">
@@ -1093,218 +1265,121 @@ export default function BatchDetailsPage() {
                                 onResultSaved={fetchBatch}
                             />
                         )}
+                            </div>
+                        )}
 
-                        {/* Upload Section - LIGHT THEME */}
-                        <Card className="bg-white border-slate-200">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-slate-900">
-                                    <div className="p-2 rounded-lg bg-teal-50">
-                                        <FileSpreadsheet className="h-5 w-5 text-teal-600" />
-                                    </div>
-                                    Upload Data
-                                </CardTitle>
-                                <CardDescription className="text-slate-500">
-                                    Upload a CSV file containing passport data for this batch.
-                                    {isIndia && (
-                                        <span className="block mt-2 text-orange-400 font-medium">
-                                            💡 Auto-generates BPAN format: IN-NKY-{batch.specs.chemistry}-2026-00001 to ...{passportCount || 'N'}
-                                        </span>
-                                    )}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} onUploadComplete={handleUploadComplete} />
-                            </CardContent>
-                        </Card>
-                    </div>
+                        {/* Reports Tab */}
+                        {activeTab === 'reports' && (
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <Card className="bg-white border-slate-200 hover:border-blue-300 transition-colors">
+                                    <CardContent className="pt-6">
+                                        <Button
+                                            className="w-full bg-slate-100 hover:bg-blue-50 hover:border-blue-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                            onClick={() => setLabelsDialogOpen(true)}
+                                            disabled={isDraft}
+                                        >
+                                            <Printer className="mr-2 h-4 w-4 text-blue-500" />
+                                            Download PDF Labels
+                                            {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                        </Button>
+                                        <p className="text-xs text-slate-500 mt-2">Generate printable labels for all passports in this batch.</p>
+                                    </CardContent>
+                                </Card>
 
-                    {/* Actions Sidebar - LIGHT THEME */}
-                    <div className="space-y-6">
-                        <Card className="bg-white border-slate-200">
-                            <CardHeader>
-                                <CardTitle className="text-slate-900">Actions</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <Button
-                                    className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                    onClick={handleDownloadQR}
-                                    disabled={isDraft}
-                                >
-                                    <QrCode className="mr-2 h-4 w-4 text-emerald-500" />
-                                    Download QR Codes (ZIP)
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                </Button>
-                                <Button
-                                    className="w-full bg-slate-100 hover:bg-blue-50 hover:border-blue-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                    onClick={() => setLabelsDialogOpen(true)}
-                                    disabled={isDraft}
-                                >
-                                    <Printer className="mr-2 h-4 w-4 text-blue-500" />
-                                    Download PDF Labels
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                </Button>
-                                <Button
-                                    className="w-full bg-slate-100 hover:bg-teal-50 hover:border-teal-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                    onClick={handleExportCSV}
-                                    disabled={isDraft}
-                                >
-                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-teal-500" />
-                                    Export Serial List (CSV)
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                </Button>
-                                <Button
-                                    className="w-full bg-slate-100 hover:bg-amber-50 hover:border-amber-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                    onClick={handleExportAuditCSV}
-                                >
-                                    <FileText className="mr-2 h-4 w-4 text-amber-500" />
-                                    Export Audit Log (CSV)
-                                </Button>
+                                <Card className="bg-white border-slate-200 hover:border-emerald-300 transition-colors">
+                                    <CardContent className="pt-6">
+                                        <Button
+                                            className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                            onClick={handleDownloadQR}
+                                            disabled={isDraft}
+                                        >
+                                            <QrCode className="mr-2 h-4 w-4 text-emerald-500" />
+                                            Download QR Codes (ZIP)
+                                            {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                        </Button>
+                                        <p className="text-xs text-slate-500 mt-2">Download all QR codes as a ZIP archive.</p>
+                                    </CardContent>
+                                </Card>
 
-                                {/* EU Due Diligence Report */}
+                                <Card className="bg-white border-slate-200 hover:border-teal-300 transition-colors">
+                                    <CardContent className="pt-6">
+                                        <Button
+                                            className="w-full bg-slate-100 hover:bg-teal-50 hover:border-teal-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                            onClick={handleExportCSV}
+                                            disabled={isDraft}
+                                        >
+                                            <FileSpreadsheet className="mr-2 h-4 w-4 text-teal-500" />
+                                            Export Serial List (CSV)
+                                            {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                        </Button>
+                                        <p className="text-xs text-slate-500 mt-2">Export all serial numbers and passport data as CSV.</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-white border-slate-200 hover:border-amber-300 transition-colors">
+                                    <CardContent className="pt-6">
+                                        <Button
+                                            className="w-full bg-slate-100 hover:bg-amber-50 hover:border-amber-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                            onClick={handleExportAuditCSV}
+                                        >
+                                            <FileText className="mr-2 h-4 w-4 text-amber-500" />
+                                            Export Audit Log (CSV)
+                                        </Button>
+                                        <p className="text-xs text-slate-500 mt-2">Download the full audit trail for this batch.</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-white border-slate-200 hover:border-emerald-300 transition-colors">
+                                    <CardContent className="pt-6">
+                                        <Button
+                                            className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                            onClick={handleDownloadComplianceReport}
+                                            disabled={isDraft}
+                                        >
+                                            <FileCheck className="mr-2 h-4 w-4 text-emerald-600" />
+                                            Compliance Report (PDF)
+                                            {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                        </Button>
+                                        <p className="text-xs text-slate-500 mt-2">Download the full compliance assessment report.</p>
+                                    </CardContent>
+                                </Card>
+
                                 {(batch.market_region === "EU" || batch.market_region === "GLOBAL") && (
-                                    <Button
-                                        className="w-full bg-slate-100 hover:bg-indigo-50 hover:border-indigo-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                        onClick={handleExportDueDiligence}
-                                        disabled={isDraft}
-                                    >
-                                        <Shield className="mr-2 h-4 w-4 text-indigo-500" />
-                                        Due Diligence Report (PDF)
-                                        {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                    </Button>
+                                    <Card className="bg-white border-slate-200 hover:border-emerald-300 transition-colors">
+                                        <CardContent className="pt-6">
+                                            <Button
+                                                className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                                onClick={handleExportComplianceDeclaration}
+                                                disabled={isDraft}
+                                            >
+                                                <Leaf className="mr-2 h-4 w-4 text-emerald-500" />
+                                                Carbon Declaration (PDF)
+                                                {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                            </Button>
+                                            <p className="text-xs text-slate-500 mt-2">Generate the carbon footprint compliance declaration.</p>
+                                        </CardContent>
+                                    </Card>
                                 )}
 
-                                {/* EU Compliance Declaration */}
                                 {(batch.market_region === "EU" || batch.market_region === "GLOBAL") && (
-                                    <Button
-                                        className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                        onClick={handleExportComplianceDeclaration}
-                                        disabled={isDraft}
-                                    >
-                                        <Leaf className="mr-2 h-4 w-4 text-emerald-500" />
-                                        Carbon Declaration (PDF)
-                                        {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                    </Button>
+                                    <Card className="bg-white border-slate-200 hover:border-indigo-300 transition-colors">
+                                        <CardContent className="pt-6">
+                                            <Button
+                                                className="w-full bg-slate-100 hover:bg-indigo-50 hover:border-indigo-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
+                                                onClick={handleExportDueDiligence}
+                                                disabled={isDraft}
+                                            >
+                                                <Shield className="mr-2 h-4 w-4 text-indigo-500" />
+                                                Due Diligence Report (PDF)
+                                                {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
+                                            </Button>
+                                            <p className="text-xs text-slate-500 mt-2">Generate the supply chain due diligence report.</p>
+                                        </CardContent>
+                                    </Card>
                                 )}
-
-                                {/* Compliance Engine Report */}
-                                <Button
-                                    className="w-full bg-slate-100 hover:bg-emerald-50 hover:border-emerald-300 text-slate-900 border border-slate-200 disabled:opacity-50 transition-all duration-200"
-                                    onClick={handleDownloadComplianceReport}
-                                    disabled={isDraft}
-                                >
-                                    <FileCheck className="mr-2 h-4 w-4 text-emerald-600" />
-                                    Compliance Report (PDF)
-                                    {isDraft && <Lock className="ml-auto h-3 w-3 text-slate-500" />}
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        {/* Summary Card - DARK THEME */}
-                        <Card className={`bg-white border-slate-200 ${isIndia ? "border-l-4 border-l-orange-500" :
-                            isEU ? "border-l-4 border-l-blue-500" :
-                                "border-l-4 border-l-emerald-500"
-                            }`}>
-                            <CardHeader>
-                                <CardTitle className="text-slate-900">Summary</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className={`text-4xl font-bold ${isIndia ? "text-orange-400" :
-                                    isEU ? "text-blue-400" :
-                                        "text-emerald-400"
-                                    }`}>
-                                    {passportCount.toLocaleString()}
-                                </div>
-                                <p className="text-sm mt-1 text-slate-500">
-                                    {isIndia ? "Battery Aadhaar IDs" : isEU ? "EU Passports" : "Total Passports"} Generated
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        {/* Market Info Badge - DARK THEME */}
-                        <Card className="bg-white border-slate-200">
-                            <CardContent className="pt-6">
-                                <div className="text-center">
-                                    <div className="text-5xl mb-3">
-                                        {isIndia ? "🇮🇳" : isEU ? "🇪🇺" : "🌍"}
-                                    </div>
-                                    <p className="font-bold text-xl text-slate-900">
-                                        {isIndia ? "India Market" : isEU ? "EU Export" : "Global"}
-                                    </p>
-                                    <p className="text-sm text-slate-500 mt-1">
-                                        {isIndia ? "Battery Aadhaar Compliant" : isEU ? "EU Battery Regulation" : "Multi-Market Ready"}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-
-                {/* Passports List Table with Pagination */}
-                <div className="mt-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold tracking-tight text-slate-900">Generated Passports</h2>
-                        {pagination.total > 0 && (
-                            <p className="text-sm text-slate-500">
-                                Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total.toLocaleString()}
-                            </p>
+                            </div>
                         )}
                     </div>
-
-                    <PassportList passports={passports} />
-
-                    {/* Pagination Controls */}
-                    {pagination.totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 mt-6">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(pagination.page - 1)}
-                                disabled={pagination.page <= 1}
-                                className="border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                <ChevronLeft className="h-4 w-4 mr-1" />
-                                Previous
-                            </Button>
-
-                            <div className="flex items-center gap-1">
-                                {/* Page numbers */}
-                                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                                    let pageNum: number
-                                    if (pagination.totalPages <= 5) {
-                                        pageNum = i + 1
-                                    } else if (pagination.page <= 3) {
-                                        pageNum = i + 1
-                                    } else if (pagination.page >= pagination.totalPages - 2) {
-                                        pageNum = pagination.totalPages - 4 + i
-                                    } else {
-                                        pageNum = pagination.page - 2 + i
-                                    }
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={pageNum === pagination.page ? "default" : "ghost"}
-                                            size="sm"
-                                            className={`w-8 h-8 p-0 ${pageNum === pagination.page ? "" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}
-                                            onClick={() => handlePageChange(pageNum)}
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    )
-                                })}
-                            </div>
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(pagination.page + 1)}
-                                disabled={!pagination.hasMore}
-                                className="border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
-                            >
-                                Next
-                                <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
-                        </div>
-                    )}
                 </div>
                 {/* Labels Download Dialog */}
                 <DownloadLabelsDialog
