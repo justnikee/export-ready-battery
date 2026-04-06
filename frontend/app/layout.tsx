@@ -3,17 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "flag-icons/css/flag-icons.min.css";
 
-import { Source_Sans_3, Inter, JetBrains_Mono, Lexend } from "next/font/google"; // Source Sans 3 - Clean, professional body font
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-source-sans",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
-
+import { Inter, JetBrains_Mono } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
-const lexend = Lexend({ subsets: ["latin"], variable: "--font-lexend", display: "swap" });
 
 import { Providers } from "@/components/providers";
 
@@ -39,7 +31,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${sourceSans.variable} ${inter.variable} ${jetbrainsMono.variable} ${lexend.variable} font-sans antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

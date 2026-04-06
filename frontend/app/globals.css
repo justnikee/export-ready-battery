@@ -1,20 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Import Fonts */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-
 /* ============================================
-   EXPORTREADY BATTERY - INDUSTRIAL PRECISION
-   Design System v3.0 - February 2026
-   
-   "Compliance Cockpit" - Clean Enterprise
-   Inspired by Vercel, Stripe, Linear
+   EXPORTREADY BATTERY — PRECISION v4.0
+   Design System — April 2026
+
+   "Clean Enterprise Compliance"
+   Zinc neutrals · Emerald accent · Inter + JetBrains Mono
+   Inspired by Linear, Vercel, Vanta
    ============================================ */
 
 @custom-variant dark (&:is(.dark *));
@@ -23,10 +16,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Industrial Precision Typography */
+  /* Typography — Inter (body+headings) + JetBrains Mono (data) */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-heading: 'Lexend', sans-serif;
 
   /* Sidebar */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -39,15 +31,13 @@
   --color-sidebar: var(--sidebar);
 
   /* Charts */
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
-  /* New Design System Colors */
-  /* Reverted */
-
+  /* Semantic Colors */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -65,72 +55,74 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Border Radius - Industrial Precision (smaller, boxier) */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
+  /* Border Radius — tight, professional */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 :root {
   --radius: 8px;
 
-  /* Base Colors */
-  --background: #f6f8f7;
-  --foreground: #0d1614;
-  --card: #ffffff;
-  --card-foreground: #0d1614;
-  --popover: #ffffff;
-  --popover-foreground: #0d1614;
+  /* ── Neutrals (Zinc scale) ── */
+  --background: #FAFAFA;          /* zinc-50  — page bg */
+  --foreground: #18181B;          /* zinc-900 — primary text */
+  --card: #FFFFFF;                /* white    — card surfaces */
+  --card-foreground: #18181B;     /* zinc-900 */
+  --popover: #FFFFFF;
+  --popover-foreground: #18181B;
 
-  /* Primary: Stitch Bright Emerald */
-  --primary: #0ea371;
-  --primary-foreground: #ffffff;
+  /* ── Primary: Dark authority (Vercel-style) ── */
+  --primary: #18181B;             /* zinc-900 */
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary */
-  --secondary: #f6f8f7;
-  --secondary-foreground: #2d423b;
+  /* ── Secondary ── */
+  --secondary: #F4F4F5;           /* zinc-100 */
+  --secondary-foreground: #18181B;
 
-  /* Muted */
-  --muted: #f6f8f7;
-  --muted-foreground: #9db8af;
+  /* ── Muted ── */
+  --muted: #F4F4F5;               /* zinc-100 */
+  --muted-foreground: #71717A;    /* zinc-500 */
 
-  /* Accent */
-  --accent: #0ea371;
-  --accent-foreground: #ffffff;
+  /* ── Accent: Subtle hover (shadcn convention) ── */
+  --accent: #F4F4F5;              /* zinc-100 — hover backgrounds */
+  --accent-foreground: #18181B;   /* zinc-900 */
 
-  --destructive: #DC2626;
-  --border: #2d423b;
-  --input: #1a2c26;
-  --ring: #0ea371;
+  /* ── Utility ── */
+  --destructive: #DC2626;         /* red-600 */
+  --border: #E4E4E7;              /* zinc-200 */
+  --input: #E4E4E7;               /* zinc-200 */
+  --ring: #18181B;                /* zinc-900 */
 
-  /* Charts */
-  --chart-1: #0ea371;
-  --chart-2: #17cf91;
-  --chart-3: #F59E0B;
-  --chart-4: #3B82F6;
-  --chart-5: #EF4444;
+  /* ── Charts ── */
+  --chart-1: #10B981;             /* emerald-500 */
+  --chart-2: #3B82F6;             /* blue-500 */
+  --chart-3: #F59E0B;             /* amber-500 */
+  --chart-4: #8B5CF6;             /* violet-500 */
+  --chart-5: #EF4444;             /* red-500 */
 
-  /* Sidebar - Light */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #2d423b;
-  --sidebar-primary: #0d1614;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f6f8f7;
-  --sidebar-accent-foreground: #0d1614;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #0ea371;
+  /* ── Sidebar ── */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #3F3F46;  /* zinc-700 */
+  --sidebar-primary: #18181B;     /* zinc-900 */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F4F4F5;      /* zinc-100 */
+  --sidebar-accent-foreground: #18181B;
+  --sidebar-border: #E4E4E7;      /* zinc-200 */
+  --sidebar-ring: #18181B;
 
-  /* ── Stitch Landing Tokens ── */
-  --ld-bg-dark:    #0d1614;   /* Hero / CTA dark bg          */
-  --ld-bg-surface: #11211c;   /* Card bg on dark sections    */
-  --ld-bg-mid:     #1a2c26;   /* Elevated card / code bg     */
-  --ld-bg-light:   #f6f8f7;   /* Alternating light sections  */
-  --ld-border:     #2d423b;   /* Borders on dark sections    */
-  --ld-border-mid: #3e5850;   /* Subtler borders             */
-  --ld-text-muted: #9db8af;   /* Dim body text on dark bg    */
-  --ld-accent:     #0ea371;   /* Primary action / highlight  */
-  --ld-accent-hi:  #17cf91;   /* Hover / vivid accent        */
+  /* ── Landing Page Tokens (dark sections) ── */
+  --ld-bg-dark:    #09090B;       /* zinc-950 */
+  --ld-bg-surface: #18181B;       /* zinc-900 */
+  --ld-bg-mid:     #27272A;       /* zinc-800 */
+  --ld-bg-light:   #FAFAFA;       /* zinc-50  */
+  --ld-border:     #3F3F46;       /* zinc-700 */
+  --ld-border-mid: #52525B;       /* zinc-600 */
+  --ld-text-muted: #A1A1AA;       /* zinc-400 */
+  --ld-accent:     #10B981;       /* emerald-500 */
+  --ld-accent-hi:  #34D399;       /* emerald-400 */
 }
 
 /* Dark mode disabled for Enterprise */
@@ -144,244 +136,79 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
     font-size: 14px;
-    /* Enterprise standard: 14px, not 16px */
     line-height: 1.5;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  /* Typography — uses CSS variables, not hardcoded hex */
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
     font-weight: 600;
-    color: #0F172A;
+    color: var(--foreground);
     letter-spacing: -0.025em;
   }
 
-  h1 {
-    font-size: 24px;
-    line-height: 1.2;
-  }
-
-  h2 {
-    font-size: 18px;
-    line-height: 1.3;
-  }
-
-  h3 {
-    font-size: 16px;
-    line-height: 1.4;
-  }
-
-  h4 {
-    font-size: 14px;
-    line-height: 1.4;
-  }
+  h1 { font-size: 24px; line-height: 1.2; }
+  h2 { font-size: 18px; line-height: 1.3; letter-spacing: -0.02em; }
+  h3 { font-size: 16px; line-height: 1.4; font-weight: 500; letter-spacing: -0.01em; }
+  h4 { font-size: 14px; line-height: 1.4; font-weight: 500; }
 
   p {
     line-height: 1.6;
-    color: #334155;
+    color: #3F3F46; /* zinc-700 */
   }
 
-  /* Monospace for data */
-  .font-mono,
-  code,
-  pre {
+  /* Monospace for data (IDs, compliance numbers, code) */
+  .font-mono, code, pre {
     font-family: var(--font-mono);
   }
 
-  /* Focus states */
+  /* Focus states — zinc-900 ring */
   :focus-visible {
-    outline: 2px solid #0F172A;
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
   /* Smooth transitions */
-  a,
-  button,
-  input,
-  textarea,
-  select {
+  a, button, input, textarea, select {
     transition: all 150ms ease;
   }
 }
 
 @layer components {
-  /* ========================================
-     INDUSTRIAL PRECISION COMPONENTS
-     ======================================== */
+  /* ── Utility classes (only ones not covered by shadcn) ── */
 
-  /* Primary Button - Dark Gray (Vercel Style) */
-  .btn-primary {
-    @apply px-4 py-2 rounded-md text-sm font-medium text-white;
-    background: #0F172A;
-    border: 1px solid transparent;
-    min-height: 36px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  .btn-primary:hover {
-    background: #1E293B;
-  }
-
-  .btn-primary:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #0F172A;
-  }
-
-  /* Secondary Button */
-  .btn-secondary {
-    @apply px-4 py-2 rounded-md text-sm font-medium;
-    background: #FFFFFF;
-    color: #0F172A;
-    border: 1px solid #E2E8F0;
-    min-height: 36px;
-  }
-
-  .btn-secondary:hover {
-    background: #F8FAFC;
-    border-color: #CBD5E1;
-  }
-
-  /* Card - Border, No Shadow */
-  .card {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .card-header {
-    @apply px-6 py-4 border-b border-slate-100 flex justify-between items-center;
-  }
-
-  .card-header h3 {
-    @apply text-base font-medium text-slate-900;
-  }
-
-  .card-content {
-    @apply p-6;
-  }
-
-  /* Data Table - Industrial Precision */
-  .data-table {
-    @apply w-full;
-  }
-
-  .data-table thead {
-    @apply bg-slate-50 border-b border-slate-200;
-  }
-
-  .data-table th {
-    @apply px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider;
-  }
-
-  .data-table tbody tr {
-    @apply border-b border-slate-100 bg-white;
-  }
-
-  .data-table tbody tr:hover {
-    @apply bg-slate-50;
-  }
-
-  .data-table td {
-    @apply px-4 py-3 text-sm text-slate-600;
-  }
-
-  .data-table td.mono {
-    @apply font-mono text-xs text-slate-600;
-  }
-
-  /* Status Badges - Subtle (No Candy Colors) */
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-    border: 1px solid;
-  }
-
-  .badge-success {
-    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
-  }
-
-  .badge-warning {
-    @apply bg-amber-50 text-amber-700 border-amber-200;
-  }
-
-  .badge-error {
-    @apply bg-red-50 text-red-700 border-red-200;
-  }
-
-  .badge-info {
-    @apply bg-blue-50 text-blue-700 border-blue-200;
-  }
-
-  .badge-neutral {
-    @apply bg-slate-100 text-slate-600 border-slate-200;
-  }
-
-  /* Form Labels - Technical Style */
   .form-label {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5 block;
+    @apply text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5 block;
   }
 
-  /* Input Field */
-  .input-field {
-    @apply w-full px-3 py-2 rounded-md text-sm;
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    min-height: 36px;
-  }
-
-  .input-field:hover {
-    border-color: #CBD5E1;
-  }
-
-  .input-field:focus {
-    border-color: #0F172A;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1);
-  }
-
-  /* Stats Card */
-  .stat-card {
-    @apply bg-white border border-slate-200 rounded-lg p-6;
-  }
-
-  .stat-label {
-    @apply text-xs font-medium text-slate-500 uppercase tracking-wider;
-  }
-
-  .stat-value {
-    @apply text-2xl font-semibold text-slate-900 tracking-tight;
-  }
-
-  /* Section Divider */
   .divider {
-    @apply border-t border-slate-200 my-6;
+    @apply border-t border-zinc-200 my-6;
   }
 
-  /* Link Style */
   .link {
-    @apply text-blue-600 hover:text-blue-700 font-medium;
+    @apply text-emerald-600 hover:text-emerald-700 font-medium;
   }
 
-  /* Mono Text (IDs, UUIDs, Hashes) */
   .mono-text {
-    @apply font-mono text-xs text-slate-600;
+    @apply font-mono text-[13px] text-zinc-600;
   }
+
+  /* Data Table */
+  .data-table { @apply w-full; }
+  .data-table thead { @apply bg-zinc-50 border-b border-zinc-200; }
+  .data-table th { @apply px-4 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider; }
+  .data-table tbody tr { @apply border-b border-zinc-100 bg-white; }
+  .data-table tbody tr:hover { @apply bg-zinc-50; }
+  .data-table td { @apply px-4 py-3 text-sm text-zinc-700; }
+  .data-table td.mono { @apply font-mono text-[13px] text-zinc-600; }
 }
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -389,24 +216,20 @@
 }
 
 /* ============================================
-   NProgress Loading Bar - Industrial Theme
+   NProgress Loading Bar
    ============================================ */
 
-#nprogress {
-  pointer-events: none;
-}
+#nprogress { pointer-events: none; }
 
 #nprogress .bar {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: linear-gradient(90deg, #10B981, #059669);
   position: fixed;
   z-index: 9999;
   top: 0;
   left: 0;
   width: 100%;
-  height: 3px;
-  box-shadow:
-    0 0 10px rgba(245, 158, 11, 0.7),
-    0 0 5px rgba(245, 158, 11, 0.5);
+  height: 2px;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }
 
 #nprogress .peg {
@@ -415,9 +238,7 @@
   right: 0;
   width: 100px;
   height: 100%;
-  box-shadow:
-    0 0 10px #f59e0b,
-    0 0 5px #f59e0b;
+  box-shadow: 0 0 8px #10B981, 0 0 4px #10B981;
   opacity: 1;
   transform: rotate(3deg) translate(0, -4px);
 }
@@ -426,62 +247,22 @@
    Custom Scrollbar Styling
    ============================================ */
 
-/* Docs Sidebar - Ultra-thin Dark Theme Scrollbar */
 .docs-scrollbar {
   scrollbar-width: thin !important;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
 }
 
-.docs-scrollbar::-webkit-scrollbar {
-  width: 6px !important;
-}
-
-.docs-scrollbar::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-
-.docs-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-radius: 3px !important;
-}
-
-.docs-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-}
+.docs-scrollbar::-webkit-scrollbar { width: 6px !important; }
+.docs-scrollbar::-webkit-scrollbar-track { background: transparent !important; }
+.docs-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15) !important; border-radius: 3px !important; }
+.docs-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3) !important; }
 
 /* ============================================
    Landing Page Animations
    ============================================ */
 
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes spin-slow-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-.animate-spin-slow {
-  animation: spin-slow 20s linear infinite;
-}
-
-.animate-spin-slow-reverse {
-  animation: spin-slow-reverse 25s linear infinite;
-}
-
-/* Conic gradient utility */
-.bg-gradient-conic {
-  background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to));
-}
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin-slow-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
+.animate-spin-slow-reverse { animation: spin-slow-reverse 25s linear infinite; }
+.bg-gradient-conic { background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to)); }
