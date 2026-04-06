@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { CTAIllustration } from "./illustrations";
 
 export function CTASection() {
   return (
-    <section
-      className="border-t"
-      style={{
-        background: "var(--ld-bg-dark)",
-        borderColor: "var(--ld-border)",
-      }}
-    >
+    <section style={{ background: "var(--ld-bg-dark)" }}>
       <div className="max-w-3xl mx-auto text-center px-6 py-32">
         {/* Small illustration placeholder */}
         <motion.div
@@ -21,8 +16,8 @@ export function CTASection() {
           viewport={{ once: true }}
           className="mb-12"
         >
-          <div className="w-full h-[160px] rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center bg-zinc-900/50">
-            <span className="text-zinc-500 text-sm">CTA Illustration</span>
+          <div className="w-full h-[160px] rounded-2xl flex items-center justify-center overflow-hidden">
+            <CTAIllustration className="w-full h-full" />
           </div>
         </motion.div>
 

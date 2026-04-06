@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { ExplainerIllustration } from "./illustrations";
 
 export function ExplainerSection() {
   return (
-    <section
-      className="border-t"
-      style={{
-        background: "var(--ld-bg-dark)",
-        borderColor: "var(--ld-border)",
-      }}
-    >
+    <section style={{ background: "var(--ld-bg-dark)" }}>
       <div className="max-w-[1320px] mx-auto px-6 py-24">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left — Text */}
@@ -68,10 +63,8 @@ export function ExplainerSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div className="w-full h-[350px] rounded-2xl border-2 border-dashed border-zinc-700 flex items-center justify-center bg-zinc-900/50">
-              <span className="text-zinc-500 text-sm">
-                Explainer Illustration
-              </span>
+            <div className="w-full h-[350px] rounded-2xl flex items-center justify-center overflow-hidden">
+              <ExplainerIllustration className="w-full h-full" />
             </div>
           </motion.div>
         </div>

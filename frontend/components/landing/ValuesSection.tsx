@@ -26,13 +26,7 @@ const values = [
 
 export function ValuesSection() {
   return (
-    <section
-      className="border-t"
-      style={{
-        background: "var(--ld-bg-dark)",
-        borderColor: "var(--ld-border)",
-      }}
-    >
+    <section style={{ background: "var(--ld-bg-dark)" }}>
       <div className="max-w-[1320px] mx-auto px-6 py-24">
         {/* Section heading */}
         <motion.div

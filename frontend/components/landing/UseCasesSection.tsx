@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import {
+  BISIllustration,
+  EPRIllustration,
+  EUIllustration,
+  PassportIllustration,
+  CPCBIllustration,
+} from "./illustrations";
 
 const useCases = [
   {
@@ -10,42 +17,41 @@ const useCases = [
     description:
       "Manage IS 16046 certification lifecycle, track R-numbers, and monitor test compliance",
     href: "/compliance",
+    Illustration: BISIllustration,
   },
   {
     title: "EPR Obligations",
     description:
       "Automated tracking of collection targets, recycler certificates, and annual CPCB filings",
     href: "/compliance",
+    Illustration: EPRIllustration,
   },
   {
     title: "EU Battery Regulation",
     description:
       "Full 2023/1542 compliance: digital passports, carbon footprint, recycled content tracking",
     href: "/docs/compliance",
+    Illustration: EUIllustration,
   },
   {
     title: "Digital Battery Passports",
     description:
       "Generate unique QR-coded passports with complete lifecycle data for every batch",
     href: "/batches",
+    Illustration: PassportIllustration,
   },
   {
     title: "CPCB Export Filing",
     description:
       "One-click Form 3 CSV generation ready for the CPCB EPR portal submission",
     href: "/compliance",
+    Illustration: CPCBIllustration,
   },
 ];
 
 export function UseCasesSection() {
   return (
-    <section
-      className="border-t"
-      style={{
-        background: "var(--ld-bg-dark)",
-        borderColor: "var(--ld-border)",
-      }}
-    >
+    <section style={{ background: "var(--ld-bg-dark)" }}>
       <div className="max-w-[1320px] mx-auto px-6 py-24">
         {/* Section heading */}
         <motion.div
@@ -90,15 +96,13 @@ export function UseCasesSection() {
                   background: "var(--ld-bg-surface)",
                 }}
               >
-                {/* Illustration placeholder */}
+                {/* Illustration */}
                 <div
                   className={`w-full ${
                     i < 2 ? "h-[220px]" : "h-[180px]"
-                  } border-b-2 border-dashed border-zinc-700 flex items-center justify-center bg-zinc-900/50`}
+                  } flex items-center justify-center overflow-hidden`}
                 >
-                  <span className="text-zinc-500 text-sm">
-                    {uc.title} Illustration
-                  </span>
+                  <uc.Illustration className="w-full h-full" />
                 </div>
 
                 {/* Text */}

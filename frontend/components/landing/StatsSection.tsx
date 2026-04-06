@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { StatsIllustration } from "./illustrations";
 
 const stats = [
   { value: "10,000+", label: "Passports Generated" },
@@ -12,17 +13,12 @@ const stats = [
 export function StatsSection() {
   return (
     <section
-      className="relative border-t overflow-hidden"
-      style={{
-        background: "var(--ld-bg-dark)",
-        borderColor: "var(--ld-border)",
-      }}
+      className="relative overflow-hidden"
+      style={{ background: "var(--ld-bg-dark)" }}
     >
-      {/* Background illustration placeholder */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center bg-zinc-900/30">
-        <span className="text-zinc-800 text-sm">
-          Stats Background Illustration
-        </span>
+      {/* Background illustration */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
+        <StatsIllustration className="w-full h-full" />
       </div>
 
       <div className="relative z-10 max-w-[1320px] mx-auto px-6 py-24">
@@ -60,12 +56,7 @@ export function StatsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className={`text-center px-4 ${
-                i > 0
-                  ? "md:border-l"
-                  : ""
-              }`}
-              style={{ borderColor: "var(--ld-border)" }}
+              className="text-center px-4"
             >
               <span className="block text-4xl md:text-5xl font-bold text-white mb-2">
                 {stat.value}

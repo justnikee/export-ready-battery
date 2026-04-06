@@ -1,0 +1,9 @@
+export { HeroIllustration } from "./HeroIllustration";
+export { ExplainerIllustration } from "./ExplainerIllustration";
+export { BISIllustration } from "./BISIllustration";
+export { EPRIllustration } from "./EPRIllustration";
+export { EUIllustration } from "./EUIllustration";
+export { PassportIllustration } from "./PassportIllustration";
+export { CPCBIllustration } from "./CPCBIllustration";
+export { CTAIllustration } from "./CTAIllustration";
+export { StatsIllustration } from "./StatsIllustration";

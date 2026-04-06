@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { HeroIllustration } from "./illustrations";
 
 export function HeroSection() {
   return (
     <section style={{ background: "var(--ld-bg-dark)" }}>
       {/* Full-width illustration banner */}
-      <div className="w-full h-[280px] md:h-[400px] lg:h-[480px] flex items-center justify-center bg-zinc-900/50">
-        <span className="text-zinc-500 text-sm">Hero Illustration</span>
+      <div className="w-full h-[280px] md:h-[400px] lg:h-[480px] flex items-center justify-center">
+        <HeroIllustration className="w-full h-full" />
       </div>
 
       {/* Thin emerald accent line */}
