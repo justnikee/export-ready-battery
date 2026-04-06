@@ -4,9 +4,10 @@ import Link from "next/link"
 
 import { usePathname } from "next/navigation"
 import {
-    LogOut, X, Home, Box, Truck, Users,
-    Trophy, CreditCard, Settings, UserPlus, FileDown,
-    ChevronLeft, ChevronRight, Key, BookOpen, BarChart3,
+    LogOut, X, Home, Box, Users,
+    CreditCard, Settings, FileDown,
+    ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+    Key, BookOpen, BarChart3,
     LayoutTemplate, TrendingUp, Shield, Activity
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -25,39 +26,43 @@ interface NavItem {
 interface NavGroup {
     label: string
     items: NavItem[]
+    collapsible?: boolean
 }
 
 const navGroups: NavGroup[] = [
     {
-        label: "Main",
+        label: "Overview",
         items: [
             { name: "Dashboard", href: "/dashboard", icon: Home },
             { name: "Analytics", href: "/analytics", icon: TrendingUp },
-            { name: "Batches", href: "/batches", icon: Box },
-            { name: "Dispatch", href: "/dashboard/dispatch", icon: Truck },
         ]
     },
     {
-        label: "Operations",
+        label: "Production",
         items: [
+            { name: "Batches", href: "/batches", icon: Box },
             { name: "Lifecycle", href: "/lifecycle", icon: Activity },
-            { name: "Partners", href: "/partners", icon: Users },
             { name: "Templates", href: "/templates", icon: LayoutTemplate },
-            { name: "Exports", href: "/exports", icon: FileDown },
+        ]
+    },
+    {
+        label: "Compliance",
+        items: [
             { name: "Compliance", href: "/compliance", icon: Shield },
-            { name: "Team", href: "/team", icon: UserPlus },
+            { name: "Exports", href: "/exports", icon: FileDown },
         ]
     },
     {
         label: "Account",
         items: [
+            { name: "Team", href: "/team", icon: Users },
             { name: "Billing", href: "/billing", icon: CreditCard },
-            { name: "Rewards", href: "/rewards", icon: Trophy },
             { name: "Settings", href: "/settings", icon: Settings },
         ]
     },
     {
         label: "Developer",
+        collapsible: true,
         items: [
             { name: "API Keys", href: "/developer", icon: Key },
             { name: "Docs", href: "/docs", icon: BookOpen },
@@ -80,6 +85,16 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
     const pathname = usePathname()
     const { user, logout } = useAuth()
+
+    const [devExpanded, setDevExpanded] = useState(() => {
+        if (typeof window === "undefined") return false
+        const saved = localStorage.getItem('sidebar-dev-expanded')
+        return saved ? JSON.parse(saved) : false
+    })
+
+    useEffect(() => {
+        localStorage.setItem('sidebar-dev-expanded', JSON.stringify(devExpanded))
+    }, [devExpanded])
 
     const initials = user?.company_name
         ? user.company_name.substring(0, 2).toUpperCase()
@@ -150,58 +165,82 @@ export function DashboardSidebar({
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto py-4 px-3">
-                    {navGroups.map((group, groupIndex) => (
-                        <div key={group.label} className={clsx(groupIndex > 0 && "mt-6")}>
-                            {/* Group Label */}
-                            <div className={clsx(
-                                "px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider",
-                                isCollapsed && "md:hidden"
-                            )}>
-                                {group.label}
-                            </div>
+                    {navGroups.map((group, groupIndex) => {
+                        const isDevGroup = group.collapsible
+                        const isGroupExpanded = isDevGroup ? devExpanded : true
 
-                            {/* Group Items */}
-                            <div className="space-y-1">
-                                {group.items.map((item) => {
-                                    const Icon = item.icon
-                                    const active = isActive(item.href)
+                        return (
+                            <div key={group.label} className={clsx(groupIndex > 0 && "mt-6")}>
+                                {/* Group Label */}
+                                {isDevGroup ? (
+                                    <button
+                                        onClick={() => setDevExpanded((prev: boolean) => !prev)}
+                                        className={clsx(
+                                            "flex items-center justify-between w-full px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider hover:text-slate-600 transition-colors",
+                                            isCollapsed && "md:hidden"
+                                        )}
+                                    >
+                                        <span>{group.label}</span>
+                                        {devExpanded ? (
+                                            <ChevronUp className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <ChevronDown className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                ) : (
+                                    <div className={clsx(
+                                        "px-3 mb-2 text-xs font-medium text-slate-400 uppercase tracking-wider",
+                                        isCollapsed && "md:hidden"
+                                    )}>
+                                        {group.label}
+                                    </div>
+                                )}
 
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            onClick={() => {
-                                                if (!active) NProgress.start()
-                                                onClose()
-                                            }}
-                                            title={isCollapsed ? item.name : undefined}
-                                            className={clsx(
-                                                "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                                                active
-                                                    ? "bg-linear-to-r from-slate-900 to-slate-800 text-white shadow-md"
-                                                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-                                                isCollapsed && "md:justify-center md:px-0"
-                                            )}
-                                        >
-                                            {/* Active indicator bar */}
-                                            {active && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-amber-500 rounded-r-full" />
-                                            )}
-                                            <Icon className={clsx(
-                                                "h-5 w-5 shrink-0 transition-colors",
-                                                active ? "text-amber-400" : "text-slate-400 group-hover:text-slate-600"
-                                            )} />
-                                            <span className={clsx(
-                                                isCollapsed && "md:hidden"
-                                            )}>
-                                                {item.name}
-                                            </span>
-                                        </Link>
-                                    )
-                                })}
+                                {/* Group Items */}
+                                {isGroupExpanded && (
+                                    <div className="space-y-1">
+                                        {group.items.map((item) => {
+                                            const Icon = item.icon
+                                            const active = isActive(item.href)
+
+                                            return (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    onClick={() => {
+                                                        if (!active) NProgress.start()
+                                                        onClose()
+                                                    }}
+                                                    title={isCollapsed ? item.name : undefined}
+                                                    className={clsx(
+                                                        "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                                                        active
+                                                            ? "bg-linear-to-r from-slate-900 to-slate-800 text-white shadow-md"
+                                                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                                                        isCollapsed && "md:justify-center md:px-0"
+                                                    )}
+                                                >
+                                                    {/* Active indicator bar */}
+                                                    {active && (
+                                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-amber-500 rounded-r-full" />
+                                                    )}
+                                                    <Icon className={clsx(
+                                                        "h-5 w-5 shrink-0 transition-colors",
+                                                        active ? "text-amber-400" : "text-slate-400 group-hover:text-slate-600"
+                                                    )} />
+                                                    <span className={clsx(
+                                                        isCollapsed && "md:hidden"
+                                                    )}>
+                                                        {item.name}
+                                                    </span>
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </nav>
 
                 {/* User Section */}
