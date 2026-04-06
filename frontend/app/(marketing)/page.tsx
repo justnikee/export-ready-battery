@@ -1,22 +1,22 @@
 import { HeroSection } from "@/components/landing/HeroSection";
+import { QuickLinksSection } from "@/components/landing/QuickLinksSection";
+import { ExplainerSection } from "@/components/landing/ExplainerSection";
+import { UseCasesSection } from "@/components/landing/UseCasesSection";
 import { StatsSection } from "@/components/landing/StatsSection";
-import { CoverageSection } from "@/components/landing/CoverageSection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { ValuesSection } from "@/components/landing/ValuesSection";
 import { DeveloperSection } from "@/components/landing/DeveloperSection";
-import { SecuritySection } from "@/components/landing/SecuritySection";
-import { WhySection } from "@/components/landing/WhySection";
 import { CTASection } from "@/components/landing/CTASection";
 
 export default function Home() {
   return (
     <>
       <HeroSection />
+      <QuickLinksSection />
+      <ExplainerSection />
+      <UseCasesSection />
       <StatsSection />
-      <CoverageSection />
-      <FeaturesSection />
+      <ValuesSection />
       <DeveloperSection />
-      <SecuritySection />
-      <WhySection />
       <CTASection />
     </>
   );
