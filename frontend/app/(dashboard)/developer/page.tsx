@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2, Cpu, Radio } from "lucide-react"
+import { Plus, Key, Trash2, Copy, Check, AlertTriangle, Loader2, Cpu, Radio, BookOpen } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 
@@ -231,6 +231,15 @@ export default function DeveloperPage() {
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Developer Settings</h1>
                         <p className="text-sm text-slate-500 mt-1">Manage API keys for external integrations</p>
+                        <a
+                            href="/docs"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                        >
+                            <BookOpen className="h-4 w-4" />
+                            API Documentation
+                        </a>
                     </div>
                     <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                         <DialogTrigger asChild>
@@ -430,6 +439,21 @@ export default function DeveloperPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Quick Start */}
+                <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100">
+                        <h3 className="text-sm font-medium text-slate-900">Quick Start</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Example API request using your key</p>
+                    </div>
+                    <div className="p-4 bg-slate-950 rounded-b-lg">
+                        <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap overflow-x-auto">
+{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  ${typeof window !== 'undefined' ? window.location.origin : 'https://api.exportready.io'}/api/v1/batches`}
+                        </pre>
+                    </div>
+                </div>
 
                 {/* Device Token Management */}
                 <Card className="bg-white border-slate-200">

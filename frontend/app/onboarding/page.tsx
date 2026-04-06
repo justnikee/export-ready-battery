@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
     Building2, Mail, MapPin, ArrowRight, ArrowLeft, CheckCircle2,
@@ -34,7 +35,7 @@ export default function OnboardingPage() {
         website: "",
         logo_url: "",
         // Step 2: Markets (stored in address or metadata)
-        primary_market: "both", // "eu", "india", "both"
+        primary_market: "india", // "eu", "india", "both"
         // Step 3: Compliance
         epr_registration_number: "",
         bis_r_number: "",
@@ -260,6 +261,15 @@ export default function OnboardingPage() {
                             {/* Step 1: Company Profile */}
                             {currentStep === 1 && (
                                 <div className="space-y-6">
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                        <p className="text-sm font-medium text-blue-800 mb-2">📋 What you&apos;ll need for setup</p>
+                                        <ul className="text-xs text-blue-700 space-y-1">
+                                            <li>• Company name and registered address</li>
+                                            <li>• EPR registration number (CPCB portal)</li>
+                                            <li>• BIS R-Number for IS 16046 certification</li>
+                                            <li>• IEC code (if importing battery cells)</li>
+                                        </ul>
+                                    </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-slate-300">
                                             Company Name <span className="text-red-400">*</span>
@@ -383,6 +393,9 @@ export default function OnboardingPage() {
 
                                     {(formData.primary_market === "india" || formData.primary_market === "both") && (
                                         <>
+                                            <div className="mb-1">
+                                                <h3 className="text-sm font-semibold text-teal-400 uppercase tracking-wider">🇮🇳 India Compliance (Required)</h3>
+                                            </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-slate-300">
                                                     EPR Registration Number
@@ -421,6 +434,9 @@ export default function OnboardingPage() {
 
                                     {(formData.primary_market === "eu" || formData.primary_market === "both") && (
                                         <>
+                                            <div className="mt-4 mb-1">
+                                                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">🇪🇺 EU Compliance (Optional)</h3>
+                                            </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-slate-300">
                                                     EU Authorized Representative Name
@@ -504,6 +520,12 @@ export default function OnboardingPage() {
                                         </motion.div>
                                         <h2 className="text-xl font-semibold text-white">You&apos;re all set!</h2>
                                         <p className="text-slate-400 mt-1">Here&apos;s a summary of your profile</p>
+                                    </div>
+
+                                    <div className="flex justify-center">
+                                        <Link href="/batches" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+                                            Create Your First Batch
+                                        </Link>
                                     </div>
 
                                     <div className="space-y-4 bg-slate-800/50 rounded-xl p-4">
