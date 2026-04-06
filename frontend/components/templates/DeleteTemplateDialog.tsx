@@ -27,15 +27,15 @@ export function DeleteTemplateDialog({
 }: DeleteTemplateDialogProps) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+            <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2 text-white">
-                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                    <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
                         Delete Template
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-zinc-400">
+                    <AlertDialogDescription>
                         Are you sure you want to delete the template{" "}
-                        <span className="font-semibold text-zinc-200">&quot;{templateName}&quot;</span>?
+                        <span className="font-semibold text-zinc-900">&quot;{templateName}&quot;</span>?
                         <br /><br />
                         <span className="text-zinc-500">
                             This action cannot be undone. Existing batches created with this template
@@ -44,7 +44,7 @@ export function DeleteTemplateDialog({
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-700 hover:text-white">
+                    <AlertDialogCancel>
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction

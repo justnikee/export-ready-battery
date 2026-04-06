@@ -94,13 +94,13 @@ export function CreateTemplateDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[550px] bg-zinc-900 border-zinc-800 text-zinc-100">
+            <DialogContent className="sm:max-w-[550px]">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-zinc-900">
-                        <Sparkles className="h-5 w-5 text-teal-400" />
+                    <DialogTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-emerald-600" />
                         Create New Template
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription>
                         Save battery specifications as a reusable template for faster batch creation.
                     </DialogDescription>
                 </DialogHeader>
@@ -109,15 +109,14 @@ export function CreateTemplateDialog({
                     <div className="grid gap-5 py-4">
                         {/* Template Name */}
                         <div className="grid gap-2">
-                            <Label htmlFor="name" className="text-zinc-300">
-                                Template Name <span className="text-red-400">*</span>
+                            <Label htmlFor="name">
+                                Template Name <span className="text-red-500">*</span>
                             </Label>
                             <Input
                                 id="name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g., E-Bike Standard Pack"
-                                className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 required
                             />
                         </div>
@@ -125,7 +124,7 @@ export function CreateTemplateDialog({
                         {/* Chemistry & Voltage */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="chemistry" className="text-zinc-300">
+                                <Label htmlFor="chemistry">
                                     Chemistry
                                 </Label>
                                 <Input
@@ -133,11 +132,10 @@ export function CreateTemplateDialog({
                                     value={chemistry}
                                     onChange={(e) => setChemistry(e.target.value)}
                                     placeholder="e.g., Li-ion NMC"
-                                    className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="voltage" className="text-zinc-300">
+                                <Label htmlFor="voltage">
                                     Voltage
                                 </Label>
                                 <Input
@@ -145,7 +143,6 @@ export function CreateTemplateDialog({
                                     value={voltage}
                                     onChange={(e) => setVoltage(e.target.value)}
                                     placeholder="e.g., 48V"
-                                    className="bg-zinc-800 border-zinc-700 text-zinc-900"
                                 />
                             </div>
                         </div>
@@ -153,7 +150,7 @@ export function CreateTemplateDialog({
                         {/* Capacity & Weight */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="capacity" className="text-zinc-300">
+                                <Label htmlFor="capacity">
                                     Capacity
                                 </Label>
                                 <Input
@@ -161,11 +158,10 @@ export function CreateTemplateDialog({
                                     value={capacity}
                                     onChange={(e) => setCapacity(e.target.value)}
                                     placeholder="e.g., 20Ah"
-                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="weight" className="text-zinc-300">
+                                <Label htmlFor="weight">
                                     Weight
                                 </Label>
                                 <Input
@@ -173,7 +169,6 @@ export function CreateTemplateDialog({
                                     value={weight}
                                     onChange={(e) => setWeight(e.target.value)}
                                     placeholder="e.g., 12kg"
-                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                         </div>
@@ -181,7 +176,7 @@ export function CreateTemplateDialog({
                         {/* Manufacturer & Country */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="manufacturer" className="text-zinc-300">
+                                <Label htmlFor="manufacturer">
                                     Manufacturer
                                 </Label>
                                 <Input
@@ -189,11 +184,10 @@ export function CreateTemplateDialog({
                                     value={manufacturer}
                                     onChange={(e) => setManufacturer(e.target.value)}
                                     placeholder={user?.company_name || "Company name"}
-                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="country" className="text-zinc-300">
+                                <Label htmlFor="country">
                                     Country of Origin
                                 </Label>
                                 <Input
@@ -201,19 +195,18 @@ export function CreateTemplateDialog({
                                     value={countryOfOrigin}
                                     onChange={(e) => setCountryOfOrigin(e.target.value)}
                                     placeholder="e.g., India"
-                                    className="bg-white border-zinc-200 text-zinc-900"
                                 />
                             </div>
                         </div>
 
                         {/* EU Compliance Section */}
-                        <div className="p-4 rounded-lg border border-blue-800/50 bg-blue-950/20">
-                            <h4 className="text-sm font-medium text-blue-300 mb-3">
+                        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
+                            <h4 className="text-sm font-medium text-blue-800 mb-3">
                                 EU Compliance Fields (Optional)
                             </h4>
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="carbon" className="text-zinc-300">
+                                    <Label htmlFor="carbon">
                                         Carbon Footprint
                                     </Label>
                                     <Input
@@ -221,7 +214,6 @@ export function CreateTemplateDialog({
                                         value={carbonFootprint}
                                         onChange={(e) => setCarbonFootprint(e.target.value)}
                                         placeholder="e.g., 85 kg CO₂e"
-                                        className="bg-white border-zinc-200 text-zinc-900"
                                     />
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -230,9 +222,9 @@ export function CreateTemplateDialog({
                                         id="recyclable"
                                         checked={recyclable}
                                         onChange={(e) => setRecyclable(e.target.checked)}
-                                        className="h-4 w-4 rounded border-zinc-600 bg-zinc-700 text-teal-600 focus:ring-teal-500"
+                                        className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                                     />
-                                    <Label htmlFor="recyclable" className="text-zinc-300 cursor-pointer">
+                                    <Label htmlFor="recyclable" className="cursor-pointer">
                                         Recyclable materials
                                     </Label>
                                 </div>
@@ -245,14 +237,13 @@ export function CreateTemplateDialog({
                             type="button"
                             variant="ghost"
                             onClick={() => onOpenChange(false)}
-                            className="text-zinc-400 hover:text-zinc-900"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-teal-600 hover:bg-teal-700"
+                            className="bg-zinc-900 hover:bg-zinc-800 text-white"
                         >
                             {isLoading ? "Creating..." : "Create Template"}
                         </Button>

@@ -33,7 +33,6 @@ interface TemplateCardProps {
 export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
     const { specs } = template
 
-    // Format relative time
     const formatRelativeTime = (dateStr: string) => {
         const date = new Date(dateStr)
         const now = new Date()
@@ -48,15 +47,15 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
     }
 
     return (
-        <Card className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-all group">
+        <Card className="bg-white border-zinc-200 hover:border-zinc-300 transition-all group">
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-teal-600/20">
-                            <Zap className="h-4 w-4 text-teal-400" />
+                        <div className="p-2 rounded-lg bg-emerald-50">
+                            <Zap className="h-4 w-4 text-emerald-600" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-white group-hover:text-teal-300 transition-colors">
+                            <h3 className="font-semibold text-zinc-900 group-hover:text-emerald-700 transition-colors">
                                 {template.name}
                             </h3>
                             <p className="text-xs text-zinc-500">
@@ -69,22 +68,19 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-zinc-500 hover:text-white"
+                                className="h-8 w-8 text-zinc-400 hover:text-zinc-900"
                             >
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
-                            <DropdownMenuItem
-                                onClick={onUse}
-                                className="text-zinc-300 focus:text-white focus:bg-zinc-800"
-                            >
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={onUse}>
                                 <Play className="h-4 w-4 mr-2" />
                                 Use Template
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={onDelete}
-                                className="text-red-400 focus:text-red-300 focus:bg-red-950/50"
+                                className="text-red-600 focus:text-red-700 focus:bg-red-50"
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -97,17 +93,17 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                 {/* Specs Badges */}
                 <div className="flex flex-wrap gap-2 mb-4">
                     {specs.chemistry && (
-                        <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 text-xs">
+                        <Badge variant="secondary" className="text-xs">
                             {specs.chemistry}
                         </Badge>
                     )}
                     {specs.voltage && (
-                        <Badge variant="secondary" className="bg-blue-900/50 text-blue-300 text-xs">
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs">
                             {specs.voltage}
                         </Badge>
                     )}
                     {specs.capacity && (
-                        <Badge variant="secondary" className="bg-emerald-900/50 text-emerald-300 text-xs">
+                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">
                             {specs.capacity}
                         </Badge>
                     )}
@@ -117,20 +113,20 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-500">
                     {specs.manufacturer && (
                         <div>
-                            <span className="text-zinc-600">Manufacturer:</span>{" "}
-                            <span className="text-zinc-400">{specs.manufacturer}</span>
+                            <span className="text-zinc-400">Manufacturer:</span>{" "}
+                            <span className="text-zinc-700">{specs.manufacturer}</span>
                         </div>
                     )}
                     {specs.weight && (
                         <div>
-                            <span className="text-zinc-600">Weight:</span>{" "}
-                            <span className="text-zinc-400">{specs.weight}</span>
+                            <span className="text-zinc-400">Weight:</span>{" "}
+                            <span className="text-zinc-700">{specs.weight}</span>
                         </div>
                     )}
                     {specs.carbon_footprint && (
                         <div className="col-span-2">
-                            <span className="text-zinc-600">Carbon:</span>{" "}
-                            <span className="text-emerald-400">{specs.carbon_footprint}</span>
+                            <span className="text-zinc-400">Carbon:</span>{" "}
+                            <span className="text-emerald-600">{specs.carbon_footprint}</span>
                         </div>
                     )}
                 </div>
@@ -139,7 +135,7 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                 <Button
                     onClick={onUse}
                     variant="outline"
-                    className="w-full mt-4 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    className="w-full mt-4"
                 >
                     <Play className="h-4 w-4 mr-2" />
                     Use in New Batch

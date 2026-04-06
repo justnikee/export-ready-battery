@@ -277,7 +277,7 @@ export default function BillingPage() {
                     contact: ""
                 },
                 theme: {
-                    color: "#09090B" // Slate-900
+                    color: "#18181B" // zinc-900
                 },
                 modal: {
                     ondismiss: function () {
