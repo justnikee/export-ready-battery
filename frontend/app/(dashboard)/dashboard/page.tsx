@@ -5,7 +5,7 @@ import { useAuth } from "@/context/auth-context"
 import api from "@/lib/api"
 import dynamic from 'next/dynamic'
 import { formatDistanceToNow, format, parseISO } from "date-fns"
-import { Package, Globe, Zap, AlertCircle, QrCode, FolderPlus, MoreHorizontal, ArrowUpRight, ArrowRight, Trash2, Shield } from "lucide-react"
+import { Package, Zap, AlertCircle, QrCode, FolderPlus, MoreHorizontal, ArrowUpRight, ArrowRight, Trash2, Shield, Upload, FileDown } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton"
 import { ComplianceScoreCard } from "@/components/dashboard/ComplianceScoreCard"
-import { EUComplianceChecklist } from "@/components/dashboard/EUComplianceChecklist"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const ProductionChart = dynamic(() => import('@/components/dashboard/ProductionChart').then(mod => mod.ProductionChart), { ssr: false })
@@ -80,6 +79,20 @@ interface BatchesResponse {
 
 interface ScansResponse {
     scans?: ScanFeedItem[]
+}
+
+function getComplianceBadge(status: string | undefined) {
+    const s = status?.toUpperCase()
+    if (s === "VERIFIED") {
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Verified</span>
+    }
+    if (s === "PENDING") {
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Pending</span>
+    }
+    if (s === "REJECTED") {
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">Rejected</span>
+    }
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">Not Uploaded</span>
 }
 
 export default function DashboardPage() {
@@ -209,6 +222,11 @@ export default function DashboardPage() {
     const quotaPercent = Math.round((quotaUsed / quotaLimit) * 100)
     const isOverLimit = quotaUsed > quotaLimit
 
+    const allVerified =
+        user?.epr_status?.toUpperCase() === "VERIFIED" &&
+        user?.bis_status?.toUpperCase() === "VERIFIED" &&
+        user?.pli_status?.toUpperCase() === "VERIFIED"
+
     if (loading) {
         return <DashboardSkeleton />
     }
@@ -217,11 +235,11 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-slate-50 p-6">
             <div className="w-full mx-auto space-y-6">
 
-                {/* Page Header */}
+                {/* Section 1: Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
-                        <p className="text-sm text-slate-500 mt-1">Overview of your battery compliance operations</p>
+                        <p className="text-sm text-slate-500 mt-1">Overview of your battery passport operations</p>
                     </div>
                     <Link
                         href="/batches"
@@ -232,8 +250,75 @@ export default function DashboardPage() {
                     </Link>
                 </div>
 
-                {/* Stats Row - 5 Cards + Compliance */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                {/* Section 2: India Compliance Status Banner */}
+                <div className="bg-white border border-slate-200 rounded-lg p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex items-center gap-3 shrink-0">
+                            <div className="p-2 rounded-md bg-slate-100">
+                                <Shield className="h-5 w-5 text-slate-700" />
+                            </div>
+                            <span className="text-sm font-medium text-slate-900">India Compliance</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4 sm:ml-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500">EPR</span>
+                                {getComplianceBadge(user?.epr_status)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500">BIS</span>
+                                {getComplianceBadge(user?.bis_status)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-500">PLI</span>
+                                {getComplianceBadge(user?.pli_status)}
+                            </div>
+                        </div>
+                        <div className="sm:ml-auto shrink-0">
+                            {allVerified ? (
+                                <span className="text-sm text-emerald-600 font-medium">✓ All India compliance documents verified</span>
+                            ) : (
+                                <Link href="/settings" className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                                    Complete your compliance setup →
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Section 3: Quick Actions Bar */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link href="/batches" className="bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                            <Package className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div className="text-sm font-medium text-slate-900 group-hover:text-slate-700">Create Batch</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Start a new production batch</div>
+                    </Link>
+                    <Link href="/batches" className="bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                            <Upload className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="text-sm font-medium text-slate-900 group-hover:text-slate-700">Upload CSV</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Bulk import serial numbers</div>
+                    </Link>
+                    <Link href="/compliance" className="bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                            <Shield className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div className="text-sm font-medium text-slate-900 group-hover:text-slate-700">View Compliance</div>
+                        <div className="text-xs text-slate-500 mt-0.5">EPR obligations & certificates</div>
+                    </Link>
+                    <Link href="/compliance" className="bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
+                            <FileDown className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div className="text-sm font-medium text-slate-900 group-hover:text-slate-700">CPCB Report</div>
+                        <div className="text-xs text-slate-500 mt-0.5">Generate CPCB Form 3 export</div>
+                    </Link>
+                </div>
+
+                {/* Section 4: Stats Row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Total Passports */}
                     <div className="bg-white border border-slate-200 rounded-lg p-5">
                         <div className="flex items-center justify-between mb-3">
@@ -245,32 +330,6 @@ export default function DashboardPage() {
                             <ArrowUpRight className="h-3 w-3 text-emerald-500" />
                             <span className="text-emerald-600 font-medium">+{stats?.passports_this_week || 0}</span> this week
                         </div>
-                    </div>
-
-                    {/* India */}
-                    <div className="bg-white border border-slate-200 rounded-lg p-5">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 rounded-full bg-linear-to-br from-orange-400 to-green-500 shrink-0" />
-                                India
-                            </span>
-                            <Zap className="h-4 w-4 text-orange-500" />
-                        </div>
-                        <div className="text-2xl font-semibold text-slate-900">{batches.filter(b => b.market_region === "INDIA").length || 0}</div>
-                        <div className="text-xs text-slate-500 mt-2">Battery Aadhaar Compliant</div>
-                    </div>
-
-                    {/* EU Export */}
-                    <div className="bg-white border border-slate-200 rounded-lg p-5">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                                <span className="w-4 h-4 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0" />
-                                EU
-                            </span>
-                            <Globe className="h-4 w-4 text-blue-500" />
-                        </div>
-                        <div className="text-2xl font-semibold text-slate-900">{batches.filter(b => b.market_region === "EU").length || 0}</div>
-                        <div className="text-xs text-slate-500 mt-2">Carbon Regulation Ready</div>
                     </div>
 
                     {/* Active Batches */}
@@ -311,7 +370,7 @@ export default function DashboardPage() {
                     <ComplianceScoreCard batches={batches} />
                 </div>
 
-                {/* Charts Row */}
+                {/* Section 5: Charts Row */}
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                     {/* Production Overview */}
                     <div className="lg:col-span-3 bg-white border border-slate-200 rounded-lg overflow-hidden">
@@ -335,12 +394,9 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* EU Compliance Checklist Widget */}
-                <EUComplianceChecklist batches={batches} />
-
-                {/* Data Tables Row */}
+                {/* Section 6: Recent Batches + Audit Log */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Recent Batches - Industrial Data Table */}
+                    {/* Recent Batches */}
                     <div className="lg:col-span-2 bg-white border border-slate-200 rounded-lg overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="text-base font-medium text-slate-900">Recent Batches</h3>
@@ -457,7 +513,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Global Scan Activity - Full Width */}
+                {/* Section 7: Global Scan Activity */}
                 <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
                     <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                         <div>
