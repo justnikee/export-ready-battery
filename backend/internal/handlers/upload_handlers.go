@@ -314,6 +314,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Get tenant details for batch snapshot and manufacturer code
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {
+		slog.Error("AutoGenerate: failed to retrieve tenant", "tenant_id", tenantID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
@@ -351,6 +352,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// Build batch snapshot for auditability
 	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
 	if err != nil {
+		slog.Error("AutoGenerate: failed to build batch snapshot", "batch_id", batchID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
 		return
 	}
@@ -386,9 +388,10 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	bpanPrefix := services.BuildBPANPrefix(regionPrefix, mfrCode, chemCode, year)
 
 	// Atomically reserve a batch of sequence numbers
+	slog.Info("AutoGenerate: reserving sequences", "prefix", bpanPrefix, "count", req.Count)
 	startSeq, err := h.repo.NextSequenceBatch(r.Context(), bpanPrefix, req.Count)
 	if err != nil {
-		slog.Error("Failed to reserve BPAN sequences", "error", err)
+		slog.Error("AutoGenerate: failed to reserve BPAN sequences", "prefix", bpanPrefix, "count", req.Count, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate serial numbers")
 		return
 	}
@@ -420,9 +423,10 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Bulk insert passports and genesis events atomically
+	slog.Info("AutoGenerate: inserting passports", "count", len(passports), "batch_id", batchID)
 	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
 	if err != nil {
-		slog.Error("Failed to insert auto-generated passports", "error", err)
+		slog.Error("AutoGenerate: failed to insert passports", "count", len(passports), "batch_id", batchID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
 		return
 	}

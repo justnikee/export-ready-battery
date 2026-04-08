@@ -1,0 +1,2 @@
+# exportready-battery/internal/repository
+internal\repository\passport.go:303:4: undefined: slog

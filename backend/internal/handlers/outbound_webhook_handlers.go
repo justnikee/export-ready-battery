@@ -40,18 +40,18 @@ func (h *OutboundWebhookHandler) CreateOutboundWebhook(w http.ResponseWriter, r 
 		respondError(w, http.StatusBadRequest, "url is required")
 		return
 	}
-	if len(req.Events) == 0 {
-		respondError(w, http.StatusBadRequest, "events list is required")
+	if len(req.EventTypes) == 0 {
+		respondError(w, http.StatusBadRequest, "event_types list is required")
 		return
 	}
 
 	wh := &models.OutboundWebhook{
-		ID:       uuid.New(),
-		TenantID: tenantID,
-		URL:      req.URL,
-		Secret:   req.Secret,
-		Events:   req.Events,
-		IsActive: true,
+		ID:         uuid.New(),
+		TenantID:   tenantID,
+		URL:        req.URL,
+		Secret:     uuid.New().String(),
+		EventTypes: req.EventTypes,
+		IsActive:   true,
 	}
 
 	if h.svc == nil {

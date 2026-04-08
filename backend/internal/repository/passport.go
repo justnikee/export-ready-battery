@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,6 +39,18 @@ func copyPassports(ctx context.Context, exec copyFromer, passports []*models.Pas
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			slog.Error("copyPassports PG error",
+				"severity", pgErr.Severity,
+				"code", pgErr.Code,
+				"message", pgErr.Message,
+				"detail", pgErr.Detail,
+				"constraint", pgErr.ConstraintName,
+				"column", pgErr.ColumnName,
+				"table", pgErr.TableName,
+			)
+		}
 		return 0, fmt.Errorf("failed to bulk insert passports: %w", err)
 	}
 
@@ -84,6 +98,20 @@ func copyPassportEvents(ctx context.Context, exec copyFromer, events []*models.P
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			slog.Error("copyPassportEvents PG error",
+				"severity", pgErr.Severity,
+				"code", pgErr.Code,
+				"message", pgErr.Message,
+				"detail", pgErr.Detail,
+				"hint", pgErr.Hint,
+				"constraint", pgErr.ConstraintName,
+				"column", pgErr.ColumnName,
+				"table", pgErr.TableName,
+				"schema", pgErr.SchemaName,
+			)
+		}
 		return fmt.Errorf("failed to bulk insert passport events: %w", err)
 	}
 
