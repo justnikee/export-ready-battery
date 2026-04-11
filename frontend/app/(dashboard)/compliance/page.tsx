@@ -209,46 +209,58 @@ function OverviewTab() {
                     </div>
 
                     {/* Stats Grid */}
+                    {(() => {
+                        const weightKg = ob.total_weight_kg ?? 0;
+                        const requiredKg = ob.required_collection_kg ?? 0;
+                        const collectedKg = ob.collected_kg ?? 0;
+                        const deficitKg = ob.deficit_kg ?? 0;
+                        const surplusKg = ob.surplus_kg ?? 0;
+                        const progressPct = requiredKg > 0 ? Math.min(100, (collectedKg / requiredKg) * 100) : 0;
+                        return (
+                            <>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <StatCard label="Batches" value={ob.total_batches} />
-                        <StatCard label="Production Weight" value={`${ob.total_weight_kg.toFixed(1)} kg`} />
+                        <StatCard label="Batches" value={ob.total_batches ?? 0} />
+                        <StatCard label="Production Weight" value={`${weightKg.toFixed(1)} kg`} />
                         <StatCard
-                            label={`Target (${ob.collection_target_pct}%)`}
-                            value={`${ob.required_collection_kg.toFixed(1)} kg`}
+                            label={`Target (${ob.collection_target_pct ?? 0}%)`}
+                            value={`${requiredKg.toFixed(1)} kg`}
                         />
                         <StatCard
                             label="Collected (Certs)"
-                            value={`${ob.collected_kg.toFixed(1)} kg`}
-                            highlight={ob.collected_kg >= ob.required_collection_kg ? 'green' : undefined}
+                            value={`${collectedKg.toFixed(1)} kg`}
+                            highlight={collectedKg >= requiredKg ? 'green' : undefined}
                         />
                         <StatCard
-                            label={ob.deficit_kg > 0 ? 'Deficit' : 'Surplus'}
-                            value={`${(ob.deficit_kg > 0 ? ob.deficit_kg : ob.surplus_kg).toFixed(1)} kg`}
-                            highlight={ob.deficit_kg > 0 ? 'red' : 'green'}
+                            label={deficitKg > 0 ? 'Deficit' : 'Surplus'}
+                            value={`${(deficitKg > 0 ? deficitKg : surplusKg).toFixed(1)} kg`}
+                            highlight={deficitKg > 0 ? 'red' : 'green'}
                         />
                     </div>
 
                     {/* Progress Bar */}
-                    {ob.required_collection_kg > 0 && (
+                    {requiredKg > 0 && (
                         <div className="mt-4">
                             <div className="flex justify-between text-xs text-zinc-500 mb-1">
                                 <span>Progress toward target</span>
-                                <span>{Math.min(100, (ob.collected_kg / ob.required_collection_kg * 100)).toFixed(0)}%</span>
+                                <span>{progressPct.toFixed(0)}%</span>
                             </div>
                             <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full rounded-full transition-all duration-500 ${
-                                        ob.collected_kg >= ob.required_collection_kg
+                                        collectedKg >= requiredKg
                                             ? 'bg-emerald-500'
-                                            : ob.collected_kg > 0
+                                            : collectedKg > 0
                                                 ? 'bg-amber-500'
                                                 : 'bg-zinc-300'
                                     }`}
-                                    style={{ width: `${Math.min(100, ob.required_collection_kg > 0 ? (ob.collected_kg / ob.required_collection_kg * 100) : 0)}%` }}
+                                    style={{ width: `${progressPct}%` }}
                                 />
                             </div>
                         </div>
                     )}
+                            </>
+                        );
+                    })()}
                 </div>
             ))}
         </div>
