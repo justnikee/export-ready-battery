@@ -209,6 +209,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     // IEC Validation State
     const [iecError, setIecError] = useState(false)
 
+    // Inline field errors
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
     // Batch-level India Compliance Fields
     const [bisNumber, setBisNumber] = useState("")
     const [eprNumber, setEprNumber] = useState("")
@@ -222,6 +225,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             console.error("Failed to fetch templates:", error)
         }
     }, [user])
+
+    const clearFieldError = (field: string) => {
+        setFieldErrors(prev => {
+            if (!prev[field]) return prev
+            const next = { ...prev }
+            delete next[field]
+            return next
+        })
+    }
 
     // Fetch templates when dialog opens
     useEffect(() => {
@@ -400,6 +412,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
             setUploadProgress(100)
             setUploadedFileUrl(publicUrl)
+            clearFieldError("certificate")
             toast.success('Certificate uploaded successfully')
 
         } catch (error: unknown) {
@@ -412,49 +425,80 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         }
     }
 
+    const validateForm = (): Record<string, string> => {
+        const errors: Record<string, string> = {}
+
+        if (!batchName.trim()) errors.name = "Batch name is required"
+        if (!modelName.trim()) errors.modelName = "Model name is required"
+        if (!manufacturingStartDate) errors.mfgStart = "Manufacturing start date is required"
+        if (!manufacturingEndDate) errors.mfgEnd = "Manufacturing end date is required"
+        if (manufacturingStartDate && manufacturingEndDate && new Date(manufacturingEndDate) < new Date(manufacturingStartDate)) {
+            errors.mfgEnd = "End date must be on or after start date"
+        }
+        if (!manufacturer.trim()) errors.manufacturer = "Manufacturer is required"
+        if (!capacity.trim()) errors.capacity = "Capacity is required"
+        if (!voltage.trim()) errors.voltage = "Voltage is required"
+
+        if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+            if (!batteryCategory) errors.batteryCategory = "Battery category is required for EU compliance (Art. 3)"
+        }
+
+        if (marketRegion === "INDIA") {
+            if (!cellSource) errors.cellSource = "Cell source is required for India compliance"
+            if (!hsnCode.trim()) {
+                errors.hsnCode = "HSN Code is required for India"
+            } else if (!hsnCode.startsWith("8507")) {
+                errors.hsnCode = 'HSN Code must start with "8507" (Li-ion accumulators)'
+            }
+            if (cellSource === "IMPORTED") {
+                if (!user?.iec_code) errors.iecBanner = "IEC Code is required for imported cells — add it in Organization Settings"
+                if (!billOfEntryNo.trim()) errors.billOfEntry = "Bill of Entry No. is required for imported cells"
+                if (!cellCountryOfOrigin.trim() || cellCountryOfOrigin.length < 2) errors.cellCountryOfOrigin = "Cell country of origin required (2-letter ISO code)"
+                if (!customsDate) errors.customsDate = "Import date is required for imported cells"
+            }
+            if (cellSource !== "IMPORTED" && dvaSource === "AUDITED") {
+                if (!auditedDva.trim()) {
+                    errors.auditedDva = "Audited DVA % is required"
+                } else {
+                    const dva = parseFloat(auditedDva)
+                    if (isNaN(dva) || dva < 0 || dva > 100) {
+                        errors.auditedDva = "Audited DVA must be between 0 and 100"
+                    }
+                }
+                if (!uploadedFileUrl) errors.certificate = "CA Certificate upload is required for audited mode"
+            }
+        }
+
+        const matTotal = (["cobalt", "lithium", "nickel", "manganese", "graphite", "lead"] as const)
+            .reduce((sum, key) => sum + (parseFloat(materialComposition[key]) || 0), 0)
+        if (matTotal > 100) {
+            errors.materialTotal = `Material composition total is ${matTotal.toFixed(1)}% — cannot exceed 100%`
+        }
+
+        return errors
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user) return
 
-        // ===== DUAL-MODE VALIDATION =====
-        if (!modelName) {
-            toast.error("Model Name is required")
-            return
-        }
-        if (!manufacturingStartDate || !manufacturingEndDate) {
-            toast.error("Manufacturing start and end dates are required")
-            return
-        }
-        if (manufacturingStartDate && manufacturingEndDate && new Date(manufacturingEndDate) < new Date(manufacturingStartDate)) {
-            toast.error("Manufacturing end date must be on or after the start date")
-            return
-        }
-
-        // India Mode: Cell Source is MANDATORY
-        if (marketRegion === "INDIA" && !cellSource) {
-            toast.error("Please specify Cell Source (Domestic/Imported) for India compliance")
-            return
-        }
-
-        // India Mode + IMPORTED: IEC Code is MANDATORY
-        if (marketRegion === "INDIA" && cellSource === "IMPORTED") {
-            if (!user.iec_code) {
-                toast.error("IEC Code is required for importing battery cells. Please add it in Organization Settings.")
-                return
+        // Validate all fields at once with inline errors
+        const errors = validateForm()
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors)
+            const idMap: Record<string, string> = {
+                name: "name", modelName: "modelName", mfgStart: "mfgStart", mfgEnd: "mfgEnd",
+                manufacturer: "manufacturer", capacity: "capacity", voltage: "voltage",
+                batteryCategory: "batteryCategory", cellSource: "cellSource",
+                hsnCode: "hsnCode", billOfEntry: "billOfEntry", cellCountryOfOrigin: "cellCountryOfOrigin",
+                customsDate: "customsDate", auditedDva: "auditedDva",
             }
-        }
-
-        if (marketRegion === "EU" && !carbonFootprint) {
-            toast.error("Carbon Footprint is required for EU exports")
-            return
-        }
-
-        // India Import Validation
-        if (marketRegion === "INDIA" && cellSource === "IMPORTED") {
-            if (!billOfEntryNo || !cellCountryOfOrigin || !customsDate) {
-                toast.error("Imported batches require Bill of Entry, Country of Origin, and Customs Date")
-                return
+            const firstKey = Object.keys(errors)[0]
+            const elementId = idMap[firstKey]
+            if (elementId) {
+                setTimeout(() => document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50)
             }
+            return
         }
 
         setIsLoading(true)
@@ -548,16 +592,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 payload.dva_source = dvaSource
 
                 if (dvaSource === "AUDITED") {
-                    // Audited Mode - require certificate upload
-                    if (!uploadedFileUrl) {
-                        toast.error("Please upload the CA certificate before submitting")
-                        setIsLoading(false)
-                        return
-                    }
-
                     const auditedVal = parseFloat(auditedDva) || 0
                     payload.audited_domestic_value_add = auditedVal
-                    payload.pli_certificate_url = uploadedFileUrl
+                    payload.pli_certificate_url = uploadedFileUrl ?? undefined
                 } else {
                     // Estimated Mode (Legacy DVA)
                     const sale = parseFloat(salePrice) || 0
@@ -627,6 +664,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     }
 
     const resetForm = () => {
+        setFieldErrors({})
         setBatchName("")
         setModelName("")
         setManufacturingStartDate("")
@@ -800,10 +838,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             <Input
                                 id="name"
                                 value={batchName}
-                                onChange={(e) => setBatchName(e.target.value)}
+                                onChange={(e) => { setBatchName(e.target.value); clearFieldError("name") }}
                                 placeholder="e.g. Q1-2024-Pro"
-                                required
+                                className={fieldErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                             />
+                            {fieldErrors.name && <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>}
                         </div>
 
                         {/* Row 1b: Model Name */}
@@ -812,10 +851,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                             <Input
                                 id="modelName"
                                 value={modelName}
-                                onChange={(e) => setModelName(e.target.value)}
+                                onChange={(e) => { setModelName(e.target.value); clearFieldError("modelName") }}
                                 placeholder="e.g. ER-52V-20Ah"
-                                required
+                                className={fieldErrors.modelName ? "border-red-500 focus-visible:ring-red-500" : ""}
                             />
+                            {fieldErrors.modelName && <p className="text-xs text-red-600 mt-1">{fieldErrors.modelName}</p>}
                         </div>
 
                         {/* Form fields with animation */}
@@ -828,9 +868,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         id="mfgStart"
                                         type="date"
                                         value={manufacturingStartDate}
-                                        onChange={(e) => setManufacturingStartDate(e.target.value)}
-                                        required
+                                        onChange={(e) => { setManufacturingStartDate(e.target.value); clearFieldError("mfgStart"); clearFieldError("mfgEnd") }}
+                                        className={fieldErrors.mfgStart ? "border-red-500 focus-visible:ring-red-500" : ""}
                                     />
+                                    {fieldErrors.mfgStart && <p className="text-xs text-red-600 mt-1">{fieldErrors.mfgStart}</p>}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="mfgEnd">Manufacturing End Date <span className="text-red-500">*</span></Label>
@@ -838,9 +879,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         id="mfgEnd"
                                         type="date"
                                         value={manufacturingEndDate}
-                                        onChange={(e) => setManufacturingEndDate(e.target.value)}
-                                        required
+                                        onChange={(e) => { setManufacturingEndDate(e.target.value); clearFieldError("mfgEnd") }}
+                                        className={fieldErrors.mfgEnd ? "border-red-500 focus-visible:ring-red-500" : ""}
                                     />
+                                    {fieldErrors.mfgEnd && <p className="text-xs text-red-600 mt-1">{fieldErrors.mfgEnd}</p>}
                                 </div>
                             </div>
 
@@ -851,9 +893,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <Input
                                         id="manufacturer"
                                         value={manufacturer}
-                                        onChange={(e) => setManufacturer(e.target.value)}
-                                        required
+                                        onChange={(e) => { setManufacturer(e.target.value); clearFieldError("manufacturer") }}
+                                        className={fieldErrors.manufacturer ? "border-red-500 focus-visible:ring-red-500" : ""}
                                     />
+                                    {fieldErrors.manufacturer && <p className="text-xs text-red-600 mt-1">{fieldErrors.manufacturer}</p>}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="chemistry">Chemistry <span className="text-red-500">*</span></Label>
@@ -885,8 +928,8 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                             Battery Category <span className="text-red-500">*</span>
                                             <span className="text-xs text-zinc-500 ml-1">(EU Reg. Art 2)</span>
                                         </Label>
-                                        <Select value={batteryCategory} onValueChange={setBatteryCategory}>
-                                            <SelectTrigger id="batteryCategory">
+                                        <Select value={batteryCategory} onValueChange={(v) => { setBatteryCategory(v); clearFieldError("batteryCategory") }}>
+                                            <SelectTrigger id="batteryCategory" className={fieldErrors.batteryCategory ? "border-red-500" : ""}>
                                                 <SelectValue placeholder="Select EU battery category" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -897,6 +940,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 <SelectItem value="SLI">SLI — Starting, Lighting, Ignition</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                        {fieldErrors.batteryCategory && <p className="text-xs text-red-600 mt-1">{fieldErrors.batteryCategory}</p>}
                                     </div>
                                     <div />
                                 </div>
@@ -932,20 +976,22 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                     <Input
                                         id="capacity"
                                         value={capacity}
-                                        onChange={(e) => setCapacity(e.target.value)}
+                                        onChange={(e) => { setCapacity(e.target.value); clearFieldError("capacity") }}
                                         placeholder="e.g. 5000mAh"
-                                        required
+                                        className={fieldErrors.capacity ? "border-red-500 focus-visible:ring-red-500" : ""}
                                     />
+                                    {fieldErrors.capacity && <p className="text-xs text-red-600 mt-1">{fieldErrors.capacity}</p>}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="voltage">Voltage <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="voltage"
                                         value={voltage}
-                                        onChange={(e) => setVoltage(e.target.value)}
+                                        onChange={(e) => { setVoltage(e.target.value); clearFieldError("voltage") }}
                                         placeholder="e.g. 3.7V"
-                                        required
+                                        className={fieldErrors.voltage ? "border-red-500 focus-visible:ring-red-500" : ""}
                                     />
+                                    {fieldErrors.voltage && <p className="text-xs text-red-600 mt-1">{fieldErrors.voltage}</p>}
                                 </div>
                             </div>
 
@@ -1019,7 +1065,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         max="100"
                                                         step="0.1"
                                                         value={materialComposition[key]}
-                                                        onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                        onChange={(e) => { setMaterialComposition(prev => ({ ...prev, [key]: e.target.value })); clearFieldError("materialTotal") }}
                                                         placeholder="0.0"
                                                         className="h-8 text-xs bg-white border-zinc-200"
                                                     />
@@ -1215,12 +1261,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         <Input
                                             id="hsnCode"
                                             value={hsnCode}
-                                            onChange={(e) => setHsnCode(e.target.value)}
+                                            onChange={(e) => { setHsnCode(e.target.value); clearFieldError("hsnCode") }}
                                             placeholder="e.g. 85076000"
-                                            className="bg-white border-zinc-200 text-zinc-900"
+                                            className={`bg-white text-zinc-900 ${fieldErrors.hsnCode ? "border-red-500" : "border-zinc-200"}`}
                                             maxLength={8}
                                         />
-                                        <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
+                                        {fieldErrors.hsnCode
+                                            ? <p className="text-[10px] text-red-600">{fieldErrors.hsnCode}</p>
+                                            : <p className="text-[10px] text-zinc-500">Must start with 8507 (Li-ion accumulators)</p>
+                                        }
                                     </div>
 
                                     {/* Batch-Level Compliance Fields (Optional) */}
@@ -1339,21 +1388,24 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                             max="100"
                                                             step="0.1"
                                                             value={auditedDva}
-                                                            onChange={(e) => setAuditedDva(e.target.value)}
+                                                            onChange={(e) => { setAuditedDva(e.target.value); clearFieldError("auditedDva") }}
                                                             placeholder="e.g. 55.5"
-                                                            className="bg-white border-zinc-200 text-zinc-900"
+                                                            className={`bg-white text-zinc-900 ${fieldErrors.auditedDva ? "border-red-500" : "border-zinc-200"}`}
                                                         />
+                                                        {fieldErrors.auditedDva && <p className="text-xs text-red-600 mt-1">{fieldErrors.auditedDva}</p>}
                                                     </div>
 
                                                     <div className="grid gap-2">
-                                                        <Label className="text-zinc-700">Upload CA Certificate (PDF)</Label>
+                                                        <Label className="text-zinc-700">Upload CA Certificate (PDF) <span className="text-red-500">*</span></Label>
 
                                                         {/* Upload Zone */}
                                                         {!uploadedFileUrl ? (
                                                             <div className="flex items-center justify-center w-full">
-                                                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isUploading
-                                                                    ? 'border-emerald-500 bg-emerald-50'
-                                                                    : 'border-zinc-300 bg-zinc-50 hover:bg-zinc-100'
+                                                                <label id="certificate" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${fieldErrors.certificate
+                                                                    ? 'border-red-500 bg-red-50'
+                                                                    : isUploading
+                                                                        ? 'border-emerald-500 bg-emerald-50'
+                                                                        : 'border-zinc-300 bg-zinc-50 hover:bg-zinc-100'
                                                                     }`}>
                                                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                                         {isUploading ? (
@@ -1431,6 +1483,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                                 </div>
                                                             </div>
                                                         )}
+                                                        {fieldErrors.certificate && <p className="text-xs text-red-600 mt-1">{fieldErrors.certificate}</p>}
                                                     </div>
                                                 </div>
                                             ) : (
@@ -1504,20 +1557,24 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                         <select
                                             id="cellSource"
                                             value={cellSource}
-                                            onChange={(e) => setCellSource(e.target.value as CellSource)}
-                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-zinc-900 focus-visible:outline-none focus-visible:ring-2 ${!cellSource && marketRegion === "INDIA"
-                                                ? "border-red-500/50 bg-white"
-                                                : "border-zinc-200 bg-white"
+                                            onChange={(e) => { setCellSource(e.target.value as CellSource); clearFieldError("cellSource") }}
+                                            className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm text-zinc-900 focus-visible:outline-none focus-visible:ring-2 ${fieldErrors.cellSource
+                                                ? "border-red-500 bg-white"
+                                                : !cellSource && marketRegion === "INDIA"
+                                                    ? "border-red-500/50 bg-white"
+                                                    : "border-zinc-200 bg-white"
                                                 }`}
-                                            required
                                         >
                                             <option value="">-- Select Cell Source --</option>
                                             <option value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</option>
                                             <option value="IMPORTED">📦 Imported (Requires IEC Code)</option>
                                         </select>
-                                        <p className="text-[10px] text-zinc-500">
-                                            Required for India compliance. Determines customs and PLI eligibility.
-                                        </p>
+                                        {fieldErrors.cellSource
+                                            ? <p className="text-[10px] text-red-600">{fieldErrors.cellSource}</p>
+                                            : <p className="text-[10px] text-zinc-500">
+                                                Required for India compliance. Determines customs and PLI eligibility.
+                                            </p>
+                                        }
                                     </div>
 
                                     {/* PLI Checkbox with Auto-Disable for IMPORTED */}
@@ -1569,11 +1626,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     <Input
                                                         id="billOfEntry"
                                                         value={billOfEntryNo}
-                                                        onChange={(e) => setBillOfEntryNo(e.target.value)}
+                                                        onChange={(e) => { setBillOfEntryNo(e.target.value); clearFieldError("billOfEntry") }}
                                                         placeholder="e.g. 1234567"
-                                                        required
-                                                        className="bg-white border-zinc-200 text-zinc-900"
+                                                        className={`bg-white text-zinc-900 ${fieldErrors.billOfEntry ? "border-red-500" : "border-zinc-200"}`}
                                                     />
+                                                    {fieldErrors.billOfEntry && <p className="text-xs text-red-600 mt-1">{fieldErrors.billOfEntry}</p>}
                                                 </div>
                                                 <div className="grid gap-2">
                                                     <Label htmlFor="cellCountryOfOrigin" className="text-zinc-700">
@@ -1582,7 +1639,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     <Input
                                                         id="cellCountryOfOrigin"
                                                         value={cellCountryOfOrigin}
-                                                        onChange={(e) => setCellCountryOfOrigin(e.target.value.slice(0, 2).toUpperCase())}
+                                                        onChange={(e) => { setCellCountryOfOrigin(e.target.value.slice(0, 2).toUpperCase()); clearFieldError("cellCountryOfOrigin") }}
                                                         onKeyDown={(e) => {
                                                             if (e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab' && cellCountryOfOrigin.length >= 2) {
                                                                 e.preventDefault()
@@ -1591,9 +1648,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                         maxLength={2}
                                                         placeholder="e.g. CN, KR"
                                                         title="ISO 3166-1 alpha-2 country code (2 characters)"
-                                                        required
-                                                        className="bg-white border-zinc-200 text-zinc-900"
+                                                        className={`bg-white text-zinc-900 ${fieldErrors.cellCountryOfOrigin ? "border-red-500" : "border-zinc-200"}`}
                                                     />
+                                                    {fieldErrors.cellCountryOfOrigin && <p className="text-xs text-red-600 mt-1">{fieldErrors.cellCountryOfOrigin}</p>}
                                                 </div>
                                             </div>
 
@@ -1606,10 +1663,10 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                     id="customsDate"
                                                     type="date"
                                                     value={customsDate}
-                                                    onChange={(e) => setCustomsDate(e.target.value)}
-                                                    required
-                                                    className="max-w-[200px] bg-white border-zinc-200 text-zinc-900"
+                                                    onChange={(e) => { setCustomsDate(e.target.value); clearFieldError("customsDate") }}
+                                                    className={`max-w-[200px] bg-white text-zinc-900 ${fieldErrors.customsDate ? "border-red-500" : "border-zinc-200"}`}
                                                 />
+                                                {fieldErrors.customsDate && <p className="text-xs text-red-600 mt-1">{fieldErrors.customsDate}</p>}
                                             </div>
                                         </div>
                                     )}
@@ -1644,7 +1701,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                                 max="100"
                                                 step="0.1"
                                                 value={materialComposition[key]}
-                                                onChange={(e) => setMaterialComposition(prev => ({ ...prev, [key]: e.target.value }))}
+                                                onChange={(e) => { setMaterialComposition(prev => ({ ...prev, [key]: e.target.value })); clearFieldError("materialTotal") }}
                                                 placeholder="0.0"
                                                 className="h-8 text-xs bg-white border-zinc-200 px-2"
                                             />
@@ -1654,6 +1711,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                                 {Object.values(materialComposition).reduce((a, b) => a + (parseFloat(b) || 0), 0) > 100 && (
                                     <p className="text-[10px] text-red-600 mt-1">
                                         ⚠️ Total percentage cannot exceed 100%. Please adjust values.
+                                    </p>
+                                )}
+                                {fieldErrors.materialTotal && (
+                                    <p id="materialTotal" className="text-[10px] text-red-600 mt-1">
+                                        {fieldErrors.materialTotal}
                                     </p>
                                 )}
                             </div>

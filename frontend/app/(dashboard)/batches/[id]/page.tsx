@@ -49,7 +49,7 @@ interface PassportsResponse {
 export default function BatchDetailsPage() {
     const params = useParams()
     const router = useRouter()
-    const { refreshUser } = useAuth()
+    const { user, refreshUser } = useAuth()
     const [batch, setBatch] = useState<Batch | null>(null)
     const [activating, setActivating] = useState(false)
     const [archiving, setArchiving] = useState(false)
@@ -398,7 +398,167 @@ export default function BatchDetailsPage() {
         }
     }
 
+    // Maps backend-style field keys to human-readable labels
+    const formatBlockerLabel = (key: string): string => {
+        const map: Record<string, string> = {
+            "model_name": "Model name",
+            "specs.chemistry": "Battery chemistry",
+            "specs.capacity": "Rated capacity",
+            "manufacturing_start_date": "Manufacturing start date",
+            "manufacturing_end_date": "Manufacturing end date",
+            "cell_source": "Cell source (IMPORTED/DOMESTIC)",
+            "specs.certifications: AIS-156": "AIS-156 certification",
+            "specs.certifications: AIS-038": "AIS-038 certification",
+            "tenant.epr_registration_number": "EPR Registration (Settings → Compliance)",
+            "tenant.bis_r_number": "BIS R-Number (Settings → Compliance)",
+            "tenant.iec_code": "IEC Code (Settings → Compliance)",
+            "tenant.morth_manufacturer_code": "MoRTH Code (Settings → Compliance)",
+            "bill_of_entry_no": "Bill of Entry number",
+            "country_of_origin": "Cell country of origin",
+            "customs_date": "Import date",
+            "domestic_value_add": "Domestic value-add percentage",
+            "specs.battery_category": "EU battery category",
+            "tenant.company_name": "Company name (Settings → Profile)",
+            "tenant.address": "Company address (Settings → Profile)",
+            "tenant.eu_authorized_representative_name": "EU Representative name (Settings → Compliance)",
+            "tenant.eu_authorized_representative_address": "EU Representative address (Settings → Compliance)",
+            "tenant.eu_contact_email": "EU contact email (Settings → Compliance)",
+            "carbon_footprint_result": "Carbon footprint (use Carbon Calculator tab)",
+            "specs.material_composition": "Material composition (at least one non-zero %)",
+            "specs.hazardous_substances.declaration": "Hazardous substances declaration",
+            "specs.expected_lifetime_cycles": "Expected lifetime cycles",
+            "specs.warranty_months": "Warranty months",
+        }
+        return map[key] || key.replace(/[._]/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+    }
+
+    // Client-side preflight: mirrors backend activation_compliance.go
+    const getActivationBlockers = (b: Batch, u: typeof user): { blocking: string[]; warnings: string[] } => {
+        const blocking: string[] = []
+        const warnings: string[] = []
+        const region = b.market_region as MarketRegion
+
+        // Common checks
+        if (!b.model_name?.trim()) blocking.push("model_name")
+        if (!b.specs?.chemistry?.trim()) blocking.push("specs.chemistry")
+        if (!b.specs?.capacity?.trim()) blocking.push("specs.capacity")
+        if (!b.manufacturing_start_date) blocking.push("manufacturing_start_date")
+        if (!b.manufacturing_end_date) blocking.push("manufacturing_end_date")
+
+        if (region === "INDIA" || region === "GLOBAL") {
+            // Cell source
+            if (!b.cell_source) blocking.push("cell_source")
+
+            // AIS certifications
+            const certs = b.specs?.certifications || []
+            if (!certs.includes("AIS-156")) blocking.push("specs.certifications: AIS-156")
+            if (!certs.includes("AIS-038")) blocking.push("specs.certifications: AIS-038")
+
+            // Tenant codes
+            if (!u?.epr_registration_number?.trim()) blocking.push("tenant.epr_registration_number")
+            if (!u?.bis_r_number?.trim()) blocking.push("tenant.bis_r_number")
+            if (!u?.iec_code?.trim()) blocking.push("tenant.iec_code")
+            if (!u?.morth_manufacturer_code?.trim()) blocking.push("tenant.morth_manufacturer_code")
+
+            // Import-specific
+            if (b.cell_source === "IMPORTED") {
+                if (!b.bill_of_entry_no?.trim()) blocking.push("bill_of_entry_no")
+                if (!b.country_of_origin?.trim()) blocking.push("country_of_origin")
+                if (!b.customs_date) blocking.push("customs_date")
+            }
+
+            // Domestic DVA
+            if (b.cell_source === "DOMESTIC" && (b.domestic_value_add ?? 0) <= 0) {
+                blocking.push("domestic_value_add")
+            }
+
+            // PLI DVA threshold
+            if (b.pli_compliant && (b.domestic_value_add ?? 0) < 50) {
+                warnings.push("PLI requires ≥50% DVA (current: " + (b.domestic_value_add ?? 0) + "%)")
+            }
+        }
+
+        if (region === "EU" || region === "GLOBAL") {
+            // Battery category
+            const validCategories = ["EV", "LMT", "INDUSTRIAL", "PORTABLE", "SLI"]
+            if (!b.specs?.battery_category || !validCategories.includes(b.specs.battery_category)) {
+                blocking.push("specs.battery_category")
+            }
+
+            // Tenant EU fields
+            if (!u?.company_name?.trim()) blocking.push("tenant.company_name")
+            if (!u?.address?.trim()) blocking.push("tenant.address")
+            if (!u?.eu_authorized_representative_name?.trim()) blocking.push("tenant.eu_authorized_representative_name")
+            if (!u?.eu_authorized_representative_address?.trim()) blocking.push("tenant.eu_authorized_representative_address")
+            if (!u?.eu_contact_email?.trim()) blocking.push("tenant.eu_contact_email")
+
+            // Carbon footprint (must be calculator result, not free-text)
+            if (!b.carbon_footprint_result || Object.keys(b.carbon_footprint_result).length === 0) {
+                blocking.push("carbon_footprint_result")
+            }
+
+            // Material composition - at least one non-zero
+            const mc = b.specs?.material_composition
+            if (!mc || !Object.values(mc).some(v => typeof v === "number" ? v > 0 : parseFloat(String(v)) > 0)) {
+                blocking.push("specs.material_composition")
+            }
+
+            // Hazardous substances
+            if (!b.specs?.hazardous_substances?.declaration?.trim()) {
+                blocking.push("specs.hazardous_substances.declaration")
+            }
+
+            // Lifetime cycles
+            if (!b.specs?.expected_lifetime_cycles || b.specs.expected_lifetime_cycles <= 0) {
+                blocking.push("specs.expected_lifetime_cycles")
+            }
+
+            // Warranty
+            if (!b.specs?.warranty_months || b.specs.warranty_months <= 0) {
+                blocking.push("specs.warranty_months")
+            }
+
+            // Recycled content warnings (non-blocking until Aug 2028)
+            const recycledKeys = ["recycled_cobalt", "recycled_lithium", "recycled_nickel", "recycled_lead"] as const
+            for (const key of recycledKeys) {
+                const baseKey = key.replace("recycled_", "") as keyof typeof mc
+                if (mc && typeof mc === "object" && baseKey in mc) {
+                    const baseVal = parseFloat(String((mc as Record<string, unknown>)[baseKey])) || 0
+                    const recycledVal = parseFloat(String((mc as Record<string, unknown>)[key])) || 0
+                    if (baseVal > 0 && recycledVal === 0) {
+                        warnings.push(`Recycled ${baseKey} content not declared (required from Aug 2028)`)
+                    }
+                }
+            }
+        }
+
+        return { blocking, warnings }
+    }
+
     const handleActivateBatch = async () => {
+        if (!batch) return
+
+        // Preflight check
+        const preflight = getActivationBlockers(batch, user)
+        if (preflight.blocking.length > 0) {
+            toast.error(
+                <div className="space-y-2">
+                    <p className="font-semibold">Cannot activate — {preflight.blocking.length} requirement{preflight.blocking.length > 1 ? "s" : ""} missing:</p>
+                    <ul className="list-disc pl-4 text-sm space-y-0.5">
+                        {preflight.blocking.slice(0, 8).map((b, i) => (
+                            <li key={i}>{formatBlockerLabel(b)}</li>
+                        ))}
+                        {preflight.blocking.length > 8 && <li>…and {preflight.blocking.length - 8} more</li>}
+                    </ul>
+                    {preflight.warnings.length > 0 && (
+                        <p className="text-amber-600 text-xs mt-1">+ {preflight.warnings.length} warning{preflight.warnings.length > 1 ? "s" : ""}</p>
+                    )}
+                </div>,
+                { duration: 12000 }
+            )
+            return
+        }
+
         setActivating(true)
         try {
             await api.post(`/batches/${params.id}/activate`)
@@ -411,6 +571,35 @@ export default function BatchDetailsPage() {
             if (apiError.response?.status === 402) {
                 toast.error('Insufficient quota. Please purchase more quota units.')
                 router.push('/billing')
+            } else if (apiError.response?.status === 403) {
+                // Parse rich error from backend
+                const data = apiError.response?.data as { error?: string; missing?: string[]; errors?: string[] } | undefined
+                const missing = data?.missing || []
+                const errors = data?.errors || []
+                if (missing.length > 0 || errors.length > 0) {
+                    toast.error(
+                        <div className="space-y-2">
+                            <p className="font-semibold">Activation blocked by server compliance check:</p>
+                            {missing.length > 0 && (
+                                <ul className="list-disc pl-4 text-sm space-y-0.5">
+                                    {missing.map((m, i) => (
+                                        <li key={i} className="text-red-600">{formatBlockerLabel(m)}</li>
+                                    ))}
+                                </ul>
+                            )}
+                            {errors.length > 0 && (
+                                <ul className="list-disc pl-4 text-sm space-y-0.5 text-amber-600">
+                                    {errors.map((e, i) => (
+                                        <li key={i}>{e}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>,
+                        { duration: 12000 }
+                    )
+                } else {
+                    toast.error(data?.error || 'Compliance requirements not met. Activation blocked.')
+                }
             } else {
                 toast.error(apiError.response?.data?.error || 'Failed to activate batch')
             }
@@ -458,6 +647,7 @@ export default function BatchDetailsPage() {
     }
 
     const isDraft = batch?.status !== 'ACTIVE' && batch?.status !== 'ARCHIVED'
+    const activationResult = batch && isDraft ? getActivationBlockers(batch, user) : { blocking: [], warnings: [] }
 
     if (loading) return <BatchDetailSkeleton />
     if (!batch) return <div className="p-8 text-zinc-400">Batch not found</div>
@@ -504,8 +694,13 @@ export default function BatchDetailsPage() {
                                 <>
                                     <Button
                                         onClick={handleActivateBatch}
-                                        className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                                        disabled={activating}
+                                        className={activationResult.blocking.length > 0
+                                            ? "bg-zinc-400 text-white cursor-not-allowed"
+                                            : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"}
+                                        disabled={activating || activationResult.blocking.length > 0}
+                                        title={activationResult.blocking.length > 0
+                                            ? `${activationResult.blocking.length} requirement(s) missing — see blockers below`
+                                            : "Activate this batch"}
                                     >
                                         {activating ? (
                                             <>
@@ -591,6 +786,40 @@ export default function BatchDetailsPage() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 </div>
 
+
+                {/* Activation Blockers Panel — shown only for draft batches with issues */}
+                {isDraft && (activationResult.blocking.length > 0 || activationResult.warnings.length > 0) && (
+                    <div className="border border-zinc-200 rounded-lg overflow-hidden">
+                        {activationResult.blocking.length > 0 && (
+                            <div className="bg-red-50 border-b border-red-200 px-4 py-3">
+                                <div className="flex items-center gap-2 text-red-700 font-semibold text-sm mb-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {activationResult.blocking.length} Blocking Issue{activationResult.blocking.length > 1 ? "s" : ""} — Must Fix Before Activation
+                                </div>
+                                <ul className="space-y-1 pl-6">
+                                    {activationResult.blocking.map((key, i) => (
+                                        <li key={i} className="text-sm text-red-600 list-disc">
+                                            {formatBlockerLabel(key)}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {activationResult.warnings.length > 0 && (
+                            <div className="bg-amber-50 px-4 py-3">
+                                <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm mb-2">
+                                    <Shield className="h-4 w-4" />
+                                    {activationResult.warnings.length} Warning{activationResult.warnings.length > 1 ? "s" : ""} (non-blocking)
+                                </div>
+                                <ul className="space-y-1 pl-6">
+                                    {activationResult.warnings.map((w, i) => (
+                                        <li key={i} className="text-sm text-amber-600 list-disc">{w}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Tab Navigation */}
                 <div className="bg-white border border-zinc-200 rounded-lg">
