@@ -27,6 +27,7 @@
     "cell_source_domestic": "Inländische Zellen",
     "section_specs": "Technische Spezifikationen",
     "label_chemistry": "Chemie",
+    "label_battery_category": "Batteriekategorie",
     "label_capacity": "Kapazität",
     "label_voltage": "Spannung",
     "label_weight": "Gewicht",

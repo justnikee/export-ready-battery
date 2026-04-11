@@ -76,6 +76,7 @@ export interface PassportViewData {
     specs: {
         chemistry?: string
         // Field names match backend PublicSpecsView JSON keys exactly
+        battery_category?: string
         capacity?: string
         voltage?: string
         weight?: string
@@ -153,6 +154,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     const model = passportData.model_name || tenant.company_name || t("label_missing")
     const serialNumber = passport.serial_number || t("label_missing")
     const chemistry = specs?.chemistry || null
+    const batteryCategory = specs?.battery_category || null
     const capacityAh = specs?.capacity || null
     const voltage = specs?.voltage || null
     const weightKg = specs?.weight || null
@@ -321,6 +323,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                     <div className="space-y-0">
                         <DataRow label={t("label_chemistry")} value={chemistry} />
+                        {batteryCategory && <DataRow label={t("label_battery_category")} value={batteryCategory} />}
                         <DataRow label={t("label_capacity")} value={capacityAh} />
                         <DataRow label={t("label_voltage")} value={voltage} />
                         <DataRow label={t("label_weight")} value={weightKg} />
@@ -373,7 +376,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                     <div className="space-y-0">
                         {isIndia && <DataRow label={t("label_epr")} value={eprNumber} mono />}
-                        {isIndia && dvaPercent != null && <DataRow label={t("label_dva")} value={`${dvaPercent}%`} />}
+                        {isIndia && dvaPercent != null && <DataRow label={t("label_dva")} value={`${(dvaPercent as number).toFixed(1)}%`} />}
                         {isIndia && <DataRow label={t("label_pli")} value={pliCompliant ? "✅ Yes" : "No"} />}
                         {isIndia && <DataRow label={t("label_bis")} value={bisRNumber} mono />}
                         {!isIndia && <DataRow label={t("label_carbon_footprint")} value={carbonFootprint} />}

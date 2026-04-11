@@ -27,6 +27,7 @@
   "cell_source_domestic": "Εγχώρια κύτταρα",
   "section_specs": "Τεχνικές Προδιαγραφές",
   "label_chemistry": "Χημεία",
+    "label_battery_category": "Κατηγορία μπαταρίας",
   "label_capacity": "Χωρητικότητα",
   "label_voltage": "Τάση",
   "label_weight": "Βάρος",

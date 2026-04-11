@@ -27,6 +27,7 @@
   "cell_source_domestic": "Belföldi cellák",
   "section_specs": "Műszaki jellemzők",
   "label_chemistry": "Kémia",
+    "label_battery_category": "Akkumulátor kategória",
   "label_capacity": "Kapacitás",
   "label_voltage": "Feszültség",
   "label_weight": "Súly",

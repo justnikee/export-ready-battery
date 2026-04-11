@@ -27,6 +27,7 @@
     "cell_source_domestic": "Domestic Cells",
     "section_specs": "Technical Specifications",
     "label_chemistry": "Chemistry",
+    "label_battery_category": "Battery Category",
     "label_capacity": "Capacity",
     "label_voltage": "Voltage",
     "label_weight": "Weight",

@@ -99,33 +99,18 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// UPDATE BATCH METADATA IF DETECTED FROM CSV
-	// Note: Once a batch is ACTIVE, it's considered immutable per design_system.md
-	// We log a warning but allow updates to import fields from CSV for data enrichment
+	// Log detected CSV metadata for audit purposes.
+	// COMPLIANCE LOCK: Active batches are immutable — CSV metadata fields (DVA,
+	// cell_source, country_of_origin) must be set before activation via the batch
+	// creation or PATCH /batches/{id} endpoints. Retroactive mutation of an ACTIVE
+	// batch would corrupt the PLI/DVA audit chain.
 	if parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil {
-		var cellSource, billOfEntry, countryOrigin *string
-		if parseResult.DetectedCellSource != "" {
-			val := parseResult.DetectedCellSource
-			cellSource = &val
-		}
-		if parseResult.DetectedBillOfEntry != "" {
-			val := parseResult.DetectedBillOfEntry
-			billOfEntry = &val
-		}
-		if parseResult.DetectedCountryOfOrigin != "" {
-			val := parseResult.DetectedCountryOfOrigin
-			countryOrigin = &val
-		}
-
-		slog.Info("Detected metadata from CSV",
+		slog.Info("CSV metadata fields detected but not applied (batch is ACTIVE — immutable)",
+			"batch_id", batchID,
 			"cell_source", parseResult.DetectedCellSource,
 			"country_of_origin", parseResult.DetectedCountryOfOrigin,
-			"domestic_value_add", parseResult.DetectedDomesticValue)
-
-		if err := h.repo.UpdateBatchMetadata(r.Context(), batchID, cellSource, billOfEntry, countryOrigin, parseResult.DetectedDomesticValue); err != nil {
-			slog.Warn("Failed to update batch metadata from CSV", "error", err)
-			// Proceed with passport creation even if metadata update fails
-		}
+			"domestic_value_add", parseResult.DetectedDomesticValue,
+		)
 	}
 
 	// Check for parsing errors

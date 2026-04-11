@@ -27,6 +27,7 @@
   "cell_source_domestic": "Ogniwa krajowe",
   "section_specs": "Specyfikacje techniczne",
   "label_chemistry": "Chemia",
+    "label_battery_category": "Kategoria baterii",
   "label_capacity": "Pojemność",
   "label_voltage": "Napięcie",
   "label_weight": "Waga",

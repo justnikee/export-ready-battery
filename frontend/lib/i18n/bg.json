@@ -27,6 +27,7 @@
   "cell_source_domestic": "Местни клетки",
   "section_specs": "Технически характеристики",
   "label_chemistry": "Химия",
+    "label_battery_category": "Категория батерия",
   "label_capacity": "Капацитет",
   "label_voltage": "Напрежение",
   "label_weight": "Тегло",

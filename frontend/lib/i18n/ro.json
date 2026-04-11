@@ -27,6 +27,7 @@
   "cell_source_domestic": "Celule autohtone",
   "section_specs": "Specificații tehnice",
   "label_chemistry": "Chimie",
+    "label_battery_category": "Categorie baterie",
   "label_capacity": "Capacitate",
   "label_voltage": "Tensiune",
   "label_weight": "Greutate",

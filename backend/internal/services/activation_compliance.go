@@ -15,6 +15,13 @@ type ActivationComplianceResult struct {
 
 // ValidateActivationCompliance enforces design_system.md rules at batch activation.
 func ValidateActivationCompliance(batch *models.Batch, tenant *models.Tenant) ActivationComplianceResult {
+	if batch == nil || tenant == nil {
+		return ActivationComplianceResult{
+			Valid:   false,
+			Missing: []string{"batch and tenant are required"},
+		}
+	}
+
 	missing := []string{}
 	errors := []string{}
 

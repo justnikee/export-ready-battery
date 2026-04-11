@@ -27,6 +27,7 @@
   "cell_source_domestic": "Kotimaiset kennot",
   "section_specs": "Tekniset tiedot",
   "label_chemistry": "Kemia",
+    "label_battery_category": "Akkukategoria",
   "label_capacity": "Kapasiteetti",
   "label_voltage": "Jännite",
   "label_weight": "Paino",

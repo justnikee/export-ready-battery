@@ -27,6 +27,7 @@
   "cell_source_domestic": "Inhemska celler",
   "section_specs": "Tekniska specifikationer",
   "label_chemistry": "Kemi",
+    "label_battery_category": "Batterikategori",
   "label_capacity": "Kapacitet",
   "label_voltage": "Spänning",
   "label_weight": "Vikt",

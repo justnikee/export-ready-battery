@@ -134,6 +134,9 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID, filename stri
 			if valStr != "" {
 				var dva float64
 				if _, err := fmt.Sscanf(valStr, "%f", &dva); err == nil {
+					if dva < 0 || dva > 100 {
+						return nil, fmt.Errorf("domestic_value_add must be between 0 and 100 (got %g)", dva)
+					}
 					result.DetectedDomesticValue = &dva
 				}
 			}
@@ -214,17 +217,10 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 		return nil, &CSVRowError{Row: rowNum, Message: "serial_number is empty"}
 	}
 
-	// Parse manufacture date (expected format: YYYY-MM-DD)
+	// Parse manufacture date — YYYY-MM-DD is required for unambiguous compliance records.
 	manufactureDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		// Try alternative formats
-		manufactureDate, err = time.Parse("02/01/2006", dateStr) // DD/MM/YYYY
-		if err != nil {
-			manufactureDate, err = time.Parse("01/02/2006", dateStr) // MM/DD/YYYY
-			if err != nil {
-				return nil, &CSVRowError{Row: rowNum, Message: fmt.Sprintf("invalid date format: %s (expected YYYY-MM-DD)", dateStr)}
-			}
-		}
+		return nil, &CSVRowError{Row: rowNum, Message: fmt.Sprintf("invalid date format %q — use YYYY-MM-DD (e.g. 2026-01-15)", dateStr)}
 	}
 
 	now := time.Now()

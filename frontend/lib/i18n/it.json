@@ -27,6 +27,7 @@
   "cell_source_domestic": "Celle nazionali",
   "section_specs": "Specifiche Tecniche",
   "label_chemistry": "Chimica",
+    "label_battery_category": "Categoria batteria",
   "label_capacity": "Capacità",
   "label_voltage": "Tensione",
   "label_weight": "Peso",

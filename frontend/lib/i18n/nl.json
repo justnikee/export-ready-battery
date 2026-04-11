@@ -27,6 +27,7 @@
   "cell_source_domestic": "Binnenlandse cellen",
   "section_specs": "Technische specificaties",
   "label_chemistry": "Chemie",
+    "label_battery_category": "Batterijcategorie",
   "label_capacity": "Capaciteit",
   "label_voltage": "Spanning",
   "label_weight": "Gewicht",

@@ -27,6 +27,7 @@
   "cell_source_domestic": "Kodumaiud elemendid",
   "section_specs": "Tehnilised andmed",
   "label_chemistry": "Keemia",
+    "label_battery_category": "Aku kategooria",
   "label_capacity": "Mahtuvus",
   "label_voltage": "Pinge",
   "label_weight": "Kaal",

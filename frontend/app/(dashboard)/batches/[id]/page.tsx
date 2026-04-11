@@ -860,6 +860,12 @@ export default function BatchDetailsPage() {
                                                 )}
                                             </dd>
                                         </div>
+                                        {batch.specs.battery_category && (
+                                            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200">
+                                                <dt className="text-zinc-600 mb-2 text-xs uppercase tracking-wider">Battery Category</dt>
+                                                <dd className="font-semibold text-zinc-900">{batch.specs.battery_category}</dd>
+                                            </div>
+                                        )}
                                         <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200">
                                             <dt className="text-zinc-600 mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
                                                 <Atom className="h-3.5 w-3.5 text-teal-400" />

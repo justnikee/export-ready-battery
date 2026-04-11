@@ -176,6 +176,8 @@ export interface BatchSpec {
     // India PLI Compliance Fields - Financial data for DVA calculation
     sale_price_inr?: number;   // Sale price in INR for DVA calculation
     import_cost_inr?: number;  // Import material cost in INR
+
+    battery_category?: string; // EV, LMT, INDUSTRIAL, PORTABLE, SLI
 }
 
 export interface Batch {

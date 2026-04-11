@@ -27,6 +27,7 @@
   "cell_source_domestic": "Domače celice",
   "section_specs": "Tehnične specifikacije",
   "label_chemistry": "Kemija",
+    "label_battery_category": "Kategorija baterije",
   "label_capacity": "Kapaciteta",
   "label_voltage": "Napetost",
   "label_weight": "Teža",

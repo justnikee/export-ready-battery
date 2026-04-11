@@ -25,8 +25,19 @@ type BatchSnapshot struct {
 	HSNCode                string              `json:"hsn_code,omitempty"`
 	BISNumber              string              `json:"bis_number,omitempty"`
 	EPRNumber              string              `json:"epr_number,omitempty"`
-	Tenant                 TenantSnapshot      `json:"tenant"`
-	SnapshotAt             time.Time           `json:"snapshot_at"`
+
+	// PLI Audit Trail — captures how DVA was verified at passport creation time.
+	// DVASource "AUDITED" means a CA-certified value; "ESTIMATED" is system-calculated.
+	DVASource               string   `json:"dva_source,omitempty"`
+	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"`
+	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`
+
+	// Compliance state captured at passport creation (may be 0 if engine not yet finished).
+	ComplianceScore float64              `json:"compliance_score"`
+	ComplianceGaps  json.RawMessage      `json:"compliance_gaps,omitempty"`
+
+	Tenant     TenantSnapshot `json:"tenant"`
+	SnapshotAt time.Time      `json:"snapshot_at"`
 }
 
 // TenantSnapshot captures immutable tenant compliance data at creation time.
@@ -63,6 +74,11 @@ func BuildBatchSnapshot(batch *models.Batch, tenant *models.Tenant) (json.RawMes
 		HSNCode:                batch.HSNCode,
 		BISNumber:              batch.BISNumber,
 		EPRNumber:              batch.EPRNumber,
+		DVASource:               batch.DVASource,
+		AuditedDomesticValueAdd: batch.AuditedDomesticValueAdd,
+		PLICertificateURL:       batch.PLICertificateURL,
+		ComplianceScore:        batch.ComplianceScore,
+		ComplianceGaps:         batch.ComplianceGaps,
 		Tenant: TenantSnapshot{
 			TenantID:                          tenant.ID.String(),
 			CompanyName:                       tenant.CompanyName,
