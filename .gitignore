@@ -54,6 +54,7 @@ CLAUDE.md
 
 # Scratch / temp files
 temp.ts
+.graphifyignore
 
 # Build error logs (debug artifacts, never commit)
 backend/build_err.txt
