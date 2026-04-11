@@ -11,12 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
-
+	"exportready-battery/internal/app"
 	"exportready-battery/internal/compliance"
 	battery "exportready-battery/internal/compliance/battery"
-	"exportready-battery/internal/config"
-	"exportready-battery/internal/db"
 	"exportready-battery/internal/events"
 	"exportready-battery/internal/handlers"
 	"exportready-battery/internal/logger"
@@ -29,27 +26,14 @@ import (
 )
 
 func main() {
-	// Load .env file from the current directory
-	// Using Overload to force .env values to override system environment variables
-	if err := godotenv.Overload(); err != nil {
-		slog.Info("No .env file found, using system environment variables")
-	} else {
-		slog.Info("Loaded .env file (overriding system env vars)")
-	}
-
-	// Initialize structured logger
-	logger.Init()
-
-	// Load configuration
-	cfg := config.Load()
-
-	// Initialize database connection
-	database, err := db.Connect(cfg.DatabaseURL)
+	deps, err := app.Bootstrap("api-server")
 	if err != nil {
-		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer deps.Close()
+
+	cfg := deps.Config
+	database := deps.Database
 
 	slog.Info("Connected to PostgreSQL database")
 

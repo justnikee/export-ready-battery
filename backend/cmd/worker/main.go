@@ -8,10 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
-
-	"exportready-battery/internal/config"
-	"exportready-battery/internal/db"
+	"exportready-battery/internal/app"
 	"exportready-battery/internal/services"
 )
 
@@ -24,33 +21,16 @@ const (
 )
 
 func main() {
-	// Load .env file
-	if err := godotenv.Overload(); err != nil {
-		slog.Info("No .env file found, using system environment variables")
-	} else {
-		slog.Info("Loaded .env file (overriding system env vars)")
-	}
-
-	// Initialize structured logger
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
-
-	logger.Info("starting export worker")
-
-	// Load configuration
-	cfg := config.Load()
-
-	// Initialize database connection
-	database, err := db.Connect(cfg.DatabaseURL)
+	deps, err := app.Bootstrap("export-worker")
 	if err != nil {
-		logger.Error("failed to connect to database", "error", err)
+		// Bootstrap already logged the details; just exit.
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer deps.Close()
 
-	logger.Info("connected to database")
+	logger := deps.Logger
+	cfg := deps.Config
+	database := deps.Database
 
 	// Initialize services
 	storageService := services.NewStorageService(logger)

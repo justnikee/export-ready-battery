@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { createExportJob } from "@/lib/api/exports"
 import { useAuth } from "@/context/auth-context"
+import { type ApiError, toApiError } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -43,22 +44,6 @@ interface PassportsResponse {
     total?: number
     total_pages?: number
     has_more?: boolean
-}
-
-interface ApiError {
-    response?: {
-        data?: {
-            error?: string
-        }
-        status?: number
-    }
-}
-
-const toApiError = (error: unknown): ApiError => {
-    if (typeof error === "object" && error !== null) {
-        return error as ApiError
-    }
-    return {}
 }
 
 export default function BatchDetailsPage() {

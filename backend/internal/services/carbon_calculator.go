@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"exportready-battery/internal/models"
@@ -31,6 +32,11 @@ type CarbonInput struct {
 	TransportMode       string  `json:"transport_mode"`        // SHIP, RAIL, TRUCK, AIR
 	TransportDistanceKm float64 `json:"transport_distance_km"` // Distance in km
 	BatteryWeightKg     float64 `json:"battery_weight_kg"`     // Pack weight in kg
+
+	// Market context — drives declaration text and methodology label.
+	// Accepted values: "EU", "INDIA", "GLOBAL" (case-insensitive).
+	// Defaults to "EU" when empty for backward compatibility.
+	Market string `json:"market"`
 }
 
 // CarbonResult contains the calculated carbon footprint with full breakdown.
@@ -155,10 +161,19 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 			Source:      assemblyEnergyFactor.Source,
 		})
 	} else {
-		// Use default assembly factor if no energy provided
-		assemblyFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", "DEFAULT")
+		// No explicit energy data: look up a country-specific assembly factor
+		// first (added in migration 000042), then fall back to DEFAULT.
+		// This ensures India-assembled batteries use the BEE-sourced factor
+		// rather than the generic EU-based DEFAULT.
+		assemblySubcategory := "DEFAULT"
+		if input.FactoryCountry != "" {
+			if _, lookupErr := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", input.FactoryCountry); lookupErr == nil {
+				assemblySubcategory = input.FactoryCountry
+			}
+		}
+		assemblyFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", assemblySubcategory)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get default assembly factor: %w", err)
+			return nil, fmt.Errorf("failed to get assembly factor (%s): %w", assemblySubcategory, err)
 		}
 		breakdown.Assembly = assemblyFactor.FactorValue * input.CapacityKWh
 		factorsUsed = append(factorsUsed, FactorUsed{
@@ -220,19 +235,41 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 		perKWhKgCO2e = totalKgCO2e / input.CapacityKWh
 	}
 
-	// 8. Generate declaration text
+	// 8. Build market-aware methodology label and declaration text.
+	market := strings.ToUpper(strings.TrimSpace(input.Market))
+	var methodology, declarationText string
+	switch market {
+	case "INDIA":
+		methodology = "IEA_2025_BEE_DECLARED"
+		declarationText = fmt.Sprintf(
+			"Carbon footprint calculated using IEA 2025 country emission factors and Bureau of Energy Efficiency (BEE) India assembly standards. "+
+				"Reference: Battery Waste Management Rules 2022, MoRTH AIS-038. "+
+				"Declared value: %.2f kgCO2e/kWh.",
+			perKWhKgCO2e,
+		)
+	case "GLOBAL":
+		methodology = "IEA_2025_DECLARED"
+		declarationText = fmt.Sprintf(
+			"Carbon footprint calculated using IEA 2025 country-specific grid emission factors and JRC 2024 cell chemistry factors. "+
+				"Declared value: %.2f kgCO2e/kWh.",
+			perKWhKgCO2e,
+		)
+	default: // "EU" and empty string
+		methodology = "JRC_2024_DECLARED"
+		declarationText = fmt.Sprintf(
+			"Carbon footprint calculated in accordance with EU Regulation 2023/1542 Article 7 using JRC 2024 methodology. "+
+				"Declared value: %.2f kgCO2e/kWh.",
+			perKWhKgCO2e,
+		)
+	}
 	calculationDate := time.Now().UTC().Format(time.RFC3339)
-	declarationText := fmt.Sprintf(
-		"Carbon footprint calculated in accordance with EU Regulation 2023/1542 Article 7 using JRC 2024 methodology. Declared value: %.2f kgCO2e/kWh.",
-		perKWhKgCO2e,
-	)
 
 	return &CarbonResult{
 		TotalKgCO2e:     totalKgCO2e,
 		PerKWhKgCO2e:    perKWhKgCO2e,
 		CarbonClass:     ClassifyCarbonClass(perKWhKgCO2e),
 		Breakdown:       breakdown,
-		Methodology:     "JRC_2024_DECLARED",
+		Methodology:     methodology,
 		CalculationDate: calculationDate,
 		DeclarationText: declarationText,
 		FactorsUsed:     factorsUsed,

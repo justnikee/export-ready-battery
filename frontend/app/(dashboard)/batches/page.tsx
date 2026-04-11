@@ -6,6 +6,7 @@ import { CreateBatchDialog } from "@/components/batches/create-batch-dialog"
 import { TemplatesDialog } from "@/components/batches/templates-dialog"
 import api from "@/lib/api"
 import { duplicateBatch } from "@/lib/api/batches"
+import { type ApiError, toApiError } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -49,22 +50,7 @@ interface BatchesResponse {
     total_pages?: number
 }
 
-interface ApiError {
-    response?: {
-        data?: {
-            error?: string
-        }
-    }
-}
-
-const toApiError = (error: unknown): ApiError => {
-    if (typeof error === "object" && error !== null) {
-        return error as ApiError
-    }
-    return {}
-}
-
-const ITEMS_PER_PAGE = 50
+const ITEMS_PER_PAGE= 50
 
 export default function BatchesPage() {
     const { user } = useAuth()

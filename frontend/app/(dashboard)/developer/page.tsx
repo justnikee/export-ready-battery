@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { toApiError } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -90,13 +91,6 @@ export default function DeveloperPage() {
     // Device Token form state
     const [tokenName, setTokenName] = useState("")
     const [tokenBatchId, setTokenBatchId] = useState("")
-
-    const toApiError = (error: unknown): { response?: { data?: { error?: string } } } => {
-        if (typeof error === "object" && error !== null) {
-            return error as { response?: { data?: { error?: string } } }
-        }
-        return {}
-    }
 
     useEffect(() => {
         fetchAPIKeys()
