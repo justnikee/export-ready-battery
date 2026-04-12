@@ -402,34 +402,4 @@
 .animate-spin-slow-reverse { animation: spin-slow-reverse 25s linear infinite; }
 .bg-gradient-conic { background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to)); }
 
-/* ── SVG illustration subtle animations ── */
-@keyframes illus-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-@keyframes illus-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-@keyframes illus-dash {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -16; }
-}
-@keyframes illus-glow {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.55; }
-}
 
-.illus-float { animation: illus-float 6s ease-in-out infinite; }
-.illus-float-d1 { animation: illus-float 7s ease-in-out 1s infinite; }
-.illus-float-d2 { animation: illus-float 5.5s ease-in-out 2s infinite; }
-.illus-pulse { animation: illus-pulse 4s ease-in-out infinite; }
-.illus-pulse-d1 { animation: illus-pulse 4.5s ease-in-out 0.7s infinite; }
-.illus-dash { animation: illus-dash 3s linear infinite; }
-.illus-glow { animation: illus-glow 5s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .illus-float, .illus-float-d1, .illus-float-d2,
-  .illus-pulse, .illus-pulse-d1,
-  .illus-dash, .illus-glow { animation: none; }
-}

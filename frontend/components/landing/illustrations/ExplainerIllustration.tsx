@@ -1,188 +1,263 @@
-const BLUE = "#8FB8DE";
-const LAVENDER = "#B4A7D6";
-const CYAN = "#7EC8E3";
-const TEAL = "#7ECFC0";
-const PURPLE = "#C4B5E0";
+const COLORS = {
+  darkGreen1: '#0d1f17', darkGreen2: '#142e22', midGreen: '#1a4d3a',
+  brandGreen: '#006239', brightGreen: '#0ea371', neonGreen: '#3ecf8e',
+  lightGreen: '#4ade80', teal: '#14b8a6',
+  figureLight: '#c4d4ce', outline: '#2e5e48',
+};
 
 export function ExplainerIllustration({ className }: { className?: string }) {
- return (
- <svg
- viewBox="0 0 500 350"
- fill="none"
- xmlns="http://www.w3.org/2000/svg"
- className={className}
- >
- {/* Subtle floor grid */}
- <g opacity={0.1}>
- {[290, 310, 330, 350].map((y, i) => (
- <line
- key={`fg-${i}`}
- x1={40}
- y1={y}
- x2={460}
- y2={y}
- stroke={BLUE}
- strokeWidth={0.5}
- />
- ))}
- {Array.from({ length: 12 }).map((_, i) => (
- <line
- key={`fv-${i}`}
- x1={80 + i * 35}
- y1={280}
- x2={60 + i * 35}
- y2={350}
- stroke={BLUE}
- strokeWidth={0.4}
- />
- ))}
- </g>
+  return (
+    <svg viewBox="0 0 500 350" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* ===== BACKGROUND GRID ===== */}
+      <g opacity={0.08}>
+        {Array.from({ length: 12 }).map((_, i) => (
+          <line key={`dg-${i}`} x1={i * 45} y1="350" x2={i * 45 + 100} y2="240" stroke={COLORS.outline} strokeWidth="0.3" />
+        ))}
+        {Array.from({ length: 12 }).map((_, i) => (
+          <line key={`dg2-${i}`} x1={i * 45 + 100} y1="350" x2={i * 45} y2="240" stroke={COLORS.outline} strokeWidth="0.3" />
+        ))}
+        {[260, 280, 300, 320, 340].map((y, i) => (
+          <line key={`hg-${i}`} x1="0" y1={y} x2="500" y2={y} stroke={COLORS.outline} strokeWidth="0.2" />
+        ))}
+      </g>
 
- {/* Person silhouette — left side, pointing */}
- <g opacity={0.6}>
- {/* Head */}
- <circle cx={120} cy={155} r={14} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- {/* Body */}
- <line x1={120} y1={169} x2={120} y2={230} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- {/* Legs */}
- <line x1={120} y1={230} x2={108} y2={275} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- <line x1={120} y1={230} x2={132} y2={275} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- {/* Left arm (down) */}
- <line x1={120} y1={190} x2={105} y2={215} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- {/* Right arm (pointing at screen) */}
- <line x1={120} y1={190} x2={160} y2={175} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
- {/* Pointing hand dot */}
- <circle cx={162} cy={174} r={2} fill={LAVENDER} opacity={0.6} />
- </g>
+      {/* ===== STEPPED PLATFORM ===== */}
+      <g>
+        {/* Main platform */}
+        <polygon points="80,290 250,250 420,290 250,330" fill={COLORS.darkGreen2} stroke={COLORS.outline} strokeWidth="0.8" />
+        {/* Platform side left */}
+        <polygon points="80,290 80,300 250,340 250,330" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.5" />
+        {/* Platform side right */}
+        <polygon points="250,330 250,340 420,300 420,290" fill={COLORS.darkGreen2} stroke={COLORS.outline} strokeWidth="0.5" opacity={0.8} />
+        {/* Platform grid dashes */}
+        <g opacity={0.1}>
+          <line x1="130" y1="275" x2="300" y2="235" stroke={COLORS.outline} strokeWidth="0.4" strokeDasharray="3 3" />
+          <line x1="180" y1="295" x2="350" y2="255" stroke={COLORS.outline} strokeWidth="0.4" strokeDasharray="3 3" />
+          <line x1="150" y1="290" x2="320" y2="290" stroke={COLORS.outline} strokeWidth="0.4" strokeDasharray="3 3" />
+          <line x1="200" y1="268" x2="370" y2="308" stroke={COLORS.outline} strokeWidth="0.4" strokeDasharray="3 3" />
+        </g>
 
- {/* Large monitor / dashboard screen */}
- <g>
- {/* Monitor frame */}
- <rect
- x={190}
- y={70}
- width={270}
- height={190}
- rx={8}
- stroke={BLUE}
- strokeWidth={1.5}
- strokeLinecap="round"
- fill={`${BLUE}08`}
- />
- {/* Monitor stand */}
- <line x1={325} y1={260} x2={325} y2={285} stroke={BLUE} strokeWidth={1.2} strokeLinecap="round" />
- <path d="M295 285 Q325 280 355 285" stroke={BLUE} strokeWidth={1} strokeLinecap="round" />
+        {/* Step up sub-platform */}
+        <polygon points="120,275 220,255 310,275 210,295" fill={COLORS.midGreen} stroke={COLORS.outline} strokeWidth="0.6" />
+        <polygon points="120,275 120,280 210,300 210,295" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.4" />
+        <polygon points="210,295 210,300 310,280 310,275" fill={COLORS.darkGreen2} stroke={COLORS.outline} strokeWidth="0.4" />
 
- {/* Screen header bar */}
- <line x1={200} y1={95} x2={450} y2={95} stroke={BLUE} strokeWidth={0.5} opacity={0.4} />
- <circle cx={210} cy={83} r={3.5} stroke={CYAN} strokeWidth={0.7} />
- <circle cx={222} cy={83} r={3.5} stroke={TEAL} strokeWidth={0.7} />
- <circle cx={234} cy={83} r={3.5} stroke={LAVENDER} strokeWidth={0.7} />
+        {/* Steps */}
+        {[0, 1, 2].map((i) => (
+          <polygon key={`st-${i}`} points={`${95 + i * 12},${290 - i * 6} ${115 + i * 12},${284 - i * 6} ${127 + i * 12},${288 - i * 6} ${107 + i * 12},${294 - i * 6}`} fill={i % 2 === 0 ? COLORS.midGreen : COLORS.darkGreen2} stroke={COLORS.outline} strokeWidth="0.3" />
+        ))}
+      </g>
 
- {/* Dashboard: bar chart */}
- <g>
- <rect x={210} y={190} width={20} height={52} rx={2} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}12`} />
- <rect x={238} y={165} width={20} height={77} rx={2} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}10`} />
- <rect x={266} y={180} width={20} height={62} rx={2} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}12`} />
- <rect x={294} y={150} width={20} height={92} rx={2} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}08`} />
- {/* Chart baseline */}
- <line x1={205} y1={242} x2={320} y2={242} stroke={BLUE} strokeWidth={0.5} opacity={0.3} />
- </g>
+      {/* ===== MAIN HOLOGRAPHIC DASHBOARD ===== */}
+      <g>
+        {/* Dashboard frame */}
+        <polygon points="180,100 380,60 400,75 200,115" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.8" opacity={0.9} />
+        <polygon points="200,115 400,75 400,225 200,265" fill={COLORS.darkGreen1} stroke={COLORS.brightGreen} strokeWidth="0.7" opacity={0.6} />
+        {/* Dashboard screen glow */}
+        <polygon points="205,118 395,78 395,220 205,260" fill={COLORS.brandGreen} opacity={0.12} />
 
- {/* Dashboard: compliance checkmarks */}
- <g>
- <circle cx={355} cy={120} r={10} stroke={TEAL} strokeWidth={0.8} />
- <path d="M350 120 L354 124 L361 116" stroke={TEAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
- <circle cx={395} cy={120} r={10} stroke={TEAL} strokeWidth={0.8} />
- <path d="M390 120 L394 124 L401 116" stroke={TEAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
- <circle cx={435} cy={120} r={10} stroke={LAVENDER} strokeWidth={0.8} />
- <line x1={430} y1={120} x2={440} y2={120} stroke={LAVENDER} strokeWidth={0.8} strokeLinecap="round" />
- </g>
+        {/* Bar chart on dashboard */}
+        <g opacity={0.6}>
+          <rect x="220" y="210" width="10" height="35" fill={COLORS.brightGreen} opacity={0.5} />
+          <rect x="236" y="195" width="10" height="50" fill={COLORS.neonGreen} opacity={0.45} />
+          <rect x="252" y="205" width="10" height="40" fill={COLORS.teal} opacity={0.45} />
+          <rect x="268" y="185" width="10" height="60" fill={COLORS.brightGreen} opacity={0.5} />
+          <rect x="284" y="198" width="10" height="47" fill={COLORS.lightGreen} opacity={0.45} />
+          <rect x="300" y="190" width="10" height="55" fill={COLORS.neonGreen} opacity={0.45} />
+        </g>
 
- {/* Dashboard: battery with percentage */}
- <g>
- <rect x={345} y={150} width={45} height={28} rx={4} stroke={BLUE} strokeWidth={0.8} />
- <rect x={390} y={158} width={5} height={12} rx={1.5} stroke={BLUE} strokeWidth={0.7} />
- {/* Fill inside battery */}
- <rect x={349} y={154} width={30} height={20} rx={2} fill={TEAL} opacity={0.2} />
- {/* Percentage text */}
- <text x={415} y={170} fontSize={10} fill={BLUE} opacity={0.5} fontFamily="monospace">87%</text>
- </g>
+        {/* Line graph on dashboard */}
+        <g opacity={0.55}>
+          <polyline points="220,160 240,148 260,155 280,138 300,142 320,128 340,135 360,120 380,125" stroke={COLORS.neonGreen} strokeWidth="1" fill="none" />
+          <polyline points="220,170 240,162 260,168 280,155 300,160 320,148 340,152 360,140 380,145" stroke={COLORS.teal} strokeWidth="0.6" fill="none" opacity={0.5} />
+        </g>
 
- {/* Dashboard: mini line chart */}
- <path
- d="M345 200 Q360 190 375 195 Q390 200 405 188 L425 192 Q440 185 450 190"
- stroke={TEAL}
- strokeWidth={0.8}
- strokeLinecap="round"
- />
- {/* Data points on line chart */}
- <circle cx={345} cy={200} r={1.5} fill={TEAL} />
- <circle cx={375} cy={195} r={1.5} fill={TEAL} />
- <circle cx={405} cy={188} r={1.5} fill={TEAL} />
- <circle cx={440} cy={186} r={1.5} fill={TEAL} />
+        {/* Battery status indicators */}
+        <g opacity={0.6}>
+          {/* Battery icon 1 - full */}
+          <rect x="225" y="120" width="12" height="20" rx="2" fill="none" stroke={COLORS.neonGreen} strokeWidth="0.7" />
+          <rect x="229" y="117" width="4" height="3" rx="0.5" fill={COLORS.neonGreen} opacity={0.6} />
+          <rect x="227" y="125" width="8" height="13" fill={COLORS.neonGreen} opacity={0.4} />
+          {/* Battery icon 2 - 75% */}
+          <rect x="245" y="120" width="12" height="20" rx="2" fill="none" stroke={COLORS.brightGreen} strokeWidth="0.7" />
+          <rect x="249" y="117" width="4" height="3" rx="0.5" fill={COLORS.brightGreen} opacity={0.6} />
+          <rect x="247" y="128" width="8" height="10" fill={COLORS.brightGreen} opacity={0.4} />
+          {/* Battery icon 3 - 50% */}
+          <rect x="265" y="120" width="12" height="20" rx="2" fill="none" stroke={COLORS.teal} strokeWidth="0.7" />
+          <rect x="269" y="117" width="4" height="3" rx="0.5" fill={COLORS.teal} opacity={0.6} />
+          <rect x="267" y="132" width="8" height="6" fill={COLORS.teal} opacity={0.4} />
+        </g>
 
- {/* Dashboard: status lines */}
- <line x1={345} y1={218} x2={440} y2={218} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
- <line x1={345} y1={228} x2={420} y2={228} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
- <line x1={345} y1={238} x2={435} y2={238} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
- </g>
+        {/* Compliance checkmarks */}
+        <g opacity={0.55}>
+          <circle cx="340" cy="125" r="6" fill="none" stroke={COLORS.neonGreen} strokeWidth="0.6" />
+          <polyline points="336,125 339,128 345,121" stroke={COLORS.neonGreen} strokeWidth="0.8" fill="none" />
+          <circle cx="360" cy="125" r="6" fill="none" stroke={COLORS.brightGreen} strokeWidth="0.6" />
+          <polyline points="356,125 359,128 365,121" stroke={COLORS.brightGreen} strokeWidth="0.8" fill="none" />
+          <circle cx="380" cy="125" r="6" fill="none" stroke={COLORS.teal} strokeWidth="0.6" />
+          <polyline points="376,125 379,128 385,121" stroke={COLORS.teal} strokeWidth="0.8" fill="none" />
+        </g>
 
- {/* Floating data cards orbiting the screen */}
- <g opacity={0.4} className="illus-float">
- {/* Card top-left */}
- <rect x={165} y={45} width={50} height={35} rx={4} stroke={LAVENDER} strokeWidth={0.8} />
- <line x1={172} y1={56} x2={202} y2={56} stroke={LAVENDER} strokeWidth={0.5} />
- <line x1={172} y1={63} x2={195} y2={63} stroke={LAVENDER} strokeWidth={0.5} />
- <line x1={172} y1={70} x2={198} y2={70} stroke={LAVENDER} strokeWidth={0.5} />
+        {/* Dashboard grid lines */}
+        <g opacity={0.15}>
+          <line x1="210" y1="150" x2="390" y2="110" stroke={COLORS.outline} strokeWidth="0.3" />
+          <line x1="210" y1="180" x2="390" y2="140" stroke={COLORS.outline} strokeWidth="0.3" />
+          <line x1="210" y1="210" x2="390" y2="170" stroke={COLORS.outline} strokeWidth="0.3" />
+          <line x1="210" y1="240" x2="390" y2="200" stroke={COLORS.outline} strokeWidth="0.3" />
+        </g>
+      </g>
 
- {/* Card top-right */}
- <rect x={440} y={35} width={45} height={40} rx={4} stroke={PURPLE} strokeWidth={0.8} />
- <circle cx={462} cy={50} r={6} stroke={CYAN} strokeWidth={0.6} />
- <line x1={449} y1={64} x2={476} y2={64} stroke={PURPLE} strokeWidth={0.5} />
+      {/* ===== FLOATING QR/BATTERY ID PANEL ===== */}
+      <g>
+        <polygon points="60,120 140,100 150,107 70,127" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.5" opacity={0.8} />
+        <polygon points="70,127 150,107 150,190 70,210" fill={COLORS.darkGreen1} stroke={COLORS.brightGreen} strokeWidth="0.5" opacity={0.5} />
+        <polygon points="73,130 147,110 147,187 73,207" fill={COLORS.brandGreen} opacity={0.1} />
+        {/* QR Code pattern */}
+        <g opacity={0.5}>
+          <rect x="82" y="138" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="94" y="138" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="106" y="138" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="82" y="150" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="106" y="150" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="82" y="162" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="94" y="162" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="106" y="162" width="8" height="8" fill={COLORS.neonGreen} />
+          <rect x="94" y="150" width="4" height="4" fill={COLORS.lightGreen} />
+          <rect x="118" y="140" width="6" height="6" fill={COLORS.brightGreen} opacity={0.4} />
+          <rect x="118" y="152" width="6" height="6" fill={COLORS.brightGreen} opacity={0.4} />
+          <rect x="118" y="164" width="6" height="6" fill={COLORS.brightGreen} opacity={0.4} />
+        </g>
+        {/* Battery ID text lines */}
+        <g opacity={0.4}>
+          <line x1="82" y1="180" x2="130" y2="172" stroke={COLORS.neonGreen} strokeWidth="1" />
+          <line x1="82" y1="188" x2="120" y2="181" stroke={COLORS.brightGreen} strokeWidth="0.7" />
+          <line x1="82" y1="196" x2="115" y2="190" stroke={COLORS.teal} strokeWidth="0.7" />
+        </g>
+        {/* Connecting line to dashboard */}
+        <line x1="150" y1="150" x2="200" y2="160" stroke={COLORS.brightGreen} strokeWidth="0.4" opacity={0.3} strokeDasharray="3 3" />
+      </g>
 
- {/* Card bottom-right */}
- <rect x={470} y={200} width={28} height={38} rx={3} stroke={CYAN} strokeWidth={0.7} />
- <line x1={475} y1={212} x2={493} y2={212} stroke={CYAN} strokeWidth={0.4} />
- <line x1={475} y1={220} x2={490} y2={220} stroke={CYAN} strokeWidth={0.4} />
- <line x1={475} y1={228} x2={492} y2={228} stroke={CYAN} strokeWidth={0.4} />
- </g>
+      {/* ===== STANDING PERSON AT DASHBOARD ===== */}
+      <g>
+        <circle cx="195" cy="238" r="4" fill={COLORS.figureLight} opacity={0.85} />
+        <rect x="192" y="242.5" width="6" height="12" rx="1.5" fill={COLORS.figureLight} opacity={0.75} />
+        <line x1="194" y1="254.5" x2="191" y2="268" stroke={COLORS.figureLight} strokeWidth="1.3" />
+        <line x1="198" y1="254.5" x2="201" y2="268" stroke={COLORS.figureLight} strokeWidth="1.3" />
+        {/* Arm reaching toward dashboard */}
+        <line x1="198" y1="246" x2="210" y2="240" stroke={COLORS.figureLight} strokeWidth="0.8" opacity={0.6} />
+      </g>
 
- {/* Connection lines from person to screen */}
- <g opacity={0.2} className="illus-dash">
- <path
- d="M162 174 C180 170 185 160 195 155"
- stroke={CYAN}
- strokeWidth={0.7}
- strokeLinecap="round"
- strokeDasharray="3 3"
- />
- </g>
+      {/* ===== SITTING PERSON AT DESK ===== */}
+      <g>
+        {/* Desk */}
+        <polygon points="340,275 380,265 410,275 370,285" fill={COLORS.darkGreen2} stroke={COLORS.outline} strokeWidth="0.5" />
+        {/* Desk legs */}
+        <line x1="350" y1="280" x2="350" y2="295" stroke={COLORS.outline} strokeWidth="0.6" />
+        <line x1="395" y1="273" x2="395" y2="288" stroke={COLORS.outline} strokeWidth="0.6" />
+        {/* Laptop on desk */}
+        <rect x="358" y="264" width="18" height="12" rx="1" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.4" />
+        <rect x="360" y="266" width="14" height="8" fill={COLORS.brandGreen} opacity={0.35} />
+        {/* Laptop screen angled */}
+        <polygon points="358,264 376,264 378,254 356,254" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth="0.4" />
+        <polygon points="359,263 375,263 377,255 357,255" fill={COLORS.brandGreen} opacity={0.2} />
+        {/* Sitting person */}
+        <circle cx="370" cy="248" r="3.5" fill={COLORS.figureLight} opacity={0.8} />
+        <rect x="367.5" y="252" width="5" height="10" rx="1.5" fill={COLORS.figureLight} opacity={0.7} />
+        <line x1="369" y1="262" x2="366" y2="272" stroke={COLORS.figureLight} strokeWidth="1" />
+        <line x1="373" y1="262" x2="376" y2="272" stroke={COLORS.figureLight} strokeWidth="1" />
+      </g>
 
- {/* Ambient floating dots */}
- <g opacity={0.3} className="illus-glow">
- {[
- { x: 50, y: 60, r: 1.5 },
- { x: 80, y: 120, r: 1 },
- { x: 30, y: 200, r: 2 },
- { x: 470, y: 140, r: 1.5 },
- { x: 490, y: 260, r: 1 },
- { x: 150, y: 310, r: 1.5 },
- { x: 400, y: 300, r: 1 },
- { x: 250, y: 30, r: 1.5 },
- { x: 350, y: 20, r: 1 },
- { x: 60, y: 290, r: 1 },
- ].map((p, i) => (
- <circle key={`d-${i}`} cx={p.x} cy={p.y} r={p.r} fill={PURPLE} />
- ))}
- </g>
+      {/* ===== PLANTS AROUND DESK ===== */}
+      <g opacity={0.5}>
+        {/* Plant 1 */}
+        <path d="M420 290 Q418 275 425 265" stroke={COLORS.brightGreen} strokeWidth="0.8" fill="none" />
+        <path d="M420 290 Q425 278 420 270" stroke={COLORS.lightGreen} strokeWidth="0.6" fill="none" />
+        <circle cx="425" cy="263" r="3" fill={COLORS.lightGreen} opacity={0.5} />
+        <circle cx="420" cy="268" r="2" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Plant 2 */}
+        <path d="M85 290 Q80 278 88 270" stroke={COLORS.brightGreen} strokeWidth="0.8" fill="none" />
+        <circle cx="88" cy="268" r="3" fill={COLORS.lightGreen} opacity={0.5} />
+        <path d="M85 290 Q90 280 84 274" stroke={COLORS.lightGreen} strokeWidth="0.6" fill="none" />
+        <circle cx="84" cy="272" r="2" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Plant 3 - tall */}
+        <line x1="440" y1="295" x2="440" y2="250" stroke={COLORS.outline} strokeWidth="0.8" />
+        <path d="M440 250 Q430 242 425 236" stroke={COLORS.brightGreen} strokeWidth="0.7" fill="none" />
+        <path d="M440 250 Q450 242 455 236" stroke={COLORS.lightGreen} strokeWidth="0.7" fill="none" />
+        <path d="M440 250 Q438 240 440 232" stroke={COLORS.neonGreen} strokeWidth="0.5" fill="none" />
+      </g>
 
- {/* Thin connecting lines */}
- <g opacity={0.15}>
- <line x1={165} y1={62} x2={190} y2={83} stroke={LAVENDER} strokeWidth={0.5} strokeLinecap="round" />
- <line x1={462} y1={75} x2={455} y2={95} stroke={PURPLE} strokeWidth={0.5} strokeLinecap="round" />
- <line x1={484} y1={238} x2={460} y2={255} stroke={CYAN} strokeWidth={0.5} strokeLinecap="round" />
- </g>
- </svg>
- );
+      {/* ===== GLOBE ELEMENT ===== */}
+      <g opacity={0.2}>
+        <circle cx="450" cy="100" r="30" fill="none" stroke={COLORS.brightGreen} strokeWidth="0.6" />
+        <ellipse cx="450" cy="100" rx="30" ry="12" fill="none" stroke={COLORS.outline} strokeWidth="0.4" />
+        <ellipse cx="450" cy="100" rx="18" ry="30" fill="none" stroke={COLORS.outline} strokeWidth="0.4" />
+        <line x1="420" y1="100" x2="480" y2="100" stroke={COLORS.outline} strokeWidth="0.3" />
+        <line x1="450" y1="70" x2="450" y2="130" stroke={COLORS.outline} strokeWidth="0.3" />
+      </g>
+
+      {/* ===== DATA PARTICLES FLOWING FROM DASHBOARD ===== */}
+      <g>
+        {[
+          { x: 390, y: 90, r: 1.2, o: 0.3 }, { x: 400, y: 110, r: 1, o: 0.25 },
+          { x: 410, y: 130, r: 1.3, o: 0.2 }, { x: 405, y: 80, r: 0.8, o: 0.35 },
+          { x: 395, y: 140, r: 1, o: 0.2 }, { x: 415, y: 100, r: 0.8, o: 0.3 },
+          { x: 420, y: 120, r: 1, o: 0.25 }, { x: 385, y: 100, r: 0.8, o: 0.2 },
+          { x: 410, y: 150, r: 1, o: 0.15 }, { x: 425, y: 85, r: 0.8, o: 0.2 },
+        ].map((p, i) => (
+          <circle key={`dp-${i}`} cx={p.x} cy={p.y} r={p.r} fill={COLORS.neonGreen} opacity={p.o} />
+        ))}
+        {/* Flow lines */}
+        <path d="M395 85 Q410 75 425 80" stroke={COLORS.neonGreen} strokeWidth="0.3" fill="none" opacity={0.2} />
+        <path d="M400 105 Q415 95 430 100" stroke={COLORS.teal} strokeWidth="0.3" fill="none" opacity={0.15} />
+        <path d="M395 125 Q410 118 425 122" stroke={COLORS.neonGreen} strokeWidth="0.3" fill="none" opacity={0.15} />
+      </g>
+
+      {/* ===== FLOATING HEXAGONS ===== */}
+      <g opacity={0.15}>
+        {[
+          { x: 30, y: 60, s: 12 }, { x: 470, y: 50, s: 10 }, { x: 250, y: 20, s: 14 },
+          { x: 50, y: 320, s: 8 }, { x: 480, y: 300, s: 10 }, { x: 130, y: 40, s: 10 },
+        ].map((h, i) => (
+          <polygon
+            key={`hx-${i}`}
+            points={[0, 1, 2, 3, 4, 5].map((j) => {
+              const angle = (Math.PI / 3) * j - Math.PI / 6;
+              return `${h.x + h.s * Math.cos(angle)},${h.y + h.s * Math.sin(angle)}`;
+            }).join(' ')}
+            fill="none"
+            stroke={COLORS.brightGreen}
+            strokeWidth="0.5"
+          />
+        ))}
+      </g>
+
+      {/* ===== SCATTERED PARTICLES ===== */}
+      <g>
+        {[
+          { x: 15, y: 100, r: 1, o: 0.25 }, { x: 60, y: 30, r: 0.8, o: 0.2 },
+          { x: 160, y: 50, r: 1, o: 0.3 }, { x: 300, y: 30, r: 0.8, o: 0.2 },
+          { x: 480, y: 180, r: 1, o: 0.25 }, { x: 20, y: 220, r: 0.8, o: 0.2 },
+          { x: 250, y: 340, r: 1, o: 0.2 }, { x: 460, y: 320, r: 0.8, o: 0.2 },
+          { x: 120, y: 340, r: 0.8, o: 0.15 }, { x: 350, y: 340, r: 0.8, o: 0.15 },
+        ].map((p, i) => (
+          <circle key={`sp-${i}`} cx={p.x} cy={p.y} r={p.r} fill={COLORS.neonGreen} opacity={p.o} />
+        ))}
+      </g>
+
+      {/* ===== FLOATING GEOMETRIC DECORATIONS ===== */}
+      <g opacity={0.12}>
+        <rect x="15" y="160" width="10" height="10" rx="1" fill="none" stroke={COLORS.outline} strokeWidth="0.5" transform="rotate(15 20 165)" />
+        <polygon points="40,200 47,190 54,200 47,210" fill="none" stroke={COLORS.outline} strokeWidth="0.4" />
+        <circle cx="470" cy="220" r="5" fill="none" stroke={COLORS.outline} strokeWidth="0.4" />
+        <rect x="455" y="260" width="8" height="8" rx="1" fill="none" stroke={COLORS.brightGreen} strokeWidth="0.4" transform="rotate(-10 459 264)" />
+      </g>
+
+      {/* ===== CONNECTING LINES ===== */}
+      <g opacity={0.08}>
+        <line x1="100" y1="210" x2="195" y2="245" stroke={COLORS.brightGreen} strokeWidth="0.4" />
+        <line x1="370" y1="255" x2="400" y2="230" stroke={COLORS.teal} strokeWidth="0.3" />
+        <path d="M60 210 Q130 220 200 240" stroke={COLORS.outline} strokeWidth="0.3" fill="none" />
+      </g>
+    </svg>
+  );
 }

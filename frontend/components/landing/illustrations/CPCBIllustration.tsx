@@ -1,196 +1,192 @@
-const BLUE = "#8FB8DE";
-const LAVENDER = "#B4A7D6";
-const CYAN = "#7EC8E3";
-const TEAL = "#7ECFC0";
-const PURPLE = "#C4B5E0";
+const COLORS = {
+  darkGreen1: '#0d1f17', darkGreen2: '#142e22', midGreen: '#1a4d3a',
+  brandGreen: '#006239', brightGreen: '#0ea371', neonGreen: '#3ecf8e',
+  lightGreen: '#4ade80', teal: '#14b8a6',
+  figureLight: '#c4d4ce', outline: '#2e5e48',
+};
 
 export function CPCBIllustration({ className }: { className?: string }) {
- return (
- <svg
- viewBox="0 0 400 180"
- fill="none"
- xmlns="http://www.w3.org/2000/svg"
- className={className}
- >
- {/* Document / spreadsheet outline — center */}
- <g>
- {/* Main document body */}
- <rect
- x={140}
- y={15}
- width={120}
- height={110}
- rx={4}
- stroke={BLUE}
- strokeWidth={1.3}
- strokeLinecap="round"
- fill={`${BLUE}08`}
- />
+  return (
+    <svg viewBox="0 0 400 180" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* Isometric ground plane */}
+      <polygon points="200,170 390,150 200,130 10,150" fill={COLORS.darkGreen1} stroke={COLORS.outline} strokeWidth={0.5} />
+      <g opacity={0.08}>
+        {[0,1,2,3,4,5,6].map(i => (
+          <line key={`gl-${i}`} x1={40+i*26} y1={150-i*1} x2={200+(i-3)*26} y2={170-i*1.5} stroke={COLORS.neonGreen} strokeWidth={0.3} />
+        ))}
+      </g>
 
- {/* Spreadsheet grid lines */}
- <g opacity={0.35}>
- {/* Horizontal grid */}
- {[35, 50, 65, 80, 95, 110].map((y, i) => (
- <line
- key={`sh-${i}`}
- x1={148}
- y1={y}
- x2={252}
- y2={y}
- stroke={BLUE}
- strokeWidth={0.4}
- />
- ))}
- {/* Vertical grid */}
- {[170, 195, 220].map((x, i) => (
- <line
- key={`sv-${i}`}
- x1={x}
- y1={25}
- x2={x}
- y2={118}
- stroke={BLUE}
- strokeWidth={0.4}
- />
- ))}
- </g>
+      {/* Large spreadsheet/form document - center, isometric angled */}
+      <g>
+        {/* Document shadow */}
+        <ellipse cx={195} cy={130} rx={52} ry={6} fill={COLORS.darkGreen1} opacity={0.3} />
+        {/* Document body - slight isometric tilt */}
+        <rect x={140} y={22} width={110} height={100} rx={4} stroke={COLORS.neonGreen} strokeWidth={0.8} fill={`${COLORS.darkGreen2}90`} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Header row */}
+        <rect x={140} y={22} width={110} height={14} rx={4} stroke={COLORS.outline} strokeWidth={0.4} fill={`${COLORS.midGreen}50`} />
+        {/* Column headers */}
+        <line x1={168} y1={22} x2={168} y2={122} stroke={COLORS.outline} strokeWidth={0.3} opacity={0.3} />
+        <line x1={196} y1={22} x2={196} y2={122} stroke={COLORS.outline} strokeWidth={0.3} opacity={0.3} />
+        <line x1={224} y1={22} x2={224} y2={122} stroke={COLORS.outline} strokeWidth={0.3} opacity={0.3} />
+        {/* Horizontal grid lines */}
+        {[40, 52, 64, 76, 88, 100, 112].map((y, i) => (
+          <line key={`sh-${i}`} x1={144} y1={y} x2={246} y2={y} stroke={COLORS.outline} strokeWidth={0.3} opacity={0.25} />
+        ))}
+        {/* Data cell content */}
+        <g opacity={0.35}>
+          {[44, 56, 68, 80, 92, 104].map((y, ri) => (
+            <g key={`row-${ri}`}>
+              <line x1={146} y1={y} x2={163} y2={y} stroke={COLORS.brightGreen} strokeWidth={0.4} strokeLinecap="round" />
+              <line x1={172} y1={y} x2={192} y2={y} stroke={COLORS.teal} strokeWidth={0.4} strokeLinecap="round" />
+              <line x1={200} y1={y} x2={220} y2={y} stroke={COLORS.brightGreen} strokeWidth={0.4} strokeLinecap="round" />
+              <line x1={228} y1={y} x2={244} y2={y} stroke={COLORS.neonGreen} strokeWidth={0.4} strokeLinecap="round" />
+            </g>
+          ))}
+        </g>
+        {/* Highlighted row */}
+        <rect x={141} y={66} width={108} height={12} rx={0} fill={COLORS.neonGreen} opacity={0.06} />
+      </g>
 
- {/* Column header row */}
- <rect x={140} y={15} width={120} height={14} rx={4} stroke={BLUE} strokeWidth={0.5} fill={`${BLUE}08`} />
- <text x={155} y={26} fontSize={6} fontFamily="monospace" fill={BLUE} opacity={0.4}>A</text>
- <text x={180} y={26} fontSize={6} fontFamily="monospace" fill={BLUE} opacity={0.4}>B</text>
- <text x={205} y={26} fontSize={6} fontFamily="monospace" fill={BLUE} opacity={0.4}>C</text>
- <text x={230} y={26} fontSize={6} fontFamily="monospace" fill={BLUE} opacity={0.4}>D</text>
+      {/* Cloud with upload arrow - top right */}
+      <g>
+        <path d="M310 48 C310 34 324 25 337 30 C341 16 365 16 369 30 C382 26 392 35 388 48 C396 52 392 65 384 65 L315 65 C306 65 302 56 310 48 Z" stroke={COLORS.neonGreen} strokeWidth={0.7} fill={`${COLORS.darkGreen2}60`} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Upload arrow */}
+        <line x1={350} y1={58} x2={350} y2={40} stroke={COLORS.neonGreen} strokeWidth={0.8} strokeLinecap="round" />
+        <path d="M344 46 L350 38 L356 46" stroke={COLORS.neonGreen} strokeWidth={0.8} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
 
- {/* Cell content hints */}
- <g opacity={0.25}>
- <line x1={150} y1={42} x2={165} y2={42} stroke={CYAN} strokeWidth={0.5} />
- <line x1={175} y1={42} x2={192} y2={42} stroke={CYAN} strokeWidth={0.5} />
- <line x1={200} y1={42} x2={215} y2={42} stroke={CYAN} strokeWidth={0.5} />
- <line x1={150} y1={57} x2={163} y2={57} stroke={CYAN} strokeWidth={0.5} />
- <line x1={175} y1={57} x2={190} y2={57} stroke={CYAN} strokeWidth={0.5} />
- <line x1={200} y1={57} x2={218} y2={57} stroke={CYAN} strokeWidth={0.5} />
- <line x1={150} y1={72} x2={167} y2={72} stroke={CYAN} strokeWidth={0.5} />
- <line x1={175} y1={72} x2={188} y2={72} stroke={CYAN} strokeWidth={0.5} />
- <line x1={225} y1={42} x2={248} y2={42} stroke={TEAL} strokeWidth={0.5} />
- <line x1={225} y1={57} x2={245} y2={57} stroke={TEAL} strokeWidth={0.5} />
- <line x1={225} y1={72} x2={250} y2={72} stroke={TEAL} strokeWidth={0.5} />
- </g>
- </g>
+      {/* Export arrow from document to cloud */}
+      <g opacity={0.4}>
+        <path d="M250 45 C270 40 290 38 310 42" stroke={COLORS.neonGreen} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="4 3" />
+        <polygon points="307,39 313,42 307,45" fill={COLORS.neonGreen} opacity={0.5} />
+      </g>
 
- {/* Form document with signature — left */}
- <g opacity={0.5}>
- {/* Form body */}
- <rect
- x={25}
- y={25}
- width={80}
- height={100}
- rx={3}
- stroke={BLUE}
- strokeWidth={1}
- strokeLinecap="round"
- fill={`${BLUE}06`}
- />
- {/* Form header */}
- <line x1={35} y1={42} x2={95} y2={42} stroke={BLUE} strokeWidth={0.5} opacity={0.4} />
- {/* Form field lines */}
- <line x1={35} y1={55} x2={85} y2={55} stroke={LAVENDER} strokeWidth={0.4} opacity={0.3} />
- <line x1={35} y1={65} x2={90} y2={65} stroke={LAVENDER} strokeWidth={0.4} opacity={0.3} />
- <line x1={35} y1={75} x2={80} y2={75} stroke={LAVENDER} strokeWidth={0.4} opacity={0.3} />
- <line x1={35} y1={85} x2={88} y2={85} stroke={LAVENDER} strokeWidth={0.4} opacity={0.3} />
+      {/* Filing cabinet - left */}
+      <g>
+        {/* Cabinet body */}
+        <rect x={30} y={55} width={50} height={72} rx={3} stroke={COLORS.outline} strokeWidth={0.6} fill={`${COLORS.darkGreen2}80`} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Drawer divisions */}
+        <line x1={30} y1={79} x2={80} y2={79} stroke={COLORS.outline} strokeWidth={0.4} />
+        <line x1={30} y1={103} x2={80} y2={103} stroke={COLORS.outline} strokeWidth={0.4} />
+        {/* Drawer handles */}
+        <line x1={50} y1={67} x2={60} y2={67} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <line x1={50} y1={91} x2={60} y2={91} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <line x1={50} y1={115} x2={60} y2={115} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        {/* Folder tabs sticking up */}
+        <rect x={38} y={48} width={16} height={8} rx={1} stroke={COLORS.brightGreen} strokeWidth={0.4} fill={`${COLORS.brightGreen}10`} />
+        <rect x={56} y={45} width={14} height={11} rx={1} stroke={COLORS.teal} strokeWidth={0.4} fill={`${COLORS.teal}08`} />
+        {/* Folder labels */}
+        <line x1={40} y1={51} x2={50} y2={51} stroke={COLORS.brightGreen} strokeWidth={0.2} strokeLinecap="round" />
+        <line x1={58} y1={49} x2={66} y2={49} stroke={COLORS.teal} strokeWidth={0.2} strokeLinecap="round" />
+      </g>
 
- {/* Checkbox areas */}
- <rect x={35} y={50} width={5} height={5} rx={0.5} stroke={LAVENDER} strokeWidth={0.4} />
- <rect x={35} y={60} width={5} height={5} rx={0.5} stroke={LAVENDER} strokeWidth={0.4} />
- <path d="M36 62 L37.5 64 L40 60.5" stroke={TEAL} strokeWidth={0.4} strokeLinecap="round" />
- <rect x={35} y={70} width={5} height={5} rx={0.5} stroke={LAVENDER} strokeWidth={0.4} />
- <path d="M36 72 L37.5 74 L40 70.5" stroke={TEAL} strokeWidth={0.4} strokeLinecap="round" />
+      {/* Automated workflow pipeline - bottom */}
+      <g>
+        {/* Pipeline track */}
+        <line x1={80} y1={148} x2={330} y2={148} stroke={COLORS.outline} strokeWidth={0.4} opacity={0.3} />
+        {/* Node 1: Document */}
+        <circle cx={100} cy={148} r={8} stroke={COLORS.outline} strokeWidth={0.5} fill={`${COLORS.darkGreen2}80`} />
+        <rect x={96} y={144} width={8} height={8} rx={1} stroke={COLORS.brightGreen} strokeWidth={0.3} />
+        <line x1={98} y1={147} x2={102} y2={147} stroke={COLORS.brightGreen} strokeWidth={0.2} strokeLinecap="round" />
+        {/* Arrow */}
+        <line x1={108} y1={148} x2={140} y2={148} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <polygon points="138,146 142,148 138,150" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Node 2: Process */}
+        <circle cx={155} cy={148} r={8} stroke={COLORS.outline} strokeWidth={0.5} fill={`${COLORS.darkGreen2}80`} />
+        <path d="M151 146 L155 150 L159 146" stroke={COLORS.teal} strokeWidth={0.4} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Arrow */}
+        <line x1={163} y1={148} x2={195} y2={148} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <polygon points="193,146 197,148 193,150" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Node 3: Upload */}
+        <circle cx={210} cy={148} r={8} stroke={COLORS.outline} strokeWidth={0.5} fill={`${COLORS.darkGreen2}80`} />
+        <line x1={210} y1={152} x2={210} y2={144} stroke={COLORS.neonGreen} strokeWidth={0.4} strokeLinecap="round" />
+        <path d="M207 147 L210 144 L213 147" stroke={COLORS.neonGreen} strokeWidth={0.3} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Arrow */}
+        <line x1={218} y1={148} x2={250} y2={148} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <polygon points="248,146 252,148 248,150" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Node 4: Verify */}
+        <circle cx={265} cy={148} r={8} stroke={COLORS.outline} strokeWidth={0.5} fill={`${COLORS.darkGreen2}80`} />
+        <path d="M262 148 L264 150 L269 145" stroke={COLORS.teal} strokeWidth={0.4} strokeLinecap="round" strokeLinejoin="round" />
+        {/* Arrow */}
+        <line x1={273} y1={148} x2={305} y2={148} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <polygon points="303,146 307,148 303,150" fill={COLORS.neonGreen} opacity={0.4} />
+        {/* Node 5: Complete (checkmark) */}
+        <circle cx={320} cy={148} r={8} stroke={COLORS.neonGreen} strokeWidth={0.6} fill={`${COLORS.neonGreen}12`} />
+        <path d="M316 148 L319 151 L325 144" stroke={COLORS.neonGreen} strokeWidth={0.6} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
 
- {/* Signature line */}
- <line x1={35} y1={110} x2={95} y2={110} stroke={BLUE} strokeWidth={0.5} />
- {/* Signature scribble */}
- <path
- d="M40 108 C48 100 52 108 58 104 C64 100 68 108 75 106 C80 104 85 108 90 105"
- stroke={LAVENDER}
- strokeWidth={0.6}
- strokeLinecap="round"
- />
- {/* "Sign" label */}
- <text x={55} y={120} fontSize={5} fontFamily="monospace" fill={BLUE} opacity={0.3}>sign</text>
- </g>
+      {/* Terminal/export button - right */}
+      <g>
+        {/* Terminal body */}
+        <rect x={330} y={80} width={55} height={42} rx={3} stroke={COLORS.neonGreen} strokeWidth={0.6} fill={`${COLORS.darkGreen2}80`} strokeLinecap="round" strokeLinejoin="round" />
+        <rect x={330} y={80} width={55} height={10} rx={3} stroke={COLORS.outline} strokeWidth={0.4} fill={`${COLORS.midGreen}40`} />
+        {/* Window dots */}
+        <circle cx={337} cy={85} r={1.5} fill={COLORS.brightGreen} opacity={0.4} />
+        <circle cx={343} cy={85} r={1.5} fill={COLORS.neonGreen} opacity={0.3} />
+        <circle cx={349} cy={85} r={1.5} fill={COLORS.outline} opacity={0.3} />
+        {/* Terminal content */}
+        <line x1={336} y1={96} x2={348} y2={96} stroke={COLORS.brightGreen} strokeWidth={0.3} strokeLinecap="round" opacity={0.5} />
+        <line x1={336} y1={100} x2={355} y2={100} stroke={COLORS.neonGreen} strokeWidth={0.3} strokeLinecap="round" opacity={0.4} />
+        <line x1={336} y1={104} x2={350} y2={104} stroke={COLORS.brightGreen} strokeWidth={0.3} strokeLinecap="round" opacity={0.35} />
+        {/* Export button */}
+        <rect x={340} y={110} width={35} height={8} rx={2} stroke={COLORS.neonGreen} strokeWidth={0.5} fill={`${COLORS.neonGreen}15`} />
+        <line x1={348} y1={114} x2={366} y2={114} stroke={COLORS.neonGreen} strokeWidth={0.4} strokeLinecap="round" />
+      </g>
 
- {/* Cloud with upload arrow — top right */}
- <g opacity={0.5} className="illus-float">
- {/* Cloud shape */}
- <path
- d="M310 55 C310 40 325 30 340 35 C345 20 370 20 375 35 C390 30 400 40 395 55 C405 60 400 75 390 75 L315 75 C305 75 300 65 310 55 Z"
- stroke={CYAN}
- strokeWidth={1.1}
- strokeLinecap="round"
- fill={`${CYAN}06`}
- />
- {/* Upload arrow */}
- <line x1={352} y1={68} x2={352} y2={48} stroke={CYAN} strokeWidth={1} strokeLinecap="round" />
- <path d="M345 54 L352 46 L359 54" stroke={CYAN} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
- </g>
+      {/* Figure 1: reviewing documents (left) */}
+      <g>
+        <circle cx={100} cy={70} r={3} stroke={COLORS.figureLight} strokeWidth={1.2} fill="none" />
+        <rect x={97.5} y={74} width={5} height={9} rx={1.5} stroke={COLORS.figureLight} strokeWidth={1.2} fill="none" />
+        <line x1={98.5} y1={83} x2={97} y2={92} stroke={COLORS.figureLight} strokeWidth={1.2} strokeLinecap="round" />
+        <line x1={101.5} y1={83} x2={103} y2={92} stroke={COLORS.figureLight} strokeWidth={1.2} strokeLinecap="round" />
+        <line x1={102.5} y1={76} x2={110} y2={72} stroke={COLORS.figureLight} strokeWidth={0.8} strokeLinecap="round" />
+      </g>
 
- {/* Horizontal flow: document → cloud → checkmark — bottom */}
- <g opacity={0.45}>
- {/* Flow line base */}
- <line x1={65} y1={150} x2={350} y2={150} stroke={BLUE} strokeWidth={0.4} opacity={0.2} />
+      {/* Figure 2: pressing export button (right) */}
+      <g>
+        <circle cx={370} cy={105} r={3} stroke={COLORS.figureLight} strokeWidth={1.2} fill="none" />
+        <rect x={367.5} y={109} width={5} height={9} rx={1.5} stroke={COLORS.figureLight} strokeWidth={1.2} fill="none" />
+        <line x1={368.5} y1={118} x2={367} y2={127} stroke={COLORS.figureLight} strokeWidth={1.2} strokeLinecap="round" />
+        <line x1={371.5} y1={118} x2={373} y2={127} stroke={COLORS.figureLight} strokeWidth={1.2} strokeLinecap="round" />
+        {/* Arm pressing button */}
+        <line x1={367.5} y1={111} x2={360} y2={114} stroke={COLORS.figureLight} strokeWidth={0.8} strokeLinecap="round" />
+      </g>
 
- {/* Step 1: mini document icon */}
- <rect x={75} y={138} width={18} height={22} rx={2} stroke={BLUE} strokeWidth={0.8} />
- <line x1={79} y1={144} x2={89} y2={144} stroke={BLUE} strokeWidth={0.3} />
- <line x1={79} y1={148} x2={87} y2={148} stroke={BLUE} strokeWidth={0.3} />
- <line x1={79} y1={152} x2={90} y2={152} stroke={BLUE} strokeWidth={0.3} />
+      {/* Plant - left */}
+      <g>
+        <path d="M15 155 Q12 140 18 130" stroke={COLORS.lightGreen} strokeWidth={0.6} fill="none" strokeLinecap="round" />
+        <ellipse cx={20} cy={128} rx={4} ry={2.5} fill={COLORS.lightGreen} opacity={0.3} transform="rotate(-25 20 128)" />
+        <path d="M15 155 Q20 145 27 140" stroke={COLORS.lightGreen} strokeWidth={0.5} fill="none" strokeLinecap="round" />
+        <ellipse cx={29} cy={138} rx={3.5} ry={2} fill={COLORS.lightGreen} opacity={0.25} transform="rotate(15 29 138)" />
+      </g>
 
- {/* Arrow 1 */}
- <line x1={100} y1={150} x2={160} y2={150} stroke={CYAN} strokeWidth={0.8} strokeLinecap="round" />
- <polygon points="157,147 163,150 157,153" fill={CYAN} opacity={0.5} />
+      {/* Floating hexagons */}
+      {[
+        { x: 22, y: 20, s: 9 }, { x: 390, y: 18, s: 8 }, { x: 200, y: 8, s: 7 },
+        { x: 110, y: 160, s: 6 }, { x: 355, y: 158, s: 7 },
+      ].map((h, i) => {
+        const pts = Array.from({ length: 6 }).map((_, j) => {
+          const angle = (Math.PI / 3) * j - Math.PI / 6;
+          return `${h.x + h.s * Math.cos(angle)},${h.y + h.s * Math.sin(angle)}`;
+        }).join(' ');
+        return <polygon key={`hex-${i}`} points={pts} stroke={COLORS.neonGreen} strokeWidth={0.4} fill="none" opacity={0.15 + (i % 2) * 0.05} />;
+      })}
 
- {/* Step 2: mini cloud */}
- <path
- d="M175 148 C175 142 182 138 188 140 C190 135 200 135 202 140 C208 138 212 142 210 148 C214 150 212 155 208 155 L178 155 C174 155 172 152 175 148 Z"
- stroke={CYAN}
- strokeWidth={0.8}
- strokeLinecap="round"
- />
+      {/* Scattered particles */}
+      {[
+        { x: 8, y: 12 }, { x: 120, y: 5 }, { x: 270, y: 8 }, { x: 395, y: 35 },
+        { x: 5, y: 90 }, { x: 395, y: 95 }, { x: 50, y: 172 }, { x: 170, y: 175 },
+        { x: 280, y: 172 }, { x: 360, y: 170 }, { x: 200, y: 178 }, { x: 80, y: 175 },
+      ].map((p, i) => (
+        <circle key={`pt-${i}`} cx={p.x} cy={p.y} r={i % 3 === 0 ? 1.5 : 1} fill={COLORS.neonGreen} opacity={0.2 + (i % 3) * 0.05} />
+      ))}
 
- {/* Arrow 2 */}
- <line x1={218} y1={150} x2={278} y2={150} stroke={CYAN} strokeWidth={0.8} strokeLinecap="round" />
- <polygon points="275,147 281,150 275,153" fill={CYAN} opacity={0.5} />
-
- {/* Step 3: checkmark circle */}
- <circle cx={300} cy={150} r={12} stroke={TEAL} strokeWidth={1} fill={`${TEAL}10`} className="illus-pulse" />
- <path d="M294 150 L298 154 L307 145" stroke={TEAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
- </g>
-
- {/* Ambient floating data dots */}
- <g opacity={0.3} className="illus-glow">
- {[
- { x: 15, y: 15 },
- { x: 120, y: 10 },
- { x: 270, y: 12 },
- { x: 385, y: 15 },
- { x: 10, y: 140 },
- { x: 130, y: 170 },
- { x: 260, y: 170 },
- { x: 350, y: 170 },
- { x: 320, y: 100 },
- { x: 390, y: 100 },
- { x: 15, y: 80 },
- ].map((d, i) => (
- <circle key={`dot-${i}`} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
- ))}
- </g>
-
- {/* Connection lines */}
- <g opacity={0.15} className="illus-dash">
- <path d="M105 75 C120 78 130 55 140 50" stroke={CYAN} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="3 3" />
- <path d="M260 65 C280 60 300 55 310 55" stroke={CYAN} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="3 3" />
- </g>
- </svg>
- );
+      {/* Connecting lines */}
+      <g opacity={0.1}>
+        <line x1={80} y1={90} x2={140} y2={70} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <line x1={250} y1={70} x2={330} y2={85} stroke={COLORS.neonGreen} strokeWidth={0.5} strokeLinecap="round" />
+        <path d="M195 122 Q195 135 195 145" stroke={COLORS.teal} strokeWidth={0.3} strokeLinecap="round" strokeDasharray="2 2" />
+      </g>
+    </svg>
+  );
 }
