@@ -3,17 +3,17 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
+ const { id } = await params;
 
-    const { data: post, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('id', id)
-        .single();
+ const { data: post, error } = await supabase
+ .from('blog_posts')
+ .select('*')
+ .eq('id', id)
+ .single();
 
-    if (error || !post) {
-        notFound();
-    }
+ if (error || !post) {
+ notFound();
+ }
 
-    return <BlogEditor post={post} />;
+ return <BlogEditor post={post} />;
 }

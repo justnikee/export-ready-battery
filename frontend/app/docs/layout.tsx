@@ -1,9 +1,9 @@
 import { DocsLayout } from '@/components/docs';
 
 export default function DocsRootLayout({
-    children,
+ children,
 }: {
-    children: React.ReactNode;
+ children: React.ReactNode;
 }) {
-    return <DocsLayout>{children}</DocsLayout>;
+ return <DocsLayout>{children}</DocsLayout>;
 }

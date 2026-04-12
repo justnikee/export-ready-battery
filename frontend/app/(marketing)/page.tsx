@@ -8,16 +8,16 @@ import { DeveloperSection } from "@/components/landing/DeveloperSection";
 import { CTASection } from "@/components/landing/CTASection";
 
 export default function Home() {
-  return (
-    <>
-      <HeroSection />
-      <QuickLinksSection />
-      <ExplainerSection />
-      <UseCasesSection />
-      <StatsSection />
-      <ValuesSection />
-      <DeveloperSection />
-      <CTASection />
-    </>
-  );
+ return (
+ <>
+ <HeroSection />
+ <QuickLinksSection />
+ <ExplainerSection />
+ <UseCasesSection />
+ <StatsSection />
+ <ValuesSection />
+ <DeveloperSection />
+ <CTASection />
+ </>
+ );
 }
