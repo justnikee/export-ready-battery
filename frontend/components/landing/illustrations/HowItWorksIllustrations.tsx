@@ -28,7 +28,7 @@ export function CreateBatchIllustration({ className }: { className?: string }) {
  <line x1={168} y1={72} x2={180} y2={72} stroke={TEAL} strokeWidth={0.5} />
  </g>
  {/* Upload arrow */}
- <g opacity={0.55}>
+ <g opacity={0.55} className="illus-float">
  <circle cx={55} cy={80} r={22} stroke={TEAL} strokeWidth={1} fill={`${TEAL}08`} />
  <line x1={55} y1={92} x2={55} y2={70} stroke={TEAL} strokeWidth={1.2} strokeLinecap="round" />
  <path d="M48 76 L55 68 L62 76" stroke={TEAL} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
@@ -40,12 +40,12 @@ export function CreateBatchIllustration({ className }: { className?: string }) {
  <circle cx={265} cy={65} r={2} fill={TEAL} opacity={0.5} />
  </g>
  {/* Connection lines */}
- <g opacity={0.2}>
+ <g opacity={0.2} className="illus-dash">
  <path d="M77 80 L110 80" stroke={CYAN} strokeWidth={0.7} strokeDasharray="4 3" />
  <path d="M210 80 L240 80" stroke={CYAN} strokeWidth={0.7} strokeDasharray="4 3" />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:20,y:30},{x:300,y:25},{x:25,y:140},{x:290,y:145},{x:160,y:10}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -78,10 +78,10 @@ export function GeneratePassportsIllustration({ className }: { className?: strin
  <line x1={189} y1={78} x2={189} y2={90} stroke={CYAN} strokeWidth={0.3} />
  <line x1={195} y1={78} x2={195} y2={90} stroke={CYAN} strokeWidth={0.3} />
  {/* Badge checkmark */}
- <circle cx={250} cy={45} r={14} stroke={TEAL} strokeWidth={1} fill={`${TEAL}10`} />
+ <circle cx={250} cy={45} r={14} stroke={TEAL} strokeWidth={1} fill={`${TEAL}10`} className="illus-pulse" />
  <path d="M244 45 L248 49 L257 40" stroke={TEAL} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" />
  {/* Generation sparkle lines */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-dash">
  <path d="M55 50 C70 45 80 40 90 38" stroke={LAVENDER} strokeWidth={0.6} strokeDasharray="3 3" />
  <path d="M55 80 C70 78 80 72 90 68" stroke={LAVENDER} strokeWidth={0.6} strokeDasharray="3 3" />
  <path d="M50 65 L40 65" stroke={LAVENDER} strokeWidth={0.6} />
@@ -93,7 +93,7 @@ export function GeneratePassportsIllustration({ className }: { className?: strin
  <rect x={100} y={126} width={120} height={8} rx={3} stroke={BLUE} strokeWidth={0.5} />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:25},{x:305,y:30},{x:20,y:140},{x:300,y:140},{x:160,y:8}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -120,14 +120,14 @@ export function TrackLifecycleIllustration({ className }: { className?: string }
  </g>
  ))}
  {/* Battery with lifecycle tracking */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-float-d1">
  <rect x={130} y={25} width={60} height={35} rx={4} stroke={BLUE} strokeWidth={1} />
  <rect x={150} y={20} width={20} height={6} rx={2} stroke={BLUE} strokeWidth={0.8} />
  <rect x={136} y={42} width={48} height={6} rx={1} fill={TEAL} opacity={0.3} />
  <rect x={136} y={34} width={48} height={6} rx={1} fill={TEAL} opacity={0.2} />
  </g>
  {/* Audit trail markers */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-pulse-d1">
  <rect x={50} y={120} width={220} height={25} rx={3} stroke={BLUE} strokeWidth={0.6} fill={`${BLUE}06`} />
  <text x={62} y={136} fontSize={6} fontFamily="monospace" fill={CYAN} opacity={0.5}>AUDIT TRAIL</text>
  {[130, 155, 180, 205, 230].map((x, i) => (
@@ -140,7 +140,7 @@ export function TrackLifecycleIllustration({ className }: { className?: string }
  {/* Connection: battery to timeline */}
  <path d="M160 60 L160 68" stroke={CYAN} strokeWidth={0.6} strokeDasharray="2 2" opacity={0.3} />
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:20},{x:305,y:25},{x:10,y:145},{x:305,y:150},{x:160,y:8}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -173,22 +173,22 @@ export function ExportCompliantIllustration({ className }: { className?: string 
  <line x1={162} y1={62} x2={225} y2={62} stroke={BLUE} strokeWidth={0.4} opacity={0.25} />
  <line x1={162} y1={72} x2={215} y2={72} stroke={BLUE} strokeWidth={0.4} opacity={0.25} />
  {/* Big checkmark */}
- <circle cx={195} cy={105} r={18} stroke={TEAL} strokeWidth={1.2} fill={`${TEAL}10`} />
+ <circle cx={195} cy={105} r={18} stroke={TEAL} strokeWidth={1.2} fill={`${TEAL}10`} className="illus-pulse" />
  <path d="M186 105 L192 111 L205 98" stroke={TEAL} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
  </g>
  {/* Download arrow */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-float">
  <circle cx={275} cy={80} r={18} stroke={TEAL} strokeWidth={0.8} fill={`${TEAL}06`} />
  <line x1={275} y1={72} x2={275} y2={88} stroke={TEAL} strokeWidth={1} strokeLinecap="round" />
  <path d="M269 84 L275 90 L281 84" stroke={TEAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
  </g>
  {/* Flow arrows */}
- <g opacity={0.2}>
+ <g opacity={0.2} className="illus-dash">
  <path d="M113 80 L148 80" stroke={CYAN} strokeWidth={0.7} strokeDasharray="4 3" />
  <path d="M242 80 L255 80" stroke={CYAN} strokeWidth={0.7} strokeDasharray="4 3" />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:20},{x:308,y:25},{x:10,y:145},{x:308,y:145},{x:160,y:8}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}

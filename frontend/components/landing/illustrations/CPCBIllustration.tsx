@@ -121,7 +121,7 @@ export function CPCBIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Cloud with upload arrow — top right */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-float">
  {/* Cloud shape */}
  <path
  d="M310 55 C310 40 325 30 340 35 C345 20 370 20 375 35 C390 30 400 40 395 55 C405 60 400 75 390 75 L315 75 C305 75 300 65 310 55 Z"
@@ -163,12 +163,12 @@ export function CPCBIllustration({ className }: { className?: string }) {
  <polygon points="275,147 281,150 275,153" fill={CYAN} opacity={0.5} />
 
  {/* Step 3: checkmark circle */}
- <circle cx={300} cy={150} r={12} stroke={TEAL} strokeWidth={1} fill={`${TEAL}10`} />
+ <circle cx={300} cy={150} r={12} stroke={TEAL} strokeWidth={1} fill={`${TEAL}10`} className="illus-pulse" />
  <path d="M294 150 L298 154 L307 145" stroke={TEAL} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round" />
  </g>
 
  {/* Ambient floating data dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[
  { x: 15, y: 15 },
  { x: 120, y: 10 },
@@ -187,7 +187,7 @@ export function CPCBIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Connection lines */}
- <g opacity={0.15}>
+ <g opacity={0.15} className="illus-dash">
  <path d="M105 75 C120 78 130 55 140 50" stroke={CYAN} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="3 3" />
  <path d="M260 65 C280 60 300 55 310 55" stroke={CYAN} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="3 3" />
  </g>

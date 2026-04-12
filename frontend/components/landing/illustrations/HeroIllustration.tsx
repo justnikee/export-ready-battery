@@ -95,9 +95,9 @@ export function HeroIllustration({ className }: { className?: string }) {
  {/* Chimney */}
  <rect x={200} y={180} width={20} height={40} stroke={BLUE} strokeWidth={1} strokeLinecap="round" />
  {/* Smoke puffs */}
- <circle cx={210} cy={170} r={5} stroke={BLUE} strokeWidth={0.7} opacity={0.4} />
- <circle cx={215} cy={158} r={4} stroke={BLUE} strokeWidth={0.7} opacity={0.3} />
- <circle cx={208} cy={148} r={3} stroke={BLUE} strokeWidth={0.7} opacity={0.2} />
+ <circle cx={210} cy={170} r={5} stroke={BLUE} strokeWidth={0.7} opacity={0.4} className="illus-float" />
+ <circle cx={215} cy={158} r={4} stroke={BLUE} strokeWidth={0.7} opacity={0.3} className="illus-float-d1" />
+ <circle cx={208} cy={148} r={3} stroke={BLUE} strokeWidth={0.7} opacity={0.2} className="illus-float-d2" />
  {/* Windows */}
  <rect x={195} y={240} width={18} height={14} rx={1} stroke={CYAN} strokeWidth={0.8} />
  <rect x={220} y={240} width={18} height={14} rx={1} stroke={CYAN} strokeWidth={0.8} />
@@ -139,11 +139,11 @@ export function HeroIllustration({ className }: { className?: string }) {
  <ellipse cx={720} cy={220} rx={125} ry={55} stroke={PURPLE} strokeWidth={0.6} opacity={0.18} strokeDasharray="5 7" transform="rotate(-20, 720, 220)" />
 
  {/* Orbit data dots */}
- <circle cx={850} cy={220} r={3} fill={CYAN} opacity={0.6} />
- <circle cx={590} cy={220} r={2.5} fill={CYAN} opacity={0.5} />
- <circle cx={780} cy={170} r={2} fill={LAVENDER} opacity={0.5} />
- <circle cx={660} cy={270} r={2} fill={PURPLE} opacity={0.5} />
- <circle cx={810} cy={260} r={2.5} fill={LAVENDER} opacity={0.4} />
+ <circle cx={850} cy={220} r={3} fill={CYAN} opacity={0.6} className="illus-float" />
+ <circle cx={590} cy={220} r={2.5} fill={CYAN} opacity={0.5} className="illus-float" />
+ <circle cx={780} cy={170} r={2} fill={LAVENDER} opacity={0.5} className="illus-float-d1" />
+ <circle cx={660} cy={270} r={2} fill={PURPLE} opacity={0.5} className="illus-float-d1" />
+ <circle cx={810} cy={260} r={2.5} fill={LAVENDER} opacity={0.4} className="illus-float-d2" />
 
  {/* Hexagonal shield */}
  <path
@@ -242,7 +242,7 @@ export function HeroIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Curved connection lines between elements */}
- <g opacity={0.2}>
+ <g opacity={0.2} className="illus-dash">
  <path
  d="M320 280 C450 260 550 250 655 220"
  stroke={CYAN}
@@ -267,7 +267,7 @@ export function HeroIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Ambient floating particles */}
- <g opacity={0.35}>
+ <g opacity={0.35} className="illus-glow">
  {[
  { x: 120, y: 140, r: 2 },
  { x: 280, y: 100, r: 1.5 },

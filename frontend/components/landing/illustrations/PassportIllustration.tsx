@@ -104,9 +104,9 @@ export function PassportIllustration({ className }: { className?: string }) {
  />
 
  {/* Data dots along streams */}
- <circle cx={100} cy={67} r={1.5} fill={CYAN} opacity={0.6} />
- <circle cx={115} cy={82} r={1.5} fill={CYAN} opacity={0.5} />
- <circle cx={108} cy={102} r={1.5} fill={CYAN} opacity={0.5} />
+ <circle cx={100} cy={67} r={1.5} fill={CYAN} opacity={0.6} className="illus-float" />
+ <circle cx={115} cy={82} r={1.5} fill={CYAN} opacity={0.5} className="illus-float-d1" />
+ <circle cx={108} cy={102} r={1.5} fill={CYAN} opacity={0.5} className="illus-float-d2" />
  </g>
 
  {/* Mobile phone outline with scan lines — right */}
@@ -149,6 +149,7 @@ export function PassportIllustration({ className }: { className?: string }) {
  strokeWidth={0.6}
  strokeLinecap="round"
  strokeDasharray="5 4"
+ className="illus-dash"
  />
  <path
  d="M305 78 C290 78 275 78 260 78"
@@ -156,6 +157,7 @@ export function PassportIllustration({ className }: { className?: string }) {
  strokeWidth={0.6}
  strokeLinecap="round"
  strokeDasharray="5 4"
+ className="illus-dash"
  />
  <path
  d="M305 95 C290 100 275 105 260 110"
@@ -163,6 +165,7 @@ export function PassportIllustration({ className }: { className?: string }) {
  strokeWidth={0.6}
  strokeLinecap="round"
  strokeDasharray="5 4"
+ className="illus-dash"
  />
  </g>
 
@@ -178,7 +181,7 @@ export function PassportIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Ambient floating binary-style dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[
  { x: 15, y: 30 },
  { x: 25, y: 145 },

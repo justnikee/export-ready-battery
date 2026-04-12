@@ -21,7 +21,7 @@ export function IndiaComplianceIllustration({ className }: { className?: string 
  <text x={145} y={106} fontSize={10} fontFamily="monospace" fill={LAVENDER} opacity={0.3}>PLI</text>
  </g>
  {/* Checkmarks on the side */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-pulse">
  {[{y:55,label:"IS 16046"},{y:75,label:"CPCB"},{y:95,label:"PLI Cert"}].map((item, i) => (
  <g key={i}>
  <circle cx={255} cy={item.y} r={7} stroke={TEAL} strokeWidth={0.7} fill={`${TEAL}10`} />
@@ -31,13 +31,13 @@ export function IndiaComplianceIllustration({ className }: { className?: string 
  ))}
  </g>
  {/* Connection dashes */}
- <g opacity={0.15}>
+ <g opacity={0.15} className="illus-dash">
  <path d="M220 65 L245 60" stroke={CYAN} strokeWidth={0.7} strokeDasharray="3 3" />
  <path d="M220 85 L245 80" stroke={CYAN} strokeWidth={0.7} strokeDasharray="3 3" />
  <path d="M220 100 L245 98" stroke={CYAN} strokeWidth={0.7} strokeDasharray="3 3" />
  </g>
  {/* Circuit nodes left */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  <circle cx={55} cy={50} r={3} stroke={CYAN} strokeWidth={0.6} />
  <line x1={55} y1={53} x2={55} y2={70} stroke={CYAN} strokeWidth={0.4} />
  <circle cx={55} cy={73} r={3} stroke={CYAN} strokeWidth={0.6} />
@@ -46,7 +46,7 @@ export function IndiaComplianceIllustration({ className }: { className?: string 
  <line x1={58} y1={73} x2={100} y2={65} stroke={CYAN} strokeWidth={0.4} strokeDasharray="3 3" />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:20,y:20},{x:305,y:22},{x:15,y:145},{x:300,y:148},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -72,19 +72,19 @@ export function AuditReadyIllustration({ className }: { className?: string }) {
  </g>
  ))}
  {/* Seal stamp */}
- <circle cx={185} cy={125} r={12} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}08`} />
+ <circle cx={185} cy={125} r={12} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}08`} className="illus-pulse" />
  <circle cx={185} cy={125} r={8} stroke={CYAN} strokeWidth={0.5} opacity={0.4} />
  <text x={179} y={128} fontSize={7} fontFamily="monospace" fill={CYAN} opacity={0.5}>✓</text>
  </g>
  {/* Lock icon — right */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-float-d1">
  <rect x={255} y={65} width={30} height={25} rx={3} stroke={BLUE} strokeWidth={1} fill={`${BLUE}08`} />
  <path d="M262 65 L262 55 C262 48 278 48 278 55 L278 65" stroke={BLUE} strokeWidth={1} strokeLinecap="round" />
  <circle cx={270} cy={77} r={3} fill={CYAN} opacity={0.4} />
  <line x1={270} y1={80} x2={270} y2={85} stroke={CYAN} strokeWidth={0.6} strokeLinecap="round" />
  </g>
  {/* Timeline markers — left */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-glow">
  <line x1={50} y1={30} x2={50} y2={130} stroke={BLUE} strokeWidth={0.5} />
  {[40, 60, 80, 100, 120].map((y, i) => (
  <g key={i}>
@@ -94,7 +94,7 @@ export function AuditReadyIllustration({ className }: { className?: string }) {
  ))}
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:20,y:15},{x:305,y:20},{x:15,y:148},{x:305,y:145},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -107,7 +107,7 @@ export function ZeroInfraIllustration({ className }: { className?: string }) {
  return (
  <svg viewBox="0 0 320 160" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
  {/* Cloud shape */}
- <g>
+ <g className="illus-float">
  <path d="M100 65 C100 45 120 30 145 35 C150 15 185 15 190 35 C210 28 225 42 220 60 C235 65 228 85 215 85 L110 85 C95 85 88 75 100 65 Z"
  stroke={CYAN} strokeWidth={1.2} strokeLinecap="round" fill={`${CYAN}06`} />
  {/* Inner cloud highlight */}
@@ -123,11 +123,11 @@ export function ZeroInfraIllustration({ className }: { className?: string }) {
  <line x1={157} y1={70} x2={176} y2={70} stroke={BLUE} strokeWidth={0.3} opacity={0.3} />
  </g>
  {/* Instant start — lightning bolt */}
- <g opacity={0.45}>
+ <g opacity={0.45} className="illus-pulse">
  <path d="M160 95 L155 108 L162 108 L157 125" stroke={TEAL} strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
  </g>
  {/* Connection nodes — devices */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-glow">
  {/* Laptop left */}
  <rect x={35} y={100} width={40} height={28} rx={3} stroke={BLUE} strokeWidth={0.7} />
  <line x1={30} y1={128} x2={80} y2={128} stroke={BLUE} strokeWidth={0.7} strokeLinecap="round" />
@@ -138,7 +138,7 @@ export function ZeroInfraIllustration({ className }: { className?: string }) {
  <path d="M250 112 L225 80" stroke={CYAN} strokeWidth={0.5} strokeDasharray="3 3" />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:18},{x:305,y:22},{x:10,y:148},{x:308,y:148},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}

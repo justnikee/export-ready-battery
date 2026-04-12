@@ -148,7 +148,7 @@ export function StatsIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Scattered ambient dots along curves */}
- <g opacity={0.1}>
+ <g opacity={0.1} className="illus-glow">
  {[
  { x: 60, y: 245 },
  { x: 180, y: 205 },
@@ -181,7 +181,7 @@ export function StatsIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Connecting dashed lines between data points */}
- <g opacity={0.06}>
+ <g opacity={0.06} className="illus-dash">
  <line x1={240} y1={210} x2={330} y2={140} stroke={LAVENDER} strokeWidth={0.5} strokeDasharray="4 6" />
  <line x1={720} y1={180} x2={660} y2={170} stroke={LAVENDER} strokeWidth={0.5} strokeDasharray="4 6" />
  <line x1={960} y1={230} x2={990} y2={130} stroke={LAVENDER} strokeWidth={0.5} strokeDasharray="4 6" />

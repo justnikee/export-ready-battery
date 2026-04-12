@@ -25,7 +25,7 @@ export function ManufacturerIllustration({ className }: { className?: string }) 
  <rect x={145} y={100} width={30} height={30} rx={3} stroke={CYAN} strokeWidth={0.8} fill={`${CYAN}06`} />
  </g>
  {/* Production line */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-pulse-d1">
  <line x1={50} y1={130} x2={270} y2={130} stroke={BLUE} strokeWidth={0.6} />
  {/* Battery units on line */}
  {[60, 100, 140, 180, 220].map((x, i) => (
@@ -36,7 +36,7 @@ export function ManufacturerIllustration({ className }: { className?: string }) 
  ))}
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:20,y:15},{x:300,y:20},{x:15,y:140},{x:305,y:145},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -49,7 +49,7 @@ export function ExporterIllustration({ className }: { className?: string }) {
  return (
  <svg viewBox="0 0 320 160" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
  {/* Globe */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-pulse">
  <circle cx={160} cy={75} r={45} stroke={BLUE} strokeWidth={1} />
  <ellipse cx={160} cy={75} rx={45} ry={15} stroke={BLUE} strokeWidth={0.5} strokeDasharray="3 3" />
  <ellipse cx={160} cy={75} rx={15} ry={45} stroke={BLUE} strokeWidth={0.5} strokeDasharray="3 3" />
@@ -65,7 +65,7 @@ export function ExporterIllustration({ className }: { className?: string }) {
  <line x1={25} y1={65} x2={65} y2={65} stroke={BLUE} strokeWidth={0.5} />
  <line x1={45} y1={55} x2={45} y2={90} stroke={BLUE} strokeWidth={0.5} />
  {/* Arrow pointing to globe */}
- <path d="M68 72 L110 72" stroke={TEAL} strokeWidth={0.8} strokeDasharray="4 3" />
+ <path d="M68 72 L110 72" stroke={TEAL} strokeWidth={0.8} strokeDasharray="4 3" className="illus-dash" />
  <polygon points="108,69 114,72 108,75" fill={TEAL} opacity={0.5} />
  </g>
  {/* Document — right */}
@@ -80,7 +80,7 @@ export function ExporterIllustration({ className }: { className?: string }) {
  <path d="M208 72 L238 65" stroke={TEAL} strokeWidth={0.8} strokeDasharray="4 3" />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:10,y:20},{x:308,y:18},{x:15,y:145},{x:300,y:148},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -106,7 +106,7 @@ export function OEMIllustration({ className }: { className?: string }) {
  <path d="M120 68 L200 68 L200 90 L120 90 Z" stroke={CYAN} strokeWidth={0.5} fill={`${CYAN}06`} />
  </g>
  {/* Battery pack underneath */}
- <g opacity={0.45}>
+ <g opacity={0.45} className="illus-pulse-d1">
  <rect x={100} y={112} width={120} height={22} rx={3} stroke={TEAL} strokeWidth={1} fill={`${TEAL}08`} />
  {/* Cells inside pack */}
  {[110, 130, 150, 170, 190].map((x, i) => (
@@ -117,13 +117,13 @@ export function OEMIllustration({ className }: { className?: string }) {
  <path d="M241 123 L244 126 L250 120" stroke={TEAL} strokeWidth={0.8} strokeLinecap="round" strokeLinejoin="round" />
  </g>
  {/* Supply chain arrow */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-dash">
  <path d="M30 50 L80 50" stroke={CYAN} strokeWidth={0.7} strokeDasharray="4 3" />
  <polygon points="78,47 84,50 78,53" fill={CYAN} opacity={0.5} />
  <text x={20} y={45} fontSize={6} fontFamily="monospace" fill={BLUE} opacity={0.4}>IN</text>
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:20},{x:305,y:25},{x:10,y:150},{x:305,y:145},{x:160,y:8}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}
@@ -154,7 +154,7 @@ export function RecyclerIllustration({ className }: { className?: string }) {
  <rect x={152} y={72} width={16} height={4} rx={0.5} fill={TEAL} opacity={0.2} />
  </g>
  {/* Lifecycle history document */}
- <g opacity={0.45}>
+ <g opacity={0.45} className="illus-pulse-d1">
  <rect x={245} y={40} width={55} height={70} rx={3} stroke={BLUE} strokeWidth={0.8} fill={`${BLUE}06`} />
  <line x1={253} y1={55} x2={292} y2={55} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
  <line x1={253} y1={63} x2={288} y2={63} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
@@ -164,12 +164,12 @@ export function RecyclerIllustration({ className }: { className?: string }) {
  <line x1={253} y1={95} x2={287} y2={95} stroke={BLUE} strokeWidth={0.4} opacity={0.25} />
  </g>
  {/* Leaf */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-float">
  <path d="M35 55 Q50 40 60 58 Q48 65 35 55 Z" stroke={TEAL} strokeWidth={0.8} fill={`${TEAL}10`} />
  <line x1={47} y1={47} x2={47} y2={62} stroke={TEAL} strokeWidth={0.4} />
  </g>
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[{x:15,y:20},{x:305,y:18},{x:10,y:148},{x:308,y:145},{x:160,y:5}].map((d, i) => (
  <circle key={i} cx={d.x} cy={d.y} r={1.5} fill={PURPLE} />
  ))}

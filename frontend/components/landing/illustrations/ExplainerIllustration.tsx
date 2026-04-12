@@ -129,7 +129,7 @@ export function ExplainerIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Floating data cards orbiting the screen */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-float">
  {/* Card top-left */}
  <rect x={165} y={45} width={50} height={35} rx={4} stroke={LAVENDER} strokeWidth={0.8} />
  <line x1={172} y1={56} x2={202} y2={56} stroke={LAVENDER} strokeWidth={0.5} />
@@ -149,7 +149,7 @@ export function ExplainerIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Connection lines from person to screen */}
- <g opacity={0.2}>
+ <g opacity={0.2} className="illus-dash">
  <path
  d="M162 174 C180 170 185 160 195 155"
  stroke={CYAN}
@@ -160,7 +160,7 @@ export function ExplainerIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Ambient floating dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[
  { x: 50, y: 60, r: 1.5 },
  { x: 80, y: 120, r: 1 },

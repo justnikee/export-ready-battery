@@ -105,7 +105,7 @@ export function EPRIllustration({ className }: { className?: string }) {
  <path d="M350 90 L352 93 L357 87" stroke={TEAL} strokeWidth={0.8} strokeLinecap="round" strokeLinejoin="round" />
 
  {/* Clock hint */}
- <circle cx={345} cy={135} r={12} stroke={CYAN} strokeWidth={0.7} opacity={0.3} />
+ <circle cx={345} cy={135} r={12} stroke={CYAN} strokeWidth={0.7} opacity={0.3} className="illus-pulse-d1" />
  <line x1={345} y1={135} x2={345} y2={127} stroke={CYAN} strokeWidth={0.5} strokeLinecap="round" opacity={0.3} />
  <line x1={345} y1={135} x2={351} y2={138} stroke={CYAN} strokeWidth={0.5} strokeLinecap="round" opacity={0.3} />
  </g>
@@ -131,7 +131,7 @@ export function EPRIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Floating leaf shapes */}
- <g opacity={0.35}>
+ <g opacity={0.35} className="illus-float">
  <path d="M115 35 Q125 25 130 40 Q120 45 115 35 Z" stroke={TEAL} strokeWidth={0.7} fill={`${TEAL}10`} />
  <line x1={122} y1={33} x2={122} y2={42} stroke={TEAL} strokeWidth={0.4} />
 
@@ -146,14 +146,14 @@ export function EPRIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Connection flow lines */}
- <g opacity={0.15}>
+ <g opacity={0.15} className="illus-dash">
  <path d="M90 100 C120 95 130 95 140 96" stroke={CYAN} strokeWidth={0.7} strokeLinecap="round" strokeDasharray="4 3" />
  <path d="M265 100 C280 100 295 85 310 80" stroke={CYAN} strokeWidth={0.7} strokeLinecap="round" strokeDasharray="4 3" />
  <path d="M200 160 C200 170 200 175 200 185" stroke={LAVENDER} strokeWidth={0.6} strokeLinecap="round" strokeDasharray="3 3" />
  </g>
 
  {/* Ambient dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[
  { x: 10, y: 25 },
  { x: 105, y: 150 },

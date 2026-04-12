@@ -69,7 +69,7 @@ export function BISIllustration({ className }: { className?: string }) {
  <line x1={170} y1={55} x2={230} y2={55} stroke={BLUE} strokeWidth={0.4} opacity={0.3} />
 
  {/* Official seal — circle with star */}
- <circle cx={200} cy={90} r={22} stroke={CYAN} strokeWidth={1} fill={`${CYAN}08`} />
+ <circle cx={200} cy={90} r={22} stroke={CYAN} strokeWidth={1} fill={`${CYAN}08`} className="illus-pulse" />
  <circle cx={200} cy={90} r={17} stroke={CYAN} strokeWidth={0.6} opacity={0.5} />
  {/* Star inside seal */}
  <path
@@ -111,8 +111,8 @@ export function BISIllustration({ className }: { className?: string }) {
  {/* Liquid level */}
  <path d="M57 85 Q65 80 73 85 L73 110 Q73 122 65 122 Q57 122 57 110 Z" fill={TEAL} opacity={0.1} />
  {/* Bubbles */}
- <circle cx={63} cy={95} r={2} stroke={TEAL} strokeWidth={0.5} opacity={0.4} />
- <circle cx={68} cy={102} r={1.5} stroke={TEAL} strokeWidth={0.5} opacity={0.3} />
+ <circle cx={63} cy={95} r={2} stroke={TEAL} strokeWidth={0.5} opacity={0.4} className="illus-float" />
+ <circle cx={68} cy={102} r={1.5} stroke={TEAL} strokeWidth={0.5} opacity={0.3} className="illus-float-d1" />
 
  {/* Circuit board pattern */}
  <line x1={40} y1={70} x2={20} y2={70} stroke={CYAN} strokeWidth={0.7} strokeLinecap="round" />
@@ -168,7 +168,7 @@ export function BISIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Connection lines between elements */}
- <g opacity={0.15}>
+ <g opacity={0.15} className="illus-dash">
  <path
  d="M80 85 C110 85 120 80 135 75"
  stroke={CYAN}
@@ -186,7 +186,7 @@ export function BISIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Floating sparkle dots */}
- <g opacity={0.35}>
+ <g opacity={0.35} className="illus-glow">
  {[
  { x: 125, y: 30 },
  { x: 280, y: 25 },

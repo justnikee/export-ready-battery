@@ -76,7 +76,7 @@ export function EUIllustration({ className }: { className?: string }) {
  </g>
 
  {/* EU-inspired star arrangement — left */}
- <g opacity={0.45}>
+ <g opacity={0.45} className="illus-pulse-d1">
  <circle cx={55} cy={80} r={35} stroke={LAVENDER} strokeWidth={0.7} strokeDasharray="2 3" />
  {Array.from({ length: 12 }).map((_, i) => {
  const angle = (Math.PI / 6) * i - Math.PI / 2;
@@ -115,7 +115,7 @@ export function EUIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Carbon footprint — bottom center */}
- <g opacity={0.4}>
+ <g opacity={0.4} className="illus-float">
  {/* Leaf */}
  <path
  d="M175 150 Q185 138 195 150 Q185 158 175 150 Z"
@@ -136,7 +136,7 @@ export function EUIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Floating connection lines between elements */}
- <g opacity={0.15}>
+ <g opacity={0.15} className="illus-dash">
  <path
  d="M90 80 C105 75 110 65 120 60"
  stroke={CYAN}
@@ -178,7 +178,7 @@ export function EUIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Ambient floating dots */}
- <g opacity={0.3}>
+ <g opacity={0.3} className="illus-glow">
  {[
  { x: 15, y: 25 },
  { x: 100, y: 15 },

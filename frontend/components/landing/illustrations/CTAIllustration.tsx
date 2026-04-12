@@ -99,7 +99,7 @@ export function CTAIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Horizon glow */}
- <circle cx={350} cy={55} r={6} fill={CYAN} opacity={0.15} />
+ <circle cx={350} cy={55} r={6} fill={CYAN} opacity={0.15} className="illus-pulse" />
  <circle cx={350} cy={55} r={3} fill={CYAN} opacity={0.25} />
  </g>
 
@@ -146,7 +146,7 @@ export function CTAIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Person silhouette stepping forward — left of center */}
- <g opacity={0.5}>
+ <g opacity={0.5} className="illus-float-d1">
  {/* Head */}
  <circle cx={250} cy={100} r={9} stroke={LAVENDER} strokeWidth={1.2} strokeLinecap="round" />
  {/* Body */}
@@ -160,7 +160,7 @@ export function CTAIllustration({ className }: { className?: string }) {
  </g>
 
  {/* Floating particles increasing toward horizon */}
- <g>
+ <g className="illus-glow">
  {/* Sparse particles on edges */}
  {[
  { x: 30, y: 40, r: 1, o: 0.15 },
