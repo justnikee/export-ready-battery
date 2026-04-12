@@ -50,14 +50,14 @@ export function HeroSection() {
  <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
  <Link
  href="/contact"
- className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm text-white transition-all duration-200 hover:opacity-90"
- style={{ background: "var(--ld-accent)" }}
+ className="inline-flex items-center gap-2 px-8 py-3 rounded-[6px] text-sm text-white transition-all duration-200 hover:opacity-90"
+ style={{ background: "#006239" }}
  >
  Start Free Trial
  </Link>
  <Link
  href="/contact?demo=true"
- className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm border transition-all duration-200 hover:bg-white/5"
+ className="inline-flex items-center gap-2 px-8 py-3 rounded-[6px] text-sm border transition-all duration-200 hover:bg-white/5"
  style={{
  borderColor: "var(--ld-border)",
  color: "#fafafa",

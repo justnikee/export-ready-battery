@@ -7,3 +7,6 @@ export { PassportIllustration } from "./PassportIllustration";
 export { CPCBIllustration } from "./CPCBIllustration";
 export { CTAIllustration } from "./CTAIllustration";
 export { StatsIllustration } from "./StatsIllustration";
+export { CreateBatchIllustration, GeneratePassportsIllustration, TrackLifecycleIllustration, ExportCompliantIllustration } from "./HowItWorksIllustrations";
+export { ManufacturerIllustration, ExporterIllustration, OEMIllustration, RecyclerIllustration } from "./AudienceIllustrations";
+export { IndiaComplianceIllustration, AuditReadyIllustration, ZeroInfraIllustration } from "./ValueIllustrations";

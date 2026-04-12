@@ -1,29 +1,34 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Factory, Truck, Building2, Recycle } from "lucide-react";
+import {
+ ManufacturerIllustration,
+ ExporterIllustration,
+ OEMIllustration,
+ RecyclerIllustration,
+} from "./illustrations";
 
 const audiences = [
  {
- icon: Factory,
+ Illustration: ManufacturerIllustration,
  title: "Battery Manufacturers",
  description:
  "Generate compliant passports at production scale. Track every unit from cell to shipment.",
  },
  {
- icon: Truck,
+ Illustration: ExporterIllustration,
  title: "Exporters to EU",
  description:
  "Meet EU Battery Regulation requirements with auto-generated digital passports and documentation.",
  },
  {
- icon: Building2,
+ Illustration: OEMIllustration,
  title: "EV OEMs",
  description:
  "Receive batteries with verified provenance. Seamless supply chain compliance integration.",
  },
  {
- icon: Recycle,
+ Illustration: RecyclerIllustration,
  title: "Recycling Companies",
  description:
  "Accept batteries with complete lifecycle history. Simplify end-of-life reporting.",
@@ -60,7 +65,7 @@ export function AudienceSection() {
 
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
  {audiences.map((audience, i) => {
- const Icon = audience.icon;
+ const Illust = audience.Illustration;
  return (
  <motion.div
  key={i}
@@ -68,22 +73,17 @@ export function AudienceSection() {
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
  transition={{ delay: i * 0.08 }}
- className="rounded-2xl border p-6 transition-colors duration-200 hover:border-zinc-600"
+ className="rounded-2xl border overflow-hidden transition-colors duration-200 hover:border-zinc-600"
  style={{
  borderColor: "var(--ld-border)",
  background: "var(--ld-bg-surface)",
  }}
  >
- <div
- className="flex items-center justify-center h-12 w-12 rounded-full mb-4"
- style={{ background: "rgba(62,207,142,0.1)" }}
- >
- <Icon
- className="h-5 w-5"
- style={{ color: "var(--ld-accent)" }}
- />
+ <div className="w-full h-[140px] flex items-center justify-center overflow-hidden">
+ <Illust className="w-full h-full" />
  </div>
 
+ <div className="p-5">
  <h3 className="text-white mb-2">{audience.title}</h3>
  <p
  className="text-sm leading-relaxed"
@@ -91,6 +91,7 @@ export function AudienceSection() {
  >
  {audience.description}
  </p>
+ </div>
  </motion.div>
  );
  })}

@@ -47,8 +47,8 @@ export function PublicHeader() {
  </Link>
  <Link
  href="/contact"
- className="inline-flex items-center justify-center px-6 py-2.5 text-sm text-white transition-all duration-200 hover:opacity-90 rounded-lg"
- style={{ background: "#0ea371" }}
+ className="inline-flex items-center justify-center px-6 py-2.5 text-sm text-white transition-all duration-200 hover:opacity-90 rounded-[6px]"
+ style={{ background: "#006239" }}
  >
  Book a Demo
  </Link>
@@ -76,8 +76,8 @@ export function PublicHeader() {
  <Link href="/login" className="block py-2 hover:text-white transition-colors" style={{ color: "var(--ld-text-muted)" }}>Login</Link>
  <Link
  href="/contact"
- className="w-full inline-flex items-center justify-center px-6 py-3 text-sm text-white transition-all duration-200 rounded-lg hover:opacity-90"
- style={{ background: "#0ea371" }}
+ className="w-full inline-flex items-center justify-center px-6 py-3 text-sm text-white transition-all duration-200 rounded-[6px] hover:opacity-90"
+ style={{ background: "#006239" }}
  >
  Book a Demo
  </Link>

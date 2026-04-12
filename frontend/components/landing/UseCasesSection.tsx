@@ -4,48 +4,48 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import {
- Shield,
- Recycle,
- Globe,
- QrCode,
- FileText,
-} from "lucide-react";
+ BISIllustration,
+ EPRIllustration,
+ EUIllustration,
+ PassportIllustration,
+ CPCBIllustration,
+} from "./illustrations";
 
 const useCases = [
  {
- icon: Shield,
  title: "BIS Certification",
  description:
  "Track and manage BIS certification lifecycle with automated compliance checks and documentation.",
  href: "/compliance",
+ Illustration: BISIllustration,
  },
  {
- icon: Recycle,
  title: "EPR Obligations",
  description:
  "Monitor EPR targets, recycling data, and compliance status in real time.",
  href: "/compliance",
+ Illustration: EPRIllustration,
  },
  {
- icon: Globe,
  title: "EU Battery Regulation",
  description:
  "Generate digital battery passports and meet EU regulatory requirements effortlessly.",
  href: "/docs/compliance",
+ Illustration: EUIllustration,
  },
  {
- icon: QrCode,
  title: "Digital Battery Passports",
  description:
  "Assign a unique identity to every battery with QR-based public verification.",
  href: "/batches",
+ Illustration: PassportIllustration,
  },
  {
- icon: FileText,
  title: "PCB Export Filing",
  description:
  "Export-ready documentation and filings generated automatically.",
  href: "/compliance",
+ Illustration: CPCBIllustration,
  },
 ];
 
@@ -78,52 +78,78 @@ export function UseCasesSection() {
  </p>
  </motion.div>
 
- {/* Cards grid */}
- <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
- {useCases.map((uc, i) => (
+ {/* Bento grid: 1 big (left) + 2 small (right top row), 2 small (bottom row) + 1 tall (right) */}
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+ {/* First card — big, spans 2 rows on lg */}
+ {(() => {
+ const FirstIllustration = useCases[0].Illustration;
+ return (
  <motion.div
- key={uc.title}
  initial={{ opacity: 0, y: 16 }}
  whileInView={{ opacity: 1, y: 0 }}
  viewport={{ once: true }}
- transition={{ delay: i * 0.07 }}
+ className="lg:row-span-2"
  >
  <Link
- href={uc.href}
- className="group flex flex-col h-full rounded-2xl border p-6 transition-colors duration-200 hover:border-zinc-600"
+ href={useCases[0].href}
+ className="group flex flex-col h-full rounded-2xl border overflow-hidden transition-colors duration-200 hover:border-zinc-600"
  style={{
  borderColor: "var(--ld-border)",
  background: "var(--ld-bg-surface)",
  }}
  >
- <div
- className="flex items-center justify-center h-12 w-12 rounded-full mb-4"
- style={{ background: "rgba(62,207,142,0.1)" }}
- >
- <uc.icon
- className="h-5 w-5"
- style={{ color: "var(--ld-accent)" }}
- />
+ <div className="w-full h-[220px] lg:flex-1 min-h-[220px] flex items-center justify-center overflow-hidden">
+ <FirstIllustration className="w-full h-full" />
  </div>
-
- <h3 className="text-white mb-2">{uc.title}</h3>
- <p
- className="text-sm leading-relaxed flex-1"
- style={{ color: "var(--ld-text-muted)" }}
- >
- {uc.description}
+ <div className="p-6 flex flex-col">
+ <h3 className="text-white text-lg mb-2">{useCases[0].title}</h3>
+ <p className="text-sm leading-relaxed" style={{ color: "var(--ld-text-muted)" }}>
+ {useCases[0].description}
  </p>
-
- <span
- className="inline-flex items-center gap-1 text-sm mt-4 transition-colors group-hover:brightness-125"
- style={{ color: "var(--ld-accent)" }}
- >
- Learn more
- <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+ <span className="inline-flex items-center gap-1 text-sm mt-4 transition-colors group-hover:brightness-125" style={{ color: "var(--ld-accent)" }}>
+ Learn more <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
  </span>
+ </div>
  </Link>
  </motion.div>
- ))}
+ );
+ })()}
+
+ {/* Remaining 4 cards */}
+ {useCases.slice(1).map((uc, i) => {
+ const Illust = uc.Illustration;
+ return (
+ <motion.div
+ key={uc.title}
+ initial={{ opacity: 0, y: 16 }}
+ whileInView={{ opacity: 1, y: 0 }}
+ viewport={{ once: true }}
+ transition={{ delay: (i + 1) * 0.07 }}
+ >
+ <Link
+ href={uc.href}
+ className="group flex flex-col h-full rounded-2xl border overflow-hidden transition-colors duration-200 hover:border-zinc-600"
+ style={{
+ borderColor: "var(--ld-border)",
+ background: "var(--ld-bg-surface)",
+ }}
+ >
+ <div className="w-full h-[140px] flex items-center justify-center overflow-hidden">
+ <Illust className="w-full h-full" />
+ </div>
+ <div className="p-5 flex flex-col flex-1">
+ <h3 className="text-white mb-2">{uc.title}</h3>
+ <p className="text-sm leading-relaxed flex-1" style={{ color: "var(--ld-text-muted)" }}>
+ {uc.description}
+ </p>
+ <span className="inline-flex items-center gap-1 text-sm mt-3 transition-colors group-hover:brightness-125" style={{ color: "var(--ld-accent)" }}>
+ Learn more <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+ </span>
+ </div>
+ </Link>
+ </motion.div>
+ );
+ })}
  </div>
  </div>
  </section>
