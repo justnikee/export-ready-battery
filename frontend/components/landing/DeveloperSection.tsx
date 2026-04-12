@@ -24,17 +24,16 @@ export function DeveloperSection() {
  </span>
 
  <h2 className="text-3xl md:text-4xl text-white mb-6 leading-tight">
- Build with ExportReady
+ Built for Developers &amp; ERP Integration
  </h2>
 
  <p
  className="text-base leading-relaxed mb-8"
  style={{ color: "var(--ld-text-muted)" }}
  >
- Integrate compliance directly into your production software.
- ExportReady exposes everything through clean, versioned REST APIs
- — battery passport creation, compliance checks, batch management,
- and document generation.
+ Integrate ExportReady directly into your production systems using
+ secure REST APIs. Automate passport generation, batch creation,
+ and compliance workflows.
  </p>
 
  <div className="flex flex-col gap-3">

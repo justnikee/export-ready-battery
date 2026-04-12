@@ -8,19 +8,19 @@ const values = [
  icon: Shield,
  title: "India-First Compliance",
  description:
- "Built specifically for BIS, EPR, and PLI requirements. Not a retrofitted EU tool.",
+ "Built specifically for India's EPR, BIS, and PLI requirements — not a generic global tool.",
  },
  {
  icon: FileCheck,
  title: "Audit-Ready Always",
  description:
- "Complete audit trails, document management, and automated reporting for regulatory inspections.",
+ "Every action is tracked with a tamper-proof audit trail for regulatory inspections.",
  },
  {
  icon: Cloud,
  title: "Zero Infrastructure",
  description:
- "Cloud-native platform. No servers to manage, no software to install. Start in minutes.",
+ "No setup required. Start generating compliant battery passports in minutes.",
  },
 ];
 

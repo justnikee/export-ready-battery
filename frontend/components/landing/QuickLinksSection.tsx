@@ -9,28 +9,28 @@ const cards = [
  icon: Shield,
  title: "Battery Passports",
  description:
- "Generate EU-compliant digital battery passports with QR codes",
+ "Generate unique digital battery passports with QR codes for every unit — compliant with EU & India regulations.",
  href: "/docs/features",
  },
  {
  icon: CheckCircle2,
  title: "Compliance Hub",
  description:
- "Track BIS, EPR & PLI compliance status in real-time",
+ "Manage BIS, EPR, and EU compliance in one place with real-time validation and audit tracking.",
  href: "/compliance",
  },
  {
  icon: FileSpreadsheet,
  title: "Export Tools",
  description:
- "One-click CPCB Form 3 export and regulatory filing",
+ "Instantly generate CSVs, QR labels, and regulatory documents ready for export.",
  href: "/exports",
  },
  {
  icon: Code,
  title: "Developer API",
  description:
- "RESTful API for seamless integration with your systems",
+ "Integrate directly with your ERP using secure APIs for automated batch and passport creation.",
  href: "/docs/api-reference",
  },
 ];
