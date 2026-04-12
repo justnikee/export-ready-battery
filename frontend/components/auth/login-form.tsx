@@ -78,7 +78,7 @@ export function LoginForm() {
                     Email address
                 </Label>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
                         <Mail className="h-5 w-5" />
                     </div>
                     <Input
@@ -88,7 +88,7 @@ export function LoginForm() {
                         value={email}
                         onChange={(e) => { setEmail(e.target.value); setEmailNotVerified(false) }}
                         required
-                        className="pl-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                 </div>
             </div>
@@ -107,7 +107,7 @@ export function LoginForm() {
                     </Link>
                 </div>
                 <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#1F7A5F] transition-colors">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
                         <Lock className="h-5 w-5" />
                     </div>
                     <Input
@@ -117,12 +117,12 @@ export function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="pl-10 pr-10 h-12 bg-white border-zinc-300 text-[#0B1F3B] placeholder:text-zinc-400 focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+                        className="pl-10 pr-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#0B1F3B] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#0B1F3B] transition-colors"
                     >
                         {showPassword ? (
                             <EyeOff className="h-5 w-5" />
@@ -135,13 +135,13 @@ export function LoginForm() {
 
             {/* Email not verified banner */}
             {emailNotVerified && (
-                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-500/10 p-4">
+                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                     <div className="flex-1 space-y-2">
                         <p className="text-sm font-medium text-amber-800">
                             Please verify your email first
                         </p>
-                        <p className="text-xs text-amber-700">
+                        <p className="text-xs text-amber-500">
                             Check your inbox for a verification link. If you didn&apos;t receive it, click below.
                         </p>
                         <button
@@ -180,10 +180,10 @@ export function LoginForm() {
             {/* Divider */}
             <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-zinc-200" />
+                    <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-zinc-50 px-2 text-zinc-400">
+                    <span className="bg-background px-2 text-muted-foreground">
                         or continue with
                     </span>
                 </div>
@@ -194,7 +194,7 @@ export function LoginForm() {
                 <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-11 border-zinc-300 hover:bg-zinc-100 text-[#0B1F3B] rounded-none"
+                    className="w-full h-11 border-border hover:bg-accent text-[#0B1F3B] rounded-none"
                     onClick={() => {
                         const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1', '')
                         window.location.href = `${apiBase}/api/v1/auth/google`

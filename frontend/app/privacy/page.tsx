@@ -2,7 +2,7 @@ export default function PrivacyPage() {
     return (
         <div className="max-w-4xl mx-auto p-8 space-y-6">
             <h1 className="text-3xl font-bold">Privacy Policy</h1>
-            <p className="text-zinc-600">Last updated: {new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
 
             <section className="space-y-4">
                 <h2 className="text-xl font-semibold">1. Information We Collect</h2>

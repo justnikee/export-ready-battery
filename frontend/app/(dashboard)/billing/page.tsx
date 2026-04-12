@@ -277,7 +277,7 @@ export default function BillingPage() {
                     contact: ""
                 },
                 theme: {
-                    color: "#18181B" // zinc-900
+                    color: "var(--foreground)"
                 },
                 modal: {
                     ondismiss: function () {
@@ -299,31 +299,31 @@ export default function BillingPage() {
 
     const getTransactionIcon = (quotaChange: number) => {
         if (quotaChange > 0) {
-            return <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+            return <ArrowUpRight className="h-4 w-4 text-emerald-500" />
         }
-        return <ArrowDownRight className="h-4 w-4 text-amber-600" />
+        return <ArrowDownRight className="h-4 w-4 text-amber-500" />
     }
 
     const getTransactionColor = (quotaChange: number) => {
         if (quotaChange > 0) {
-            return 'text-emerald-600'
+            return 'text-emerald-500'
         }
-        return 'text-amber-600'
+        return 'text-amber-500'
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6">
+        <div className="min-h-screen bg-background p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-amber-50 border border-amber-100">
-                                <CreditCard className="h-5 w-5 text-amber-600" />
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                <CreditCard className="h-5 w-5 text-amber-500" />
                             </div>
                             Production Capacity
                         </h1>
-                        <p className="text-sm text-zinc-500 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Purchase licenses to activate batches and generate compliant labels.
                         </p>
                     </div>
@@ -333,9 +333,9 @@ export default function BillingPage() {
                 <LiveBalanceBanner />
 
                 {/* Transaction History */}
-                <Card className="bg-white border-zinc-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-zinc-100">
-                        <CardTitle className="text-sm font-medium text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                <Card className="bg-card border-border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border">
+                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                             <Receipt className="h-4 w-4" />
                             Transaction History
                         </CardTitle>
@@ -343,23 +343,23 @@ export default function BillingPage() {
                     <CardContent className="pt-4">
                         {loadingTransactions ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : transactions.length === 0 ? (
-                            <div className="text-center py-8 text-zinc-500 text-sm">
+                            <div className="text-center py-8 text-muted-foreground text-sm">
                                 No transactions yet. Purchase a license to get started.
                             </div>
                         ) : (
-                            <div className="divide-y divide-zinc-100">
+                            <div className="divide-y divide-border">
                                 {transactions.slice(0, 10).map((tx) => (
                                     <div key={tx.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                                                 {getTransactionIcon(tx.quota_change)}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-zinc-900">{tx.description}</p>
-                                                <p className="text-xs text-zinc-500">
+                                                <p className="text-sm font-medium text-foreground">{tx.description}</p>
+                                                <p className="text-xs text-muted-foreground">
                                                     {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                                                 </p>
                                             </div>
@@ -391,19 +391,19 @@ export default function BillingPage() {
                 </div>
 
                 {/* FAQ Section */}
-                <div className="pt-8 border-t border-zinc-200">
+                <div className="pt-8 border-t border-border">
                     <div className="max-w-3xl mx-auto">
                         <div className="text-center mb-8">
-                            <h2 className="text-xl font-semibold text-zinc-900 flex items-center justify-center gap-2">
-                                <HelpCircle className="h-5 w-5 text-zinc-500" />
+                            <h2 className="text-xl font-semibold text-foreground flex items-center justify-center gap-2">
+                                <HelpCircle className="h-5 w-5 text-muted-foreground" />
                                 Frequently Asked Questions
                             </h2>
                         </div>
                         <Accordion className="w-full">
                             {faqs.map((faq, i) => (
                                 <AccordionItem key={i} value={`item-${i}`}>
-                                    <AccordionTrigger className="text-zinc-900">{faq.question}</AccordionTrigger>
-                                    <AccordionContent className="text-zinc-600">
+                                    <AccordionTrigger className="text-foreground">{faq.question}</AccordionTrigger>
+                                    <AccordionContent className="text-muted-foreground">
                                         {faq.answer}
                                     </AccordionContent>
                                 </AccordionItem>

@@ -36,11 +36,11 @@ export function Header() {
     const isLowQuota = quotaBalance <= 2
 
     return (
-        <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-6">
+        <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
             {/* Left: Logo */}
             <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group">
-                <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
-                <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
+                <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+                <span className="text-xl font-bold tracking-tight text-foreground">EXPORTLENS</span>
             </Link>
 
             {/* Center: Navigation */}
@@ -54,8 +54,8 @@ export function Header() {
                             key={item.href}
                             href={item.href}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isActive
-                                ? "bg-blue-50 text-blue-700"
-                                : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100"
+                                ? "bg-accent text-[var(--brand)]"
+                                : "text-muted-foreground hover:text-foreground hover:bg-accent"
                                 }`}
                         >
                             {item.label}
@@ -69,10 +69,10 @@ export function Header() {
                 {/* Quota Badge */}
                 <Link href="/billing">
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border ${isLowQuota
-                        ? 'border-red-300 text-red-600 hover:bg-red-50'
-                        : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50'
+                        ? 'border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15'
+                        : 'border-[var(--brand-border)] bg-emerald-500/10 text-[var(--brand)] hover:bg-emerald-500/15'
                         }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${isLowQuota ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full ${isLowQuota ? 'bg-red-500/100' : 'bg-emerald-500/100'}`} />
                         <span>Licenses: {quotaBalance}</span>
                     </div>
                 </Link>
@@ -80,31 +80,31 @@ export function Header() {
                 {/* User Avatar Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-zinc-100">
-                            <Avatar className="h-8 w-8 border border-zinc-200">
-                                <AvatarFallback className="bg-zinc-100 text-zinc-700 text-xs font-medium">
+                        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                            <Avatar className="h-8 w-8 border border-border">
+                                <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-white border-zinc-200 text-zinc-900" align="end" forceMount>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none text-zinc-900">{user?.company_name}</p>
-                                <p className="text-xs leading-none text-zinc-500">
+                                <p className="text-sm font-medium leading-none">{user?.company_name}</p>
+                                <p className="text-xs leading-none text-muted-foreground">
                                     {user?.email}
                                 </p>
                             </div>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-zinc-200" />
-                        <DropdownMenuItem asChild className="text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer">
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild className="cursor-pointer">
                             <a href="mailto:support@exportready.in">
                                 <HelpCircle className="mr-2 h-4 w-4" />
                                 <span>Support</span>
                             </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={logout} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
+                        <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-destructive/10 cursor-pointer">
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Sign Out</span>
                         </DropdownMenuItem>

@@ -22,11 +22,11 @@ export function Sidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="flex h-full w-64 flex-col border-r bg-white">
+        <div className="flex h-full w-64 flex-col border-r border-border bg-sidebar">
             <div className="flex h-14 items-center border-b px-6">
                 <Link href="/" className="flex items-center gap-2 font-semibold group">
-                    <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
-                    <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
+                    <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+                    <span className="text-xl font-bold tracking-tight text-foreground">EXPORTLENS</span>
                 </Link>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
@@ -40,8 +40,8 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-zinc-100",
-                                    isActive ? "bg-zinc-100 text-primary" : "text-zinc-500"
+                                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent",
+                                    isActive ? "bg-sidebar-accent text-sidebar-primary border-l-2 border-[var(--brand)]" : "text-sidebar-foreground"
                                 )}
                             >
                                 <Icon className="h-5 w-5" />

@@ -40,7 +40,7 @@ function TableDoc({
                     </thead>
                     <tbody>
                         {columns.map((col) => (
-                            <tr key={col.name} className="border-b border-white/5 hover:bg-white/5">
+                            <tr key={col.name} className="border-b border-white/5 hover:bg-card/5">
                                 <td className="py-2 px-3 font-mono text-indigo-400">{col.name}</td>
                                 <td className="py-2 px-3 font-mono text-amber-400">{col.type}</td>
                                 <td className="py-2 px-3">

@@ -47,18 +47,18 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
     }
 
     return (
-        <Card className="bg-white border-zinc-200 hover:border-zinc-300 transition-all group">
+        <Card className="bg-card border-border hover:border-border transition-all group">
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-emerald-50">
-                            <Zap className="h-4 w-4 text-emerald-600" />
+                        <div className="p-2 rounded-lg bg-emerald-500/10">
+                            <Zap className="h-4 w-4 text-emerald-500" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-zinc-900 group-hover:text-emerald-700 transition-colors">
+                            <h3 className="font-semibold text-foreground group-hover:text-emerald-500 transition-colors">
                                 {template.name}
                             </h3>
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-muted-foreground">
                                 Created {formatRelativeTime(template.created_at)}
                             </p>
                         </div>
@@ -68,7 +68,7 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-zinc-400 hover:text-zinc-900"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             >
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
@@ -80,7 +80,7 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 onClick={onDelete}
-                                className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete
@@ -98,35 +98,35 @@ export function TemplateCard({ template, onDelete, onUse }: TemplateCardProps) {
                         </Badge>
                     )}
                     {specs.voltage && (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs">
+                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 text-xs">
                             {specs.voltage}
                         </Badge>
                     )}
                     {specs.capacity && (
-                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">
+                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 text-xs">
                             {specs.capacity}
                         </Badge>
                     )}
                 </div>
 
                 {/* Additional Info */}
-                <div className="grid grid-cols-2 gap-2 text-xs text-zinc-500">
+                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                     {specs.manufacturer && (
                         <div>
-                            <span className="text-zinc-400">Manufacturer:</span>{" "}
-                            <span className="text-zinc-700">{specs.manufacturer}</span>
+                            <span className="text-muted-foreground">Manufacturer:</span>{" "}
+                            <span className="text-foreground">{specs.manufacturer}</span>
                         </div>
                     )}
                     {specs.weight && (
                         <div>
-                            <span className="text-zinc-400">Weight:</span>{" "}
-                            <span className="text-zinc-700">{specs.weight}</span>
+                            <span className="text-muted-foreground">Weight:</span>{" "}
+                            <span className="text-foreground">{specs.weight}</span>
                         </div>
                     )}
                     {specs.carbon_footprint && (
                         <div className="col-span-2">
-                            <span className="text-zinc-400">Carbon:</span>{" "}
-                            <span className="text-emerald-600">{specs.carbon_footprint}</span>
+                            <span className="text-muted-foreground">Carbon:</span>{" "}
+                            <span className="text-emerald-500">{specs.carbon_footprint}</span>
                         </div>
                     )}
                 </div>

@@ -45,8 +45,8 @@ export function LiveBalanceBanner() {
 
     if (error) {
         return (
-            <Card className="bg-red-50 border-red-200">
-                <CardContent className="p-8 flex items-center gap-4 text-red-600">
+            <Card className="bg-red-500/10 border-red-200">
+                <CardContent className="p-8 flex items-center gap-4 text-red-500">
                     <AlertTriangle className="h-6 w-6" />
                     <div>
                         <h3 className="font-semibold">Unable to load balance</h3>
@@ -60,22 +60,22 @@ export function LiveBalanceBanner() {
     const isLow = (balance || 0) < 2
 
     return (
-        <Card className={`relative overflow-hidden ${isLow ? 'border-red-200 bg-red-50/50' : 'border-zinc-200 bg-white'}`}>
+        <Card className={`relative overflow-hidden ${isLow ? 'border-red-200 bg-red-500/10/50' : 'border-border bg-card'}`}>
             <div className={`absolute inset-0 bg-linear-to-r ${isLow ? 'from-red-100/50 via-transparent to-transparent' : 'from-emerald-50/50 via-transparent to-transparent'} pointer-events-none`} />
 
             <CardContent className="p-8 flex items-center justify-between relative z-10">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-zinc-500">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                         <Battery className="h-5 w-5" />
                         <span className="text-sm font-medium uppercase tracking-wider">Current Quota Balance</span>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <h2 className={`text-5xl font-bold ${isLow ? 'text-red-600' : 'text-emerald-600'}`}>
+                        <h2 className={`text-5xl font-bold ${isLow ? 'text-red-500' : 'text-emerald-500'}`}>
                             {balance}
                         </h2>
-                        <span className="text-xl text-zinc-400 font-medium">Batches</span>
+                        <span className="text-xl text-muted-foreground font-medium">Batches</span>
                     </div>
-                    <p className="text-zinc-500 max-w-md">
+                    <p className="text-muted-foreground max-w-md">
                         {isLow
                             ? "Your quota is running low. Purchase a license package to ensure uninterrupted production."
                             : "You have sufficient quota for your upcoming production runs."
@@ -85,12 +85,12 @@ export function LiveBalanceBanner() {
 
                 <div className="hidden md:flex items-center gap-4">
                     {isLow ? (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-full text-red-600">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-200 rounded-full text-red-500">
                             <AlertTriangle className="h-4 w-4" />
                             <span className="text-sm font-medium">Action Required</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-600">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-200 rounded-full text-emerald-500">
                             <CheckCircle className="h-4 w-4" />
                             <span className="text-sm font-medium">Production Ready</span>
                         </div>

@@ -32,40 +32,40 @@ export function PricingCard({
     actionLabel
 }: PricingCardProps) {
     return (
-        <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-md ${isPopular ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-zinc-200'}`}>
+        <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-md ${isPopular ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-border'}`}>
             {isPopular && (
-                <div className="absolute top-0 right-0 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-bl-xl border-l border-b border-emerald-200">
+                <div className="absolute top-0 right-0 bg-emerald-500/10 text-emerald-500 text-xs font-bold px-3 py-1 rounded-bl-xl border-l border-b border-emerald-200">
                     MOST POPULAR
                 </div>
             )}
 
             <CardHeader className="p-8 pb-4 relative z-10">
                 <div className="space-y-2">
-                    <h3 className={`text-lg font-medium ${isEnterprise ? 'text-zinc-500' : isPopular ? 'text-emerald-600' : 'text-zinc-500'}`}>
+                    <h3 className={`text-lg font-medium ${isEnterprise ? 'text-muted-foreground' : isPopular ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                         {title}
                     </h3>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-zinc-900">{price}</span>
-                        {!isEnterprise && <span className="text-lg text-zinc-400 font-normal">/ license</span>}
+                        <span className="text-4xl font-bold text-foreground">{price}</span>
+                        {!isEnterprise && <span className="text-lg text-muted-foreground font-normal">/ license</span>}
                     </div>
                     {!isEnterprise && (
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-zinc-50 border border-zinc-200 mt-2">
+                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border border-border mt-2">
                             <Zap className="h-3 w-3 text-amber-500" />
-                            <span className="text-xs text-zinc-500">
-                                <span className="text-zinc-900 font-medium">{batchCount} batches</span> @ {pricePerBatch}/batch
+                            <span className="text-xs text-muted-foreground">
+                                <span className="text-foreground font-medium">{batchCount} batches</span> @ {pricePerBatch}/batch
                             </span>
                         </div>
                     )}
                     {isEnterprise && (
-                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-zinc-50 border border-zinc-200 mt-2">
+                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border border-border mt-2">
                             <Zap className="h-3 w-3 text-emerald-500" />
-                            <span className="text-xs text-zinc-500">
-                                <span className="text-zinc-900 font-medium">200+ batches</span> @ Custom rates
+                            <span className="text-xs text-muted-foreground">
+                                <span className="text-foreground font-medium">200+ batches</span> @ Custom rates
                             </span>
                         </div>
                     )}
                 </div>
-                <p className="text-sm text-zinc-500 mt-4 leading-relaxed">
+                <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
                     {description}
                 </p>
             </CardHeader>
@@ -74,23 +74,23 @@ export function PricingCard({
                 <div className="space-y-4 flex-1">
                     {features.map((feature, i) => (
                         <div key={i} className="flex items-start gap-3">
-                            <div className={`mt-1 p-0.5 rounded-full ${isPopular ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>
+                            <div className={`mt-1 p-0.5 rounded-full ${isPopular ? 'bg-emerald-100 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
                                 <Check className="h-3 w-3" />
                             </div>
-                            <span className="text-sm text-zinc-600">{feature}</span>
+                            <span className="text-sm text-muted-foreground">{feature}</span>
                         </div>
                     ))}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-zinc-100">
+                <div className="mt-8 pt-6 border-t border-border">
                     <Button
                         onClick={onAction}
                         disabled={loading}
                         className={`w-full py-6 font-medium text-base ${isEnterprise
-                            ? 'bg-white text-zinc-900 hover:bg-zinc-50 border border-zinc-200'
+                            ? 'bg-card text-foreground hover:bg-background border border-border'
                             : isPopular
                                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100'
-                                : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
                     >
                         {loading ? (
                             <Loader2 className="h-5 w-5 animate-spin" />

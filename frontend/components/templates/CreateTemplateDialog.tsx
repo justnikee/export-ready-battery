@@ -97,7 +97,7 @@ export function CreateTemplateDialog({
             <DialogContent className="sm:max-w-[550px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-emerald-600" />
+                        <Sparkles className="h-5 w-5 text-emerald-500" />
                         Create New Template
                     </DialogTitle>
                     <DialogDescription>
@@ -200,7 +200,7 @@ export function CreateTemplateDialog({
                         </div>
 
                         {/* EU Compliance Section */}
-                        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
+                        <div className="p-4 rounded-lg border border-blue-200 bg-blue-500/10">
                             <h4 className="text-sm font-medium text-blue-800 mb-3">
                                 EU Compliance Fields (Optional)
                             </h4>
@@ -222,7 +222,7 @@ export function CreateTemplateDialog({
                                         id="recyclable"
                                         checked={recyclable}
                                         onChange={(e) => setRecyclable(e.target.checked)}
-                                        className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                                        className="h-4 w-4 rounded border-border text-emerald-500 focus:ring-emerald-500"
                                     />
                                     <Label htmlFor="recyclable" className="cursor-pointer">
                                         Recyclable materials
@@ -243,7 +243,7 @@ export function CreateTemplateDialog({
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-zinc-900 hover:bg-zinc-800 text-white"
+                            className="bg-[#171717] hover:bg-primary/90 text-white"
                         >
                             {isLoading ? "Creating..." : "Create Template"}
                         </Button>

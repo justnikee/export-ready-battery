@@ -13,21 +13,21 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, subtext, trend, isPositive }: StatsCardProps) {
     return (
-        <Card className="bg-white border-zinc-200 text-zinc-900 transition-all duration-200 hover:border-zinc-300 hover:shadow-md cursor-pointer group">
+        <Card className="bg-card border-border hover:border-[var(--border-prominent)] transition-colors cursor-pointer group">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-500 uppercase tracking-wider">{title}</CardTitle>
+                <CardTitle className="code-label">{title}</CardTitle>
                 {trend && (
-                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md ${isPositive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                         {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                         {trend}
                     </span>
                 )}
             </CardHeader>
             <CardContent>
-                <div className="stat-value text-3xl font-bold tracking-tight text-zinc-900">{value}</div>
+                <div className="stat-value text-3xl font-bold tracking-tight text-foreground">{value}</div>
                 <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-zinc-500 leading-relaxed">{subtext}</p>
-                    <ArrowUpRight className="h-4 w-4 text-zinc-400 group-hover:text-blue-500 transition-colors duration-200" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">{subtext}</p>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-[var(--brand)] transition-colors duration-200" />
                 </div>
             </CardContent>
         </Card>

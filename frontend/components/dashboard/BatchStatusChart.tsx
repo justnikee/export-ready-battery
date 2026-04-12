@@ -41,24 +41,25 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                                     <Cell key={`cell-${index}`} fill={COLORS[data.findIndex(d => d.name === entry.name)]} />
                                 ))
                             ) : (
-                                <Cell fill="#E4E4E7" />
+                                <Cell fill="var(--border)" />
                             )}
                         </Pie>
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#ffffff',
-                                borderColor: '#E4E4E7',
-                                borderRadius: '4px',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                backgroundColor: 'var(--popover)',
+                                borderColor: 'var(--border)',
+                                borderRadius: '6px',
+                                boxShadow: 'none',
+                                color: 'var(--popover-foreground)',
                             }}
-                            itemStyle={{ color: '#3F3F46' }}
+                            itemStyle={{ color: 'var(--foreground)' }}
                         />
                     </PieChart>
                 </ResponsiveContainer>
                 {/* Total Center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-2xl font-bold text-zinc-900">{total}</span>
-                    <span className="text-xs text-zinc-500">Total</span>
+                    <span className="text-2xl font-bold text-foreground">{total}</span>
+                    <span className="text-xs text-muted-foreground">Total</span>
                 </div>
             </div>
 
@@ -68,9 +69,9 @@ export function BatchStatusChart({ ready, processing, completed }: BatchStatusCh
                     <div key={item.name} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                            <span className="text-zinc-600">{item.name}</span>
+                            <span className="text-muted-foreground">{item.name}</span>
                         </div>
-                        <span className="font-semibold text-zinc-900">{item.value}</span>
+                        <span className="font-semibold text-foreground">{item.value}</span>
                     </div>
                 ))}
             </div>

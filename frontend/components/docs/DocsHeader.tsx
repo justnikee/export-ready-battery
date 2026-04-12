@@ -31,7 +31,7 @@ export function DocsHeader() {
             <div className="flex items-center justify-between h-16 px-6">
                 {/* Mobile Menu Toggle */}
                 <button
-                    className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    className="lg:hidden p-2 hover:bg-card/10 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 >
                     {mobileMenuOpen ? (
@@ -63,7 +63,7 @@ export function DocsHeader() {
                         href="https://github.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                        className="p-2 hover:bg-card/10 rounded-lg transition-colors text-gray-400 hover:text-white"
                     >
                         <Github className="w-5 h-5" />
                     </Link>

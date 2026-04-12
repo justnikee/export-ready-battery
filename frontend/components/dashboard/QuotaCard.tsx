@@ -16,13 +16,13 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
     const isLow = percentage >= 80
 
     return (
-        <Card className="bg-white border-zinc-200 text-zinc-100">
+        <Card className="bg-card border-border">
             <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-semibold">Passport Quota</CardTitle>
                     <Link
                         href="/billing"
-                        className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors font-medium"
+                        className="text-xs text-[var(--brand)] hover:text-[var(--brand)]/80 flex items-center gap-1 transition-colors font-medium"
                     >
                         <CreditCard className="h-3 w-3" />
                         Buy More
@@ -32,21 +32,21 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
             <CardContent className="space-y-6">
                 <div className="flex justify-between items-end">
                     <div>
-                        <p className="text-xs text-zinc-400 mb-1">Used</p>
+                        <p className="text-xs text-muted-foreground mb-1">Used</p>
                         <p className="text-2xl font-bold">{used.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-xs text-zinc-400 mb-1">Limit</p>
+                        <p className="text-xs text-muted-foreground mb-1">Limit</p>
                         <p className="text-2xl font-bold">{limit.toLocaleString()}</p>
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <div className="flex justify-between text-xs">
-                        <span className="text-zinc-500">Usage</span>
+                        <span className="text-muted-foreground">Usage</span>
                         <span className={percentage >= 90 ? "text-red-500" : "text-emerald-500"}>{percentage.toFixed(1)}%</span>
                     </div>
-                    <Progress value={percentage} className="h-2 bg-zinc-800" indicatorClassName={percentage >= 90 ? "bg-red-500" : "bg-emerald-500"} />
+                    <Progress value={percentage} className="h-2 bg-muted" indicatorClassName={percentage >= 90 ? "bg-red-500/100" : "bg-emerald-500/100"} />
                 </div>
 
                 {isOverLimit && (

@@ -49,7 +49,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
         }
         return {
             icon: <Activity className="h-3.5 w-3.5" />,
-            accent: 'text-zinc-400 bg-zinc-800 border-zinc-700',
+            accent: 'text-muted-foreground bg-muted border-border',
             title: originalTitle
         }
     }
@@ -68,16 +68,16 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
     }
 
     return (
-        <Card className="bg-white border-zinc-200 text-zinc-100 h-full flex flex-col">
+        <Card className="bg-card border-border text-card-foreground h-full flex flex-col">
             {/* Header - Matches RecentBatches */}
-            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-200">
-                <CardTitle className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-border">
+                <CardTitle className="code-label">
                     Audit Log
                 </CardTitle>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                     <span className="relative flex h-1.5 w-1.5">
                         <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        <span className="relative rounded-full h-1.5 w-1.5 bg-emerald-500/100"></span>
                     </span>
                     <span className="text-[10px] font-medium text-emerald-400 uppercase">Live</span>
                 </div>
@@ -85,18 +85,18 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
 
             <CardContent className="p-0 flex-1 overflow-hidden">
                 {activities.length === 0 ? (
-                    <div className="py-12 text-center text-zinc-500 text-sm">
+                    <div className="py-12 text-center text-muted-foreground text-sm">
                         No activity yet
                     </div>
                 ) : (
-                    <div className="overflow-y-auto max-h-[380px]" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3F3F46 transparent' }}>
+                    <div className="overflow-y-auto max-h-[380px]" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
                         {activities.map((activity, idx) => {
                             const data = getEventData(activity.type, activity.title)
 
                             return (
                                 <div
                                     key={activity.id}
-                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-zinc-800/30 transition-colors ${idx !== activities.length - 1 ? 'border-b border-zinc-200/30' : ''
+                                    className={`flex items-start gap-3 px-5 py-3 hover:bg-accent transition-colors ${idx !== activities.length - 1 ? 'border-b border-border' : ''
                                         }`}
                                 >
                                     {/* Icon - Compact, color-coded */}
@@ -107,14 +107,14 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">
-                                            <span className="text-sm font-medium text-zinc-100">
+                                            <span className="text-sm font-medium text-foreground">
                                                 {data.title}
                                             </span>
-                                            <span className="text-[10px] text-zinc-500 font-mono flex-shrink-0">
+                                            <span className="text-[10px] text-muted-foreground font-mono flex-shrink-0">
                                                 {formatTime(activity.time)}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                             {activity.description}
                                         </p>
                                     </div>

@@ -31,7 +31,7 @@ function Step({
             className="relative pl-12 pb-8 border-l-2 border-indigo-500/30 last:border-0 last:pb-0"
         >
             <div className="absolute left-0 top-0 -translate-x-1/2 w-8 h-8 rounded-full 
-                    bg-indigo-500 flex items-center justify-center text-white font-bold text-sm">
+                    bg-indigo-500/100 flex items-center justify-center text-white font-bold text-sm">
                 {number}
             </div>
             <h3 className="text-lg font-semibold text-white mb-3">{title}</h3>

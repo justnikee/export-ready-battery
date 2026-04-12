@@ -52,13 +52,13 @@ export function ManualSoHEntry({ passportUuid, currentSoH, onUpdated }: ManualSo
         return (
             <button
                 onClick={() => setExpanded(true)}
-                className="w-full text-left p-3 border border-dashed border-zinc-300 rounded-lg hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                className="w-full text-left p-3 border border-dashed border-border rounded-lg hover:border-blue-400 hover:bg-blue-500/10/50 transition-colors"
             >
-                <div className="flex items-center gap-2 text-sm text-zinc-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Activity className="h-4 w-4" />
                     <span>Update SoH manually</span>
                     {currentSoH != null && (
-                        <span className="text-xs text-zinc-400 ml-auto">Current: {currentSoH}%</span>
+                        <span className="text-xs text-muted-foreground ml-auto">Current: {currentSoH}%</span>
                     )}
                 </div>
             </button>
@@ -66,20 +66,20 @@ export function ManualSoHEntry({ passportUuid, currentSoH, onUpdated }: ManualSo
     }
 
     return (
-        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/30 space-y-3">
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-500/10/30 space-y-3">
             <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-zinc-700 flex items-center gap-1.5">
-                    <Activity className="h-4 w-4 text-blue-600" />
+                <h4 className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <Activity className="h-4 w-4 text-blue-500" />
                     Manual SoH Update
                 </h4>
-                <button onClick={() => setExpanded(false)} className="text-xs text-zinc-400 hover:text-zinc-600">
+                <button onClick={() => setExpanded(false)} className="text-xs text-muted-foreground hover:text-muted-foreground">
                     Cancel
                 </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
                 <div>
-                    <label className="block text-xs text-zinc-500 mb-1">SoH % *</label>
+                    <label className="block text-xs text-muted-foreground mb-1">SoH % *</label>
                     <input
                         type="number"
                         min="0"
@@ -88,28 +88,28 @@ export function ManualSoHEntry({ passportUuid, currentSoH, onUpdated }: ManualSo
                         placeholder="e.g., 92.5"
                         value={soh}
                         onChange={(e) => setSoh(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-zinc-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="w-full px-3 py-1.5 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                 </div>
                 <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Cycle Count</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Cycle Count</label>
                     <input
                         type="number"
                         min="0"
                         placeholder="e.g., 145"
                         value={cycleCount}
                         onChange={(e) => setCycleCount(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-zinc-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="w-full px-3 py-1.5 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                 </div>
             </div>
 
             <div>
-                <label className="block text-xs text-zinc-500 mb-1">Measurement Method</label>
+                <label className="block text-xs text-muted-foreground mb-1">Measurement Method</label>
                 <select
                     value={method}
                     onChange={(e) => setMethod(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-zinc-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full px-3 py-1.5 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                     <option value="MANUAL">Manual Entry</option>
                     <option value="LAB_TEST">Lab Capacity Test</option>
@@ -118,13 +118,13 @@ export function ManualSoHEntry({ passportUuid, currentSoH, onUpdated }: ManualSo
             </div>
 
             <div>
-                <label className="block text-xs text-zinc-500 mb-1">Notes (optional)</label>
+                <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
                 <input
                     type="text"
                     placeholder="e.g., Annual capacity test"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-zinc-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full px-3 py-1.5 border border-border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
             </div>
 

@@ -62,79 +62,79 @@ export function DownloadLabelsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] bg-zinc-900 border-zinc-800 text-zinc-100">
+            <DialogContent className="sm:max-w-[500px] bg-[#171717] border-border text-foreground">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-white">
                         <Printer className="h-5 w-5 text-teal-400" />
                         Download PDF Labels
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-400">
+                    <DialogDescription className="text-muted-foreground">
                         Generate printable label sheets for batch &quot;{batchName}&quot;
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
                     {/* Label Preview */}
-                    <div className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-                        <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center gap-2">
-                            <Grid3X3 className="h-4 w-4 text-zinc-500" />
+                    <div className="bg-secondary/50 rounded-lg p-4 border border-border">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                            <Grid3X3 className="h-4 w-4 text-muted-foreground" />
                             Label Format Preview
                         </h4>
 
                         {/* Mock A4 sheet with 3x7 grid */}
-                        <div className="bg-white rounded-md p-2 aspect-[210/297] max-h-48 mx-auto flex items-center justify-center">
+                        <div className="bg-card rounded-md p-2 aspect-[210/297] max-h-48 mx-auto flex items-center justify-center">
                             <div className="grid grid-cols-3 gap-[2px] p-1 w-full h-full">
                                 {[...Array(21)].map((_, i) => (
                                     <div
                                         key={i}
-                                        className="bg-zinc-100 border border-zinc-200 rounded-sm flex items-center justify-center"
+                                        className="bg-muted border border-border rounded-sm flex items-center justify-center"
                                     >
-                                        <QrCode className="h-2 w-2 text-zinc-400" />
+                                        <QrCode className="h-2 w-2 text-muted-foreground" />
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <p className="text-center text-xs text-zinc-500 mt-2">
+                        <p className="text-center text-xs text-muted-foreground mt-2">
                             3 × 7 grid layout per A4 page
                         </p>
                     </div>
 
                     {/* Stats + Region Badge */}
                     <div className="grid grid-cols-4 gap-3">
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-secondary/50 rounded-lg">
                             <p className="text-2xl font-bold text-white">
                                 {passportCount.toLocaleString()}
                             </p>
-                            <p className="text-xs text-zinc-500">Total Labels</p>
+                            <p className="text-xs text-muted-foreground">Total Labels</p>
                         </div>
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
+                        <div className="text-center p-3 bg-secondary/50 rounded-lg">
                             <p className="text-2xl font-bold text-teal-400">
                                 {totalPages}
                             </p>
-                            <p className="text-xs text-zinc-500">Pages</p>
+                            <p className="text-xs text-muted-foreground">Pages</p>
                         </div>
-                        <div className="text-center p-3 bg-zinc-800/50 rounded-lg">
-                            <p className="text-2xl font-bold text-zinc-300">
+                        <div className="text-center p-3 bg-secondary/50 rounded-lg">
+                            <p className="text-2xl font-bold text-muted-foreground">
                                 A4
                             </p>
-                            <p className="text-xs text-zinc-500">Paper Size</p>
+                            <p className="text-xs text-muted-foreground">Paper Size</p>
                         </div>
                         <div className={`text-center p-3 ${region.bgColor} rounded-lg`}>
                             <p className={`text-lg font-bold ${region.color}`}>
                                 {region.label}
                             </p>
-                            <p className="text-xs text-zinc-500">Region</p>
+                            <p className="text-xs text-muted-foreground">Region</p>
                         </div>
                     </div>
 
                     {/* Label Content Info */}
-                    <div className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-800">
-                        <h4 className="text-sm font-medium text-zinc-300 mb-2 flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-zinc-500" />
+                    <div className="bg-secondary/30 rounded-lg p-3 border border-border">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                             Each Label Contains
                         </h4>
-                        <ul className="text-xs text-zinc-400 space-y-1 ml-6 list-disc">
+                        <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
                             <li>QR Code (links to digital passport with BPAN data)</li>
                             <li className="flex items-center gap-1">
                                 BPAN V2 serial number
@@ -147,7 +147,7 @@ export function DownloadLabelsDialog({
                             <li>Decoded battery descriptor (chemistry, year, sequence)</li>
                             <li>Battery specs (voltage, capacity, manufacturer)</li>
                             <li className="flex items-center gap-1">
-                                <Globe className="h-3 w-3 text-zinc-500" />
+                                <Globe className="h-3 w-3 text-muted-foreground" />
                                 Market region badge
                                 <span className={`text-[10px] font-medium ${region.color}`}>
                                     {region.label}
@@ -172,10 +172,10 @@ export function DownloadLabelsDialog({
                             <h4 className="text-sm font-medium text-orange-400 mb-2">
                                 BPAN Serial Format (21-char)
                             </h4>
-                            <div className="font-mono text-sm text-white bg-zinc-900 rounded px-3 py-2 tracking-wider text-center">
+                            <div className="font-mono text-sm text-white bg-[#171717] rounded px-3 py-2 tracking-wider text-center">
                                 IN-XXX-{chemistry || "LFP"}-2025-00001
                             </div>
-                            <div className="flex justify-between mt-2 text-[10px] text-zinc-500 px-1">
+                            <div className="flex justify-between mt-2 text-[10px] text-muted-foreground px-1">
                                 <span>Region</span>
                                 <span>Mfr</span>
                                 <span>Chem</span>
@@ -190,7 +190,7 @@ export function DownloadLabelsDialog({
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="text-zinc-400 hover:text-white"
+                        className="text-muted-foreground hover:text-white"
                     >
                         Cancel
                     </Button>

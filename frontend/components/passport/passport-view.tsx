@@ -91,7 +91,7 @@ function Section({ children, className }: { children: React.ReactNode; className
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className={clsx("relative rounded-2xl border border-white/[0.06] bg-zinc-900/80 backdrop-blur-xl overflow-hidden", className)}
+            className={clsx("relative rounded-2xl border border-white/[0.06] bg-[#171717]/80 backdrop-blur-xl overflow-hidden", className)}
         >
             {children}
         </motion.div>
@@ -109,8 +109,8 @@ function SectionHeader({ icon: Icon, title, badge, badgeColor = "teal" }: { icon
     return (
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div className="flex items-center gap-2.5">
-                <Icon className="h-4.5 w-4.5 text-zinc-400" />
-                <h2 className="text-sm font-semibold text-zinc-200 tracking-wide uppercase">{title}</h2>
+                <Icon className="h-4.5 w-4.5 text-muted-foreground" />
+                <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">{title}</h2>
             </div>
             {badge && (
                 <span className={clsx("text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ring-1", badgeColors[badgeColor])}>{badge}</span>
@@ -121,13 +121,13 @@ function SectionHeader({ icon: Icon, title, badge, badgeColor = "teal" }: { icon
 
 function StatusBadge({ status }: { status: string }) {
     const configs: Record<string, { bg: string; dot: string; text: string; label: string }> = {
-        CREATED: { bg: "bg-zinc-500/10 ring-1 ring-zinc-500/30", dot: "bg-zinc-400", text: "text-zinc-300", label: "Created" },
+        CREATED: { bg: "bg-muted-foreground/10 ring-1 ring-border/30", dot: "bg-muted-foreground", text: "text-muted-foreground", label: "Created" },
         ACTIVE: { bg: "bg-emerald-500/10 ring-1 ring-emerald-500/30", dot: "bg-emerald-400", text: "text-emerald-300", label: "Active" },
         SHIPPED: { bg: "bg-sky-500/10 ring-1 ring-sky-500/30", dot: "bg-sky-400", text: "text-sky-300", label: "Shipped" },
         IN_SERVICE: { bg: "bg-emerald-500/10 ring-1 ring-emerald-500/30", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-300", label: "In Service" },
         RECALLED: { bg: "bg-red-500/10 ring-1 ring-red-500/30", dot: "bg-red-400 animate-pulse", text: "text-red-300", label: "Recalled" },
         RECYCLED: { bg: "bg-teal-500/10 ring-1 ring-teal-500/30", dot: "bg-teal-400", text: "text-teal-300", label: "Recycled" },
-        END_OF_LIFE: { bg: "bg-zinc-700/10 ring-1 ring-zinc-600/30", dot: "bg-zinc-500", text: "text-zinc-400", label: "End of Life" },
+        END_OF_LIFE: { bg: "bg-muted/50 ring-1 ring-border/30", dot: "bg-muted-foreground", text: "text-muted-foreground", label: "End of Life" },
     }
     const c = configs[status] || configs.ACTIVE
     return (
@@ -183,16 +183,16 @@ function SoHGauge({ value, lastUpdate }: { value?: number | null; lastUpdate?: s
                     )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={clsx("text-3xl font-bold", hasValue ? color : "text-zinc-500")}>
+                    <span className={clsx("text-3xl font-bold", hasValue ? color : "text-muted-foreground")}>
                         {hasValue ? `${pct}%` : "—"}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">SoH</span>
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">SoH</span>
                 </div>
             </div>
             {hasValue && lastUpdate && (
-                <span className="text-[10px] text-zinc-500">Updated {new Date(lastUpdate).toLocaleDateString()}</span>
+                <span className="text-[10px] text-muted-foreground">Updated {new Date(lastUpdate).toLocaleDateString()}</span>
             )}
-            {!hasValue && <span className="text-[10px] text-zinc-500">No telemetry data</span>}
+            {!hasValue && <span className="text-[10px] text-muted-foreground">No telemetry data</span>}
         </div>
     )
 }
@@ -203,9 +203,9 @@ function MaterialBar({ composition }: { composition: NonNullable<NonNullable<Pas
         { key: "cobalt_pct", label: "Co", color: "bg-sky-500", text: "text-sky-400" },
         { key: "lithium_pct", label: "Li", color: "bg-teal-500", text: "text-teal-400" },
         { key: "nickel_pct", label: "Ni", color: "bg-cyan-500", text: "text-cyan-400" },
-        { key: "manganese_pct", label: "Mn", color: "bg-amber-500", text: "text-amber-400" },
-        { key: "graphite_pct", label: "C", color: "bg-zinc-500", text: "text-zinc-400" },
-        { key: "lead_pct", label: "Pb", color: "bg-zinc-600", text: "text-zinc-500" },
+        { key: "manganese_pct", label: "Mn", color: "bg-amber-500/100", text: "text-amber-400" },
+        { key: "graphite_pct", label: "C", color: "bg-muted-foreground", text: "text-muted-foreground" },
+        { key: "lead_pct", label: "Pb", color: "bg-muted", text: "text-muted-foreground" },
     ] as const
 
     const active = materials.filter(m => {
@@ -237,7 +237,7 @@ function MaterialBar({ composition }: { composition: NonNullable<NonNullable<Pas
                     return (
                         <div key={m.key} className="flex items-center gap-1.5 text-xs">
                             <span className={clsx("h-2 w-2 rounded-full", m.color)} />
-                            <span className="text-zinc-400">{m.label}</span>
+                            <span className="text-muted-foreground">{m.label}</span>
                             <span className="text-white font-semibold">{v}%</span>
                         </div>
                     )
@@ -252,7 +252,7 @@ function LifecycleStepper({ steps }: { steps: { label: string; date?: string; ac
     return (
         <div className="flex items-start justify-between relative">
             {/* connector line */}
-            <div className="absolute top-5 left-5 right-5 h-0.5 bg-zinc-800" />
+            <div className="absolute top-5 left-5 right-5 h-0.5 bg-secondary" />
             <div className="absolute top-5 left-5 h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500"
                 style={{ width: `${(steps.filter(s => s.active).length / steps.length) * 100}%` }} />
 
@@ -261,15 +261,15 @@ function LifecycleStepper({ steps }: { steps: { label: string; date?: string; ac
                     <div className={clsx(
                         "flex items-center justify-center h-10 w-10 rounded-full border-2 transition-all",
                         step.active ? "border-emerald-500 bg-emerald-500/20 text-emerald-400" :
-                        step.pending ? "border-zinc-700 bg-zinc-800 text-zinc-500" :
+                        step.pending ? "border-border bg-secondary text-muted-foreground" :
                         "border-cyan-500 bg-cyan-500/20 text-cyan-400"
                     )}>
                         <step.icon className="h-4 w-4" />
                     </div>
                     <span className={clsx("text-[11px] font-medium mt-2 leading-tight",
-                        step.active ? "text-white" : step.pending ? "text-zinc-600" : "text-zinc-400"
+                        step.active ? "text-white" : step.pending ? "text-muted-foreground" : "text-muted-foreground"
                     )}>{step.label}</span>
-                    {step.date && <span className="text-[9px] text-zinc-500 mt-0.5">{step.date}</span>}
+                    {step.date && <span className="text-[9px] text-muted-foreground mt-0.5">{step.date}</span>}
                 </div>
             ))}
         </div>
@@ -279,9 +279,9 @@ function LifecycleStepper({ steps }: { steps: { label: string; date?: string; ac
 // Compliance tab button
 function TabButton({ active, children, onClick, color = "teal" }: { active: boolean; children: React.ReactNode; onClick: () => void; color?: string }) {
     const colors: Record<string, string> = {
-        teal: active ? "bg-teal-500/15 text-teal-400 ring-teal-500/30" : "text-zinc-500 hover:text-zinc-300",
-        orange: active ? "bg-orange-500/15 text-orange-400 ring-orange-500/30" : "text-zinc-500 hover:text-zinc-300",
-        blue: active ? "bg-blue-500/15 text-blue-400 ring-blue-500/30" : "text-zinc-500 hover:text-zinc-300",
+        teal: active ? "bg-teal-500/15 text-teal-400 ring-teal-500/30" : "text-muted-foreground hover:text-muted-foreground",
+        orange: active ? "bg-orange-500/15 text-orange-400 ring-orange-500/30" : "text-muted-foreground hover:text-muted-foreground",
+        blue: active ? "bg-blue-500/15 text-blue-400 ring-blue-500/30" : "text-muted-foreground hover:text-muted-foreground",
     }
     return (
         <button
@@ -303,8 +303,8 @@ function DataRow({ label, value, icon: Icon, valueColor, children }: {
     return (
         <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-b-0">
             <div className="flex items-center gap-2.5">
-                {Icon && <Icon className="h-4 w-4 text-zinc-500" />}
-                <span className="text-sm text-zinc-400">{label}</span>
+                {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                <span className="text-sm text-muted-foreground">{label}</span>
             </div>
             <div className="flex items-center gap-2">
                 {children || <span className={clsx("text-sm font-medium", valueColor || "text-white")}>{value || "—"}</span>}
@@ -414,7 +414,7 @@ export function PassportView({ passport }: PassportViewProps) {
             <Section>
                 <div className="relative overflow-hidden">
                     {/* Background mesh gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#171717] via-[#262626] to-[#171717]" />
                     <div className={clsx(
                         "absolute inset-0 opacity-30",
                         isIndia ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-600/40 via-transparent to-transparent"
@@ -458,14 +458,14 @@ export function PassportView({ passport }: PassportViewProps) {
 
                         {/* Identity */}
                         <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{batchName}</h1>
-                        {modelName && <p className="text-zinc-500 text-sm font-mono mt-1">{modelName}</p>}
-                        <p className="text-zinc-400 text-base mt-1">{specs.manufacturer || tenant.company_name || "Battery Manufacturer"}</p>
+                        {modelName && <p className="text-muted-foreground text-sm font-mono mt-1">{modelName}</p>}
+                        <p className="text-muted-foreground text-base mt-1">{specs.manufacturer || tenant.company_name || "Battery Manufacturer"}</p>
 
                         {/* Serial number strip */}
                         <div className="mt-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                             <QrCode className={clsx("h-5 w-5 shrink-0", isIndia ? "text-orange-400" : isEU ? "text-blue-400" : "text-teal-400")} />
                             <div className="flex-1 min-w-0">
-                                <div className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">
+                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                                     {isIndia ? "Battery Aadhaar (BPAN)" : "Passport Serial"}
                                 </div>
                                 <code className={clsx("text-lg md:text-xl font-bold font-mono tracking-wider block truncate",
@@ -475,8 +475,8 @@ export function PassportView({ passport }: PassportViewProps) {
                                 </code>
                             </div>
                             <div className="text-right shrink-0">
-                                <div className="text-[10px] text-zinc-600">Issued</div>
-                                <div className="text-xs text-zinc-400 font-medium">
+                                <div className="text-[10px] text-muted-foreground">Issued</div>
+                                <div className="text-xs text-muted-foreground font-medium">
                                     {passportData.created_at
                                         ? new Date(passportData.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
                                         : "—"}
@@ -501,7 +501,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div key={i} className="px-4 py-4 text-center">
                                 <s.icon className={clsx("h-4 w-4 mx-auto mb-1.5", s.accent)} />
                                 <div className={clsx("text-lg font-bold text-white")}>{s.value}</div>
-                                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium mt-0.5">{s.label}</div>
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mt-0.5">{s.label}</div>
                             </div>
                         ))}
                     </div>
@@ -555,8 +555,8 @@ export function PassportView({ passport }: PassportViewProps) {
                 <div className="px-5 pt-5 pb-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                            <Shield className="h-4.5 w-4.5 text-zinc-400" />
-                            <h2 className="text-sm font-semibold text-zinc-200 tracking-wide uppercase">Regulatory Compliance</h2>
+                            <Shield className="h-4.5 w-4.5 text-muted-foreground" />
+                            <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">Regulatory Compliance</h2>
                         </div>
                         {showBothTabs && (
                             <div className="flex gap-1.5">
@@ -575,8 +575,8 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div className="flex items-center gap-3">
                                 <Leaf className="h-5 w-5 text-emerald-400" />
                                 <div>
-                                    <div className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Carbon Footprint</div>
-                                    <div className="text-white font-bold text-lg">{specs.carbon_footprint || "—"} <span className="text-sm font-normal text-zinc-500">kg CO₂e</span></div>
+                                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Carbon Footprint</div>
+                                    <div className="text-white font-bold text-lg">{specs.carbon_footprint || "—"} <span className="text-sm font-normal text-muted-foreground">kg CO₂e</span></div>
                                 </div>
                             </div>
                             {specs.carbon_footprint && (
@@ -589,7 +589,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Atom className="h-4 w-4 text-cyan-400" />
-                                    <span className="text-sm font-medium text-zinc-300">Material Composition</span>
+                                    <span className="text-sm font-medium text-muted-foreground">Material Composition</span>
                                     <span className="text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded font-semibold">EU Required</span>
                                 </div>
                                 <MaterialBar composition={materialComposition} />
@@ -601,7 +601,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Recycle className="h-3.5 w-3.5 text-emerald-400" />
-                                    <span className="text-xs uppercase tracking-wider text-zinc-500 font-medium">Per-Material Recycled Content</span>
+                                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Per-Material Recycled Content</span>
                                     <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Art. 8</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
@@ -625,7 +625,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                     )}
                                     {materialComposition.recycled_lead_pct != null && materialComposition.recycled_lead_pct > 0 && (
                                         <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
-                                            <span className="text-zinc-400">Lead</span>
+                                            <span className="text-muted-foreground">Lead</span>
                                             <span className="text-white font-bold">{materialComposition.recycled_lead_pct}%</span>
                                         </div>
                                     )}
@@ -636,22 +636,22 @@ export function PassportView({ passport }: PassportViewProps) {
                         {/* Sustainability metrics row */}
                         <div className="grid grid-cols-3 gap-2">
                             <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Recycled</div>
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Recycled</div>
                                 <div className="text-white font-bold mt-0.5">{recycledContentLabel}</div>
                             </div>
                             <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Warranty</div>
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Warranty</div>
                                 <div className="text-white font-bold mt-0.5">{warrantyLabel}</div>
                             </div>
                             <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                                <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Lifetime</div>
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Lifetime</div>
                                 <div className="text-white font-bold mt-0.5">{lifetimeLabel}</div>
                             </div>
                         </div>
 
                         {/* Hazardous Substances */}
                         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                            <div className="text-xs uppercase tracking-wider text-zinc-500 font-medium mb-2">Hazardous Substances</div>
+                            <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">Hazardous Substances</div>
                             <div className="text-sm text-white">{hazardousDeclaration || "—"}</div>
                             {hazSub && (hazSub.lead_present || hazSub.mercury_present || hazSub.cadmium_present) && (
                                 <div className="flex flex-wrap gap-1.5 mt-2">
@@ -660,7 +660,7 @@ export function PassportView({ passport }: PassportViewProps) {
                                     {hazSub.cadmium_present && <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/15 text-red-400 ring-1 ring-red-500/25">Cadmium</span>}
                                 </div>
                             )}
-                            {hazSub?.exemptions && <div className="text-xs text-zinc-500 mt-1">Exemptions: {hazSub.exemptions}</div>}
+                            {hazSub?.exemptions && <div className="text-xs text-muted-foreground mt-1">Exemptions: {hazSub.exemptions}</div>}
                         </div>
 
                         {/* EU Authorized Representative (Art. 77) */}
@@ -685,9 +685,9 @@ export function PassportView({ passport }: PassportViewProps) {
                         {/* DVA Progress */}
                         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-zinc-300">Domestic Value Add</span>
+                                <span className="text-sm font-medium text-muted-foreground">Domestic Value Add</span>
                                 <span className={clsx("text-xl font-bold",
-                                    hasDomesticValueAdd ? (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400") : "text-zinc-500"
+                                    hasDomesticValueAdd ? (domesticValueAdd >= 50 ? "text-emerald-400" : "text-orange-400") : "text-muted-foreground"
                                 )}>
                                     {hasDomesticValueAdd ? `${domesticValueAdd}%` : "—"}
                                 </span>
@@ -695,7 +695,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             {hasDomesticValueAdd && (
                                 <>
                                     <ProgressBar value={domesticValueAdd} color={domesticValueAdd >= 50 ? "emerald" : "orange"} />
-                                    <p className="text-[10px] text-zinc-500 mt-1.5">
+                                    <p className="text-[10px] text-muted-foreground mt-1.5">
                                         {cellSource === "IMPORTED" ? "Imported cells (DVA may be 0%)" : "PLI Requirement: ≥ 50%"}
                                     </p>
                                 </>
@@ -707,7 +707,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <FileCheck className="h-3.5 w-3.5 text-emerald-400" />
-                                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">EPR</span>
+                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">EPR</span>
                                 </div>
                                 <div className={clsx("text-sm font-semibold flex items-center gap-1", eprNumber ? "text-emerald-400" : "text-red-400")}>
                                     {eprNumber ? <CheckCircle className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
@@ -717,7 +717,7 @@ export function PassportView({ passport }: PassportViewProps) {
                             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                                 <div className="flex items-center gap-1.5 mb-2">
                                     <BISMark />
-                                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">BIS (IS 16046)</span>
+                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">BIS (IS 16046)</span>
                                 </div>
                                 <div className="text-sm font-mono text-sky-400 truncate">{bisNumber ? `R-${bisNumber}` : "Missing"}</div>
                             </div>
@@ -727,13 +727,13 @@ export function PassportView({ passport }: PassportViewProps) {
                         <div className="grid grid-cols-2 gap-3">
                             {hsnCode && (
                                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium mb-1">HSN Code</div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">HSN Code</div>
                                     <div className="text-white font-mono font-bold">{hsnCode}</div>
                                 </div>
                             )}
                             {dvaSource && (
                                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium mb-1">DVA Verification</div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">DVA Verification</div>
                                     <div className="flex items-center gap-2">
                                         <span className="text-white font-semibold text-sm">{dvaSource === "AUDITED" ? "CA-Audited" : "Self-Estimated"}</span>
                                         <span className={clsx("text-[9px] px-2 py-0.5 rounded-full font-bold ring-1",
@@ -755,15 +755,15 @@ export function PassportView({ passport }: PassportViewProps) {
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
-                                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Imported from</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Imported from</div>
                                         <div className="text-white font-medium">{cellCountryOfOrigin || "—"}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Bill of Entry</div>
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Bill of Entry</div>
                                         <div className="text-white font-mono text-sm">{billOfEntryNo || "—"}</div>
                                     </div>
                                 </div>
-                                <div className="mt-2 text-[10px] text-zinc-500">
+                                <div className="mt-2 text-[10px] text-muted-foreground">
                                     Cleared: {customsDate ? new Date(customsDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—"}
                                 </div>
                             </div>
@@ -791,12 +791,12 @@ export function PassportView({ passport }: PassportViewProps) {
                                 <Recycle className="h-4 w-4 text-emerald-400" />
                                 <span className="text-sm font-bold text-white">Recycling Instructions (BWM Rules 2022)</span>
                             </div>
-                            <p className="text-xs text-zinc-400"><strong className="text-white">Do not dispose in regular waste.</strong> This battery must be collected separately through authorized recyclers.</p>
+                            <p className="text-xs text-muted-foreground"><strong className="text-white">Do not dispose in regular waste.</strong> This battery must be collected separately through authorized recyclers.</p>
                             <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15">
                                 <p className="text-xs text-emerald-400">📞 For collection, contact the manufacturer or visit <strong>eprregistration.cpcb.gov.in</strong></p>
                             </div>
                             {tenant.support_email && (
-                                <p className="text-[10px] text-zinc-500">
+                                <p className="text-[10px] text-muted-foreground">
                                     Producer: {tenant.company_name} • <a href={`mailto:${tenant.support_email}`} className="text-emerald-400 hover:underline">{tenant.support_email}</a>
                                 </p>
                             )}
@@ -823,7 +823,7 @@ export function PassportView({ passport }: PassportViewProps) {
                         {tenant.support_email ? (
                             <a href={`mailto:${tenant.support_email}`} className="text-sm text-sky-400 hover:text-sky-300 transition-colors">{tenant.support_email}</a>
                         ) : (
-                            <span className="text-sm text-zinc-500">—</span>
+                            <span className="text-sm text-muted-foreground">—</span>
                         )}
                     </DataRow>
                 </div>
@@ -838,20 +838,20 @@ export function PassportView({ passport }: PassportViewProps) {
 
             {/* ▓▓▓ TRUST FOOTER ▓▓▓ */}
             <motion.div initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="pt-2 pb-6">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-zinc-600">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <Smartphone className="h-3.5 w-3.5" />
                         <span>Secured by ExportReady™</span>
                         <span>•</span>
-                        <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
+                        <Link href="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
                         <span>•</span>
-                        <Link href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
+                        <Link href="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
                     </div>
                     <div className="flex items-center gap-3">
-                        {isEU && <CEMark className="h-5 text-zinc-700" />}
+                        {isEU && <CEMark className="h-5 text-foreground" />}
                         {isIndia && <BISMark />}
-                        <span className="font-mono text-zinc-700">EPR: {eprNumber || "—"}</span>
-                        <span className="font-mono text-zinc-700">R-{bisNumber || "—"}</span>
+                        <span className="font-mono text-foreground">EPR: {eprNumber || "—"}</span>
+                        <span className="font-mono text-foreground">R-{bisNumber || "—"}</span>
                     </div>
                 </div>
             </motion.div>

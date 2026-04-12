@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Menu, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useAuth } from "@/context/auth-context"
 import { clsx } from "clsx"
 
@@ -17,7 +18,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
     const isLowQuota = quotaBalance <= 2
 
     return (
-        <header className="sticky top-0 z-30 h-14 bg-white/95 backdrop-blur border-b border-zinc-200 flex items-center justify-between px-4 md:px-6">
+        <header className="sticky top-0 z-30 h-14 bg-background/95 backdrop-blur border-b border-border flex items-center justify-between px-4 md:px-6">
             {/* Left: Mobile Menu Button */}
             <div className="flex items-center gap-3">
                 <Button
@@ -26,7 +27,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                     className="h-9 w-9 md:hidden"
                     onClick={onMenuClick}
                 >
-                    <Menu className="h-5 w-5 text-zinc-700" />
+                    <Menu className="h-5 w-5 text-foreground" />
                 </Button>
 
                 {/* Breadcrumb or Page Title could go here */}
@@ -39,12 +40,12 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                     <div className={clsx(
                         "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors border",
                         isLowQuota
-                            ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                            : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                            ? "border-red-500/20 bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/15"
+                            : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500/15"
                     )}>
                         <span className={clsx(
                             "h-2 w-2 rounded-full animate-pulse",
-                            isLowQuota ? "bg-red-500" : "bg-emerald-500"
+                            isLowQuota ? "bg-red-500/100" : "bg-emerald-500/100"
                         )} />
                         <span className="hidden sm:inline">Licenses:</span>
                         <span className="font-semibold">{quotaBalance}</span>
@@ -55,13 +56,16 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-zinc-500 hover:text-zinc-700"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
                     asChild
                 >
                     <a href="mailto:support@exportready.in">
                         <HelpCircle className="h-5 w-5" />
                     </a>
                 </Button>
+
+                {/* Theme Toggle */}
+                <ThemeToggle />
             </div>
         </header>
     )

@@ -120,25 +120,25 @@ export function DataAccessTokens() {
 
     const getStatusBadge = (token: DataAccessToken) => {
         if (!token.is_active) {
-            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-zinc-100 text-zinc-700">Revoked</span>
+            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground">Revoked</span>
         }
         if (token.expires_at && new Date(token.expires_at) < new Date()) {
-            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Expired</span>
+            return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-500">Expired</span>
         }
-        return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Active</span>
+        return <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-500">Active</span>
     }
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-lg font-semibold text-zinc-900 border-none m-0">Data Access Tokens</h2>
-                    <p className="text-sm text-zinc-500 mt-1">Manage API tokens for Partners and Regulators to access Battery Passports via Article 78.</p>
+                    <h2 className="text-lg font-semibold text-foreground border-none m-0">Data Access Tokens</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Manage API tokens for Partners and Regulators to access Battery Passports via Article 78.</p>
                 </div>
                 {!showNewTokenForm && !newTokenResult && (
                     <button
                         onClick={() => setShowNewTokenForm(true)}
-                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-colors"
+                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-none hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-colors"
                     >
                         <Plus className="mr-2 h-4 w-4" />
                         Generate Token
@@ -148,10 +148,10 @@ export function DataAccessTokens() {
 
             {/* New Token Result */}
             {newTokenResult && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <div className="rounded-lg border border-amber-200 bg-amber-500/10 p-6 shadow-none">
                     <div className="flex items-start gap-4">
                         <div className="p-2 bg-amber-100 rounded-full shrink-0">
-                            <Key className="h-6 w-6 text-amber-600" />
+                            <Key className="h-6 w-6 text-amber-500" />
                         </div>
                         <div className="flex-1">
                             <h3 className="text-lg font-medium text-amber-900">Save Your Token: {newTokenResult.label}</h3>
@@ -160,7 +160,7 @@ export function DataAccessTokens() {
                             </p>
 
                             <div className="mt-4 flex items-center gap-2">
-                                <code className="flex-1 block truncate rounded bg-white px-4 py-3 text-sm font-mono text-zinc-900 border border-amber-200">
+                                <code className="flex-1 block truncate rounded bg-card px-4 py-3 text-sm font-mono text-foreground border border-amber-200">
                                     {newTokenResult.token}
                                 </code>
                                 <button
@@ -175,7 +175,7 @@ export function DataAccessTokens() {
                             <div className="mt-6">
                                 <button
                                     onClick={() => setNewTokenResult(null)}
-                                    className="text-sm font-medium text-amber-900 underline hover:text-amber-700"
+                                    className="text-sm font-medium text-amber-900 underline hover:text-amber-500"
                                 >
                                     I have stored this token securely
                                 </button>
@@ -187,12 +187,12 @@ export function DataAccessTokens() {
 
             {/* Generate Token Form */}
             {showNewTokenForm && (
-                <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+                <div className="rounded-lg border border-border bg-card p-6 shadow-none">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-base font-semibold text-zinc-900">Generate New Access Token</h3>
+                        <h3 className="text-base font-semibold text-foreground">Generate New Access Token</h3>
                         <button
                             onClick={() => setShowNewTokenForm(false)}
-                            className="text-sm text-zinc-500 hover:text-zinc-700 transition"
+                            className="text-sm text-muted-foreground hover:text-foreground transition"
                         >
                             Cancel
                         </button>
@@ -201,21 +201,21 @@ export function DataAccessTokens() {
                     <form onSubmit={handleCreateToken} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-700">Token Label</label>
+                                <label className="text-sm font-medium text-foreground">Token Label</label>
                                 <input
                                     type="text"
                                     required
                                     placeholder="e.g. EU Commission Portal"
-                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                     value={formData.label}
                                     onChange={e => setFormData({ ...formData, label: e.target.value })}
                                 />
-                                <p className="text-xs text-zinc-500">A memorable name for this token.</p>
+                                <p className="text-xs text-muted-foreground">A memorable name for this token.</p>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-700">Access Tier</label>
+                                <label className="text-sm font-medium text-foreground">Access Tier</label>
                                 <select
-                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-card"
                                     value={formData.access_tier}
                                     onChange={e => setFormData({ ...formData, access_tier: e.target.value as "PARTNER" | "REGULATOR" })}
                                 >
@@ -227,27 +227,27 @@ export function DataAccessTokens() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-700">Grantee Name</label>
+                                <label className="text-sm font-medium text-foreground">Grantee Name</label>
                                 <div className="relative">
-                                    <UserCircle className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+                                    <UserCircle className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <input
                                         type="text"
                                         required
                                         placeholder="Name of individual or team"
-                                        className="w-full rounded-md border border-zinc-300 pl-9 pr-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        className="w-full rounded-md border border-border pl-9 pr-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                         value={formData.grantee_name}
                                         onChange={e => setFormData({ ...formData, grantee_name: e.target.value })}
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-700">Grantee Organization</label>
+                                <label className="text-sm font-medium text-foreground">Grantee Organization</label>
                                 <div className="relative">
-                                    <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
+                                    <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <input
                                         type="text"
                                         placeholder="Optional organization name"
-                                        className="w-full rounded-md border border-zinc-300 pl-9 pr-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        className="w-full rounded-md border border-border pl-9 pr-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                         value={formData.grantee_org}
                                         onChange={e => setFormData({ ...formData, grantee_org: e.target.value })}
                                     />
@@ -257,9 +257,9 @@ export function DataAccessTokens() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-zinc-700">Expiration</label>
+                                <label className="text-sm font-medium text-foreground">Expiration</label>
                                 <select
-                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-card"
                                     value={formData.expires_in}
                                     onChange={e => setFormData({ ...formData, expires_in: e.target.value })}
                                 >
@@ -272,11 +272,11 @@ export function DataAccessTokens() {
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4 border-t border-zinc-100 mt-6">
+                        <div className="flex justify-end pt-4 border-t border-border mt-6">
                             <button
                                 type="submit"
                                 disabled={isGenerating}
-                                className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                                className="inline-flex items-center justify-center rounded-lg bg-[#171717] px-6 py-2.5 text-sm font-medium text-white shadow-none hover:bg-primary/90 disabled:opacity-50 transition-colors"
                             >
                                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
                                 Generate Token
@@ -287,74 +287,74 @@ export function DataAccessTokens() {
             )}
 
             {/* Tokens List */}
-            <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-6 py-4">
-                    <h3 className="text-sm font-medium text-zinc-900">Active Access Tokens</h3>
-                    <button onClick={fetchTokens} className="text-zinc-500 hover:text-zinc-800 transition" title="Refresh list">
+            <div className="rounded-lg border border-border bg-card overflow-hidden shadow-none">
+                <div className="flex items-center justify-between border-b border-border bg-background px-6 py-4">
+                    <h3 className="text-sm font-medium text-foreground">Active Access Tokens</h3>
+                    <button onClick={fetchTokens} className="text-muted-foreground hover:text-foreground transition" title="Refresh list">
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                     </button>
                 </div>
 
                 {loading && tokens.length === 0 ? (
-                    <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-zinc-400 mb-2" />
+                    <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
                         <p>Loading tokens...</p>
                     </div>
                 ) : tokens.length === 0 ? (
                     <div className="p-12 text-center">
-                        <Shield className="h-12 w-12 text-zinc-300 mx-auto mb-4" />
-                        <h4 className="text-base font-medium text-zinc-900">No Access Tokens</h4>
-                        <p className="text-sm text-zinc-500 mt-1 max-w-sm mx-auto">
+                        <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h4 className="text-base font-medium text-foreground">No Access Tokens</h4>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
                             Generate tokens to grant secure, role-based access to your battery passports.
                         </p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-zinc-200">
+                    <div className="divide-y divide-border">
                         {tokens.map((token) => (
-                            <div key={token.id} className={`p-6 flex flex-col sm:flex-row gap-6 items-start justify-between ${!token.is_active ? 'bg-zinc-50 opacity-75' : 'bg-white'}`}>
+                            <div key={token.id} className={`p-6 flex flex-col sm:flex-row gap-6 items-start justify-between ${!token.is_active ? 'bg-background opacity-75' : 'bg-card'}`}>
                                 <div className="space-y-3 flex-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h4 className="text-base font-medium text-zinc-900 border-none m-0">{token.label}</h4>
+                                        <h4 className="text-base font-medium text-foreground border-none m-0">{token.label}</h4>
                                         {getStatusBadge(token)}
                                         <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border 
                                             ${token.access_tier === 'REGULATOR'
-                                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
+                                                ? 'bg-blue-500/10 text-blue-500 border-blue-200'
+                                                : 'bg-indigo-500/10 text-indigo-700 border-indigo-200'}`}>
                                             {token.access_tier}
                                         </span>
                                     </div>
 
-                                    <div className="text-sm text-zinc-600 grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                                    <div className="text-sm text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
                                         <div className="flex items-center gap-1.5 shrink-0">
-                                            <UserCircle className="h-4 w-4 text-zinc-400" />
+                                            <UserCircle className="h-4 w-4 text-muted-foreground" />
                                             <span>
-                                                <span className="font-medium text-zinc-800">{token.grantee_name}</span>
-                                                {token.grantee_org && <span className="text-zinc-500"> ({token.grantee_org})</span>}
+                                                <span className="font-medium text-foreground">{token.grantee_name}</span>
+                                                {token.grantee_org && <span className="text-muted-foreground"> ({token.grantee_org})</span>}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0">
-                                            <Calendar className="h-4 w-4 text-zinc-400" />
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
                                             <span>
                                                 Expires: {token.expires_at ? new Date(token.expires_at).toLocaleDateString() : 'Never'}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="text-xs text-zinc-500 pt-1 flex items-center gap-4">
+                                    <div className="text-xs text-muted-foreground pt-1 flex items-center gap-4">
                                         <span>Created {new Date(token.created_at).toLocaleDateString()}</span>
                                         {token.last_used_at ? (
-                                            <span className="text-emerald-600 font-medium">Last used {formatDistanceToNow(new Date(token.last_used_at))} ago</span>
+                                            <span className="text-emerald-500 font-medium">Last used {formatDistanceToNow(new Date(token.last_used_at))} ago</span>
                                         ) : (
-                                            <span className="text-zinc-400">Never used</span>
+                                            <span className="text-muted-foreground">Never used</span>
                                         )}
                                     </div>
                                 </div>
 
                                 {token.is_active && (
-                                    <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-zinc-100 flex sm:justify-end">
+                                    <div className="shrink-0 w-full sm:w-auto mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-border flex sm:justify-end">
                                         <button
                                             onClick={() => handleRevokeToken(token.id)}
-                                            className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors w-full sm:w-auto"
+                                            className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-red-500 bg-red-500/10 hover:bg-red-100 rounded transition-colors w-full sm:w-auto"
                                         >
                                             <Trash2 className="h-4 w-4 mr-1.5" />
                                             Revoke

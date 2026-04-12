@@ -9,7 +9,7 @@ const Accordion = React.forwardRef<
     HTMLDivElement,
     React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("space-y-2", className)} {...props} />
+    <div ref={ref} className={cn("space-y-4", className)} {...props} />
 ))
 Accordion.displayName = "Accordion"
 
@@ -23,7 +23,7 @@ const AccordionItem = React.forwardRef<
     HTMLDivElement,
     AccordionItemProps
 >(({ className, children, ...props }, ref) => (
-    <div ref={ref} className={cn("border border-zinc-800 rounded-lg bg-zinc-900/50 overflow-hidden", className)} {...props}>
+    <div ref={ref} className={cn("border border-border rounded-lg bg-card overflow-hidden", className)} {...props}>
         {children}
     </div>
 ))
@@ -40,14 +40,14 @@ const AccordionTrigger = React.forwardRef<
     <button
         ref={ref}
         className={cn(
-            "flex flex-1 items-center justify-between py-4 px-6 font-medium transition-all hover:bg-zinc-900/50 w-full text-left [&[data-state=open]>svg]:rotate-180",
+            "flex flex-1 items-center justify-between py-4 px-6 font-medium transition-all hover:bg-accent/50 w-full text-left [&[data-state=open]>svg]:rotate-180 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             className
         )}
         data-state={isOpen ? "open" : "closed"}
         {...props}
     >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 text-zinc-500" />
+        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground" />
     </button>
 ))
 AccordionTrigger.displayName = "AccordionTrigger"
@@ -69,7 +69,7 @@ const AccordionContent = React.forwardRef<
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
             >
-                <div ref={ref} className={cn("pb-4 pt-0 px-6 text-sm text-zinc-400", className)} {...props}>
+                <div ref={ref} className={cn("pb-4 pt-0 px-6 text-sm text-muted-foreground", className)} {...props}>
                     {children}
                 </div>
             </motion.div>

@@ -108,25 +108,25 @@ export default function AnalyticsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent"></div>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent"></div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6">
+        <div className="min-h-screen bg-background p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                                <BarChart3 className="h-5 w-5 text-emerald-600" />
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                <BarChart3 className="h-5 w-5 text-emerald-500" />
                             </div>
                             Scan Analytics
                         </h1>
-                        <p className="text-sm text-zinc-500 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Track QR code scans and passport verifications
                         </p>
                     </div>
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
                         onClick={() => fetchAnalytics(true)}
                         disabled={refreshing}
                         variant="outline"
-                        className="border-zinc-200 text-zinc-700 hover:bg-zinc-100"
+                        className="border-border text-foreground hover:bg-muted"
                     >
                         <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                         Refresh
@@ -147,29 +147,29 @@ export default function AnalyticsPage() {
                         icon={<Activity className="h-5 w-5" />}
                         label="Total Scans"
                         value={data.totalScans}
-                        iconColor="text-blue-600"
-                        bgColor="bg-blue-50"
+                        iconColor="text-blue-500"
+                        bgColor="bg-blue-500/10"
                     />
                     <ScanStatsCard
                         icon={<BarChart3 className="h-5 w-5" />}
                         label="Today's Scans"
                         value={data.todayScans}
-                        iconColor="text-emerald-600"
-                        bgColor="bg-emerald-50"
+                        iconColor="text-emerald-500"
+                        bgColor="bg-emerald-500/10"
                     />
                     <ScanStatsCard
                         icon={<Globe className="h-5 w-5" />}
                         label="Countries"
                         value={uniqueCountries}
                         iconColor="text-purple-600"
-                        bgColor="bg-purple-50"
+                        bgColor="bg-purple-500/10"
                     />
                     <ScanStatsCard
                         icon={<Smartphone className="h-5 w-5" />}
                         label="Device Types"
                         value={data.deviceBreakdown.length}
-                        iconColor="text-amber-600"
-                        bgColor="bg-amber-50"
+                        iconColor="text-amber-500"
+                        bgColor="bg-amber-500/10"
                     />
                 </div>
 
@@ -178,9 +178,9 @@ export default function AnalyticsPage() {
                     {/* Charts Column */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Country Chart */}
-                        <Card className="bg-white border-zinc-200">
+                        <Card className="bg-card border-border">
                             <CardHeader>
-                                <CardTitle className="text-zinc-900 flex items-center gap-2">
+                                <CardTitle className="text-foreground flex items-center gap-2">
                                     <Globe className="h-5 w-5 text-purple-600" />
                                     Scans by Country
                                 </CardTitle>
@@ -189,7 +189,7 @@ export default function AnalyticsPage() {
                                 {data.countryBreakdown.length > 0 ? (
                                     <CountryChart data={data.countryBreakdown} />
                                 ) : (
-                                    <div className="text-center py-8 text-zinc-500">
+                                    <div className="text-center py-8 text-muted-foreground">
                                         No scan data available yet
                                     </div>
                                 )}
@@ -197,10 +197,10 @@ export default function AnalyticsPage() {
                         </Card>
 
                         {/* Device Chart */}
-                        <Card className="bg-white border-zinc-200">
+                        <Card className="bg-card border-border">
                             <CardHeader>
-                                <CardTitle className="text-zinc-900 flex items-center gap-2">
-                                    <Smartphone className="h-5 w-5 text-amber-600" />
+                                <CardTitle className="text-foreground flex items-center gap-2">
+                                    <Smartphone className="h-5 w-5 text-amber-500" />
                                     Device Distribution
                                 </CardTitle>
                             </CardHeader>
@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
                                 {data.deviceBreakdown.length > 0 ? (
                                     <DeviceChart data={data.deviceBreakdown} />
                                 ) : (
-                                    <div className="text-center py-8 text-zinc-500">
+                                    <div className="text-center py-8 text-muted-foreground">
                                         No scan data available yet
                                     </div>
                                 )}
@@ -218,14 +218,14 @@ export default function AnalyticsPage() {
 
                     {/* Live Feed Column */}
                     <div>
-                        <Card className="bg-white border-zinc-200 h-full">
+                        <Card className="bg-card border-border h-full">
                             <CardHeader>
-                                <CardTitle className="text-zinc-900 flex items-center gap-2">
-                                    <Activity className="h-5 w-5 text-emerald-600" />
+                                <CardTitle className="text-foreground flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-emerald-500" />
                                     Live Scan Feed
                                     <span className="ml-auto flex h-2 w-2">
                                         <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/100"></span>
                                     </span>
                                 </CardTitle>
                             </CardHeader>

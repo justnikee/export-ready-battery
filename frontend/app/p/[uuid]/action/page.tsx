@@ -254,7 +254,7 @@ function PassportActionContent() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
         </div>
@@ -264,7 +264,7 @@ function PassportActionContent() {
           className="flex flex-col items-center gap-4"
         >
           <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
-          <p className="text-zinc-400">Verifying your access...</p>
+          <p className="text-muted-foreground">Verifying your access...</p>
         </motion.div>
       </div>
     );
@@ -273,20 +273,20 @@ function PassportActionContent() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-zinc-900/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-8 text-center"
+          className="max-w-md w-full bg-[#171717]/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-8 text-center"
         >
           <div className="mx-auto w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
             <AlertCircle className="h-8 w-8 text-red-400" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
-          <p className="text-zinc-400 mb-6">{error}</p>
+          <p className="text-muted-foreground mb-6">{error}</p>
           <button
             onClick={() => router.push(`/p/${passportId}`)}
-            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-colors"
+            className="px-6 py-3 bg-secondary hover:bg-accent text-white rounded-xl font-medium transition-colors"
           >
             Back to Passport
           </button>
@@ -313,11 +313,11 @@ function PassportActionContent() {
     });
 
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-zinc-900/80 backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-8 text-center"
+          className="max-w-md w-full bg-[#171717]/80 backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-8 text-center"
         >
           <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
             <CheckCircle className="h-10 w-10 text-emerald-400" />
@@ -325,19 +325,19 @@ function PassportActionContent() {
           <h2 className="text-2xl font-bold text-white mb-2">
             Status Updated!
           </h2>
-          <p className="text-zinc-400 mb-2">
+          <p className="text-muted-foreground mb-2">
             Action applied:{" "}
             <span className="text-emerald-400 font-semibold">
               {config.label}
             </span>
           </p>
           {resultStatus && (
-            <p className="text-zinc-500 text-sm mb-2">
+            <p className="text-muted-foreground text-sm mb-2">
               New status:{" "}
-              <span className="text-zinc-300 font-mono">{resultStatus}</span>
+              <span className="text-muted-foreground font-mono">{resultStatus}</span>
             </p>
           )}
-          <p className="text-zinc-500 text-sm mb-4">
+          <p className="text-muted-foreground text-sm mb-4">
             This action has been recorded to the audit trail.
           </p>
 
@@ -355,7 +355,7 @@ function PassportActionContent() {
                   <h3 className="font-bold text-amber-400 text-lg">
                     Warranty Registered! +{pointsAwarded} Partner Points
                   </h3>
-                  <p className="text-sm text-amber-600/80">
+                  <p className="text-sm text-amber-500/80">
                     Battery Installed! Warranty Activated.
                   </p>
                 </div>
@@ -365,7 +365,7 @@ function PassportActionContent() {
 
           <button
             onClick={() => router.push(`/p/${passportId}`)}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors"
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500/100 text-white rounded-xl font-medium transition-colors"
           >
             View Updated Passport
           </button>
@@ -376,7 +376,7 @@ function PassportActionContent() {
 
   // Main action selection
   return (
-    <div className="min-h-screen bg-zinc-950 py-8 px-4">
+    <div className="min-h-screen bg-[#0a0a0a] py-8 px-4">
       {/* Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl" />
@@ -392,14 +392,14 @@ function PassportActionContent() {
         >
           <div className="flex items-center justify-center gap-2 mb-4">
             <Shield className="h-6 w-6 text-emerald-400" />
-            <span className="text-zinc-400 text-sm">Authenticated Action</span>
+            <span className="text-muted-foreground text-sm">Authenticated Action</span>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
             Update Battery Status
           </h1>
-          <p className="text-zinc-500">
+          <p className="text-muted-foreground">
             Serial:{" "}
-            <code className="text-zinc-400">
+            <code className="text-muted-foreground">
               {info?.passport?.serial_number}
             </code>
           </p>
@@ -410,7 +410,7 @@ function PassportActionContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-zinc-900/60 backdrop-blur-xl rounded-xl border border-zinc-800 p-4 mb-6"
+          className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
         >
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -418,7 +418,7 @@ function PassportActionContent() {
             </div>
             <div>
               <p className="text-white font-medium">{info?.actor?.email}</p>
-              <p className="text-zinc-500 text-sm flex items-center gap-1">
+              <p className="text-muted-foreground text-sm flex items-center gap-1">
                 <Building2 className="h-3 w-3" />
                 {info?.actor?.role}
               </p>
@@ -431,9 +431,9 @@ function PassportActionContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-zinc-900/60 backdrop-blur-xl rounded-xl border border-zinc-800 p-4 mb-6"
+          className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
         >
-          <p className="text-zinc-500 text-sm mb-1">Current Status</p>
+          <p className="text-muted-foreground text-sm mb-1">Current Status</p>
           <p className="text-lg font-semibold text-white">
             {info?.passport?.status}
           </p>
@@ -446,7 +446,7 @@ function PassportActionContent() {
           transition={{ delay: 0.2 }}
           className="mb-6"
         >
-          <p className="text-zinc-400 text-sm mb-3">Select action:</p>
+          <p className="text-muted-foreground text-sm mb-3">Select action:</p>
           <div className="space-y-3">
             {info?.allowed_actions?.map((action) => {
               const config = ACTION_CONFIG[action] || {
@@ -469,7 +469,7 @@ function PassportActionContent() {
                   className={`w-full p-4 rounded-xl border transition-all text-left ${
                     isSelected
                       ? `bg-${config.color}-500/10 border-${config.color}-500/50`
-                      : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700"
+                      : "bg-[#171717]/60 border-border hover:border-border"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -480,7 +480,7 @@ function PassportActionContent() {
                     </div>
                     <div className="flex-1">
                       <p className="text-white font-medium">{config.label}</p>
-                      <p className="text-zinc-500 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         {config.description}
                       </p>
                     </div>
@@ -499,19 +499,19 @@ function PassportActionContent() {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="bg-zinc-900/60 backdrop-blur-xl rounded-xl border border-zinc-800 p-4 mb-6"
+            className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
           >
-            <p className="text-zinc-400 text-sm mb-3">Evidence Required</p>
+            <p className="text-muted-foreground text-sm mb-3">Evidence Required</p>
 
             {(EVIDENCE_FIELDS[selectedAction] || []).length === 0 ? (
-              <p className="text-zinc-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 No evidence is required for this action.
               </p>
             ) : (
               <div className="space-y-3">
                 {(EVIDENCE_FIELDS[selectedAction] || []).map((field) => (
                   <div key={field.key}>
-                    <label className="block text-zinc-400 text-xs mb-2">
+                    <label className="block text-muted-foreground text-xs mb-2">
                       {field.label}
                     </label>
                     <input
@@ -524,7 +524,7 @@ function PassportActionContent() {
                           [field.key]: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                      className="w-full px-4 py-3 bg-secondary/50 border border-border rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 ))}
@@ -544,7 +544,7 @@ function PassportActionContent() {
                   placeholder="Enter Partner Access Code"
                   value={partnerCode}
                   onChange={(e) => setPartnerCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 bg-zinc-800/50 border border-amber-500/30 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 font-mono uppercase"
+                  className="w-full px-4 py-3 bg-secondary/50 border border-amber-500/30 rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-amber-500 font-mono uppercase"
                 />
               </div>
             )}
@@ -560,8 +560,8 @@ function PassportActionContent() {
           disabled={!selectedAction || submitting}
           className={`w-full py-4 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 ${
             selectedAction
-              ? "bg-emerald-600 hover:bg-emerald-500"
-              : "bg-zinc-800 cursor-not-allowed"
+              ? "bg-emerald-600 hover:bg-emerald-500/100"
+              : "bg-secondary cursor-not-allowed"
           }`}
         >
           {submitting ? (
@@ -580,7 +580,7 @@ function PassportActionContent() {
         {/* Cancel */}
         <button
           onClick={() => router.push(`/p/${passportId}`)}
-          className="w-full mt-3 py-3 text-zinc-400 hover:text-white transition-colors"
+          className="w-full mt-3 py-3 text-muted-foreground hover:text-white transition-colors"
         >
           Cancel
         </button>
@@ -593,7 +593,7 @@ export default function PassportActionPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
           <Loader2 className="h-10 w-10 text-emerald-400 animate-spin" />
         </div>
       }

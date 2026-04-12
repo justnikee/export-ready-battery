@@ -42,25 +42,25 @@ export default function CompliancePage() {
     ];
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6">
+        <div className="min-h-screen bg-background p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Page Header */}
                 <div>
-                    <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">
+                    <h1 className="text-2xl font-semibold text-foreground tracking-tight">
                         India Compliance Hub
                     </h1>
-                    <p className="text-sm text-zinc-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         BIS, EPR &amp; PLI compliance tracking for Indian battery manufacturers
                     </p>
                 </div>
 
                 {/* EPR Registration Banner */}
                 {!eprRegistered && (
-                    <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                    <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                         <div>
                             <p className="text-sm font-medium text-amber-800">EPR Registration Missing</p>
-                            <p className="text-xs text-amber-600 mt-0.5">
+                            <p className="text-xs text-amber-500 mt-0.5">
                                 Add your CPCB EPR registration number in{' '}
                                 <a href="/settings" className="underline font-medium">Settings → India Compliance</a>{' '}
                                 to unlock full compliance tracking.
@@ -70,10 +70,10 @@ export default function CompliancePage() {
                 )}
 
                 {/* India Compliance Readiness */}
-                <div className="bg-white border border-zinc-200 rounded-lg p-5">
+                <div className="bg-card border border-border rounded-lg p-5">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-zinc-900">Compliance Readiness</h3>
-                        <a href="/settings" className="text-xs text-zinc-500 hover:text-zinc-700 underline">
+                        <h3 className="text-sm font-semibold text-foreground">Compliance Readiness</h3>
+                        <a href="/settings" className="text-xs text-muted-foreground hover:text-foreground underline">
                             Manage in Settings
                         </a>
                     </div>
@@ -106,28 +106,28 @@ export default function CompliancePage() {
                                     key={item.label}
                                     className={`p-4 rounded-lg border ${
                                         isVerified
-                                            ? 'bg-emerald-50 border-emerald-200'
+                                            ? 'bg-emerald-500/10 border-emerald-500/20'
                                             : isPending
-                                              ? 'bg-amber-50 border-amber-200'
+                                              ? 'bg-amber-500/10 border-amber-500/20'
                                               : isRejected
-                                                ? 'bg-red-50 border-red-200'
-                                                : 'bg-zinc-50 border-zinc-200'
+                                                ? 'bg-red-500/10 border-red-500/20'
+                                                : 'bg-muted border-border'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2 mb-1">
                                         {isVerified ? (
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                                         ) : isPending ? (
-                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                            <AlertTriangle className="h-4 w-4 text-amber-500" />
                                         ) : isRejected ? (
                                             <XCircle className="h-4 w-4 text-red-500" />
                                         ) : (
-                                            <Shield className="h-4 w-4 text-zinc-400" />
+                                            <Shield className="h-4 w-4 text-muted-foreground" />
                                         )}
-                                        <span className="text-sm font-medium text-zinc-900">{item.label}</span>
+                                        <span className="text-sm font-medium text-foreground">{item.label}</span>
                                     </div>
-                                    <p className="text-xs text-zinc-500 truncate">{item.detail}</p>
-                                    <p className="text-[10px] text-zinc-400 mt-1">{item.rule}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{item.detail}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">{item.rule}</p>
                                 </div>
                             );
                         })}
@@ -135,7 +135,7 @@ export default function CompliancePage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 bg-zinc-100 rounded-lg p-1">
+                <div className="flex gap-1 bg-muted rounded-lg p-1">
                     {tabs.map(tab => {
                         const Icon = tab.icon;
                         return (
@@ -144,8 +144,8 @@ export default function CompliancePage() {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
                                     activeTab === tab.id
-                                        ? 'bg-white text-zinc-900 shadow-sm'
-                                        : 'text-zinc-500 hover:text-zinc-700'
+                                        ? 'bg-card text-foreground shadow-none'
+                                        : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -197,14 +197,14 @@ function OverviewTab() {
     return (
         <div className="space-y-4">
             {obligations.map(ob => (
-                <div key={ob.year} className="bg-white border border-zinc-200 rounded-lg p-6">
+                <div key={ob.year} className="bg-card border border-border rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-semibold text-zinc-900">FY {ob.financial_year}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">FY {ob.financial_year}</h3>
                             <StatusBadge status={ob.status} />
                         </div>
                         {ob.epr_registered && (
-                            <span className="text-xs text-zinc-400 font-mono">{ob.epr_number}</span>
+                            <span className="text-xs text-muted-foreground font-mono">{ob.epr_number}</span>
                         )}
                     </div>
 
@@ -240,18 +240,18 @@ function OverviewTab() {
                     {/* Progress Bar */}
                     {requiredKg > 0 && (
                         <div className="mt-4">
-                            <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                 <span>Progress toward target</span>
                                 <span>{progressPct.toFixed(0)}%</span>
                             </div>
-                            <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
                                 <div
                                     className={`h-full rounded-full transition-all duration-500 ${
                                         collectedKg >= requiredKg
-                                            ? 'bg-emerald-500'
+                                            ? 'bg-emerald-500/100'
                                             : collectedKg > 0
-                                                ? 'bg-amber-500'
-                                                : 'bg-zinc-300'
+                                                ? 'bg-amber-500/100'
+                                                : 'bg-muted'
                                     }`}
                                     style={{ width: `${progressPct}%` }}
                                 />
@@ -341,21 +341,21 @@ function CertificatesTab() {
                         <select
                             value={selectedFY}
                             onChange={e => setSelectedFY(e.target.value)}
-                            className="appearance-none pl-3 pr-8 py-2 text-sm border border-zinc-200 rounded-md bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            className="appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             {fyOptions.map(fy => (
                                 <option key={fy} value={fy}>FY {fy}</option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
-                    <span className="text-sm text-zinc-500">
+                    <span className="text-sm text-muted-foreground">
                         {activeCerts.length} active · {totalWeight.toFixed(1)} kg certified
                     </span>
                 </div>
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                     Add Certificate
@@ -381,37 +381,37 @@ function CertificatesTab() {
             ) : certificates.length === 0 ? (
                 <EmptyState message="No certificates for this financial year" />
             ) : (
-                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
                     <table className="w-full">
-                        <thead className="bg-zinc-50 border-b border-zinc-200">
+                        <thead className="bg-muted border-b border-border">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Certificate</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Recycler</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Weight</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Issued</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Certificate</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Recycler</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Weight</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Issued</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {certificates.map(cert => (
-                                <tr key={cert.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                                <tr key={cert.id} className="border-b border-border hover:bg-accent transition-colors">
                                     <td className="px-4 py-4">
-                                        <div className="text-sm font-medium text-zinc-900">{cert.certificate_number}</div>
+                                        <div className="text-sm font-medium text-foreground">{cert.certificate_number}</div>
                                         {cert.battery_type && (
-                                            <div className="text-xs text-zinc-500">{cert.battery_type}</div>
+                                            <div className="text-xs text-muted-foreground">{cert.battery_type}</div>
                                         )}
                                     </td>
                                     <td className="px-4 py-4">
-                                        <div className="text-sm text-zinc-900">{cert.recycler_name}</div>
+                                        <div className="text-sm text-foreground">{cert.recycler_name}</div>
                                         {cert.recycler_epr_id && (
-                                            <div className="text-xs text-zinc-400 font-mono">{cert.recycler_epr_id}</div>
+                                            <div className="text-xs text-muted-foreground font-mono">{cert.recycler_epr_id}</div>
                                         )}
                                     </td>
-                                    <td className="px-4 py-4 text-sm font-medium text-zinc-900">
+                                    <td className="px-4 py-4 text-sm font-medium text-foreground">
                                         {cert.weight_kg.toFixed(1)} kg
                                     </td>
-                                    <td className="px-4 py-4 text-sm text-zinc-500">
+                                    <td className="px-4 py-4 text-sm text-muted-foreground">
                                         {new Date(cert.issued_date).toLocaleDateString()}
                                     </td>
                                     <td className="px-4 py-4">
@@ -423,7 +423,7 @@ function CertificatesTab() {
                                                 <button
                                                     onClick={() => handleRetire(cert.id)}
                                                     title="Retire"
-                                                    className="p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                                    className="p-1.5 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors"
                                                 >
                                                     <Archive className="w-4 h-4" />
                                                 </button>
@@ -431,7 +431,7 @@ function CertificatesTab() {
                                             <button
                                                 onClick={() => handleDelete(cert.id)}
                                                 title="Delete"
-                                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                className="p-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -468,15 +468,15 @@ function ExportTab() {
     };
 
     return (
-        <div className="bg-white border border-zinc-200 rounded-lg p-8">
+        <div className="bg-card border border-border rounded-lg p-8">
             <div className="max-w-lg mx-auto text-center space-y-6">
-                <div className="p-4 bg-emerald-50 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                    <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                <div className="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                    <FileSpreadsheet className="w-8 h-8 text-emerald-500" />
                 </div>
 
                 <div>
-                    <h3 className="text-lg font-semibold text-zinc-900">CPCB Annual Return — Form 3</h3>
-                    <p className="text-sm text-zinc-500 mt-1">
+                    <h3 className="text-lg font-semibold text-foreground">CPCB Annual Return — Form 3</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
                         Generate a CSV for your CPCB portal submission. Includes production data,
                         recycler certificates, and battery category aggregations.
                     </p>
@@ -487,19 +487,19 @@ function ExportTab() {
                         <select
                             value={selectedFY}
                             onChange={e => setSelectedFY(e.target.value)}
-                            className="appearance-none pl-4 pr-10 py-2.5 text-sm border border-zinc-200 rounded-md bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            className="appearance-none pl-4 pr-10 py-2.5 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             {fyOptions.map(fy => (
                                 <option key={fy} value={fy}>FY {fy}</option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
 
                     <button
                         onClick={handleDownload}
                         disabled={downloading}
-                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         {downloading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -510,7 +510,7 @@ function ExportTab() {
                     </button>
                 </div>
 
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-muted-foreground">
                     Upload this CSV to the CPCB EPR portal at{' '}
                     <a
                         href="https://eprportal.cpcb.gov.in"
@@ -564,8 +564,8 @@ function CertificateForm({
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white border border-zinc-200 rounded-lg p-6 space-y-4">
-            <h4 className="text-sm font-semibold text-zinc-900">Add EPR Certificate</h4>
+        <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-6 space-y-4">
+            <h4 className="text-sm font-semibold text-foreground">Add EPR Certificate</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Certificate Number *" value={form.certificate_number} onChange={v => update('certificate_number', v)} placeholder="EPR/WP/CERT/2025/001" />
                 <Input label="Recycler Name *" value={form.recycler_name} onChange={v => update('recycler_name', v)} placeholder="GreenRecycle India Pvt Ltd" />
@@ -575,10 +575,10 @@ function CertificateForm({
                 <Input label="Issued Date *" type="date" value={form.issued_date} onChange={v => update('issued_date', v)} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-zinc-600 border border-zinc-200 rounded-md hover:bg-zinc-50 transition-colors">
+                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-md hover:bg-accent transition-colors">
                     Cancel
                 </button>
-                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50">
+                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50">
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     Save Certificate
                 </button>
@@ -599,20 +599,20 @@ function BISTrackerTab() {
     return (
         <div className="space-y-6">
             {/* BIS Status Card */}
-            <div className="bg-white border border-zinc-200 rounded-lg p-6">
-                <h3 className="text-base font-semibold text-zinc-900 mb-4">BIS CRS Registration — IS 16046</h3>
+            <div className="bg-card border border-border rounded-lg p-6">
+                <h3 className="text-base font-semibold text-foreground mb-4">BIS CRS Registration — IS 16046</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <p className="text-xs text-zinc-500 mb-1">R-Number</p>
-                        <p className="text-sm font-mono text-zinc-900">{bisNumber || '—'}</p>
+                        <p className="text-xs text-muted-foreground mb-1">R-Number</p>
+                        <p className="text-sm font-mono text-foreground">{bisNumber || '—'}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-zinc-500 mb-1">Certificate Status</p>
+                        <p className="text-xs text-muted-foreground mb-1">Certificate Status</p>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
-                            bisStatus === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            bisStatus === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                            bisStatus === 'REJECTED' ? 'bg-red-50 text-red-700 border border-red-200' :
-                            'bg-zinc-100 text-zinc-600 border border-zinc-200'
+                            bisStatus === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                            bisStatus === 'PENDING' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                            bisStatus === 'REJECTED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+                            'bg-muted text-muted-foreground border border-border'
                         }`}>
                             {bisStatus === 'VERIFIED' ? '✅ Verified' :
                              bisStatus === 'PENDING' ? '⏳ Pending Review' :
@@ -624,12 +624,12 @@ function BISTrackerTab() {
             </div>
 
             {/* BIS Requirements Checklist */}
-            <div className="bg-white border border-zinc-200 rounded-lg">
-                <div className="px-6 py-4 border-b border-zinc-100">
-                    <h3 className="text-sm font-semibold text-zinc-900">IS 16046 Requirements Checklist</h3>
-                    <p className="text-xs text-zinc-500 mt-0.5">Safety requirements for lithium-ion batteries used in portable electronics and EVs</p>
+            <div className="bg-card border border-border rounded-lg">
+                <div className="px-6 py-4 border-b border-border">
+                    <h3 className="text-sm font-semibold text-foreground">IS 16046 Requirements Checklist</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Safety requirements for lithium-ion batteries used in portable electronics and EVs</p>
                 </div>
-                <div className="divide-y divide-zinc-50">
+                <div className="divide-y divide-border">
                     {[
                         { test: 'Continuous low-rate charging', section: '10.1', done: bisStatus === 'VERIFIED' },
                         { test: 'Vibration test', section: '10.2', done: bisStatus === 'VERIFIED' },
@@ -645,11 +645,11 @@ function BISTrackerTab() {
                                 {item.done ? (
                                     <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                                 ) : (
-                                    <XCircle className="h-4 w-4 text-zinc-300 shrink-0" />
+                                    <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                                 )}
-                                <span className="text-sm text-zinc-700">{item.test}</span>
+                                <span className="text-sm text-foreground">{item.test}</span>
                             </div>
-                            <span className="text-xs text-zinc-400 font-mono">§{item.section}</span>
+                            <span className="text-xs text-muted-foreground font-mono">§{item.section}</span>
                         </div>
                     ))}
                 </div>
@@ -657,11 +657,11 @@ function BISTrackerTab() {
 
             {/* Action Link */}
             {bisStatus !== 'VERIFIED' && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <Shield className="w-5 h-5 text-blue-600 shrink-0" />
+                <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <Shield className="w-5 h-5 text-blue-500 shrink-0" />
                     <div className="flex-1">
                         <p className="text-sm font-medium text-blue-800">Upload your BIS certificate</p>
-                        <p className="text-xs text-blue-600 mt-0.5">
+                        <p className="text-xs text-blue-500 mt-0.5">
                             Go to <a href="/settings" className="underline font-medium">Settings → India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
                         </p>
                     </div>
@@ -681,13 +681,13 @@ function Input({ label, value, onChange, placeholder, type = 'text' }: {
 }) {
     return (
         <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1">{label}</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">{label}</label>
             <input
                 type={type}
                 value={value}
                 onChange={e => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-md bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
         </div>
     );
@@ -695,12 +695,12 @@ function Input({ label, value, onChange, placeholder, type = 'text' }: {
 
 function StatCard({ label, value, highlight }: { label: string; value: string | number; highlight?: 'green' | 'red' }) {
     return (
-        <div className="p-3 bg-zinc-50 rounded-lg">
-            <p className="text-xs text-zinc-500 mb-1">{label}</p>
+        <div className="p-3 bg-muted rounded-lg">
+            <p className="text-xs text-muted-foreground mb-1">{label}</p>
             <p className={`text-lg font-semibold ${
-                highlight === 'green' ? 'text-emerald-600' :
-                highlight === 'red' ? 'text-red-600' :
-                'text-zinc-900'
+                highlight === 'green' ? 'text-emerald-500' :
+                highlight === 'red' ? 'text-red-500' :
+                'text-foreground'
             }`}>
                 {value}
             </p>
@@ -779,17 +779,17 @@ function EURegulationTab() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
     if (batches.length === 0) {
         return (
-            <div className="text-center py-12 bg-white rounded-xl border border-zinc-200">
-                <Shield className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                <p className="text-zinc-500">No EU/GLOBAL active batches found</p>
-                <p className="text-xs text-zinc-400 mt-1">Create a batch with EU or GLOBAL market region to see EU compliance data</p>
+            <div className="text-center py-12 bg-card rounded-xl border border-border">
+                <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No EU/GLOBAL active batches found</p>
+                <p className="text-xs text-muted-foreground mt-1">Create a batch with EU or GLOBAL market region to see EU compliance data</p>
             </div>
         );
     }
@@ -798,11 +798,11 @@ function EURegulationTab() {
         <div className="space-y-6">
             {/* Batch Selector */}
             <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-zinc-700">Batch:</label>
+                <label className="text-sm font-medium text-foreground">Batch:</label>
                 <select
                     value={selectedBatch}
                     onChange={(e) => setSelectedBatch(e.target.value)}
-                    className="border border-zinc-200 rounded-lg px-3 py-2 text-sm flex-1 max-w-xs"
+                    className="border border-border rounded-lg px-3 py-2 text-sm flex-1 max-w-xs"
                 >
                     {batches.map(b => (
                         <option key={b.id} value={b.id}>{b.batch_name || b.model_name}</option>
@@ -812,24 +812,24 @@ function EURegulationTab() {
 
             {/* Score Overview */}
             {scoreResult && (
-                <div className="bg-white rounded-xl border border-zinc-200 p-6">
+                <div className="bg-card rounded-xl border border-border p-6">
                     <div className="flex items-center gap-6 mb-4">
                         <div className={`text-4xl font-bold ${
-                            scoreResult.score >= 80 ? 'text-emerald-600' : scoreResult.score >= 50 ? 'text-amber-500' : 'text-red-500'
+                            scoreResult.score >= 80 ? 'text-emerald-500' : scoreResult.score >= 50 ? 'text-amber-500' : 'text-red-500'
                         }`}>
                             {Math.round(scoreResult.score)}%
                         </div>
                         <div>
-                            <p className="text-zinc-700 font-medium">EU BatteryPass Attribute Coverage</p>
-                            <p className="text-sm text-zinc-500">
+                            <p className="text-foreground font-medium">EU BatteryPass Attribute Coverage</p>
+                            <p className="text-sm text-muted-foreground">
                                 {scoreResult.filled} of {scoreResult.total} mandatory attributes filled
                             </p>
                         </div>
                     </div>
-                    <div className="w-full bg-zinc-100 rounded-full h-3">
+                    <div className="w-full bg-muted rounded-full h-3">
                         <div
                             className={`h-3 rounded-full transition-all ${
-                                scoreResult.score >= 80 ? 'bg-emerald-500' : scoreResult.score >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                                scoreResult.score >= 80 ? 'bg-emerald-500/100' : scoreResult.score >= 50 ? 'bg-amber-500/100' : 'bg-red-500/100'
                             }`}
                             style={{ width: `${scoreResult.score}%` }}
                         />
@@ -842,14 +842,14 @@ function EURegulationTab() {
                 const attrs = scoreResult.attributes.filter(a => a.category === cat);
                 const filledCount = attrs.filter(a => a.filled).length;
                 return (
-                    <div key={cat} className="bg-white rounded-xl border border-zinc-200">
-                        <div className="px-5 py-3 border-b border-zinc-100 flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-zinc-700">{cat}</h3>
-                            <span className={`text-xs font-medium ${filledCount === attrs.length ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <div key={cat} className="bg-card rounded-xl border border-border">
+                        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-foreground">{cat}</h3>
+                            <span className={`text-xs font-medium ${filledCount === attrs.length ? 'text-emerald-500' : 'text-amber-500'}`}>
                                 {filledCount}/{attrs.length}
                             </span>
                         </div>
-                        <div className="divide-y divide-zinc-50">
+                        <div className="divide-y divide-border">
                             {attrs.map(attr => (
                                 <div key={attr.id} className="px-5 py-2.5 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -858,9 +858,9 @@ function EURegulationTab() {
                                         ) : (
                                             <XCircle className="h-4 w-4 text-red-400 shrink-0" />
                                         )}
-                                        <span className="text-sm text-zinc-700">{attr.name}</span>
+                                        <span className="text-sm text-foreground">{attr.name}</span>
                                     </div>
-                                    <span className="text-xs text-zinc-400 font-mono">{attr.reg_ref}</span>
+                                    <span className="text-xs text-muted-foreground font-mono">{attr.reg_ref}</span>
                                 </div>
                             ))}
                         </div>
@@ -869,18 +869,18 @@ function EURegulationTab() {
             })}
 
             {/* EU Deadlines */}
-            <div className="bg-white rounded-xl border border-zinc-200 p-5">
-                <h3 className="text-sm font-medium text-zinc-700 mb-3 flex items-center gap-2">
+            <div className="bg-card rounded-xl border border-border p-5">
+                <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     EU Battery Regulation Deadlines
                 </h3>
                 <div className="space-y-3">
                     {deadlines.map((d, i) => (
                         <div key={i} className="flex items-start gap-3">
-                            <span className="text-xs font-bold text-zinc-900 bg-zinc-100 px-2 py-1 rounded whitespace-nowrap">
+                            <span className="text-xs font-bold text-foreground bg-muted px-2 py-1 rounded whitespace-nowrap">
                                 {d.date}
                             </span>
-                            <span className="text-sm text-zinc-600">{d.desc}</span>
+                            <span className="text-sm text-muted-foreground">{d.desc}</span>
                         </div>
                     ))}
                 </div>
@@ -891,10 +891,10 @@ function EURegulationTab() {
 
 function StatusBadge({ status }: { status: string }) {
     const map: Record<string, { icon: React.ElementType; classes: string; label: string }> = {
-        COMPLIANT: { icon: CheckCircle2, classes: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Compliant' },
-        NON_COMPLIANT: { icon: AlertTriangle, classes: 'bg-red-50 text-red-700 border-red-200', label: 'Non-Compliant' },
-        NOT_REGISTERED: { icon: XCircle, classes: 'bg-zinc-100 text-zinc-500 border-zinc-200', label: 'Not Registered' },
-        PARTIAL: { icon: AlertTriangle, classes: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Partial' },
+        COMPLIANT: { icon: CheckCircle2, classes: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Compliant' },
+        NON_COMPLIANT: { icon: AlertTriangle, classes: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Non-Compliant' },
+        NOT_REGISTERED: { icon: XCircle, classes: 'bg-muted text-muted-foreground border-border', label: 'Not Registered' },
+        PARTIAL: { icon: AlertTriangle, classes: 'bg-amber-500/10 text-amber-500 border-amber-500/20', label: 'Partial' },
     };
     const s = map[status] || map.NON_COMPLIANT;
     const Icon = s.icon;
@@ -908,10 +908,10 @@ function StatusBadge({ status }: { status: string }) {
 
 function CertStatusBadge({ status }: { status: string }) {
     const classes: Record<string, string> = {
-        ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        RETIRED: 'bg-zinc-100 text-zinc-500 border-zinc-200',
-        EXPIRED: 'bg-amber-50 text-amber-700 border-amber-200',
-        REJECTED: 'bg-red-50 text-red-700 border-red-200',
+        ACTIVE: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+        RETIRED: 'bg-muted text-muted-foreground border-border',
+        EXPIRED: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+        REJECTED: 'bg-red-500/10 text-red-500 border-red-500/20',
     };
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${classes[status] || classes.ACTIVE}`}>
@@ -923,17 +923,17 @@ function CertStatusBadge({ status }: { status: string }) {
 function LoadingState() {
     return (
         <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
         </div>
     );
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
     return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-center">
             <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-            <p className="text-sm text-red-700">{message}</p>
-            <button onClick={onRetry} className="mt-3 inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800">
+            <p className="text-sm text-red-500">{message}</p>
+            <button onClick={onRetry} className="mt-3 inline-flex items-center gap-1 text-sm text-red-500 hover:text-red-800">
                 <RefreshCw className="w-3 h-3" /> Retry
             </button>
         </div>
@@ -942,13 +942,13 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 function EmptyState({ message }: { message: string }) {
     return (
-        <div className="bg-white border border-zinc-200 rounded-lg p-12">
+        <div className="bg-card border border-border rounded-lg p-12">
             <div className="flex flex-col items-center justify-center text-center">
-                <div className="p-4 bg-zinc-100 rounded-full mb-4">
-                    <Shield className="w-8 h-8 text-zinc-400" />
+                <div className="p-4 bg-muted rounded-full mb-4">
+                    <Shield className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium text-zinc-900 mb-1">No Data</h3>
-                <p className="text-sm text-zinc-500">{message}</p>
+                <h3 className="text-lg font-medium text-foreground mb-1">No Data</h3>
+                <p className="text-sm text-muted-foreground">{message}</p>
             </div>
         </div>
     );

@@ -62,9 +62,9 @@ export function DeviceChart({ data }: DeviceChartProps) {
                         formatter={(value, entry: LegendPayload) => {
                             const percentage = (entry.payload as { percentage?: string } | undefined)?.percentage ?? "0.0"
                             return (
-                                <span className="text-zinc-700 text-sm">
+                                <span className="text-foreground text-sm">
                                     {value}{" "}
-                                    <span className="text-zinc-400">
+                                    <span className="text-muted-foreground">
                                         ({percentage}%)
                                     </span>
                                 </span>

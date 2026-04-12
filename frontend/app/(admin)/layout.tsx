@@ -23,16 +23,16 @@ export default function AdminLayout({
 
     if (loading || !user) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
+            <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen flex bg-zinc-950 text-zinc-100">
+        <div className="min-h-screen flex bg-[#0a0a0a] text-foreground">
             {/* Admin Sidebar */}
-            <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex flex-col">
+            <aside className="w-64 border-r border-border bg-[#0a0a0a] flex flex-col">
                 <div className="p-6">
                     <Link href="/admin/blog" className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -43,17 +43,17 @@ export default function AdminLayout({
                 </div>
 
                 <nav className="flex-1 px-4 space-y-2 mt-4">
-                    <Link href="/admin/blog" className="flex items-center gap-3 px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
+                    <Link href="/admin/blog" className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors">
                         <FileText className="h-5 w-5" />
                         <span>Blog Posts</span>
                     </Link>
-                    <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-md transition-colors">
+                    <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors">
                         <LayoutDashboard className="h-5 w-5" />
                         <span>Back to App</span>
                     </Link>
                 </nav>
 
-                <div className="p-4 border-t border-zinc-800">
+                <div className="p-4 border-t border-border">
                     <Button
                         variant="ghost"
                         className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/10"

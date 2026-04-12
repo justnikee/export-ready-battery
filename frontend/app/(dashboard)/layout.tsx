@@ -47,22 +47,22 @@ function DashboardLayoutInner({
 
     if (loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent" />
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
             </div>
         )
     }
 
     if (!user) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-zinc-600">
+            <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
                 Redirecting to login...
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 text-zinc-900">
+        <div className="min-h-screen bg-background text-foreground">
             {/* Loading Bar */}
             <LoadingBarWrapper />
 
@@ -100,8 +100,8 @@ export default function DashboardLayout({
 }) {
     return (
         <Suspense fallback={
-            <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent" />
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
             </div>
         }>
             <DashboardLayoutInner>{children}</DashboardLayoutInner>

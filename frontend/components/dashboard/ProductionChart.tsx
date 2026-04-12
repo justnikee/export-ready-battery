@@ -17,16 +17,16 @@ export function ProductionChart({ data }: ProductionChartProps) {
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E4E7" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                         dataKey="name"
-                        stroke="#A1A1AA"
+                        stroke="var(--muted-foreground)"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                     />
                     <YAxis
-                        stroke="#A1A1AA"
+                        stroke="var(--muted-foreground)"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
@@ -35,13 +35,14 @@ export function ProductionChart({ data }: ProductionChartProps) {
                     />
                     <Tooltip
                         contentStyle={{
-                            backgroundColor: '#ffffff',
-                            borderColor: '#E4E4E7',
-                            borderRadius: '4px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            backgroundColor: 'var(--popover)',
+                            borderColor: 'var(--border)',
+                            borderRadius: '6px',
+                            boxShadow: 'none',
+                            color: 'var(--popover-foreground)',
                         }}
-                        itemStyle={{ color: '#3F3F46' }}
-                        labelStyle={{ color: '#71717A', fontWeight: 500 }}
+                        itemStyle={{ color: 'var(--foreground)' }}
+                        labelStyle={{ color: 'var(--muted-foreground)', fontWeight: 500 }}
                     />
                     <Area
                         type="monotone"

@@ -249,7 +249,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
                             {/* Sample CSV Download Link */}
                             <button
                                 onClick={handleDownloadSample}
-                                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-3"
+                                className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-800 mt-3"
                             >
                                 <Download className="h-4 w-4" />
                                 Download Sample CSV Template
@@ -315,19 +315,19 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
                                 </div>
                             ) : (
                                 // Issues Found State
-                                <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                                <div className="rounded-lg bg-amber-500/10 border border-amber-200 p-4">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <AlertTriangle className="h-8 w-8 text-amber-600" />
+                                        <AlertTriangle className="h-8 w-8 text-amber-500" />
                                         <div>
                                             <p className="font-semibold text-amber-800">Issues Found</p>
-                                            <p className="text-sm text-amber-700">
+                                            <p className="text-sm text-amber-500">
                                                 {validationResult.duplicate_count} duplicates, {validationResult.error_count} errors
                                             </p>
                                         </div>
                                     </div>
 
                                     {/* Error Table */}
-                                    <div className="max-h-40 overflow-y-auto bg-white rounded border text-sm mb-3">
+                                    <div className="max-h-40 overflow-y-auto bg-card rounded border text-sm mb-3">
                                         {validationResult.errors.map((err, i) => (
                                             <div key={`err-${i}`} className="flex items-center gap-2 p-2 border-b last:border-0">
                                                 <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
@@ -426,11 +426,11 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
                             </div>
 
                             {/* Live Preview */}
-                            <div className="rounded-md bg-zinc-100 p-4 text-center">
+                            <div className="rounded-md bg-muted p-4 text-center">
                                 <p className="text-xs text-muted-foreground mb-1">Preview</p>
                                 <p className="font-mono text-sm">
-                                    Generates <span className="font-bold text-blue-600">{previewStart}</span> to{" "}
-                                    <span className="font-bold text-blue-600">{previewEnd}</span>
+                                    Generates <span className="font-bold text-blue-500">{previewStart}</span> to{" "}
+                                    <span className="font-bold text-blue-500">{previewEnd}</span>
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     ({quantity || 0} passports)

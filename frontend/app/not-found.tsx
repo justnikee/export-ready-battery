@@ -9,7 +9,7 @@ export default function NotFound() {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-zinc-900 dark:to-indigo-950 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-background via-blue-500/5 to-indigo-500/5 flex items-center justify-center p-4">
             <div className="max-w-2xl w-full text-center space-y-8">
                 {/* Animated 404 */}
                 <div className="relative">
@@ -69,19 +69,19 @@ export default function NotFound() {
                     <div className="flex flex-wrap gap-3 justify-center">
                         <Link
                             href="/dashboard"
-                            className="text-sm px-4 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
+                            className="text-sm px-4 py-2 rounded-lg bg-card dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
                         >
                             Dashboard
                         </Link>
                         <Link
                             href="/blog"
-                            className="text-sm px-4 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
+                            className="text-sm px-4 py-2 rounded-lg bg-card dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
                         >
                             Blog
                         </Link>
                         <Link
                             href="/docs"
-                            className="text-sm px-4 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
+                            className="text-sm px-4 py-2 rounded-lg bg-card dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
                         >
                             Documentation
                         </Link>

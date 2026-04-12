@@ -50,11 +50,11 @@ export function ForgotPasswordForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <p className="text-zinc-300">
+                        <p className="text-muted-foreground">
                             If an account exists for <span className="font-medium text-white">{email}</span>,
                             you&apos;ll receive an email with instructions to reset your password.
                         </p>
-                        <p className="text-zinc-500 text-sm">
+                        <p className="text-muted-foreground text-sm">
                             Didn&apos;t receive an email? Check your spam folder or try again.
                         </p>
                     </div>
@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
                         <Button
                             onClick={() => setIsSubmitted(false)}
                             variant="outline"
-                            className="w-full h-11 bg-zinc-900/50 border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                            className="w-full h-11 bg-[#171717]/50 border-border text-muted-foreground hover:bg-primary/90"
                         >
                             Try another email
                         </Button>
@@ -97,12 +97,12 @@ export function ForgotPasswordForm() {
                     transition={{ delay: 0.1 }}
                     className="space-y-2"
                 >
-                    <Label htmlFor="email" className="text-zinc-300 text-sm font-medium">
+                    <Label htmlFor="email" className="text-muted-foreground text-sm font-medium">
                         Email address
                     </Label>
                     <div className="relative group">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Mail className="h-4 w-4 text-zinc-500 group-focus-within:text-blue-400 transition-colors" />
+                            <Mail className="h-4 w-4 text-muted-foreground group-focus-within:text-blue-400 transition-colors" />
                         </div>
                         <Input
                             id="email"
@@ -111,7 +111,7 @@ export function ForgotPasswordForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="pl-10 h-12 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-500 focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+                            className="pl-10 h-12 bg-[#171717]/50 border-border text-white placeholder:text-muted-foreground focus:border-blue-500 focus:ring-blue-500/20 transition-all"
                         />
                     </div>
                 </motion.div>

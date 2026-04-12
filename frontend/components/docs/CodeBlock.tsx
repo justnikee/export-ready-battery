@@ -61,7 +61,7 @@ export function CodeBlock({ code, language = 'bash', title, showLineNumbers = fa
                 <button
                     onClick={copyToClipboard}
                     className="absolute top-3 right-3 p-2 rounded-lg bg-white/5 border border-white/10 
-                     opacity-0 group-hover:opacity-100 transition-all hover:bg-white/10"
+                     opacity-0 group-hover:opacity-100 transition-all hover:bg-card/10"
                     aria-label="Copy code"
                 >
                     {copied ? (

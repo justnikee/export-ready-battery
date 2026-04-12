@@ -218,18 +218,18 @@ export default function DeveloperPage() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6">
+        <div className="min-h-screen bg-background p-6">
             <div className="w-full mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Developer Settings</h1>
-                        <p className="text-sm text-zinc-500 mt-1">Manage API keys for external integrations</p>
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Developer Settings</h1>
+                        <p className="text-sm text-muted-foreground mt-1">Manage API keys for external integrations</p>
                         <a
                             href="/docs"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <BookOpen className="h-4 w-4" />
                             API Documentation
@@ -242,51 +242,51 @@ export default function DeveloperPage() {
                                 Generate API Key
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-white border-zinc-200 sm:max-w-md">
+                        <DialogContent className="bg-card border-border sm:max-w-md">
                             <DialogHeader>
-                                <DialogTitle className="text-zinc-900">Generate API Key</DialogTitle>
-                                <DialogDescription className="text-zinc-500">
+                                <DialogTitle className="text-foreground">Generate API Key</DialogTitle>
+                                <DialogDescription className="text-muted-foreground">
                                     Create a new API key for ERP integrations
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-zinc-700">Name</Label>
+                                    <Label htmlFor="name" className="text-foreground">Name</Label>
                                     <Input
                                         id="name"
                                         placeholder="e.g., SAP Integration"
                                         value={keyName}
                                         onChange={(e) => setKeyName(e.target.value)}
-                                        className="bg-white border-zinc-200 text-zinc-900"
+                                        className="bg-background border-border text-foreground"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-zinc-700">Scope</Label>
+                                    <Label className="text-foreground">Scope</Label>
                                     <Select value={keyScope} onValueChange={setKeyScope}>
-                                        <SelectTrigger className="bg-white border-zinc-200 text-zinc-900">
+                                        <SelectTrigger className="bg-background border-border text-foreground">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-white border-zinc-200">
-                                            <SelectItem value="read" className="text-zinc-900 focus:bg-zinc-100 focus:text-zinc-900">
+                                        <SelectContent className="bg-popover border-border">
+                                            <SelectItem value="read" className="text-foreground focus:bg-accent focus:text-accent-foreground">
                                                 Read Only - Can only fetch data
                                             </SelectItem>
-                                            <SelectItem value="write" className="text-zinc-900 focus:bg-zinc-100 focus:text-zinc-900">
+                                            <SelectItem value="write" className="text-foreground focus:bg-accent focus:text-accent-foreground">
                                                 Read & Write - Full access
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-zinc-700">Rate Limit Tier</Label>
+                                    <Label className="text-foreground">Rate Limit Tier</Label>
                                     <Select value={keyTier} onValueChange={setKeyTier}>
-                                        <SelectTrigger className="bg-white border-zinc-200 text-zinc-900">
+                                        <SelectTrigger className="bg-background border-border text-foreground">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-white border-zinc-200">
-                                            <SelectItem value="starter" className="text-zinc-900 focus:bg-zinc-100 focus:text-zinc-900">
+                                        <SelectContent className="bg-popover border-border">
+                                            <SelectItem value="starter" className="text-foreground focus:bg-accent focus:text-accent-foreground">
                                                 Starter - 100 req/hour
                                             </SelectItem>
-                                            <SelectItem value="production" className="text-zinc-900 focus:bg-zinc-100 focus:text-zinc-900">
+                                            <SelectItem value="production" className="text-foreground focus:bg-accent focus:text-accent-foreground">
                                                 Production - 1,000 reads / 500 writes per hour
                                             </SelectItem>
                                         </SelectContent>
@@ -297,7 +297,7 @@ export default function DeveloperPage() {
                                 <Button
                                     variant="ghost"
                                     onClick={() => setShowCreateDialog(false)}
-                                    className="text-zinc-500"
+                                    className="text-muted-foreground"
                                 >
                                     Cancel
                                 </Button>
@@ -322,22 +322,22 @@ export default function DeveloperPage() {
 
                 {/* Key Reveal Dialog */}
                 <Dialog open={showKeyReveal} onOpenChange={setShowKeyReveal}>
-                    <DialogContent className="bg-white border-zinc-200 sm:max-w-lg">
+                    <DialogContent className="bg-card border-border sm:max-w-lg">
                         <DialogHeader>
-                            <DialogTitle className="text-zinc-900 flex items-center gap-2">
+                            <DialogTitle className="text-foreground flex items-center gap-2">
                                 <Key className="w-5 h-5 text-green-600" />
                                 API Key Created
                             </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                                <p className="text-amber-700 text-sm">
+                            <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                <p className="text-amber-500 text-sm">
                                     Copy this key now. It will only be shown once!
                                 </p>
                             </div>
                             <div className="relative">
-                                <code className="block w-full p-4 bg-zinc-100 border border-zinc-200 rounded-lg font-mono text-sm text-green-700 break-all">
+                                <code className="block w-full p-4 bg-muted border border-border rounded-lg font-mono text-sm text-green-700 break-all">
                                     {newKeyData?.key}
                                 </code>
                                 <Button
@@ -349,7 +349,7 @@ export default function DeveloperPage() {
                                     {copied ? (
                                         <Check className="w-4 h-4 text-green-600" />
                                     ) : (
-                                        <Copy className="w-4 h-4 text-zinc-500" />
+                                        <Copy className="w-4 h-4 text-muted-foreground" />
                                     )}
                                 </Button>
                             </div>
@@ -363,23 +363,23 @@ export default function DeveloperPage() {
                 </Dialog>
 
                 {/* API Keys List */}
-                <Card className="bg-white border-zinc-200">
+                <Card className="bg-popover border-border">
                     <CardHeader>
-                        <CardTitle className="text-zinc-900 flex items-center gap-2">
+                        <CardTitle className="text-foreground flex items-center gap-2">
                             <Key className="w-5 h-5" />
                             API Keys
                         </CardTitle>
-                        <CardDescription className="text-zinc-500">
+                        <CardDescription className="text-muted-foreground">
                             Your API keys for external integrations
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : apiKeys.length === 0 ? (
-                            <div className="text-center py-8 text-zinc-500">
+                            <div className="text-center py-8 text-muted-foreground">
                                 <Key className="w-12 h-12 mx-auto mb-3 opacity-50" />
                                 <p>No API keys yet</p>
                                 <p className="text-sm mt-1">Create one to integrate with your ERP</p>
@@ -389,25 +389,25 @@ export default function DeveloperPage() {
                                 {apiKeys.map((key) => (
                                     <div
                                         key={key.id}
-                                        className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-lg"
+                                        className="flex items-center justify-between p-4 bg-muted border border-border rounded-lg"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-medium text-zinc-900">{key.name}</span>
+                                                <span className="font-medium text-foreground">{key.name}</span>
                                                 <Badge
                                                     variant={key.scope === "write" ? "default" : "secondary"}
-                                                    className={key.scope === "write" ? "bg-teal-600 text-white" : "bg-zinc-200 text-zinc-700"}
+                                                    className={key.scope === "write" ? "bg-teal-600 text-white" : "bg-muted text-foreground"}
                                                 >
                                                     {key.scope === "write" ? "Read & Write" : "Read Only"}
                                                 </Badge>
-                                                <Badge variant="outline" className="border-zinc-300 text-zinc-600">
+                                                <Badge variant="outline" className="border-border text-muted-foreground">
                                                     {key.rate_limit_tier}
                                                 </Badge>
                                                 {!key.is_active && (
                                                     <Badge variant="destructive">Inactive</Badge>
                                                 )}
                                             </div>
-                                            <div className="mt-1 flex items-center gap-4 text-sm text-zinc-500">
+                                            <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
                                                 <code className="font-mono">{key.key_prefix}</code>
                                                 <span>
                                                     Created {formatDistanceToNow(new Date(key.created_at))} ago
@@ -423,7 +423,7 @@ export default function DeveloperPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setDeleteTarget(key)}
-                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            className="text-red-500 hover:text-red-500 hover:bg-red-500/10"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
@@ -435,12 +435,12 @@ export default function DeveloperPage() {
                 </Card>
 
                 {/* Quick Start */}
-                <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
-                    <div className="px-6 py-4 border-b border-zinc-100">
-                        <h3 className="text-sm font-medium text-zinc-900">Quick Start</h3>
-                        <p className="text-xs text-zinc-500 mt-0.5">Example API request using your key</p>
+                <div className="bg-card border border-border rounded-lg overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border">
+                        <h3 className="text-sm font-medium text-foreground">Quick Start</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Example API request using your key</p>
                     </div>
-                    <div className="p-4 bg-zinc-950 rounded-b-lg">
+                    <div className="p-4 bg-[#0a0a0a] rounded-b-lg">
                         <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap overflow-x-auto">
 {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -450,14 +450,14 @@ export default function DeveloperPage() {
                 </div>
 
                 {/* Device Token Management */}
-                <Card className="bg-white border-zinc-200">
+                <Card className="bg-popover border-border">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle className="text-zinc-900 flex items-center gap-2">
+                            <CardTitle className="text-foreground flex items-center gap-2">
                                 <Cpu className="h-5 w-5" />
                                 Device Tokens
                             </CardTitle>
-                            <CardDescription className="text-zinc-500">
+                            <CardDescription className="text-muted-foreground">
                                 Authenticate BMS devices for telemetry ingestion
                             </CardDescription>
                         </div>
@@ -467,10 +467,10 @@ export default function DeveloperPage() {
                                     <Plus className="w-4 h-4 mr-1" /> New Token
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="bg-white border-zinc-200">
+                            <DialogContent className="bg-popover border-border">
                                 <DialogHeader>
-                                    <DialogTitle className="text-zinc-900">Create Device Token</DialogTitle>
-                                    <DialogDescription className="text-zinc-500">
+                                    <DialogTitle className="text-foreground">Create Device Token</DialogTitle>
+                                    <DialogDescription className="text-muted-foreground">
                                         Generate a token for BMS device telemetry. Scope it to a specific batch for security.
                                     </DialogDescription>
                                 </DialogHeader>
@@ -492,7 +492,7 @@ export default function DeveloperPage() {
                                             value={tokenBatchId}
                                             onChange={(e) => setTokenBatchId(e.target.value)}
                                         />
-                                        <p className="text-xs text-zinc-500">Leave empty to allow telemetry for any passport</p>
+                                        <p className="text-xs text-muted-foreground">Leave empty to allow telemetry for any passport</p>
                                     </div>
                                 </div>
                                 <DialogFooter>
@@ -508,34 +508,34 @@ export default function DeveloperPage() {
                     <CardContent>
                         {loadingTokens ? (
                             <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : deviceTokens.length === 0 ? (
                             <div className="text-center py-8">
-                                <Cpu className="h-10 w-10 text-zinc-300 mx-auto mb-3" />
-                                <p className="text-zinc-500 text-sm">No device tokens yet</p>
-                                <p className="text-zinc-400 text-xs mt-1">Create a token to start sending BMS telemetry data</p>
+                                <Cpu className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-muted-foreground text-sm">No device tokens yet</p>
+                                <p className="text-muted-foreground text-xs mt-1">Create a token to start sending BMS telemetry data</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {deviceTokens.map((token) => (
-                                    <div key={token.id} className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                                    <div key={token.id} className="flex items-center justify-between p-3 bg-muted border border-border rounded-lg">
                                         <div className="flex items-center gap-3">
                                             <Cpu className="h-4 w-4 text-teal-600" />
                                             <div>
-                                                <span className="text-sm font-medium text-zinc-900">{token.name}</span>
+                                                <span className="text-sm font-medium text-foreground">{token.name}</span>
                                                 <div className="flex items-center gap-2 mt-0.5">
                                                     {!token.is_active && <Badge variant="outline" className="text-red-500 border-red-300">Revoked</Badge>}
                                                     {token.batch_id && (
-                                                        <span className="text-xs text-zinc-400">Batch: {token.batch_id.slice(0, 8)}…</span>
+                                                        <span className="text-xs text-muted-foreground">Batch: {token.batch_id.slice(0, 8)}…</span>
                                                     )}
-                                                    <span className="text-xs text-zinc-400">
+                                                    <span className="text-xs text-muted-foreground">
                                                         Created {formatDistanceToNow(new Date(token.created_at), { addSuffix: true })}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-500 hover:bg-red-500/10"
                                             onClick={() => setDeleteTokenTarget(token)}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
@@ -545,8 +545,8 @@ export default function DeveloperPage() {
                         )}
 
                         {/* Sample payload */}
-                        <div className="mt-4 p-3 bg-zinc-900 rounded-lg">
-                            <p className="text-xs text-zinc-400 mb-2">Sample telemetry request:</p>
+                        <div className="mt-4 p-3 bg-[#171717] rounded-lg">
+                            <p className="text-xs text-muted-foreground mb-2">Sample telemetry request:</p>
                             <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre">{`curl -X POST /api/v1/telemetry \\
   -H "Authorization: Bearer <device_token>" \\
   -d '{
@@ -562,23 +562,23 @@ export default function DeveloperPage() {
 
                 {/* Token Reveal Dialog */}
                 <Dialog open={showTokenReveal} onOpenChange={setShowTokenReveal}>
-                    <DialogContent className="bg-white border-zinc-200">
+                    <DialogContent className="bg-popover border-border">
                         <DialogHeader>
-                            <DialogTitle className="text-zinc-900">Device Token Created</DialogTitle>
-                            <DialogDescription className="text-zinc-500">
+                            <DialogTitle className="text-foreground">Device Token Created</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
                                 Flash this token into your BMS firmware. It will not be shown again.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                             <div className="flex items-center gap-2 text-amber-800 text-sm font-medium">
                                 <AlertTriangle className="h-4 w-4" />
                                 Copy this token now — it will only be shown once!
                             </div>
                         </div>
-                        <div className="p-3 bg-zinc-900 rounded-lg flex items-center justify-between">
+                        <div className="p-3 bg-[#171717] rounded-lg flex items-center justify-between">
                             <code className="text-green-400 text-sm break-all">{newTokenRaw}</code>
                             <Button variant="ghost" size="icon" onClick={() => copyToClipboard(newTokenRaw)}
-                                className="text-zinc-400 hover:text-white shrink-0 ml-2">
+                                className="text-muted-foreground hover:text-white shrink-0 ml-2">
                                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </Button>
                         </div>
@@ -587,15 +587,15 @@ export default function DeveloperPage() {
 
                 {/* Delete Token Confirmation */}
                 <AlertDialog open={!!deleteTokenTarget} onOpenChange={() => setDeleteTokenTarget(null)}>
-                    <AlertDialogContent className="bg-white border-zinc-200">
+                    <AlertDialogContent className="bg-popover border-border">
                         <AlertDialogHeader>
-                            <AlertDialogTitle className="text-zinc-900">Revoke Device Token?</AlertDialogTitle>
-                            <AlertDialogDescription className="text-zinc-500">
+                            <AlertDialogTitle className="text-foreground">Revoke Device Token?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground">
                                 This will permanently revoke &quot;{deleteTokenTarget?.name}&quot;. Any devices using this token will stop sending telemetry.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50">Cancel</AlertDialogCancel>
+                            <AlertDialogCancel className="bg-card border-border text-foreground hover:bg-accent">Cancel</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDeleteToken} className="bg-red-600 hover:bg-red-700 text-white">
                                 Revoke Token
                             </AlertDialogAction>
@@ -604,51 +604,51 @@ export default function DeveloperPage() {
                 </AlertDialog>
 
                 {/* External API Documentation Link */}
-                <Card className="bg-white border-zinc-200">
+                <Card className="bg-popover border-border">
                     <CardHeader>
-                        <CardTitle className="text-zinc-900">External API Endpoints</CardTitle>
-                        <CardDescription className="text-zinc-500">
+                        <CardTitle className="text-foreground">External API Endpoints</CardTitle>
+                        <CardDescription className="text-muted-foreground">
                             Use these endpoints with your API key
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid gap-3 text-sm">
-                            <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-zinc-900 font-medium">
+                            <div className="p-3 bg-muted border border-border rounded-lg">
+                                <div className="flex items-center gap-2 text-foreground font-medium">
                                     <Badge className="bg-green-600 text-white">POST</Badge>
-                                    <code className="text-zinc-700">/api/v1/external/batches</code>
+                                    <code className="text-foreground">/api/v1/external/batches</code>
                                     <Badge variant="outline" className="border-teal-500 text-teal-600">write</Badge>
                                 </div>
-                                <p className="text-zinc-500 mt-1">Create a new batch</p>
+                                <p className="text-muted-foreground mt-1">Create a new batch</p>
                             </div>
-                            <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-zinc-900 font-medium">
+                            <div className="p-3 bg-muted border border-border rounded-lg">
+                                <div className="flex items-center gap-2 text-foreground font-medium">
                                     <Badge className="bg-green-600 text-white">POST</Badge>
-                                    <code className="text-zinc-700">/api/v1/external/batches/&#123;id&#125;/passports</code>
+                                    <code className="text-foreground">/api/v1/external/batches/&#123;id&#125;/passports</code>
                                     <Badge variant="outline" className="border-teal-500 text-teal-600">write</Badge>
                                 </div>
-                                <p className="text-zinc-500 mt-1">Add passports via JSON (up to 500 per request)</p>
+                                <p className="text-muted-foreground mt-1">Add passports via JSON (up to 500 per request)</p>
                             </div>
-                            <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-zinc-900 font-medium">
+                            <div className="p-3 bg-muted border border-border rounded-lg">
+                                <div className="flex items-center gap-2 text-foreground font-medium">
                                     <Badge className="bg-blue-600 text-white">GET</Badge>
-                                    <code className="text-zinc-700">/api/v1/external/batches/&#123;id&#125;/labels</code>
-                                    <Badge variant="outline" className="border-zinc-400 text-zinc-600">read</Badge>
+                                    <code className="text-foreground">/api/v1/external/batches/&#123;id&#125;/labels</code>
+                                    <Badge variant="outline" className="border-border text-muted-foreground">read</Badge>
                                 </div>
-                                <p className="text-zinc-500 mt-1">Download PDF labels for printing</p>
+                                <p className="text-muted-foreground mt-1">Download PDF labels for printing</p>
                             </div>
-                            <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-zinc-900 font-medium">
+                            <div className="p-3 bg-muted border border-border rounded-lg">
+                                <div className="flex items-center gap-2 text-foreground font-medium">
                                     <Badge className="bg-blue-600 text-white">GET</Badge>
-                                    <code className="text-zinc-700">/api/v1/external/passports/&#123;uuid&#125;</code>
-                                    <Badge variant="outline" className="border-zinc-400 text-zinc-600">read</Badge>
+                                    <code className="text-foreground">/api/v1/external/passports/&#123;uuid&#125;</code>
+                                    <Badge variant="outline" className="border-border text-muted-foreground">read</Badge>
                                 </div>
-                                <p className="text-zinc-500 mt-1">Get passport details</p>
+                                <p className="text-muted-foreground mt-1">Get passport details</p>
                             </div>
                         </div>
                         <div className="pt-2">
-                            <p className="text-zinc-500 text-sm">
-                                Include your API key in the <code className="text-zinc-700 bg-zinc-100 px-1 rounded">X-API-Key</code> header.
+                            <p className="text-muted-foreground text-sm">
+                                Include your API key in the <code className="text-foreground bg-muted px-1 rounded">X-API-Key</code> header.
                             </p>
                         </div>
                     </CardContent>
@@ -656,16 +656,16 @@ export default function DeveloperPage() {
 
                 {/* Delete Confirmation */}
                 <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-                    <AlertDialogContent className="bg-white border-zinc-200">
+                    <AlertDialogContent className="bg-popover border-border">
                         <AlertDialogHeader>
-                            <AlertDialogTitle className="text-zinc-900">Delete API Key?</AlertDialogTitle>
-                            <AlertDialogDescription className="text-zinc-500">
+                            <AlertDialogTitle className="text-foreground">Delete API Key?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-muted-foreground">
                                 This will permanently revoke the key &quot;{deleteTarget?.name}&quot;. Any integrations
                                 using this key will stop working.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50">
+                            <AlertDialogCancel className="bg-card border-border text-foreground hover:bg-accent">
                                 Cancel
                             </AlertDialogCancel>
                             <AlertDialogAction

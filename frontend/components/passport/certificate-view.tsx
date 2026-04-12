@@ -16,10 +16,10 @@ function getBaseUrl() {
 
 function DataRow({ label, value, mono }: { label: string; value: string | number | null | undefined; mono?: boolean }) {
     return (
-        <div className="flex items-baseline justify-between py-2 border-b border-zinc-50 last:border-0 gap-4">
-            <span className="text-zinc-500 text-sm whitespace-nowrap">{label}</span>
-            <span className={`text-zinc-900 text-sm text-right ${mono ? 'font-mono' : ''}`}>
-                {value ?? <span className="text-zinc-300">—</span>}
+        <div className="flex items-baseline justify-between py-2 border-b border-border last:border-0 gap-4">
+            <span className="text-muted-foreground text-sm whitespace-nowrap">{label}</span>
+            <span className={`text-foreground text-sm text-right ${mono ? 'font-mono' : ''}`}>
+                {value ?? <span className="text-muted-foreground">—</span>}
             </span>
         </div>
     )
@@ -28,26 +28,26 @@ function DataRow({ label, value, mono }: { label: string; value: string | number
 function SoHGauge({ soh }: { soh: number }) {
     const clampedSoh = Math.max(0, Math.min(100, soh))
     const thresholdPct = 80
-    const color = clampedSoh >= thresholdPct ? "text-emerald-600" : clampedSoh >= 60 ? "text-amber-500" : "text-red-500"
-    const bgColor = clampedSoh >= thresholdPct ? "bg-emerald-500" : clampedSoh >= 60 ? "bg-amber-500" : "bg-red-500"
+    const color = clampedSoh >= thresholdPct ? "text-emerald-500" : clampedSoh >= 60 ? "text-amber-500" : "text-red-500"
+    const bgColor = clampedSoh >= thresholdPct ? "bg-emerald-500/100" : clampedSoh >= 60 ? "bg-amber-500/100" : "bg-red-500/100"
     const label = clampedSoh >= thresholdPct ? "Healthy" : clampedSoh >= 60 ? "Degraded" : "Critical"
 
     return (
-        <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
+        <div className="flex items-center gap-4 p-3 bg-background rounded-lg">
             <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-zinc-500 font-medium">State of Health</span>
+                    <span className="text-xs text-muted-foreground font-medium">State of Health</span>
                     <span className={`text-sm font-bold ${color}`}>{clampedSoh.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-zinc-200 rounded-full h-2.5 relative">
+                <div className="w-full bg-muted rounded-full h-2.5 relative">
                     <div className={`h-2.5 rounded-full ${bgColor} transition-all duration-500`} style={{ width: `${clampedSoh}%` }} />
                     {/* 80% threshold marker */}
-                    <div className="absolute top-0 h-2.5 w-0.5 bg-zinc-400" style={{ left: `${thresholdPct}%` }} title="80% second-life threshold" />
+                    <div className="absolute top-0 h-2.5 w-0.5 bg-muted-foreground" style={{ left: `${thresholdPct}%` }} title="80% second-life threshold" />
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                    <span className="text-[10px] text-zinc-400">0%</span>
+                    <span className="text-[10px] text-muted-foreground">0%</span>
                     <span className={`text-[10px] ${color} font-medium`}>{label}</span>
-                    <span className="text-[10px] text-zinc-400">100%</span>
+                    <span className="text-[10px] text-muted-foreground">100%</span>
                 </div>
             </div>
         </div>
@@ -202,7 +202,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
     
     // Static Tailwind class map to avoid dynamic string interpolation
     const statusStyleMap: Record<string, { container: string; dot: string }> = {
-        slate: { container: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-400" },
+        slate: { container: "bg-muted-foreground/20 text-muted-foreground border-border/30", dot: "bg-muted-foreground" },
         emerald: { container: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
         amber: { container: "bg-amber-500/20 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
         purple: { container: "bg-purple-500/20 text-purple-400 border-purple-500/30", dot: "bg-purple-400" },
@@ -235,11 +235,11 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
         : null
 
     return (
-        <div className="divide-y divide-zinc-200">
+        <div className="divide-y divide-border">
             {/* ═══════════════════════════════════════════════════════════════════
                  BPAN HEADER
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="p-6 md:p-8 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white">
+            <div className="p-6 md:p-8 bg-gradient-to-br from-[#171717] via-[#262626] to-[#171717] text-white">
                 <div className="flex items-start justify-between mb-6">
                     <div>
                         <p className="text-emerald-400 text-xs font-bold tracking-wider uppercase mb-1">
@@ -254,7 +254,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                     </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-400">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 text-emerald-400 text-xs font-medium">
                         {isBattery ? '🔋' : '📦'} {productType}
                     </span>
@@ -274,17 +274,17 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-white/10">
-                    <p className="text-zinc-500 text-xs">{t("bpan_badge")}</p>
+                    <p className="text-muted-foreground text-xs">{t("bpan_badge")}</p>
                 </div>
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════
                  PRODUCT IDENTITY + SPECS
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
                 <div className="p-6 md:p-8">
-                    <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                        <Barcode className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                        <Barcode className="w-4 h-4 text-muted-foreground" />
                         {t("section_product")}
                     </h3>
 
@@ -298,15 +298,15 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                     {/* Batch Window */}
                     {startDate && (
-                        <div className="mt-4 pt-4 border-t border-zinc-100">
-                            <p className="text-zinc-600 text-xs uppercase tracking-wide mb-2">{t("label_batch_window")}</p>
+                        <div className="mt-4 pt-4 border-t border-border">
+                            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">{t("label_batch_window")}</p>
                             <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="w-4 h-4 text-zinc-400" />
-                                <span className="text-zinc-700 font-mono text-xs">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-foreground font-mono text-xs">
                                     {startDate.toLocaleDateString('en-GB')}
                                 </span>
-                                <span className="text-zinc-300">→</span>
-                                <span className="text-zinc-700 font-mono text-xs">
+                                <span className="text-muted-foreground">→</span>
+                                <span className="text-foreground font-mono text-xs">
                                     {endDate ? endDate.toLocaleDateString('en-GB') : t("label_ongoing")}
                                 </span>
                             </div>
@@ -316,8 +316,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                 {/* Technical Specifications */}
                 <div className="p-6 md:p-8">
-                    <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-muted-foreground" />
                         {t("section_specs")}
                     </h3>
 
@@ -336,8 +336,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
             ═══════════════════════════════════════════════════════════════════ */}
             {crm && (
                 <div className="p-6 md:p-8">
-                    <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                        <FlaskConical className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                        <FlaskConical className="w-4 h-4 text-muted-foreground" />
                         {t("section_materials")}
                     </h3>
 
@@ -350,11 +350,11 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                             { key: "label_manganese", pct: crm.manganese_pct },
                             { key: "label_lead", pct: crm.lead_pct, recycled: crm.recycled_lead_pct },
                         ].filter(m => m.pct != null && m.pct > 0).map(m => (
-                            <div key={m.key} className="bg-zinc-50 rounded-lg p-3 border border-zinc-100">
-                                <p className="text-zinc-500 text-xs mb-1">{t(m.key)}</p>
-                                <p className="text-zinc-900 font-semibold">{m.pct}%</p>
+                            <div key={m.key} className="bg-background rounded-lg p-3 border border-border">
+                                <p className="text-muted-foreground text-xs mb-1">{t(m.key)}</p>
+                                <p className="text-foreground font-semibold">{m.pct}%</p>
                                 {m.recycled != null && m.recycled > 0 && (
-                                    <p className="text-emerald-600 text-xs mt-0.5">
+                                    <p className="text-emerald-500 text-xs mt-0.5">
                                         ♻ {m.recycled}% {t("label_recycled_content")}
                                     </p>
                                 )}
@@ -367,10 +367,10 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
             {/* ═══════════════════════════════════════════════════════════════════
                  REGULATORY COMPLIANCE
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
                 <div className="p-6 md:p-8">
-                    <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-muted-foreground" />
                         {t("section_compliance")}
                     </h3>
 
@@ -386,9 +386,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                     </div>
 
                     {/* Document Downloads */}
-                    <div className="mt-4 pt-4 border-t border-zinc-100">
-                        <p className="text-zinc-600 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                            <FileText className="w-3.5 h-3.5 text-zinc-400" /> {t("section_documents")}
+                    <div className="mt-4 pt-4 border-t border-border">
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5 text-muted-foreground" /> {t("section_documents")}
                         </p>
                         <div className="space-y-2">
                             {tenant.bis_certificate_path && tenant.bis_certificate_path.trim() ? (
@@ -396,13 +396,13 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                                     href={`${getBaseUrl()}${tenant.bis_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-zinc-50 hover:bg-zinc-100 rounded-lg border border-zinc-200 text-sm text-zinc-700 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
                                 >
                                     <Download className="w-4 h-4 text-blue-500" />
                                     {t("doc_bis")}
                                 </a>
                             ) : (
-                                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-lg border border-zinc-100 text-sm text-zinc-400">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
                                     <FileText className="w-4 h-4" />
                                     {t("doc_bis_missing")}
                                 </div>
@@ -412,13 +412,13 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                                     href={`${getBaseUrl()}${tenant.epr_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-zinc-50 hover:bg-zinc-100 rounded-lg border border-zinc-200 text-sm text-zinc-700 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
                                 >
                                     <Download className="w-4 h-4 text-emerald-500" />
                                     {t("doc_epr")}
                                 </a>
                             ) : (
-                                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-50 rounded-lg border border-zinc-100 text-sm text-zinc-400">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
                                     <FileText className="w-4 h-4" />
                                     {t("doc_epr_missing")}
                                 </div>
@@ -428,7 +428,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                                     href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-zinc-50 hover:bg-zinc-100 rounded-lg border border-zinc-200 text-sm text-zinc-700 transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
                                 >
                                     <Download className="w-4 h-4 text-amber-500" />
                                     {t("doc_pli")}
@@ -439,9 +439,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                     {/* Import details */}
                     {isIndia && isImported && (
-                        <div className="mt-4 pt-4 border-t border-zinc-100">
-                            <p className="text-zinc-600 text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                                <Truck className="w-3.5 h-3.5 text-zinc-400" /> {t("section_import")}
+                        <div className="mt-4 pt-4 border-t border-border">
+                            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                                <Truck className="w-3.5 h-3.5 text-muted-foreground" /> {t("section_import")}
                             </p>
                             <div className="space-y-0">
                                 <DataRow label={t("label_bill_of_entry")} value={billOfEntryNo} mono />
@@ -455,40 +455,40 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                 {/* Manufacturer */}
                 <div className="p-6 md:p-8">
-                    <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
                         {t("section_manufacturer")}
                     </h3>
 
                     <div className="space-y-4">
                         <div>
-                            <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">{t("label_producer")}</p>
-                            <p className="text-zinc-900 font-medium">{manufacturerName || t("label_missing")}</p>
+                            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">{t("label_producer")}</p>
+                            <p className="text-foreground font-medium">{manufacturerName || t("label_missing")}</p>
                         </div>
 
                         {/* Contact Section - Always visible */}
-                        <div className="p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-                            <p className="text-zinc-600 text-xs uppercase tracking-wide mb-3 font-medium">{t("label_contact")}</p>
+                        <div className="p-4 bg-background rounded-lg border border-border">
+                            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 font-medium">{t("label_contact")}</p>
 
                             <div className="space-y-3">
                                 <div className="flex items-start gap-2">
-                                    <MapPin className="w-4 h-4 text-zinc-400 mt-0.5 shrink-0" />
+                                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-zinc-500 text-xs">{t("label_office")}</p>
-                                        <p className="text-zinc-700 text-sm">{manufacturerAddress || t("label_missing")}</p>
+                                        <p className="text-muted-foreground text-xs">{t("label_office")}</p>
+                                        <p className="text-foreground text-sm">{manufacturerAddress || t("label_missing")}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-2">
-                                    <Mail className="w-4 h-4 text-zinc-400 mt-0.5 shrink-0" />
+                                    <Mail className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                                     <div>
-                                        <p className="text-zinc-500 text-xs">{t("label_consumer_care")}</p>
+                                        <p className="text-muted-foreground text-xs">{t("label_consumer_care")}</p>
                                         {manufacturerEmail ? (
-                                            <a href={`mailto:${manufacturerEmail}`} className="text-blue-600 text-sm hover:underline">
+                                            <a href={`mailto:${manufacturerEmail}`} className="text-blue-500 text-sm hover:underline">
                                                 {manufacturerEmail}
                                             </a>
                                         ) : (
-                                            <span className="text-zinc-700 text-sm">{t("label_missing")}</span>
+                                            <span className="text-foreground text-sm">{t("label_missing")}</span>
                                         )}
                                     </div>
                                 </div>
@@ -498,10 +498,10 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                         {/* Certifications */}
                         {certifications.length > 0 && (
                             <div>
-                                <p className="text-zinc-500 text-xs uppercase tracking-wide mb-2">{t("label_certifications")}</p>
+                                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">{t("label_certifications")}</p>
                                 <div className="flex flex-wrap gap-2">
                                     {certifications.map((cert: string, idx: number) => (
-                                        <span key={idx} className="px-2 py-1 bg-zinc-100 text-zinc-700 text-xs rounded border border-zinc-200">
+                                        <span key={idx} className="px-2 py-1 bg-muted text-foreground text-xs rounded border border-border">
                                             {cert}
                                         </span>
                                     ))}
@@ -511,8 +511,8 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                         {/* EU Representative */}
                         {showEURepresentative && (
-                            <div className="pt-3 border-t border-zinc-100">
-                                <p className="text-zinc-500 text-xs uppercase tracking-wide mb-2">{t("label_eu_rep")}</p>
+                            <div className="pt-3 border-t border-border">
+                                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">{t("label_eu_rep")}</p>
                                 <div className="space-y-0">
                                     <DataRow label={t("label_name")} value={euRepresentativeName} />
                                     <DataRow label={t("label_address")} value={euRepresentativeAddress} />
@@ -525,9 +525,9 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
             </div>
 
             {/* Lifecycle & Ownership */}
-            <div className="p-6 md:p-8 border-b border-zinc-200">
-                <h3 className="text-zinc-900 font-semibold mb-4 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-zinc-500" />
+            <div className="p-6 md:p-8 border-b border-border">
+                <h3 className="text-foreground font-semibold mb-4 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-muted-foreground" />
                     {t("section_lifecycle")}
                 </h3>
 
@@ -545,18 +545,18 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                 {/* Expanded Repair History (EU Art 14) */}
                 {repairCount > 0 && passport.repair_events && (
-                    <div className="mt-4 pt-4 border-t border-zinc-100">
-                        <h4 className="text-zinc-700 text-sm font-medium mb-2 flex items-center gap-1.5">
-                            <Wrench className="w-3.5 h-3.5 text-zinc-400" />
+                    <div className="mt-4 pt-4 border-t border-border">
+                        <h4 className="text-foreground text-sm font-medium mb-2 flex items-center gap-1.5">
+                            <Wrench className="w-3.5 h-3.5 text-muted-foreground" />
                             Repair History
                         </h4>
                         <div className="space-y-2">
                             {passport.repair_events.map((evt, i) => (
-                                <div key={i} className="flex items-start gap-3 p-2 bg-zinc-50 rounded text-sm">
-                                    <span className="text-zinc-400 text-xs whitespace-nowrap mt-0.5">
+                                <div key={i} className="flex items-start gap-3 p-2 bg-background rounded text-sm">
+                                    <span className="text-muted-foreground text-xs whitespace-nowrap mt-0.5">
                                         {evt.timestamp ? new Date(evt.timestamp).toLocaleDateString('en-GB') : '—'}
                                     </span>
-                                    <span className="text-zinc-700">{evt.description || 'Repair performed'}</span>
+                                    <span className="text-foreground">{evt.description || 'Repair performed'}</span>
                                 </div>
                             ))}
                         </div>
@@ -565,18 +565,18 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
 
                 {/* Expanded Replacement History */}
                 {replacementCount > 0 && passport.replacement_events && (
-                    <div className="mt-4 pt-4 border-t border-zinc-100">
-                        <h4 className="text-zinc-700 text-sm font-medium mb-2 flex items-center gap-1.5">
-                            <Replace className="w-3.5 h-3.5 text-zinc-400" />
+                    <div className="mt-4 pt-4 border-t border-border">
+                        <h4 className="text-foreground text-sm font-medium mb-2 flex items-center gap-1.5">
+                            <Replace className="w-3.5 h-3.5 text-muted-foreground" />
                             Replacement History
                         </h4>
                         <div className="space-y-2">
                             {passport.replacement_events.map((evt, i) => (
-                                <div key={i} className="flex items-start gap-3 p-2 bg-zinc-50 rounded text-sm">
-                                    <span className="text-zinc-400 text-xs whitespace-nowrap mt-0.5">
+                                <div key={i} className="flex items-start gap-3 p-2 bg-background rounded text-sm">
+                                    <span className="text-muted-foreground text-xs whitespace-nowrap mt-0.5">
                                         {evt.timestamp ? new Date(evt.timestamp).toLocaleDateString('en-GB') : '—'}
                                     </span>
-                                    <span className="text-zinc-700">{evt.description || 'Component replaced'}</span>
+                                    <span className="text-foreground">{evt.description || 'Component replaced'}</span>
                                 </div>
                             ))}
                         </div>
@@ -584,7 +584,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
                 )}
 
                 {isIndia && (
-                    <div className="mt-4 pt-4 border-t border-zinc-100">
+                    <div className="mt-4 pt-4 border-t border-border">
                         <DataRow label={t("label_recycling_status")} value={passport.recycling_status} />
                         <DataRow label={t("label_recycler_epr")} value={passport.recycler_epr_id} mono />
                         <DataRow label={t("label_recycling_date")} value={recyclingDate ? recyclingDate.toLocaleDateString('en-GB') : null} />
@@ -595,25 +595,25 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
             {/* ═══════════════════════════════════════════════════════════════════
                  SAFETY & DISPOSAL
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 md:p-8 bg-zinc-50 border-t border-zinc-200">
-                <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 md:p-8 bg-background border-t border-border">
+                <div className="bg-red-500/10 rounded-lg p-4 border border-red-100">
                     <div className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div>
-                            <h4 className="text-red-700 font-medium mb-1">{t("safety_title")}</h4>
-                            <p className="text-red-600/80 text-sm">
+                            <h4 className="text-red-500 font-medium mb-1">{t("safety_title")}</h4>
+                            <p className="text-red-500/80 text-sm">
                                 {t("safety_text")}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                <div className="bg-emerald-500/10 rounded-lg p-4 border border-emerald-100">
                     <div className="flex items-start gap-3">
-                        <Recycle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <Recycle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                         <div>
-                            <h4 className="text-emerald-700 font-medium mb-1">{t("recycling_title")}</h4>
-                            <p className="text-emerald-600/80 text-sm">
+                            <h4 className="text-emerald-500 font-medium mb-1">{t("recycling_title")}</h4>
+                            <p className="text-emerald-500/80 text-sm">
                                 {isIndia ? t("recycling_text_india") : t("recycling_text_global")}
                             </p>
                         </div>
@@ -624,11 +624,11 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
             {/* ═══════════════════════════════════════════════════════════════════
                  FOOTER
             ═══════════════════════════════════════════════════════════════════ */}
-            <div className="text-center py-6 border-t border-zinc-200 bg-white">
-                <p className="text-zinc-500 text-sm">
-                    {t("footer_issued")} <span className="text-zinc-700 font-medium">ExportReady™</span> {t("footer_registry")}
+            <div className="text-center py-6 border-t border-border bg-card">
+                <p className="text-muted-foreground text-sm">
+                    {t("footer_issued")} <span className="text-foreground font-medium">ExportReady™</span> {t("footer_registry")}
                 </p>
-                <p className="text-zinc-400 text-xs mt-1">
+                <p className="text-muted-foreground text-xs mt-1">
                     {t("footer_verify")}
                 </p>
             </div>

@@ -7,7 +7,7 @@ export default function BlogLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="dark font-sans bg-zinc-950 text-zinc-50 min-h-screen flex flex-col">
+        <div className="dark font-sans bg-[#0a0a0a] text-foreground min-h-screen flex flex-col">
             <PublicHeader />
             <main className="flex-1">
                 {children}

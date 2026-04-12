@@ -69,13 +69,13 @@ function CallbackHandler() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+            <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center space-y-4">
                     <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                        <span className="text-red-600 text-xl">!</span>
+                        <span className="text-red-500 text-xl">!</span>
                     </div>
                     <h2 className="text-lg font-semibold text-[#0B1F3B]">Authentication Failed</h2>
-                    <p className="text-sm text-zinc-500 max-w-sm">{error}</p>
+                    <p className="text-sm text-muted-foreground max-w-sm">{error}</p>
                     <a
                         href="/login"
                         className="inline-block mt-2 px-6 py-2 bg-[#0B1F3B] text-white text-sm font-medium hover:bg-[#0B1F3B]/90 transition-colors"
@@ -88,10 +88,10 @@ function CallbackHandler() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="text-center space-y-4">
                 <Loader2 className="h-8 w-8 animate-spin text-[#1F7A5F] mx-auto" />
-                <p className="text-sm text-zinc-500">Completing sign-in...</p>
+                <p className="text-sm text-muted-foreground">Completing sign-in...</p>
             </div>
         </div>
     )
@@ -101,7 +101,7 @@ export default function AuthCallbackPage() {
     return (
         <Suspense
             fallback={
-                <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+                <div className="min-h-screen flex items-center justify-center bg-background">
                     <Loader2 className="h-8 w-8 animate-spin text-[#1F7A5F]" />
                 </div>
             }

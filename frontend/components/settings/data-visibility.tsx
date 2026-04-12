@@ -30,40 +30,40 @@ export function DataVisibility({ dataVisibility, onChange }: DataVisibilityProps
     };
 
     return (
-        <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden mt-6">
-            <div className="border-b border-zinc-100 px-6 py-4">
+        <div className="bg-card border border-border rounded-lg overflow-hidden mt-6">
+            <div className="border-b border-border px-6 py-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
-                        <Eye className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-100">
+                        <Eye className="h-5 w-5 text-blue-500" />
                     </div>
                     <div>
-                        <h3 className="text-base font-medium text-zinc-900">Data Visibility Configuration</h3>
-                        <p className="text-xs text-zinc-500">Control who can access different categories of data on your Battery Passports</p>
+                        <h3 className="text-base font-medium text-foreground">Data Visibility Configuration</h3>
+                        <p className="text-xs text-muted-foreground">Control who can access different categories of data on your Battery Passports</p>
                     </div>
                 </div>
             </div>
 
             <div className="p-0">
-                <table className="w-full text-sm text-left text-zinc-500">
-                    <thead className="text-xs text-zinc-700 uppercase bg-zinc-50 border-b border-zinc-100">
+                <table className="w-full text-sm text-left text-muted-foreground">
+                    <thead className="text-xs text-foreground uppercase bg-background border-b border-border">
                         <tr>
                             <th scope="col" className="px-6 py-3 font-medium">Data Category</th>
                             <th scope="col" className="px-6 py-3 font-medium">Visibility Level</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-border">
                         {FIELDS_TO_CONFIGURE.map(field => {
                             const currentLevel = dataVisibility?.[field.key] || "PARTNER";
 
                             return (
-                                <tr key={field.key} className="bg-white hover:bg-zinc-50/50">
+                                <tr key={field.key} className="bg-card hover:bg-background/50">
                                     <td className="px-6 py-4">
-                                        <div className="font-medium text-zinc-900">{field.label}</div>
-                                        <div className="text-xs text-zinc-500 mt-1">{field.desc}</div>
+                                        <div className="font-medium text-foreground">{field.label}</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{field.desc}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <select
-                                            className="bg-white border text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 border-zinc-200 text-zinc-700 shadow-sm"
+                                            className="bg-card border text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 border-border text-foreground shadow-none"
                                             value={currentLevel}
                                             onChange={(e) => handleLevelChange(field.key, e.target.value)}
                                         >
@@ -80,8 +80,8 @@ export function DataVisibility({ dataVisibility, onChange }: DataVisibilityProps
                     </tbody>
                 </table>
             </div>
-            <div className="px-6 py-3 bg-zinc-50/50 border-t border-zinc-100">
-                <p className="text-xs text-zinc-500">
+            <div className="px-6 py-3 bg-background/50 border-t border-border">
+                <p className="text-xs text-muted-foreground">
                     <strong>Note:</strong> Public data is visible to anyone scanning the passport QR code. Partner data requires a valid Data Access Token.
                 </p>
             </div>

@@ -5,27 +5,41 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        // Default — dark authority, 6px radius
+        default: "bg-primary text-primary-foreground rounded-md hover:bg-primary/90",
         destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+          "bg-destructive text-white rounded-md hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+        // Outline — border-based, no hardcoded light colors
         outline:
-          "border border-zinc-200 bg-white text-zinc-700 shadow-xs hover:bg-zinc-50 hover:text-zinc-900",
+          "border border-border bg-card text-foreground rounded-md hover:bg-accent hover:text-accent-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground",
-        link: "text-emerald-600 underline-offset-4 hover:underline hover:text-emerald-700",
+          "rounded-md hover:bg-accent hover:text-accent-foreground",
+        // Link — brand color
+        link: "text-[var(--brand-link)] underline-offset-4 hover:underline",
+        // Accent — brand green CTA (use sparingly per design.md)
         accent:
-          "bg-emerald-600 text-white shadow-xs hover:bg-emerald-700",
+          "bg-[var(--brand)] text-[var(--brand-foreground)] rounded-md hover:opacity-90",
+        // Pill — primary CTA (design.md: 9999px, bold identity marker)
+        pill:
+          "bg-primary text-primary-foreground rounded-full border border-primary/20 hover:bg-primary/90",
+        // Pill outline — secondary pill CTA
+        "pill-outline":
+          "border border-border bg-transparent text-foreground rounded-full hover:bg-accent",
+        // Pill brand — emerald pill
+        "pill-brand":
+          "bg-[var(--brand)] text-[var(--brand-foreground)] rounded-full hover:opacity-90",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        sm: "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
+        lg: "h-10 px-8 has-[>svg]:px-6",
+        xl: "h-12 px-10 text-base",
         icon: "size-9",
         "icon-sm": "size-8",
         "icon-lg": "size-10",

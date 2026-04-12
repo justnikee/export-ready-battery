@@ -101,7 +101,7 @@ export default function ExportsPage() {
             case 'DUE_DILIGENCE':
                 return <Shield className="w-5 h-5 text-indigo-500" />;
             default:
-                return <FileText className="w-5 h-5 text-zinc-500" />;
+                return <FileText className="w-5 h-5 text-muted-foreground" />;
         }
     };
 
@@ -111,26 +111,26 @@ export default function ExportsPage() {
 
     if (loading && exports.length === 0) {
         return (
-            <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent" />
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 p-6">
+        <div className="min-h-screen bg-background p-6">
             <div className="w-full mx-auto space-y-6">
 
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight">Export History</h1>
-                        <p className="text-sm text-zinc-500 mt-1">View and download your previous exports</p>
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight">Export History</h1>
+                        <p className="text-sm text-muted-foreground mt-1">View and download your previous exports</p>
                     </div>
                     <button
                         onClick={fetchExports}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-md hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -139,51 +139,51 @@ export default function ExportsPage() {
 
                 {/* Empty State */}
                 {exports.length === 0 ? (
-                    <div className="bg-white border border-zinc-200 rounded-lg p-12">
+                    <div className="bg-card border border-border rounded-lg p-12">
                         <div className="flex flex-col items-center justify-center text-center">
-                            <div className="p-4 bg-zinc-100 rounded-full mb-4">
-                                <FileArchive className="w-8 h-8 text-zinc-400" />
+                            <div className="p-4 bg-muted rounded-full mb-4">
+                                <FileArchive className="w-8 h-8 text-muted-foreground" />
                             </div>
-                            <h3 className="text-lg font-medium text-zinc-900 mb-1">No exports yet</h3>
-                            <p className="text-sm text-zinc-500">Exports will appear here when you download large batches</p>
+                            <h3 className="text-lg font-medium text-foreground mb-1">No exports yet</h3>
+                            <p className="text-sm text-muted-foreground">Exports will appear here when you download large batches</p>
                         </div>
                     </div>
                 ) : (
                     /* Data Table */
-                    <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden">
+                    <div className="bg-card border border-border rounded-lg overflow-hidden">
                         <table className="w-full">
-                            <thead className="bg-zinc-50 border-b border-zinc-200">
+                            <thead className="bg-muted border-b border-border">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Type</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Batch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Size</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Requested</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Batch</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Requested</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {exports.map((job) => (
-                                    <tr key={job.id} className="border-b border-zinc-100 hover:bg-zinc-50 transition-colors">
+                                    <tr key={job.id} className="border-b border-border hover:bg-accent transition-colors">
                                         <td className="px-4 py-4">
                                             <div className="flex items-center gap-2">
                                                 {getJobIcon(job.job_type)}
-                                                <span className="text-sm font-medium text-zinc-900">{formatJobType(job.job_type)}</span>
+                                                <span className="text-sm font-medium text-foreground">{formatJobType(job.job_type)}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
                                             <div>
-                                                <div className="text-sm font-medium text-zinc-900">{job.batch_name}</div>
-                                                <div className="text-xs text-zinc-500">{job.passport_count} passports</div>
+                                                <div className="text-sm font-medium text-foreground">{job.batch_name}</div>
+                                                <div className="text-xs text-muted-foreground">{job.passport_count} passports</div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
                                             <div className="flex items-center gap-2">
                                                 {getStatusIcon(job.status)}
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                    job.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                        job.status === 'PROCESSING' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                            'bg-amber-50 text-amber-700 border-amber-200'
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                                    job.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                        job.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                                            'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                     }`}>
                                                     {job.status === 'COMPLETED' ? 'Completed' :
                                                         job.status === 'FAILED' ? 'Failed' :
@@ -191,33 +191,33 @@ export default function ExportsPage() {
                                                 </span>
                                             </div>
                                             {job.error_message && (
-                                                <p className="text-xs text-red-600 mt-1">{job.error_message}</p>
+                                                <p className="text-xs text-red-500 mt-1">{job.error_message}</p>
                                             )}
                                         </td>
-                                        <td className="px-4 py-4 text-sm text-zinc-600">
+                                        <td className="px-4 py-4 text-sm text-muted-foreground">
                                             {formatFileSize(job.file_size_bytes)}
                                         </td>
-                                        <td className="px-4 py-4 text-sm text-zinc-500">
+                                        <td className="px-4 py-4 text-sm text-muted-foreground">
                                             {formatDate(job.requested_at)}
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {job.status === 'COMPLETED' && job.download_url && (
                                                 <button
                                                     onClick={() => handleDownload(job)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-zinc-900 text-white rounded-md hover:bg-zinc-800 transition-colors"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                                                 >
                                                     <Download className="w-4 h-4" />
                                                     Download
                                                 </button>
                                             )}
                                             {job.status === 'PROCESSING' && (
-                                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md border border-blue-200">
+                                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 rounded-md border border-blue-500/20">
                                                     <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
                                                     Processing...
                                                 </span>
                                             )}
                                             {job.status === 'PENDING' && (
-                                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-600 bg-amber-50 rounded-md border border-amber-200">
+                                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 rounded-md border border-amber-500/20">
                                                     <Clock className="w-3 h-3 mr-1.5" />
                                                     Queued
                                                 </span>
@@ -230,22 +230,22 @@ export default function ExportsPage() {
 
                         {/* Pagination */}
                         {total > limit && (
-                            <div className="px-4 py-3 border-t border-zinc-200 bg-zinc-50 flex items-center justify-between">
-                                <p className="text-sm text-zinc-500">
+                            <div className="px-4 py-3 border-t border-border bg-muted flex items-center justify-between">
+                                <p className="text-sm text-muted-foreground">
                                     Showing {page * limit + 1} to {Math.min((page + 1) * limit, total)} of {total} exports
                                 </p>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setPage(p => Math.max(0, p - 1))}
                                         disabled={page === 0}
-                                        className="px-3 py-1.5 text-sm font-medium border border-zinc-200 rounded-md bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="px-3 py-1.5 text-sm font-medium border border-border rounded-md bg-card text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         Previous
                                     </button>
                                     <button
                                         onClick={() => setPage(p => p + 1)}
                                         disabled={(page + 1) * limit >= total}
-                                        className="px-3 py-1.5 text-sm font-medium border border-zinc-200 rounded-md bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="px-3 py-1.5 text-sm font-medium border border-border rounded-md bg-card text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
                                         Next
                                     </button>

@@ -43,7 +43,7 @@ export function TopNav() {
 
     return (
         <>
-            <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white">
+            <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
                 <div className="flex h-14 items-center justify-between px-4 md:px-6">
                     {/* Left: Mobile Menu + Logo */}
                     <div className="flex items-center gap-2">
@@ -54,13 +54,13 @@ export function TopNav() {
                             className="md:hidden h-9 w-9"
                             onClick={() => setMobileMenuOpen(true)}
                         >
-                            <Menu className="h-5 w-5 text-zinc-700" />
+                            <Menu className="h-5 w-5 text-foreground" />
                         </Button>
 
                         {/* Logo */}
                         <Link href="/dashboard" className="flex items-center gap-2 shrink-0 group">
-                            <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
-                            <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
+                            <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+                            <span className="text-xl font-bold tracking-tight text-foreground">EXPORTLENS</span>
                         </Link>
                     </div>
 
@@ -77,8 +77,8 @@ export function TopNav() {
                                     className={clsx(
                                         "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                                         isActive
-                                            ? "text-blue-700 border-b-2 border-blue-500 rounded-none pb-4"
-                                            : "text-zinc-600 hover:text-zinc-900 pb-4"
+                                            ? "text-[var(--brand)] border-b-2 border-[var(--brand)] rounded-none pb-4"
+                                            : "text-muted-foreground hover:text-foreground pb-4"
                                     )}
                                 >
                                     {item.name}
@@ -94,10 +94,10 @@ export function TopNav() {
                             <div className={clsx(
                                 "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
                                 isLowQuota
-                                    ? "border-red-300 text-red-600 hover:bg-red-50"
-                                    : "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                                    ? "border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15"
+                                    : "border-[var(--brand-border)] bg-emerald-500/10 text-[var(--brand)] hover:bg-emerald-500/15"
                             )}>
-                                <span className={clsx("h-1.5 w-1.5 rounded-full", isLowQuota ? "bg-red-500" : "bg-emerald-500")} />
+                                <span className={clsx("h-1.5 w-1.5 rounded-full", isLowQuota ? "bg-red-500/100" : "bg-emerald-500/100")} />
                                 <span className="hidden sm:inline">Licenses:</span>
                                 <span>{quotaBalance}</span>
                             </div>
@@ -106,32 +106,32 @@ export function TopNav() {
                         {/* User Avatar Dropdown */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-zinc-100">
-                                    <Avatar className="h-8 w-8 border border-zinc-200">
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                                    <Avatar className="h-8 w-8 border border-border">
                                         <AvatarImage src={user?.logo_url} />
-                                        <AvatarFallback className="bg-zinc-100 text-zinc-700 text-xs font-medium">
+                                        <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
                                             {initials}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 bg-white border-zinc-200 text-zinc-900" align="end" forceMount>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none text-zinc-900">{user?.company_name || 'Account'}</p>
-                                        <p className="text-xs leading-none text-zinc-500">
+                                        <p className="text-sm font-medium leading-none text-foreground">{user?.company_name || 'Account'}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
                                             {user?.email}
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-zinc-200" />
-                                <DropdownMenuItem asChild className="text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 cursor-pointer">
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild className="cursor-pointer">
                                     <a href="mailto:support@exportready.in">
                                         <HelpCircle className="mr-2 h-4 w-4" />
                                         <span>Support</span>
                                     </a>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={logout} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
+                                <DropdownMenuItem onClick={logout} className="text-destructive hover:bg-destructive/10 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Sign Out</span>
                                 </DropdownMenuItem>
@@ -151,16 +151,16 @@ export function TopNav() {
                     />
 
                     {/* Slide-out Menu */}
-                    <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl animate-in slide-in-from-left duration-300">
+                    <div className="absolute left-0 top-0 h-full w-72 bg-card shadow-none border-r border-border animate-in slide-in-from-left duration-300">
                         {/* Menu Header */}
-                        <div className="flex items-center justify-between border-b border-zinc-200 p-4">
+                        <div className="flex items-center justify-between border-b border-border p-4">
                             <Link
                                 href="/dashboard"
                                 className="flex items-center gap-2 group"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                <BarChart3 className="h-7 w-7 text-[#1F7A5F]" />
-                                <span className="text-xl font-bold tracking-tight text-[#0B1F3B]">EXPORTLENS</span>
+                                <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+                                <span className="text-xl font-bold tracking-tight text-foreground">EXPORTLENS</span>
                             </Link>
                             <Button
                                 variant="ghost"
@@ -168,7 +168,7 @@ export function TopNav() {
                                 className="h-8 w-8"
                                 onClick={() => setMobileMenuOpen(false)}
                             >
-                                <X className="h-5 w-5 text-zinc-500" />
+                                <X className="h-5 w-5 text-muted-foreground" />
                             </Button>
                         </div>
 
@@ -187,8 +187,8 @@ export function TopNav() {
                                         className={clsx(
                                             "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
                                             isActive
-                                                ? "bg-blue-50 text-blue-700"
-                                                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                                                ? "bg-accent text-[var(--brand)]"
+                                                : "text-muted-foreground hover:bg-accent hover:text-foreground"
                                         )}
                                     >
                                         <Icon className="h-5 w-5" />
@@ -199,22 +199,22 @@ export function TopNav() {
                         </nav>
 
                         {/* User Info at Bottom */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-zinc-200 bg-zinc-50">
+                        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background">
                             <div className="flex items-center gap-3">
-                                <Avatar className="h-10 w-10 border border-zinc-200">
+                                <Avatar className="h-10 w-10 border border-border">
                                     <AvatarImage src={user?.logo_url} />
-                                    <AvatarFallback className="bg-zinc-100 text-zinc-700 text-sm font-medium">
+                                    <AvatarFallback className="bg-muted text-muted-foreground text-sm font-medium">
                                         {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-zinc-900 truncate">{user?.company_name || 'Account'}</p>
-                                    <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
+                                    <p className="text-sm font-medium text-foreground truncate">{user?.company_name || 'Account'}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                                 </div>
                             </div>
                             <Button
                                 variant="outline"
-                                className="w-full mt-3 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                className="w-full mt-3 text-destructive border-destructive/20 hover:bg-destructive/10"
                                 onClick={() => {
                                     logout()
                                     setMobileMenuOpen(false)

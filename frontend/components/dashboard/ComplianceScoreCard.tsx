@@ -60,42 +60,42 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
         fetchCompliance()
     }, [batches])
 
-    const scoreColor = avgScore === null ? "text-zinc-400"
-        : avgScore >= 80 ? "text-emerald-600"
+    const scoreColor = avgScore === null ? "text-muted-foreground"
+        : avgScore >= 80 ? "text-emerald-500"
             : avgScore >= 50 ? "text-amber-500"
                 : "text-red-500"
 
-    const barColor = avgScore === null ? "bg-zinc-200"
-        : avgScore >= 80 ? "bg-emerald-500"
-            : avgScore >= 50 ? "bg-amber-500"
-                : "bg-red-500"
+    const barColor = avgScore === null ? "bg-border"
+        : avgScore >= 80 ? "bg-emerald-500/100"
+            : avgScore >= 50 ? "bg-amber-500/100"
+                : "bg-red-500/100"
 
     const StatusIcon = avgScore === null ? Shield
         : avgScore >= 80 ? CheckCircle
             : AlertTriangle
 
     return (
-        <div className="bg-white border border-zinc-200 rounded-lg p-5">
+        <div className="bg-card border border-border rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Compliance</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider code-label">Compliance</span>
                 <StatusIcon className={`h-4 w-4 ${scoreColor}`} />
             </div>
 
             {loading ? (
-                <div className="h-8 bg-zinc-100 rounded animate-pulse" />
+                <div className="h-8 bg-muted rounded animate-pulse" />
             ) : avgScore === null ? (
                 <>
-                    <div className="text-2xl font-semibold text-zinc-400">—</div>
-                    <div className="text-xs text-zinc-500 mt-2">No active batches</div>
+                    <div className="text-2xl font-semibold text-muted-foreground">—</div>
+                    <div className="text-xs text-muted-foreground mt-2">No active batches</div>
                 </>
             ) : (
                 <>
                     <div className={`text-2xl font-semibold ${scoreColor}`}>{avgScore}%</div>
-                    <div className="w-full bg-zinc-100 rounded h-1.5 mt-2">
+                    <div className="w-full bg-muted rounded h-1.5 mt-2">
                         <div className={`h-1.5 rounded ${barColor}`} style={{ width: `${avgScore}%` }} />
                     </div>
                     {totalGaps > 0 && (
-                        <div className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                        <div className="text-xs text-amber-500 mt-2 flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             {totalGaps} gap{totalGaps !== 1 ? "s" : ""} to resolve
                         </div>

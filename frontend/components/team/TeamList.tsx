@@ -43,9 +43,9 @@ interface TeamListProps {
 
 const roleIcons: Record<TeamRole, React.ReactNode> = {
     OWNER: <ShieldCheck className="h-4 w-4 text-purple-600" />,
-    ADMIN: <Shield className="h-4 w-4 text-blue-600" />,
-    MEMBER: <User className="h-4 w-4 text-zinc-600" />,
-    VIEWER: <Eye className="h-4 w-4 text-zinc-400" />,
+    ADMIN: <Shield className="h-4 w-4 text-blue-500" />,
+    MEMBER: <User className="h-4 w-4 text-muted-foreground" />,
+    VIEWER: <Eye className="h-4 w-4 text-muted-foreground" />,
 };
 
 type BadgeVariant = 'default' | 'secondary' | 'destructive';
@@ -94,7 +94,7 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
 
     if (!members || members.length === 0) {
         return (
-            <div className="text-center py-12 bg-zinc-50 rounded-lg border border-dashed">
+            <div className="text-center py-12 bg-background rounded-lg border border-dashed">
                 <p className="text-muted-foreground">No team members found.</p>
             </div>
         );
@@ -102,7 +102,7 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
 
     return (
         <>
-            <div className="rounded-md border bg-white shadow-sm">
+            <div className="rounded-md border bg-card shadow-none">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -124,8 +124,8 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex flex-col">
-                                            <span className="font-medium text-sm text-zinc-900">{member.email}</span>
-                                            {member.user_id && <span className="text-xs text-zinc-500">Registered User</span>}
+                                            <span className="font-medium text-sm text-foreground">{member.email}</span>
+                                            {member.user_id && <span className="text-xs text-muted-foreground">Registered User</span>}
                                         </div>
                                     </div>
                                 </TableCell>
@@ -139,13 +139,13 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="start">
                                             <DropdownMenuItem onClick={() => handleRoleUpdate(member.id, 'ADMIN')}>
-                                                <Shield className="mr-2 h-4 w-4 text-blue-600" /> Admin
+                                                <Shield className="mr-2 h-4 w-4 text-blue-500" /> Admin
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleRoleUpdate(member.id, 'MEMBER')}>
-                                                <User className="mr-2 h-4 w-4 text-zinc-600" /> Member
+                                                <User className="mr-2 h-4 w-4 text-muted-foreground" /> Member
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleRoleUpdate(member.id, 'VIEWER')}>
-                                                <Eye className="mr-2 h-4 w-4 text-zinc-400" /> Viewer
+                                                <Eye className="mr-2 h-4 w-4 text-muted-foreground" /> Viewer
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -164,7 +164,7 @@ export function TeamList({ members, onUpdate }: TeamListProps) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-zinc-400 hover:text-red-600"
+                                            className="h-8 w-8 text-muted-foreground hover:text-red-500"
                                             onClick={() => setDeletingId(member.id)}
                                         >
                                             <Trash2 className="h-4 w-4" />

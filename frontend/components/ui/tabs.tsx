@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import { cn } from "@/lib/utils"
+
 interface TabsContextType {
     activeTab: string
     setActiveTab: (tab: string) => void
@@ -13,10 +15,17 @@ interface TabsProps {
     defaultValue: string
     children: React.ReactNode
     className?: string
+    value?: string
+    onValueChange?: (value: string) => void
 }
 
-export function Tabs({ defaultValue, children, className }: TabsProps) {
-    const [activeTab, setActiveTab] = React.useState(defaultValue)
+export function Tabs({ defaultValue, children, className, value, onValueChange }: TabsProps) {
+    const [internalTab, setInternalTab] = React.useState(defaultValue)
+    const activeTab = value !== undefined ? value : internalTab
+    const setActiveTab = (tab: string) => {
+        setInternalTab(tab)
+        onValueChange?.(tab)
+    }
 
     return (
         <TabsContext.Provider value={{ activeTab, setActiveTab }}>
@@ -32,7 +41,13 @@ interface TabsListProps {
 
 export function TabsList({ children, className }: TabsListProps) {
     return (
-        <div className={`inline-flex h-10 items-center justify-center rounded-md bg-zinc-100 p-1 text-zinc-500 ${className || ""}`}>
+        <div
+            className={cn(
+                "inline-flex h-10 items-center justify-center rounded-full p-1 text-muted-foreground",
+                "bg-muted border border-border",
+                className
+            )}
+        >
             {children}
         </div>
     )
@@ -54,10 +69,16 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
         <button
             type="button"
             onClick={() => context.setActiveTab(value)}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${isActive
-                    ? "bg-white text-zinc-950 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-900"
-                } ${className || ""}`}
+            className={cn(
+                "inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium",
+                "ring-offset-background transition-all",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none disabled:opacity-50",
+                isActive
+                    ? "bg-primary text-primary-foreground shadow-none"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                className
+            )}
         >
             {children}
         </button>
@@ -77,7 +98,12 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
     if (context.activeTab !== value) return null
 
     return (
-        <div className={`mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 ${className || ""}`}>
+        <div
+            className={cn(
+                "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                className
+            )}
+        >
             {children}
         </div>
     )

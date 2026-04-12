@@ -51,8 +51,8 @@ export function PricingCard({
             <div className={clsx(
                 "relative h-full rounded-xl transition-all duration-300",
                 recommended
-                    ? "bg-white border-2 border-[#1F7A5F]"
-                    : "bg-white border border-zinc-200 hover:border-zinc-300 hover:shadow-lg"
+                    ? "bg-card border-2 border-[#1F7A5F]"
+                    : "bg-card border border-border hover:border-border hover:shadow-lg"
             )}>
                 {/* Popular badge */}
                 {recommended && (
@@ -69,7 +69,7 @@ export function PricingCard({
                         <h3 className="text-lg font-semibold text-[#0B1F3B] mb-2">
                             {planName}
                         </h3>
-                        <p className="text-sm text-zinc-600 leading-relaxed">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                             {description}
                         </p>
                     </div>
@@ -84,7 +84,7 @@ export function PricingCard({
                             </span>
                         </div>
                         {priceSuffix && (
-                            <p className="text-sm text-zinc-500 mt-1">
+                            <p className="text-sm text-muted-foreground mt-1">
                                 {priceSuffix}
                             </p>
                         )}
@@ -111,11 +111,11 @@ export function PricingCard({
                     </Link>
 
                     {/* Divider */}
-                    <div className="h-px bg-zinc-200 mb-8" />
+                    <div className="h-px bg-muted mb-8" />
 
                     {/* Features */}
                     <div className="space-y-4 grow">
-                        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                             What&apos;s included
                         </p>
                         {features.map((feature, i) => (
@@ -124,12 +124,12 @@ export function PricingCard({
                                     "flex items-center justify-center w-5 h-5 rounded-full mt-0.5 shrink-0",
                                     feature.highlight
                                         ? "bg-[#1F7A5F]/20 text-[#1F7A5F]"
-                                        : "bg-zinc-100 text-zinc-600"
+                                        : "bg-muted text-muted-foreground"
                                 )}>
                                     <Check className="h-3 w-3" />
                                 </div>
                                 <span className={clsx(
-                                    "text-sm text-zinc-700",
+                                    "text-sm text-foreground",
                                     feature.highlight && "text-[#0B1F3B] font-medium"
                                 )}>
                                     {feature.text}

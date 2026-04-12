@@ -35,9 +35,9 @@ export function DeleteTemplateDialog({
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                         Are you sure you want to delete the template{" "}
-                        <span className="font-semibold text-zinc-900">&quot;{templateName}&quot;</span>?
+                        <span className="font-semibold text-foreground">&quot;{templateName}&quot;</span>?
                         <br /><br />
-                        <span className="text-zinc-500">
+                        <span className="text-muted-foreground">
                             This action cannot be undone. Existing batches created with this template
                             will not be affected.
                         </span>
