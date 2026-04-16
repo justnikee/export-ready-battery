@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,103 +17,143 @@ import (
 	"exportready-battery/internal/models"
 )
 
-type copyFromer interface {
-	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rows pgx.CopyFromSource) (int64, error)
+// bulkExecer is satisfied by pgxpool.Pool, pgx.Tx, and pgx.Conn — all three
+// support parameterised Exec, which works through PgBouncer transaction poolers
+// unlike the COPY binary protocol used by CopyFrom.
+type bulkExecer interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 }
 
-func copyPassports(ctx context.Context, exec copyFromer, passports []*models.Passport) (int, error) {
+// Keep the old interface name as an alias so callers that still reference it compile.
+type copyFromer = bulkExecer
+
+// copyPassports bulk-inserts passports using standard parameterised INSERT statements.
+// This is compatible with PgBouncer transaction poolers (Supabase port 6543) unlike
+// pgx.CopyFrom which uses the binary COPY protocol that PgBouncer blocks.
+func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Passport) (int, error) {
 	if len(passports) == 0 {
 		return 0, nil
 	}
 
-	columns := []string{"uuid", "batch_id", "serial_number", "manufacture_date", "status", "created_at", "batch_snapshot", "current_owner_identifier", "ownership_history", "state_of_health", "last_soh_update_timestamp", "csv_source_filename", "csv_row_index"}
+	const cols = `uuid, batch_id, serial_number, manufacture_date, status, created_at,
+	              batch_snapshot, current_owner_identifier, ownership_history,
+	              state_of_health, last_soh_update_timestamp,
+	              csv_source_filename, csv_row_index`
+	const numCols = 13
+	// 500 rows × 13 cols = 6 500 params — well under the 65 535 PG limit.
+	const chunkSize = 500
 
-	rows := make([][]interface{}, len(passports))
-	for i, p := range passports {
-		rows[i] = []interface{}{p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt, p.BatchSnapshot, p.CurrentOwnerIdentifier, p.OwnershipHistory, p.StateOfHealth, p.LastSOHUpdateTimestamp, p.CSVSourceFilename, p.CSVRowIndex}
-	}
+	total := 0
+	for start := 0; start < len(passports); start += chunkSize {
+		end := start + chunkSize
+		if end > len(passports) {
+			end = len(passports)
+		}
+		chunk := passports[start:end]
 
-	copyCount, err := exec.CopyFrom(
-		ctx,
-		pgx.Identifier{"public", "passports"},
-		columns,
-		pgx.CopyFromRows(rows),
-	)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			slog.Error("copyPassports PG error",
-				"severity", pgErr.Severity,
-				"code", pgErr.Code,
-				"message", pgErr.Message,
-				"detail", pgErr.Detail,
-				"constraint", pgErr.ConstraintName,
-				"column", pgErr.ColumnName,
-				"table", pgErr.TableName,
+		placeholders := make([]string, len(chunk))
+		args := make([]any, 0, len(chunk)*numCols)
+		for i, p := range chunk {
+			b := i*numCols + 1
+			placeholders[i] = fmt.Sprintf(
+				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10, b+11, b+12,
+			)
+			args = append(args,
+				p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt,
+				p.BatchSnapshot, p.CurrentOwnerIdentifier, p.OwnershipHistory,
+				p.StateOfHealth, p.LastSOHUpdateTimestamp,
+				p.CSVSourceFilename, p.CSVRowIndex,
 			)
 		}
-		return 0, fmt.Errorf("failed to bulk insert passports: %w", err)
+
+		query := fmt.Sprintf("INSERT INTO public.passports (%s) VALUES %s",
+			cols, strings.Join(placeholders, ","))
+		tag, err := exec.Exec(ctx, query, args...)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				slog.Error("copyPassports PG error",
+					"severity", pgErr.Severity,
+					"code", pgErr.Code,
+					"message", pgErr.Message,
+					"detail", pgErr.Detail,
+					"constraint", pgErr.ConstraintName,
+					"column", pgErr.ColumnName,
+					"table", pgErr.TableName,
+				)
+			}
+			return total, fmt.Errorf("failed to bulk insert passports: %w", err)
+		}
+		total += int(tag.RowsAffected())
 	}
 
-	return int(copyCount), nil
+	return total, nil
 }
 
-func copyPassportEvents(ctx context.Context, exec copyFromer, events []*models.PassportEvent) error {
+// copyPassportEvents bulk-inserts passport events using standard parameterised INSERT
+// statements. Compatible with PgBouncer transaction poolers (Supabase port 6543).
+func copyPassportEvents(ctx context.Context, exec bulkExecer, events []*models.PassportEvent) error {
 	if len(events) == 0 {
 		return nil
 	}
 
-	rows := make([][]interface{}, len(events))
-	for i, e := range events {
-		metadataJSON, err := json.Marshal(e.Metadata)
-		if err != nil {
-			return fmt.Errorf("failed to marshal metadata for event %d: %w", i, err)
+	const cols = `id, passport_id, event_type, action, actor, actor_type, actor_role,
+	              actor_identifier, source, status_from, status_to, ip_address,
+	              metadata, created_at, hash, previous_hash`
+	const numCols = 16
+	// 400 rows × 16 cols = 6 400 params — well under the 65 535 PG limit.
+	const chunkSize = 400
+
+	for start := 0; start < len(events); start += chunkSize {
+		end := start + chunkSize
+		if end > len(events) {
+			end = len(events)
 		}
+		chunk := events[start:end]
 
-		rows[i] = []interface{}{
-			e.ID,
-			e.PassportID,
-			e.EventType,
-			nullableString(string(e.Action)),
-			e.Actor,
-			e.ActorType,
-			nullableString(string(e.ActorRole)),
-			e.ActorID,
-			e.Source,
-			e.StatusFrom,
-			e.StatusTo,
-			e.IPAddress,
-			metadataJSON,
-			e.CreatedAt,
-			e.Hash,
-			e.PreviousHash,
-		}
-	}
-
-	columns := []string{"id", "passport_id", "event_type", "action", "actor", "actor_type", "actor_role", "actor_identifier", "source", "status_from", "status_to", "ip_address", "metadata", "created_at", "hash", "previous_hash"}
-
-	_, err := exec.CopyFrom(
-		ctx,
-		pgx.Identifier{"public", "passport_events"},
-		columns,
-		pgx.CopyFromRows(rows),
-	)
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			slog.Error("copyPassportEvents PG error",
-				"severity", pgErr.Severity,
-				"code", pgErr.Code,
-				"message", pgErr.Message,
-				"detail", pgErr.Detail,
-				"hint", pgErr.Hint,
-				"constraint", pgErr.ConstraintName,
-				"column", pgErr.ColumnName,
-				"table", pgErr.TableName,
-				"schema", pgErr.SchemaName,
+		placeholders := make([]string, len(chunk))
+		args := make([]any, 0, len(chunk)*numCols)
+		for i, e := range chunk {
+			metadataJSON, err := json.Marshal(e.Metadata)
+			if err != nil {
+				return fmt.Errorf("failed to marshal metadata for event %d: %w", start+i, err)
+			}
+			b := i*numCols + 1
+			placeholders[i] = fmt.Sprintf(
+				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10, b+11, b+12, b+13, b+14, b+15,
+			)
+			args = append(args,
+				e.ID, e.PassportID, e.EventType,
+				nullableString(string(e.Action)),
+				e.Actor, e.ActorType,
+				nullableString(string(e.ActorRole)),
+				e.ActorID, e.Source, e.StatusFrom, e.StatusTo, e.IPAddress,
+				metadataJSON, e.CreatedAt, e.Hash, e.PreviousHash,
 			)
 		}
-		return fmt.Errorf("failed to bulk insert passport events: %w", err)
+
+		query := fmt.Sprintf("INSERT INTO public.passport_events (%s) VALUES %s",
+			cols, strings.Join(placeholders, ","))
+		_, err := exec.Exec(ctx, query, args...)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				slog.Error("copyPassportEvents PG error",
+					"severity", pgErr.Severity,
+					"code", pgErr.Code,
+					"message", pgErr.Message,
+					"detail", pgErr.Detail,
+					"hint", pgErr.Hint,
+					"constraint", pgErr.ConstraintName,
+					"column", pgErr.ColumnName,
+					"table", pgErr.TableName,
+					"schema", pgErr.SchemaName,
+				)
+			}
+			return fmt.Errorf("failed to bulk insert passport events: %w", err)
+		}
 	}
 
 	return nil

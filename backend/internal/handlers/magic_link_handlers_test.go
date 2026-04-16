@@ -67,6 +67,10 @@ func (f *fakeMagicRepo) GetBatchMarketRegion(ctx context.Context, batchID uuid.U
 	return models.MarketRegionGlobal, nil
 }
 
+func (f *fakeMagicRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
+	return uuid.Nil, nil
+}
+
 func (f *fakeMagicRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
 	if params.Event == nil {
 		return context.DeadlineExceeded

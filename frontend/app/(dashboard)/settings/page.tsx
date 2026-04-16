@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
@@ -248,10 +249,13 @@ function LogoUpload({
 
 export default function SettingsPage() {
  const { user, refreshUser } = useAuth()
+ const searchParams = useSearchParams()
  const [loading, setLoading] = useState(false)
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>('profile')
+ const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>(
+  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens') || 'profile'
+ )
 
  const [formData, setFormData] = useState({
  company_name: "",
@@ -519,7 +523,7 @@ export default function SettingsPage() {
  { label: 'BIS', done: !!formData.bis_r_number },
  { label: 'IEC', done: !!formData.iec_code },
  { label: 'PLI', done: certificatePaths.pli_status === 'VERIFIED' || certificatePaths.pli_status === 'PENDING' },
- { label: 'MoRTH', done: !!formData.morth_manufacturer_code },
+ { label: 'MoRTH', done: !!formData.morth_manufacturer_code && formData.morth_manufacturer_code !== 'TBC' },
  ];
  const completed = checks.filter(c => c.done).length;
  return (
@@ -646,6 +650,11 @@ export default function SettingsPage() {
  onChange={(e) => setFormData({ ...formData, morth_manufacturer_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
  />
  </div>
+ {formData.morth_manufacturer_code === 'TBC' && (
+ <p className="text-xs text-amber-500">
+ ⚠️ “TBC” is a placeholder — replace it with your actual 3-character MoRTH-registered code.
+ </p>
+ )}
  <p className="text-xs text-muted-foreground">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
  </div>
 

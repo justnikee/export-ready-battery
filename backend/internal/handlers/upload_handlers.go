@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"exportready-battery/internal/middleware"
@@ -296,6 +297,12 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Enforce activation before passport generation (same rule as UploadCSV)
+	if batch.Status != models.BatchStatusActive {
+		respondError(w, http.StatusForbidden, "Batch must be ACTIVE before generating passports")
+		return
+	}
+
 	// Get tenant details for batch snapshot and manufacturer code
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {
@@ -364,9 +371,12 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		mfrCode = services.DeriveManufacturerCode(tenant.CompanyName)
 	}
 
-	// Prefer MoRTH-registered manufacturer code when set in profile
-	if tenant.MorthManufacturerCode != "" {
-		mfrCode = tenant.MorthManufacturerCode
+	// Prefer MoRTH-registered manufacturer code when set in profile.
+	// Treat "TBC" (and blank) as unset — fall back to the derived code so
+	// passports are not stamped with a placeholder manufacturer segment.
+	morthCode := strings.TrimSpace(tenant.MorthManufacturerCode)
+	if morthCode != "" && morthCode != "TBC" {
+		mfrCode = morthCode
 		slog.Info("Using MoRTH manufacturer code for BPAN", "morth_code", mfrCode)
 	}
 

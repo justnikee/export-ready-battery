@@ -23,6 +23,8 @@ interface UploadCSVProps {
  batchId: string
  marketRegion?: 'INDIA' | 'EU' | 'GLOBAL'
  chemistry?: string // For dynamic BPAN prefix (e.g., 'LFP', 'NMC')
+ morthCode?: string // Tenant's MoRTH manufacturer code (e.g., 'NKY', 'TBC')
+ isDraft?: boolean  // When true, passport generation is blocked until batch is activated
  onUploadComplete: () => void
 }
 
@@ -54,7 +56,7 @@ interface AutoGenerateResult {
  serial_range?: string
 }
 
-export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploadComplete }: UploadCSVProps) {
+export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCode, isDraft = false, onUploadComplete }: UploadCSVProps) {
  // CSV Upload State
  const [file, setFile] = useState<File | null>(null)
  const [isValidating, setIsValidating] = useState(false)
@@ -66,11 +68,14 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
  // Auto-Generate State - Default prefix based on market region and chemistry
  const currentYear = new Date().getFullYear()
  const chemistryCode = chemistry?.toUpperCase() || 'LFP'
+ const morthTrimmed = morthCode?.trim() ?? ''
+ const morthMissing = marketRegion === 'INDIA' && (morthTrimmed === '' || morthTrimmed === 'TBC')
+ const morthSegment = morthTrimmed && morthTrimmed !== 'TBC' ? morthTrimmed : '{MoRTH}'
  const defaultPrefix = marketRegion === 'INDIA'
- ? `IN-NKY-${chemistryCode}-${currentYear}-`
- : marketRegion === 'EU'
- ? `EU-BAT-${currentYear}-`
- : `BAT-${currentYear}-`
+  ? `IN-${morthSegment}-${chemistryCode}-${currentYear}-`
+  : marketRegion === 'EU'
+  ? `EU-BAT-${currentYear}-`
+  : `BAT-${currentYear}-`
  const [quantity, setQuantity] = useState("100")
  const [prefix, setPrefix] = useState(defaultPrefix)
  const [startNumber, setStartNumber] = useState("1")
@@ -437,13 +442,31 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, onUploa
  </p>
  </div>
 
+ {morthMissing && (
+ <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-start gap-2 text-sm text-amber-400">
+ <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+ <span>
+ <span className="font-medium">MoRTH Manufacturer Code not configured.</span>{" "}
+ Go to{" "}
+ <a href="/settings?tab=compliance" className="underline hover:text-amber-300">Settings → India Compliance</a>{" "}
+ and enter your 3-character MoRTH-registered code before generating passports.
+ </span>
+ </div>
+ )}
+
  <Button
  onClick={handleAutoGenerate}
- disabled={isGenerating}
+ disabled={isGenerating || isDraft || morthMissing}
  className="w-full"
  >
  {isGenerating ? "Generating..." : "Generate Passports"}
  </Button>
+  {isDraft && (
+  <p className="text-xs text-amber-500 flex items-center gap-1.5 justify-center">
+  <AlertTriangle className="h-3.5 w-3.5" />
+  Batch must be activated before generating passports
+  </p>
+  )}
  </>
  ) : (
  // Generation Complete

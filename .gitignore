@@ -59,3 +59,7 @@ temp.ts
 # Build error logs (debug artifacts, never commit)
 backend/build_err.txt
 backend/errors_full.txt
+
+.agents
+skills-lock.json
+.claude

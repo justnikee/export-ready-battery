@@ -930,6 +930,54 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PatchBatch handles PATCH /api/v1/batches/{id}
+// Allows partial updates to a DRAFT batch (specs merge + metadata fields).
+// Returns 409 if the batch is not in DRAFT status.
+func (h *Handler) PatchBatch(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	var req models.PatchBatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if err := h.repo.PatchBatchDraft(r.Context(), batchID, tenantID, req); err != nil {
+		if err.Error() == "batch not found or not a DRAFT" {
+			respondError(w, http.StatusConflict, "Batch not found or cannot be edited (not a DRAFT)")
+			return
+		}
+		slog.Error("Failed to patch batch", "batch_id", batchID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to update batch")
+		return
+	}
+
+	// Return updated batch
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Patch applied but failed to reload batch")
+		return
+	}
+
+	slog.Info("Batch patched", "batch_id", batchID, "tenant_id", tenantID)
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"batch":   batch,
+	})
+}
+
 // parseInt is a helper to parse string to int
 func parseInt(s string) (int, error) {
 	var n int

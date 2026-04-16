@@ -453,6 +453,52 @@ func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cell
 	return nil
 }
 
+// PatchBatchDraft applies a partial update to a DRAFT batch (batch + specs JSONB).
+// Returns an error if the batch is not found, not owned by tenantID, or not in DRAFT status.
+func (r *Repository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error {
+	// Merge specs patch into existing JSONB using PostgreSQL || operator (top-level merge).
+	var specsFragment interface{}
+	if len(req.Specs) > 0 {
+		raw, err := json.Marshal(req.Specs)
+		if err != nil {
+			return fmt.Errorf("failed to marshal specs patch: %w", err)
+		}
+		specsFragment = string(raw)
+	}
+
+	query := `UPDATE public.batches SET
+		model_name              = COALESCE($3,  model_name),
+		manufacturing_start_date= COALESCE($4,  manufacturing_start_date),
+		manufacturing_end_date  = COALESCE($5,  manufacturing_end_date),
+		cell_source             = COALESCE($6,  cell_source),
+		bill_of_entry_no        = COALESCE($7,  bill_of_entry_no),
+		country_of_origin       = COALESCE($8,  country_of_origin),
+		customs_date            = COALESCE($9,  customs_date),
+		domestic_value_add      = COALESCE($10, domestic_value_add),
+		specs = CASE WHEN $11::text IS NULL THEN specs ELSE specs || $11::jsonb END
+	WHERE id = $1 AND tenant_id = $2 AND COALESCE(status, 'DRAFT') = 'DRAFT'`
+
+	result, err := r.db.Pool.Exec(ctx, query,
+		id, tenantID,
+		req.ModelName,
+		req.ManufacturingStartDate,
+		req.ManufacturingEndDate,
+		req.CellSource,
+		req.BillOfEntryNo,
+		req.CountryOfOrigin,
+		req.CustomsDate,
+		req.DomesticValueAdd,
+		specsFragment,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to patch batch: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("batch not found or not a DRAFT")
+	}
+	return nil
+}
+
 // SetBatchStatus updates batch status (for activation)
 func (r *Repository) SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error {
 	query := `UPDATE public.batches SET status = $2 WHERE id = $1`

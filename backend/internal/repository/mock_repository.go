@@ -130,6 +130,11 @@ func (m *MockRepository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, 
 	return args.Error(0)
 }
 
+func (m *MockRepository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error {
+	args := m.Called(ctx, id, tenantID, req)
+	return args.Error(0)
+}
+
 func (m *MockRepository) SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error {
 	args := m.Called(ctx, batchID, status)
 	return args.Error(0)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import type React from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { createExportJob } from "@/lib/api/exports"
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { UploadCSV } from "@/components/batches/upload-csv"
 import { CarbonCalculator } from "@/components/batches/carbon-calculator"
-import { ArrowLeft, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Globe, AlertTriangle, CheckCircle, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2 } from "lucide-react"
+import { ArrowLeft, QrCode, FileSpreadsheet, ChevronLeft, ChevronRight, Leaf, Globe, AlertTriangle, CheckCircle, Printer, Factory, Scale, Atom, Battery, FileText, Lock, Unlock, Clock, Shield, FileCheck, Archive, Trash2, ExternalLink } from "lucide-react"
 import { PassportList } from "@/components/batches/passport-list"
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog"
 import { toast } from "sonner"
@@ -71,6 +72,8 @@ export default function BatchDetailsPage() {
  const [complianceGaps, setComplianceGaps] = useState<import("@/lib/types").ComplianceGap[]>([])
  const [complianceLoading, setComplianceLoading] = useState(false)
  const [activeTab, setActiveTab] = useState<'overview' | 'passports' | 'upload' | 'compliance' | 'reports'>('overview')
+ const [patchingKey, setPatchingKey] = useState<string | null>(null)
+ const [confirmCert, setConfirmCert] = useState<{ key: string; cert: string } | null>(null)
 
  const fetchBatch = useCallback(async () => {
  try {
@@ -432,6 +435,66 @@ export default function BatchDetailsPage() {
  return map[key] || key.replace(/[._]/g, " ").replace(/\b\w/g, l => l.toUpperCase())
  }
 
+ // Applies a partial PATCH to the batch specs (draft only) and re-fetches the batch.
+ const handlePatchSpec = async (key: string, specsFragment: Record<string, unknown>) => {
+  if (!batch) return
+  setPatchingKey(key)
+  try {
+   await api.patch(`/batches/${params.id}`, { specs: specsFragment })
+   await fetchBatch()
+   toast.success("Batch updated")
+  } catch (error: unknown) {
+   const ae = toApiError(error)
+   toast.error(ae.response?.data?.error || "Failed to update batch")
+  } finally {
+   setPatchingKey(null)
+  }
+ }
+
+ // Returns a contextual action for each blocker key:
+ //   - Settings issues   → navigate to /settings
+ //   - Tab-specific      → switch active tab
+ //   - Certifications    → inline PATCH to add the cert
+ const getBlockerAction = (key: string): { label: string; icon: React.ReactNode; onClick: () => void; loading: boolean } | null => {
+  const settingsComplianceKeys = ["tenant.epr_registration_number", "tenant.bis_r_number", "tenant.iec_code", "tenant.morth_manufacturer_code"]
+  const settingsProfileKeys = ["tenant.company_name", "tenant.address", "tenant.eu_authorized_representative_name", "tenant.eu_authorized_representative_address", "tenant.eu_contact_email"]
+
+  if (settingsComplianceKeys.includes(key)) {
+   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/settings?tab=compliance") }
+  }
+  if (settingsProfileKeys.includes(key)) {
+   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/settings") }
+  }
+  if (key === "carbon_footprint_result") {
+   return { label: "Carbon Calculator", icon: <Leaf className="h-3 w-3" />, loading: false, onClick: () => setActiveTab("upload") }
+  }
+  if (key === "specs.material_composition" || key === "specs.hazardous_substances.declaration" || key === "specs.expected_lifetime_cycles" || key === "specs.warranty_months" || key === "specs.battery_category") {
+   return { label: "Go to Compliance", icon: <Shield className="h-3 w-3" />, loading: false, onClick: () => setActiveTab("compliance") }
+  }
+  if (key === "specs.certifications: AIS-156") {
+   const currentCerts: string[] = batch?.specs?.certifications || []
+   if (currentCerts.includes("AIS-156")) return null
+   return {
+    label: "Declare AIS-156",
+    icon: <CheckCircle className="h-3 w-3" />,
+    loading: patchingKey === key,
+    onClick: () => setConfirmCert({ key, cert: "AIS-156" })
+   }
+  }
+  if (key === "specs.certifications: AIS-038") {
+   const currentCerts: string[] = batch?.specs?.certifications || []
+   if (currentCerts.includes("AIS-038")) return null
+   return {
+    label: "Declare AIS-038",
+    icon: <CheckCircle className="h-3 w-3" />,
+    loading: patchingKey === key,
+    onClick: () => setConfirmCert({ key, cert: "AIS-038" })
+   }
+  }
+  return null
+ }
+
+
  // Client-side preflight: mirrors backend activation_compliance.go
  const getActivationBlockers = (b: Batch, u: typeof user): { blocking: string[]; warnings: string[] } => {
  const blocking: string[] = []
@@ -786,40 +849,63 @@ export default function BatchDetailsPage() {
  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
  </div>
 
-
- {/* Activation Blockers Panel — shown only for draft batches with issues */}
- {isDraft && (activationResult.blocking.length > 0 || activationResult.warnings.length > 0) && (
- <div className="border border-border rounded-lg overflow-hidden">
- {activationResult.blocking.length > 0 && (
- <div className="bg-red-500/10 border-b border-red-200 px-4 py-3">
- <div className="flex items-center gap-2 text-red-500 text-sm mb-2">
- <AlertTriangle className="h-4 w-4" />
- {activationResult.blocking.length} Blocking Issue{activationResult.blocking.length > 1 ? "s" : ""} — Must Fix Before Activation
- </div>
- <ul className="space-y-1 pl-6">
- {activationResult.blocking.map((key, i) => (
- <li key={i} className="text-sm text-red-500 list-disc">
- {formatBlockerLabel(key)}
- </li>
- ))}
- </ul>
- </div>
- )}
- {activationResult.warnings.length > 0 && (
- <div className="bg-amber-500/10 px-4 py-3">
- <div className="flex items-center gap-2 text-amber-500 text-sm mb-2">
- <Shield className="h-4 w-4" />
- {activationResult.warnings.length} Warning{activationResult.warnings.length > 1 ? "s" : ""} (non-blocking)
- </div>
- <ul className="space-y-1 pl-6">
- {activationResult.warnings.map((w, i) => (
- <li key={i} className="text-sm text-amber-500 list-disc">{w}</li>
- ))}
- </ul>
- </div>
- )}
- </div>
- )}
+
+
+  {/* Activation Blockers Panel — shown only for draft batches with issues */}
+  {isDraft && (activationResult.blocking.length > 0 || activationResult.warnings.length > 0) && (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {activationResult.blocking.length > 0 && (
+        <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-3">
+          <div className="flex items-center gap-2 text-red-500 text-sm mb-3">
+            <AlertTriangle className="h-4 w-4" />
+            <span>{activationResult.blocking.length} Blocking Issue{activationResult.blocking.length > 1 ? "s" : ""} — Must Fix Before Activation</span>
+          </div>
+          <div className="space-y-2">
+            {activationResult.blocking.map((key, i) => {
+              const action = getBlockerAction(key)
+              return (
+                <div key={i} className="flex items-center justify-between gap-3 py-1.5 px-2 rounded bg-red-500/5 border border-red-500/10">
+                  <div className="flex items-center gap-2 text-sm text-red-400 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                    <span className="truncate">{formatBlockerLabel(key)}</span>
+                  </div>
+                  {action && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={action.loading}
+                      onClick={action.onClick}
+                      className="shrink-0 h-7 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 gap-1"
+                    >
+                      {action.loading ? (
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent" />
+                      ) : (
+                        action.icon
+                      )}
+                      {action.label}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {activationResult.warnings.length > 0 && (
+        <div className="bg-amber-500/10 px-4 py-3">
+          <div className="flex items-center gap-2 text-amber-500 text-sm mb-2">
+            <Shield className="h-4 w-4" />
+            {activationResult.warnings.length} Warning{activationResult.warnings.length > 1 ? "s" : ""} (non-blocking)
+          </div>
+          <ul className="space-y-1 pl-6">
+            {activationResult.warnings.map((w, i) => (
+              <li key={i} className="text-sm text-amber-500 list-disc">{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )}
 
  {/* Tab Navigation */}
  <div className="bg-card border border-border rounded-lg">
@@ -1006,7 +1092,7 @@ export default function BatchDetailsPage() {
  <div className="col-span-2 p-4 rounded-xl bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Serial Format (BPAN)</dt>
  <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 rounded-lg border border-orange-500/20 inline-block">
- IN-NKY-{batch.specs?.chemistry || 'LFP'}-2026-XXXXX
+ IN-{user?.morth_manufacturer_code?.trim() && user.morth_manufacturer_code.trim() !== 'TBC' ? user.morth_manufacturer_code.trim() : 'XXX'}-{batch.specs?.chemistry || 'LFP'}-2026-XXXXX
  </dd>
  </div>
  </dl>
@@ -1366,13 +1452,13 @@ export default function BatchDetailsPage() {
  Upload a CSV file containing passport data for this batch.
  {isIndia && (
  <span className="block mt-2 text-orange-400 font-medium">
- 💡 Auto-generates BPAN format: IN-NKY-{batch.specs.chemistry}-2026-00001 to ...{passportCount || 'N'}
+ 💡 Auto-generates BPAN format: IN-{user?.morth_manufacturer_code?.trim() && user?.morth_manufacturer_code.trim() !== 'TBC' ? user.morth_manufacturer_code.trim() : 'XXX'}-{batch.specs.chemistry}-2026-00001 to ...{passportCount || 'N'}
  </span>
  )}
  </CardDescription>
  </CardHeader>
  <CardContent>
- <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} onUploadComplete={handleUploadComplete} />
+ <UploadCSV batchId={batch.id} marketRegion={region} chemistry={batch.specs?.chemistry} morthCode={user?.morth_manufacturer_code} isDraft={isDraft} onUploadComplete={handleUploadComplete} />
  </CardContent>
  </Card>
  </div>
@@ -1611,6 +1697,21 @@ export default function BatchDetailsPage() {
  />
 
  {/* Confirmation Dialogs */}
+ {/* Cert declaration — user self-declares they hold the certification */}
+ <ConfirmDialog
+ open={!!confirmCert}
+ onOpenChange={(open) => { if (!open) setConfirmCert(null) }}
+ title={`Declare ${confirmCert?.cert} Certification?`}
+ description={`By confirming, you self-declare that this batch has passed ${confirmCert?.cert} testing and you hold the relevant certificate. You remain legally responsible for compliance accuracy.`}
+ confirmText={`Yes, I hold ${confirmCert?.cert}`}
+ variant="default"
+ onConfirm={() => {
+  if (!confirmCert || !batch) return
+  const currentCerts: string[] = batch.specs?.certifications || []
+  handlePatchSpec(confirmCert.key, { certifications: [...currentCerts, confirmCert.cert] })
+  setConfirmCert(null)
+ }}
+ />
  <ConfirmDialog
  open={confirmArchive}
  onOpenChange={setConfirmArchive}

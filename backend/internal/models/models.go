@@ -771,6 +771,21 @@ type CreateBatchResponse struct {
 	Batch *Batch `json:"batch"`
 }
 
+// PatchBatchRequest holds optional fields for partial updates to a DRAFT batch.
+// Only provided (non-nil) fields are applied; omitted fields are left unchanged.
+type PatchBatchRequest struct {
+	ModelName              *string    `json:"model_name,omitempty"`
+	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
+	CellSource             *string    `json:"cell_source,omitempty"`
+	BillOfEntryNo          *string    `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin        *string    `json:"country_of_origin,omitempty"`
+	CustomsDate            *time.Time `json:"customs_date,omitempty"`
+	DomesticValueAdd       *float64   `json:"domestic_value_add,omitempty"`
+	// Specs is a partial spec update; keys are merged into the existing JSONB via ||
+	Specs map[string]interface{} `json:"specs,omitempty"`
+}
+
 // UploadCSVResponse is the response after processing a CSV upload
 type UploadCSVResponse struct {
 	BatchID        uuid.UUID `json:"batch_id"`

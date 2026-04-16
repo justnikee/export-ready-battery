@@ -31,6 +31,7 @@ type RepositoryInterface interface {
 	ListBatches(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.Batch, int, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error
+	PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
 	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
