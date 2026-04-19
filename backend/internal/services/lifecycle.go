@@ -25,7 +25,14 @@ var (
 
 // LifecycleService handles passport lifecycle transitions and event logging
 type LifecycleService struct {
-	repo LifecycleRepository
+	repo       LifecycleRepository
+	webhookSvc *OutboundWebhookService // optional — nil disables outbound webhooks
+}
+
+// WithWebhooks attaches an outbound webhook service; returns self for chaining.
+func (s *LifecycleService) WithWebhooks(svc *OutboundWebhookService) *LifecycleService {
+	s.webhookSvc = svc
+	return s
 }
 
 // LifecycleRepository defines the data access required for lifecycle operations.
@@ -307,14 +314,36 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		}
 	}
 
-	return &TransitionResult{
+	// Fire outbound webhook (non-blocking)
+	tenantID, _ := s.repo.GetBatchTenantID(ctx, passport.BatchID)
+	result := &TransitionResult{
 		Success:        true,
 		Passport:       passport,
 		PreviousStatus: previousStatus,
 		NewStatus:      toStatus,
 		Action:         string(action),
 		EventID:        event.ID,
-	}, nil
+	}
+	s.dispatchWebhook(ctx, result, tenantID)
+	return result, nil
+}
+
+// dispatchWebhook fires an outbound webhook after a successful lifecycle transition.
+// It is a no-op when no webhook service is wired.
+func (s *LifecycleService) dispatchWebhook(ctx context.Context, result *TransitionResult, tenantID uuid.UUID) {
+	if s.webhookSvc == nil {
+		return
+	}
+	payload := map[string]interface{}{
+		"passport_id":     result.Passport.UUID,
+		"serial_number":   result.Passport.SerialNumber,
+		"action":          result.Action,
+		"previous_status": string(result.PreviousStatus),
+		"new_status":      string(result.NewStatus),
+		"event_id":        result.EventID,
+	}
+	// fire-and-forget — Dispatch internally spawns a goroutine
+	s.webhookSvc.Dispatch(ctx, tenantID, "lifecycle."+result.Action, result.Passport.UUID, payload)
 }
 
 // GetPassportForTransition retrieves a passport for transition validation

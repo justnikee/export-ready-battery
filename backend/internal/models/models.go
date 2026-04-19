@@ -419,9 +419,10 @@ const (
 type ActorType string
 
 const (
-	ActorTypeSystem  ActorType = "SYSTEM"
-	ActorTypeUser    ActorType = "USER"
-	ActorTypePartner ActorType = "PARTNER"
+	ActorTypeSystem   ActorType = "SYSTEM"
+	ActorTypeUser     ActorType = "USER"
+	ActorTypePartner  ActorType = "PARTNER"
+	ActorTypeExternal ActorType = "EXTERNAL" // API-key authenticated supply-chain partner
 )
 
 // ActorRole defines legal authority for lifecycle actions
@@ -442,6 +443,7 @@ type ActionSource string
 const (
 	ActionSourceInternal  ActionSource = "INTERNAL"
 	ActionSourceMagicLink ActionSource = "MAGIC_LINK"
+	ActionSourceAPIKey    ActionSource = "API_KEY" // machine-to-machine via scoped API key
 )
 
 // ActorContext carries the mandatory actor identity for lifecycle actions
@@ -459,7 +461,7 @@ var (
 // IsValidActorType checks if the actor type is valid
 func IsValidActorType(actorType ActorType) bool {
 	switch actorType {
-	case ActorTypeSystem, ActorTypeUser, ActorTypePartner:
+	case ActorTypeSystem, ActorTypeUser, ActorTypePartner, ActorTypeExternal:
 		return true
 	}
 	return false

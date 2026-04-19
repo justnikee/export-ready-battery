@@ -18,6 +18,10 @@ type APIKey struct {
 	KeyHash       string     `json:"-"` // Never expose hash
 	KeyPrefix     string     `json:"key_prefix"`
 	Scope         string     `json:"scope"`           // "read" or "write"
+	// Role constrains which lifecycle actions the key holder may trigger.
+	// Mirrors partner roles: LOGISTICS, TECHNICIAN, RECYCLER.
+	// Empty means the key may not perform lifecycle transitions.
+	Role          string     `json:"role,omitempty"`
 	RateLimitTier string     `json:"rate_limit_tier"` // "starter" or "production"
 	LastUsedAt    *time.Time `json:"last_used_at,omitempty"`
 	ExpiresAt     *time.Time `json:"expires_at,omitempty"`
@@ -35,6 +39,9 @@ type APIKeyWithSecret struct {
 type CreateAPIKeyRequest struct {
 	Name          string `json:"name"`
 	Scope         string `json:"scope"`                     // "read" or "write"
+	// Role (optional) restricts lifecycle transitions the key may perform.
+	// Valid values: LOGISTICS, TECHNICIAN, RECYCLER. Omit for read/write-only keys.
+	Role          string `json:"role,omitempty"`
 	RateLimitTier string `json:"rate_limit_tier"`           // "starter" or "production"
 	ExpiresInDays *int   `json:"expires_in_days,omitempty"` // nil = never expires
 }
@@ -85,6 +92,22 @@ func ValidScopes() []string {
 func IsValidScope(scope string) bool {
 	for _, s := range ValidScopes() {
 		if s == scope {
+			return true
+		}
+	}
+	return false
+}
+
+// ValidAPIKeyRoles returns the set of roles assignable to an API key.
+// These mirror partner roles in the lifecycle role-action matrix.
+func ValidAPIKeyRoles() []string {
+	return []string{"LOGISTICS", "TECHNICIAN", "RECYCLER"}
+}
+
+// IsValidAPIKeyRole checks if a role string is valid for an API key.
+func IsValidAPIKeyRole(role string) bool {
+	for _, r := range ValidAPIKeyRoles() {
+		if r == role {
 			return true
 		}
 	}

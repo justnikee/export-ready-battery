@@ -70,7 +70,8 @@ type RepositoryInterface interface {
 	GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error)
 	GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error)
 	CountPassportsByBatch(ctx context.Context, batchID uuid.UUID) (int, error)
-	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error)
+	GetPassportStatusCounts(ctx context.Context, tenantID uuid.UUID, batchID string) (map[string]int, error)
 	FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error)
 	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
 	UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error

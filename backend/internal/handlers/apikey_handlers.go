@@ -40,6 +40,12 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate role (optional — only required for keys that will perform lifecycle transitions)
+	if req.Role != "" && !models.IsValidAPIKeyRole(req.Role) {
+		respondError(w, http.StatusBadRequest, "Invalid role. Must be one of: LOGISTICS, TECHNICIAN, RECYCLER")
+		return
+	}
+
 	// Validate rate limit tier
 	if req.RateLimitTier == "" {
 		req.RateLimitTier = "starter"
@@ -89,6 +95,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		KeyHash:       keyHash,
 		KeyPrefix:     prefix,
 		Scope:         req.Scope,
+		Role:          req.Role,
 		RateLimitTier: req.RateLimitTier,
 		ExpiresAt:     expiresAt,
 		IsActive:      true,
@@ -101,7 +108,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("API key created", "name", req.Name, "tenant", tenantIDStr[:8], "scope", req.Scope)
+	slog.Info("API key created", "name", req.Name, "tenant", tenantIDStr[:8], "scope", req.Scope, "role", req.Role)
 
 	// Return key with full key (only time it's shown)
 	respondJSON(w, http.StatusCreated, models.APIKeyWithSecret{

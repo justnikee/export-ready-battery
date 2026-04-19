@@ -385,3 +385,103 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 
 	slog.Info("External API: Labels downloaded", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
 }
+
+// ExternalTransitionPassportRequest is the body for an API-key-authenticated transition
+type ExternalTransitionPassportRequest struct {
+	Action   string          `json:"action"`
+	Evidence models.Evidence `json:"evidence,omitempty"`
+}
+
+// ExternalTransitionPassport handles POST /api/v1/external/passports/{uuid}/transition
+// Allows supply-chain partners (logistics, technicians, recyclers) to perform lifecycle
+// transitions using their write-scoped API key. The role on the API key determines which
+// actions the key is permitted to execute — matching the same AllowedRolesByAction matrix
+// used by magic-link and JWT-authenticated transitions.
+func (h *Handler) ExternalTransitionPassport(w http.ResponseWriter, r *http.Request) {
+	passportIDStr := r.PathValue("uuid")
+	passportID, err := uuid.Parse(passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Resolve tenant from API key context
+	tenantIDStr := middleware.GetAPIKeyTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	// Resolve role from API key context
+	roleStr := middleware.GetAPIKeyRole(r.Context())
+	if roleStr == "" {
+		respondError(w, http.StatusForbidden, "This API key has no lifecycle role assigned. Set role=LOGISTICS|TECHNICIAN|RECYCLER when creating the key.")
+		return
+	}
+	actorRole := models.ActorRole(roleStr)
+	if !models.IsValidActorRole(actorRole) {
+		respondError(w, http.StatusForbidden, "API key role is not a valid lifecycle role")
+		return
+	}
+
+	var req ExternalTransitionPassportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
+		return
+	}
+
+	// Verify the passport belongs to this tenant
+	if err := h.lifecycleService.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
+		respondError(w, http.StatusForbidden, "Passport not found")
+		return
+	}
+
+	actorContext := models.ActorContext{
+		ActorType: models.ActorTypeExternal,
+		ActorID:   middleware.GetAPIKeyTenantID(r.Context()), // tenant as actor ID for API key calls
+		ActorRole: actorRole,
+		Source:    models.ActionSourceAPIKey,
+	}
+
+	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:   passportID,
+		Action:       req.Action,
+		ActorContext: actorContext,
+		IPAddress:    getRequestIP(r),
+		Evidence:     req.Evidence,
+	})
+	if err != nil {
+		switch {
+		case isNotFoundErr(err):
+			respondError(w, http.StatusNotFound, result.Error)
+		case isConflictErr(err):
+			respondError(w, http.StatusConflict, result.Error)
+		case isForbiddenErr(err):
+			respondError(w, http.StatusForbidden, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
+		return
+	}
+
+	slog.Info("External API: passport transitioned",
+		"passport_id", passportID,
+		"action", req.Action,
+		"role", roleStr,
+		"tenant", tenantIDStr[:8],
+	)
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":         true,
+		"passport_id":     passportID,
+		"action":          result.Action,
+		"previous_status": result.PreviousStatus,
+		"new_status":      result.NewStatus,
+		"event_id":        result.EventID,
+	})
+}

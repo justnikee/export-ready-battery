@@ -109,7 +109,8 @@ func main() {
 	apiRateLimiter := middleware.NewAPIRateLimiter()
 
 	// Initialize lifecycle service and handler
-	lifecycleService := services.NewLifecycleService(repo)
+	outboundWebhookService := services.NewOutboundWebhookService(repo)
+	lifecycleService := services.NewLifecycleService(repo).WithWebhooks(outboundWebhookService)
 	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService, repo)
 
 	// Initialize reward service
@@ -399,7 +400,7 @@ func main() {
 	// ============================================
 	// OUTBOUND WEBHOOK MANAGEMENT (Protected)
 	// ============================================
-	outboundWHHandler := handlers.NewOutboundWebhookHandler(nil)
+	outboundWHHandler := handlers.NewOutboundWebhookHandler(outboundWebhookService)
 	mux.Handle("POST /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.CreateOutboundWebhook)))
 	mux.Handle("GET /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.ListOutboundWebhooks)))
 	mux.Handle("DELETE /api/v1/outbound-webhooks/{id}", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.DeleteOutboundWebhook)))
@@ -502,6 +503,7 @@ func main() {
 	mux.Handle("POST /api/v1/external/batches", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalCreateBatch)))
 	mux.Handle("POST /api/v1/external/batches/{id}/passports", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalCreatePassports)))
 	mux.Handle("GET /api/v1/external/batches/{id}/labels", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalDownloadLabels)))
+	mux.Handle("POST /api/v1/external/passports/{uuid}/transition", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalTransitionPassport)))
 
 	// Create HTTP server
 	server := &http.Server{

@@ -316,12 +316,20 @@ func (m *MockRepository) CountPassportsByBatch(ctx context.Context, batchID uuid
 	return args.Int(0), args.Error(1)
 }
 
-func (m *MockRepository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error) {
-	args := m.Called(ctx, tenantID, status, search, limit, offset)
+func (m *MockRepository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error) {
+	args := m.Called(ctx, tenantID, status, search, batchID, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Int(1), args.Error(2)
 	}
 	return args.Get(0).([]*PassportListItem), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetPassportStatusCounts(ctx context.Context, tenantID uuid.UUID, batchID string) (map[string]int, error) {
+	args := m.Called(ctx, tenantID, batchID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]int), args.Error(1)
 }
 
 func (m *MockRepository) FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error) {
