@@ -870,6 +870,111 @@ func (r *Repository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UU
 	return nil
 }
 
+// AppendSoHHistory inserts one SoH reading into the soh_history time-series table.
+func (r *Repository) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
+	query := `
+		INSERT INTO public.soh_history (id, passport_id, soh, recorded_at, actor, actor_type, source)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err := r.db.Pool.Exec(ctx, query,
+		entry.ID, entry.PassportID, entry.SoH, entry.RecordedAt,
+		entry.Actor, entry.ActorType, entry.Source,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to append soh history: %w", err)
+	}
+	return nil
+}
+
+// GetSoHHistory returns all SoH readings for a passport ordered newest-first.
+func (r *Repository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
+	query := `
+		SELECT id, passport_id, soh, recorded_at, actor, actor_type, source
+		FROM public.soh_history
+		WHERE passport_id = $1
+		ORDER BY recorded_at DESC`
+	rows, err := r.db.Pool.Query(ctx, query, passportID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get soh history: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.SoHHistoryEntry
+	for rows.Next() {
+		var e models.SoHHistoryEntry
+		if err := rows.Scan(&e.ID, &e.PassportID, &e.SoH, &e.RecordedAt, &e.Actor, &e.ActorType, &e.Source); err != nil {
+			return nil, fmt.Errorf("failed to scan soh history row: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
+// PassportListItem is a lightweight summary for the lifecycle list view.
+type PassportListItem struct {
+	UUID         string   `json:"uuid"`
+	SerialNumber string   `json:"serial_number"`
+	Status       string   `json:"status"`
+	StateOfHealth *float64 `json:"state_of_health"`
+	BatchName    string   `json:"batch_name"`
+	UpdatedAt    string   `json:"updated_at"`
+}
+
+// ListPassportsByTenant returns a tenant-scoped paginated list of passports
+// with optional status/search filters. Used by the lifecycle dashboard view.
+func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error) {
+	countQuery := `
+		SELECT COUNT(*)
+		FROM public.passports p
+		JOIN public.batches b ON b.id = p.batch_id
+		WHERE b.tenant_id = $1
+		  AND ($2 = '' OR p.status = $2)
+		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')`
+
+	var total int
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, status, search).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("failed to count passports: %w", err)
+	}
+
+	query := `
+		SELECT p.uuid, p.serial_number, p.status, p.state_of_health, b.batch_name,
+		       GREATEST(p.created_at,
+		                COALESCE(p.shipped_at, p.created_at),
+		                COALESCE(p.last_soh_update_timestamp, p.created_at)) AS updated_at
+		FROM public.passports p
+		JOIN public.batches b ON b.id = p.batch_id
+		WHERE b.tenant_id = $1
+		  AND ($2 = '' OR p.status = $2)
+		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
+		ORDER BY updated_at DESC
+		LIMIT $4 OFFSET $5`
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, status, search, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list passports: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*PassportListItem
+	for rows.Next() {
+		item := &PassportListItem{}
+		var updatedAt time.Time
+		if err := rows.Scan(
+			&item.UUID,
+			&item.SerialNumber,
+			&item.Status,
+			&item.StateOfHealth,
+			&item.BatchName,
+			&updatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan passport: %w", err)
+		}
+		item.UpdatedAt = updatedAt.UTC().Format(time.RFC3339)
+		items = append(items, item)
+	}
+
+	return items, total, nil
+}
+
 // SetRecyclingInfo updates India-specific recycling fields
 func (r *Repository) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error {
 	query := `

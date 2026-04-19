@@ -124,6 +124,14 @@ func (f *fakeMagicRepo) UpdateStateOfHealth(ctx context.Context, passportID uuid
 	return nil
 }
 
+func (f *fakeMagicRepo) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
+	return nil, nil
+}
+
 func (f *fakeMagicRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
 }
@@ -144,7 +152,7 @@ func setupMagicLinkHandler(t *testing.T, status string, action string, role stri
 	}
 
 	secret := "test-secret"
-	token, err := auth.GenerateMagicToken(passportID.String(), "partner@example.com", role, action, secret)
+	token, err := auth.GenerateMagicToken(passportID.String(), "partner@example.com", role, action, secret, time.Hour)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}

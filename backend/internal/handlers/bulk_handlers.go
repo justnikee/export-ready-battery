@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"exportready-battery/internal/middleware"
+	"exportready-battery/internal/repository"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -169,5 +171,50 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 		"batch_id":   batchID,
 		"batch_name": batch.BatchName,
 		"message":    "Draft batch deleted successfully.",
+	})
+}
+
+// ListPassports handles GET /api/v1/passports
+// Returns a tenant-scoped passport list for the lifecycle dashboard.
+// Query params: status, search, limit, offset
+func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	q := r.URL.Query()
+	status := q.Get("status")
+	search := q.Get("search")
+
+	limit := 100
+	if l := q.Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
+			limit = v
+		}
+	}
+	offset := 0
+	if o := q.Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, limit, offset)
+	if err != nil {
+		slog.Error("Failed to list passports", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to list passports")
+		return
+	}
+
+	if items == nil {
+		items = []*repository.PassportListItem{}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"passports": items,
+		"total":     total,
 	})
 }

@@ -70,6 +70,7 @@ type RepositoryInterface interface {
 	GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error)
 	GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error)
 	CountPassportsByBatch(ctx context.Context, batchID uuid.UUID) (int, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error)
 	FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error)
 	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
 	UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error
@@ -85,6 +86,8 @@ type RepositoryInterface interface {
 	AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error
+	AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error
+	GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error)
 	SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error
 
 	// reward.go

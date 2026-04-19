@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"exportready-battery/internal/auth"
@@ -17,6 +18,15 @@ import (
 	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
+)
+
+// sohRateLimiter tracks the last successful SoH push timestamp per token hash.
+// Enforces a minimum interval between pushes from the same token to prevent flooding.
+// The map is never explicitly cleaned up — each entry is just a time.Time (≈24 bytes),
+// and SOH_UPDATE tokens expire after 24h, so the worst-case size is tiny.
+var (
+	sohRateLimiter    sync.Map
+	sohMinPushInterval = time.Minute // max 1 push per minute per token
 )
 
 // MagicLinkRepository defines the data access required for magic link operations.
@@ -96,7 +106,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		respondError(w, http.StatusBadRequest, "action is required")
 		return
 	}
-	if !models.IsValidAction(req.Action) {
+	if !models.IsValidMagicLinkAction(req.Action) {
 		respondError(w, http.StatusBadRequest, "Invalid action")
 		return
 	}
@@ -108,10 +118,13 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Ensure action is valid for current state (intent validation before persistence)
-	if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status) {
-		respondError(w, http.StatusConflict, "Action not allowed from current status")
-		return
+	// Ensure action is valid for current state (intent validation before persistence).
+	// SOH_UPDATE is not a state machine transition, so no status check is needed.
+	if req.Action != string(models.ActionSOHUpdate) {
+		if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status) {
+			respondError(w, http.StatusConflict, "Action not allowed from current status")
+			return
+		}
 	}
 
 	// ===== TIERED PARTNER VERIFICATION =====
@@ -154,8 +167,15 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	// Generate magic link token
-	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, req.Action, h.jwtSecret)
+	// Generate magic link token.
+	// SOH_UPDATE tokens are multi-use (not consumed on each push), so they get a longer
+	// lifetime to avoid requiring IoT gateways or field apps to re-authenticate frequently.
+	// Lifecycle transition tokens remain 1-hour one-time-use.
+	tokenTTL := time.Hour
+	if req.Action == string(models.ActionSOHUpdate) {
+		tokenTTL = 24 * time.Hour
+	}
+	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, req.Action, h.jwtSecret, tokenTTL)
 	if err != nil {
 		slog.Error("Failed to generate magic token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate magic link")
@@ -516,12 +536,18 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Get allowed actions from current status (and restrict to token action)
-	allowedActions := models.GetAllowedActions(passport.Status)
+	// Build the list of actions the token holder is permitted to perform.
+	// SOH_UPDATE is not a state-machine transition, so it does not appear in
+	// GetAllowedActions — handle it as a special case so the action page knows
+	// to show a SoH input rather than a lifecycle transition button.
 	allowedForToken := []string{}
-	for _, action := range allowedActions {
-		if string(action) == claims.Action {
-			allowedForToken = append(allowedForToken, string(action))
+	if claims.Action == string(models.ActionSOHUpdate) {
+		allowedForToken = []string{string(models.ActionSOHUpdate)}
+	} else {
+		for _, action := range models.GetAllowedActions(passport.Status) {
+			if string(action) == claims.Action {
+				allowedForToken = append(allowedForToken, string(action))
+			}
 		}
 	}
 
@@ -536,5 +562,123 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 			"role":  claims.Role,
 		},
 		"allowed_actions": allowedForToken,
+	})
+}
+
+// UpdateSoHWithMagicLink handles POST /api/v1/passport/{uuid}/soh
+// Allows external partners (technicians, fleet operators) to push State-of-Health
+// readings using a magic link token issued with action="SOH_UPDATE".
+// Unlike lifecycle transition tokens, SOH_UPDATE tokens are multi-use (not consumed on use),
+// valid until their expiry. This supports IoT gateways and recurring field measurements.
+//
+// Auth: Bearer <magic_link_token> (action must be "SOH_UPDATE")
+// Body: {"state_of_health": 87.5}
+func (h *MagicLinkHandler) UpdateSoHWithMagicLink(w http.ResponseWriter, r *http.Request) {
+	// Extract passport UUID from path: /api/v1/passport/{uuid}/soh
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportIDStr := pathParts[4]
+	passportID, err := uuid.Parse(passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Extract Bearer token
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		respondError(w, http.StatusUnauthorized, "Bearer token required")
+		return
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Validate JWT is scoped to this passport
+	claims, err := auth.ValidateMagicTokenForPassport(tokenString, h.jwtSecret, passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid or expired magic link")
+		return
+	}
+
+	// Only SOH_UPDATE tokens may reach this endpoint
+	if claims.Action != string(models.ActionSOHUpdate) {
+		respondError(w, http.StatusForbidden, "Token not authorized for SoH push (wrong action)")
+		return
+	}
+
+	// Validate role is a recognised partner role
+	if !models.IsValidPartnerRole(claims.Role) {
+		respondError(w, http.StatusForbidden, "Role not permitted for SoH push")
+		return
+	}
+
+	// Look up DB record — verify token is known, not expired, and scoped to this passport.
+	// We intentionally do NOT check UsedAt: SOH_UPDATE tokens are multi-use until expiry.
+	tokenHash := auth.HashToken(tokenString)
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
+		return
+	}
+	if record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognised")
+		return
+	}
+	if record.PassportID != passportID {
+		respondError(w, http.StatusForbidden, "Magic link not valid for this passport")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+	if !strings.EqualFold(record.Action, string(models.ActionSOHUpdate)) {
+		respondError(w, http.StatusForbidden, "Magic link action mismatch")
+		return
+	}
+
+	// Rate limit: max 1 push per minute per token to prevent flooding.
+	now := time.Now()
+	if last, ok := sohRateLimiter.Load(tokenHash); ok {
+		if now.Sub(last.(time.Time)) < sohMinPushInterval {
+			remaining := sohMinPushInterval - now.Sub(last.(time.Time))
+			respondError(w, http.StatusTooManyRequests,
+				fmt.Sprintf("Rate limit: wait %ds before next SoH push", int(remaining.Seconds())+1))
+			return
+		}
+	}
+
+	// Parse request body
+	var req SOHUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Delegate to the lifecycle service — pass PARTNER / MAGIC_LINK as actor context
+	if err := h.lifecycleService.UpdateStateOfHealth(
+		r.Context(),
+		passportID,
+		req.StateOfHealth,
+		claims.Email,
+		"PARTNER",
+		"MAGIC_LINK",
+		getRequestIP(r),
+	); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Record timestamp for rate limiting — only update after a successful push
+	sohRateLimiter.Store(tokenHash, time.Now())
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":         true,
+		"passport_id":     passportID,
+		"state_of_health": req.StateOfHealth,
+		"recorded_by":     claims.Email,
+		"role":            claims.Role,
 	})
 }

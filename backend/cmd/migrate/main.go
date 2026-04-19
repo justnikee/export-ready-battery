@@ -35,6 +35,7 @@ var expectedTables = []string{
 	"epr_certificates",
 	"api_keys",
 	"api_key_usage",
+	"soh_history",
 }
 
 // expectedColumns maps table → list of critical columns to verify.

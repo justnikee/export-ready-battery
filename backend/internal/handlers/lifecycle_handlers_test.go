@@ -139,6 +139,14 @@ func (f *fakeLifecycleRepo) UpdateStateOfHealth(ctx context.Context, passportID 
 	return nil
 }
 
+func (f *fakeLifecycleRepo) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
+	return nil
+}
+
+func (f *fakeLifecycleRepo) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
+	return nil, nil
+}
+
 func (f *fakeLifecycleRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
 }

@@ -522,13 +522,28 @@ func ValidateActorContext(ctx ActorContext) error {
 type TransitionAction string
 
 const (
-	ActionActivate TransitionAction = "ACTIVATE"
-	ActionShip     TransitionAction = "SHIP"
-	ActionInstall  TransitionAction = "INSTALL"
-	ActionRecycle  TransitionAction = "RECYCLE"
-	ActionClose    TransitionAction = "CLOSE"
-	ActionRecall   TransitionAction = "RECALL"
+	ActionActivate  TransitionAction = "ACTIVATE"
+	ActionShip      TransitionAction = "SHIP"
+	ActionInstall   TransitionAction = "INSTALL"
+	ActionRecycle   TransitionAction = "RECYCLE"
+	ActionClose     TransitionAction = "CLOSE"
+	ActionRecall    TransitionAction = "RECALL"
+	// ActionSOHUpdate is not a lifecycle state transition — it does not change PassportStatus.
+	// It is a pseudo-action used exclusively for issuing magic link tokens that allow
+	// external partners (technicians, fleet operators) to push SoH readings via
+	// POST /api/v1/passport/{uuid}/soh. Multi-use until token expiry.
+	ActionSOHUpdate TransitionAction = "SOH_UPDATE"
 )
+
+// IsValidMagicLinkAction returns true for actions that can be encoded in a magic link token.
+// This includes all lifecycle TransitionActions (which change state) plus SOH_UPDATE
+// (which only records a health reading without changing state).
+func IsValidMagicLinkAction(action string) bool {
+	if action == string(ActionSOHUpdate) {
+		return true
+	}
+	return IsValidAction(action)
+}
 
 // TransitionDefinition defines allowed from-states and resulting state for an action.
 // This is the single source of truth for lifecycle transitions.
@@ -696,6 +711,19 @@ const (
 	PassportEventRepairLogged  = "REPAIR_LOGGED"
 	PassportEventReplaceLogged = "REPLACEMENT_LOGGED"
 )
+
+// SoHHistoryEntry is one row in the soh_history table.
+// Every call to UpdateStateOfHealth appends a row, giving a queryable time-series
+// of health readings without replaying the passport event log.
+type SoHHistoryEntry struct {
+	ID         uuid.UUID `json:"id"`
+	PassportID uuid.UUID `json:"passport_id"`
+	SoH        float64   `json:"state_of_health"`
+	RecordedAt time.Time `json:"recorded_at"`
+	Actor      string    `json:"actor,omitempty"`
+	ActorType  string    `json:"actor_type,omitempty"` // USER | PARTNER | SYSTEM | DEVICE
+	Source     string    `json:"source,omitempty"`     // INTERNAL | MAGIC_LINK | API | CSV
+}
 
 // ============================================================================
 // BATCH STATUS (QUOTA SYSTEM)

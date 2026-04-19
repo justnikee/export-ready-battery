@@ -612,6 +612,33 @@ func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// GetSoHHistory handles GET /api/v1/passports/{uuid}/soh/history
+func (h *LifecycleHandler) GetSoHHistory(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportID, err := uuid.Parse(pathParts[4])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	entries, err := h.service.GetSoHHistory(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve SoH history")
+		return
+	}
+	if entries == nil {
+		entries = []models.SoHHistoryEntry{}
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"passport_id": passportID,
+		"history":     entries,
+	})
+}
+
 // LogRepairEvent handles POST /api/v1/passports/{uuid}/repairs
 func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")

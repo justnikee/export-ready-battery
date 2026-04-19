@@ -316,6 +316,14 @@ func (m *MockRepository) CountPassportsByBatch(ctx context.Context, batchID uuid
 	return args.Int(0), args.Error(1)
 }
 
+func (m *MockRepository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error) {
+	args := m.Called(ctx, tenantID, status, search, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*PassportListItem), args.Int(1), args.Error(2)
+}
+
 func (m *MockRepository) FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error) {
 	args := m.Called(ctx, serials)
 	if args.Get(0) == nil {
@@ -401,6 +409,19 @@ func (m *MockRepository) AppendReplacementEvent(ctx context.Context, passportID 
 func (m *MockRepository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error {
 	args := m.Called(ctx, passportID, soh, ts)
 	return args.Error(0)
+}
+
+func (m *MockRepository) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
+	args := m.Called(ctx, passportID)
+	if v := args.Get(0); v != nil {
+		return v.([]models.SoHHistoryEntry), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *MockRepository) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error {

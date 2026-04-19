@@ -37,9 +37,10 @@ type MagicLinkToken struct {
 	TokenID   string    `json:"token_id"`
 }
 
-// GenerateMagicToken creates a 1-hour JWT for passport access
-// The token is scoped to a specific passport and includes the actor's email and role
-func GenerateMagicToken(passportID, email, role, action, secret string) (*MagicLinkToken, error) {
+// GenerateMagicToken creates a scoped JWT for passport access.
+// ttl controls token lifetime: use 1*time.Hour for one-time lifecycle transitions,
+// 24*time.Hour (or more) for multi-use SOH_UPDATE tokens used by IoT gateways / field apps.
+func GenerateMagicToken(passportID, email, role, action, secret string, ttl time.Duration) (*MagicLinkToken, error) {
 	if passportID == "" {
 		return nil, errors.New("passport_id is required")
 	}
@@ -52,9 +53,12 @@ func GenerateMagicToken(passportID, email, role, action, secret string) (*MagicL
 	if action == "" {
 		return nil, errors.New("action is required")
 	}
+	if ttl <= 0 {
+		ttl = time.Hour
+	}
 
 	tokenID := uuid.New().String()
-	expiresAt := time.Now().Add(1 * time.Hour)
+	expiresAt := time.Now().Add(ttl)
 
 	claims := MagicLinkClaims{
 		PassportID: passportID,

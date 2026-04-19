@@ -280,6 +280,7 @@ func main() {
 	// RBAC: bulk delete requires owner or operator
 	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(middleware.RequireRole("owner", "operator")(http.HandlerFunc(h.BulkDeletePassports))))
 	mux.Handle("POST /api/v1/passports/bulk/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports)))
+	mux.Handle("GET /api/v1/passports", authMiddleware.Protect(http.HandlerFunc(h.ListPassports)))
 
 	// ============================================
 	// PASSPORT LIFECYCLE ROUTES (Protected)
@@ -288,6 +289,7 @@ func main() {
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
 	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth)))
+	mux.Handle("GET /api/v1/passports/{uuid}/soh/history", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetSoHHistory)))
 	mux.Handle("POST /api/v1/passports/{uuid}/repairs", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogRepairEvent)))
 	mux.Handle("POST /api/v1/passports/{uuid}/replacements", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogReplacementEvent)))
 	mux.Handle("POST /api/v1/passports/{uuid}/transfer", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransferPassport)))
@@ -445,6 +447,8 @@ func main() {
 	// ============================================
 	mux.HandleFunc("POST /api/v1/passport/{uuid}/transition", magicLinkHandler.TransitionWithMagicLink)
 	mux.HandleFunc("GET /api/v1/passport/{uuid}/action-info", magicLinkHandler.GetPassportForAction)
+	// SOH push via magic link (action=SOH_UPDATE) — multi-use token, not consumed on push
+	mux.HandleFunc("POST /api/v1/passport/{uuid}/soh", magicLinkHandler.UpdateSoHWithMagicLink)
 
 	// ============================================
 	// API KEY MANAGEMENT (Protected)

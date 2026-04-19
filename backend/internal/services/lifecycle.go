@@ -41,6 +41,8 @@ type LifecycleRepository interface {
 	UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error
 	CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error
 	UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, updatedAt time.Time) error
+	AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error
+	GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error)
 	AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 }
@@ -651,7 +653,7 @@ func (s *LifecycleService) VerifyPassportAuditChain(ctx context.Context, passpor
 	return valid, failedIdx, nil
 }
 
-// UpdateStateOfHealth updates SoH and logs an immutable event
+// UpdateStateOfHealth updates SoH, appends to soh_history, and logs an immutable event
 func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, actor, actorType, source, ip string) error {
 	if soh < 0 || soh > 100 {
 		return fmt.Errorf("state_of_health must be between 0 and 100")
@@ -661,6 +663,30 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 	if err := s.repo.UpdateStateOfHealth(ctx, passportID, soh, now); err != nil {
 		return err
 	}
+
+	// Append a row to soh_history so callers can query the time-series without
+	// replaying the passport event log.
+	_ = s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
+		ID:         uuid.New(),
+		PassportID: passportID,
+		SoH:        soh,
+		RecordedAt: now,
+		Actor:      actor,
+		ActorType:  actorType,
+		Source:     source,
+	})
+
+	// Append a row to soh_history so callers can query the time-series without
+	// replaying the passport event log.
+	_ = s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
+		ID:         uuid.New(),
+		PassportID: passportID,
+		SoH:        soh,
+		RecordedAt: now,
+		Actor:      actor,
+		ActorType:  actorType,
+		Source:     source,
+	})
 
 	previousHash := ""
 	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
@@ -704,6 +730,11 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 	}
 
 	return s.repo.CreatePassportEvent(ctx, event)
+}
+
+// GetSoHHistory returns the full SoH time-series for a passport, newest first.
+func (s *LifecycleService) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
+	return s.repo.GetSoHHistory(ctx, passportID)
 }
 
 // LogRepairEvent appends repair event data and logs an immutable event
