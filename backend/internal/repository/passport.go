@@ -61,7 +61,7 @@ func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Pas
 			)
 			args = append(args,
 				p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt,
-				p.BatchSnapshot, p.CurrentOwnerIdentifier, p.OwnershipHistory,
+				jsonStringArg(p.BatchSnapshot), p.CurrentOwnerIdentifier, jsonStringArg(p.OwnershipHistory),
 				p.StateOfHealth, p.LastSOHUpdateTimestamp,
 				p.CSVSourceFilename, p.CSVRowIndex,
 			)
@@ -130,7 +130,7 @@ func copyPassportEvents(ctx context.Context, exec bulkExecer, events []*models.P
 				e.Actor, e.ActorType,
 				nullableString(string(e.ActorRole)),
 				e.ActorID, e.Source, e.StatusFrom, e.StatusTo, e.IPAddress,
-				metadataJSON, e.CreatedAt, e.Hash, e.PreviousHash,
+				string(metadataJSON), e.CreatedAt, e.Hash, e.PreviousHash,
 			)
 		}
 
@@ -171,9 +171,9 @@ func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passpo
 		passport.ManufactureDate,
 		passport.Status,
 		passport.CreatedAt,
-		passport.BatchSnapshot,
+		jsonStringArg(passport.BatchSnapshot),
 		passport.CurrentOwnerIdentifier,
-		passport.OwnershipHistory,
+		jsonStringArg(passport.OwnershipHistory),
 		passport.StateOfHealth,
 		passport.LastSOHUpdateTimestamp,
 		passport.CSVSourceFilename,
@@ -533,6 +533,17 @@ func nullableString(value string) interface{} {
 	return value
 }
 
+// jsonStringArg converts a json.RawMessage to string for pgx SimpleProtocol compatibility.
+// pgx v5 encodes json.RawMessage as bytea (\x...) when the target OID is unknown (SimpleProtocol),
+// which PostgreSQL rejects for JSONB columns. A plain string is emitted as a quoted SQL literal
+// that PostgreSQL happily coerces to JSONB.
+func jsonStringArg(raw json.RawMessage) interface{} {
+	if len(raw) == 0 {
+		return nil
+	}
+	return string(raw)
+}
+
 func insertPassportEvent(ctx context.Context, exec execer, event *models.PassportEvent) error {
 	query := `INSERT INTO public.passport_events (id, passport_id, event_type, action, actor, actor_type, actor_role, actor_identifier, source, status_from, status_to, ip_address, metadata, created_at, hash, previous_hash) 
 	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
@@ -555,7 +566,7 @@ func insertPassportEvent(ctx context.Context, exec execer, event *models.Passpor
 		event.StatusFrom,
 		event.StatusTo,
 		event.IPAddress,
-		metadataJSON,
+		string(metadataJSON),
 		event.CreatedAt,
 		event.Hash,
 		event.PreviousHash,

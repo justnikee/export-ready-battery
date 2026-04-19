@@ -104,22 +104,32 @@ export interface PassportViewData {
  recycled_nickel_pct?: number
  recycled_lead_pct?: number
  } | null
- } | null
+ certifications?: string[]
+  } | null
  tenant: {
  company_name?: string
  manufacturer_name?: string
+ // Backend sends 'address', not 'manufacturer_address'
+ address?: string
  manufacturer_address?: string
+ // Backend sends 'support_email', not 'manufacturer_email'
+ support_email?: string
  manufacturer_email?: string
  epr_registration_number?: string
  bis_r_number?: string
  bis_certificate_path?: string
  epr_certificate_path?: string
  pli_certificate_path?: string
- certifications?: string[]
- eu_representative_name?: string
- eu_representative_address?: string
- eu_representative_email?: string
- } | null
+   certifications?: string[]
+    // Backend sends these names
+    eu_authorized_representative_name?: string
+    eu_authorized_representative_address?: string
+    eu_contact_email?: string
+    // Legacy aliases
+    eu_representative_name?: string
+    eu_representative_address?: string
+    eu_representative_email?: string
+  } | null
  batch_name?: string
  model_name?: string
  manufacturing_start_date?: string
@@ -164,7 +174,7 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
  const carbonFootprint = specs?.carbon_footprint || null
  const eprNumber = specs?.epr_number || tenant.epr_registration_number || null
  const bisRNumber = specs?.bis_number || tenant.bis_r_number || null
- const certifications = tenant.certifications || []
+ const certifications = tenant.certifications || specs?.certifications || []
  const cellSource = passportData.cell_source || null
  const marketRegion = passportData.market_region || null
  const dvaPercent = passportData.domestic_value_add
@@ -177,14 +187,15 @@ export function CertificateView({ passport: passportData, locale = 'en' }: Certi
  const startDate = passportData.manufacturing_start_date ? new Date(passportData.manufacturing_start_date) : null
  const endDate = passportData.manufacturing_end_date ? new Date(passportData.manufacturing_end_date) : null
  const manufacturerName = tenant.manufacturer_name || tenant.company_name || null
- const manufacturerAddress = tenant.manufacturer_address || null
- const manufacturerEmail = tenant.manufacturer_email || null
+ // Backend uses 'address' and 'support_email' — fall back to legacy aliases for forward compat
+ const manufacturerAddress = tenant.address || tenant.manufacturer_address || null
+  const manufacturerEmail = tenant.support_email || tenant.manufacturer_email || null
  const recyclingDate = passport.recycling_date ? new Date(passport.recycling_date) : null
 
- // EU Representative
- const euRepresentativeName = tenant.eu_representative_name || null
- const euRepresentativeAddress = tenant.eu_representative_address || null
- const euRepresentativeEmail = tenant.eu_representative_email || null
+ // EU Representative — backend uses eu_authorized_representative_name / eu_contact_email
+ const euRepresentativeName = tenant.eu_authorized_representative_name || tenant.eu_representative_name || null
+ const euRepresentativeAddress = tenant.eu_authorized_representative_address || tenant.eu_representative_address || null
+ const euRepresentativeEmail = tenant.eu_contact_email || tenant.eu_representative_email || null
  const showEURepresentative = euRepresentativeName || euRepresentativeAddress || euRepresentativeEmail
 
  // Critical raw materials
