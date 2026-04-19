@@ -21,6 +21,8 @@ const (
 	APIKeyScopeKey APIKeyContextKey = "api_key_scope"
 	// APIKeyTenantIDKey is the context key for tenant ID from API key
 	APIKeyTenantIDKey APIKeyContextKey = "api_key_tenant_id"
+	// APIKeyRoleKey is the context key for the lifecycle role assigned to the API key
+	APIKeyRoleKey APIKeyContextKey = "api_key_role"
 )
 
 // APIKeyAuth middleware for API key authentication
@@ -170,6 +172,9 @@ func (a *APIKeyAuth) enrichContext(ctx context.Context, key *models.APIKey) cont
 	ctx = context.WithValue(ctx, APIKeyIDKey, key.ID.String())
 	ctx = context.WithValue(ctx, APIKeyScopeKey, key.Scope)
 	ctx = context.WithValue(ctx, APIKeyTenantIDKey, key.TenantID.String())
+	if key.Role != "" {
+		ctx = context.WithValue(ctx, APIKeyRoleKey, key.Role)
+	}
 	return ctx
 }
 
@@ -177,6 +182,15 @@ func (a *APIKeyAuth) enrichContext(ctx context.Context, key *models.APIKey) cont
 func GetAPIKeyTenantID(ctx context.Context) string {
 	if id, ok := ctx.Value(APIKeyTenantIDKey).(string); ok {
 		return id
+	}
+	return ""
+}
+
+// GetAPIKeyRole extracts the lifecycle role from API key context.
+// Returns empty string if no role was assigned to the key.
+func GetAPIKeyRole(ctx context.Context) string {
+	if role, ok := ctx.Value(APIKeyRoleKey).(string); ok {
+		return role
 	}
 	return ""
 }

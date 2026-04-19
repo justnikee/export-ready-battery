@@ -176,7 +176,7 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 
 // ListPassports handles GET /api/v1/passports
 // Returns a tenant-scoped passport list for the lifecycle dashboard.
-// Query params: status, search, limit, offset
+// Query params: status, search, batch_id, limit, offset
 func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())
 	tenantID, err := uuid.Parse(tenantIDStr)
@@ -188,8 +188,9 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	status := q.Get("status")
 	search := q.Get("search")
+	batchID := q.Get("batch_id")
 
-	limit := 100
+	limit := 50
 	if l := q.Get("limit"); l != "" {
 		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
 			limit = v
@@ -202,7 +203,7 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, limit, offset)
+	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, batchID, limit, offset)
 	if err != nil {
 		slog.Error("Failed to list passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list passports")
@@ -213,8 +214,15 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 		items = []*repository.PassportListItem{}
 	}
 
+	statusCounts, err := h.repo.GetPassportStatusCounts(r.Context(), tenantID, batchID)
+	if err != nil {
+		slog.Error("Failed to get passport status counts", "error", err)
+		statusCounts = map[string]int{}
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"passports": items,
-		"total":     total,
+		"passports":     items,
+		"total":         total,
+		"status_counts": statusCounts,
 	})
 }

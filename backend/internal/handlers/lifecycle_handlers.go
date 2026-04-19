@@ -79,12 +79,20 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 		return models.ActorContext{}, http.StatusInternalServerError, errors.New("role resolver unavailable")
 	}
 
+	// Resolve role: prefer team_members table; fall back to the JWT role
+	// (covers tenant owners who are not explicitly added as team members).
+	var roleStr string
 	member, err := h.roleResolver.GetTeamMemberByEmail(ctx, tenantID, email)
-	if err != nil || member == nil {
-		return models.ActorContext{}, http.StatusForbidden, errors.New("role not found")
+	if err == nil && member != nil {
+		roleStr = member.Role
+	} else {
+		roleStr = middleware.GetRole(ctx)
+		if roleStr == "" {
+			return models.ActorContext{}, http.StatusForbidden, errors.New("role not found")
+		}
 	}
 
-	internalRole, ok := mapTeamRoleToActorRole(member.Role)
+	internalRole, ok := mapTeamRoleToActorRole(roleStr)
 	if !ok {
 		return models.ActorContext{}, http.StatusForbidden, errors.New("role not permitted")
 	}
@@ -517,6 +525,23 @@ func getRequestIP(r *http.Request) string {
 		return host
 	}
 	return r.RemoteAddr
+}
+
+// isNotFoundErr classifies a lifecycle error as a not-found condition.
+func isNotFoundErr(err error) bool {
+	return errors.Is(err, services.ErrUnknownAction)
+}
+
+// isConflictErr classifies a lifecycle error as a state-conflict condition.
+func isConflictErr(err error) bool {
+	return errors.Is(err, services.ErrActionNotAllowed)
+}
+
+// isForbiddenErr classifies a lifecycle error as a permission denial.
+func isForbiddenErr(err error) bool {
+	return errors.Is(err, services.ErrRoleNotAllowed) ||
+		errors.Is(err, services.ErrMissingActorContext) ||
+		errors.Is(err, services.ErrInvalidActorContext)
 }
 
 // VerifyAuditChain handles GET /api/v1/passports/{uuid}/verify-chain

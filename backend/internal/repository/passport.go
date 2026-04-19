@@ -920,18 +920,19 @@ type PassportListItem struct {
 }
 
 // ListPassportsByTenant returns a tenant-scoped paginated list of passports
-// with optional status/search filters. Used by the lifecycle dashboard view.
-func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search string, limit, offset int) ([]*PassportListItem, int, error) {
+// with optional status/search/batchID filters. Used by the lifecycle dashboard view.
+func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error) {
 	countQuery := `
 		SELECT COUNT(*)
 		FROM public.passports p
 		JOIN public.batches b ON b.id = p.batch_id
 		WHERE b.tenant_id = $1
 		  AND ($2 = '' OR p.status = $2)
-		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')`
+		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
+		  AND ($4 = '' OR b.id::text = $4)`
 
 	var total int
-	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, status, search).Scan(&total); err != nil {
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, status, search, batchID).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count passports: %w", err)
 	}
 
@@ -945,10 +946,11 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		WHERE b.tenant_id = $1
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
+		  AND ($4 = '' OR b.id::text = $4)
 		ORDER BY updated_at DESC
-		LIMIT $4 OFFSET $5`
+		LIMIT $5 OFFSET $6`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID, status, search, limit, offset)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, status, search, batchID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list passports: %w", err)
 	}
@@ -973,6 +975,34 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 	}
 
 	return items, total, nil
+}
+
+// GetPassportStatusCounts returns per-status counts for a tenant (optionally filtered by batch).
+func (r *Repository) GetPassportStatusCounts(ctx context.Context, tenantID uuid.UUID, batchID string) (map[string]int, error) {
+	query := `
+		SELECT p.status, COUNT(*)
+		FROM public.passports p
+		JOIN public.batches b ON b.id = p.batch_id
+		WHERE b.tenant_id = $1
+		  AND ($2 = '' OR b.id::text = $2)
+		GROUP BY p.status`
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, batchID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count passports by status: %w", err)
+	}
+	defer rows.Close()
+
+	counts := map[string]int{}
+	for rows.Next() {
+		var s string
+		var n int
+		if err := rows.Scan(&s, &n); err != nil {
+			return nil, fmt.Errorf("failed to scan status count: %w", err)
+		}
+		counts[s] = n
+	}
+	return counts, rows.Err()
 }
 
 // SetRecyclingInfo updates India-specific recycling fields

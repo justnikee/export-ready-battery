@@ -18,8 +18,8 @@ import (
 // CreateAPIKey creates a new API key
 func (r *Repository) CreateAPIKey(ctx context.Context, key *models.APIKey) error {
 	query := `
-		INSERT INTO api_keys (id, tenant_id, name, key_hash, key_prefix, scope, rate_limit_tier, expires_at, is_active, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO api_keys (id, tenant_id, name, key_hash, key_prefix, scope, role, rate_limit_tier, expires_at, is_active, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	_, err := r.db.Pool.Exec(ctx, query,
@@ -29,6 +29,7 @@ func (r *Repository) CreateAPIKey(ctx context.Context, key *models.APIKey) error
 		key.KeyHash,
 		key.KeyPrefix,
 		key.Scope,
+		key.Role,
 		key.RateLimitTier,
 		key.ExpiresAt,
 		key.IsActive,
@@ -44,7 +45,7 @@ func (r *Repository) CreateAPIKey(ctx context.Context, key *models.APIKey) error
 // ListAPIKeys returns all API keys for a tenant
 func (r *Repository) ListAPIKeys(ctx context.Context, tenantID uuid.UUID) ([]*models.APIKey, error) {
 	query := `
-		SELECT id, tenant_id, name, key_prefix, scope, rate_limit_tier, last_used_at, expires_at, is_active, created_at
+		SELECT id, tenant_id, name, key_prefix, scope, role, rate_limit_tier, last_used_at, expires_at, is_active, created_at
 		FROM api_keys
 		WHERE tenant_id = $1
 		ORDER BY created_at DESC
@@ -65,6 +66,7 @@ func (r *Repository) ListAPIKeys(ctx context.Context, tenantID uuid.UUID) ([]*mo
 			&key.Name,
 			&key.KeyPrefix,
 			&key.Scope,
+			&key.Role,
 			&key.RateLimitTier,
 			&key.LastUsedAt,
 			&key.ExpiresAt,
@@ -82,7 +84,7 @@ func (r *Repository) ListAPIKeys(ctx context.Context, tenantID uuid.UUID) ([]*mo
 // GetAPIKeyByID retrieves an API key by ID
 func (r *Repository) GetAPIKeyByID(ctx context.Context, id uuid.UUID) (*models.APIKey, error) {
 	query := `
-		SELECT id, tenant_id, name, key_hash, key_prefix, scope, rate_limit_tier, last_used_at, expires_at, is_active, created_at
+		SELECT id, tenant_id, name, key_hash, key_prefix, scope, role, rate_limit_tier, last_used_at, expires_at, is_active, created_at
 		FROM api_keys
 		WHERE id = $1
 	`
@@ -95,6 +97,7 @@ func (r *Repository) GetAPIKeyByID(ctx context.Context, id uuid.UUID) (*models.A
 		&key.KeyHash,
 		&key.KeyPrefix,
 		&key.Scope,
+		&key.Role,
 		&key.RateLimitTier,
 		&key.LastUsedAt,
 		&key.ExpiresAt,
@@ -114,7 +117,7 @@ func (r *Repository) GetAPIKeyByID(ctx context.Context, id uuid.UUID) (*models.A
 // GetAPIKeyByPrefix retrieves an API key by its prefix (for validation lookup)
 func (r *Repository) GetAPIKeyByPrefix(ctx context.Context, prefix string) (*models.APIKey, error) {
 	query := `
-		SELECT id, tenant_id, name, key_hash, key_prefix, scope, rate_limit_tier, last_used_at, expires_at, is_active, created_at
+		SELECT id, tenant_id, name, key_hash, key_prefix, scope, role, rate_limit_tier, last_used_at, expires_at, is_active, created_at
 		FROM api_keys
 		WHERE key_prefix = $1 AND is_active = true
 	`
@@ -127,6 +130,7 @@ func (r *Repository) GetAPIKeyByPrefix(ctx context.Context, prefix string) (*mod
 		&key.KeyHash,
 		&key.KeyPrefix,
 		&key.Scope,
+		&key.Role,
 		&key.RateLimitTier,
 		&key.LastUsedAt,
 		&key.ExpiresAt,
@@ -146,7 +150,7 @@ func (r *Repository) GetAPIKeyByPrefix(ctx context.Context, prefix string) (*mod
 // GetAllActiveAPIKeys returns all active keys (for validation - we'll check hash on each)
 func (r *Repository) GetAllActiveAPIKeys(ctx context.Context) ([]*models.APIKey, error) {
 	query := `
-		SELECT id, tenant_id, name, key_hash, key_prefix, scope, rate_limit_tier, last_used_at, expires_at, is_active, created_at
+		SELECT id, tenant_id, name, key_hash, key_prefix, scope, role, rate_limit_tier, last_used_at, expires_at, is_active, created_at
 		FROM api_keys
 		WHERE is_active = true AND (expires_at IS NULL OR expires_at > NOW())
 	`
@@ -167,6 +171,7 @@ func (r *Repository) GetAllActiveAPIKeys(ctx context.Context) ([]*models.APIKey,
 			&key.KeyHash,
 			&key.KeyPrefix,
 			&key.Scope,
+			&key.Role,
 			&key.RateLimitTier,
 			&key.LastUsedAt,
 			&key.ExpiresAt,
