@@ -1476,16 +1476,22 @@ export default function BatchDetailsPage() {
  <Shield className="h-5 w-5 text-emerald-500" />
  </div>
  <span>Compliance Score</span>
- {complianceScore !== null && (
- <Badge className={`ml-auto ${complianceScore >= 80
- ? 'bg-emerald-500/10 text-emerald-500 border-emerald-200'
- : complianceScore >= 50
- ? 'bg-amber-500/10 text-amber-500 border-amber-200'
- : 'bg-red-500/10 text-red-500 border-red-200'
- }`}>
- {complianceScore >= 80 ? 'Passed' : complianceScore >= 50 ? 'Partial' : 'Failing'}
- </Badge>
- )}
+ {complianceScore !== null && (() => {
+ const hasErrors = complianceGaps.some(g => g.severity === 'ERROR');
+ const hasWarnings = complianceGaps.some(g => g.severity === 'WARNING');
+ const badgeColor = complianceScore >= 80
+   ? hasErrors ? 'bg-red-500/10 text-red-500 border-red-200'
+     : hasWarnings ? 'bg-amber-500/10 text-amber-500 border-amber-200'
+     : 'bg-emerald-500/10 text-emerald-500 border-emerald-200'
+   : complianceScore >= 50 ? 'bg-amber-500/10 text-amber-500 border-amber-200'
+   : 'bg-red-500/10 text-red-500 border-red-200';
+ const badgeLabel = complianceScore >= 80
+    ? hasErrors ? 'Issues Found'
+      : hasWarnings ? 'Passed with Warnings'
+      : 'Passed'
+    : complianceScore >= 50 ? 'Partial' : 'Failing';
+  return <Badge className={`ml-auto ${badgeColor}`}>{badgeLabel}</Badge>;
+  })()}
  </CardTitle>
  </CardHeader>
  <CardContent>
@@ -1511,18 +1517,16 @@ export default function BatchDetailsPage() {
  />
  </div>
 
- {/* Gaps */}
- {complianceGaps.length > 0 && (
+ {/* Compliance Issues (ERROR severity — affect score) */}
+ {complianceGaps.filter(g => g.severity === 'ERROR').length > 0 && (
  <div className="mt-4 space-y-2">
- <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
- Compliance Gaps ({complianceGaps.length})
+ <h4 className="text-xs font-medium text-red-500 uppercase tracking-wider">
+ Compliance Issues ({complianceGaps.filter(g => g.severity === 'ERROR').length})
  </h4>
  <div className="space-y-1.5 max-h-48 overflow-y-auto">
- {complianceGaps.map((gap, i) => (
- <div key={i} className={`flex items-start gap-2 text-sm p-2 rounded-lg ${gap.severity === 'CRITICAL' ? 'bg-red-500/10' : gap.severity === 'WARNING' ? 'bg-amber-500/10' : 'bg-blue-500/10'
- }`}>
- <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${gap.severity === 'CRITICAL' ? 'text-red-500' : gap.severity === 'WARNING' ? 'text-amber-500' : 'text-blue-500'
- }`} />
+ {complianceGaps.filter(g => g.severity === 'ERROR').map((gap, i) => (
+ <div key={i} className="flex items-start gap-2 text-sm p-2 rounded-lg bg-red-500/10">
+ <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-500" />
  <div>
  <span className="font-medium text-foreground">{gap.field}</span>
  <span className="text-muted-foreground ml-1">— {gap.message}</span>
@@ -1533,6 +1537,27 @@ export default function BatchDetailsPage() {
  </div>
  </div>
  )}
+
+ {/* Advisory Warnings (WARNING severity — informational, don't affect score) */}
+  {complianceGaps.filter(g => g.severity === 'WARNING').length > 0 && (
+  <div className="mt-4 space-y-2">
+  <h4 className="text-xs font-medium text-amber-500 uppercase tracking-wider">
+  Advisory Warnings ({complianceGaps.filter(g => g.severity === 'WARNING').length}) — recommended, not blocking
+  </h4>
+  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+  {complianceGaps.filter(g => g.severity === 'WARNING').map((gap, i) => (
+  <div key={i} className="flex items-start gap-2 text-sm p-2 rounded-lg bg-amber-500/10">
+  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
+  <div>
+  <span className="font-medium text-foreground">{gap.field}</span>
+  <span className="text-muted-foreground ml-1">— {gap.message}</span>
+  <span className="block text-xs text-muted-foreground mt-0.5">{gap.regulation}</span>
+  </div>
+  </div>
+  ))}
+  </div>
+  </div>
+  )}
 
  {complianceGaps.length === 0 && (
  <div className="flex items-center gap-2 text-sm text-emerald-500 bg-emerald-500/10 p-3 rounded-lg">
@@ -1716,7 +1741,7 @@ export default function BatchDetailsPage() {
  open={confirmArchive}
  onOpenChange={setConfirmArchive}
  title="Archive this batch?"
- description="Archived batches remain available for audit and compliance purposes but cannot generate new passports."
+ description="This is permanent and cannot be undone. Archived batches remain available for audit and compliance purposes but can no longer generate new passports or be reactivated."
  confirmText="Archive Batch"
  variant="default"
  onConfirm={handleArchiveBatch}

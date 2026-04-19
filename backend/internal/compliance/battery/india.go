@@ -22,9 +22,10 @@ const (
 	indiaCustoms   = "Customs Act 1962 / Foreign Trade Policy"
 )
 
-// indiaTotalCheckpoints is the number of discrete hard rules evaluated
-// by the India validator. Used as the denominator for the compliance score.
-const indiaTotalCheckpoints = 14
+// indiaBaseCheckpoints counts the hard rules that always run regardless of
+// cell source: 4 tenant credentials + cell_source itself + PLI claim + AIS-156 + AIS-038.
+// Sub-checks that are conditional on cell_source are added dynamically.
+const indiaBaseCheckpoints = 8
 
 // IndiaValidator validates battery batch and tenant data against India's regulatory
 // framework: AIS-156, AIS-038, BIS CRS IS 16046, EPR (BWM Rules 2022), PLI Phase II,
@@ -180,8 +181,18 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 			"EPR batch-level registration number is recommended for BWM traceability", indiaBWMRef)
 	}
 
+	// Compute denominator from only the hard (ERROR-severity) checkpoints that
+	// actually ran, so warnings never inflate the denominator or distort the score.
+	hardCheckpoints := indiaBaseCheckpoints
+	switch batch.CellSource {
+	case "IMPORTED":
+		hardCheckpoints += 3 // bill_of_entry_no, country_of_origin, customs_date
+	case "DOMESTIC":
+		hardCheckpoints += 1 // domestic_value_add
+	}
+
 	criticalFailures := len(missing) + len(errors)
-	score := compliance.ScoreFromCheckpoints(indiaTotalCheckpoints, criticalFailures)
+	score := compliance.ScoreFromCheckpoints(hardCheckpoints, criticalFailures)
 
 	return compliance.Result{
 		Valid:    criticalFailures == 0,
