@@ -61,6 +61,15 @@ type RepositoryInterface interface {
 	UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, email string) error
 	UpdatePassportRecycledAt(ctx context.Context, passportID uuid.UUID) error
 	CleanupExpiredMagicTokens(ctx context.Context) (int, error)
+	// Phase 7: OTP methods
+	SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error
+	CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error
+	GetMagicLinkOTP(ctx context.Context, tokenHash string) (*OTPRecord, error)
+	IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error
+	MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error
+	RecordOTPResend(ctx context.Context, otpID uuid.UUID) error
+	ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error
+	CleanupExpiredOTPs(ctx context.Context) error
 
 	// passport.go
 	CreatePassport(ctx context.Context, passport *models.Passport) error
@@ -186,4 +195,16 @@ type RepositoryInterface interface {
 	GetEPRCertificateSummary(ctx context.Context, tenantID uuid.UUID, financialYear string) (float64, int, error)
 	RetireEPRCertificate(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
 	DeleteEPRCertificate(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error
+
+	// passport_documents.go
+	InsertPassportDocument(ctx context.Context, doc *PassportDocument) error
+	GetPassportDocument(ctx context.Context, id, tenantID uuid.UUID) (*PassportDocument, error)
+	LinkDocumentToEvent(ctx context.Context, docID, eventID uuid.UUID) error
+	ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*PassportDocument, error)
+
+	// passport.go — geolocation
+	AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
+
+	// passport.go — batch bulk action
+	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
 }

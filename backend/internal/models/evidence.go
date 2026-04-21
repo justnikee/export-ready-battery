@@ -10,6 +10,17 @@ import (
 // Evidence represents structured, action-specific proof fields.
 type Evidence map[string]string
 
+// GeoPoint captures a GPS fix from a field device.
+// Coordinates are WGS-84. AccuracyMeters is the horizontal accuracy radius
+// reported by the browser Geolocation API (or device GPS).
+// Per GDPR Art. 4(1) these coordinates constitute personal data when stored
+// alongside an actor identity — access is scoped to Regulator-tier only.
+type GeoPoint struct {
+	Lat            float64 `json:"lat"`
+	Lng            float64 `json:"lng"`
+	AccuracyMeters float64 `json:"accuracy_meters"`
+}
+
 var (
 	ErrInvalidEvidence = errors.New("invalid evidence")
 )
@@ -105,4 +116,17 @@ func parseEvidenceDate(value string) (time.Time, error) {
 		return parsed, nil
 	}
 	return time.Time{}, errors.New("invalid date format")
+}
+
+// ValidateReasonCode enforces that a reason_code is provided for actions that require one.
+// ACTIVATE always requires a reason_code — the handler maps it to a SYSTEM actor but the
+// trigger is always a human admin making a deliberate decision.
+// CLOSE is already enforced by the evidence requirement (certificate_reference).
+func ValidateReasonCode(action TransitionAction, reasonCode string) error {
+	if action == ActionActivate {
+		if strings.TrimSpace(reasonCode) == "" {
+			return fmt.Errorf("reason_code is required for ACTIVATE action (e.g. \"BATCH_QC_PASS\", \"MANUAL_OVERRIDE\")")
+		}
+	}
+	return nil
 }

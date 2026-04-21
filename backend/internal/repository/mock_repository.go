@@ -268,6 +268,49 @@ func (m *MockRepository) CleanupExpiredMagicTokens(ctx context.Context) (int, er
 	return args.Int(0), args.Error(1)
 }
 
+func (m *MockRepository) SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error {
+	args := m.Called(ctx, tokenHash, required)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
+	args := m.Called(ctx, tokenHash, otpHash)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetMagicLinkOTP(ctx context.Context, tokenHash string) (*OTPRecord, error) {
+	args := m.Called(ctx, tokenHash)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*OTPRecord), args.Error(1)
+}
+
+func (m *MockRepository) IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error {
+	args := m.Called(ctx, otpID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error {
+	args := m.Called(ctx, otpID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) RecordOTPResend(ctx context.Context, otpID uuid.UUID) error {
+	args := m.Called(ctx, otpID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error {
+	args := m.Called(ctx, tokenHash, newOTPHash)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CleanupExpiredOTPs(ctx context.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
 // ============================================================================
 // passport.go
 // ============================================================================
@@ -412,6 +455,19 @@ func (m *MockRepository) AppendRepairEvent(ctx context.Context, passportID uuid.
 func (m *MockRepository) AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	args := m.Called(ctx, passportID, entryJSON)
 	return args.Error(0)
+}
+
+func (m *MockRepository) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	args := m.Called(ctx, passportID, entryJSON)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, batchID, tenantID)
+	if ids, ok := args.Get(0).([]uuid.UUID); ok {
+		return ids, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *MockRepository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error {
@@ -948,4 +1004,34 @@ func (m *MockRepository) RetireEPRCertificate(ctx context.Context, id uuid.UUID,
 func (m *MockRepository) DeleteEPRCertificate(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) error {
 	args := m.Called(ctx, id, tenantID)
 	return args.Error(0)
+}
+
+// ============================================================================
+// passport_documents.go
+// ============================================================================
+
+func (m *MockRepository) InsertPassportDocument(ctx context.Context, doc *PassportDocument) error {
+	args := m.Called(ctx, doc)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetPassportDocument(ctx context.Context, id, tenantID uuid.UUID) (*PassportDocument, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*PassportDocument), args.Error(1)
+}
+
+func (m *MockRepository) LinkDocumentToEvent(ctx context.Context, docID, eventID uuid.UUID) error {
+	args := m.Called(ctx, docID, eventID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*PassportDocument, error) {
+	args := m.Called(ctx, passportID, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*PassportDocument), args.Error(1)
 }

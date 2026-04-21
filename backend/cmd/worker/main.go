@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"exportready-battery/internal/app"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 )
 
@@ -54,6 +55,11 @@ func main() {
 	// Create worker
 	worker := NewExportWorker(exportJobService, logger)
 
+	// Setup chain verifier (runs every 6 hours)
+	repo := repository.New(database)
+	lifecycleService := services.NewLifecycleService(repo)
+	chainVerifier := NewChainVerifier(database.Pool, lifecycleService, logger)
+
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -65,6 +71,21 @@ func main() {
 		sig := <-sigChan
 		logger.Info("received shutdown signal", "signal", sig)
 		cancel()
+	}()
+
+	// Start chain verification on a 6-hour ticker (runs once immediately on startup)
+	go func() {
+		chainVerifier.RunOnce(ctx)
+		ticker := time.NewTicker(ChainVerifyInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				chainVerifier.RunOnce(ctx)
+			}
+		}
 	}()
 
 	// Start worker

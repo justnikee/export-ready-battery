@@ -111,7 +111,7 @@ func main() {
 	// Initialize lifecycle service and handler
 	outboundWebhookService := services.NewOutboundWebhookService(repo)
 	lifecycleService := services.NewLifecycleService(repo).WithWebhooks(outboundWebhookService)
-	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService, repo)
+	lifecycleHandler := handlers.NewLifecycleHandler(lifecycleService, repo).WithDocRepo(repo)
 
 	// Initialize reward service
 	rewardService := services.NewRewardService(repo)
@@ -297,6 +297,16 @@ func main() {
 	mux.Handle("GET /api/v1/passports/{uuid}/verify-chain", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.VerifyAuditChain)))
 
 	// ============================================
+	// PASSPORT EPCIS EXPORT (Phase 4)
+	// ============================================
+	mux.Handle("GET /api/v1/passports/{uuid}/epcis", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.ExportEPCIS)))
+
+	// ============================================
+	// PASSPORT DOCUMENTS (Phase 6)
+	// ============================================
+	mux.Handle("GET /api/v1/passports/{uuid}/documents", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportDocuments)))
+
+	// ============================================
 	// TEMPLATE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/templates", authMiddleware.Protect(http.HandlerFunc(h.CreateTemplate)))
@@ -413,6 +423,12 @@ func main() {
 	mux.Handle("POST /api/v1/settings/upload-logo", authMiddleware.Protect(http.HandlerFunc(h.UploadLogo)))
 
 	// ============================================
+	// PASSPORT EVENT DOCUMENTS (Phase 2)
+	// ============================================
+	mux.Handle("POST /api/v1/documents/upload", authMiddleware.Protect(http.HandlerFunc(h.UploadPassportDocument)))
+	mux.Handle("GET /api/v1/documents/{document_id}", authMiddleware.Protect(http.HandlerFunc(h.GetPassportDocument)))
+
+	// ============================================
 	// STATIC UPLOADS (Public - for serving logos)
 	// ============================================
 	uploadsFS := http.FileServer(http.Dir("./uploads"))
@@ -450,6 +466,9 @@ func main() {
 	mux.HandleFunc("GET /api/v1/passport/{uuid}/action-info", magicLinkHandler.GetPassportForAction)
 	// SOH push via magic link (action=SOH_UPDATE) — multi-use token, not consumed on push
 	mux.HandleFunc("POST /api/v1/passport/{uuid}/soh", magicLinkHandler.UpdateSoHWithMagicLink)
+	// Phase 7: OTP confirmation and resend
+	mux.HandleFunc("POST /api/v1/magic-links/{token}/confirm-otp", magicLinkHandler.ConfirmOTP)
+	mux.HandleFunc("POST /api/v1/magic-links/{token}/resend-otp", magicLinkHandler.ResendOTP)
 
 	// ============================================
 	// API KEY MANAGEMENT (Protected)

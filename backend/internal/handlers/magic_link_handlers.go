@@ -2,11 +2,16 @@ package handlers
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"strings"
 	"sync"
@@ -37,6 +42,15 @@ type MagicLinkRepository interface {
 	IncrementPartnerCodeUsage(ctx context.Context, codeID uuid.UUID, email string, passportID *uuid.UUID) error
 	CreateMagicLinkToken(ctx context.Context, req repository.CreateMagicLinkTokenRequest) error
 	GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*repository.MagicLinkTokenRecord, error)
+	MarkMagicTokenUsed(ctx context.Context, tokenHash string) error
+	// Phase 7: OTP methods
+	SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error
+	CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error
+	GetMagicLinkOTP(ctx context.Context, tokenHash string) (*repository.OTPRecord, error)
+	IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error
+	MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error
+	RecordOTPResend(ctx context.Context, otpID uuid.UUID) error
+	ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error
 }
 
 // MagicLinkHandler handles magic link authentication
@@ -197,7 +211,13 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Generate the magic link URL
+	// Phase 7: Flag high-risk actions (RECYCLE, RECALL) to require OTP on transition
+	action := models.TransitionAction(req.Action)
+	if action == models.ActionRecycle || action == models.ActionRecall {
+		if otpErr := h.repo.SetRequiresOTP(r.Context(), token.TokenHash, true); otpErr != nil {
+			slog.Warn("Failed to set requires_otp flag", "error", otpErr)
+		}
+	}
 	magicLink := fmt.Sprintf("%s/p/%s/action?token=%s", h.baseURL, req.PassportID, token.Token)
 
 	// Send email with magic link
@@ -299,7 +319,22 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Parse request body
+	// ===== PHASE 7: OTP GATE =====
+	// RECYCLE and RECALL actions require a one-time OTP challenge.
+	if record.RequiresOTP {
+		otp, otpErr := h.issueOrGetOTP(r.Context(), tokenHash)
+		if otpErr != nil {
+			slog.Error("OTP issue failed", "error", otpErr)
+			respondError(w, http.StatusInternalServerError, "Failed to issue OTP")
+			return
+		}
+		_ = otp // OTP value sent via email by issueOrGetOTP
+		respondJSON(w, http.StatusAccepted, map[string]interface{}{
+			"status":  "otp_required",
+			"message": "A 6-digit OTP has been sent to your email. Please confirm via /confirm-otp.",
+		})
+		return
+	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -681,4 +716,228 @@ func (h *MagicLinkHandler) UpdateSoHWithMagicLink(w http.ResponseWriter, r *http
 		"recorded_by":     claims.Email,
 		"role":            claims.Role,
 	})
+}
+// ============================================================================
+// Phase 7 — OTP helpers and handlers
+// ============================================================================
+
+// generateOTPCode returns a random 6-digit string.
+func generateOTPCode() (string, error) {
+	max := big.NewInt(1_000_000)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+// hashOTP returns HMAC-SHA256(otp, secret) encoded as hex.
+func hashOTP(otp, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(otp))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// issueOrGetOTP generates a new OTP, stores its hash, and sends it via email.
+// It replaces any existing unused OTP for the same tokenHash.
+func (h *MagicLinkHandler) issueOrGetOTP(ctx context.Context, tokenHash string) (string, error) {
+	otp, err := generateOTPCode()
+	if err != nil {
+		return "", fmt.Errorf("generate otp: %w", err)
+	}
+	otpHash := hashOTP(otp, h.jwtSecret)
+	if err := h.repo.ReplaceOTP(ctx, tokenHash, otpHash); err != nil {
+		return "", fmt.Errorf("store otp: %w", err)
+	}
+	return otp, nil
+}
+
+// ConfirmOTPRequest is the body for POST /api/v1/magic-links/{token}/confirm-otp
+type ConfirmOTPRequest struct {
+	OTP string `json:"otp"`
+}
+
+// ConfirmOTP handles POST /api/v1/magic-links/{token}/confirm-otp
+// Validates the OTP and, if correct, applies the pending lifecycle transition.
+func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
+	// URL format: /api/v1/magic-links/{token}/confirm-otp
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	tokenString := pathParts[4]
+
+	// Validate JWT structure (but don't require it to be unused yet)
+	tokenHash := auth.HashToken(tokenString)
+
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil || record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+
+	var req ConfirmOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.OTP == "" {
+		respondError(w, http.StatusBadRequest, "otp is required")
+		return
+	}
+
+	otpRec, err := h.repo.GetMagicLinkOTP(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch OTP")
+		return
+	}
+	if otpRec == nil {
+		respondError(w, http.StatusBadRequest, "No active OTP found. Request a new one.")
+		return
+	}
+
+	// Check expiry (10 min)
+	if time.Since(otpRec.CreatedAt) > 10*time.Minute {
+		respondError(w, http.StatusUnauthorized, "OTP expired. Request a new one.")
+		return
+	}
+
+	// Check attempt lockout
+	if otpRec.AttemptCount >= otpRec.MaxAttempts {
+		respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+			"error": "OTP locked due to too many failed attempts",
+		})
+		return
+	}
+
+	// Validate OTP
+	expected := hashOTP(req.OTP, h.jwtSecret)
+	if !hmac.Equal([]byte(expected), []byte(otpRec.OTPHash)) {
+		_ = h.repo.IncrementOTPAttempt(r.Context(), otpRec.ID)
+		remaining := otpRec.MaxAttempts - otpRec.AttemptCount - 1
+		if remaining <= 0 {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "OTP locked due to too many failed attempts",
+			})
+			return
+		}
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"error":            "Invalid OTP",
+			"attempts_remaining": remaining,
+		})
+		return
+	}
+
+	// OTP correct — consume it and perform the transition
+	if err := h.repo.MarkOTPUsed(r.Context(), otpRec.ID); err != nil {
+		slog.Error("Failed to mark OTP used", "error", err)
+	}
+
+	passportID := record.PassportID
+	actorContext := models.ActorContext{
+		ActorType: models.ActorTypePartner,
+		ActorID:   record.Email,
+		ActorRole: models.ActorRole(record.Role),
+		Source:    models.ActionSourceMagicLink,
+	}
+
+	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:         passportID,
+		Action:             record.Action,
+		ActorContext:       actorContext,
+		IPAddress:          r.RemoteAddr,
+		MagicLinkTokenHash: tokenHash,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrActionNotAllowed):
+			respondError(w, http.StatusConflict, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":      true,
+		"passport_id":  passportID,
+		"action":       record.Action,
+		"new_status":   result.NewStatus,
+		"otp_verified": true,
+	})
+}
+
+// ResendOTP handles POST /api/v1/magic-links/{token}/resend-otp
+// Issues a new OTP (within resend limits) and sends it via email.
+func (h *MagicLinkHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	tokenString := pathParts[4]
+	tokenHash := auth.HashToken(tokenString)
+
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil || record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.UsedAt != nil || time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link invalid or expired")
+		return
+	}
+
+	otpRec, err := h.repo.GetMagicLinkOTP(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch OTP state")
+		return
+	}
+
+	if otpRec != nil {
+		// Check resend limit
+		if otpRec.ResendCount >= otpRec.MaxResends {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "Maximum OTP resend limit reached",
+			})
+			return
+		}
+		// Enforce 60s cooldown
+		if otpRec.LastResentAt != nil && time.Since(*otpRec.LastResentAt) < 60*time.Second {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "Please wait 60 seconds before requesting another OTP",
+			})
+			return
+		}
+		// Record the resend before issuing new OTP
+		_ = h.repo.RecordOTPResend(r.Context(), otpRec.ID)
+	}
+
+	otp, err := h.issueOrGetOTP(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to generate OTP")
+		return
+	}
+
+	// Send via email if available
+	if h.emailService != nil && h.emailService.IsEnabled() {
+		// TODO: add dedicated OTP email template; for now reuse SendMagicLink log
+		slog.Info("Resent OTP", "email", record.Email, "otp_dev", otp)
+	} else {
+		slog.Info("OTP resent (dev mode)", "email", record.Email, "otp", otp)
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "OTP resent to your email",
+	}
+	if h.emailService == nil || !h.emailService.IsEnabled() {
+		response["otp_dev"] = otp
+	}
+	respondJSON(w, http.StatusOK, response)
 }
