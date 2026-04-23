@@ -1005,6 +1005,49 @@ func (r *Repository) GetPassportStatusCounts(ctx context.Context, tenantID uuid.
 	return counts, rows.Err()
 }
 
+// AppendGeolocationHistory appends a GPS fix entry to geolocation_history.
+// entryJSON must be a JSON array containing one object (same pattern as AppendOwnershipHistory).
+func (r *Repository) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	query := `
+		UPDATE public.passports
+		SET geolocation_history = COALESCE(geolocation_history, '[]'::jsonb) || $2::jsonb
+		WHERE uuid = $1`
+	_, err := r.db.Pool.Exec(ctx, query, passportID, entryJSON)
+	if err != nil {
+		return fmt.Errorf("failed to append geolocation history: %w", err)
+	}
+	return nil
+}
+
+// GetPassportIDsByBatch returns all non-terminal passport UUIDs in a batch, scoped to tenant.
+// Non-terminal statuses are any status except RECYCLED, RECALLED, and CLOSED.
+func (r *Repository) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	const query = `
+		SELECT p.uuid
+		FROM public.passports p
+		JOIN public.batches b ON b.id = p.batch_id
+		WHERE p.batch_id = $1
+		  AND b.tenant_id = $2
+		  AND p.status NOT IN ('RECYCLED', 'RECALLED', 'CLOSED')`
+	rows, err := r.db.Pool.Query(ctx, query, batchID, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query passport IDs by batch: %w", err)
+	}
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("failed to scan passport UUID: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row error fetching passport IDs by batch: %w", err)
+	}
+	return ids, nil
+}
+
 // SetRecyclingInfo updates India-specific recycling fields
 func (r *Repository) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error {
 	query := `

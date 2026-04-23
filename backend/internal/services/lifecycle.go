@@ -19,6 +19,7 @@ var (
 	ErrMissingActorContext     = errors.New("missing actor context")
 	ErrInvalidActorContext     = errors.New("invalid actor context")
 	ErrInvalidEvidence         = errors.New("invalid evidence")
+	ErrInvalidReasonCode       = errors.New("invalid reason code")
 	ErrMagicLinkTokenInvalid   = errors.New("magic link token invalid")
 	ErrTransitionPersistFailed = errors.New("failed to persist lifecycle transition")
 )
@@ -52,6 +53,9 @@ type LifecycleRepository interface {
 	GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error)
 	AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
+	AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
+	// GetPassportIDsByBatch returns all non-terminal passport UUIDs in a batch, scoped to tenant.
+	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // NewLifecycleService creates a new lifecycle service
@@ -69,6 +73,16 @@ type TransitionRequest struct {
 	// Optional owner identifier (email or external ID)
 	CurrentOwnerIdentifier string          `json:"current_owner_identifier,omitempty"`
 	Evidence               models.Evidence `json:"evidence,omitempty"`
+	// Reason code and admin note for discretionary actions (required for ACTIVATE by ADMIN)
+	ReasonCode string `json:"reason_code,omitempty"` // e.g. "MANUAL_OVERRIDE", "BATCH_QC_PASS"
+	AdminNote  string `json:"admin_note,omitempty"`  // free-text, max 500 chars
+	// Optional document attachment — handler resolves hash+label before calling ApplyTransition
+	DocumentID    *uuid.UUID `json:"-"` // pre-validated document UUID
+	DocumentHash  string     `json:"-"` // SHA-256 hex, fetched by handler
+	DocumentLabel string     `json:"-"` // human-readable label, fetched by handler
+	// Optional GPS location (WGS-84) from the field device — best-effort, never blocks transition.
+	// GDPR: constitutes personal data; access is scoped to Regulator-tier by access_views.go.
+	Location *models.GeoPoint `json:"location,omitempty"`
 }
 
 // TransitionResult contains the result of an applied lifecycle action
@@ -158,6 +172,16 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		}, ErrInvalidEvidence
 	}
 
+	// Validate reason code requirement (e.g. ACTIVATE always requires one)
+	if err := models.ValidateReasonCode(action, req.ReasonCode); err != nil {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          err.Error(),
+		}, ErrInvalidReasonCode
+	}
+
 	// Set appropriate timestamp based on target status
 	now := time.Now()
 	var shippedAt *time.Time
@@ -202,6 +226,28 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 	}
 	if req.CurrentOwnerIdentifier != "" {
 		metadata["current_owner_identifier"] = req.CurrentOwnerIdentifier
+	}
+	if req.ReasonCode != "" {
+		metadata["reason_code"] = req.ReasonCode
+	}
+	if req.AdminNote != "" {
+		metadata["admin_note"] = req.AdminNote
+	}
+	// Document attachment metadata (hash included in event for tamper-proof chain)
+	if req.DocumentID != nil {
+		metadata["document_id"] = req.DocumentID.String()
+		if req.DocumentHash != "" {
+			metadata["document_hash"] = req.DocumentHash
+		}
+		if req.DocumentLabel != "" {
+			metadata["document_label"] = req.DocumentLabel
+		}
+	}
+	// GPS location (stored in event metadata before hash so it's tamper-proof)
+	if req.Location != nil {
+		metadata["lat"] = req.Location.Lat
+		metadata["lng"] = req.Location.Lng
+		metadata["accuracy_meters"] = req.Location.AccuracyMeters
 	}
 
 	// Get previous event hash for chain integrity
@@ -313,6 +359,21 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 			_ = s.repo.AppendOwnershipHistory(ctx, passport.UUID, entryJSON)
 		}
 	}
+	// Append GPS fix to geolocation_history for field actions (INSTALL, SHIP).
+	// Non-fatal — transition is already committed.
+	if req.Location != nil {
+		geoEntry := map[string]interface{}{
+			"lat":             req.Location.Lat,
+			"lng":             req.Location.Lng,
+			"accuracy_meters": req.Location.AccuracyMeters,
+			"timestamp":       now,
+			"actor":           req.ActorContext.ActorID,
+			"event_id":        event.ID,
+		}
+		if entryJSON, err := json.Marshal([]interface{}{geoEntry}); err == nil {
+			_ = s.repo.AppendGeolocationHistory(ctx, passport.UUID, entryJSON)
+		}
+	}
 
 	// Fire outbound webhook (non-blocking)
 	tenantID, _ := s.repo.GetBatchTenantID(ctx, passport.BatchID)
@@ -370,12 +431,18 @@ func (s *LifecycleService) VerifyPassportTenantOwnership(ctx context.Context, pa
 
 // BulkTransitionRequest represents a request to transition multiple passports
 type BulkTransitionRequest struct {
-	PassportIDs  []uuid.UUID         `json:"passport_ids"`
+	// PassportIDs is an explicit list; mutually exclusive with BatchID.
+	PassportIDs []uuid.UUID `json:"passport_ids,omitempty"`
+	// BatchID triggers a server-side passport ID lookup scoped to TenantID.
+	BatchID      *uuid.UUID          `json:"batch_id,omitempty"`
+	TenantID     uuid.UUID           `json:"-"` // used for BatchID scoping only
 	Action       string              `json:"action"`
 	ActorContext models.ActorContext `json:"actor_context"`
 	Evidence     models.Evidence     `json:"evidence,omitempty"`
 	// IPAddress of the originating HTTP request, threaded into each audit event.
-	IPAddress string `json:"-"`
+	IPAddress  string `json:"-"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	AdminNote  string `json:"admin_note,omitempty"`
 }
 
 // BulkTransitionResult contains results for bulk transitions
@@ -402,19 +469,31 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 		return nil, ErrRoleNotAllowed
 	}
 
+	// Resolve IDs server-side when a batch_id was supplied instead of an explicit list.
+	passportIDs := req.PassportIDs
+	if req.BatchID != nil {
+		batchIDs, err := s.repo.GetPassportIDsByBatch(ctx, *req.BatchID, req.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve batch passports: %w", err)
+		}
+		passportIDs = batchIDs
+	}
+
 	result := &BulkTransitionResult{
-		Total:     len(req.PassportIDs),
+		Total:     len(passportIDs),
 		FailedIDs: []string{},
 		Errors:    []string{},
 	}
 
-	for _, passportID := range req.PassportIDs {
+	for _, passportID := range passportIDs {
 		transitionReq := TransitionRequest{
 			PassportID:   passportID,
 			Action:       req.Action,
 			ActorContext: req.ActorContext,
 			Evidence:     req.Evidence,
 			IPAddress:    req.IPAddress, // propagate real client IP to every event in the chain
+			ReasonCode:   req.ReasonCode,
+			AdminNote:    req.AdminNote,
 		}
 
 		transitionResult, err := s.ApplyTransition(ctx, transitionReq)

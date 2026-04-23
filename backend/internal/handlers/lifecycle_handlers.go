@@ -13,6 +13,7 @@ import (
 
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -23,10 +24,25 @@ type TeamRoleResolver interface {
 	GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.TeamMember, error)
 }
 
+// DocumentRepository is the narrow interface the lifecycle handler needs for
+// document-to-event linkage and document listing. Satisfied by repository.RepositoryInterface.
+type DocumentRepository interface {
+	GetPassportDocument(ctx context.Context, id, tenantID uuid.UUID) (*repository.PassportDocument, error)
+	LinkDocumentToEvent(ctx context.Context, docID, eventID uuid.UUID) error
+	ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*repository.PassportDocument, error)
+}
+
 // LifecycleHandler handles passport lifecycle operations
 type LifecycleHandler struct {
 	service      *services.LifecycleService
 	roleResolver TeamRoleResolver
+	docRepo      DocumentRepository // optional — nil disables document linking
+}
+
+// WithDocRepo attaches a document repository; returns self for chaining.
+func (h *LifecycleHandler) WithDocRepo(repo DocumentRepository) *LifecycleHandler {
+	h.docRepo = repo
+	return h
 }
 
 // NewLifecycleHandler creates a new lifecycle handler.
@@ -44,9 +60,15 @@ func NewLifecycleHandler(service *services.LifecycleService, roleResolver TeamRo
 
 // TransitionRequest represents a request to apply a passport lifecycle action
 type LifecycleTransitionRequest struct {
-	Action   string          `json:"action"`
-	Actor    string          `json:"actor,omitempty"` // Who is making this change
-	Evidence models.Evidence `json:"evidence,omitempty"`
+	Action     string          `json:"action"`
+	Actor      string          `json:"actor,omitempty"` // Who is making this change
+	Evidence   models.Evidence `json:"evidence,omitempty"`
+	ReasonCode string          `json:"reason_code,omitempty"` // required for ACTIVATE
+	AdminNote  string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
+	DocumentID string          `json:"document_id,omitempty"` // optional pre-uploaded doc UUID
+	// Location is populated by the frontend for INSTALL/SHIP from navigator.geolocation.
+	// Best-effort — missing location never blocks a transition.
+	Location *models.GeoPoint `json:"location,omitempty"`
 }
 
 func mapTeamRoleToActorRole(teamRole string) (models.ActorRole, bool) {
@@ -185,13 +207,43 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// --- Document attachment: validate and fetch document metadata ---
+	var docID *uuid.UUID
+	var docHash, docLabel string
+	if req.DocumentID != "" && h.docRepo != nil {
+		parsedDocID, parseErr := uuid.Parse(req.DocumentID)
+		if parseErr != nil {
+			respondError(w, http.StatusBadRequest, "invalid document_id format")
+			return
+		}
+		tenantUUID, _ := uuid.Parse(tenantIDStr)
+		doc, fetchErr := h.docRepo.GetPassportDocument(r.Context(), parsedDocID, tenantUUID)
+		if fetchErr != nil || doc == nil {
+			respondError(w, http.StatusBadRequest, "document not found or not owned by tenant")
+			return
+		}
+		if doc.PassportID != passportID {
+			respondError(w, http.StatusBadRequest, "document does not belong to this passport")
+			return
+		}
+		docID = &parsedDocID
+		docHash = doc.SHA256Hash
+		docLabel = doc.Label
+	}
+
 	// Execute transition
 	result, err := h.service.ApplyTransition(r.Context(), services.TransitionRequest{
-		PassportID:   passportID,
-		Action:       req.Action,
-		ActorContext: actorContext,
-		IPAddress:    getRequestIP(r),
-		Evidence:     req.Evidence,
+		PassportID:    passportID,
+		Action:        req.Action,
+		ActorContext:  actorContext,
+		IPAddress:     getRequestIP(r),
+		Evidence:      req.Evidence,
+		ReasonCode:    req.ReasonCode,
+		AdminNote:     req.AdminNote,
+		DocumentID:    docID,
+		DocumentHash:  docHash,
+		DocumentLabel: docLabel,
+		Location:      req.Location,
 	})
 
 	if err != nil {
@@ -206,6 +258,8 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 			respondError(w, http.StatusConflict, result.Error)
 		case errors.Is(err, services.ErrInvalidEvidence):
 			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrInvalidReasonCode):
+			respondError(w, http.StatusBadRequest, result.Error)
 		case errors.Is(err, services.ErrTransitionPersistFailed):
 			respondError(w, http.StatusInternalServerError, result.Error)
 		default:
@@ -214,15 +268,30 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Link the document to the newly created event (non-fatal — transition is immutable)
+	if docID != nil && h.docRepo != nil {
+		if linkErr := h.docRepo.LinkDocumentToEvent(r.Context(), *docID, result.EventID); linkErr != nil {
+			slog.Warn("failed to link document to event",
+				"doc_id", *docID, "event_id", result.EventID, "error", linkErr)
+		}
+	}
+
 	respondJSON(w, http.StatusOK, result)
 }
 
 // BulkLifecycleTransitionRequest represents a bulk lifecycle action request
 type BulkLifecycleTransitionRequest struct {
-	PassportIDs []string        `json:"passport_ids"`
-	Action      string          `json:"action"`
-	Actor       string          `json:"actor,omitempty"`
-	Evidence    models.Evidence `json:"evidence,omitempty"`
+	// PassportIDs is an explicit list of passport UUIDs to transition.
+	// Mutually exclusive with BatchID — provide one or the other, not both.
+	PassportIDs []string `json:"passport_ids,omitempty"`
+	// BatchID triggers a server-side fetch of all non-terminal passport IDs in the batch.
+	// Use this instead of fetching all IDs from the frontend when a batch context is known.
+	BatchID    *string         `json:"batch_id,omitempty"`
+	Action     string          `json:"action"`
+	Actor      string          `json:"actor,omitempty"`
+	Evidence   models.Evidence `json:"evidence,omitempty"`
+	ReasonCode string          `json:"reason_code,omitempty"` // required for ACTIVATE
+	AdminNote  string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
 }
 
 // maxBulkTransitionSize caps a single bulk-transition request.
@@ -262,14 +331,21 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if len(req.PassportIDs) == 0 {
-		respondError(w, http.StatusBadRequest, "passport_ids is required")
+	// Must provide exactly one of passport_ids or batch_id.
+	hasList := len(req.PassportIDs) > 0
+	hasBatch := req.BatchID != nil && *req.BatchID != ""
+	if !hasList && !hasBatch {
+		respondError(w, http.StatusBadRequest, "one of passport_ids or batch_id is required")
+		return
+	}
+	if hasList && hasBatch {
+		respondError(w, http.StatusBadRequest, "passport_ids and batch_id are mutually exclusive")
 		return
 	}
 
 	// Hard cap prevents memory exhaustion and indefinite DB connection hold.
 	// Callers must split larger batches into ≤500-passport chunks.
-	if len(req.PassportIDs) > maxBulkTransitionSize {
+	if hasList && len(req.PassportIDs) > maxBulkTransitionSize {
 		respondError(w, http.StatusBadRequest,
 			fmt.Sprintf("too many passports: %d exceeds the %d-passport limit per request. Split into smaller batches.",
 				len(req.PassportIDs), maxBulkTransitionSize))
@@ -281,7 +357,7 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Parse UUIDs
+	// Parse explicit passport UUIDs (passport_ids path).
 	var passportUUIDs []uuid.UUID
 	for _, idStr := range req.PassportIDs {
 		id, err := uuid.Parse(idStr)
@@ -292,6 +368,21 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		passportUUIDs = append(passportUUIDs, id)
 	}
 
+	// Parse batch_id (batch path).
+	var batchUUID *uuid.UUID
+	if hasBatch {
+		parsed, err := uuid.Parse(*req.BatchID)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Invalid batch_id UUID")
+			return
+		}
+		batchUUID = &parsed
+	}
+
+	// Resolve tenant from JWT for scoped batch fetch.
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantUUID, _ := uuid.Parse(tenantIDStr)
+
 	actorContext, status, err := h.buildActorContext(r.Context(), req.Action)
 	if err != nil {
 		respondError(w, status, err.Error())
@@ -300,10 +391,14 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 
 	result, err := h.service.BulkTransitionPassports(r.Context(), services.BulkTransitionRequest{
 		PassportIDs:  passportUUIDs,
+		BatchID:      batchUUID,
+		TenantID:     tenantUUID,
 		Action:       req.Action,
 		ActorContext: actorContext,
 		Evidence:     req.Evidence,
 		IPAddress:    getRequestIP(r),
+		ReasonCode:   req.ReasonCode,
+		AdminNote:    req.AdminNote,
 	})
 
 	if err != nil {
@@ -658,9 +753,133 @@ func (h *LifecycleHandler) GetSoHHistory(w http.ResponseWriter, r *http.Request)
 	if entries == nil {
 		entries = []models.SoHHistoryEntry{}
 	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"passport_id": passportID,
 		"history":     entries,
+		"count":       len(entries),
+	})
+}
+
+// ============================================================================
+// Phase 4 — GS1 EPCIS 2.0 Export
+// ============================================================================
+
+// EPCISRepository is the narrow interface the EPCIS handler needs.
+// Satisfied by repository.RepositoryInterface.
+type EPCISRepository interface {
+	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
+	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
+}
+
+// ExportEPCIS handles GET /api/v1/passports/{uuid}/epcis
+// Returns a GS1 EPCIS 2.0 JSON-LD document for the passport's event history.
+func (h *LifecycleHandler) ExportEPCIS(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportID, err := uuid.Parse(pathParts[4])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Tenant ownership check
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Missing tenant context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+	if err := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	passport, err := h.service.GetPassportForTransition(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	events, err := h.service.GetPassportEvents(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve events")
+		return
+	}
+
+	doc := services.BuildEPCISDocument(passportID, passport, events)
+
+	w.Header().Set("Content-Type", "application/ld+json")
+	w.Header().Set(
+		"Content-Disposition",
+		fmt.Sprintf(`attachment; filename="passport_%s_epcis.jsonld"`, passportID.String()),
+	)
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(doc); err != nil {
+		slog.Error("epcis encode failed", "error", err)
+	}
+}
+
+// ============================================================================
+// Phase 6 — Proof Viewer: list documents attached to a passport
+// ============================================================================
+
+// PassportDocumentsRepository is the narrow interface for document listing.
+type PassportDocumentsRepository interface {
+	ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*repository.PassportDocument, error)
+}
+
+// GetPassportDocuments handles GET /api/v1/passports/{uuid}/documents
+// Returns documents uploaded and linked to a passport's events.
+func (h *LifecycleHandler) GetPassportDocuments(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportID, err := uuid.Parse(pathParts[4])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Missing tenant context")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	if h.docRepo == nil {
+		respondError(w, http.StatusInternalServerError, "Document repository unavailable")
+		return
+	}
+
+	docs, err := h.docRepo.ListPassportDocuments(r.Context(), passportID, tenantID)
+	if err != nil {
+		slog.Error("list passport documents failed", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve documents")
+		return
+	}
+	if docs == nil {
+		docs = []*repository.PassportDocument{}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"passport_id": passportID,
+		"documents":   docs,
+		"count":       len(docs),
 	})
 }
 
