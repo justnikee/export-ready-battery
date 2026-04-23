@@ -3,8 +3,9 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 // API origin for CSP connect-src
-const apiOrigin = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080")
-  .replace("/api/v1", "");
+const apiOrigin = (
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
+).replace("/api/v1", "");
 
 /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP */
 const contentSecurityPolicy = [
@@ -13,7 +14,7 @@ const contentSecurityPolicy = [
   // Scripts: self + Next.js runtime (requires 'unsafe-eval' in dev HMR only)
   isDev
     ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
-    : `script-src 'self'`,
+    : `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com`,
   // Stylesheets: self + inline styles used by shadcn/ui
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   // Fonts
@@ -34,8 +35,7 @@ const contentSecurityPolicy = [
   `form-action 'self'`,
   // Upgrade HTTP → HTTPS in production
   ...(!isDev ? [`upgrade-insecure-requests`] : []),
-]
-  .join("; ");
+].join("; ");
 
 const securityHeaders = [
   {
@@ -65,7 +65,7 @@ const securityHeaders = [
   {
     // Restrict powerful features
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    value: "camera=(), microphone=()",
   },
 ];
 
