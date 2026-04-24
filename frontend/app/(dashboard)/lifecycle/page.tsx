@@ -527,6 +527,7 @@ export default function LifecyclePage() {
           });
           if (statusFilter !== "ALL") params.set("status", statusFilter);
           if (searchTerm) params.set("search", searchTerm);
+          if (batchFilter) params.set("batch_id", batchFilter);
           const res = await api.get(`/passports?${params.toString()}`);
           const page: PassportSummary[] = res.data.passports || [];
           allIds.push(...page.map((p) => p.uuid));

@@ -9,7 +9,9 @@ Implementation note, 2026-04-25:
 - The internal `GET /api/v1/passports/{uuid}/transitions` route now filters actions by resolved internal actor role instead of returning status-only actions.
 - The lifecycle dashboard row-action menu now fetches allowed actions from the backend transitions endpoint for each visible passport instead of using a local static transition map.
 - The lifecycle dashboard bulk-action footer now derives its action choices from the backend-allowed action intersection for the currently selected visible passports instead of a hardcoded local action list.
+- The lifecycle dashboard select-all bulk path now resolves the exact filtered passport ID set, including `batch_id`, before sending bulk transition requests instead of relying on a broader batch-only shortcut.
 - The magic-link action-info endpoint now filters transition actions through the token holder's role instead of relying on status-only discovery.
+- The bulk lifecycle service now verifies tenant ownership for explicit `passport_ids`, not only for server-resolved `batch_id` requests.
 - The gap analysis below remains useful as the baseline that drove that change, but the object-authorization gap for those internal handler routes has now been partially addressed in code.
 
 ## Scope

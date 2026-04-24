@@ -203,3 +203,70 @@ func TestUpdateStateOfHealth_AppendsHistoryOnceAndLogsEvent(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 	mockRepo.AssertNumberOfCalls(t, "AppendSoHHistory", 1)
 }
+
+func TestBulkTransitionPassports_ExplicitIDsAreTenantScoped(t *testing.T) {
+	service, mockRepo := setupLifecycleService(t)
+	ctx := context.Background()
+
+	tenantID := uuid.New()
+	foreignTenantID := uuid.New()
+	ownedPassportID := uuid.New()
+	foreignPassportID := uuid.New()
+	ownedBatchID := uuid.New()
+	foreignBatchID := uuid.New()
+
+	ownedPassport := &models.Passport{
+		UUID:      ownedPassportID,
+		BatchID:   ownedBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+	foreignPassport := &models.Passport{
+		UUID:      foreignPassportID,
+		BatchID:   foreignBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+
+	req := services.BulkTransitionRequest{
+		PassportIDs: []uuid.UUID{ownedPassportID, foreignPassportID},
+		TenantID:    tenantID,
+		Action:      string(models.ActionShip),
+		ActorContext: models.ActorContext{
+			ActorID:   "user1",
+			ActorType: models.ActorTypeUser,
+			ActorRole: models.ActorRoleInternalOperator,
+			Source:    models.ActionSourceInternal,
+		},
+		Evidence: models.Evidence{
+			models.EvidenceShipmentDate:      time.Now().Format(time.RFC3339),
+			models.EvidenceShipmentReference: "SHIP123",
+		},
+	}
+
+	mockRepo.On("GetPassportByUUID", ctx, ownedPassportID).Return(ownedPassport, nil).Twice()
+	mockRepo.On("GetBatchTenantID", ctx, ownedBatchID).Return(tenantID, nil).Twice()
+	mockRepo.On("GetPassportEvents", ctx, ownedPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
+		return p.PassportID == ownedPassportID &&
+			p.NewStatus == models.PassportStatusShipped &&
+			p.Event != nil &&
+			p.Event.EventType == models.PassportEventShipped
+	})).Return(nil).Once()
+
+	mockRepo.On("GetPassportByUUID", ctx, foreignPassportID).Return(foreignPassport, nil).Once()
+	mockRepo.On("GetBatchTenantID", ctx, foreignBatchID).Return(foreignTenantID, nil).Once()
+
+	result, err := service.BulkTransitionPassports(ctx, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, result.Total)
+	assert.Equal(t, 1, result.Succeeded)
+	assert.Equal(t, 1, result.Failed)
+	assert.Equal(t, []string{foreignPassportID.String()}, result.FailedIDs)
+	assert.Contains(t, result.Errors, "passport not found: unauthorized")
+
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNumberOfCalls(t, "ApplyLifecycleTransition", 1)
+	mockRepo.AssertNumberOfCalls(t, "GetPassportEvents", 1)
+}

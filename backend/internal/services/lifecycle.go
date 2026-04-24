@@ -486,6 +486,15 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 	}
 
 	for _, passportID := range passportIDs {
+		if req.TenantID != uuid.Nil {
+			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, passportID.String())
+				result.Errors = append(result.Errors, err.Error())
+				continue
+			}
+		}
+
 		transitionReq := TransitionRequest{
 			PassportID:   passportID,
 			Action:       req.Action,
