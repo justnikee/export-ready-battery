@@ -13,6 +13,7 @@ import (
 
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -180,6 +181,42 @@ func (f *fakeLifecycleRepo) GetPassportIDsByBatch(ctx context.Context, batchID, 
 		passportIDs = append(passportIDs, passportID)
 	}
 	return passportIDs, nil
+}
+
+func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+	items := make([]*repository.PassportListItem, 0)
+	for _, passport := range f.passports {
+		batchTenantID, ok := f.batchTenants[passport.BatchID]
+		if ok && batchTenantID != tenantID {
+			continue
+		}
+		if status != "" && passport.Status != status {
+			continue
+		}
+		if batchID != "" && passport.BatchID.String() != batchID {
+			continue
+		}
+		needle := strings.ToLower(search)
+		if needle != "" &&
+			!strings.Contains(strings.ToLower(passport.SerialNumber), needle) &&
+			!strings.Contains(strings.ToLower(passport.UUID.String()), needle) {
+			continue
+		}
+		items = append(items, &repository.PassportListItem{
+			UUID:         passport.UUID.String(),
+			SerialNumber: passport.SerialNumber,
+			Status:       passport.Status,
+		})
+	}
+	total := len(items)
+	if offset >= total {
+		return []*repository.PassportListItem{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return items[offset:end], total, nil
 }
 
 func newLifecycleHandlerWithStatus(status string, teamRole string) (*LifecycleHandler, uuid.UUID) {
@@ -379,5 +416,54 @@ func TestGetAllowedActions_FiltersByActorRole(t *testing.T) {
 	}
 	if slices.Contains(resp.AllowedActions, string(models.ActionRecall)) {
 		t.Fatalf("did not expect RECALL for MEMBER, got %v", resp.AllowedActions)
+	}
+}
+
+func TestGetBulkAllowedActions_FiltersFullDatasetByActorRole(t *testing.T) {
+	repo := newFakeLifecycleRepo()
+	ownerTenantID := repo.defaultTenantID
+	ownedBatchID := uuid.New()
+	foreignBatchID := uuid.New()
+	repo.batchTenants[ownedBatchID] = ownerTenantID
+	repo.batchTenants[foreignBatchID] = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   ownedBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   ownedBatchID,
+		Status:    models.PassportStatusCreated,
+		CreatedAt: time.Now(),
+	}
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   foreignBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+
+	handler := NewLifecycleHandler(services.NewLifecycleService(repo), &fakeRoleResolver{role: "MEMBER"})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/bulk/allowed-actions", nil)
+	req = req.WithContext(contextWithAuthAndEmail(ownerTenantID.String(), "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetBulkAllowedActions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.AllowedActions) != 0 {
+		t.Fatalf("expected no shared allowed actions, got %v", resp.AllowedActions)
 	}
 }

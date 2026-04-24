@@ -117,6 +117,10 @@ func (f *fakeMagicRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID)
 	return f.defaultTenantID, nil
 }
 
+func (f *fakeMagicRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+	return []*repository.PassportListItem{}, 0, nil
+}
+
 func (f *fakeMagicRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
 	if params.Event == nil {
 		return context.DeadlineExceeded

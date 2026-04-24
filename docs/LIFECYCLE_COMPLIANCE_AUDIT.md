@@ -10,6 +10,7 @@ Implementation note, 2026-04-25:
 - The lifecycle dashboard row-action menu now fetches allowed actions from the backend transitions endpoint for each visible passport instead of using a local static transition map.
 - The lifecycle dashboard bulk-action footer now derives its action choices from the backend-allowed action intersection for the currently selected visible passports instead of a hardcoded local action list.
 - The lifecycle dashboard select-all bulk path now resolves the exact filtered passport ID set, including `batch_id`, before sending bulk transition requests instead of relying on a broader batch-only shortcut.
+- The backend now exposes a protected bulk allowed-actions route so select-all mode can resolve actor-aware bulk actions from the full filtered dataset instead of inferring them from the current page.
 - The magic-link action-info endpoint now filters transition actions through the token holder's role instead of relying on status-only discovery.
 - The bulk lifecycle service now verifies tenant ownership for explicit `passport_ids`, not only for server-resolved `batch_id` requests.
 - The gap analysis below remains useful as the baseline that drove that change, but the object-authorization gap for those internal handler routes has now been partially addressed in code.
@@ -31,7 +32,7 @@ This is a code-grounded audit, not a legal opinion. Where older internal documen
 
 The platform already has a meaningful lifecycle foundation. It has a canonical transition map, immutable event logging with a hash chain, evidence validation, reason-code enforcement, bulk transitions, GPS capture for field actions, outbound lifecycle webhooks, OTP-gated magic-link flows for external partners, ownership transfer logging, document listing, and EPCIS export.
 
-The main problem is no longer that lifecycle is missing. The main problem is that lifecycle governance is inconsistent across endpoints and UI surfaces. The write path for core transitions is materially stronger than before, but several adjacent lifecycle endpoints still appear to rely on authentication without consistently verifying tenant ownership of the target passport. In parallel, the frontend still drives lifecycle choices from a static status map instead of the backend's policy decisions, so the UI can drift from the real authorization model.
+The main problem is no longer that lifecycle is missing. The main problem is that lifecycle governance is still fragmented across special cases and maturity tiers. The write path for core transitions is materially stronger than before, the audited internal object-authorization gaps have been tightened, and the dashboard now leans on backend lifecycle policy for row actions and select-all bulk action discovery. The remaining weaknesses are now more about policy centralization, first-class modeling for repair and replacement, and stronger attestation semantics than about the original internal route guardrails.
 
 The platform is therefore best described as:
 
@@ -143,13 +144,13 @@ That is another place where some older internal gap notes are now stale.
 
 ## Verified Gaps And Risks
 
-### 1. Tenant ownership enforcement is inconsistent across lifecycle endpoints
+### 1. Tenant ownership enforcement was the highest-priority gap and has now been materially reduced
 
-This is the highest-priority remaining issue.
+This was the highest-priority issue at the start of the audit.
 
-The internal protected transition route verifies that the passport belongs to the authenticated tenant before changing state. The EPCIS export route also verifies tenant ownership. Ownership transfer also verifies tenant ownership in the service layer. Document listing is tenant-scoped.
+The internal protected transition route verifies that the passport belongs to the authenticated tenant before changing state. The EPCIS export route also verifies tenant ownership. Ownership transfer verifies tenant ownership in the service layer. Document listing is tenant-scoped.
 
-However, several other lifecycle endpoints appear not to perform the same tenant-ownership check before reading or mutating passport-specific lifecycle data:
+The audited lifecycle-adjacent handler routes that originally lacked a shared ownership guard have now been updated to use the same tenant-scoped passport access pattern:
 
 - `GET /api/v1/passports/{uuid}/transitions`
 - `GET /api/v1/passports/{uuid}/events`
@@ -159,7 +160,7 @@ However, several other lifecycle endpoints appear not to perform the same tenant
 - `POST /api/v1/passports/{uuid}/replacements`
 - `GET /api/v1/passports/{uuid}/verify-chain`
 
-These routes are protected by authentication, but the handler logic currently appears to parse the passport UUID and call service methods directly without the same tenant ownership guard used on the main transition path.
+Bulk lifecycle execution has also been tightened so explicit `passport_ids` are tenant-scoped in the lifecycle service, not only server-resolved `batch_id` requests.
 
 Why this matters:
 
@@ -167,10 +168,10 @@ Why this matters:
 - a leaked or guessed passport UUID may still let an authenticated user query or mutate another tenant's lifecycle-adjacent data
 - compliance posture is weakened if the strongest controls protect only the central status transition and not the surrounding lifecycle evidence surfaces
 
-Recommended fix:
+Recommended next step:
 
-- create one shared guard for lifecycle passport access
-- apply it to every lifecycle read and write endpoint that accepts a passport UUID
+- keep this shared guard pattern mandatory for any new lifecycle endpoint
+- extend the same discipline to any adjacent lifecycle surfaces that are added later
 - keep policy decisions server-side and avoid endpoint-by-endpoint exceptions unless explicitly justified
 
 ### 2. Allowed-actions discovery is status-based, not actor-aware
@@ -200,14 +201,14 @@ For a strong lifecycle product, action availability should be computed from at l
 
 Historically, the dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` used a local static `TRANSITIONS` map for row actions and a hardcoded bulk action list in the selection footer.
 
-The row-action path has now been updated to fetch allowed actions from the backend transitions endpoint for the currently visible passports, and the bulk footer now derives its options from the backend-allowed action intersection for the currently selected visible passports.
+The row-action path has now been updated to fetch allowed actions from the backend transitions endpoint for the currently visible passports. The bulk footer now derives page-scoped selections from backend-fetched per-passport actions, and select-all mode now calls a protected backend bulk allowed-actions route that computes the shared actor-aware actions for the full filtered dataset.
 
 The broader architectural warning still applies: the frontend should not maintain separate lifecycle policy rules anywhere that affect what actions users see or trust.
 
 Why this matters:
 
 - UI and backend will drift over time
-- new backend role rules can be correct while the UI remains wrong
+- new backend role rules can be correct while a stale UI surface remains wrong
 - lifecycle confusion becomes a product problem even when backend enforcement is technically right
 - the system becomes harder to trust in demos, onboarding, and regulated customer reviews
 
@@ -300,7 +301,7 @@ Right now lifecycle policy is spread across:
 - backend role rules
 - handler-level tenant checks on some routes but not others
 - magic-link-specific rules
-- frontend static transition maps
+- any future frontend-local lifecycle policy logic
 
 This makes the product harder to reason about, harder to test comprehensively, and easier to drift.
 

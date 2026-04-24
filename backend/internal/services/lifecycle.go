@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
@@ -56,6 +57,7 @@ type LifecycleRepository interface {
 	AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	// GetPassportIDsByBatch returns all non-terminal passport UUIDs in a batch, scoped to tenant.
 	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error)
 }
 
 // NewLifecycleService creates a new lifecycle service
@@ -520,6 +522,70 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 	}
 
 	return result, nil
+}
+
+// GetBulkAllowedActionsForFilter returns the actor-aware lifecycle actions that
+// are valid for every passport in the tenant-scoped filtered dataset.
+func (s *LifecycleService) GetBulkAllowedActionsForFilter(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, role models.ActorRole) ([]models.TransitionAction, error) {
+	const pageSize = 500
+
+	var intersection []models.TransitionAction
+	initialized := false
+	offset := 0
+
+	for {
+		items, total, err := s.repo.ListPassportsByTenant(ctx, tenantID, status, search, batchID, pageSize, offset)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list passports: %w", err)
+		}
+		if len(items) == 0 {
+			return []models.TransitionAction{}, nil
+		}
+
+		for _, item := range items {
+			allowed := models.GetAllowedActionsForRole(item.Status, role)
+			if !initialized {
+				intersection = append([]models.TransitionAction{}, allowed...)
+				initialized = true
+				continue
+			}
+			intersection = intersectTransitionActions(intersection, allowed)
+			if len(intersection) == 0 {
+				return []models.TransitionAction{}, nil
+			}
+		}
+
+		offset += len(items)
+		if offset >= total || len(items) < pageSize {
+			break
+		}
+	}
+
+	if !initialized {
+		return []models.TransitionAction{}, nil
+	}
+
+	return intersection, nil
+}
+
+func intersectTransitionActions(left, right []models.TransitionAction) []models.TransitionAction {
+	if len(left) == 0 || len(right) == 0 {
+		return []models.TransitionAction{}
+	}
+
+	rightSet := make(map[models.TransitionAction]struct{}, len(right))
+	for _, action := range right {
+		rightSet[action] = struct{}{}
+	}
+
+	intersection := make([]models.TransitionAction, 0, len(left))
+	for _, action := range left {
+		if _, ok := rightSet[action]; ok {
+			intersection = append(intersection, action)
+		}
+	}
+
+	return intersection
 }
 
 // CalculateWarrantyRemaining calculates remaining warranty based on shipped date

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
@@ -37,6 +38,10 @@ func (f *fakeLifecycleRepo) GetBatchMarketRegion(ctx context.Context, batchID uu
 
 func (f *fakeLifecycleRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
 	return uuid.Nil, nil
+}
+
+func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+	return []*repository.PassportListItem{}, 0, nil
 }
 
 func (f *fakeLifecycleRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {

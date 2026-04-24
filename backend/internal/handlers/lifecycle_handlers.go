@@ -484,6 +484,46 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 	respondJSON(w, http.StatusOK, result)
 }
 
+// GetBulkAllowedActions handles GET /api/v1/passports/bulk/allowed-actions
+func (h *LifecycleHandler) GetBulkAllowedActions(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	actorRole, status, err := h.resolveInternalActorRole(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
+	}
+
+	q := r.URL.Query()
+	allowedActions, err := h.service.GetBulkAllowedActionsForFilter(
+		r.Context(),
+		tenantID,
+		q.Get("status"),
+		q.Get("search"),
+		q.Get("batch_id"),
+		actorRole,
+	)
+	if err != nil {
+		slog.Error("Failed to resolve bulk allowed actions", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to resolve bulk allowed actions")
+		return
+	}
+
+	allowed := make([]string, 0, len(allowedActions))
+	for _, action := range allowedActions {
+		allowed = append(allowed, string(action))
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"allowed_actions": allowed,
+	})
+}
+
 // GetAllowedActions handles GET /api/v1/passports/{uuid}/transitions
 // @Summary Get allowed lifecycle actions
 // @Description Get list of valid actions for a passport

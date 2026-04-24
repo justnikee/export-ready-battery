@@ -281,6 +281,7 @@ func main() {
 	// RBAC: bulk delete requires owner or operator
 	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(middleware.RequireRole("owner", "operator")(http.HandlerFunc(h.BulkDeletePassports))))
 	mux.Handle("POST /api/v1/passports/bulk/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports)))
+	mux.Handle("GET /api/v1/passports/bulk/allowed-actions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetBulkAllowedActions)))
 	mux.Handle("GET /api/v1/passports", authMiddleware.Protect(http.HandlerFunc(h.ListPassports)))
 
 	// ============================================

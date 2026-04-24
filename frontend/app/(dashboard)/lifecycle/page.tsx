@@ -56,6 +56,10 @@ interface BatchOption {
   status: string;
 }
 
+interface BulkAllowedActionsResponse {
+  allowed_actions: string[];
+}
+
 const STATUS_COLORS: Record<string, string> = {
   CREATED: "bg-muted text-foreground",
   ACTIVE: "bg-blue-500/15 text-blue-500",
@@ -155,6 +159,9 @@ export default function LifecyclePage() {
   const [allowedActionsByPassport, setAllowedActionsByPassport] = useState<
     Record<string, string[]>
   >({});
+  const [bulkAllowedActions, setBulkAllowedActions] = useState<string[]>([]);
+  const [bulkAllowedActionsLoading, setBulkAllowedActionsLoading] =
+    useState(false);
 
   // Filters & pagination
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -366,6 +373,42 @@ export default function LifecyclePage() {
       cancelled = true;
     };
   }, [passports]);
+
+  useEffect(() => {
+    if (!selectAllMode) {
+      setBulkAllowedActions([]);
+      setBulkAllowedActionsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    if (searchTerm) params.set("search", searchTerm);
+    if (batchFilter) params.set("batch_id", batchFilter);
+
+    setBulkAllowedActions([]);
+    setBulkAllowedActionsLoading(true);
+
+    api
+      .get<BulkAllowedActionsResponse>(
+        `/passports/bulk/allowed-actions?${params.toString()}`,
+        { signal: controller.signal },
+      )
+      .then((res) => {
+        setBulkAllowedActions(res.data.allowed_actions || []);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setBulkAllowedActions([]);
+        toast.error("Failed to resolve bulk actions");
+      })
+      .finally(() => {
+        setBulkAllowedActionsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectAllMode, statusFilter, searchTerm, batchFilter]);
 
   // ─── Search debounce ─────────────────────────────────────────────────────
   const handleSearchChange = (val: string) => {
@@ -690,14 +733,18 @@ export default function LifecyclePage() {
   const selectedVisiblePassports = passports.filter((passport) =>
     selectedIds.has(passport.uuid),
   );
-  const bulkActionOptions = selectedVisiblePassports.reduce<string[]>(
-    (intersection, passport, index) => {
-      const allowedActions = allowedActionsByPassport[passport.uuid] || [];
-      if (index === 0) return [...allowedActions];
-      return intersection.filter((action) => allowedActions.includes(action));
-    },
-    [],
-  );
+  const bulkActionOptions = selectAllMode
+    ? bulkAllowedActions
+    : selectedVisiblePassports.reduce<string[]>(
+        (intersection, passport, index) => {
+          const allowedActions = allowedActionsByPassport[passport.uuid] || [];
+          if (index === 0) return [...allowedActions];
+          return intersection.filter((action) =>
+            allowedActions.includes(action),
+          );
+        },
+        [],
+      );
 
   useEffect(() => {
     if (bulkAction && !bulkActionOptions.includes(bulkAction)) {
@@ -1062,7 +1109,11 @@ export default function LifecyclePage() {
             value={bulkAction}
             onChange={(e) => setBulkAction(e.target.value)}
           >
-            <option value="">Choose action…</option>
+            <option value="">
+              {bulkAllowedActionsLoading
+                ? "Loading actions…"
+                : "Choose action…"}
+            </option>
             {bulkActionOptions.map((action) => (
               <option key={action} value={action}>
                 {action.charAt(0) + action.slice(1).toLowerCase()}
@@ -1070,7 +1121,7 @@ export default function LifecyclePage() {
             ))}
           </select>
           <button
-            disabled={!bulkAction}
+            disabled={!bulkAction || bulkAllowedActionsLoading}
             onClick={() => bulkAction && openBulkModal(bulkAction)}
             className="flex items-center gap-1.5 px-4 py-1.5 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
           >

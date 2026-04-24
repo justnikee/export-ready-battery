@@ -270,3 +270,21 @@ func TestBulkTransitionPassports_ExplicitIDsAreTenantScoped(t *testing.T) {
 	mockRepo.AssertNumberOfCalls(t, "ApplyLifecycleTransition", 1)
 	mockRepo.AssertNumberOfCalls(t, "GetPassportEvents", 1)
 }
+
+func TestGetBulkAllowedActionsForFilter_IntersectsAcrossFilteredDataset(t *testing.T) {
+	service, mockRepo := setupLifecycleService(t)
+	ctx := context.Background()
+	tenantID := uuid.New()
+
+	items := []*repository.PassportListItem{
+		{UUID: uuid.New().String(), Status: models.PassportStatusActive},
+		{UUID: uuid.New().String(), Status: models.PassportStatusCreated},
+	}
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, "", "", "", 500, 0).Return(items, len(items), nil).Once()
+
+	actions, err := service.GetBulkAllowedActionsForFilter(ctx, tenantID, "", "", "", models.ActorRoleInternalOperator)
+
+	assert.NoError(t, err)
+	assert.Empty(t, actions)
+	mockRepo.AssertExpectations(t)
+}
