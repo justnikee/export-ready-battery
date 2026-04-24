@@ -269,7 +269,7 @@ type TeamInviteData struct {
 
 // SendTeamInvite sends a team invitation email using template
 func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role string) error {
-	inviteLink := fmt.Sprintf("%s/invite?token=%s", e.baseURL, inviteToken)
+	inviteLink := fmt.Sprintf("%s/accept-invite?token=%s", e.baseURL, inviteToken)
 
 	if !e.enabled {
 		slog.Info("Team invite email (mock)", "to", toEmail, "company", companyName, "role", role)

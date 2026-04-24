@@ -42,6 +42,7 @@ type RegisterRequest struct {
 	CompanyName string `json:"company_name"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+	InviteToken string `json:"invite_token"` // optional — skips email verification
 }
 
 // LoginRequest is the request body for login
@@ -130,9 +131,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.Email == "" || req.Password == "" || req.CompanyName == "" {
+	if req.Email == "" || req.Password == "" {
+		respondError(w, http.StatusBadRequest, "email and password are required")
+		return
+	}
+
+	// If registering via invite, company_name is optional (they're joining an existing org)
+	isInviteFlow := req.InviteToken != ""
+	if !isInviteFlow && req.CompanyName == "" {
 		respondError(w, http.StatusBadRequest, "email, password, and company_name are required")
 		return
+	}
+	// Fallback company name for invite-based registrations
+	if req.CompanyName == "" {
+		req.CompanyName = req.Email
 	}
 
 	if len(req.Password) < 8 {
@@ -162,7 +174,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate email verification token
+	// If registering via invite, validate the invite token and mark email as pre-verified
+	emailVerified := false
+	if isInviteFlow {
+		inviteMember, invErr := h.repo.GetTeamMemberByToken(r.Context(), req.InviteToken)
+		if invErr == nil && inviteMember != nil && inviteMember.Email == req.Email {
+			emailVerified = true
+		}
+	}
+
+	// Generate email verification token (only used when not pre-verified)
 	verificationToken, err := h.authService.GenerateResetToken()
 	if err != nil {
 		slog.Error("Failed to generate verification token", "error", err)
@@ -171,14 +192,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	verificationExpires := time.Now().Add(24 * time.Hour)
 
-	// Create tenant (email_verified=false by default)
+	// Create tenant
 	tenantID := uuid.New()
 	_, err = h.db.Pool.Exec(r.Context(),
 		`INSERT INTO public.tenants
 			(id, company_name, email, password_hash, email_verified, email_verification_token, email_verification_expires, created_at)
-		 VALUES ($1, $2, $3, $4, false, $5, $6, $7)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		tenantID, req.CompanyName, req.Email, passwordHash,
-		verificationToken, verificationExpires, time.Now())
+		emailVerified, verificationToken, verificationExpires, time.Now())
 	if err != nil {
 		slog.Error("Failed to create tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
@@ -197,14 +218,20 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("Failed to check pending invites", "error", err)
 	}
 
-	// Send verification email (logs to console in dev mode)
-	if err := h.emailService.SendVerificationEmail(req.Email, verificationToken); err != nil {
-		slog.Warn("Failed to send verification email", "error", err)
-		// Non-fatal: registration still succeeds
+	// Send verification email only for non-invite registrations
+	if !emailVerified {
+		if err := h.emailService.SendVerificationEmail(req.Email, verificationToken); err != nil {
+			slog.Warn("Failed to send verification email", "error", err)
+		}
+		respondJSON(w, http.StatusAccepted, map[string]string{
+			"message": "Registration successful. Please check your email to verify your account before logging in.",
+		})
+		return
 	}
 
-	respondJSON(w, http.StatusAccepted, map[string]string{
-		"message": "Registration successful. Please check your email to verify your account before logging in.",
+	// Invite flow: already verified — tell the frontend to go straight to login
+	respondJSON(w, http.StatusCreated, map[string]string{
+		"message": "Account created. You can now log in.",
 	})
 }
 
