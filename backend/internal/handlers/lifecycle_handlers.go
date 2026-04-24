@@ -82,27 +82,25 @@ func mapTeamRoleToActorRole(teamRole string) (models.ActorRole, bool) {
 	}
 }
 
-func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string) (models.ActorContext, int, error) {
+func (h *LifecycleHandler) resolveInternalActorRole(ctx context.Context) (models.ActorRole, int, error) {
 	tenantIDStr := middleware.GetTenantID(ctx)
 	if tenantIDStr == "" {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing tenant context")
+		return "", http.StatusUnauthorized, errors.New("missing tenant context")
 	}
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("invalid tenant context")
+		return "", http.StatusUnauthorized, errors.New("invalid tenant context")
 	}
 
 	email := middleware.GetEmail(ctx)
 	if email == "" {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+		return "", http.StatusUnauthorized, errors.New("missing actor context")
 	}
 
 	if h.roleResolver == nil {
-		return models.ActorContext{}, http.StatusInternalServerError, errors.New("role resolver unavailable")
+		return "", http.StatusInternalServerError, errors.New("role resolver unavailable")
 	}
 
-	// Resolve role: prefer team_members table; fall back to the JWT role
-	// (covers tenant owners who are not explicitly added as team members).
 	var roleStr string
 	member, err := h.roleResolver.GetTeamMemberByEmail(ctx, tenantID, email)
 	if err == nil && member != nil {
@@ -110,13 +108,27 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 	} else {
 		roleStr = middleware.GetRole(ctx)
 		if roleStr == "" {
-			return models.ActorContext{}, http.StatusForbidden, errors.New("role not found")
+			return "", http.StatusForbidden, errors.New("role not found")
 		}
 	}
 
 	internalRole, ok := mapTeamRoleToActorRole(roleStr)
 	if !ok {
-		return models.ActorContext{}, http.StatusForbidden, errors.New("role not permitted")
+		return "", http.StatusForbidden, errors.New("role not permitted")
+	}
+
+	return internalRole, http.StatusOK, nil
+}
+
+func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string) (models.ActorContext, int, error) {
+	email := middleware.GetEmail(ctx)
+	if email == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+	}
+
+	internalRole, status, err := h.resolveInternalActorRole(ctx)
+	if err != nil {
+		return models.ActorContext{}, status, err
 	}
 
 	if action == string(models.ActionActivate) {
@@ -481,6 +493,11 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
+	actorRole, status, err := h.resolveInternalActorRole(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
+	}
 
 	// Get passport to check current status
 	passport, err := h.service.GetPassportForTransition(r.Context(), passportID)
@@ -489,7 +506,7 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	allowedActions := models.GetAllowedActions(passport.Status)
+	allowedActions := models.GetAllowedActionsForRole(passport.Status, actorRole)
 	allowed := make([]string, 0, len(allowedActions))
 	for _, action := range allowedActions {
 		allowed = append(allowed, string(action))

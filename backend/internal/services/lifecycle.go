@@ -784,18 +784,6 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 		Source:     source,
 	})
 
-	// Append a row to soh_history so callers can query the time-series without
-	// replaying the passport event log.
-	_ = s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
-		ID:         uuid.New(),
-		PassportID: passportID,
-		SoH:        soh,
-		RecordedAt: now,
-		Actor:      actor,
-		ActorType:  actorType,
-		Source:     source,
-	})
-
 	previousHash := ""
 	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
 	if err == nil && len(prevEvents) > 0 {

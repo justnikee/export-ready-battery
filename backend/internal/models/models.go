@@ -653,6 +653,22 @@ func GetAllowedActions(currentStatus string) []TransitionAction {
 	return allowed
 }
 
+// GetAllowedActionsForRole returns the list of valid actions for a given
+// current status filtered by the actor role that is asking for them.
+func GetAllowedActionsForRole(currentStatus string, role ActorRole) []TransitionAction {
+	allowed := make([]TransitionAction, 0)
+	for _, action := range TransitionActionOrder {
+		if !IsActionAllowedFrom(action, currentStatus) {
+			continue
+		}
+		if !IsRoleAllowedForAction(action, role) {
+			continue
+		}
+		allowed = append(allowed, action)
+	}
+	return allowed
+}
+
 // ============================================================================
 // PASSPORT EVENTS (LIFECYCLE AUDIT LOG)
 // ============================================================================

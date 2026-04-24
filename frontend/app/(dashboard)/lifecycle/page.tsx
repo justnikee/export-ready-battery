@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import api from "@/lib/api";
+import type { AllowedActionsResponse } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -86,17 +87,6 @@ const LIFECYCLE_STATES = [
   "END_OF_LIFE",
 ];
 
-// Allowed transitions per status (mirrors backend state machine)
-const TRANSITIONS: Record<string, string[]> = {
-  CREATED: ["ACTIVATE"],
-  ACTIVE: ["SHIP", "RECALL"],
-  SHIPPED: ["INSTALL", "RECALL"],
-  IN_SERVICE: ["RECALL", "RECYCLE"],
-  RECALLED: ["RECYCLE"],
-  RECYCLED: ["END_OF_LIFE"],
-  END_OF_LIFE: [],
-};
-
 const EVIDENCE_FIELDS: Record<
   string,
   { key: string; label: string; type: "text" | "date" }[]
@@ -162,6 +152,9 @@ export default function LifecyclePage() {
   const [batches, setBatches] = useState<BatchOption[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [totalCount, setTotalCount] = useState(0);
+  const [allowedActionsByPassport, setAllowedActionsByPassport] = useState<
+    Record<string, string[]>
+  >({});
 
   // Filters & pagination
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -337,6 +330,42 @@ export default function LifecyclePage() {
     fetchPassports(controller.signal);
     return () => controller.abort();
   }, [fetchPassports]);
+
+  useEffect(() => {
+    if (passports.length === 0) {
+      setAllowedActionsByPassport({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAllowedActions = async () => {
+      const results = await Promise.allSettled(
+        passports.map(async (passport) => {
+          const response = await api.get<AllowedActionsResponse>(
+            `/passports/${passport.uuid}/transitions`,
+          );
+          return [passport.uuid, response.data.allowed_actions] as const;
+        }),
+      );
+
+      if (cancelled) return;
+
+      const nextAllowedActions: Record<string, string[]> = {};
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const [passportID, allowedActions] = result.value;
+        nextAllowedActions[passportID] = allowedActions;
+      }
+      setAllowedActionsByPassport(nextAllowedActions);
+    };
+
+    void fetchAllowedActions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [passports]);
 
   // ─── Search debounce ─────────────────────────────────────────────────────
   const handleSearchChange = (val: string) => {
@@ -850,7 +879,8 @@ export default function LifecyclePage() {
                     {passports.map((p) => {
                       const colorClass =
                         STATUS_COLORS[p.status] || STATUS_COLORS.CREATED;
-                      const allowedActions = TRANSITIONS[p.status] || [];
+                      const allowedActions =
+                        allowedActionsByPassport[p.uuid] || [];
                       const isLowSoH =
                         p.state_of_health != null && p.state_of_health < 60;
                       return (

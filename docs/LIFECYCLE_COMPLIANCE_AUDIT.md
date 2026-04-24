@@ -5,6 +5,9 @@ Date: 2026-04-24
 Implementation note, 2026-04-25:
 
 - Internal lifecycle handlers now use a shared tenant-scoped passport access guard for transitions discovery, events, SoH read/write, repair logging, replacement logging, verify-chain, transition execution, and EPCIS export.
+- The duplicated SoH history append in the lifecycle service has been removed, so each SoH update now writes a single history entry plus the immutable `SOH_UPDATED` audit event.
+- The internal `GET /api/v1/passports/{uuid}/transitions` route now filters actions by resolved internal actor role instead of returning status-only actions.
+- The lifecycle dashboard row-action menu now fetches allowed actions from the backend transitions endpoint for each visible passport instead of using a local static transition map.
 - The gap analysis below remains useful as the baseline that drove that change, but the object-authorization gap for those internal handler routes has now been partially addressed in code.
 
 ## Scope
@@ -168,11 +171,13 @@ Recommended fix:
 
 ### 2. Allowed-actions discovery is status-based, not actor-aware
 
-`GET /api/v1/passports/{uuid}/transitions` currently derives `allowed_actions` from `models.GetAllowedActions(passport.Status)`.
+Historically, `GET /api/v1/passports/{uuid}/transitions` derived `allowed_actions` from `models.GetAllowedActions(passport.Status)`.
 
-That means the endpoint answers: "what actions are valid from this status?" It does not fully answer: "what actions is this authenticated actor allowed to perform on this passport right now?"
+That meant the endpoint answered: "what actions are valid from this status?" instead of fully answering: "what actions is this authenticated actor allowed to perform on this passport right now?"
 
-This creates several problems:
+The internal handler path has now been updated to filter by resolved internal actor role, but the broader architectural point still stands: action discovery should remain fully policy-driven and consistent across all lifecycle surfaces, including any external or partner-facing discovery flows.
+
+The original status-only approach created several problems:
 
 - the returned action list can overstate what a user is actually permitted to execute
 - the UI may present actions that later fail at execution time
@@ -189,9 +194,11 @@ For a strong lifecycle product, action availability should be computed from at l
 
 ### 3. Frontend lifecycle actions are still driven by a static map
 
-The dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` still uses a local static `TRANSITIONS` map.
+Historically, the dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` used a local static `TRANSITIONS` map for row actions.
 
-This means the frontend is not delegating lifecycle action availability to the backend. It is effectively maintaining a second policy model in the UI.
+The row-action path has now been updated to fetch allowed actions from the backend transitions endpoint for the currently visible passports. That removes the most obvious UI-side policy duplication for single-passport actions.
+
+The broader architectural warning still applies: the frontend should not maintain separate lifecycle policy rules anywhere that affect what actions users see or trust.
 
 Why this matters:
 
@@ -240,14 +247,11 @@ However, there are still two concerns.
 
 First, the API path itself does not appear to enforce tenant ownership before updating or reading SoH history.
 
-Second, the current implementation appends SoH history twice for a single update. The same `AppendSoHHistory` block appears duplicated in `UpdateStateOfHealth`.
-
-That means the platform likely records duplicate SoH history entries per update unless the repository layer deduplicates them later.
+Second, historical code review found that `UpdateStateOfHealth` had duplicated the SoH history append. That implementation issue has now been fixed so a single update produces one history row and one immutable audit event.
 
 Recommended fix:
 
 - add the same tenant ownership guard used on protected lifecycle transitions
-- remove the duplicate history append
 - decide whether all SoH writes should also carry stronger source provenance, device identity, or attestation metadata when they originate from telemetry rather than manual input
 
 ### 6. Some lifecycle security findings in internal docs are now stale, but that creates its own risk
@@ -364,7 +368,7 @@ The following points should be treated as corrected by current code review.
 
 - The real security gap is no longer only "transition path missing tenant guard". It is now "lifecycle object authorization is inconsistent across the full endpoint surface".
 - The real repair and replacement gap is no longer "not built". It is now "built only as partial event logging, not as first-class lifecycle policy and workflow".
-- The real SoH gap is no longer "not audit logged". It is now "API governance and provenance are weaker than the audit primitive itself, and the history append appears duplicated".
+- The real SoH gap is no longer "not audit logged". It is now "API governance and provenance are weaker than the audit primitive itself".
 
 ## Recommended Roadmap
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -210,6 +211,7 @@ func TestTransitionPassport_RejectsToStatus(t *testing.T) {
 	body := `{"` + statusField + `":"ACTIVE"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/transition", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "operator@example.com"))
 	rr := httptest.NewRecorder()
 
 	handler.TransitionPassport(rr, req)
@@ -350,5 +352,32 @@ func TestUpdateStateOfHealth_ForeignTenant(t *testing.T) {
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestGetAllowedActions_FiltersByActorRole(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/"+passportID.String()+"/transitions", nil)
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetAllowedActions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if !slices.Contains(resp.AllowedActions, string(models.ActionShip)) {
+		t.Fatalf("expected SHIP to be allowed, got %v", resp.AllowedActions)
+	}
+	if slices.Contains(resp.AllowedActions, string(models.ActionRecall)) {
+		t.Fatalf("did not expect RECALL for MEMBER, got %v", resp.AllowedActions)
 	}
 }

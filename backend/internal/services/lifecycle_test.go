@@ -175,3 +175,31 @@ func TestVerifyPassportAuditChain_Valid(t *testing.T) {
 	assert.True(t, valid)
 	assert.Equal(t, -1, idx)
 }
+
+func TestUpdateStateOfHealth_AppendsHistoryOnceAndLogsEvent(t *testing.T) {
+	service, mockRepo := setupLifecycleService(t)
+	ctx := context.Background()
+	passportID := uuid.New()
+	soh := 94.5
+
+	mockRepo.On("UpdateStateOfHealth", ctx, passportID, soh, mock.AnythingOfType("time.Time")).Return(nil).Once()
+	mockRepo.On("AppendSoHHistory", ctx, mock.MatchedBy(func(entry models.SoHHistoryEntry) bool {
+		return entry.PassportID == passportID && entry.SoH == soh && entry.Actor == "device-1" && entry.ActorType == "DEVICE" && entry.Source == "TELEMETRY"
+	})).Return(nil).Once()
+	mockRepo.On("GetPassportEvents", ctx, passportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("CreatePassportEvent", ctx, mock.MatchedBy(func(event *models.PassportEvent) bool {
+		return event != nil &&
+			event.PassportID == passportID &&
+			event.EventType == models.PassportEventSOHUpdated &&
+			event.Actor == "device-1" &&
+			event.ActorType == "DEVICE" &&
+			event.Source == "TELEMETRY" &&
+			event.Metadata["state_of_health"] == soh
+	})).Return(nil).Once()
+
+	err := service.UpdateStateOfHealth(ctx, passportID, soh, "device-1", "DEVICE", "TELEMETRY", "127.0.0.1")
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+	mockRepo.AssertNumberOfCalls(t, "AppendSoHHistory", 1)
+}
