@@ -595,7 +595,7 @@ var TransitionMap = map[TransitionAction]TransitionDefinition{
 // AllowedRolesByAction defines which roles can perform which actions
 var AllowedRolesByAction = map[TransitionAction][]ActorRole{
 	ActionActivate: {ActorRoleSystem},
-	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics},
+	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
 	ActionInstall:  {ActorRoleTechnician},
 	ActionRecycle:  {ActorRoleRecycler},
 	ActionClose:    {ActorRoleSystem, ActorRoleRecycler},

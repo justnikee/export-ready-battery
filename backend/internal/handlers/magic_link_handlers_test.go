@@ -17,14 +17,18 @@ import (
 )
 
 type fakeMagicRepo struct {
-	passports map[uuid.UUID]*models.Passport
-	tokens    map[string]*repository.MagicLinkTokenRecord
+	passports       map[uuid.UUID]*models.Passport
+	tokens          map[string]*repository.MagicLinkTokenRecord
+	otps            map[string]*repository.OTPRecord
+	defaultTenantID uuid.UUID
 }
 
 func newFakeMagicRepo() *fakeMagicRepo {
 	return &fakeMagicRepo{
-		passports: make(map[uuid.UUID]*models.Passport),
-		tokens:    make(map[string]*repository.MagicLinkTokenRecord),
+		passports:       make(map[uuid.UUID]*models.Passport),
+		tokens:          make(map[string]*repository.MagicLinkTokenRecord),
+		otps:            make(map[string]*repository.OTPRecord),
+		defaultTenantID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
 	}
 }
 
@@ -63,12 +67,53 @@ func (f *fakeMagicRepo) GetMagicLinkTokenByHash(ctx context.Context, tokenHash s
 	return f.tokens[tokenHash], nil
 }
 
+func (f *fakeMagicRepo) MarkMagicTokenUsed(ctx context.Context, tokenHash string) error {
+	if token := f.tokens[tokenHash]; token != nil {
+		now := time.Now()
+		token.UsedAt = &now
+	}
+	return nil
+}
+
+func (f *fakeMagicRepo) SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error {
+	if token := f.tokens[tokenHash]; token != nil {
+		token.RequiresOTP = required
+	}
+	return nil
+}
+
+func (f *fakeMagicRepo) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
+	f.otps[tokenHash] = &repository.OTPRecord{ID: uuid.New(), MagicLinkTokenHash: tokenHash, OTPHash: otpHash}
+	return nil
+}
+
+func (f *fakeMagicRepo) GetMagicLinkOTP(ctx context.Context, tokenHash string) (*repository.OTPRecord, error) {
+	return f.otps[tokenHash], nil
+}
+
+func (f *fakeMagicRepo) IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) RecordOTPResend(ctx context.Context, otpID uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeMagicRepo) ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error {
+	f.otps[tokenHash] = &repository.OTPRecord{ID: uuid.New(), MagicLinkTokenHash: tokenHash, OTPHash: newOTPHash}
+	return nil
+}
+
 func (f *fakeMagicRepo) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error) {
 	return models.MarketRegionGlobal, nil
 }
 
 func (f *fakeMagicRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
-	return uuid.Nil, nil
+	return f.defaultTenantID, nil
 }
 
 func (f *fakeMagicRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
@@ -112,6 +157,10 @@ func (f *fakeMagicRepo) AppendOwnershipHistory(ctx context.Context, passportID u
 	return nil
 }
 
+func (f *fakeMagicRepo) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
 func (f *fakeMagicRepo) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
 	return nil
 }
@@ -138,6 +187,16 @@ func (f *fakeMagicRepo) AppendRepairEvent(ctx context.Context, passportID uuid.U
 
 func (f *fakeMagicRepo) AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
+}
+
+func (f *fakeMagicRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	var passportIDs []uuid.UUID
+	for passportID, passport := range f.passports {
+		if passport.BatchID == batchID {
+			passportIDs = append(passportIDs, passportID)
+		}
+	}
+	return passportIDs, nil
 }
 
 func setupMagicLinkHandler(t *testing.T, status string, action string, role string) (*MagicLinkHandler, *fakeMagicRepo, *auth.MagicLinkToken, uuid.UUID) {

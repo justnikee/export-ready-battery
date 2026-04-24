@@ -137,34 +137,51 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 	}, http.StatusOK, nil
 }
 
+func passportIDFromPath(path string) (uuid.UUID, error) {
+	pathParts := strings.Split(path, "/")
+	if len(pathParts) < 5 {
+		return uuid.Nil, errors.New("invalid url path")
+	}
+	return uuid.Parse(pathParts[4])
+}
+
+func (h *LifecycleHandler) requireOwnedPassportID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	passportID, err := passportIDFromPath(r.URL.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid UUID") {
+			respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		} else {
+			respondError(w, http.StatusBadRequest, "Invalid URL path")
+		}
+		return uuid.Nil, false
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Missing tenant context")
+		return uuid.Nil, false
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return uuid.Nil, false
+	}
+	if err := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return uuid.Nil, false
+	}
+
+	return passportID, true
+}
+
 // TransitionPassport handles POST /api/v1/passports/{uuid}/transition
 // @Summary Apply a passport lifecycle action
 // @Description Apply a lifecycle action with validation and event logging
 // @Tags passports
 func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	// URL format: /api/v1/passports/{uuid}/transition
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
-	}
-	uuidStr := pathParts[4] // /api/v1/passports/{uuid}/transition
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
-		return
-	}
-
-	// S2 Security fix: Verify the passport belongs to the authenticated tenant
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr != "" {
-		if tenantUUID, parseErr := uuid.Parse(tenantIDStr); parseErr == nil {
-			if ownerErr := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantUUID); ownerErr != nil {
-				respondError(w, http.StatusForbidden, "Passport not found")
-				return
-			}
-		}
 	}
 
 	// Parse request body (and reject any status-based mutation)
@@ -211,6 +228,7 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 	var docID *uuid.UUID
 	var docHash, docLabel string
 	if req.DocumentID != "" && h.docRepo != nil {
+		tenantIDStr := middleware.GetTenantID(r.Context())
 		parsedDocID, parseErr := uuid.Parse(req.DocumentID)
 		if parseErr != nil {
 			respondError(w, http.StatusBadRequest, "invalid document_id format")
@@ -459,17 +477,8 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 // @Description Get list of valid actions for a passport
 // @Tags passports
 func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	// URL format: /api/v1/passports/{uuid}/transitions
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -497,16 +506,8 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 // @Description Get all lifecycle events for a passport (audit trail)
 // @Tags passports
 func (h *LifecycleHandler) GetPassportEvents(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -644,16 +645,8 @@ func isForbiddenErr(err error) bool {
 // @Description Verifies that the hash chain of events is intact (no tampering)
 // @Tags passports
 func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -693,15 +686,8 @@ func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Reque
 
 // UpdateStateOfHealth handles POST /api/v1/passports/{uuid}/soh
 func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -734,14 +720,8 @@ func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Re
 
 // GetSoHHistory handles GET /api/v1/passports/{uuid}/soh/history
 func (h *LifecycleHandler) GetSoHHistory(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	passportID, err := uuid.Parse(pathParts[4])
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -775,30 +755,8 @@ type EPCISRepository interface {
 // ExportEPCIS handles GET /api/v1/passports/{uuid}/epcis
 // Returns a GS1 EPCIS 2.0 JSON-LD document for the passport's event history.
 func (h *LifecycleHandler) ExportEPCIS(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	passportID, err := uuid.Parse(pathParts[4])
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
-		return
-	}
-
-	// Tenant ownership check
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Missing tenant context")
-		return
-	}
-	tenantID, err := uuid.Parse(tenantIDStr)
-	if err != nil {
-		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
-		return
-	}
-	if err := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
-		respondError(w, http.StatusNotFound, "Passport not found")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -885,15 +843,8 @@ func (h *LifecycleHandler) GetPassportDocuments(w http.ResponseWriter, r *http.R
 
 // LogRepairEvent handles POST /api/v1/passports/{uuid}/repairs
 func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -925,15 +876,8 @@ func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request
 
 // LogReplacementEvent handles POST /api/v1/passports/{uuid}/replacements
 func (h *LifecycleHandler) LogReplacementEvent(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 

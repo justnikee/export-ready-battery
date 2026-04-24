@@ -95,6 +95,10 @@ func (f *fakeLifecycleRepo) AppendOwnershipHistory(ctx context.Context, passport
 	return nil
 }
 
+func (f *fakeLifecycleRepo) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
 func (f *fakeLifecycleRepo) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
 	return nil
 }
@@ -121,6 +125,10 @@ func (f *fakeLifecycleRepo) AppendRepairEvent(ctx context.Context, passportID uu
 
 func (f *fakeLifecycleRepo) AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
+}
+
+func (f *fakeLifecycleRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
 }
 
 func TestApplyTransition_RoleEnforcement(t *testing.T) {
@@ -211,6 +219,33 @@ func TestApplyTransition_RoleEnforcement(t *testing.T) {
 		})
 		if err != nil {
 			t.Fatalf("expected success, got %v", err)
+		}
+	})
+
+	t.Run("admin allowed to ship", func(t *testing.T) {
+		repo := newFakeLifecycleRepo()
+		passportID := uuid.New()
+		repo.passports[passportID] = &models.Passport{
+			UUID:      passportID,
+			BatchID:   uuid.New(),
+			Status:    models.PassportStatusActive,
+			CreatedAt: time.Now(),
+		}
+		service := NewLifecycleService(repo)
+
+		_, err := service.ApplyTransition(context.Background(), TransitionRequest{
+			PassportID: passportID,
+			Action:     string(models.ActionShip),
+			ActorContext: models.ActorContext{
+				ActorType: models.ActorTypeUser,
+				ActorID:   "admin@example.com",
+				ActorRole: models.ActorRoleAdmin,
+				Source:    models.ActionSourceInternal,
+			},
+			Evidence: shipEvidence,
+		})
+		if err != nil {
+			t.Fatalf("expected admin ship success, got %v", err)
 		}
 	})
 

@@ -19,9 +19,11 @@ import (
 
 // fakeLifecycleRepo is a minimal in-memory implementation for lifecycle tests.
 type fakeLifecycleRepo struct {
-	passports     map[uuid.UUID]*models.Passport
-	events        map[uuid.UUID][]*models.PassportEvent
-	marketRegions map[uuid.UUID]models.MarketRegion
+	passports       map[uuid.UUID]*models.Passport
+	events          map[uuid.UUID][]*models.PassportEvent
+	marketRegions   map[uuid.UUID]models.MarketRegion
+	batchTenants    map[uuid.UUID]uuid.UUID
+	defaultTenantID uuid.UUID
 }
 
 type fakeRoleResolver struct {
@@ -39,10 +41,13 @@ func (f *fakeRoleResolver) GetTeamMemberByEmail(ctx context.Context, tenantID uu
 }
 
 func newFakeLifecycleRepo() *fakeLifecycleRepo {
+	defaultTenantID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	return &fakeLifecycleRepo{
-		passports:     make(map[uuid.UUID]*models.Passport),
-		events:        make(map[uuid.UUID][]*models.PassportEvent),
-		marketRegions: make(map[uuid.UUID]models.MarketRegion),
+		passports:       make(map[uuid.UUID]*models.Passport),
+		events:          make(map[uuid.UUID][]*models.PassportEvent),
+		marketRegions:   make(map[uuid.UUID]models.MarketRegion),
+		batchTenants:    make(map[uuid.UUID]uuid.UUID),
+		defaultTenantID: defaultTenantID,
 	}
 }
 
@@ -62,7 +67,10 @@ func (f *fakeLifecycleRepo) GetBatchMarketRegion(ctx context.Context, batchID uu
 }
 
 func (f *fakeLifecycleRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
-	return uuid.Nil, nil
+	if tenantID, ok := f.batchTenants[batchID]; ok {
+		return tenantID, nil
+	}
+	return f.defaultTenantID, nil
 }
 
 func (f *fakeLifecycleRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
@@ -113,6 +121,10 @@ func (f *fakeLifecycleRepo) AppendOwnershipHistory(ctx context.Context, passport
 	return nil
 }
 
+func (f *fakeLifecycleRepo) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
 func (f *fakeLifecycleRepo) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
 	passport, ok := f.passports[passportID]
 	if !ok {
@@ -155,12 +167,28 @@ func (f *fakeLifecycleRepo) AppendReplacementEvent(ctx context.Context, passport
 	return nil
 }
 
+func (f *fakeLifecycleRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	var passportIDs []uuid.UUID
+	for passportID, passport := range f.passports {
+		if passport.BatchID != batchID {
+			continue
+		}
+		if ownerTenantID, ok := f.batchTenants[batchID]; ok && ownerTenantID != tenantID {
+			continue
+		}
+		passportIDs = append(passportIDs, passportID)
+	}
+	return passportIDs, nil
+}
+
 func newLifecycleHandlerWithStatus(status string, teamRole string) (*LifecycleHandler, uuid.UUID) {
 	repo := newFakeLifecycleRepo()
 	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
 	repo.passports[passportID] = &models.Passport{
 		UUID:      passportID,
-		BatchID:   uuid.New(),
+		BatchID:   batchID,
 		Status:    status,
 		CreatedAt: time.Now(),
 	}
@@ -292,5 +320,35 @@ func TestTransitionPassport_MissingEvidence(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestGetPassportEvents_ForeignTenant(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/"+passportID.String()+"/events", nil)
+	req = req.WithContext(contextWithAuthAndEmail("22222222-2222-2222-2222-222222222222", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetPassportEvents(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestUpdateStateOfHealth_ForeignTenant(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	body := `{"state_of_health":94}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/soh", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("22222222-2222-2222-2222-222222222222", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UpdateStateOfHealth(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rr.Code)
 	}
 }
