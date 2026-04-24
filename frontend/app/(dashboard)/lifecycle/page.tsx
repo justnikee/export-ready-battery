@@ -686,6 +686,23 @@ export default function LifecyclePage() {
     selectedIds.size === passports.length && passports.length > 0;
   // The count shown in modals/footer: total dataset if in selectAllMode, else page selection
   const effectiveCount = selectAllMode ? totalCount : selectedIds.size;
+  const selectedVisiblePassports = passports.filter((passport) =>
+    selectedIds.has(passport.uuid),
+  );
+  const bulkActionOptions = selectedVisiblePassports.reduce<string[]>(
+    (intersection, passport, index) => {
+      const allowedActions = allowedActionsByPassport[passport.uuid] || [];
+      if (index === 0) return [...allowedActions];
+      return intersection.filter((action) => allowedActions.includes(action));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (bulkAction && !bulkActionOptions.includes(bulkAction)) {
+      setBulkAction("");
+    }
+  }, [bulkAction, bulkActionOptions]);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -1045,11 +1062,11 @@ export default function LifecyclePage() {
             onChange={(e) => setBulkAction(e.target.value)}
           >
             <option value="">Choose action…</option>
-            <option value="ACTIVATE">Activate</option>
-            <option value="SHIP">Ship</option>
-            <option value="INSTALL">Install</option>
-            <option value="RECALL">Recall</option>
-            <option value="RECYCLE">Recycle</option>
+            {bulkActionOptions.map((action) => (
+              <option key={action} value={action}>
+                {action.charAt(0) + action.slice(1).toLowerCase()}
+              </option>
+            ))}
           </select>
           <button
             disabled={!bulkAction}

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -319,5 +320,51 @@ func TestMagicLinkTransition_ValidTokenSucceeds(t *testing.T) {
 	handler.TransitionWithMagicLink(rr, req)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+}
+
+func TestGetPassportForAction_FiltersByTokenRole(t *testing.T) {
+	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionRecall), "LOGISTICS")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passport/"+passportID.String()+"?token="+token.Token, nil)
+	rr := httptest.NewRecorder()
+
+	handler.GetPassportForAction(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.AllowedActions) != 0 {
+		t.Fatalf("expected no allowed actions for LOGISTICS RECALL token, got %v", resp.AllowedActions)
+	}
+}
+
+func TestGetPassportForAction_AllowsMatchingTokenRole(t *testing.T) {
+	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passport/"+passportID.String()+"?token="+token.Token, nil)
+	rr := httptest.NewRecorder()
+
+	handler.GetPassportForAction(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.AllowedActions) != 1 || resp.AllowedActions[0] != string(models.ActionShip) {
+		t.Fatalf("expected only SHIP, got %v", resp.AllowedActions)
 	}
 }

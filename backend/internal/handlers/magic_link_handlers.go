@@ -579,7 +579,7 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 	if claims.Action == string(models.ActionSOHUpdate) {
 		allowedForToken = []string{string(models.ActionSOHUpdate)}
 	} else {
-		for _, action := range models.GetAllowedActions(passport.Status) {
+		for _, action := range models.GetAllowedActionsForRole(passport.Status, models.ActorRole(claims.Role)) {
 			if string(action) == claims.Action {
 				allowedForToken = append(allowedForToken, string(action))
 			}

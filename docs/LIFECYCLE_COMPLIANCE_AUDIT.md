@@ -8,6 +8,8 @@ Implementation note, 2026-04-25:
 - The duplicated SoH history append in the lifecycle service has been removed, so each SoH update now writes a single history entry plus the immutable `SOH_UPDATED` audit event.
 - The internal `GET /api/v1/passports/{uuid}/transitions` route now filters actions by resolved internal actor role instead of returning status-only actions.
 - The lifecycle dashboard row-action menu now fetches allowed actions from the backend transitions endpoint for each visible passport instead of using a local static transition map.
+- The lifecycle dashboard bulk-action footer now derives its action choices from the backend-allowed action intersection for the currently selected visible passports instead of a hardcoded local action list.
+- The magic-link action-info endpoint now filters transition actions through the token holder's role instead of relying on status-only discovery.
 - The gap analysis below remains useful as the baseline that drove that change, but the object-authorization gap for those internal handler routes has now been partially addressed in code.
 
 ## Scope
@@ -175,7 +177,7 @@ Historically, `GET /api/v1/passports/{uuid}/transitions` derived `allowed_action
 
 That meant the endpoint answered: "what actions are valid from this status?" instead of fully answering: "what actions is this authenticated actor allowed to perform on this passport right now?"
 
-The internal handler path has now been updated to filter by resolved internal actor role, but the broader architectural point still stands: action discovery should remain fully policy-driven and consistent across all lifecycle surfaces, including any external or partner-facing discovery flows.
+The internal handler path and the magic-link action-info path have now been updated to filter actions by the requesting actor role, but the broader architectural point still stands: action discovery should remain fully policy-driven and consistent across all lifecycle surfaces.
 
 The original status-only approach created several problems:
 
@@ -194,9 +196,9 @@ For a strong lifecycle product, action availability should be computed from at l
 
 ### 3. Frontend lifecycle actions are still driven by a static map
 
-Historically, the dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` used a local static `TRANSITIONS` map for row actions.
+Historically, the dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` used a local static `TRANSITIONS` map for row actions and a hardcoded bulk action list in the selection footer.
 
-The row-action path has now been updated to fetch allowed actions from the backend transitions endpoint for the currently visible passports. That removes the most obvious UI-side policy duplication for single-passport actions.
+The row-action path has now been updated to fetch allowed actions from the backend transitions endpoint for the currently visible passports, and the bulk footer now derives its options from the backend-allowed action intersection for the currently selected visible passports.
 
 The broader architectural warning still applies: the frontend should not maintain separate lifecycle policy rules anywhere that affect what actions users see or trust.
 
