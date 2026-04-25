@@ -82,27 +82,25 @@ func mapTeamRoleToActorRole(teamRole string) (models.ActorRole, bool) {
 	}
 }
 
-func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string) (models.ActorContext, int, error) {
+func (h *LifecycleHandler) resolveInternalActorRole(ctx context.Context) (models.ActorRole, int, error) {
 	tenantIDStr := middleware.GetTenantID(ctx)
 	if tenantIDStr == "" {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing tenant context")
+		return "", http.StatusUnauthorized, errors.New("missing tenant context")
 	}
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("invalid tenant context")
+		return "", http.StatusUnauthorized, errors.New("invalid tenant context")
 	}
 
 	email := middleware.GetEmail(ctx)
 	if email == "" {
-		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+		return "", http.StatusUnauthorized, errors.New("missing actor context")
 	}
 
 	if h.roleResolver == nil {
-		return models.ActorContext{}, http.StatusInternalServerError, errors.New("role resolver unavailable")
+		return "", http.StatusInternalServerError, errors.New("role resolver unavailable")
 	}
 
-	// Resolve role: prefer team_members table; fall back to the JWT role
-	// (covers tenant owners who are not explicitly added as team members).
 	var roleStr string
 	member, err := h.roleResolver.GetTeamMemberByEmail(ctx, tenantID, email)
 	if err == nil && member != nil {
@@ -110,13 +108,27 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 	} else {
 		roleStr = middleware.GetRole(ctx)
 		if roleStr == "" {
-			return models.ActorContext{}, http.StatusForbidden, errors.New("role not found")
+			return "", http.StatusForbidden, errors.New("role not found")
 		}
 	}
 
 	internalRole, ok := mapTeamRoleToActorRole(roleStr)
 	if !ok {
-		return models.ActorContext{}, http.StatusForbidden, errors.New("role not permitted")
+		return "", http.StatusForbidden, errors.New("role not permitted")
+	}
+
+	return internalRole, http.StatusOK, nil
+}
+
+func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string) (models.ActorContext, int, error) {
+	email := middleware.GetEmail(ctx)
+	if email == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+	}
+
+	internalRole, status, err := h.resolveInternalActorRole(ctx)
+	if err != nil {
+		return models.ActorContext{}, status, err
 	}
 
 	if action == string(models.ActionActivate) {
@@ -137,34 +149,51 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 	}, http.StatusOK, nil
 }
 
+func passportIDFromPath(path string) (uuid.UUID, error) {
+	pathParts := strings.Split(path, "/")
+	if len(pathParts) < 5 {
+		return uuid.Nil, errors.New("invalid url path")
+	}
+	return uuid.Parse(pathParts[4])
+}
+
+func (h *LifecycleHandler) requireOwnedPassportID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	passportID, err := passportIDFromPath(r.URL.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid UUID") {
+			respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		} else {
+			respondError(w, http.StatusBadRequest, "Invalid URL path")
+		}
+		return uuid.Nil, false
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Missing tenant context")
+		return uuid.Nil, false
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return uuid.Nil, false
+	}
+	if err := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return uuid.Nil, false
+	}
+
+	return passportID, true
+}
+
 // TransitionPassport handles POST /api/v1/passports/{uuid}/transition
 // @Summary Apply a passport lifecycle action
 // @Description Apply a lifecycle action with validation and event logging
 // @Tags passports
 func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	// URL format: /api/v1/passports/{uuid}/transition
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
-	}
-	uuidStr := pathParts[4] // /api/v1/passports/{uuid}/transition
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
-		return
-	}
-
-	// S2 Security fix: Verify the passport belongs to the authenticated tenant
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr != "" {
-		if tenantUUID, parseErr := uuid.Parse(tenantIDStr); parseErr == nil {
-			if ownerErr := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantUUID); ownerErr != nil {
-				respondError(w, http.StatusForbidden, "Passport not found")
-				return
-			}
-		}
 	}
 
 	// Parse request body (and reject any status-based mutation)
@@ -211,6 +240,7 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 	var docID *uuid.UUID
 	var docHash, docLabel string
 	if req.DocumentID != "" && h.docRepo != nil {
+		tenantIDStr := middleware.GetTenantID(r.Context())
 		parsedDocID, parseErr := uuid.Parse(req.DocumentID)
 		if parseErr != nil {
 			respondError(w, http.StatusBadRequest, "invalid document_id format")
@@ -284,14 +314,20 @@ type BulkLifecycleTransitionRequest struct {
 	// PassportIDs is an explicit list of passport UUIDs to transition.
 	// Mutually exclusive with BatchID — provide one or the other, not both.
 	PassportIDs []string `json:"passport_ids,omitempty"`
+	// SelectAll applies the action to the full tenant-scoped filtered dataset.
+	// When true, the backend resolves IDs using StateFilter/SearchQuery/BatchID.
+	SelectAll bool `json:"select_all,omitempty"`
 	// BatchID triggers a server-side fetch of all non-terminal passport IDs in the batch.
 	// Use this instead of fetching all IDs from the frontend when a batch context is known.
-	BatchID    *string         `json:"batch_id,omitempty"`
-	Action     string          `json:"action"`
-	Actor      string          `json:"actor,omitempty"`
-	Evidence   models.Evidence `json:"evidence,omitempty"`
-	ReasonCode string          `json:"reason_code,omitempty"` // required for ACTIVATE
-	AdminNote  string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
+	BatchID     *string         `json:"batch_id,omitempty"`
+	StateFilter string          `json:"state_filter,omitempty"`
+	SearchQuery string          `json:"search_query,omitempty"`
+	Strict      bool            `json:"strict,omitempty"`
+	Action      string          `json:"action"`
+	Actor       string          `json:"actor,omitempty"`
+	Evidence    models.Evidence `json:"evidence,omitempty"`
+	ReasonCode  string          `json:"reason_code,omitempty"` // required for ACTIVATE
+	AdminNote   string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
 }
 
 // maxBulkTransitionSize caps a single bulk-transition request.
@@ -331,11 +367,15 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Must provide exactly one of passport_ids or batch_id.
+	// Must provide either explicit passport_ids, a batch_id, or select_all scope.
 	hasList := len(req.PassportIDs) > 0
 	hasBatch := req.BatchID != nil && *req.BatchID != ""
-	if !hasList && !hasBatch {
-		respondError(w, http.StatusBadRequest, "one of passport_ids or batch_id is required")
+	if req.SelectAll && hasList {
+		respondError(w, http.StatusBadRequest, "passport_ids and select_all are mutually exclusive")
+		return
+	}
+	if !hasList && !hasBatch && !req.SelectAll {
+		respondError(w, http.StatusBadRequest, "one of passport_ids, batch_id, or select_all is required")
 		return
 	}
 	if hasList && hasBatch {
@@ -392,6 +432,10 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 	result, err := h.service.BulkTransitionPassports(r.Context(), services.BulkTransitionRequest{
 		PassportIDs:  passportUUIDs,
 		BatchID:      batchUUID,
+		SelectAll:    req.SelectAll,
+		StateFilter:  req.StateFilter,
+		SearchQuery:  req.SearchQuery,
+		Strict:       req.Strict,
 		TenantID:     tenantUUID,
 		Action:       req.Action,
 		ActorContext: actorContext,
@@ -418,6 +462,23 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 			respondError(w, http.StatusForbidden, "Role not permitted")
 			return
 		}
+		if errors.Is(err, services.ErrBulkEligibilityFailed) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"partial":               false,
+				"prechecked":            true,
+				"message":               fmt.Sprintf("Bulk %s blocked before execution. %d/%d passports are not eligible for this action.", req.Action, result.Failed, result.Total),
+				"succeeded":             0,
+				"failed":                result.Failed,
+				"total":                 result.Total,
+				"failed_ids":            result.FailedIDs,
+				"errors":                result.Errors,
+				"error_summary":         result.ErrorSummary,
+				"failed_status_summary": result.FailedStatusSummary,
+			})
+			return
+		}
 		if errors.Is(err, services.ErrTransitionPersistFailed) {
 			respondError(w, http.StatusInternalServerError, "Failed to persist lifecycle transition")
 			return
@@ -436,17 +497,22 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 			"succeeded", result.Succeeded,
 			"failed", result.Failed,
 			"failed_ids", result.FailedIDs,
+			"errors", result.Errors,
+			"error_summary", result.ErrorSummary,
+			"failed_status_summary", result.FailedStatusSummary,
 		)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMultiStatus)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"partial":    true,
-			"message":    fmt.Sprintf("%d/%d passports transitioned. %d failed — check failed_ids.", result.Succeeded, result.Total, result.Failed),
-			"succeeded":  result.Succeeded,
-			"failed":     result.Failed,
-			"total":      result.Total,
-			"failed_ids": result.FailedIDs,
-			"errors":     result.Errors,
+			"partial":               true,
+			"message":               fmt.Sprintf("%d/%d passports transitioned. %d failed — check failed_ids.", result.Succeeded, result.Total, result.Failed),
+			"succeeded":             result.Succeeded,
+			"failed":                result.Failed,
+			"total":                 result.Total,
+			"failed_ids":            result.FailedIDs,
+			"errors":                result.Errors,
+			"error_summary":         result.ErrorSummary,
+			"failed_status_summary": result.FailedStatusSummary,
 		})
 		return
 	}
@@ -454,22 +520,58 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 	respondJSON(w, http.StatusOK, result)
 }
 
+// GetBulkAllowedActions handles GET /api/v1/passports/bulk/allowed-actions
+func (h *LifecycleHandler) GetBulkAllowedActions(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	actorRole, status, err := h.resolveInternalActorRole(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
+	}
+
+	q := r.URL.Query()
+	allowedActions, err := h.service.GetBulkAllowedActionsForFilter(
+		r.Context(),
+		tenantID,
+		q.Get("status"),
+		q.Get("search"),
+		q.Get("batch_id"),
+		actorRole,
+	)
+	if err != nil {
+		slog.Error("Failed to resolve bulk allowed actions", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to resolve bulk allowed actions")
+		return
+	}
+
+	allowed := make([]string, 0, len(allowedActions))
+	for _, action := range allowedActions {
+		allowed = append(allowed, string(action))
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"allowed_actions": allowed,
+	})
+}
+
 // GetAllowedActions handles GET /api/v1/passports/{uuid}/transitions
 // @Summary Get allowed lifecycle actions
 // @Description Get list of valid actions for a passport
 // @Tags passports
 func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	// URL format: /api/v1/passports/{uuid}/transitions
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
+	actorRole, status, err := h.resolveInternalActorRole(r.Context())
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		respondError(w, status, err.Error())
 		return
 	}
 
@@ -480,7 +582,7 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	allowedActions := models.GetAllowedActions(passport.Status)
+	allowedActions := models.GetAllowedActionsForRole(passport.Status, actorRole)
 	allowed := make([]string, 0, len(allowedActions))
 	for _, action := range allowedActions {
 		allowed = append(allowed, string(action))
@@ -497,16 +599,8 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 // @Description Get all lifecycle events for a passport (audit trail)
 // @Tags passports
 func (h *LifecycleHandler) GetPassportEvents(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -534,10 +628,19 @@ type SOHUpdateRequest struct {
 	Actor         string  `json:"actor,omitempty"`
 }
 
-// GenericEventRequest represents a repair/replacement event payload
-type GenericEventRequest struct {
-	Actor   string                 `json:"actor,omitempty"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+type RepairEventRequest struct {
+	RepairDate        string `json:"repair_date"`
+	TechnicianID      string `json:"technician_id"`
+	ComponentRepaired string `json:"component_repaired"`
+	RepairNotes       string `json:"repair_notes"`
+}
+
+type ReplacementEventRequest struct {
+	ReplacementDate    string `json:"replacement_date"`
+	TechnicianID       string `json:"technician_id"`
+	ComponentReplaced  string `json:"component_replaced"`
+	ReplacementReason  string `json:"replacement_reason"`
+	NewComponentSerial string `json:"new_component_serial,omitempty"`
 }
 
 // TransferPassport handles POST /api/v1/passports/{uuid}/transfer
@@ -622,6 +725,25 @@ func getRequestIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+func (h *LifecycleHandler) buildInternalEventActorContext(ctx context.Context) (models.ActorContext, int, error) {
+	email := middleware.GetEmail(ctx)
+	if email == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+	}
+
+	internalRole, status, err := h.resolveInternalActorRole(ctx)
+	if err != nil {
+		return models.ActorContext{}, status, err
+	}
+
+	return models.ActorContext{
+		ActorType: models.ActorTypeUser,
+		ActorID:   email,
+		ActorRole: internalRole,
+		Source:    models.ActionSourceInternal,
+	}, http.StatusOK, nil
+}
+
 // isNotFoundErr classifies a lifecycle error as a not-found condition.
 func isNotFoundErr(err error) bool {
 	return errors.Is(err, services.ErrUnknownAction)
@@ -644,16 +766,8 @@ func isForbiddenErr(err error) bool {
 // @Description Verifies that the hash chain of events is intact (no tampering)
 // @Tags passports
 func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Request) {
-	// Get passport UUID from URL path
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -693,15 +807,8 @@ func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Reque
 
 // UpdateStateOfHealth handles POST /api/v1/passports/{uuid}/soh
 func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -734,14 +841,8 @@ func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Re
 
 // GetSoHHistory handles GET /api/v1/passports/{uuid}/soh/history
 func (h *LifecycleHandler) GetSoHHistory(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	passportID, err := uuid.Parse(pathParts[4])
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -775,30 +876,8 @@ type EPCISRepository interface {
 // ExportEPCIS handles GET /api/v1/passports/{uuid}/epcis
 // Returns a GS1 EPCIS 2.0 JSON-LD document for the passport's event history.
 func (h *LifecycleHandler) ExportEPCIS(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	passportID, err := uuid.Parse(pathParts[4])
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
-		return
-	}
-
-	// Tenant ownership check
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Missing tenant context")
-		return
-	}
-	tenantID, err := uuid.Parse(tenantIDStr)
-	if err != nil {
-		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
-		return
-	}
-	if err := h.service.VerifyPassportTenantOwnership(r.Context(), passportID, tenantID); err != nil {
-		respondError(w, http.StatusNotFound, "Passport not found")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
@@ -885,35 +964,41 @@ func (h *LifecycleHandler) GetPassportDocuments(w http.ResponseWriter, r *http.R
 
 // LogRepairEvent handles POST /api/v1/passports/{uuid}/repairs
 func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
-	var req GenericEventRequest
+	var req RepairEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildInternalEventActorContext(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
-	if err := h.service.LogRepairEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+	if err := h.service.LogRepairEvent(r.Context(), passportID, services.RepairEventInput{
+		RepairDate:        req.RepairDate,
+		TechnicianID:      req.TechnicianID,
+		ComponentRepaired: req.ComponentRepaired,
+		RepairNotes:       req.RepairNotes,
+	}, actorContext, getRequestIP(r)); err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidMaintenanceEvent):
+			respondError(w, http.StatusBadRequest, err.Error())
+		case isForbiddenErr(err):
+			respondError(w, http.StatusForbidden, err.Error())
+		case isConflictErr(err):
+			respondError(w, http.StatusConflict, err.Error())
+		case strings.Contains(err.Error(), "not found"):
+			respondError(w, http.StatusNotFound, "Passport not found")
+		default:
+			respondError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 
@@ -925,35 +1010,42 @@ func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request
 
 // LogReplacementEvent handles POST /api/v1/passports/{uuid}/replacements
 func (h *LifecycleHandler) LogReplacementEvent(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) < 5 {
-		respondError(w, http.StatusBadRequest, "Invalid URL path")
-		return
-	}
-	uuidStr := pathParts[4]
-	passportID, err := uuid.Parse(uuidStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
 		return
 	}
 
-	var req GenericEventRequest
+	var req ReplacementEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildInternalEventActorContext(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
-	if err := h.service.LogReplacementEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+	if err := h.service.LogReplacementEvent(r.Context(), passportID, services.ReplacementEventInput{
+		ReplacementDate:    req.ReplacementDate,
+		TechnicianID:       req.TechnicianID,
+		ComponentReplaced:  req.ComponentReplaced,
+		ReplacementReason:  req.ReplacementReason,
+		NewComponentSerial: req.NewComponentSerial,
+	}, actorContext, getRequestIP(r)); err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidMaintenanceEvent):
+			respondError(w, http.StatusBadRequest, err.Error())
+		case isForbiddenErr(err):
+			respondError(w, http.StatusForbidden, err.Error())
+		case isConflictErr(err):
+			respondError(w, http.StatusConflict, err.Error())
+		case strings.Contains(err.Error(), "not found"):
+			respondError(w, http.StatusNotFound, "Passport not found")
+		default:
+			respondError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 

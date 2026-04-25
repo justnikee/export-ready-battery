@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import api from "@/lib/api";
+import type { AllowedActionsResponse } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -55,6 +56,10 @@ interface BatchOption {
   status: string;
 }
 
+interface BulkAllowedActionsResponse {
+  allowed_actions: string[];
+}
+
 const STATUS_COLORS: Record<string, string> = {
   CREATED: "bg-muted text-foreground",
   ACTIVE: "bg-blue-500/15 text-blue-500",
@@ -86,17 +91,6 @@ const LIFECYCLE_STATES = [
   "END_OF_LIFE",
 ];
 
-// Allowed transitions per status (mirrors backend state machine)
-const TRANSITIONS: Record<string, string[]> = {
-  CREATED: ["ACTIVATE"],
-  ACTIVE: ["SHIP", "RECALL"],
-  SHIPPED: ["INSTALL", "RECALL"],
-  IN_SERVICE: ["RECALL", "RECYCLE"],
-  RECALLED: ["RECYCLE"],
-  RECYCLED: ["END_OF_LIFE"],
-  END_OF_LIFE: [],
-};
-
 const EVIDENCE_FIELDS: Record<
   string,
   { key: string; label: string; type: "text" | "date" }[]
@@ -122,6 +116,56 @@ const EVIDENCE_FIELDS: Record<
       type: "text",
     },
   ],
+};
+
+type MaintenanceAction = "REPAIR" | "REPLACE";
+
+const MAINTENANCE_FIELDS: Record<
+  MaintenanceAction,
+  { key: string; label: string; type: "text" | "date" | "textarea" }[]
+> = {
+  REPAIR: [
+    { key: "repair_date", label: "Repair Date", type: "date" },
+    {
+      key: "technician_id",
+      label: "Technician / Service ID",
+      type: "text",
+    },
+    {
+      key: "component_repaired",
+      label: "Component Repaired",
+      type: "text",
+    },
+    { key: "repair_notes", label: "Repair Notes", type: "textarea" },
+  ],
+  REPLACE: [
+    { key: "replacement_date", label: "Replacement Date", type: "date" },
+    {
+      key: "technician_id",
+      label: "Technician / Service ID",
+      type: "text",
+    },
+    {
+      key: "component_replaced",
+      label: "Component Replaced",
+      type: "text",
+    },
+    {
+      key: "replacement_reason",
+      label: "Replacement Reason",
+      type: "textarea",
+    },
+    {
+      key: "new_component_serial",
+      label: "New Component Serial",
+      type: "text",
+    },
+  ],
+};
+
+const MAINTENANCE_ENDPOINTS: Record<MaintenanceAction, string> = {
+  REPAIR: "repairs",
+  REPLACE: "replacements",
 };
 
 const PAGE_SIZE = 50;
@@ -162,6 +206,12 @@ export default function LifecyclePage() {
   const [batches, setBatches] = useState<BatchOption[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [totalCount, setTotalCount] = useState(0);
+  const [allowedActionsByPassport, setAllowedActionsByPassport] = useState<
+    Record<string, string[]>
+  >({});
+  const [bulkAllowedActions, setBulkAllowedActions] = useState<string[]>([]);
+  const [bulkAllowedActionsLoading, setBulkAllowedActionsLoading] =
+    useState(false);
 
   // Filters & pagination
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -200,6 +250,13 @@ export default function LifecyclePage() {
     action: string;
   } | null>(null);
   const [rowEvidence, setRowEvidence] = useState<Record<string, string>>({});
+  const [maintenanceAction, setMaintenanceAction] = useState<{
+    passport: PassportSummary;
+    action: MaintenanceAction;
+  } | null>(null);
+  const [maintenanceEvidence, setMaintenanceEvidence] = useState<
+    Record<string, string>
+  >({});
 
   // Reason code + admin note for ACTIVATE actions (required by backend)
   const [reasonCode, setReasonCode] = useState("");
@@ -338,6 +395,78 @@ export default function LifecyclePage() {
     return () => controller.abort();
   }, [fetchPassports]);
 
+  useEffect(() => {
+    if (passports.length === 0) {
+      setAllowedActionsByPassport({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAllowedActions = async () => {
+      const results = await Promise.allSettled(
+        passports.map(async (passport) => {
+          const response = await api.get<AllowedActionsResponse>(
+            `/passports/${passport.uuid}/transitions`,
+          );
+          return [passport.uuid, response.data.allowed_actions] as const;
+        }),
+      );
+
+      if (cancelled) return;
+
+      const nextAllowedActions: Record<string, string[]> = {};
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const [passportID, allowedActions] = result.value;
+        nextAllowedActions[passportID] = allowedActions;
+      }
+      setAllowedActionsByPassport(nextAllowedActions);
+    };
+
+    void fetchAllowedActions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [passports]);
+
+  useEffect(() => {
+    if (!selectAllMode) {
+      setBulkAllowedActions([]);
+      setBulkAllowedActionsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    if (searchTerm) params.set("search", searchTerm);
+    if (batchFilter) params.set("batch_id", batchFilter);
+
+    setBulkAllowedActions([]);
+    setBulkAllowedActionsLoading(true);
+
+    api
+      .get<BulkAllowedActionsResponse>(
+        `/passports/bulk/allowed-actions?${params.toString()}`,
+        { signal: controller.signal },
+      )
+      .then((res) => {
+        setBulkAllowedActions(res.data.allowed_actions || []);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+        setBulkAllowedActions([]);
+        toast.error("Failed to resolve bulk actions");
+      })
+      .finally(() => {
+        setBulkAllowedActionsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectAllMode, statusFilter, searchTerm, batchFilter]);
+
   // ─── Search debounce ─────────────────────────────────────────────────────
   const handleSearchChange = (val: string) => {
     setSearchInput(val);
@@ -445,26 +574,33 @@ export default function LifecyclePage() {
       const actionLabel =
         bulkAction.charAt(0) + bulkAction.slice(1).toLowerCase();
 
-      // ── Fast path: selectAllMode + batchFilter → single server-side request ──
-      // Skip the multi-page ID fetch loop and let the backend resolve the IDs.
-      if (selectAllMode && batchFilter) {
-        setTarget(40, `Applying ${actionLabel}\u2026`);
+      if (selectAllMode) {
+        setTarget(30, "Resolving filtered passports…");
         const res = await api.post("/passports/bulk/transition", {
           ...payload,
-          batch_id: batchFilter,
+          select_all: true,
+          batch_id: batchFilter || undefined,
+          state_filter: statusFilter !== "ALL" ? statusFilter : undefined,
+          search_query: searchTerm || undefined,
+          strict: true,
         });
+
         const succeeded: number = res.data.succeeded ?? 0;
         const failed: number = res.data.failed ?? 0;
         const doneMsg =
           failed > 0
-            ? `Done \u2014 ${succeeded} transitioned, ${failed} failed`
-            : `${succeeded.toLocaleString()} passport${succeeded !== 1 ? "s" : ""} ${actionLabel}d \u2713`;
+            ? `Done — ${succeeded} transitioned, ${failed} failed`
+            : `${succeeded.toLocaleString()} passport${succeeded !== 1 ? "s" : ""} ${actionLabel}d ✓`;
         setTarget(100, doneMsg);
+
         await new Promise((r) => setTimeout(r, 800));
+
         if (failed > 0) {
-          toast.warning(`${succeeded} transitioned, ${failed} failed`);
+          toast.warning(
+            res.data.message || `${succeeded} transitioned, ${failed} failed`,
+          );
         } else {
-          toast.success(`${succeeded} passport(s) \u2192 ${bulkAction}`);
+          toast.success(`${succeeded} passport(s) → ${bulkAction}`);
         }
         setShowBulkModal(false);
         setSelectedIds(new Set());
@@ -479,36 +615,8 @@ export default function LifecyclePage() {
         return;
       }
 
-      // ── Standard path: fetch all IDs then chunk ──────────────────────────
-      let idsToProcess: string[];
-
-      if (selectAllMode) {
-        const allIds: string[] = [];
-        const FETCH_LIMIT = 500;
-        let offset = 0;
-        let pageNum = 0;
-        for (;;) {
-          setTarget(
-            Math.min(28, 10 + (pageNum + 1) * 5),
-            `Fetching passport IDs\u2026${pageNum > 0 ? ` (page ${pageNum + 1})` : ""}`,
-          );
-          const params = new URLSearchParams({
-            limit: String(FETCH_LIMIT),
-            offset: String(offset),
-          });
-          if (statusFilter !== "ALL") params.set("status", statusFilter);
-          if (searchTerm) params.set("search", searchTerm);
-          const res = await api.get(`/passports?${params.toString()}`);
-          const page: PassportSummary[] = res.data.passports || [];
-          allIds.push(...page.map((p) => p.uuid));
-          if (page.length < FETCH_LIMIT) break;
-          offset += FETCH_LIMIT;
-          pageNum++;
-        }
-        idsToProcess = allIds;
-      } else {
-        idsToProcess = Array.from(selectedIds);
-      }
+      // ── Standard path: fetch explicit IDs then chunk ─────────────────────
+      const idsToProcess = Array.from(selectedIds);
 
       setTarget(30);
       const CHUNK_SIZE = 500;
@@ -563,8 +671,25 @@ export default function LifecyclePage() {
       setBulkStatusMsg("");
       fetchPassports();
     } catch (error: unknown) {
-      const apiErr = error as { response?: { data?: { error?: string } } };
-      toast.error(apiErr?.response?.data?.error || "Bulk transition failed");
+      const apiErr = error as {
+        response?: {
+          status?: number;
+          data?: {
+            error?: string;
+            message?: string;
+            failed?: number;
+            total?: number;
+          };
+        };
+      };
+      if (apiErr?.response?.status === 409) {
+        toast.error(
+          apiErr.response.data?.message ||
+            `Bulk ${bulkAction.toLowerCase()} blocked before execution`,
+        );
+      } else {
+        toast.error(apiErr?.response?.data?.error || "Bulk transition failed");
+      }
     } finally {
       if (progressTimerRef.current) {
         clearInterval(progressTimerRef.current);
@@ -651,12 +776,68 @@ export default function LifecyclePage() {
     }
   };
 
+  const handleMaintenanceEvent = async () => {
+    if (!maintenanceAction) return;
+
+    const requiredFields = MAINTENANCE_FIELDS[maintenanceAction.action] || [];
+    for (const field of requiredFields) {
+      if (!maintenanceEvidence[field.key]?.trim()) {
+        toast.error(`"${field.label}" is required`);
+        return;
+      }
+    }
+
+    setProcessing(true);
+    try {
+      await api.post(
+        `/passports/${maintenanceAction.passport.uuid}/${MAINTENANCE_ENDPOINTS[maintenanceAction.action]}`,
+        maintenanceEvidence,
+      );
+      toast.success(
+        `${maintenanceAction.passport.serial_number || maintenanceAction.passport.uuid.slice(0, 8)} → ${maintenanceAction.action}`,
+      );
+      const refreshedPassport = maintenanceAction.passport;
+      setMaintenanceAction(null);
+      setMaintenanceEvidence({});
+      fetchPassports();
+      if (eventsPassport?.uuid === refreshedPassport.uuid) {
+        openEventsPanel(refreshedPassport);
+      }
+    } catch (error: unknown) {
+      const apiErr = error as { response?: { data?: { error?: string } } };
+      toast.error(apiErr?.response?.data?.error || "Maintenance event failed");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   // True when every passport on the current page is checked
   const allPageSelected =
     selectedIds.size === passports.length && passports.length > 0;
   // The count shown in modals/footer: total dataset if in selectAllMode, else page selection
   const effectiveCount = selectAllMode ? totalCount : selectedIds.size;
+  const selectedVisiblePassports = passports.filter((passport) =>
+    selectedIds.has(passport.uuid),
+  );
+  const bulkActionOptions = selectAllMode
+    ? bulkAllowedActions
+    : selectedVisiblePassports.reduce<string[]>(
+        (intersection, passport, index) => {
+          const allowedActions = allowedActionsByPassport[passport.uuid] || [];
+          if (index === 0) return [...allowedActions];
+          return intersection.filter((action) =>
+            allowedActions.includes(action),
+          );
+        },
+        [],
+      );
+
+  useEffect(() => {
+    if (bulkAction && !bulkActionOptions.includes(bulkAction)) {
+      setBulkAction("");
+    }
+  }, [bulkAction, bulkActionOptions]);
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -850,7 +1031,8 @@ export default function LifecyclePage() {
                     {passports.map((p) => {
                       const colorClass =
                         STATUS_COLORS[p.status] || STATUS_COLORS.CREATED;
-                      const allowedActions = TRANSITIONS[p.status] || [];
+                      const allowedActions =
+                        allowedActionsByPassport[p.uuid] || [];
                       const isLowSoH =
                         p.state_of_health != null && p.state_of_health < 60;
                       return (
@@ -942,6 +1124,45 @@ export default function LifecyclePage() {
                                   <Search className="h-3.5 w-3.5" />
                                   View events
                                 </DropdownMenuItem>
+                                {p.status === "IN_SERVICE" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        setMaintenanceAction({
+                                          passport: p,
+                                          action: "REPAIR",
+                                        });
+                                        setMaintenanceEvidence({
+                                          repair_date: new Date()
+                                            .toISOString()
+                                            .slice(0, 10),
+                                        });
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Wrench className="h-3.5 w-3.5" />
+                                      Log repair
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        setMaintenanceAction({
+                                          passport: p,
+                                          action: "REPLACE",
+                                        });
+                                        setMaintenanceEvidence({
+                                          replacement_date: new Date()
+                                            .toISOString()
+                                            .slice(0, 10),
+                                        });
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                      Log replacement
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 {allowedActions.length > 0 && (
                                   <>
                                     <DropdownMenuSeparator />
@@ -1014,15 +1235,19 @@ export default function LifecyclePage() {
             value={bulkAction}
             onChange={(e) => setBulkAction(e.target.value)}
           >
-            <option value="">Choose action…</option>
-            <option value="ACTIVATE">Activate</option>
-            <option value="SHIP">Ship</option>
-            <option value="INSTALL">Install</option>
-            <option value="RECALL">Recall</option>
-            <option value="RECYCLE">Recycle</option>
+            <option value="">
+              {bulkAllowedActionsLoading
+                ? "Loading actions…"
+                : "Choose action…"}
+            </option>
+            {bulkActionOptions.map((action) => (
+              <option key={action} value={action}>
+                {action.charAt(0) + action.slice(1).toLowerCase()}
+              </option>
+            ))}
           </select>
           <button
-            disabled={!bulkAction}
+            disabled={!bulkAction || bulkAllowedActionsLoading}
             onClick={() => bulkAction && openBulkModal(bulkAction)}
             className="flex items-center gap-1.5 px-4 py-1.5 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
@@ -1339,6 +1564,101 @@ export default function LifecyclePage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowRight className="h-4 w-4" />
+              )}
+              Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!maintenanceAction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMaintenanceAction(null);
+            setMaintenanceEvidence({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {maintenanceAction?.action === "REPAIR"
+                ? "Log repair"
+                : "Log replacement"}
+              :{" "}
+              {maintenanceAction?.passport.serial_number ||
+                maintenanceAction?.passport.uuid.slice(0, 12)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {(maintenanceAction
+              ? MAINTENANCE_FIELDS[maintenanceAction.action]
+              : []
+            ).map((field) => (
+              <div key={field.key} className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {field.label}
+                  {field.key !== "new_component_serial" && (
+                    <span className="text-red-500 ml-0.5">*</span>
+                  )}
+                </label>
+                {field.type === "textarea" ? (
+                  <textarea
+                    rows={3}
+                    value={maintenanceEvidence[field.key] || ""}
+                    onChange={(e) =>
+                      setMaintenanceEvidence((prev) => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                  />
+                ) : (
+                  <input
+                    type={field.type}
+                    value={maintenanceEvidence[field.key] || ""}
+                    onChange={(e) =>
+                      setMaintenanceEvidence((prev) => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                )}
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">
+              This logs a tamper-evident maintenance event without changing the
+              passport lifecycle status.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <button
+              onClick={() => {
+                setMaintenanceAction(null);
+                setMaintenanceEvidence({});
+              }}
+              disabled={processing}
+              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleMaintenanceEvent}
+              disabled={processing}
+              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {processing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : maintenanceAction?.action === "REPAIR" ? (
+                <Wrench className="h-4 w-4" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
               )}
               Confirm
             </button>

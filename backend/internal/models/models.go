@@ -595,7 +595,7 @@ var TransitionMap = map[TransitionAction]TransitionDefinition{
 // AllowedRolesByAction defines which roles can perform which actions
 var AllowedRolesByAction = map[TransitionAction][]ActorRole{
 	ActionActivate: {ActorRoleSystem},
-	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics},
+	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
 	ActionInstall:  {ActorRoleTechnician},
 	ActionRecycle:  {ActorRoleRecycler},
 	ActionClose:    {ActorRoleSystem, ActorRoleRecycler},
@@ -649,6 +649,22 @@ func GetAllowedActions(currentStatus string) []TransitionAction {
 		if IsActionAllowedFrom(action, currentStatus) {
 			allowed = append(allowed, action)
 		}
+	}
+	return allowed
+}
+
+// GetAllowedActionsForRole returns the list of valid actions for a given
+// current status filtered by the actor role that is asking for them.
+func GetAllowedActionsForRole(currentStatus string, role ActorRole) []TransitionAction {
+	allowed := make([]TransitionAction, 0)
+	for _, action := range TransitionActionOrder {
+		if !IsActionAllowedFrom(action, currentStatus) {
+			continue
+		}
+		if !IsRoleAllowedForAction(action, role) {
+			continue
+		}
+		allowed = append(allowed, action)
 	}
 	return allowed
 }

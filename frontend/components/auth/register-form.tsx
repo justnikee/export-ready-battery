@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,17 @@ import {
 import { authApi } from "@/lib/auth-api";
 import { toast } from "sonner";
 
-export function RegisterForm() {
-  const searchParams = useSearchParams();
+type RegisterFormProps = {
+  inviteToken?: string;
+  prefillEmail?: string;
+};
+
+export function RegisterForm({
+  inviteToken = "",
+  prefillEmail = "",
+}: RegisterFormProps) {
   const router = useRouter();
 
-  // Detect invite flow from URL params
-  const inviteToken = searchParams.get("invite") || "";
-  const prefillEmail = searchParams.get("email") || "";
   const isInviteFlow = Boolean(inviteToken);
 
   const [companyName, setCompanyName] = useState("");

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 
 	"github.com/google/uuid"
 )
@@ -19,7 +21,9 @@ var (
 	ErrMissingActorContext     = errors.New("missing actor context")
 	ErrInvalidActorContext     = errors.New("invalid actor context")
 	ErrInvalidEvidence         = errors.New("invalid evidence")
+	ErrInvalidMaintenanceEvent = errors.New("invalid maintenance event")
 	ErrInvalidReasonCode       = errors.New("invalid reason code")
+	ErrBulkEligibilityFailed   = errors.New("bulk eligibility check failed")
 	ErrMagicLinkTokenInvalid   = errors.New("magic link token invalid")
 	ErrTransitionPersistFailed = errors.New("failed to persist lifecycle transition")
 )
@@ -56,6 +60,7 @@ type LifecycleRepository interface {
 	AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	// GetPassportIDsByBatch returns all non-terminal passport UUIDs in a batch, scoped to tenant.
 	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error)
 }
 
 // NewLifecycleService creates a new lifecycle service
@@ -435,6 +440,10 @@ type BulkTransitionRequest struct {
 	PassportIDs []uuid.UUID `json:"passport_ids,omitempty"`
 	// BatchID triggers a server-side passport ID lookup scoped to TenantID.
 	BatchID      *uuid.UUID          `json:"batch_id,omitempty"`
+	SelectAll    bool                `json:"select_all,omitempty"`
+	StateFilter  string              `json:"state_filter,omitempty"`
+	SearchQuery  string              `json:"search_query,omitempty"`
+	Strict       bool                `json:"strict,omitempty"`
 	TenantID     uuid.UUID           `json:"-"` // used for BatchID scoping only
 	Action       string              `json:"action"`
 	ActorContext models.ActorContext `json:"actor_context"`
@@ -447,11 +456,137 @@ type BulkTransitionRequest struct {
 
 // BulkTransitionResult contains results for bulk transitions
 type BulkTransitionResult struct {
-	Total     int      `json:"total"`
-	Succeeded int      `json:"succeeded"`
-	Failed    int      `json:"failed"`
-	FailedIDs []string `json:"failed_ids,omitempty"`
-	Errors    []string `json:"errors,omitempty"`
+	Total               int            `json:"total"`
+	Succeeded           int            `json:"succeeded"`
+	Failed              int            `json:"failed"`
+	FailedIDs           []string       `json:"failed_ids,omitempty"`
+	Errors              []string       `json:"errors,omitempty"`
+	ErrorSummary        map[string]int `json:"error_summary,omitempty"`
+	FailedStatusSummary map[string]int `json:"failed_status_summary,omitempty"`
+}
+
+func newBulkTransitionResult(total int) *BulkTransitionResult {
+	return &BulkTransitionResult{
+		Total:               total,
+		FailedIDs:           []string{},
+		Errors:              []string{},
+		ErrorSummary:        map[string]int{},
+		FailedStatusSummary: map[string]int{},
+	}
+}
+
+func (r *BulkTransitionResult) addFailure(passportID uuid.UUID, errMsg string, status string) {
+	r.Failed++
+	r.FailedIDs = append(r.FailedIDs, passportID.String())
+	r.Errors = append(r.Errors, errMsg)
+	r.ErrorSummary[errMsg]++
+	if status != "" {
+		r.FailedStatusSummary[status]++
+	}
+}
+
+func formatActionNotAllowedError(action models.TransitionAction, currentStatus string) string {
+	allowedActions := models.GetAllowedActions(currentStatus)
+	allowedStrings := make([]string, 0, len(allowedActions))
+	for _, allowedAction := range allowedActions {
+		allowedStrings = append(allowedStrings, string(allowedAction))
+	}
+	return fmt.Sprintf("Action %s not allowed from %s. Allowed actions: %v", action, currentStatus, allowedStrings)
+}
+
+func (s *LifecycleService) resolveBulkPassportIDs(ctx context.Context, req BulkTransitionRequest) ([]uuid.UUID, error) {
+	if req.SelectAll {
+		const pageSize = 500
+
+		batchFilter := ""
+		if req.BatchID != nil {
+			batchFilter = req.BatchID.String()
+		}
+
+		passportIDs := make([]uuid.UUID, 0)
+		offset := 0
+		for {
+			items, total, err := s.repo.ListPassportsByTenant(ctx, req.TenantID, req.StateFilter, req.SearchQuery, batchFilter, pageSize, offset)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list passports: %w", err)
+			}
+			if len(items) == 0 {
+				return passportIDs, nil
+			}
+
+			for _, item := range items {
+				parsedID, err := uuid.Parse(item.UUID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse passport id %q: %w", item.UUID, err)
+				}
+				passportIDs = append(passportIDs, parsedID)
+			}
+
+			offset += len(items)
+			if offset >= total {
+				break
+			}
+		}
+
+		return passportIDs, nil
+	}
+
+	if req.BatchID != nil {
+		batchIDs, err := s.repo.GetPassportIDsByBatch(ctx, *req.BatchID, req.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve batch passports: %w", err)
+		}
+		return batchIDs, nil
+	}
+
+	return req.PassportIDs, nil
+}
+
+func (s *LifecycleService) prevalidateBulkTransition(ctx context.Context, passportIDs []uuid.UUID, req BulkTransitionRequest) *BulkTransitionResult {
+	action := models.TransitionAction(req.Action)
+	result := &BulkTransitionResult{
+		Total: len(passportIDs),
+	}
+	result = newBulkTransitionResult(len(passportIDs))
+
+	for _, passportID := range passportIDs {
+		if req.TenantID != uuid.Nil {
+			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
+				result.addFailure(passportID, err.Error(), "")
+				continue
+			}
+		}
+
+		passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+		if err != nil {
+			result.addFailure(passportID, fmt.Sprintf("passport not found: %v", err), "")
+			continue
+		}
+
+		if !models.IsActionAllowedFrom(action, passport.Status) {
+			result.addFailure(passportID, formatActionNotAllowedError(action, passport.Status), passport.Status)
+			continue
+		}
+
+		result.Succeeded++
+	}
+
+	return result
+}
+
+type RepairEventInput struct {
+	RepairDate        string `json:"repair_date"`
+	TechnicianID      string `json:"technician_id"`
+	ComponentRepaired string `json:"component_repaired"`
+	RepairNotes       string `json:"repair_notes"`
+}
+
+type ReplacementEventInput struct {
+	ReplacementDate    string `json:"replacement_date"`
+	TechnicianID       string `json:"technician_id"`
+	ComponentReplaced  string `json:"component_replaced"`
+	ReplacementReason  string `json:"replacement_reason"`
+	NewComponentSerial string `json:"new_component_serial,omitempty"`
 }
 
 // BulkTransitionPassports handles bulk passport status transitions with validation
@@ -468,24 +603,35 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 	if !models.IsRoleAllowedForAction(models.TransitionAction(req.Action), req.ActorContext.ActorRole) {
 		return nil, ErrRoleNotAllowed
 	}
+	if _, err := models.ValidateEvidence(models.TransitionAction(req.Action), req.Evidence); err != nil {
+		return nil, ErrInvalidEvidence
+	}
+	if err := models.ValidateReasonCode(models.TransitionAction(req.Action), req.ReasonCode); err != nil {
+		return nil, ErrInvalidReasonCode
+	}
 
-	// Resolve IDs server-side when a batch_id was supplied instead of an explicit list.
-	passportIDs := req.PassportIDs
-	if req.BatchID != nil {
-		batchIDs, err := s.repo.GetPassportIDsByBatch(ctx, *req.BatchID, req.TenantID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve batch passports: %w", err)
+	passportIDs, err := s.resolveBulkPassportIDs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Strict {
+		precheck := s.prevalidateBulkTransition(ctx, passportIDs, req)
+		if precheck.Failed > 0 {
+			return precheck, ErrBulkEligibilityFailed
 		}
-		passportIDs = batchIDs
 	}
 
-	result := &BulkTransitionResult{
-		Total:     len(passportIDs),
-		FailedIDs: []string{},
-		Errors:    []string{},
-	}
+	result := newBulkTransitionResult(len(passportIDs))
 
 	for _, passportID := range passportIDs {
+		if req.TenantID != uuid.Nil {
+			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
+				result.addFailure(passportID, err.Error(), "")
+				continue
+			}
+		}
+
 		transitionReq := TransitionRequest{
 			PassportID:   passportID,
 			Action:       req.Action,
@@ -498,19 +644,109 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 
 		transitionResult, err := s.ApplyTransition(ctx, transitionReq)
 		if err != nil || !transitionResult.Success {
-			result.Failed++
-			result.FailedIDs = append(result.FailedIDs, passportID.String())
+			failureStatus := ""
+			failureError := ""
 			if transitionResult != nil {
-				result.Errors = append(result.Errors, transitionResult.Error)
+				failureError = transitionResult.Error
+				failureStatus = transitionResult.PreviousStatus
 			} else {
-				result.Errors = append(result.Errors, err.Error())
+				failureError = err.Error()
 			}
+			result.addFailure(passportID, failureError, failureStatus)
 		} else {
 			result.Succeeded++
 		}
 	}
 
 	return result, nil
+}
+
+// GetBulkAllowedActionsForFilter returns the actor-aware lifecycle actions that
+// are valid for every passport in the tenant-scoped filtered dataset.
+func (s *LifecycleService) GetBulkAllowedActionsForFilter(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, role models.ActorRole) ([]models.TransitionAction, error) {
+	const pageSize = 500
+
+	var intersection []models.TransitionAction
+	initialized := false
+	offset := 0
+
+	for {
+		items, total, err := s.repo.ListPassportsByTenant(ctx, tenantID, status, search, batchID, pageSize, offset)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list passports: %w", err)
+		}
+		if len(items) == 0 {
+			return []models.TransitionAction{}, nil
+		}
+
+		for _, item := range items {
+			allowed := models.GetAllowedActionsForRole(item.Status, role)
+			if !initialized {
+				intersection = append([]models.TransitionAction{}, allowed...)
+				initialized = true
+				continue
+			}
+			intersection = intersectTransitionActions(intersection, allowed)
+			if len(intersection) == 0 {
+				return []models.TransitionAction{}, nil
+			}
+		}
+
+		offset += len(items)
+		if offset >= total || len(items) < pageSize {
+			break
+		}
+	}
+
+	if !initialized {
+		return []models.TransitionAction{}, nil
+	}
+
+	return intersection, nil
+}
+
+func intersectTransitionActions(left, right []models.TransitionAction) []models.TransitionAction {
+	if len(left) == 0 || len(right) == 0 {
+		return []models.TransitionAction{}
+	}
+
+	rightSet := make(map[models.TransitionAction]struct{}, len(right))
+	for _, action := range right {
+		rightSet[action] = struct{}{}
+	}
+
+	intersection := make([]models.TransitionAction, 0, len(left))
+	for _, action := range left {
+		if _, ok := rightSet[action]; ok {
+			intersection = append(intersection, action)
+		}
+	}
+
+	return intersection
+}
+
+func parseLifecycleEventDate(value string) (time.Time, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return time.Time{}, ErrInvalidMaintenanceEvent
+	}
+	if parsed, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		return parsed, nil
+	}
+	parsed, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return time.Time{}, ErrInvalidMaintenanceEvent
+	}
+	return parsed, nil
+}
+
+func isAllowedMaintenanceRole(role models.ActorRole) bool {
+	switch role {
+	case models.ActorRoleInternalOperator, models.ActorRoleTechnician, models.ActorRoleAdmin:
+		return true
+	default:
+		return false
+	}
 }
 
 // CalculateWarrantyRemaining calculates remaining warranty based on shipped date
@@ -784,18 +1020,6 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 		Source:     source,
 	})
 
-	// Append a row to soh_history so callers can query the time-series without
-	// replaying the passport event log.
-	_ = s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
-		ID:         uuid.New(),
-		PassportID: passportID,
-		SoH:        soh,
-		RecordedAt: now,
-		Actor:      actor,
-		ActorType:  actorType,
-		Source:     source,
-	})
-
 	previousHash := ""
 	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
 	if err == nil && len(prevEvents) > 0 {
@@ -845,13 +1069,46 @@ func (s *LifecycleService) GetSoHHistory(ctx context.Context, passportID uuid.UU
 	return s.repo.GetSoHHistory(ctx, passportID)
 }
 
-// LogRepairEvent appends repair event data and logs an immutable event
-func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
-	now := time.Now()
-	if payload == nil {
-		payload = map[string]interface{}{}
+// LogRepairEvent appends repair event data and logs an immutable event.
+func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.UUID, req RepairEventInput, actorContext models.ActorContext, ip string) error {
+	if actorContext.ActorID == "" || actorContext.ActorType == "" || actorContext.ActorRole == "" || actorContext.Source == "" {
+		return ErrMissingActorContext
 	}
-	payload["timestamp"] = now
+	if err := models.ValidateActorContext(actorContext); err != nil {
+		return ErrInvalidActorContext
+	}
+	if !isAllowedMaintenanceRole(actorContext.ActorRole) {
+		return ErrRoleNotAllowed
+	}
+
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if passport.Status != models.PassportStatusInService {
+		return ErrActionNotAllowed
+	}
+
+	repairDate, err := parseLifecycleEventDate(req.RepairDate)
+	if err != nil {
+		return ErrInvalidMaintenanceEvent
+	}
+	technicianID := strings.TrimSpace(req.TechnicianID)
+	componentRepaired := strings.TrimSpace(req.ComponentRepaired)
+	repairNotes := strings.TrimSpace(req.RepairNotes)
+	if technicianID == "" || componentRepaired == "" || repairNotes == "" {
+		return ErrInvalidMaintenanceEvent
+	}
+
+	now := time.Now()
+	payload := map[string]interface{}{
+		"repair_date":        repairDate.Format(time.RFC3339),
+		"timestamp":          repairDate.Format(time.RFC3339),
+		"technician_id":      technicianID,
+		"component_repaired": componentRepaired,
+		"repair_notes":       repairNotes,
+		"description":        fmt.Sprintf("%s repaired: %s", componentRepaired, repairNotes),
+	}
 
 	entryJSON, err := json.Marshal([]interface{}{payload})
 	if err == nil {
@@ -868,10 +1125,11 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 		ID:           uuid.New(),
 		PassportID:   passportID,
 		EventType:    models.PassportEventRepairLogged,
-		Actor:        actor,
-		ActorType:    actorType,
-		ActorID:      actor,
-		Source:       source,
+		Actor:        actorContext.ActorID,
+		ActorType:    string(actorContext.ActorType),
+		ActorRole:    actorContext.ActorRole,
+		ActorID:      actorContext.ActorID,
+		Source:       string(actorContext.Source),
 		IPAddress:    ip,
 		Metadata:     payload,
 		CreatedAt:    now,
@@ -902,13 +1160,50 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 	return s.repo.CreatePassportEvent(ctx, event)
 }
 
-// LogReplacementEvent appends replacement event data and logs an immutable event
-func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
-	now := time.Now()
-	if payload == nil {
-		payload = map[string]interface{}{}
+// LogReplacementEvent appends replacement event data and logs an immutable event.
+func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID uuid.UUID, req ReplacementEventInput, actorContext models.ActorContext, ip string) error {
+	if actorContext.ActorID == "" || actorContext.ActorType == "" || actorContext.ActorRole == "" || actorContext.Source == "" {
+		return ErrMissingActorContext
 	}
-	payload["timestamp"] = now
+	if err := models.ValidateActorContext(actorContext); err != nil {
+		return ErrInvalidActorContext
+	}
+	if !isAllowedMaintenanceRole(actorContext.ActorRole) {
+		return ErrRoleNotAllowed
+	}
+
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if passport.Status != models.PassportStatusInService {
+		return ErrActionNotAllowed
+	}
+
+	replacementDate, err := parseLifecycleEventDate(req.ReplacementDate)
+	if err != nil {
+		return ErrInvalidMaintenanceEvent
+	}
+	technicianID := strings.TrimSpace(req.TechnicianID)
+	componentReplaced := strings.TrimSpace(req.ComponentReplaced)
+	replacementReason := strings.TrimSpace(req.ReplacementReason)
+	newComponentSerial := strings.TrimSpace(req.NewComponentSerial)
+	if technicianID == "" || componentReplaced == "" || replacementReason == "" {
+		return ErrInvalidMaintenanceEvent
+	}
+
+	now := time.Now()
+	payload := map[string]interface{}{
+		"replacement_date":   replacementDate.Format(time.RFC3339),
+		"timestamp":          replacementDate.Format(time.RFC3339),
+		"technician_id":      technicianID,
+		"component_replaced": componentReplaced,
+		"replacement_reason": replacementReason,
+		"description":        fmt.Sprintf("%s replaced: %s", componentReplaced, replacementReason),
+	}
+	if newComponentSerial != "" {
+		payload["new_component_serial"] = newComponentSerial
+	}
 
 	entryJSON, err := json.Marshal([]interface{}{payload})
 	if err == nil {
@@ -925,10 +1220,11 @@ func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID u
 		ID:           uuid.New(),
 		PassportID:   passportID,
 		EventType:    models.PassportEventReplaceLogged,
-		Actor:        actor,
-		ActorType:    actorType,
-		ActorID:      actor,
-		Source:       source,
+		Actor:        actorContext.ActorID,
+		ActorType:    string(actorContext.ActorType),
+		ActorRole:    actorContext.ActorRole,
+		ActorID:      actorContext.ActorID,
+		Source:       string(actorContext.Source),
 		IPAddress:    ip,
 		Metadata:     payload,
 		CreatedAt:    now,

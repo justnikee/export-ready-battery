@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"exportready-battery/internal/middleware"
 	"exportready-battery/internal/models"
+	"exportready-battery/internal/repository"
 	"exportready-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -19,9 +21,11 @@ import (
 
 // fakeLifecycleRepo is a minimal in-memory implementation for lifecycle tests.
 type fakeLifecycleRepo struct {
-	passports     map[uuid.UUID]*models.Passport
-	events        map[uuid.UUID][]*models.PassportEvent
-	marketRegions map[uuid.UUID]models.MarketRegion
+	passports       map[uuid.UUID]*models.Passport
+	events          map[uuid.UUID][]*models.PassportEvent
+	marketRegions   map[uuid.UUID]models.MarketRegion
+	batchTenants    map[uuid.UUID]uuid.UUID
+	defaultTenantID uuid.UUID
 }
 
 type fakeRoleResolver struct {
@@ -39,10 +43,13 @@ func (f *fakeRoleResolver) GetTeamMemberByEmail(ctx context.Context, tenantID uu
 }
 
 func newFakeLifecycleRepo() *fakeLifecycleRepo {
+	defaultTenantID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	return &fakeLifecycleRepo{
-		passports:     make(map[uuid.UUID]*models.Passport),
-		events:        make(map[uuid.UUID][]*models.PassportEvent),
-		marketRegions: make(map[uuid.UUID]models.MarketRegion),
+		passports:       make(map[uuid.UUID]*models.Passport),
+		events:          make(map[uuid.UUID][]*models.PassportEvent),
+		marketRegions:   make(map[uuid.UUID]models.MarketRegion),
+		batchTenants:    make(map[uuid.UUID]uuid.UUID),
+		defaultTenantID: defaultTenantID,
 	}
 }
 
@@ -62,7 +69,10 @@ func (f *fakeLifecycleRepo) GetBatchMarketRegion(ctx context.Context, batchID uu
 }
 
 func (f *fakeLifecycleRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) {
-	return uuid.Nil, nil
+	if tenantID, ok := f.batchTenants[batchID]; ok {
+		return tenantID, nil
+	}
+	return f.defaultTenantID, nil
 }
 
 func (f *fakeLifecycleRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error {
@@ -113,6 +123,10 @@ func (f *fakeLifecycleRepo) AppendOwnershipHistory(ctx context.Context, passport
 	return nil
 }
 
+func (f *fakeLifecycleRepo) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
+	return nil
+}
+
 func (f *fakeLifecycleRepo) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
 	passport, ok := f.passports[passportID]
 	if !ok {
@@ -155,12 +169,64 @@ func (f *fakeLifecycleRepo) AppendReplacementEvent(ctx context.Context, passport
 	return nil
 }
 
+func (f *fakeLifecycleRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) {
+	var passportIDs []uuid.UUID
+	for passportID, passport := range f.passports {
+		if passport.BatchID != batchID {
+			continue
+		}
+		if ownerTenantID, ok := f.batchTenants[batchID]; ok && ownerTenantID != tenantID {
+			continue
+		}
+		passportIDs = append(passportIDs, passportID)
+	}
+	return passportIDs, nil
+}
+
+func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+	items := make([]*repository.PassportListItem, 0)
+	for _, passport := range f.passports {
+		batchTenantID, ok := f.batchTenants[passport.BatchID]
+		if ok && batchTenantID != tenantID {
+			continue
+		}
+		if status != "" && passport.Status != status {
+			continue
+		}
+		if batchID != "" && passport.BatchID.String() != batchID {
+			continue
+		}
+		needle := strings.ToLower(search)
+		if needle != "" &&
+			!strings.Contains(strings.ToLower(passport.SerialNumber), needle) &&
+			!strings.Contains(strings.ToLower(passport.UUID.String()), needle) {
+			continue
+		}
+		items = append(items, &repository.PassportListItem{
+			UUID:         passport.UUID.String(),
+			SerialNumber: passport.SerialNumber,
+			Status:       passport.Status,
+		})
+	}
+	total := len(items)
+	if offset >= total {
+		return []*repository.PassportListItem{}, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return items[offset:end], total, nil
+}
+
 func newLifecycleHandlerWithStatus(status string, teamRole string) (*LifecycleHandler, uuid.UUID) {
 	repo := newFakeLifecycleRepo()
 	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
 	repo.passports[passportID] = &models.Passport{
 		UUID:      passportID,
-		BatchID:   uuid.New(),
+		BatchID:   batchID,
 		Status:    status,
 		CreatedAt: time.Now(),
 	}
@@ -182,6 +248,7 @@ func TestTransitionPassport_RejectsToStatus(t *testing.T) {
 	body := `{"` + statusField + `":"ACTIVE"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/transition", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "operator@example.com"))
 	rr := httptest.NewRecorder()
 
 	handler.TransitionPassport(rr, req)
@@ -292,5 +359,188 @@ func TestTransitionPassport_MissingEvidence(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestGetPassportEvents_ForeignTenant(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/"+passportID.String()+"/events", nil)
+	req = req.WithContext(contextWithAuthAndEmail("22222222-2222-2222-2222-222222222222", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetPassportEvents(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestUpdateStateOfHealth_ForeignTenant(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	body := `{"state_of_health":94}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/soh", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("22222222-2222-2222-2222-222222222222", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UpdateStateOfHealth(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestGetAllowedActions_FiltersByActorRole(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/"+passportID.String()+"/transitions", nil)
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetAllowedActions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if !slices.Contains(resp.AllowedActions, string(models.ActionShip)) {
+		t.Fatalf("expected SHIP to be allowed, got %v", resp.AllowedActions)
+	}
+	if slices.Contains(resp.AllowedActions, string(models.ActionRecall)) {
+		t.Fatalf("did not expect RECALL for MEMBER, got %v", resp.AllowedActions)
+	}
+}
+
+func TestGetBulkAllowedActions_FiltersFullDatasetByActorRole(t *testing.T) {
+	repo := newFakeLifecycleRepo()
+	ownerTenantID := repo.defaultTenantID
+	ownedBatchID := uuid.New()
+	foreignBatchID := uuid.New()
+	repo.batchTenants[ownedBatchID] = ownerTenantID
+	repo.batchTenants[foreignBatchID] = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   ownedBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   ownedBatchID,
+		Status:    models.PassportStatusCreated,
+		CreatedAt: time.Now(),
+	}
+	repo.passports[uuid.New()] = &models.Passport{
+		UUID:      uuid.New(),
+		BatchID:   foreignBatchID,
+		Status:    models.PassportStatusActive,
+		CreatedAt: time.Now(),
+	}
+
+	handler := NewLifecycleHandler(services.NewLifecycleService(repo), &fakeRoleResolver{role: "MEMBER"})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/passports/bulk/allowed-actions", nil)
+	req = req.WithContext(contextWithAuthAndEmail(ownerTenantID.String(), "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.GetBulkAllowedActions(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+
+	var resp struct {
+		AllowedActions []string `json:"allowed_actions"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if len(resp.AllowedActions) != 0 {
+		t.Fatalf("expected no shared allowed actions, got %v", resp.AllowedActions)
+	}
+}
+
+func TestLogRepairEvent_RejectsForbiddenRole(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusInService, "VIEWER")
+
+	body := `{"repair_date":"2026-02-05","technician_id":"TECH-1","component_repaired":"BMS board","repair_notes":"Reflashed firmware"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/repairs", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "viewer@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogRepairEvent(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestLogRepairEvent_NormalizesAuditMetadata(t *testing.T) {
+	repo := newFakeLifecycleRepo()
+	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
+	repo.passports[passportID] = &models.Passport{
+		UUID:      passportID,
+		BatchID:   batchID,
+		Status:    models.PassportStatusInService,
+		CreatedAt: time.Now(),
+	}
+	handler := NewLifecycleHandler(services.NewLifecycleService(repo), &fakeRoleResolver{role: "MEMBER"})
+
+	body := `{"repair_date":"2026-02-05","technician_id":"TECH-1","component_repaired":"BMS board","repair_notes":"Reflashed firmware"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/repairs", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail(repo.defaultTenantID.String(), "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogRepairEvent(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+	events := repo.events[passportID]
+	if len(events) != 1 {
+		t.Fatalf("expected one audit event, got %d", len(events))
+	}
+	event := events[0]
+	if event.ActorRole != models.ActorRoleInternalOperator {
+		t.Fatalf("expected actor role %s, got %s", models.ActorRoleInternalOperator, event.ActorRole)
+	}
+	if event.ActorID != "operator@example.com" {
+		t.Fatalf("expected actor id operator@example.com, got %s", event.ActorID)
+	}
+	description, ok := event.Metadata["description"].(string)
+	if !ok || description != "BMS board repaired: Reflashed firmware" {
+		t.Fatalf("unexpected description metadata: %v", event.Metadata["description"])
+	}
+	timestamp, ok := event.Metadata["timestamp"].(string)
+	if !ok || timestamp != "2026-02-05T00:00:00Z" {
+		t.Fatalf("unexpected timestamp metadata: %v", event.Metadata["timestamp"])
+	}
+}
+
+func TestLogReplacementEvent_RequiresInServiceStatus(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "ADMIN")
+
+	body := `{"replacement_date":"2026-02-05","technician_id":"TECH-1","component_replaced":"Module A","replacement_reason":"Capacity loss","new_component_serial":"MOD-22"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/replacements", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "admin@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogReplacementEvent(rr, req)
+
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d", rr.Code)
 	}
 }
