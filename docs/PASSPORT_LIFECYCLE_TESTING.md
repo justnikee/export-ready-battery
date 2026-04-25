@@ -732,6 +732,15 @@ curl -X POST http://localhost:8080/api/v1/passports/{uuid}/transition \
 
 ## 8. Test Case 4: Bulk Operations
 
+### Bulk execution modes
+
+There are now two important bulk execution paths:
+
+1. Explicit `passport_ids` requests. These are useful for small hand-picked selections and may still return partial success when some IDs are invalid or unauthorized.
+2. Dashboard `select all` requests. These now use a server-side filtered execution path with `select_all: true` and `strict: true`. The backend resolves the filtered dataset itself and pre-checks eligibility before any passport is transitioned.
+
+For large batch operations, prefer the second path. It prevents the older failure mode where part of a batch transitions and the rest fail because the execution set no longer matches the filtered UI set.
+
 ### Test 4.1: Bulk Ship
 
 ```bash
@@ -762,6 +771,59 @@ curl -X POST http://localhost:8080/api/v1/passports/bulk/transition \
 }
 ```
 
+### Test 4.1A: Strict Select-All Bulk Ship For Large Batches
+
+Use this when the dashboard is filtered to a specific lifecycle state or search scope and you want the backend to own dataset resolution.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/passports/bulk/transition \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "select_all": true,
+    "batch_id": "<batch-uuid>",
+    "state_filter": "ACTIVE",
+    "strict": true,
+    "action": "SHIP",
+    "evidence": {
+      "shipment_reference": "BULK-SHIP-2026-001",
+      "shipment_date": "2026-02-13"
+    }
+  }'
+
+# Expected response when all filtered passports are eligible:
+{
+  "total": 1000,
+  "succeeded": 1000,
+  "failed": 0,
+  "failed_ids": [],
+  "errors": []
+}
+```
+
+If the filtered dataset contains ineligible passports, the backend now blocks the operation before any transition is written:
+
+```json
+{
+  "partial": false,
+  "prechecked": true,
+  "message": "Bulk SHIP blocked before execution. 42/1000 passports are not eligible for this action.",
+  "succeeded": 0,
+  "failed": 42,
+  "total": 1000,
+  "failed_ids": ["..."],
+  "errors": [
+    "Action SHIP not allowed from CREATED. Allowed actions: [ACTIVATE]"
+  ],
+  "error_summary": {
+    "Action SHIP not allowed from CREATED. Allowed actions: [ACTIVATE]": 42
+  },
+  "failed_status_summary": {
+    "CREATED": 42
+  }
+}
+```
+
 ### Test 4.2: Bulk with Partial Failures
 
 ```bash
@@ -788,7 +850,10 @@ curl -X POST http://localhost:8080/api/v1/passports/bulk/transition \
   "succeeded": 2,
   "failed": 1,
   "failed_ids": ["invalid-uuid"],
-  "errors": ["passport not found"]
+  "errors": ["passport not found"],
+  "error_summary": {
+    "passport not found": 1
+  }
 }
 ```
 

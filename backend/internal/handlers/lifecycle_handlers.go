@@ -314,14 +314,20 @@ type BulkLifecycleTransitionRequest struct {
 	// PassportIDs is an explicit list of passport UUIDs to transition.
 	// Mutually exclusive with BatchID — provide one or the other, not both.
 	PassportIDs []string `json:"passport_ids,omitempty"`
+	// SelectAll applies the action to the full tenant-scoped filtered dataset.
+	// When true, the backend resolves IDs using StateFilter/SearchQuery/BatchID.
+	SelectAll bool `json:"select_all,omitempty"`
 	// BatchID triggers a server-side fetch of all non-terminal passport IDs in the batch.
 	// Use this instead of fetching all IDs from the frontend when a batch context is known.
-	BatchID    *string         `json:"batch_id,omitempty"`
-	Action     string          `json:"action"`
-	Actor      string          `json:"actor,omitempty"`
-	Evidence   models.Evidence `json:"evidence,omitempty"`
-	ReasonCode string          `json:"reason_code,omitempty"` // required for ACTIVATE
-	AdminNote  string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
+	BatchID     *string         `json:"batch_id,omitempty"`
+	StateFilter string          `json:"state_filter,omitempty"`
+	SearchQuery string          `json:"search_query,omitempty"`
+	Strict      bool            `json:"strict,omitempty"`
+	Action      string          `json:"action"`
+	Actor       string          `json:"actor,omitempty"`
+	Evidence    models.Evidence `json:"evidence,omitempty"`
+	ReasonCode  string          `json:"reason_code,omitempty"` // required for ACTIVATE
+	AdminNote   string          `json:"admin_note,omitempty"`  // free-text, max 500 chars
 }
 
 // maxBulkTransitionSize caps a single bulk-transition request.
@@ -361,11 +367,15 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Must provide exactly one of passport_ids or batch_id.
+	// Must provide either explicit passport_ids, a batch_id, or select_all scope.
 	hasList := len(req.PassportIDs) > 0
 	hasBatch := req.BatchID != nil && *req.BatchID != ""
-	if !hasList && !hasBatch {
-		respondError(w, http.StatusBadRequest, "one of passport_ids or batch_id is required")
+	if req.SelectAll && hasList {
+		respondError(w, http.StatusBadRequest, "passport_ids and select_all are mutually exclusive")
+		return
+	}
+	if !hasList && !hasBatch && !req.SelectAll {
+		respondError(w, http.StatusBadRequest, "one of passport_ids, batch_id, or select_all is required")
 		return
 	}
 	if hasList && hasBatch {
@@ -422,6 +432,10 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 	result, err := h.service.BulkTransitionPassports(r.Context(), services.BulkTransitionRequest{
 		PassportIDs:  passportUUIDs,
 		BatchID:      batchUUID,
+		SelectAll:    req.SelectAll,
+		StateFilter:  req.StateFilter,
+		SearchQuery:  req.SearchQuery,
+		Strict:       req.Strict,
 		TenantID:     tenantUUID,
 		Action:       req.Action,
 		ActorContext: actorContext,
@@ -448,6 +462,23 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 			respondError(w, http.StatusForbidden, "Role not permitted")
 			return
 		}
+		if errors.Is(err, services.ErrBulkEligibilityFailed) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"partial":               false,
+				"prechecked":            true,
+				"message":               fmt.Sprintf("Bulk %s blocked before execution. %d/%d passports are not eligible for this action.", req.Action, result.Failed, result.Total),
+				"succeeded":             0,
+				"failed":                result.Failed,
+				"total":                 result.Total,
+				"failed_ids":            result.FailedIDs,
+				"errors":                result.Errors,
+				"error_summary":         result.ErrorSummary,
+				"failed_status_summary": result.FailedStatusSummary,
+			})
+			return
+		}
 		if errors.Is(err, services.ErrTransitionPersistFailed) {
 			respondError(w, http.StatusInternalServerError, "Failed to persist lifecycle transition")
 			return
@@ -466,17 +497,22 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 			"succeeded", result.Succeeded,
 			"failed", result.Failed,
 			"failed_ids", result.FailedIDs,
+			"errors", result.Errors,
+			"error_summary", result.ErrorSummary,
+			"failed_status_summary", result.FailedStatusSummary,
 		)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMultiStatus)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"partial":    true,
-			"message":    fmt.Sprintf("%d/%d passports transitioned. %d failed — check failed_ids.", result.Succeeded, result.Total, result.Failed),
-			"succeeded":  result.Succeeded,
-			"failed":     result.Failed,
-			"total":      result.Total,
-			"failed_ids": result.FailedIDs,
-			"errors":     result.Errors,
+			"partial":               true,
+			"message":               fmt.Sprintf("%d/%d passports transitioned. %d failed — check failed_ids.", result.Succeeded, result.Total, result.Failed),
+			"succeeded":             result.Succeeded,
+			"failed":                result.Failed,
+			"total":                 result.Total,
+			"failed_ids":            result.FailedIDs,
+			"errors":                result.Errors,
+			"error_summary":         result.ErrorSummary,
+			"failed_status_summary": result.FailedStatusSummary,
 		})
 		return
 	}

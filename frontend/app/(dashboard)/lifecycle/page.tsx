@@ -574,26 +574,33 @@ export default function LifecyclePage() {
       const actionLabel =
         bulkAction.charAt(0) + bulkAction.slice(1).toLowerCase();
 
-      // ── Fast path: selectAllMode + batchFilter → single server-side request ──
-      // Skip the multi-page ID fetch loop and let the backend resolve the IDs.
-      if (selectAllMode && batchFilter) {
-        setTarget(40, `Applying ${actionLabel}\u2026`);
+      if (selectAllMode) {
+        setTarget(30, "Resolving filtered passports…");
         const res = await api.post("/passports/bulk/transition", {
           ...payload,
-          batch_id: batchFilter,
+          select_all: true,
+          batch_id: batchFilter || undefined,
+          state_filter: statusFilter !== "ALL" ? statusFilter : undefined,
+          search_query: searchTerm || undefined,
+          strict: true,
         });
+
         const succeeded: number = res.data.succeeded ?? 0;
         const failed: number = res.data.failed ?? 0;
         const doneMsg =
           failed > 0
-            ? `Done \u2014 ${succeeded} transitioned, ${failed} failed`
-            : `${succeeded.toLocaleString()} passport${succeeded !== 1 ? "s" : ""} ${actionLabel}d \u2713`;
+            ? `Done — ${succeeded} transitioned, ${failed} failed`
+            : `${succeeded.toLocaleString()} passport${succeeded !== 1 ? "s" : ""} ${actionLabel}d ✓`;
         setTarget(100, doneMsg);
+
         await new Promise((r) => setTimeout(r, 800));
+
         if (failed > 0) {
-          toast.warning(`${succeeded} transitioned, ${failed} failed`);
+          toast.warning(
+            res.data.message || `${succeeded} transitioned, ${failed} failed`,
+          );
         } else {
-          toast.success(`${succeeded} passport(s) \u2192 ${bulkAction}`);
+          toast.success(`${succeeded} passport(s) → ${bulkAction}`);
         }
         setShowBulkModal(false);
         setSelectedIds(new Set());
@@ -608,37 +615,8 @@ export default function LifecyclePage() {
         return;
       }
 
-      // ── Standard path: fetch all IDs then chunk ──────────────────────────
-      let idsToProcess: string[];
-
-      if (selectAllMode) {
-        const allIds: string[] = [];
-        const FETCH_LIMIT = 500;
-        let offset = 0;
-        let pageNum = 0;
-        for (;;) {
-          setTarget(
-            Math.min(28, 10 + (pageNum + 1) * 5),
-            `Fetching passport IDs\u2026${pageNum > 0 ? ` (page ${pageNum + 1})` : ""}`,
-          );
-          const params = new URLSearchParams({
-            limit: String(FETCH_LIMIT),
-            offset: String(offset),
-          });
-          if (statusFilter !== "ALL") params.set("status", statusFilter);
-          if (searchTerm) params.set("search", searchTerm);
-          if (batchFilter) params.set("batch_id", batchFilter);
-          const res = await api.get(`/passports?${params.toString()}`);
-          const page: PassportSummary[] = res.data.passports || [];
-          allIds.push(...page.map((p) => p.uuid));
-          if (page.length < FETCH_LIMIT) break;
-          offset += FETCH_LIMIT;
-          pageNum++;
-        }
-        idsToProcess = allIds;
-      } else {
-        idsToProcess = Array.from(selectedIds);
-      }
+      // ── Standard path: fetch explicit IDs then chunk ─────────────────────
+      const idsToProcess = Array.from(selectedIds);
 
       setTarget(30);
       const CHUNK_SIZE = 500;
@@ -693,8 +671,25 @@ export default function LifecyclePage() {
       setBulkStatusMsg("");
       fetchPassports();
     } catch (error: unknown) {
-      const apiErr = error as { response?: { data?: { error?: string } } };
-      toast.error(apiErr?.response?.data?.error || "Bulk transition failed");
+      const apiErr = error as {
+        response?: {
+          status?: number;
+          data?: {
+            error?: string;
+            message?: string;
+            failed?: number;
+            total?: number;
+          };
+        };
+      };
+      if (apiErr?.response?.status === 409) {
+        toast.error(
+          apiErr.response.data?.message ||
+            `Bulk ${bulkAction.toLowerCase()} blocked before execution`,
+        );
+      } else {
+        toast.error(apiErr?.response?.data?.error || "Bulk transition failed");
+      }
     } finally {
       if (progressTimerRef.current) {
         clearInterval(progressTimerRef.current);

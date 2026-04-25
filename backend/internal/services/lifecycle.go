@@ -23,6 +23,7 @@ var (
 	ErrInvalidEvidence         = errors.New("invalid evidence")
 	ErrInvalidMaintenanceEvent = errors.New("invalid maintenance event")
 	ErrInvalidReasonCode       = errors.New("invalid reason code")
+	ErrBulkEligibilityFailed   = errors.New("bulk eligibility check failed")
 	ErrMagicLinkTokenInvalid   = errors.New("magic link token invalid")
 	ErrTransitionPersistFailed = errors.New("failed to persist lifecycle transition")
 )
@@ -439,6 +440,10 @@ type BulkTransitionRequest struct {
 	PassportIDs []uuid.UUID `json:"passport_ids,omitempty"`
 	// BatchID triggers a server-side passport ID lookup scoped to TenantID.
 	BatchID      *uuid.UUID          `json:"batch_id,omitempty"`
+	SelectAll    bool                `json:"select_all,omitempty"`
+	StateFilter  string              `json:"state_filter,omitempty"`
+	SearchQuery  string              `json:"search_query,omitempty"`
+	Strict       bool                `json:"strict,omitempty"`
 	TenantID     uuid.UUID           `json:"-"` // used for BatchID scoping only
 	Action       string              `json:"action"`
 	ActorContext models.ActorContext `json:"actor_context"`
@@ -451,11 +456,122 @@ type BulkTransitionRequest struct {
 
 // BulkTransitionResult contains results for bulk transitions
 type BulkTransitionResult struct {
-	Total     int      `json:"total"`
-	Succeeded int      `json:"succeeded"`
-	Failed    int      `json:"failed"`
-	FailedIDs []string `json:"failed_ids,omitempty"`
-	Errors    []string `json:"errors,omitempty"`
+	Total               int            `json:"total"`
+	Succeeded           int            `json:"succeeded"`
+	Failed              int            `json:"failed"`
+	FailedIDs           []string       `json:"failed_ids,omitempty"`
+	Errors              []string       `json:"errors,omitempty"`
+	ErrorSummary        map[string]int `json:"error_summary,omitempty"`
+	FailedStatusSummary map[string]int `json:"failed_status_summary,omitempty"`
+}
+
+func newBulkTransitionResult(total int) *BulkTransitionResult {
+	return &BulkTransitionResult{
+		Total:               total,
+		FailedIDs:           []string{},
+		Errors:              []string{},
+		ErrorSummary:        map[string]int{},
+		FailedStatusSummary: map[string]int{},
+	}
+}
+
+func (r *BulkTransitionResult) addFailure(passportID uuid.UUID, errMsg string, status string) {
+	r.Failed++
+	r.FailedIDs = append(r.FailedIDs, passportID.String())
+	r.Errors = append(r.Errors, errMsg)
+	r.ErrorSummary[errMsg]++
+	if status != "" {
+		r.FailedStatusSummary[status]++
+	}
+}
+
+func formatActionNotAllowedError(action models.TransitionAction, currentStatus string) string {
+	allowedActions := models.GetAllowedActions(currentStatus)
+	allowedStrings := make([]string, 0, len(allowedActions))
+	for _, allowedAction := range allowedActions {
+		allowedStrings = append(allowedStrings, string(allowedAction))
+	}
+	return fmt.Sprintf("Action %s not allowed from %s. Allowed actions: %v", action, currentStatus, allowedStrings)
+}
+
+func (s *LifecycleService) resolveBulkPassportIDs(ctx context.Context, req BulkTransitionRequest) ([]uuid.UUID, error) {
+	if req.SelectAll {
+		const pageSize = 500
+
+		batchFilter := ""
+		if req.BatchID != nil {
+			batchFilter = req.BatchID.String()
+		}
+
+		passportIDs := make([]uuid.UUID, 0)
+		offset := 0
+		for {
+			items, total, err := s.repo.ListPassportsByTenant(ctx, req.TenantID, req.StateFilter, req.SearchQuery, batchFilter, pageSize, offset)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list passports: %w", err)
+			}
+			if len(items) == 0 {
+				return passportIDs, nil
+			}
+
+			for _, item := range items {
+				parsedID, err := uuid.Parse(item.UUID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse passport id %q: %w", item.UUID, err)
+				}
+				passportIDs = append(passportIDs, parsedID)
+			}
+
+			offset += len(items)
+			if offset >= total {
+				break
+			}
+		}
+
+		return passportIDs, nil
+	}
+
+	if req.BatchID != nil {
+		batchIDs, err := s.repo.GetPassportIDsByBatch(ctx, *req.BatchID, req.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve batch passports: %w", err)
+		}
+		return batchIDs, nil
+	}
+
+	return req.PassportIDs, nil
+}
+
+func (s *LifecycleService) prevalidateBulkTransition(ctx context.Context, passportIDs []uuid.UUID, req BulkTransitionRequest) *BulkTransitionResult {
+	action := models.TransitionAction(req.Action)
+	result := &BulkTransitionResult{
+		Total: len(passportIDs),
+	}
+	result = newBulkTransitionResult(len(passportIDs))
+
+	for _, passportID := range passportIDs {
+		if req.TenantID != uuid.Nil {
+			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
+				result.addFailure(passportID, err.Error(), "")
+				continue
+			}
+		}
+
+		passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+		if err != nil {
+			result.addFailure(passportID, fmt.Sprintf("passport not found: %v", err), "")
+			continue
+		}
+
+		if !models.IsActionAllowedFrom(action, passport.Status) {
+			result.addFailure(passportID, formatActionNotAllowedError(action, passport.Status), passport.Status)
+			continue
+		}
+
+		result.Succeeded++
+	}
+
+	return result
 }
 
 type RepairEventInput struct {
@@ -487,29 +603,31 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 	if !models.IsRoleAllowedForAction(models.TransitionAction(req.Action), req.ActorContext.ActorRole) {
 		return nil, ErrRoleNotAllowed
 	}
+	if _, err := models.ValidateEvidence(models.TransitionAction(req.Action), req.Evidence); err != nil {
+		return nil, ErrInvalidEvidence
+	}
+	if err := models.ValidateReasonCode(models.TransitionAction(req.Action), req.ReasonCode); err != nil {
+		return nil, ErrInvalidReasonCode
+	}
 
-	// Resolve IDs server-side when a batch_id was supplied instead of an explicit list.
-	passportIDs := req.PassportIDs
-	if req.BatchID != nil {
-		batchIDs, err := s.repo.GetPassportIDsByBatch(ctx, *req.BatchID, req.TenantID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve batch passports: %w", err)
+	passportIDs, err := s.resolveBulkPassportIDs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Strict {
+		precheck := s.prevalidateBulkTransition(ctx, passportIDs, req)
+		if precheck.Failed > 0 {
+			return precheck, ErrBulkEligibilityFailed
 		}
-		passportIDs = batchIDs
 	}
 
-	result := &BulkTransitionResult{
-		Total:     len(passportIDs),
-		FailedIDs: []string{},
-		Errors:    []string{},
-	}
+	result := newBulkTransitionResult(len(passportIDs))
 
 	for _, passportID := range passportIDs {
 		if req.TenantID != uuid.Nil {
 			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
-				result.Failed++
-				result.FailedIDs = append(result.FailedIDs, passportID.String())
-				result.Errors = append(result.Errors, err.Error())
+				result.addFailure(passportID, err.Error(), "")
 				continue
 			}
 		}
@@ -526,13 +644,15 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 
 		transitionResult, err := s.ApplyTransition(ctx, transitionReq)
 		if err != nil || !transitionResult.Success {
-			result.Failed++
-			result.FailedIDs = append(result.FailedIDs, passportID.String())
+			failureStatus := ""
+			failureError := ""
 			if transitionResult != nil {
-				result.Errors = append(result.Errors, transitionResult.Error)
+				failureError = transitionResult.Error
+				failureStatus = transitionResult.PreviousStatus
 			} else {
-				result.Errors = append(result.Errors, err.Error())
+				failureError = err.Error()
 			}
+			result.addFailure(passportID, failureError, failureStatus)
 		} else {
 			result.Succeeded++
 		}

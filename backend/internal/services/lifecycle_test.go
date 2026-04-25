@@ -265,6 +265,7 @@ func TestBulkTransitionPassports_ExplicitIDsAreTenantScoped(t *testing.T) {
 	assert.Equal(t, 1, result.Failed)
 	assert.Equal(t, []string{foreignPassportID.String()}, result.FailedIDs)
 	assert.Contains(t, result.Errors, "passport not found: unauthorized")
+	assert.Equal(t, 1, result.ErrorSummary["passport not found: unauthorized"])
 
 	mockRepo.AssertExpectations(t)
 	mockRepo.AssertNumberOfCalls(t, "ApplyLifecycleTransition", 1)
@@ -286,5 +287,110 @@ func TestGetBulkAllowedActionsForFilter_IntersectsAcrossFilteredDataset(t *testi
 
 	assert.NoError(t, err)
 	assert.Empty(t, actions)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestBulkTransitionPassports_SelectAllStrictPrecheckBlocksMixedStatuses(t *testing.T) {
+	service, mockRepo := setupLifecycleService(t)
+	ctx := context.Background()
+	tenantID := uuid.New()
+	activePassportID := uuid.New()
+	createdPassportID := uuid.New()
+	activeBatchID := uuid.New()
+	createdBatchID := uuid.New()
+
+	items := []*repository.PassportListItem{
+		{UUID: activePassportID.String(), Status: models.PassportStatusActive},
+		{UUID: createdPassportID.String(), Status: models.PassportStatusCreated},
+	}
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "", "", 500, 0).Return(items, len(items), nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, activePassportID).Return(&models.Passport{UUID: activePassportID, BatchID: activeBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Twice()
+	mockRepo.On("GetBatchTenantID", ctx, activeBatchID).Return(tenantID, nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, createdPassportID).Return(&models.Passport{UUID: createdPassportID, BatchID: createdBatchID, Status: models.PassportStatusCreated, CreatedAt: time.Now()}, nil).Twice()
+	mockRepo.On("GetBatchTenantID", ctx, createdBatchID).Return(tenantID, nil).Once()
+
+	result, err := service.BulkTransitionPassports(ctx, services.BulkTransitionRequest{
+		SelectAll:   true,
+		StateFilter: models.PassportStatusActive,
+		Strict:      true,
+		TenantID:    tenantID,
+		Action:      string(models.ActionShip),
+		ActorContext: models.ActorContext{
+			ActorID:   "user1",
+			ActorType: models.ActorTypeUser,
+			ActorRole: models.ActorRoleInternalOperator,
+			Source:    models.ActionSourceInternal,
+		},
+		Evidence: models.Evidence{
+			models.EvidenceShipmentDate:      time.Now().Format(time.RFC3339),
+			models.EvidenceShipmentReference: "SHIP123",
+		},
+	})
+
+	assert.ErrorIs(t, err, services.ErrBulkEligibilityFailed)
+	if assert.NotNil(t, result) {
+		assert.Equal(t, 2, result.Total)
+		assert.Equal(t, 1, result.Succeeded)
+		assert.Equal(t, 1, result.Failed)
+		assert.Equal(t, []string{createdPassportID.String()}, result.FailedIDs)
+		assert.Contains(t, result.Errors[0], "Action SHIP not allowed from CREATED")
+		assert.Equal(t, 1, result.ErrorSummary[result.Errors[0]])
+		assert.Equal(t, 1, result.FailedStatusSummary[models.PassportStatusCreated])
+	}
+	mockRepo.AssertNotCalled(t, "ApplyLifecycleTransition", mock.Anything, mock.Anything)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestBulkTransitionPassports_SelectAllResolvesPagedFilteredDataset(t *testing.T) {
+	service, mockRepo := setupLifecycleService(t)
+	ctx := context.Background()
+	tenantID := uuid.New()
+	firstPassportID := uuid.New()
+	secondPassportID := uuid.New()
+	firstBatchID := uuid.New()
+	secondBatchID := uuid.New()
+
+	firstPage := []*repository.PassportListItem{{UUID: firstPassportID.String(), Status: models.PassportStatusActive}}
+	secondPage := []*repository.PassportListItem{{UUID: secondPassportID.String(), Status: models.PassportStatusActive}}
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", 500, 0).Return(firstPage, 2, nil).Once()
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", 500, 1).Return(secondPage, 2, nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, firstPassportID).Return(&models.Passport{UUID: firstPassportID, BatchID: firstBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(4)
+	mockRepo.On("GetBatchTenantID", ctx, firstBatchID).Return(tenantID, nil).Times(3)
+	mockRepo.On("GetPassportEvents", ctx, firstPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
+		return p.PassportID == firstPassportID && p.NewStatus == models.PassportStatusShipped
+	})).Return(nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, secondPassportID).Return(&models.Passport{UUID: secondPassportID, BatchID: secondBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(4)
+	mockRepo.On("GetBatchTenantID", ctx, secondBatchID).Return(tenantID, nil).Times(3)
+	mockRepo.On("GetPassportEvents", ctx, secondPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
+		return p.PassportID == secondPassportID && p.NewStatus == models.PassportStatusShipped
+	})).Return(nil).Once()
+
+	result, err := service.BulkTransitionPassports(ctx, services.BulkTransitionRequest{
+		SelectAll:   true,
+		StateFilter: models.PassportStatusActive,
+		SearchQuery: "INV",
+		Strict:      true,
+		TenantID:    tenantID,
+		Action:      string(models.ActionShip),
+		ActorContext: models.ActorContext{
+			ActorID:   "user1",
+			ActorType: models.ActorTypeUser,
+			ActorRole: models.ActorRoleInternalOperator,
+			Source:    models.ActionSourceInternal,
+		},
+		Evidence: models.Evidence{
+			models.EvidenceShipmentDate:      time.Now().Format(time.RFC3339),
+			models.EvidenceShipmentReference: "SHIP123",
+		},
+	})
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, result) {
+		assert.Equal(t, 2, result.Total)
+		assert.Equal(t, 2, result.Succeeded)
+		assert.Equal(t, 0, result.Failed)
+	}
 	mockRepo.AssertExpectations(t)
 }
