@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"exportready-battery/internal/models"
@@ -20,6 +21,7 @@ var (
 	ErrMissingActorContext     = errors.New("missing actor context")
 	ErrInvalidActorContext     = errors.New("invalid actor context")
 	ErrInvalidEvidence         = errors.New("invalid evidence")
+	ErrInvalidMaintenanceEvent = errors.New("invalid maintenance event")
 	ErrInvalidReasonCode       = errors.New("invalid reason code")
 	ErrMagicLinkTokenInvalid   = errors.New("magic link token invalid")
 	ErrTransitionPersistFailed = errors.New("failed to persist lifecycle transition")
@@ -456,6 +458,21 @@ type BulkTransitionResult struct {
 	Errors    []string `json:"errors,omitempty"`
 }
 
+type RepairEventInput struct {
+	RepairDate        string `json:"repair_date"`
+	TechnicianID      string `json:"technician_id"`
+	ComponentRepaired string `json:"component_repaired"`
+	RepairNotes       string `json:"repair_notes"`
+}
+
+type ReplacementEventInput struct {
+	ReplacementDate    string `json:"replacement_date"`
+	TechnicianID       string `json:"technician_id"`
+	ComponentReplaced  string `json:"component_replaced"`
+	ReplacementReason  string `json:"replacement_reason"`
+	NewComponentSerial string `json:"new_component_serial,omitempty"`
+}
+
 // BulkTransitionPassports handles bulk passport status transitions with validation
 func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req BulkTransitionRequest) (*BulkTransitionResult, error) {
 	if !models.IsValidAction(req.Action) {
@@ -586,6 +603,30 @@ func intersectTransitionActions(left, right []models.TransitionAction) []models.
 	}
 
 	return intersection
+}
+
+func parseLifecycleEventDate(value string) (time.Time, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return time.Time{}, ErrInvalidMaintenanceEvent
+	}
+	if parsed, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		return parsed, nil
+	}
+	parsed, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return time.Time{}, ErrInvalidMaintenanceEvent
+	}
+	return parsed, nil
+}
+
+func isAllowedMaintenanceRole(role models.ActorRole) bool {
+	switch role {
+	case models.ActorRoleInternalOperator, models.ActorRoleTechnician, models.ActorRoleAdmin:
+		return true
+	default:
+		return false
+	}
 }
 
 // CalculateWarrantyRemaining calculates remaining warranty based on shipped date
@@ -908,13 +949,46 @@ func (s *LifecycleService) GetSoHHistory(ctx context.Context, passportID uuid.UU
 	return s.repo.GetSoHHistory(ctx, passportID)
 }
 
-// LogRepairEvent appends repair event data and logs an immutable event
-func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
-	now := time.Now()
-	if payload == nil {
-		payload = map[string]interface{}{}
+// LogRepairEvent appends repair event data and logs an immutable event.
+func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.UUID, req RepairEventInput, actorContext models.ActorContext, ip string) error {
+	if actorContext.ActorID == "" || actorContext.ActorType == "" || actorContext.ActorRole == "" || actorContext.Source == "" {
+		return ErrMissingActorContext
 	}
-	payload["timestamp"] = now
+	if err := models.ValidateActorContext(actorContext); err != nil {
+		return ErrInvalidActorContext
+	}
+	if !isAllowedMaintenanceRole(actorContext.ActorRole) {
+		return ErrRoleNotAllowed
+	}
+
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if passport.Status != models.PassportStatusInService {
+		return ErrActionNotAllowed
+	}
+
+	repairDate, err := parseLifecycleEventDate(req.RepairDate)
+	if err != nil {
+		return ErrInvalidMaintenanceEvent
+	}
+	technicianID := strings.TrimSpace(req.TechnicianID)
+	componentRepaired := strings.TrimSpace(req.ComponentRepaired)
+	repairNotes := strings.TrimSpace(req.RepairNotes)
+	if technicianID == "" || componentRepaired == "" || repairNotes == "" {
+		return ErrInvalidMaintenanceEvent
+	}
+
+	now := time.Now()
+	payload := map[string]interface{}{
+		"repair_date":        repairDate.Format(time.RFC3339),
+		"timestamp":          repairDate.Format(time.RFC3339),
+		"technician_id":      technicianID,
+		"component_repaired": componentRepaired,
+		"repair_notes":       repairNotes,
+		"description":        fmt.Sprintf("%s repaired: %s", componentRepaired, repairNotes),
+	}
 
 	entryJSON, err := json.Marshal([]interface{}{payload})
 	if err == nil {
@@ -931,10 +1005,11 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 		ID:           uuid.New(),
 		PassportID:   passportID,
 		EventType:    models.PassportEventRepairLogged,
-		Actor:        actor,
-		ActorType:    actorType,
-		ActorID:      actor,
-		Source:       source,
+		Actor:        actorContext.ActorID,
+		ActorType:    string(actorContext.ActorType),
+		ActorRole:    actorContext.ActorRole,
+		ActorID:      actorContext.ActorID,
+		Source:       string(actorContext.Source),
 		IPAddress:    ip,
 		Metadata:     payload,
 		CreatedAt:    now,
@@ -965,13 +1040,50 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 	return s.repo.CreatePassportEvent(ctx, event)
 }
 
-// LogReplacementEvent appends replacement event data and logs an immutable event
-func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID uuid.UUID, payload map[string]interface{}, actor, actorType, source, ip string) error {
-	now := time.Now()
-	if payload == nil {
-		payload = map[string]interface{}{}
+// LogReplacementEvent appends replacement event data and logs an immutable event.
+func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID uuid.UUID, req ReplacementEventInput, actorContext models.ActorContext, ip string) error {
+	if actorContext.ActorID == "" || actorContext.ActorType == "" || actorContext.ActorRole == "" || actorContext.Source == "" {
+		return ErrMissingActorContext
 	}
-	payload["timestamp"] = now
+	if err := models.ValidateActorContext(actorContext); err != nil {
+		return ErrInvalidActorContext
+	}
+	if !isAllowedMaintenanceRole(actorContext.ActorRole) {
+		return ErrRoleNotAllowed
+	}
+
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return fmt.Errorf("passport not found: %w", err)
+	}
+	if passport.Status != models.PassportStatusInService {
+		return ErrActionNotAllowed
+	}
+
+	replacementDate, err := parseLifecycleEventDate(req.ReplacementDate)
+	if err != nil {
+		return ErrInvalidMaintenanceEvent
+	}
+	technicianID := strings.TrimSpace(req.TechnicianID)
+	componentReplaced := strings.TrimSpace(req.ComponentReplaced)
+	replacementReason := strings.TrimSpace(req.ReplacementReason)
+	newComponentSerial := strings.TrimSpace(req.NewComponentSerial)
+	if technicianID == "" || componentReplaced == "" || replacementReason == "" {
+		return ErrInvalidMaintenanceEvent
+	}
+
+	now := time.Now()
+	payload := map[string]interface{}{
+		"replacement_date":   replacementDate.Format(time.RFC3339),
+		"timestamp":          replacementDate.Format(time.RFC3339),
+		"technician_id":      technicianID,
+		"component_replaced": componentReplaced,
+		"replacement_reason": replacementReason,
+		"description":        fmt.Sprintf("%s replaced: %s", componentReplaced, replacementReason),
+	}
+	if newComponentSerial != "" {
+		payload["new_component_serial"] = newComponentSerial
+	}
 
 	entryJSON, err := json.Marshal([]interface{}{payload})
 	if err == nil {
@@ -988,10 +1100,11 @@ func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID u
 		ID:           uuid.New(),
 		PassportID:   passportID,
 		EventType:    models.PassportEventReplaceLogged,
-		Actor:        actor,
-		ActorType:    actorType,
-		ActorID:      actor,
-		Source:       source,
+		Actor:        actorContext.ActorID,
+		ActorType:    string(actorContext.ActorType),
+		ActorRole:    actorContext.ActorRole,
+		ActorID:      actorContext.ActorID,
+		Source:       string(actorContext.Source),
 		IPAddress:    ip,
 		Metadata:     payload,
 		CreatedAt:    now,

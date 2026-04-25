@@ -467,3 +467,80 @@ func TestGetBulkAllowedActions_FiltersFullDatasetByActorRole(t *testing.T) {
 		t.Fatalf("expected no shared allowed actions, got %v", resp.AllowedActions)
 	}
 }
+
+func TestLogRepairEvent_RejectsForbiddenRole(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusInService, "VIEWER")
+
+	body := `{"repair_date":"2026-02-05","technician_id":"TECH-1","component_repaired":"BMS board","repair_notes":"Reflashed firmware"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/repairs", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "viewer@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogRepairEvent(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestLogRepairEvent_NormalizesAuditMetadata(t *testing.T) {
+	repo := newFakeLifecycleRepo()
+	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
+	repo.passports[passportID] = &models.Passport{
+		UUID:      passportID,
+		BatchID:   batchID,
+		Status:    models.PassportStatusInService,
+		CreatedAt: time.Now(),
+	}
+	handler := NewLifecycleHandler(services.NewLifecycleService(repo), &fakeRoleResolver{role: "MEMBER"})
+
+	body := `{"repair_date":"2026-02-05","technician_id":"TECH-1","component_repaired":"BMS board","repair_notes":"Reflashed firmware"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/repairs", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail(repo.defaultTenantID.String(), "operator@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogRepairEvent(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rr.Code)
+	}
+	events := repo.events[passportID]
+	if len(events) != 1 {
+		t.Fatalf("expected one audit event, got %d", len(events))
+	}
+	event := events[0]
+	if event.ActorRole != models.ActorRoleInternalOperator {
+		t.Fatalf("expected actor role %s, got %s", models.ActorRoleInternalOperator, event.ActorRole)
+	}
+	if event.ActorID != "operator@example.com" {
+		t.Fatalf("expected actor id operator@example.com, got %s", event.ActorID)
+	}
+	description, ok := event.Metadata["description"].(string)
+	if !ok || description != "BMS board repaired: Reflashed firmware" {
+		t.Fatalf("unexpected description metadata: %v", event.Metadata["description"])
+	}
+	timestamp, ok := event.Metadata["timestamp"].(string)
+	if !ok || timestamp != "2026-02-05T00:00:00Z" {
+		t.Fatalf("unexpected timestamp metadata: %v", event.Metadata["timestamp"])
+	}
+}
+
+func TestLogReplacementEvent_RequiresInServiceStatus(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "ADMIN")
+
+	body := `{"replacement_date":"2026-02-05","technician_id":"TECH-1","component_replaced":"Module A","replacement_reason":"Capacity loss","new_component_serial":"MOD-22"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/replacements", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "admin@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.LogReplacementEvent(rr, req)
+
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d", rr.Code)
+	}
+}

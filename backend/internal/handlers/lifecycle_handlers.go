@@ -592,10 +592,19 @@ type SOHUpdateRequest struct {
 	Actor         string  `json:"actor,omitempty"`
 }
 
-// GenericEventRequest represents a repair/replacement event payload
-type GenericEventRequest struct {
-	Actor   string                 `json:"actor,omitempty"`
-	Payload map[string]interface{} `json:"payload,omitempty"`
+type RepairEventRequest struct {
+	RepairDate        string `json:"repair_date"`
+	TechnicianID      string `json:"technician_id"`
+	ComponentRepaired string `json:"component_repaired"`
+	RepairNotes       string `json:"repair_notes"`
+}
+
+type ReplacementEventRequest struct {
+	ReplacementDate    string `json:"replacement_date"`
+	TechnicianID       string `json:"technician_id"`
+	ComponentReplaced  string `json:"component_replaced"`
+	ReplacementReason  string `json:"replacement_reason"`
+	NewComponentSerial string `json:"new_component_serial,omitempty"`
 }
 
 // TransferPassport handles POST /api/v1/passports/{uuid}/transfer
@@ -678,6 +687,25 @@ func getRequestIP(r *http.Request) string {
 		return host
 	}
 	return r.RemoteAddr
+}
+
+func (h *LifecycleHandler) buildInternalEventActorContext(ctx context.Context) (models.ActorContext, int, error) {
+	email := middleware.GetEmail(ctx)
+	if email == "" {
+		return models.ActorContext{}, http.StatusUnauthorized, errors.New("missing actor context")
+	}
+
+	internalRole, status, err := h.resolveInternalActorRole(ctx)
+	if err != nil {
+		return models.ActorContext{}, status, err
+	}
+
+	return models.ActorContext{
+		ActorType: models.ActorTypeUser,
+		ActorID:   email,
+		ActorRole: internalRole,
+		Source:    models.ActionSourceInternal,
+	}, http.StatusOK, nil
 }
 
 // isNotFoundErr classifies a lifecycle error as a not-found condition.
@@ -905,23 +933,36 @@ func (h *LifecycleHandler) LogRepairEvent(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var req GenericEventRequest
+	var req RepairEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildInternalEventActorContext(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
-	if err := h.service.LogRepairEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+	if err := h.service.LogRepairEvent(r.Context(), passportID, services.RepairEventInput{
+		RepairDate:        req.RepairDate,
+		TechnicianID:      req.TechnicianID,
+		ComponentRepaired: req.ComponentRepaired,
+		RepairNotes:       req.RepairNotes,
+	}, actorContext, getRequestIP(r)); err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidMaintenanceEvent):
+			respondError(w, http.StatusBadRequest, err.Error())
+		case isForbiddenErr(err):
+			respondError(w, http.StatusForbidden, err.Error())
+		case isConflictErr(err):
+			respondError(w, http.StatusConflict, err.Error())
+		case strings.Contains(err.Error(), "not found"):
+			respondError(w, http.StatusNotFound, "Passport not found")
+		default:
+			respondError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 
@@ -938,23 +979,37 @@ func (h *LifecycleHandler) LogReplacementEvent(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var req GenericEventRequest
+	var req ReplacementEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+	actorContext, status, err := h.buildInternalEventActorContext(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
 	}
 
-	if err := h.service.LogReplacementEvent(r.Context(), passportID, req.Payload, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
+	if err := h.service.LogReplacementEvent(r.Context(), passportID, services.ReplacementEventInput{
+		ReplacementDate:    req.ReplacementDate,
+		TechnicianID:       req.TechnicianID,
+		ComponentReplaced:  req.ComponentReplaced,
+		ReplacementReason:  req.ReplacementReason,
+		NewComponentSerial: req.NewComponentSerial,
+	}, actorContext, getRequestIP(r)); err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidMaintenanceEvent):
+			respondError(w, http.StatusBadRequest, err.Error())
+		case isForbiddenErr(err):
+			respondError(w, http.StatusForbidden, err.Error())
+		case isConflictErr(err):
+			respondError(w, http.StatusConflict, err.Error())
+		case strings.Contains(err.Error(), "not found"):
+			respondError(w, http.StatusNotFound, "Passport not found")
+		default:
+			respondError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 

@@ -118,6 +118,56 @@ const EVIDENCE_FIELDS: Record<
   ],
 };
 
+type MaintenanceAction = "REPAIR" | "REPLACE";
+
+const MAINTENANCE_FIELDS: Record<
+  MaintenanceAction,
+  { key: string; label: string; type: "text" | "date" | "textarea" }[]
+> = {
+  REPAIR: [
+    { key: "repair_date", label: "Repair Date", type: "date" },
+    {
+      key: "technician_id",
+      label: "Technician / Service ID",
+      type: "text",
+    },
+    {
+      key: "component_repaired",
+      label: "Component Repaired",
+      type: "text",
+    },
+    { key: "repair_notes", label: "Repair Notes", type: "textarea" },
+  ],
+  REPLACE: [
+    { key: "replacement_date", label: "Replacement Date", type: "date" },
+    {
+      key: "technician_id",
+      label: "Technician / Service ID",
+      type: "text",
+    },
+    {
+      key: "component_replaced",
+      label: "Component Replaced",
+      type: "text",
+    },
+    {
+      key: "replacement_reason",
+      label: "Replacement Reason",
+      type: "textarea",
+    },
+    {
+      key: "new_component_serial",
+      label: "New Component Serial",
+      type: "text",
+    },
+  ],
+};
+
+const MAINTENANCE_ENDPOINTS: Record<MaintenanceAction, string> = {
+  REPAIR: "repairs",
+  REPLACE: "replacements",
+};
+
 const PAGE_SIZE = 50;
 
 function SoHBar({ value }: { value: number }) {
@@ -200,6 +250,13 @@ export default function LifecyclePage() {
     action: string;
   } | null>(null);
   const [rowEvidence, setRowEvidence] = useState<Record<string, string>>({});
+  const [maintenanceAction, setMaintenanceAction] = useState<{
+    passport: PassportSummary;
+    action: MaintenanceAction;
+  } | null>(null);
+  const [maintenanceEvidence, setMaintenanceEvidence] = useState<
+    Record<string, string>
+  >({});
 
   // Reason code + admin note for ACTIVATE actions (required by backend)
   const [reasonCode, setReasonCode] = useState("");
@@ -724,6 +781,41 @@ export default function LifecyclePage() {
     }
   };
 
+  const handleMaintenanceEvent = async () => {
+    if (!maintenanceAction) return;
+
+    const requiredFields = MAINTENANCE_FIELDS[maintenanceAction.action] || [];
+    for (const field of requiredFields) {
+      if (!maintenanceEvidence[field.key]?.trim()) {
+        toast.error(`"${field.label}" is required`);
+        return;
+      }
+    }
+
+    setProcessing(true);
+    try {
+      await api.post(
+        `/passports/${maintenanceAction.passport.uuid}/${MAINTENANCE_ENDPOINTS[maintenanceAction.action]}`,
+        maintenanceEvidence,
+      );
+      toast.success(
+        `${maintenanceAction.passport.serial_number || maintenanceAction.passport.uuid.slice(0, 8)} → ${maintenanceAction.action}`,
+      );
+      const refreshedPassport = maintenanceAction.passport;
+      setMaintenanceAction(null);
+      setMaintenanceEvidence({});
+      fetchPassports();
+      if (eventsPassport?.uuid === refreshedPassport.uuid) {
+        openEventsPanel(refreshedPassport);
+      }
+    } catch (error: unknown) {
+      const apiErr = error as { response?: { data?: { error?: string } } };
+      toast.error(apiErr?.response?.data?.error || "Maintenance event failed");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   // True when every passport on the current page is checked
   const allPageSelected =
@@ -1037,6 +1129,45 @@ export default function LifecyclePage() {
                                   <Search className="h-3.5 w-3.5" />
                                   View events
                                 </DropdownMenuItem>
+                                {p.status === "IN_SERVICE" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        setMaintenanceAction({
+                                          passport: p,
+                                          action: "REPAIR",
+                                        });
+                                        setMaintenanceEvidence({
+                                          repair_date: new Date()
+                                            .toISOString()
+                                            .slice(0, 10),
+                                        });
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Wrench className="h-3.5 w-3.5" />
+                                      Log repair
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={() => {
+                                        setMaintenanceAction({
+                                          passport: p,
+                                          action: "REPLACE",
+                                        });
+                                        setMaintenanceEvidence({
+                                          replacement_date: new Date()
+                                            .toISOString()
+                                            .slice(0, 10),
+                                        });
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                      Log replacement
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                                 {allowedActions.length > 0 && (
                                   <>
                                     <DropdownMenuSeparator />
@@ -1438,6 +1569,101 @@ export default function LifecyclePage() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowRight className="h-4 w-4" />
+              )}
+              Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!maintenanceAction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMaintenanceAction(null);
+            setMaintenanceEvidence({});
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {maintenanceAction?.action === "REPAIR"
+                ? "Log repair"
+                : "Log replacement"}
+              :{" "}
+              {maintenanceAction?.passport.serial_number ||
+                maintenanceAction?.passport.uuid.slice(0, 12)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {(maintenanceAction
+              ? MAINTENANCE_FIELDS[maintenanceAction.action]
+              : []
+            ).map((field) => (
+              <div key={field.key} className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  {field.label}
+                  {field.key !== "new_component_serial" && (
+                    <span className="text-red-500 ml-0.5">*</span>
+                  )}
+                </label>
+                {field.type === "textarea" ? (
+                  <textarea
+                    rows={3}
+                    value={maintenanceEvidence[field.key] || ""}
+                    onChange={(e) =>
+                      setMaintenanceEvidence((prev) => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                  />
+                ) : (
+                  <input
+                    type={field.type}
+                    value={maintenanceEvidence[field.key] || ""}
+                    onChange={(e) =>
+                      setMaintenanceEvidence((prev) => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                )}
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">
+              This logs a tamper-evident maintenance event without changing the
+              passport lifecycle status.
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <button
+              onClick={() => {
+                setMaintenanceAction(null);
+                setMaintenanceEvidence({});
+              }}
+              disabled={processing}
+              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleMaintenanceEvent}
+              disabled={processing}
+              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {processing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : maintenanceAction?.action === "REPAIR" ? (
+                <Wrench className="h-4 w-4" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
               )}
               Confirm
             </button>

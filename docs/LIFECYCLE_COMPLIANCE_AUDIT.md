@@ -197,7 +197,7 @@ For a strong lifecycle product, action availability should be computed from at l
 - whether the actor is internal, external partner, recycler, or logistics actor
 - any additional business policy gates
 
-### 3. Frontend lifecycle actions are still driven by a static map
+### 3. Frontend lifecycle policy drift has been reduced, but must stay server-owned
 
 Historically, the dashboard page in `frontend/app/(dashboard)/lifecycle/page.tsx` used a local static `TRANSITIONS` map for row actions and a hardcoded bulk action list in the selection footer.
 
@@ -230,19 +230,20 @@ The service layer records immutable events for them:
 
 This means the platform does support repair and replacement history.
 
-But they are not modeled as canonical lifecycle actions in the main transition map. They behave more like side-channel event logs than first-class lifecycle stages or policy-controlled subflows.
+They are now stronger than a generic side-channel log. The reviewed internal flow is tenant-scoped, uses typed request payloads, resolves the actor from authenticated context, requires explicit maintenance evidence, and only permits these events on `IN_SERVICE` passports. The lifecycle dashboard also has row-level internal UI entry points for logging repair and replacement without inventing a fake status transition.
+
+But they are still not modeled as canonical lifecycle actions in the main transition map. They remain governed service events rather than first-class lifecycle stages or policy-discovered subflows.
 
 What is missing relative to a stronger lifecycle design:
 
 - clear state semantics for repair and replacement
-- policy rules for who may log them and under what conditions
-- tenant ownership verification on those endpoints
-- frontend workflows that expose and explain them consistently
+- backend discovery for who may log them and under what conditions across internal and partner channels
+- broader frontend workflow coverage such as partner/service-center entry points and bulk maintenance operations
 - linkage between repair or replacement evidence and operational consequences such as warranty, state-of-health, or service eligibility
 
-So the correct conclusion is not "repair and replacement do not exist". The correct conclusion is "repair and replacement exist, but only as partial event logging rather than as a canonical lifecycle capability".
+So the correct conclusion is not "repair and replacement do not exist". The correct conclusion is "repair and replacement now exist as governed maintenance events, but they are still not a fully canonical lifecycle capability".
 
-### 5. State-of-health is now audit-logged, but its API governance is still weak
+### 5. State-of-health is audit-logged and tenant-scoped, but its provenance model is still weak
 
 Another older gap note is now stale.
 
@@ -250,13 +251,15 @@ Another older gap note is now stale.
 
 However, there are still two concerns.
 
-First, the API path itself does not appear to enforce tenant ownership before updating or reading SoH history.
+First, the reviewed internal API path is now tenant-scoped, so the original object-authorization concern for these SoH routes has been reduced.
 
 Second, historical code review found that `UpdateStateOfHealth` had duplicated the SoH history append. That implementation issue has now been fixed so a single update produces one history row and one immutable audit event.
 
+The remaining weakness is provenance quality rather than basic route protection. The current internal SoH path still records a coarse manual actor/source shape and does not yet distinguish trusted telemetry, device-originated observations, partner submissions, and ordinary user edits strongly enough for a compliance-grade trust model.
+
 Recommended fix:
 
-- add the same tenant ownership guard used on protected lifecycle transitions
+- preserve the tenant-scoped guard now in place on the internal SoH routes
 - decide whether all SoH writes should also carry stronger source provenance, device identity, or attestation metadata when they originate from telemetry rather than manual input
 
 ### 6. Some lifecycle security findings in internal docs are now stale, but that creates its own risk
@@ -379,9 +382,9 @@ The following points should be treated as corrected by current code review.
 
 ### Priority 0: close object-level authorization gaps
 
-Apply tenant ownership verification to every lifecycle endpoint that accepts a passport UUID, not only core transition and EPCIS export routes.
+The originally audited lifecycle route set has now been materially tightened. Priority 0 is to preserve that coverage and apply the same tenant ownership verification pattern to any new lifecycle endpoint that accepts a passport UUID, not only core transition and EPCIS export routes.
 
-This includes at minimum:
+This remains mandatory for surfaces such as:
 
 - transitions discovery
 - events retrieval
@@ -404,13 +407,13 @@ Then remove or heavily reduce the frontend static transition map.
 
 ### Priority 2: canonicalize repair and replacement
 
-Decide whether these should be:
+Build on the new governed maintenance-event path and decide whether these should ultimately be:
 
 - lifecycle sub-actions
 - service events with policy gates
 - dedicated service-state transitions
 
-Whichever model is chosen, make it explicit and enforceable end to end.
+Whichever model is chosen, make it explicit and enforceable end to end, with backend discovery and richer provenance instead of UI-local assumptions.
 
 ### Priority 3: strengthen claim trust and attestation
 
