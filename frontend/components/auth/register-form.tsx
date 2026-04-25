@@ -17,7 +17,7 @@ import {
   X,
   MailCheck,
 } from "lucide-react";
-import { authApi } from "@/lib/auth-api";
+import { authApi, type RegisterParams } from "@/lib/auth-api";
 import { toast } from "sonner";
 
 type RegisterFormProps = {
@@ -85,16 +85,14 @@ export function RegisterForm({
     setIsLoading(true);
 
     try {
-      const payload: Record<string, string> = {
+      const payload: RegisterParams = {
         email,
         password,
         company_name: companyName,
+        ...(isInviteFlow && { invite_token: inviteToken }),
       };
-      if (isInviteFlow) payload.invite_token = inviteToken;
 
-      const response = await authApi.register(
-        payload as Parameters<typeof authApi.register>[0],
-      );
+      const response = await authApi.register(payload);
 
       if (response.error) {
         toast.error(response.error);
