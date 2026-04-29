@@ -518,4 +518,4 @@ A phase is considered **complete** when:
 2. New behaviour is covered by at least one unit test
 3. OpenAPI spec (`backend/api/openapi.yaml`) is updated to reflect new request/response shapes
 4. Frontend TypeScript compiles with no new errors (`tsc --noEmit`)
-5. The change is manually verified against the test plan in `docs/MANUAL_TEST_PLAN.md`
+5. The change is manually verified against the active manual test guide in `docs/PASSPORT_LIFECYCLE_TESTING.md`

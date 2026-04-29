@@ -25,14 +25,14 @@ Audience: Developers, Integrators, Compliance Officers
 
 The ExportReady Battery Passport system implements a compliance-first lifecycle model across six phases:
 
-| Phase | Name | Purpose |
-| --- | --- | --- |
-| 1 | State Model Lockdown | Canonical status enforcement |
-| 2 | Action-Based Transitions | Intent-driven state changes |
-| 3 | Role and Actor Enforcement | Authorization validation |
-| 4 | Audit Events | Immutable compliance trail |
-| 5 | Evidence Enforcement | Proof requirements for actions |
-| 6 | Magic-Link Security | External actor controls |
+| Phase | Name                       | Purpose                        |
+| ----- | -------------------------- | ------------------------------ |
+| 1     | State Model Lockdown       | Canonical status enforcement   |
+| 2     | Action-Based Transitions   | Intent-driven state changes    |
+| 3     | Role and Actor Enforcement | Authorization validation       |
+| 4     | Audit Events               | Immutable compliance trail     |
+| 5     | Evidence Enforcement       | Proof requirements for actions |
+| 6     | Magic-Link Security        | External actor controls        |
 
 Design principle: every lifecycle transition must have a valid action, authorized actor, required evidence (when applicable), and immutable audit event.
 
@@ -50,19 +50,20 @@ CREATED -> ACTIVE -> SHIPPED -> IN_SERVICE -> RECYCLED -> END_OF_LIFE
 
 ### State Descriptions
 
-| State | Description |
-| --- | --- |
-| CREATED | Passport generated, not yet activated |
-| ACTIVE | Battery in manufacturer possession, ready for shipment |
-| SHIPPED | Battery left factory |
-| IN_SERVICE | Installed and operational |
-| RECALLED | Removed from service for safety/compliance |
-| RECYCLED | Processed by authorized recycler |
-| END_OF_LIFE | Lifecycle closed |
+| State       | Description                                            |
+| ----------- | ------------------------------------------------------ |
+| CREATED     | Passport generated, not yet activated                  |
+| ACTIVE      | Battery in manufacturer possession, ready for shipment |
+| SHIPPED     | Battery left factory                                   |
+| IN_SERVICE  | Installed and operational                              |
+| RECALLED    | Removed from service for safety/compliance             |
+| RECYCLED    | Processed by authorized recycler                       |
+| END_OF_LIFE | Lifecycle closed                                       |
 
 ### Forbidden States
 
 The following legacy statuses are rejected:
+
 - RETURN_REQUESTED
 - RETURNED
 - IN_USE
@@ -73,14 +74,14 @@ The following legacy statuses are rejected:
 
 Action to state mapping:
 
-| Action | From States | To State |
-| --- | --- | --- |
-| ACTIVATE | CREATED | ACTIVE |
-| SHIP | ACTIVE | SHIPPED |
-| INSTALL | SHIPPED | IN_SERVICE |
-| RECYCLE | IN_SERVICE, RECALLED | RECYCLED |
-| CLOSE | RECYCLED, RECALLED | END_OF_LIFE |
-| RECALL | ACTIVE, SHIPPED, IN_SERVICE | RECALLED |
+| Action   | From States                 | To State    |
+| -------- | --------------------------- | ----------- |
+| ACTIVATE | CREATED                     | ACTIVE      |
+| SHIP     | ACTIVE                      | SHIPPED     |
+| INSTALL  | SHIPPED                     | IN_SERVICE  |
+| RECYCLE  | IN_SERVICE, RECALLED        | RECYCLED    |
+| CLOSE    | RECYCLED, RECALLED          | END_OF_LIFE |
+| RECALL   | ACTIVE, SHIPPED, IN_SERVICE | RECALLED    |
 
 Direct status mutation is forbidden. All changes use action-based intent.
 
@@ -90,16 +91,17 @@ Direct status mutation is forbidden. All changes use action-based intent.
 
 Mandatory evidence by action:
 
-| Action | Required Fields |
-| --- | --- |
-| SHIP | shipment_reference, shipment_date |
-| INSTALL | installation_date, installer_id |
-| RECYCLE | recycler_epr_id, recycling_date, certificate_reference |
-| RECALL | recall_reason, recall_reference |
-| ACTIVATE | None |
-| CLOSE | None |
+| Action   | Required Fields                                        |
+| -------- | ------------------------------------------------------ |
+| SHIP     | shipment_reference, shipment_date                      |
+| INSTALL  | installation_date, installer_id                        |
+| RECYCLE  | recycler_epr_id, recycling_date, certificate_reference |
+| RECALL   | recall_reason, recall_reference                        |
+| ACTIVATE | None                                                   |
+| CLOSE    | None                                                   |
 
 Evidence rules:
+
 1. Missing evidence for required actions fails with HTTP 400.
 2. Dates must be YYYY-MM-DD or RFC3339.
 3. Unknown evidence keys are rejected.
@@ -111,25 +113,25 @@ Evidence rules:
 
 Canonical roles:
 
-| Role | Description |
-| --- | --- |
-| SYSTEM | Automated processes |
+| Role              | Description                           |
+| ----------------- | ------------------------------------- |
+| SYSTEM            | Automated processes                   |
 | INTERNAL_OPERATOR | Company staff (logistics, production) |
-| LOGISTICS | External logistics partners |
-| TECHNICIAN | Installation technicians |
-| RECYCLER | Authorized recycling partners |
-| ADMIN | Platform administrators |
+| LOGISTICS         | External logistics partners           |
+| TECHNICIAN        | Installation technicians              |
+| RECYCLER          | Authorized recycling partners         |
+| ADMIN             | Platform administrators               |
 
 Action to role matrix:
 
-| Action | Allowed Roles |
-| --- | --- |
-| ACTIVATE | SYSTEM |
-| SHIP | INTERNAL_OPERATOR, LOGISTICS |
-| INSTALL | TECHNICIAN |
-| RECYCLE | RECYCLER |
-| CLOSE | SYSTEM |
-| RECALL | ADMIN |
+| Action   | Allowed Roles                |
+| -------- | ---------------------------- |
+| ACTIVATE | SYSTEM                       |
+| SHIP     | INTERNAL_OPERATOR, LOGISTICS |
+| INSTALL  | TECHNICIAN                   |
+| RECYCLE  | RECYCLER                     |
+| CLOSE    | SYSTEM                       |
+| RECALL   | ADMIN                        |
 
 Unauthorized attempts return HTTP 403.
 
@@ -149,12 +151,14 @@ Actor context is mandatory and derived server-side:
 ## Magic Link Security
 
 Magic links provide temporary authority for external partners. Tokens are:
+
 - Single-use
 - Action-bound
 - Role-bound
 - Time-limited
 
 Validation order:
+
 1. Token exists
 2. Token not used
 3. Token not expired
@@ -182,6 +186,7 @@ Content-Type: application/json
 ```
 
 Response 200:
+
 ```json
 {
   "success": true,
@@ -260,15 +265,16 @@ Response 200:
 
 ## Breaking Changes
 
-| Change | Old Behavior | New Behavior | Error |
-| --- | --- | --- | --- |
-| Status mutations | to_status accepted | Rejected | 400 |
-| Missing evidence | Allowed | Rejected | 400 |
-| Forbidden statuses | Some allowed | DB constraint | 400 |
-| Magic link reuse | Possible | Rejected | 401 |
-| Event modification | Allowed | Trigger fails | 500 |
+| Change             | Old Behavior       | New Behavior  | Error |
+| ------------------ | ------------------ | ------------- | ----- |
+| Status mutations   | to_status accepted | Rejected      | 400   |
+| Missing evidence   | Allowed            | Rejected      | 400   |
+| Forbidden statuses | Some allowed       | DB constraint | 400   |
+| Magic link reuse   | Possible           | Rejected      | 401   |
+| Event modification | Allowed            | Trigger fails | 500   |
 
 Migration notes:
+
 1. Update API calls to use action + evidence.
 2. Regenerate magic links with action binding.
 3. Remove any code that modifies passport_events.
@@ -284,6 +290,7 @@ go test ./internal/handlers/... ./internal/services/... -v
 ```
 
 Key test cases:
+
 - Reject to_status
 - Missing evidence
 - Forbidden role
@@ -294,26 +301,32 @@ Key test cases:
 ## Troubleshooting
 
 HTTP 400: "action is required"
+
 - Cause: Request sent to_status instead of action.
 - Fix: Use action-based API format.
 
 HTTP 400: "evidence is required for action SHIP"
+
 - Cause: Missing mandatory evidence fields.
 - Fix: Provide all required evidence fields.
 
 HTTP 403: "role not authorized for action"
+
 - Cause: Role not permitted for that action.
 - Fix: Verify team role assignment.
 
 HTTP 401: "magic link token invalid"
+
 - Cause: Token reused, expired, or mismatched.
 - Fix: Generate a new magic link token.
 
 DB error: "violates check constraint passports_status_check"
+
 - Cause: Attempting to set forbidden status.
 - Fix: Use canonical status values only.
 
 DB error: "passport_events are immutable"
+
 - Cause: UPDATE or DELETE on audit events.
 - Fix: Remove mutation code; events are append-only.
 
@@ -322,6 +335,5 @@ DB error: "passport_events are immutable"
 ## Related Documents
 
 - `design_system.md`
-- `docs/PHASES_1_6_IMPLEMENTATION_REPORT.md`
-- `docs/FEATURE_STATUS_REVIEW.md`
-
+- `docs/PASSPORT_LIFECYCLE_TESTING.md`
+- `docs/codex_status.md`

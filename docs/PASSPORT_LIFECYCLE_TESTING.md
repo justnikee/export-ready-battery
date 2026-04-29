@@ -1,5 +1,9 @@
 # Passport Lifecycle Manual Testing Guide
 
+Last reviewed: 2026-04-26
+
+This is the current manual test reference for lifecycle transitions. Older phase snapshot docs should be treated as historical context, not the active test source of truth.
+
 This document provides a comprehensive guide for manually testing the passport lifecycle system in ExportReady-Battery.
 
 ---
@@ -246,12 +250,15 @@ curl http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-333333333333
 
 **Who can do this**: SYSTEM role (typically automatic during batch activation)
 
+`ACTIVATE` now requires a `reason_code`. The handler still executes it as a system transition, but the request must include why activation was allowed.
+
 ```bash
 curl -X POST http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-333333333333/transition \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <admin-token>" \
   -d '{
-    "action": "ACTIVATE"
+    "action": "ACTIVATE",
+    "reason_code": "BATCH_QC_PASS"
   }'
 
 # Expected response:
@@ -268,9 +275,10 @@ curl -X POST http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-3333
 
 1. Server validates action is allowed from CREATED
 2. Server validates actor has SYSTEM role (or admin performing system action)
-3. Server creates audit event with hash
-4. Server updates passport status to ACTIVE
-5. Both operations commit atomically
+3. Server validates `reason_code` is present for ACTIVATE
+4. Server creates audit event with hash and metadata
+5. Server updates passport status to ACTIVE
+6. Both operations commit atomically
 
 ### Step 5.4: Get Allowed Actions (ACTIVE state)
 
@@ -426,14 +434,19 @@ curl http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-333333333333
 
 ### Step 5.11: CLOSE (RECYCLED → END_OF_LIFE)
 
-**Who can do this**: SYSTEM role (automatic)
+**Who can do this**: SYSTEM role or the recycler who previously performed the recycle step.
+
+`CLOSE` now requires `certificate_reference` evidence.
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-333333333333/transition \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <admin-token>" \
   -d '{
-    "action": "CLOSE"
+    "action": "CLOSE",
+    "evidence": {
+      "certificate_reference": "CERT-CLOSE-2026-001"
+    }
   }'
 
 # Expected response:
@@ -531,7 +544,10 @@ curl -X POST http://localhost:8080/api/v1/passports/33333333-3333-3333-3333-3333
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <admin-token>" \
   -d '{
-    "action": "CLOSE"
+    "action": "CLOSE",
+    "evidence": {
+      "certificate_reference": "CERT-CLOSE-2026-RECALL-001"
+    }
   }'
 
 # Expected: status changes to END_OF_LIFE
@@ -726,6 +742,20 @@ curl -X POST http://localhost:8080/api/v1/passports/{uuid}/transition \
 
 # Expected: 400 Bad Request
 # Response: "evidence not allowed for action ACTIVATE"
+```
+
+### Test 3.12: Reject ACTIVATE Without Reason Code
+
+```bash
+curl -X POST http://localhost:8080/api/v1/passports/{uuid}/transition \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "action": "ACTIVATE"
+  }'
+
+# Expected: 400 Bad Request
+# Response: "reason_code is required for ACTIVATE action"
 ```
 
 ---

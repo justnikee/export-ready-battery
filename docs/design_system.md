@@ -1,7 +1,7 @@
 ﻿# 🧾🔗 Phase 5 & Phase 6 — Evidence Enforcement and Magic-Link Security (Uncompromisable)
 
 **Status:** AUTHORITATIVE / UNCOMPROMISABLE  
-**Implementation status (codebase):** Implemented as of 2026-02-08. See `docs/PHASES_1_6_IMPLEMENTATION_REPORT.md`.
+**Implementation status (codebase):** Implemented as of 2026-02-08. See `docs/codex_status.md` for the current compact status tracker and `docs/archived/PHASES_1_6_IMPLEMENTATION_REPORT.md` for the historical phase report.
 **Depends on:**
 
 - Phase 1 — State Model Lockdown (LOCKED)
@@ -66,19 +66,19 @@ Evidence is not documentation — it is **regulatory proof**.
 
 ---
 
-## 📌 Actions Requiring Mandatory Evidence (LOCKED)
+## 📌 Actions Requiring Mandatory Validation Inputs (LOCKED)
 
-| Action  | Mandatory Evidence Fields                              |
-| ------- | ------------------------------------------------------ |
-| SHIP    | shipment_reference, shipment_date                      |
-| INSTALL | installation_date, installer_id                        |
-| RECYCLE | recycler_epr_id, recycling_date, certificate_reference |
-| RECALL  | recall_reason, recall_reference                        |
+| Action   | Mandatory Requirement                                  |
+| -------- | ------------------------------------------------------ |
+| ACTIVATE | reason_code                                            |
+| SHIP     | shipment_reference, shipment_date                      |
+| INSTALL  | installation_date, installer_id                        |
+| RECYCLE  | recycler_epr_id, recycling_date, certificate_reference |
+| RECALL   | recall_reason, recall_reference                        |
+| CLOSE    | certificate_reference                                  |
 
-The following actions **do not** require external evidence:
-
-- ACTIVATE
-- CLOSE
+`ACTIVATE` now requires a `reason_code` even though it does not use the evidence payload.
+`CLOSE` now requires `certificate_reference` and is no longer exempt from transition validation.
 
 ---
 
@@ -97,8 +97,8 @@ Any of the above is a compliance defect.
 
 ## 🛠️ Enforcement Requirements
 
-1. Evidence schema must be validated **before** audit event insertion
-2. Missing or malformed evidence → reject transition
+1. Required transition inputs must be validated **before** audit event insertion
+2. Missing or malformed evidence or reason metadata → reject transition
 3. Evidence snapshot must be embedded in the audit event
 4. Evidence must be queryable during audits
 
@@ -109,9 +109,11 @@ Any of the above is a compliance defect.
 Phase 5 is incomplete unless all tests pass:
 
 - ❌ SHIP without shipment_reference → reject
+- ❌ ACTIVATE without reason_code → reject
 - ❌ INSTALL without installer_id → reject
 - ❌ RECYCLE without certificate_reference → reject
 - ❌ RECALL without recall_reason → reject
+- ❌ CLOSE without certificate_reference → reject
 - ✅ valid evidence → transition succeeds
 
 ---

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import api from "@/lib/api";
-import type { AllowedActionsResponse } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -40,6 +39,7 @@ import {
   X,
   Download,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PassportSummary {
   uuid: string;
@@ -170,6 +170,39 @@ const MAINTENANCE_ENDPOINTS: Record<MaintenanceAction, string> = {
 
 const PAGE_SIZE = 50;
 
+type DashboardActorRole = "ADMIN" | "INTERNAL_OPERATOR" | null;
+
+function resolveDashboardActorRole(role?: string): DashboardActorRole {
+  switch ((role || "").toUpperCase()) {
+    case "OWNER":
+    case "ADMIN":
+      return "ADMIN";
+    case "MEMBER":
+      return "INTERNAL_OPERATOR";
+    default:
+      return null;
+  }
+}
+
+function getAllowedLifecycleActions(
+  status: string,
+  role: DashboardActorRole,
+): string[] {
+  if (!role) return [];
+
+  switch (status) {
+    case "CREATED":
+      return ["ACTIVATE"];
+    case "ACTIVE":
+      return role === "ADMIN" ? ["SHIP", "RECALL"] : ["SHIP"];
+    case "SHIPPED":
+    case "IN_SERVICE":
+      return role === "ADMIN" ? ["RECALL"] : [];
+    default:
+      return [];
+  }
+}
+
 function SoHBar({ value }: { value: number }) {
   const color =
     value >= 80
@@ -198,8 +231,48 @@ function SoHBar({ value }: { value: number }) {
   );
 }
 
+function LifecycleTableSkeleton() {
+  return (
+    <div className="space-y-3 p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+        {Array.from({ length: 7 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-lg border border-border bg-card p-3 space-y-2"
+          >
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-12" />
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="border-b border-border bg-muted/60 px-4 py-3">
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="divide-y divide-border">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[32px_1.4fr_1fr_120px_120px_100px_32px] gap-4 px-4 py-3 items-center"
+            >
+              <Skeleton className="h-4 w-4 rounded-sm" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-7 w-7 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LifecyclePage() {
   const { user } = useAuth();
+  const dashboardRole = resolveDashboardActorRole(user?.role);
 
   // Data
   const [passports, setPassports] = useState<PassportSummary[]>([]);
@@ -401,35 +474,19 @@ export default function LifecyclePage() {
       return;
     }
 
-    let cancelled = false;
+    const nextAllowedActions = passports.reduce<Record<string, string[]>>(
+      (accumulator, passport) => {
+        accumulator[passport.uuid] = getAllowedLifecycleActions(
+          passport.status,
+          dashboardRole,
+        );
+        return accumulator;
+      },
+      {},
+    );
 
-    const fetchAllowedActions = async () => {
-      const results = await Promise.allSettled(
-        passports.map(async (passport) => {
-          const response = await api.get<AllowedActionsResponse>(
-            `/passports/${passport.uuid}/transitions`,
-          );
-          return [passport.uuid, response.data.allowed_actions] as const;
-        }),
-      );
-
-      if (cancelled) return;
-
-      const nextAllowedActions: Record<string, string[]> = {};
-      for (const result of results) {
-        if (result.status !== "fulfilled") continue;
-        const [passportID, allowedActions] = result.value;
-        nextAllowedActions[passportID] = allowedActions;
-      }
-      setAllowedActionsByPassport(nextAllowedActions);
-    };
-
-    void fetchAllowedActions();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [passports]);
+    setAllowedActionsByPassport(nextAllowedActions);
+  }, [dashboardRole, passports]);
 
   useEffect(() => {
     if (!selectAllMode) {
@@ -868,7 +925,7 @@ export default function LifecyclePage() {
             return (
               <button
                 key={status}
-                onClick={() => handleStatusFilter(isActive ? "ALL" : status)}
+                onClick={() => handleStatusFilter(status)}
                 className={`p-3 rounded-lg border text-left transition-all ${
                   isActive
                     ? "border-foreground bg-muted ring-1 ring-foreground/20"
@@ -917,6 +974,16 @@ export default function LifecyclePage() {
             ))}
           </select>
 
+          {statusFilter !== "ALL" && (
+            <button
+              onClick={() => handleStatusFilter("ALL")}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
+            >
+              <span>Status: {statusFilter.replace(/_/g, " ")}</span>
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+
           {/* Page size info */}
           <span className="text-xs text-muted-foreground ml-auto">
             {totalCount > 0
@@ -928,9 +995,7 @@ export default function LifecyclePage() {
         {/* ── Table ── */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <LifecycleTableSkeleton />
           ) : passports.length === 0 ? (
             <div className="text-center py-16">
               <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -939,7 +1004,7 @@ export default function LifecyclePage() {
               </p>
               <p className="text-muted-foreground text-xs mt-1 max-w-sm mx-auto">
                 {statusFilter !== "ALL"
-                  ? `No passports with "${statusFilter.replace(/_/g, " ")}" status.`
+                  ? `No passports with ${statusFilter.replace(/_/g, " ")} status.`
                   : batchFilter
                     ? "No passports in this batch yet."
                     : "Generate passports from a batch first."}
@@ -1536,7 +1601,7 @@ export default function LifecyclePage() {
                   </label>
                   {rowDocInfo && (
                     <span
-                      className="text-xs text-muted-foreground truncate max-w-[140px]"
+                      className="text-xs text-muted-foreground truncate max-w-35"
                       title={rowDocInfo.sha256_hash}
                     >
                       {rowDocInfo.filename} ✓
@@ -1689,8 +1754,21 @@ export default function LifecyclePage() {
             </DialogTitle>
           </DialogHeader>
           {eventsLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="space-y-3 py-2">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border border-border p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-3 w-48" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-3">
@@ -1762,7 +1840,7 @@ export default function LifecyclePage() {
                     )}
                     {adminNote && (
                       <p className="text-xs text-muted-foreground italic">
-                        "{adminNote}"
+                        &quot;{adminNote}&quot;
                       </p>
                     )}
                   </div>

@@ -9,33 +9,39 @@ ExportReady-Battery helps battery manufacturers comply with EU Battery Regulatio
 ## Features
 
 ### Digital Battery Passports
+
 - UUID-based identifiers per battery
 - QR code generation (256x256 PNG)
 - Public verification pages (no auth required)
 - Lifecycle tracking (action-based, role-guarded, evidence-validated, audit logged)
 
 ### Batch Management
+
 - Create batches with detailed specifications (chemistry, voltage, capacity)
 - Bulk CSV upload with parallel processing
 - Auto-generate serial numbers with market-specific prefixes
 - Download QR codes as ZIP archives
 
 ### Multi-Market Compliance
+
 - EU Market: EU Battery Regulation 2023/1542 compliant
 - India Market: PLI compliance, BIS/EPR certification tracking
 - Market-specific form fields and validation
 
 ### Team Management
+
 - Invite team members via email
 - Role-based access (Owner, Admin, Member)
 - Seat limits enforced by billing plan
 
 ### Subscription and Billing
+
 - Tiered plans (Free, Starter, Growth, Enterprise)
 - Quota-based passport generation
 - Razorpay payment integration (India)
 
 ### Analytics Dashboard
+
 - Real-time production statistics
 - QR scan tracking with geolocation
 - Export activity feeds
@@ -44,14 +50,14 @@ ExportReady-Battery helps battery manufacturers comply with EU Battery Regulatio
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-| --- | --- | --- |
-| Frontend | Next.js 16, React 19, Tailwind CSS | App Router, SSR, RSC |
-| Backend | Go 1.24, Chi Router | REST API, Worker pools |
-| Database | PostgreSQL (Supabase) | Data persistence |
-| Storage | Supabase Storage | QR ZIPs, Label PDFs |
-| Email | Resend API | Transactional emails |
-| Payments | Razorpay | Subscription billing |
+| Layer    | Technology                         | Purpose                |
+| -------- | ---------------------------------- | ---------------------- |
+| Frontend | Next.js 16, React 19, Tailwind CSS | App Router, SSR, RSC   |
+| Backend  | Go 1.24, Chi Router                | REST API, Worker pools |
+| Database | PostgreSQL (Supabase)              | Data persistence       |
+| Storage  | Supabase Storage                   | QR ZIPs, Label PDFs    |
+| Email    | Resend API                         | Transactional emails   |
+| Payments | Razorpay                           | Subscription billing   |
 
 ---
 
@@ -151,26 +157,26 @@ ExportReady-Battery/
 
 ### Backend Environment Variables
 
-| Variable | Description | Required |
-| --- | --- | --- |
-| DATABASE_URL | PostgreSQL connection string | Yes |
-| JWT_SECRET | Secret for JWT signing | Yes |
-| PORT | Server port (default: 8080) | No |
-| FRONTEND_URL | Frontend URL for CORS | Yes |
-| QR_BASE_URL | Base URL for QR code links | Yes |
-| SUPABASE_URL | Supabase project URL | Yes |
-| SUPABASE_SERVICE_KEY | Supabase service role key | Yes |
-| RESEND_API_KEY | Resend API key for emails | No |
-| EMAIL_FROM | Sender email address | No |
-| RAZORPAY_KEY_ID | Razorpay API key | No |
-| RAZORPAY_KEY_SECRET | Razorpay secret | No |
-| TEMPLATES_DIR | Email templates directory | No |
+| Variable             | Description                  | Required |
+| -------------------- | ---------------------------- | -------- |
+| DATABASE_URL         | PostgreSQL connection string | Yes      |
+| JWT_SECRET           | Secret for JWT signing       | Yes      |
+| PORT                 | Server port (default: 8080)  | No       |
+| FRONTEND_URL         | Frontend URL for CORS        | Yes      |
+| QR_BASE_URL          | Base URL for QR code links   | Yes      |
+| SUPABASE_URL         | Supabase project URL         | Yes      |
+| SUPABASE_SERVICE_KEY | Supabase service role key    | Yes      |
+| RESEND_API_KEY       | Resend API key for emails    | No       |
+| EMAIL_FROM           | Sender email address         | No       |
+| RAZORPAY_KEY_ID      | Razorpay API key             | No       |
+| RAZORPAY_KEY_SECRET  | Razorpay secret              | No       |
+| TEMPLATES_DIR        | Email templates directory    | No       |
 
 ### Frontend Environment Variables
 
-| Variable | Description | Required |
-| --- | --- | --- |
-| NEXT_PUBLIC_API_URL | Backend API URL | Yes |
+| Variable            | Description     | Required |
+| ------------------- | --------------- | -------- |
+| NEXT_PUBLIC_API_URL | Backend API URL | Yes      |
 
 ---
 
@@ -299,34 +305,40 @@ docker-compose up -d
 
 ### EU Battery Regulation (2023/1542)
 
-| Requirement | Status |
-| --- | --- |
-| Battery Passport (Article 77) | Implemented |
-| Unique Identifier | UUID + QR |
-| Material Composition | JSONB specs |
-| Manufacturer Info | Tenant profiles |
-| Carbon Footprint | Schema ready |
-| Recycled Content | Schema ready |
+| Requirement                   | Status          |
+| ----------------------------- | --------------- |
+| Battery Passport (Article 77) | Implemented     |
+| Unique Identifier             | UUID + QR       |
+| Material Composition          | JSONB specs     |
+| Manufacturer Info             | Tenant profiles |
+| Carbon Footprint              | Schema ready    |
+| Recycled Content              | Schema ready    |
 
 ### India Battery Aadhaar
 
-| Requirement | Status |
-| --- | --- |
+| Requirement           | Status      |
+| --------------------- | ----------- |
 | Unique ID per Battery | UUID system |
-| PLI Compliance | Tracking |
-| BIS Certification | Tracking |
-| EPR Registration | Tracking |
+| PLI Compliance        | Tracking    |
+| BIS Certification     | Tracking    |
+| EPR Registration      | Tracking    |
 
 ---
 
 ## Documentation
 
-Detailed documentation in `docs/`:
-- `docs/PROJECT_DOCUMENTATION.md`
-- `docs/PHASES_1_6_IMPLEMENTATION_REPORT.md`
-- `docs/PASSPORT_LIFECYCLE_GUIDE.md`
-- `docs/FEATURE_STATUS_REVIEW.md`
+Start with `docs/README.md` for the current documentation map.
+
+Recommended active docs:
+
+- `docs/DEVELOPER_ONBOARDING.md`
+- `docs/PASSPORT_LIFECYCLE_TESTING.md`
+- `docs/ENTERPRISE_COMPLIANCE_ROADMAP.md`
+- `docs/BATTERY_PASSPORT_PITCH_AND_COMPLIANCE.md`
+- `docs/PRODUCT_PASSPORT_ENGINE.md`
 - `docs/TECHNICAL_DEBT.md`
+
+Historical reports and superseded analysis files are kept under `docs/archived/`.
 
 ---
 
@@ -343,4 +355,3 @@ Detailed documentation in `docs/`:
 ## License
 
 MIT. See `LICENSE`.
-
