@@ -44,24 +44,24 @@ The platform is a **SaaS product** — manufacturers sign up, create an account 
 
 Battery manufacturers globally face two converging regulatory pressures:
 
-| Market | Regulation | Requirement |
-|--------|-----------|-------------|
-| **EU** | EU Battery Regulation 2023/1542 | Digital Battery Passport (Article 77), Carbon footprint declaration (Article 7), Regulator data access (Article 78) |
-| **India** | Battery Aadhaar Initiative / BIS / EPR | Unique battery ID (BPAN), BIS IS 16046 certification, Extended Producer Responsibility registration |
+| Market    | Regulation                             | Requirement                                                                                                         |
+| --------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **EU**    | EU Battery Regulation 2023/1542        | Digital Battery Passport (Article 77), Carbon footprint declaration (Article 7), Regulator data access (Article 78) |
+| **India** | Battery Aadhaar Initiative / BIS / EPR | Unique battery ID (BPAN), BIS IS 16046 certification, Extended Producer Responsibility registration                 |
 
 Without a platform like this, manufacturers would need to build compliance infrastructure from scratch — a complex, expensive, multi-year engineering effort. ExportReady provides it as a service.
 
 ### 2.2 Who Are the Users?
 
-| User Type | Role | What They Do |
-|-----------|------|-------------|
-| **Battery Manufacturer** | Tenant (Owner/Admin/Member) | Creates batches, generates passports, manages compliance |
-| **Logistics Partner** | External Actor (LOGISTICS) | Ships batteries, triggered via magic link |
-| **Technician** | External Actor (TECHNICIAN) | Installs batteries at customer site, via magic link |
-| **Recycler** | External Actor (RECYCLER) | Processes end-of-life batteries, via magic link |
-| **Regulator** | Article 78 Access (REGULATOR) | Audits full passport data using regulator API key |
-| **End User / Public** | No auth | Scans QR code to verify battery authenticity |
-| **Admin** | Platform Admin | Verifies compliance documents, manages blog |
+| User Type                | Role                          | What They Do                                             |
+| ------------------------ | ----------------------------- | -------------------------------------------------------- |
+| **Battery Manufacturer** | Tenant (Owner/Admin/Member)   | Creates batches, generates passports, manages compliance |
+| **Logistics Partner**    | External Actor (LOGISTICS)    | Ships batteries, triggered via magic link                |
+| **Technician**           | External Actor (TECHNICIAN)   | Installs batteries at customer site, via magic link      |
+| **Recycler**             | External Actor (RECYCLER)     | Processes end-of-life batteries, via magic link          |
+| **Regulator**            | Article 78 Access (REGULATOR) | Audits full passport data using regulator API key        |
+| **End User / Public**    | No auth                       | Scans QR code to verify battery authenticity             |
+| **Admin**                | Platform Admin                | Verifies compliance documents, manages blog              |
 
 ### 2.3 Revenue Model
 
@@ -78,39 +78,39 @@ Without a platform like this, manufacturers would need to build compliance infra
 
 ## 3. Tech Stack
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| **Frontend** | Next.js | 16 | SSR, App Router, React Server Components |
-| **Frontend UI** | React | 19 | Component model |
-| **Frontend Style** | Tailwind CSS | v4 | Utility-first CSS |
-| **Frontend Components** | Radix UI | latest | Accessible component primitives |
-| **Frontend Charts** | Recharts | latest | Data visualization |
-| **Frontend Forms** | React Hook Form + Zod | latest | Form state + schema validation |
-| **Frontend State** | TanStack Query (React Query) | latest | Server state, caching, mutations |
-| **Frontend Animations** | Framer Motion | latest | UI transitions |
-| **Frontend Icons** | Lucide React | latest | Icon set |
-| **Frontend Toasts** | Sonner | latest | Notification toasts |
-| **Frontend HTTP** | Axios | latest | HTTP client |
-| **Frontend DB Client** | @supabase/supabase-js | latest | Supabase Storage access from frontend |
-| **Frontend Markdown** | react-markdown + rehype-highlight | latest | Docs / blog rendering |
-| **Frontend Dates** | date-fns | latest | Date formatting and manipulation |
-| **Frontend Theme** | next-themes | latest | Dark mode support |
-| **Frontend Progress** | nprogress | latest | Page-load progress bar |
-| **Frontend Flags** | flag-icons | latest | Country flag icons (analytics) |
-| **Backend Language** | Go | 1.24 | Compiled REST API |
-| **Backend Router** | stdlib `http.ServeMux` / Chi | — | HTTP routing |
-| **Database** | PostgreSQL | 16+ | Primary data store (via Supabase) |
-| **DB Host** | Supabase | — | Managed Postgres + Storage |
-| **File Storage** | Supabase Storage | — | QR ZIPs, PDFs, certificates |
-| **Auth** | JWT + OAuth 2.0 | — | User auth (Google, Microsoft) |
-| **Email** | Resend API | — | Transactional emails |
-| **Payments** | Razorpay | — | Subscription billing (India) |
-| **QR Generation** | skip2/go-qrcode | — | 256×256 PNG QR codes |
-| **PDF Generation** | jung-kurt/gofpdf | — | Labels, compliance declarations |
-| **Geolocation** | oschwald/geoip2-golang + MaxMind | — | QR scan analytics |
-| **Hashing** | BLAKE2b | — | Immutable event hash chain |
-| **Migrations** | golang-migrate | — | Database schema versioning |
-| **Dev Hot Reload** | air | — | Go live reload during development |
+| Layer                   | Technology                        | Version | Purpose                                  |
+| ----------------------- | --------------------------------- | ------- | ---------------------------------------- |
+| **Frontend**            | Next.js                           | 16      | SSR, App Router, React Server Components |
+| **Frontend UI**         | React                             | 19      | Component model                          |
+| **Frontend Style**      | Tailwind CSS                      | v4      | Utility-first CSS                        |
+| **Frontend Components** | Radix UI                          | latest  | Accessible component primitives          |
+| **Frontend Charts**     | Recharts                          | latest  | Data visualization                       |
+| **Frontend Forms**      | React Hook Form + Zod             | latest  | Form state + schema validation           |
+| **Frontend State**      | TanStack Query (React Query)      | latest  | Server state, caching, mutations         |
+| **Frontend Animations** | Framer Motion                     | latest  | UI transitions                           |
+| **Frontend Icons**      | Lucide React                      | latest  | Icon set                                 |
+| **Frontend Toasts**     | Sonner                            | latest  | Notification toasts                      |
+| **Frontend HTTP**       | Axios                             | latest  | HTTP client                              |
+| **Frontend DB Client**  | @supabase/supabase-js             | latest  | Supabase Storage access from frontend    |
+| **Frontend Markdown**   | react-markdown + rehype-highlight | latest  | Docs / blog rendering                    |
+| **Frontend Dates**      | date-fns                          | latest  | Date formatting and manipulation         |
+| **Frontend Theme**      | next-themes                       | latest  | Dark mode support                        |
+| **Frontend Progress**   | nprogress                         | latest  | Page-load progress bar                   |
+| **Frontend Flags**      | flag-icons                        | latest  | Country flag icons (analytics)           |
+| **Backend Language**    | Go                                | 1.24    | Compiled REST API                        |
+| **Backend Router**      | stdlib `http.ServeMux` / Chi      | —       | HTTP routing                             |
+| **Database**            | PostgreSQL                        | 16+     | Primary data store (via Supabase)        |
+| **DB Host**             | Supabase                          | —       | Managed Postgres + Storage               |
+| **File Storage**        | Supabase Storage                  | —       | QR ZIPs, PDFs, certificates              |
+| **Auth**                | JWT + OAuth 2.0                   | —       | User auth (Google, Microsoft)            |
+| **Email**               | Resend API                        | —       | Transactional emails                     |
+| **Payments**            | Razorpay                          | —       | Subscription billing (India)             |
+| **QR Generation**       | skip2/go-qrcode                   | —       | 256×256 PNG QR codes                     |
+| **PDF Generation**      | jung-kurt/gofpdf                  | —       | Labels, compliance declarations          |
+| **Geolocation**         | oschwald/geoip2-golang + MaxMind  | —       | QR scan analytics                        |
+| **Hashing**             | BLAKE2b                           | —       | Immutable event hash chain               |
+| **Migrations**          | golang-migrate                    | —       | Database schema versioning               |
+| **Dev Hot Reload**      | air                               | —       | Go live reload during development        |
 
 ---
 
@@ -159,6 +159,7 @@ internal/
 ```
 
 **Key Design Patterns:**
+
 - **Action-Based State Machine** — No direct status mutations; all passport state changes happen through explicit named actions (ACTIVATE, SHIP, INSTALL, RECYCLE, CLOSE, RECALL)
 - **Event Sourcing** — Every lifecycle action creates an immutable audit event in `passport_events`
 - **Repository Pattern** — All DB queries go through interfaces; handlers never touch SQL directly
@@ -230,6 +231,7 @@ frontend/providers/
 **What it does:** Every battery unit gets a permanent UUID-based digital identity.
 
 **How it works:**
+
 - Manufacturer creates a **batch** (a production run with specs)
 - Uploads a CSV with serial numbers, or lets the system auto-generate them
 - System creates one `passport` row per battery in PostgreSQL
@@ -238,6 +240,7 @@ frontend/providers/
 - The QR code is what gets physically printed and stuck onto the battery
 
 **Key files:**
+
 - `backend/internal/handlers/batch_handlers.go` — batch creation & CSV upload
 - `backend/internal/handlers/passport_handlers.go` — passport retrieval (tier-aware)
 - `backend/internal/services/qr_service.go` — QR PNG generation
@@ -259,16 +262,17 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 
 **The Actions (how states change):**
 
-| Action | Triggered By | From State | To State | Required Evidence |
-|--------|-------------|-----------|---------|------------------|
-| `ACTIVATE` | SYSTEM / INTERNAL_OPERATOR | CREATED | ACTIVE | None (compliance pre-checked) |
-| `SHIP` | INTERNAL_OPERATOR, LOGISTICS | ACTIVE | SHIPPED | `shipment_reference`, `shipment_date` |
-| `INSTALL` | TECHNICIAN | SHIPPED | IN_SERVICE | `installation_date`, `installer_id` |
-| `RECYCLE` | RECYCLER | IN_SERVICE | RECYCLED | `recycler_epr_id`, `recycling_date`, `certificate_reference` |
-| `CLOSE` | SYSTEM / ADMIN | RECYCLED | END_OF_LIFE | None |
-| `RECALL` | ADMIN | Any | RECALLED | `recall_reason`, `recall_reference` |
+| Action     | Triggered By                 | From State | To State    | Required Evidence                                            |
+| ---------- | ---------------------------- | ---------- | ----------- | ------------------------------------------------------------ |
+| `ACTIVATE` | SYSTEM / INTERNAL_OPERATOR   | CREATED    | ACTIVE      | None (compliance pre-checked)                                |
+| `SHIP`     | INTERNAL_OPERATOR, LOGISTICS | ACTIVE     | SHIPPED     | `shipment_reference`, `shipment_date`                        |
+| `INSTALL`  | TECHNICIAN                   | SHIPPED    | IN_SERVICE  | `installation_date`, `installer_id`                          |
+| `RECYCLE`  | RECYCLER                     | IN_SERVICE | RECYCLED    | `recycler_epr_id`, `recycling_date`, `certificate_reference` |
+| `CLOSE`    | SYSTEM / ADMIN               | RECYCLED   | END_OF_LIFE | None                                                         |
+| `RECALL`   | ADMIN                        | Any        | RECALLED    | `recall_reason`, `recall_reference`                          |
 
 **Critical rules:**
+
 1. You **cannot skip states** — a battery can't go from CREATED directly to IN_SERVICE
 2. Evidence is **mandatory** for the actions that require it — missing evidence returns HTTP 400
 3. Each actor **role** can only perform specific actions — a RECYCLER can't SHIP a battery
@@ -276,6 +280,7 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 5. Each event gets a **BLAKE2b hash** chained to the previous event — you can verify the entire chain hasn't been tampered with
 
 **Key files:**
+
 - `backend/internal/handlers/lifecycle_handlers.go`
 - `backend/internal/services/lifecycle_service.go`
 - `backend/internal/models/lifecycle.go`
@@ -287,6 +292,7 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 **The problem it solves:** Logistics partners, technicians, and recyclers are not your platform users — they don't have accounts. Yet they need to perform lifecycle actions (SHIP, INSTALL, RECYCLE) on batteries.
 
 **How magic links work:**
+
 1. Manufacturer generates a magic link for a specific passport + action (e.g., "SHIP passport ABC-123")
 2. System creates a single-use token bound to: `{passport_id, action, actor_role, expiry}`
 3. Token is sent to the external actor (via email/WhatsApp/etc.)
@@ -296,6 +302,7 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 7. **Token is immediately invalidated** — single use only
 
 **Security properties:**
+
 - Token hash stored (BLAKE2b), never the raw token
 - Bound to specific action — a SHIP token can't be used to RECALL
 - Time-limited (configurable expiry)
@@ -303,6 +310,7 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 - Cannot be replayed after first use
 
 **Key files:**
+
 - `backend/internal/handlers/magic_link_handlers.go`
 - `frontend/app/p/[uuid]/action/page.tsx`
 
@@ -312,15 +320,16 @@ CREATED → ACTIVE → SHIPPED → IN_SERVICE → RECYCLED → END_OF_LIFE
 
 **Why it exists:** EU Battery Regulation Article 78 requires that different actors see different amounts of battery data.
 
-| Tier | Who Gets It | How to Authenticate | What They See |
-|------|------------|--------------------|--------------| 
-| **PUBLIC** | Anyone (QR scan) | No auth required | UUID, serial, status, basic specs, manufacturer name |
-| **PARTNER** | Logistics, technicians, authorized partners | Magic link token | + Ownership history, repair events, replacement events, current owner |
-| **REGULATOR** | Government regulators | `X-Regulator-Key` header with Article 78 token | Everything + Full immutable audit trail |
+| Tier          | Who Gets It                                 | How to Authenticate                            | What They See                                                         |
+| ------------- | ------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| **PUBLIC**    | Anyone (QR scan)                            | No auth required                               | UUID, serial, status, basic specs, manufacturer name                  |
+| **PARTNER**   | Logistics, technicians, authorized partners | Magic link token                               | + Ownership history, repair events, replacement events, current owner |
+| **REGULATOR** | Government regulators                       | `X-Regulator-Key` header with Article 78 token | Everything + Full immutable audit trail                               |
 
 The backend's `GetPassport` handler automatically detects which tier applies based on the incoming request headers and returns the appropriate filtered view.
 
 **Key files:**
+
 - `backend/internal/handlers/passport_handlers.go` (tier detection logic)
 - `backend/internal/handlers/data_access_handlers.go` (token management)
 - `frontend/components/settings/data-visibility.tsx` (configure what's visible per tier)
@@ -332,6 +341,7 @@ The backend's `GetPassport` handler automatically detects which tier applies bas
 **What it is:** A "batch" represents a production run — e.g., "500 units of Model XR-2000 LFP batteries, manufactured in Jan 2026 for the Indian market."
 
 **Batch lifecycle:**
+
 1. Create batch with specs (chemistry, voltage, capacity, market region, compliance fields)
 2. Upload CSV with one row per battery unit (serial number, manufacture date, etc.)
 3. System validates the CSV, detects duplicates, reports errors
@@ -342,14 +352,17 @@ The backend's `GetPassport` handler automatically detects which tier applies bas
 8. Export batch data as CSV for your ERP system
 
 **BPAN Serial Format (India):**
+
 ```
 IN - TEN - LFP - 2026 - 00001
  ↑    ↑     ↑     ↑       ↑
 Reg  MFR  Chem  Year  Sequence
 ```
+
 Full format: `{REGION}-{MFR_CODE}-{CHEM}-{YYYY}-{NNNNN}` = 21 characters total
 
 **Key files:**
+
 - `backend/internal/handlers/batch_handlers.go`
 - `backend/internal/handlers/upload_handlers.go`
 - `backend/internal/services/csv_service.go`
@@ -364,6 +377,7 @@ Full format: `{REGION}-{MFR_CODE}-{CHEM}-{YYYY}-{NNNNN}` = 21 characters total
 **What it is:** EU Battery Regulation Article 7 requires manufacturers to declare the carbon footprint of their batteries.
 
 **How the calculation works:**
+
 - Inputs: battery chemistry (LFP, NMC 622, NMC 811, NCA, LCO, Sodium), capacity (kWh), country of origin, transport mode (ship/rail/truck/air)
 - Methodology: JRC (Joint Research Centre) aligned
 - Factors sourced from `carbon_factors` DB table (updatable, versioned, sourced from JRC_2024 / IEA_2025)
@@ -372,6 +386,7 @@ Full format: `{REGION}-{MFR_CODE}-{CHEM}-{YYYY}-{NNNNN}` = 21 characters total
 - EU compliance PDF generated for submission to regulators
 
 **Key files:**
+
 - `backend/internal/handlers/carbon_handler.go`
 - `backend/internal/services/carbon_calculator_service.go`
 - `frontend/components/batches/carbon-calculator.tsx`
@@ -382,28 +397,30 @@ Full format: `{REGION}-{MFR_CODE}-{CHEM}-{YYYY}-{NNNNN}` = 21 characters total
 
 India has its own set of regulatory requirements:
 
-| Regulation | Requirement | Platform Support |
-|-----------|-------------|-----------------|
-| **BIS IS 16046** | Battery Safety Certification | Certificate upload + admin verification, `bis_status` field on tenant |
-| **EPR** | Extended Producer Responsibility registration | Certificate upload, `epr_status` tracking, EPR obligation calculator, **EPR certificate ledger** |
-| **PLI** | Production Linked Incentive scheme | PLI certificate, domestic value add % (must be ≥40%), DVA calculator |
-| **BPAN** | Battery ID standard (India equivalent of EU DBP) | 21-char serial generation via `internal/serial` package |
-| **IEC Code** | Import/Export Code | Stored on tenant profile, regex-validated (`ValidationService`) |
-| **HSN Code** | Harmonised System of Nomenclature (8507xxxx) | Validated and stored per passport |
-| **MoRTH** | Ministry of Road Transport codes | `morth_manufacturer_code`, `morth_factory_codes` on tenant |
-| **CPCB Form 3** | Annual EPR return to Central Pollution Control Board | Auto-generated CSV via `CPCBExportService` / `GET /epr/cpcb-export` |
+| Regulation       | Requirement                                          | Platform Support                                                                                 |
+| ---------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **BIS IS 16046** | Battery Safety Certification                         | Certificate upload + admin verification, `bis_status` field on tenant                            |
+| **EPR**          | Extended Producer Responsibility registration        | Certificate upload, `epr_status` tracking, EPR obligation calculator, **EPR certificate ledger** |
+| **PLI**          | Production Linked Incentive scheme                   | PLI certificate, domestic value add % (must be ≥40%), DVA calculator                             |
+| **BPAN**         | Battery ID standard (India equivalent of EU DBP)     | 21-char serial generation via `internal/serial` package                                          |
+| **IEC Code**     | Import/Export Code                                   | Stored on tenant profile, regex-validated (`ValidationService`)                                  |
+| **HSN Code**     | Harmonised System of Nomenclature (8507xxxx)         | Validated and stored per passport                                                                |
+| **MoRTH**        | Ministry of Road Transport codes                     | `morth_manufacturer_code`, `morth_factory_codes` on tenant                                       |
+| **CPCB Form 3**  | Annual EPR return to Central Pollution Control Board | Auto-generated CSV via `CPCBExportService` / `GET /epr/cpcb-export`                              |
 
 Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` and PLI prerequisites aren't met.
 
 **EPR Certificate Ledger:** Manufacturers log recycling certificates issued by CPCB-registered recyclers. Each entry records weight recycled (kg), recycler EPR ID, financial year, and certificate number. The CPCB Form 3 export aggregates these entries per battery category to produce the annual return.
 
 **India Regulatory Validation:** `ValidationService` enforces strict regex patterns for:
+
 - IEC Code: `AAAPL1234C` format
 - EPR Registration: `B-29016/2024-25/CPCB` format
 - BIS R-Number: `R-41001234` format
 - HSN Code: `8507xxxx` (8 digits, chapter 85)
 
 **Key files:**
+
 - `backend/internal/handlers/epr_handler.go`
 - `backend/internal/handlers/epr_certificate_handler.go` — EPR certificate ledger CRUD
 - `backend/internal/handlers/cpcb_export_handler.go` — CPCB Form 3 CSV download
@@ -420,6 +437,7 @@ Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` 
 **Why this matters:** Regulators need proof that the lifecycle history of a battery hasn't been altered. This is achieved through a BLAKE2b cryptographic hash chain.
 
 **How it works:**
+
 1. Every lifecycle action creates a row in `passport_events`
 2. Each event stores: `event_hash = BLAKE2b(previous_hash + current_event_data)`
 3. A database trigger prevents any `UPDATE` or `DELETE` on `passport_events`
@@ -427,6 +445,7 @@ Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` 
 5. The `GET /passports/{uuid}/verify-chain` endpoint does this verification
 
 **Key files:**
+
 - `backend/internal/services/event_hash.go`
 - `backend/internal/models/models.go` (passport event types)
 - `backend/internal/handlers/passport_handlers.go` (verify-chain endpoint)
@@ -438,6 +457,7 @@ Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` 
 **What it is:** Battery Management Systems (BMS) or IoT sensors can report real-time battery health data directly into the platform.
 
 **How it works:**
+
 - Manufacturer creates a **device token** for a specific passport (or group)
 - BMS device authenticates using this token (header: `X-Device-Token`)
 - Device POSTs telemetry: `{ soh, voltage, temperature, cycle_count, timestamp }`
@@ -446,6 +466,7 @@ Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` 
 - Degradation patterns can be analyzed
 
 **Key files:**
+
 - `backend/internal/handlers/telemetry_handlers.go`
 - `backend/internal/services/device_token_service.go`
 - `frontend/components/passport/telemetry-chart.tsx`
@@ -457,6 +478,7 @@ Activation of an India-market batch will **fail** if BIS/EPR are not `VERIFIED` 
 A pluggable compliance engine runs checks on battery specs before batch creation and activation.
 
 **How it works:**
+
 - `internal/compliance/registry.go` — routes `(ProductType, MarketRegion)` pairs to the right `Validator`
 - EU validator (`battery/eu.go`) — checks Article 7 carbon fields, EU representative, recycled content
 - India validator (`battery/india.go`) — checks BIS/EPR/PLI status, BPAN format, HSN code
@@ -465,6 +487,7 @@ A pluggable compliance engine runs checks on battery specs before batch creation
 - The `ComplianceScoreCard` component on the dashboard shows the current compliance score per batch
 
 **Key files:**
+
 - `backend/internal/compliance/registry.go`
 - `backend/internal/compliance/battery/eu.go`
 - `backend/internal/compliance/battery/india.go`
@@ -481,12 +504,14 @@ A pluggable compliance engine runs checks on battery specs before batch creation
 A DB-backed schema registry drives dynamic batch creation forms and spec validation.
 
 **How it works:**
+
 - `internal/schema/Registry` stores `ProductSchema` records keyed by `(ProductType, Version)`
 - Schemas are loaded from the DB on first access and cached; a static seed (`battery_v1.json`) always provides a fallback
 - `GET /api/v1/schemas` returns all registered product schemas including `schema_json` so the frontend can render dynamic forms
 - `BatchService.ValidateSpecs()` checks that batch specs JSON satisfies the active schema before creation/activation
 
 **Key files:**
+
 - `backend/internal/schema/registry.go`
 - `backend/internal/schema/seeds/battery_v1.json`
 - `backend/internal/handlers/schema_handler.go`
@@ -504,6 +529,7 @@ Manufacturers can create and manage reusable label templates for batch QR code p
 - Supports custom fields, layouts, and branding per template
 
 **Key files:**
+
 - `backend/internal/handlers/template_handlers.go`
 - `backend/internal/repository/template.go`
 - `frontend/components/batches/templates-dialog.tsx`
@@ -514,24 +540,26 @@ Manufacturers can create and manage reusable label templates for batch QR code p
 
 ### Feature 10: Export & Reporting
 
-| Export Type | Format | Trigger |
-|------------|--------|---------|
-| QR Code batch download | ZIP of PNGs | Dashboard → Download QRs |
-| Printable labels | PDF | Dashboard → Labels |
-| Batch data | CSV | Dashboard → Export CSV |
-| Audit trail | CSV or PDF | Dashboard → Audit Export |
-| Carbon declaration | PDF (Article 7) | Batch detail → Compliance Declaration |
-| Compliance report | PDF | Batch detail → Compliance Report |
-| Due diligence report | PDF | Batch detail → Due Diligence |
-| CPCB Form 3 | CSV | Compliance page → CPCB Annual Return |
+| Export Type            | Format          | Trigger                               |
+| ---------------------- | --------------- | ------------------------------------- |
+| QR Code batch download | ZIP of PNGs     | Dashboard → Download QRs              |
+| Printable labels       | PDF             | Dashboard → Labels                    |
+| Batch data             | CSV             | Dashboard → Export CSV                |
+| Audit trail            | CSV or PDF      | Dashboard → Audit Export              |
+| Carbon declaration     | PDF (Article 7) | Batch detail → Compliance Declaration |
+| Compliance report      | PDF             | Batch detail → Compliance Report      |
+| Due diligence report   | PDF             | Batch detail → Due Diligence          |
+| CPCB Form 3            | CSV             | Compliance page → CPCB Annual Return  |
 
 Large exports use an **async job worker** pattern:
+
 1. Client creates an export job (`POST /export-jobs`)
 2. Backend worker processes it and uploads to Supabase Storage
 3. Client polls status or gets notified when done
 4. Client downloads via signed URL
 
 **Key files:**
+
 - `backend/internal/handlers/export_job_handlers.go`
 - `backend/internal/services/export_job_service.go`
 - `backend/internal/services/audit_export_service.go` — direct CSV/PDF audit event export
@@ -573,6 +601,7 @@ The public passport view supports **English (EN)**, **French (FR)**, and **Germa
 ### Feature 14: API Keys & External Integration
 
 Third-party systems (ERP, MES, WMS) can integrate directly:
+
 - Manufacturer creates API keys with `READ` or `WRITE` scope
 - API key sent in `X-API-Key` header
 - Rate limiting applied per key tier
@@ -584,6 +613,7 @@ Third-party systems (ERP, MES, WMS) can integrate directly:
 ### Feature 15: Scan-to-Earn Rewards
 
 A gamification layer where QR scans earn reward points:
+
 - End users scanning battery QR codes accumulate points
 - Leaderboard of top scanners
 - Reward history tracked per user
@@ -729,46 +759,46 @@ backend/
 
 ### 6.2 Services Reference
 
-| Service | Key Responsibility |
-|---------|-------------------|
-| `AuthService` | JWT generation, validation, refresh, password hashing |
-| `OAuthService` | Google/Microsoft OAuth token exchange and profile fetch |
-| `LifecycleService` | Action validation, state transitions, evidence enforcement, audit event creation |
-| `CSVService` | CSV parsing, row validation, duplicate detection, batch passport insert |
-| `QRService` | 256×256 PNG QR code generation per UUID |
-| `PDFService` | Labels PDF generation |
-| `ComplianceDeclarationPDF` | Article 7 carbon declaration PDF |
-| `ComplianceReportPDF` | Full compliance report PDF |
-| `DueDiligencePDF` | Due diligence report PDF |
-| `CarbonCalculatorService` | JRC-aligned CO₂ calculation with chemistry + transport factors from DB |
-| `BatchService` | Wires schema registry + compliance engine into batch creation/activation |
-| `BatchSnapshot` | Captures immutable batch+tenant compliance data at passport creation time |
-| `PassportService` | Serial number generation delegating to `serial.BPANGenerator` |
-| `BPANService` | Legacy BPAN generation and validation (see also `internal/serial`) |
-| `EmailService` | Transactional emails (invite, reset, magic link) via Resend API |
-| `DataAccessService` | Three-tier access control per Article 78 |
-| `TelemetryService` | BMS data ingestion, SoH trend calculation |
-| `GeoIPService` | IP → city/country lookup using MaxMind GeoIP2 database |
-| `RazorpayService` | Payment order, signature verification, webhook |
-| `EPRObligationService` | India EPR tonnage-based obligation calculation |
-| `CPCBExportService` | Generates CPCB Form 3 annual return CSV for India regulatory submission |
-| `AuditExportService` | CSV + PDF exports of passport lifecycle events per batch |
-| `ExportJobService` | Async job queue for large exports (QR ZIPs, PDFs, CSVs) |
-| `ActivationComplianceService` | Pre-activation gate: EU carbon + India PLI/BIS/EPR checks |
-| `EventHashService` | BLAKE2b chain computation and verification |
-| `ValidationService` | India-specific regex validators: IEC code, HSN, EPR number, BIS R-number |
-| `OwnershipHistoryService` | Tracks and updates battery ownership chain |
-| `RewardsService` | Scan-to-earn points accumulation and leaderboard |
-| `LabelTranslations` | i18n translation tables for printable battery labels |
+| Service                       | Key Responsibility                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `AuthService`                 | JWT generation, validation, refresh, password hashing                            |
+| `OAuthService`                | Google/Microsoft OAuth token exchange and profile fetch                          |
+| `LifecycleService`            | Action validation, state transitions, evidence enforcement, audit event creation |
+| `CSVService`                  | CSV parsing, row validation, duplicate detection, batch passport insert          |
+| `QRService`                   | 256×256 PNG QR code generation per UUID                                          |
+| `PDFService`                  | Labels PDF generation                                                            |
+| `ComplianceDeclarationPDF`    | Article 7 carbon declaration PDF                                                 |
+| `ComplianceReportPDF`         | Full compliance report PDF                                                       |
+| `DueDiligencePDF`             | Due diligence report PDF                                                         |
+| `CarbonCalculatorService`     | JRC-aligned CO₂ calculation with chemistry + transport factors from DB           |
+| `BatchService`                | Wires schema registry + compliance engine into batch creation/activation         |
+| `BatchSnapshot`               | Captures immutable batch+tenant compliance data at passport creation time        |
+| `PassportService`             | Serial number generation delegating to `serial.BPANGenerator`                    |
+| `BPANService`                 | Legacy BPAN generation and validation (see also `internal/serial`)               |
+| `EmailService`                | Transactional emails (invite, reset, magic link) via Resend API                  |
+| `DataAccessService`           | Three-tier access control per Article 78                                         |
+| `TelemetryService`            | BMS data ingestion, SoH trend calculation                                        |
+| `GeoIPService`                | IP → city/country lookup using MaxMind GeoIP2 database                           |
+| `RazorpayService`             | Payment order, signature verification, webhook                                   |
+| `EPRObligationService`        | India EPR tonnage-based obligation calculation                                   |
+| `CPCBExportService`           | Generates CPCB Form 3 annual return CSV for India regulatory submission          |
+| `AuditExportService`          | CSV + PDF exports of passport lifecycle events per batch                         |
+| `ExportJobService`            | Async job queue for large exports (QR ZIPs, PDFs, CSVs)                          |
+| `ActivationComplianceService` | Pre-activation gate: EU carbon + India PLI/BIS/EPR checks                        |
+| `EventHashService`            | BLAKE2b chain computation and verification                                       |
+| `ValidationService`           | India-specific regex validators: IEC code, HSN, EPR number, BIS R-number         |
+| `OwnershipHistoryService`     | Tracks and updates battery ownership chain                                       |
+| `RewardsService`              | Scan-to-earn points accumulation and leaderboard                                 |
+| `LabelTranslations`           | i18n translation tables for printable battery labels                             |
 
 ### 6.3 Middleware Stack
 
-| Middleware | Applied To | What It Does |
-|-----------|-----------|-------------|
-| `Auth` | All `/api/v1/*` routes | Validates `Authorization: Bearer {jwt}` |
-| `APIKeyAuth` | `/external/*` routes | Validates `X-API-Key` header, checks scope |
-| `DeviceAuth` | `/telemetry/*` routes | Validates `X-Device-Token` header |
-| `RateLimiter` | Auth routes: 5 req/min; API: 100 req/min per key | Per-IP rate limiting |
+| Middleware    | Applied To                                       | What It Does                               |
+| ------------- | ------------------------------------------------ | ------------------------------------------ |
+| `Auth`        | All `/api/v1/*` routes                           | Validates `Authorization: Bearer {jwt}`    |
+| `APIKeyAuth`  | `/external/*` routes                             | Validates `X-API-Key` header, checks scope |
+| `DeviceAuth`  | `/telemetry/*` routes                            | Validates `X-Device-Token` header          |
+| `RateLimiter` | Auth routes: 5 req/min; API: 100 req/min per key | Per-IP rate limiting                       |
 
 > **Note:** CORS and RBAC (`RequireRole`) are now handled inline in the router setup (`cmd/server/main.go`) rather than as separate middleware files.
 
@@ -800,14 +830,14 @@ All API calls use TanStack Query hooks:
 ```typescript
 // Fetching data
 const { data: batches } = useQuery({
-  queryKey: ['batches'],
+  queryKey: ["batches"],
   queryFn: () => api.getBatches(),
 });
 
 // Mutations (create/update/delete)
 const { mutate: createBatch } = useMutation({
   mutationFn: (data) => api.createBatch(data),
-  onSuccess: () => queryClient.invalidateQueries(['batches']), // auto-refetch
+  onSuccess: () => queryClient.invalidateQueries(["batches"]), // auto-refetch
 });
 ```
 
@@ -890,6 +920,7 @@ const { mutate: createBatch } = useMutation({
 ### Core Tables
 
 #### `tenants` — Users / Companies
+
 ```sql
 - id UUID PK
 - company_name, email, password_hash
@@ -913,6 +944,7 @@ const { mutate: createBatch } = useMutation({
 ```
 
 #### `batches` — Production Runs
+
 ```sql
 - id UUID PK, tenant_id UUID FK
 - batch_name TEXT
@@ -929,6 +961,7 @@ const { mutate: createBatch } = useMutation({
 ```
 
 #### `passports` — Individual Battery Units
+
 ```sql
 - id UUID PK (this is the QR code target URL UUID)
 - batch_id UUID FK, serial_number TEXT
@@ -952,6 +985,7 @@ const { mutate: createBatch } = useMutation({
 ```
 
 #### `passport_events` — Immutable Audit Trail ⚠️
+
 ```sql
 - id UUID PK
 - passport_id UUID FK
@@ -964,9 +998,11 @@ const { mutate: createBatch } = useMutation({
 - evidence JSONB               ← shipment_reference, installer_id, etc.
 - timestamp TIMESTAMPTZ        ← IMMUTABLE
 ```
+
 > ⚠️ **Never attempt to UPDATE or DELETE rows from `passport_events`.** A database trigger enforces immutability and will reject such operations.
 
 #### `magic_link_tokens`
+
 ```sql
 - id UUID PK, passport_id UUID FK
 - token_hash TEXT              ← BLAKE2b of raw token (never store raw)
@@ -978,6 +1014,7 @@ const { mutate: createBatch } = useMutation({
 ```
 
 #### `telemetry_data`
+
 ```sql
 - id UUID PK, passport_id UUID FK, device_token_id UUID FK
 - soh FLOAT                    ← State of health (%)
@@ -987,6 +1024,7 @@ const { mutate: createBatch } = useMutation({
 ```
 
 #### `carbon_factors`
+
 ```sql
 - category: CELL_CHEMISTRY | TRANSPORT | ENERGY_MIX | ASSEMBLY
 - subcategory: LFP | NMC_622 | NMC_811 | NCA | LCO | SODIUM | SHIP | RAIL | TRUCK | AIR
@@ -1088,70 +1126,75 @@ Batch status: DRAFT → ACTIVE
 > Full OpenAPI spec: `GET /api/v1/openapi.yaml`
 
 ### Authentication (`/api/v1/auth/`)
-| Method | Endpoint | Purpose |
-|--------|---------|---------|
-| POST | `/auth/register` | Create new tenant account |
-| POST | `/auth/login` | Login, get JWT + refresh token |
-| POST | `/auth/refresh` | Refresh expired JWT |
-| POST | `/auth/forgot-password` | Request password reset email |
-| POST | `/auth/reset-password` | Apply password reset |
-| GET | `/auth/verify-email` | Verify email address |
-| GET | `/auth/google` | Start Google OAuth |
-| GET | `/auth/microsoft` | Start Microsoft OAuth |
-| GET | `/auth/me` | Get current user profile |
-| PUT | `/auth/profile` | Update profile |
+
+| Method | Endpoint                | Purpose                        |
+| ------ | ----------------------- | ------------------------------ |
+| POST   | `/auth/register`        | Create new tenant account      |
+| POST   | `/auth/login`           | Login, get JWT + refresh token |
+| POST   | `/auth/refresh`         | Refresh expired JWT            |
+| POST   | `/auth/forgot-password` | Request password reset email   |
+| POST   | `/auth/reset-password`  | Apply password reset           |
+| GET    | `/auth/verify-email`    | Verify email address           |
+| GET    | `/auth/google`          | Start Google OAuth             |
+| GET    | `/auth/microsoft`       | Start Microsoft OAuth          |
+| GET    | `/auth/me`              | Get current user profile       |
+| PUT    | `/auth/profile`         | Update profile                 |
 
 ### Batches (`/api/v1/batches/`)
-| Method | Endpoint | Purpose |
-|--------|---------|---------|
-| POST | `/batches` | Create batch |
-| GET | `/batches` | List batches (paginated) |
-| GET | `/batches/{id}` | Get batch detail |
-| POST | `/batches/{id}/activate` | Activate batch (compliance gate) |
-| POST | `/batches/{id}/upload` | Upload CSV |
-| POST | `/batches/{id}/validate` | Validate CSV before upload |
-| GET | `/batches/{id}/download` | Download QR ZIP |
-| GET | `/batches/{id}/labels` | Download labels PDF |
-| GET | `/batches/{id}/export` | Export batch as CSV |
-| GET | `/batches/{id}/compliance-declaration` | Article 7 PDF |
+
+| Method | Endpoint                               | Purpose                          |
+| ------ | -------------------------------------- | -------------------------------- |
+| POST   | `/batches`                             | Create batch                     |
+| GET    | `/batches`                             | List batches (paginated)         |
+| GET    | `/batches/{id}`                        | Get batch detail                 |
+| POST   | `/batches/{id}/activate`               | Activate batch (compliance gate) |
+| POST   | `/batches/{id}/upload`                 | Upload CSV                       |
+| POST   | `/batches/{id}/validate`               | Validate CSV before upload       |
+| GET    | `/batches/{id}/download`               | Download QR ZIP                  |
+| GET    | `/batches/{id}/labels`                 | Download labels PDF              |
+| GET    | `/batches/{id}/export`                 | Export batch as CSV              |
+| GET    | `/batches/{id}/compliance-declaration` | Article 7 PDF                    |
 
 ### Passports (`/api/v1/passports/`)
-| Method | Endpoint | Purpose |
-|--------|---------|---------|
-| GET | `/passports/{uuid}` | Get passport (tier-aware) |
-| POST | `/passports/{uuid}/transition` | Lifecycle transition |
-| GET | `/passports/{uuid}/transitions` | Get allowed next actions |
-| GET | `/passports/{uuid}/events` | Get audit event history |
-| GET | `/passports/{uuid}/verify-chain` | Verify BLAKE2b hash chain |
-| POST | `/passports/{uuid}/telemetry` | Ingest BMS telemetry |
+
+| Method | Endpoint                         | Purpose                   |
+| ------ | -------------------------------- | ------------------------- |
+| GET    | `/passports/{uuid}`              | Get passport (tier-aware) |
+| POST   | `/passports/{uuid}/transition`   | Lifecycle transition      |
+| GET    | `/passports/{uuid}/transitions`  | Get allowed next actions  |
+| GET    | `/passports/{uuid}/events`       | Get audit event history   |
+| GET    | `/passports/{uuid}/verify-chain` | Verify BLAKE2b hash chain |
+| POST   | `/passports/{uuid}/telemetry`    | Ingest BMS telemetry      |
 
 ### Public Endpoints (No Auth)
-| Method | Endpoint | Purpose |
-|--------|---------|---------|
-| GET | `/p/{uuid}` | Public passport page (QR target) |
-| POST | `/passport/{uuid}/transition` | Transition via magic link |
-| GET | `/passport/{uuid}/action-info` | Get action info for magic link |
-| POST | `/scans/record` | Record QR scan with geo |
+
+| Method | Endpoint                       | Purpose                          |
+| ------ | ------------------------------ | -------------------------------- |
+| GET    | `/p/{uuid}`                    | Public passport page (QR target) |
+| POST   | `/passport/{uuid}/transition`  | Transition via magic link        |
+| GET    | `/passport/{uuid}/action-info` | Get action info for magic link   |
+| POST   | `/scans/record`                | Record QR scan with geo          |
 
 ### Other Key Endpoints
-| Method | Endpoint | Purpose |
-|--------|---------|---------|
-| POST | `/carbon/calculate` | Calculate CO₂ footprint |
-| POST | `/compliance/check` | Dry-run compliance check (real-time, no DB save) |
-| GET | `/schemas` | List product schemas (for dynamic forms) |
-| GET | `/epr/obligation` | India EPR obligation |
-| GET | `/epr/cpcb-export` | CPCB Form 3 annual return CSV |
-| POST | `/epr/certificates` | Add EPR certificate to ledger |
-| GET | `/epr/certificates` | List EPR certificates |
-| POST | `/team/invite` | Invite team member |
-| GET | `/billing/balance` | Quota balance |
-| POST | `/billing/top-up` | Purchase more quota |
-| POST | `/data-access/tokens` | Create Article 78 token |
-| POST | `/export-jobs` | Create async export job |
-| POST | `/api-keys` | Create API key |
-| GET | `/templates` | List label templates |
-| POST | `/templates` | Create label template |
-| GET | `/health` | Health check |
+
+| Method | Endpoint              | Purpose                                          |
+| ------ | --------------------- | ------------------------------------------------ |
+| POST   | `/carbon/calculate`   | Calculate CO₂ footprint                          |
+| POST   | `/compliance/check`   | Dry-run compliance check (real-time, no DB save) |
+| GET    | `/schemas`            | List product schemas (for dynamic forms)         |
+| GET    | `/epr/obligation`     | India EPR obligation                             |
+| GET    | `/epr/cpcb-export`    | CPCB Form 3 annual return CSV                    |
+| POST   | `/epr/certificates`   | Add EPR certificate to ledger                    |
+| GET    | `/epr/certificates`   | List EPR certificates                            |
+| POST   | `/team/invite`        | Invite team member                               |
+| GET    | `/billing/balance`    | Quota balance                                    |
+| POST   | `/billing/top-up`     | Purchase more quota                              |
+| POST   | `/data-access/tokens` | Create Article 78 token                          |
+| POST   | `/export-jobs`        | Create async export job                          |
+| POST   | `/api-keys`           | Create API key                                   |
+| GET    | `/templates`          | List label templates                             |
+| POST   | `/templates`          | Create label template                            |
+| GET    | `/health`             | Health check                                     |
 
 ---
 
@@ -1159,64 +1202,65 @@ Batch status: DRAFT → ACTIVE
 
 ### Must-Read Documentation
 
-| File | Size | What It Contains | Priority |
-|------|------|-----------------|---------|
-| `README.md` | Medium | Project overview, quick start, API reference, setup instructions | ⭐⭐⭐ READ FIRST |
-| `PROJECT_FULL_DOCUMENTATION.md` | 56 KB | Exhaustive documentation: features, tech, API docs, DB schema, migrations, deployment | ⭐⭐⭐ Reference doc |
-| `design_system.md` | 38 KB | Core design principles: action-based state machine, immutable audit, RBAC, evidence requirements, three-tier access, BPAN format, carbon calc | ⭐⭐⭐ Core concepts |
-| `PASSPORT_LIFECYCLE_TESTING.md` | Medium | Manual test guide with state diagram, test cases, cURL examples, DB verification queries | ⭐⭐ For testing |
-| `COMPLIANCE_IMPLEMENTATION_PLAN.md` | Medium | Regulatory roadmap, what's implemented vs pending, compliance timeline (EU 2023/1542, India) | ⭐⭐ Regulatory context |
-| `AI_INTEGRATION_STRATEGY.md` | Medium | Future AI feature roadmap (not yet implemented): compliance gap detector, predictive SoH, second-life valuation | ⭐ Future work |
-| `codex_status.md` | Small | Completed features (Phases 1-6), pending items to verify | ⭐ Change tracking |
+| File                               | Size   | What It Contains                                                                                                                              | Priority                |
+| ---------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `README.md`                        | Medium | Project overview, quick start, API reference, setup instructions                                                                              | ⭐⭐⭐ READ FIRST       |
+| `docs/README.md`                   | Small  | Current documentation map and canonical doc entry points                                                                                      | ⭐⭐⭐ Navigation       |
+| `PROJECT_FULL_DOCUMENTATION.md`    | 56 KB  | Exhaustive documentation: features, tech, API docs, DB schema, migrations, deployment                                                         | ⭐⭐⭐ Reference doc    |
+| `design_system.md`                 | 38 KB  | Core design principles: action-based state machine, immutable audit, RBAC, evidence requirements, three-tier access, BPAN format, carbon calc | ⭐⭐⭐ Core concepts    |
+| `PASSPORT_LIFECYCLE_TESTING.md`    | Medium | Manual test guide with state diagram, test cases, cURL examples, DB verification queries                                                      | ⭐⭐ For testing        |
+| `ENTERPRISE_COMPLIANCE_ROADMAP.md` | Medium | Active compliance roadmap and remaining regulator-facing gaps                                                                                 | ⭐⭐ Regulatory context |
+| `PLATFORM_BLUEPRINT.md`            | Medium | Current platform rollout blueprint, completed waves, and remaining blockers                                                                   | ⭐ Reference            |
+| `codex_status.md`                  | Small  | Completed features (Phases 1-6), pending items to verify                                                                                      | ⭐ Change tracking      |
 
 ### Must-Know Backend Files
 
-| File | Why It Matters |
-|------|---------------|
-| `backend/cmd/server/main.go` | Entry point — all dependency wiring happens here |
-| `backend/internal/handlers/handlers.go` | Handler struct definition and dependency injection |
-| `backend/internal/services/lifecycle.go` | The core state machine — most business-critical code |
-| `backend/internal/handlers/lifecycle_handlers.go` | HTTP interface for lifecycle transitions |
-| `backend/internal/handlers/passport_handlers.go` | Three-tier access control implementation |
-| `backend/internal/services/activation_compliance.go` | Pre-activation checks (EU + India) |
-| `backend/internal/services/batch_service.go` | Schema + compliance engine wiring for batch ops |
-| `backend/internal/compliance/registry.go` | Compliance engine router (ProductType × MarketRegion) |
-| `backend/internal/schema/registry.go` | Product schema registry (drives dynamic forms) |
-| `backend/internal/serial/generator.go` | BPAN-V2 serial number generation interface |
-| `backend/internal/events/bus.go` | In-memory domain event pub/sub |
-| `backend/internal/repository/interface.go` | RepositoryInterface — all DB queries typed |
-| `backend/internal/services/bpan_service.go` | India serial number generation (legacy) |
-| `backend/internal/services/carbon_calculator.go` | Article 7 carbon calculation |
-| `backend/migrations/` | All SQL migrations — understand the DB schema evolution |
-| `backend/Makefile` | All dev commands: run, build, test, migrate |
+| File                                                 | Why It Matters                                          |
+| ---------------------------------------------------- | ------------------------------------------------------- |
+| `backend/cmd/server/main.go`                         | Entry point — all dependency wiring happens here        |
+| `backend/internal/handlers/handlers.go`              | Handler struct definition and dependency injection      |
+| `backend/internal/services/lifecycle.go`             | The core state machine — most business-critical code    |
+| `backend/internal/handlers/lifecycle_handlers.go`    | HTTP interface for lifecycle transitions                |
+| `backend/internal/handlers/passport_handlers.go`     | Three-tier access control implementation                |
+| `backend/internal/services/activation_compliance.go` | Pre-activation checks (EU + India)                      |
+| `backend/internal/services/batch_service.go`         | Schema + compliance engine wiring for batch ops         |
+| `backend/internal/compliance/registry.go`            | Compliance engine router (ProductType × MarketRegion)   |
+| `backend/internal/schema/registry.go`                | Product schema registry (drives dynamic forms)          |
+| `backend/internal/serial/generator.go`               | BPAN-V2 serial number generation interface              |
+| `backend/internal/events/bus.go`                     | In-memory domain event pub/sub                          |
+| `backend/internal/repository/interface.go`           | RepositoryInterface — all DB queries typed              |
+| `backend/internal/services/bpan_service.go`          | India serial number generation (legacy)                 |
+| `backend/internal/services/carbon_calculator.go`     | Article 7 carbon calculation                            |
+| `backend/migrations/`                                | All SQL migrations — understand the DB schema evolution |
+| `backend/Makefile`                                   | All dev commands: run, build, test, migrate             |
 
 ### Must-Know Frontend Files
 
-| File | Why It Matters |
-|------|---------------|
-| `frontend/context/auth-context.tsx` | Global auth state — used everywhere |
-| `frontend/middleware.ts` | Route protection logic |
-| `frontend/app/p/[uuid]/page.tsx` | The public passport page (QR target) |
-| `frontend/app/p/[uuid]/action/page.tsx` | Magic link action page |
-| `frontend/app/(dashboard)/batches/` | Core user workflow (batch management) |
-| `frontend/components/batches/create-batch-dialog.tsx` | Most complex form in the app |
-| `frontend/lib/api.ts` | Core API client — all HTTP calls go through here |
-| `frontend/lib/api/compliance.ts` | Compliance check + score API calls |
-| `frontend/lib/api/epr.ts` | EPR certificate + CPCB export API calls |
-| `frontend/hooks/use-queries.ts` | Centralised TanStack Query hooks |
-| `frontend/providers/query-provider.tsx` | TanStack Query client provider |
-| `frontend/lib/supabase.ts` | Supabase JS client (file storage access) |
-| `frontend/lib/i18n/` | i18n translation files (en/fr/de) |
+| File                                                  | Why It Matters                                   |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| `frontend/context/auth-context.tsx`                   | Global auth state — used everywhere              |
+| `frontend/middleware.ts`                              | Route protection logic                           |
+| `frontend/app/p/[uuid]/page.tsx`                      | The public passport page (QR target)             |
+| `frontend/app/p/[uuid]/action/page.tsx`               | Magic link action page                           |
+| `frontend/app/(dashboard)/batches/`                   | Core user workflow (batch management)            |
+| `frontend/components/batches/create-batch-dialog.tsx` | Most complex form in the app                     |
+| `frontend/lib/api.ts`                                 | Core API client — all HTTP calls go through here |
+| `frontend/lib/api/compliance.ts`                      | Compliance check + score API calls               |
+| `frontend/lib/api/epr.ts`                             | EPR certificate + CPCB export API calls          |
+| `frontend/hooks/use-queries.ts`                       | Centralised TanStack Query hooks                 |
+| `frontend/providers/query-provider.tsx`               | TanStack Query client provider                   |
+| `frontend/lib/supabase.ts`                            | Supabase JS client (file storage access)         |
+| `frontend/lib/i18n/`                                  | i18n translation files (en/fr/de)                |
 
 ### Config Files
 
-| File | Purpose |
-|------|---------|
-| `backend/.env.example` | Backend environment variables (copy to `.env`) |
-| `frontend/.env.example` | Frontend environment variables (copy to `.env.local`) |
-| `backend/Makefile` | Dev workflow commands |
-| `mcp.json` | MCP server config (filesystem, Railway deployment, Puppeteer) |
-| `package.json` (root) | Root scripts: `npm run lint` runs frontend linter |
+| File                    | Purpose                                                       |
+| ----------------------- | ------------------------------------------------------------- |
+| `backend/.env.example`  | Backend environment variables (copy to `.env`)                |
+| `frontend/.env.example` | Frontend environment variables (copy to `.env.local`)         |
+| `backend/Makefile`      | Dev workflow commands                                         |
+| `mcp.json`              | MCP server config (filesystem, Railway deployment, Puppeteer) |
+| `package.json` (root)   | Root scripts: `npm run lint` runs frontend linter             |
 
 ---
 
@@ -1278,17 +1322,17 @@ npm run dev
 
 ### Key Environment Variables
 
-| Variable | Required For |
-|---------|------------|
-| `DATABASE_URL` | Everything — primary data store |
-| `JWT_SECRET` | Authentication (min 32 chars) |
-| `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | File storage (QR ZIPs, PDFs) |
-| `RESEND_API_KEY` | Email (invites, password reset, magic links) |
-| `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` | Payments (India) |
-| `GOOGLE_CLIENT_ID/SECRET` | Google OAuth login |
-| `MICROSOFT_CLIENT_ID/SECRET` | Microsoft OAuth login |
-| `REGULATOR_API_KEY` | Article 78 regulator access |
-| `QR_BASE_URL` | QR code link target (e.g., `https://yourdomain.com/p`) |
+| Variable                                     | Required For                                           |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `DATABASE_URL`                               | Everything — primary data store                        |
+| `JWT_SECRET`                                 | Authentication (min 32 chars)                          |
+| `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | File storage (QR ZIPs, PDFs)                           |
+| `RESEND_API_KEY`                             | Email (invites, password reset, magic links)           |
+| `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET`    | Payments (India)                                       |
+| `GOOGLE_CLIENT_ID/SECRET`                    | Google OAuth login                                     |
+| `MICROSOFT_CLIENT_ID/SECRET`                 | Microsoft OAuth login                                  |
+| `REGULATOR_API_KEY`                          | Article 78 regulator access                            |
+| `QR_BASE_URL`                                | QR code link target (e.g., `https://yourdomain.com/p`) |
 
 ---
 
@@ -1342,39 +1386,39 @@ npm run lint
 
 ### Backend Tests (`backend/internal/`)
 
-| Test File | What It Tests |
-|-----------|-------------|
-| `auth_handlers_test.go` | Registration, login, OAuth flows |
-| `batch_handlers_test.go` | Batch creation, CSV upload, activation |
-| `lifecycle_handlers_test.go` | Action-based transitions, evidence validation |
-| `lifecycle_test.go` | State machine correctness |
-| `lifecycle_role_test.go` | Role enforcement matrix (who can do what) |
-| `lifecycle_evidence_test.go` | Evidence validation rules per action |
-| `magic_link_handlers_test.go` | Magic link security (single-use, expiry, binding) |
-| `carbon_calculator_test.go` | JRC carbon calculation accuracy |
-| `bpan_service_test.go` | BPAN format generation and validation |
-| `event_hash_test.go` | BLAKE2b hash chain verification |
-| `epr_obligation_test.go` | India EPR tonnage calculations |
-| `activation_compliance_test.go` | EU + India pre-activation gate checks |
-| `webhook_handlers_test.go` | Razorpay webhook signature verification |
-| `validation_test.go` | India regulatory regex validators (IEC, HSN, EPR, BIS) |
-| `qr_service_test.go` | QR code PNG generation |
-| `schema/registry_test.go` | Product schema registry cache + fallback |
-| `compliance/registry_test.go` | Compliance engine validator routing |
-| `serial/generator_test.go` | BPAN-V2 serial format generation |
-| `integration_test.go` | Full end-to-end flows |
+| Test File                       | What It Tests                                          |
+| ------------------------------- | ------------------------------------------------------ |
+| `auth_handlers_test.go`         | Registration, login, OAuth flows                       |
+| `batch_handlers_test.go`        | Batch creation, CSV upload, activation                 |
+| `lifecycle_handlers_test.go`    | Action-based transitions, evidence validation          |
+| `lifecycle_test.go`             | State machine correctness                              |
+| `lifecycle_role_test.go`        | Role enforcement matrix (who can do what)              |
+| `lifecycle_evidence_test.go`    | Evidence validation rules per action                   |
+| `magic_link_handlers_test.go`   | Magic link security (single-use, expiry, binding)      |
+| `carbon_calculator_test.go`     | JRC carbon calculation accuracy                        |
+| `bpan_service_test.go`          | BPAN format generation and validation                  |
+| `event_hash_test.go`            | BLAKE2b hash chain verification                        |
+| `epr_obligation_test.go`        | India EPR tonnage calculations                         |
+| `activation_compliance_test.go` | EU + India pre-activation gate checks                  |
+| `webhook_handlers_test.go`      | Razorpay webhook signature verification                |
+| `validation_test.go`            | India regulatory regex validators (IEC, HSN, EPR, BIS) |
+| `qr_service_test.go`            | QR code PNG generation                                 |
+| `schema/registry_test.go`       | Product schema registry cache + fallback               |
+| `compliance/registry_test.go`   | Compliance engine validator routing                    |
+| `serial/generator_test.go`      | BPAN-V2 serial format generation                       |
+| `integration_test.go`           | Full end-to-end flows                                  |
 
 ### Manual Test Guides (`testing/`)
 
-| File | Covers |
-|------|--------|
-| `01-authentication-onboarding.md` | Auth flows, onboarding |
+| File                                  | Covers                              |
+| ------------------------------------- | ----------------------------------- |
+| `01-authentication-onboarding.md`     | Auth flows, onboarding              |
 | `02-compliance-documents-settings.md` | Document upload, admin verification |
-| `03-batch-creation-carbon.md` | Batch creation, carbon calculation |
-| `04-passport-views-i18n.md` | Multi-language passport views |
-| `05-data-access-tokens.md` | Article 78 three-tier access |
-| `06-magic-link-eol.md` | Magic link lifecycle transitions |
-| `07-audit-export.md` | Audit trail exports |
+| `03-batch-creation-carbon.md`         | Batch creation, carbon calculation  |
+| `04-passport-views-i18n.md`           | Multi-language passport views       |
+| `05-data-access-tokens.md`            | Article 78 three-tier access        |
+| `06-magic-link-eol.md`                | Magic link lifecycle transitions    |
+| `07-audit-export.md`                  | Audit trail exports                 |
 
 Also see: `PASSPORT_LIFECYCLE_TESTING.md` — the most complete manual test guide with cURL examples and database verification queries.
 
@@ -1386,20 +1430,20 @@ Understanding the regulations drives understanding the code. Here's the minimum 
 
 ### EU Battery Regulation 2023/1542
 
-| Article | Requirement | Platform Implementation |
-|---------|------------|------------------------|
-| **Article 7** | Carbon footprint declaration per battery model | `carbon_calculator_service.go`, carbon declaration PDF |
-| **Article 77** | Digital Battery Passport — unique ID, QR code, lifecycle data | Core UUID passport system, public `/p/{uuid}` page |
-| **Article 78** | Tiered data access for different actors | Three-tier PUBLIC/PARTNER/REGULATOR access control |
+| Article        | Requirement                                                   | Platform Implementation                                |
+| -------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| **Article 7**  | Carbon footprint declaration per battery model                | `carbon_calculator_service.go`, carbon declaration PDF |
+| **Article 77** | Digital Battery Passport — unique ID, QR code, lifecycle data | Core UUID passport system, public `/p/{uuid}` page     |
+| **Article 78** | Tiered data access for different actors                       | Three-tier PUBLIC/PARTNER/REGULATOR access control     |
 
 ### India Battery Aadhaar + BIS + EPR
 
-| Standard | Requirement | Platform Implementation |
-|---------|------------|------------------------|
-| **BPAN** | Unique 21-char Battery Passport Number | `bpan_service.go`, serial auto-generation |
-| **BIS IS 16046** | Battery safety certification | Certificate upload, `bis_status` tracking, admin verification |
-| **EPR** | Extended Producer Responsibility registration | Certificate upload, `epr_status` tracking, EPR obligation calculator |
-| **PLI** | Production Linked Incentive scheme | Certificate upload, DVA ≥40% validation, `pli_status` tracking |
+| Standard         | Requirement                                   | Platform Implementation                                              |
+| ---------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| **BPAN**         | Unique 21-char Battery Passport Number        | `bpan_service.go`, serial auto-generation                            |
+| **BIS IS 16046** | Battery safety certification                  | Certificate upload, `bis_status` tracking, admin verification        |
+| **EPR**          | Extended Producer Responsibility registration | Certificate upload, `epr_status` tracking, EPR obligation calculator |
+| **PLI**          | Production Linked Incentive scheme            | Certificate upload, DVA ≥40% validation, `pli_status` tracking       |
 
 ### Compliance Enforcement Points
 
@@ -1444,4 +1488,4 @@ Understanding the regulations drives understanding the code. Here's the minimum 
 
 ---
 
-*This document was last updated to reflect the current codebase state. For the most up-to-date API reference, see `PROJECT_FULL_DOCUMENTATION.md` and `/api/v1/openapi.yaml`.*
+_This document was last updated to reflect the current codebase state. For the most up-to-date API reference, see `PROJECT_FULL_DOCUMENTATION.md` and `/api/v1/openapi.yaml`._

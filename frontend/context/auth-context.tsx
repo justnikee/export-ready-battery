@@ -9,6 +9,7 @@ interface User {
   id: string;
   tenant_id: string;
   email: string;
+  role?: string;
   company_name: string;
   address?: string;
   logo_url?: string;

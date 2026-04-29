@@ -2,11 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // CreateMagicLinkTokenRequest contains parameters for creating a magic link token record
@@ -67,6 +70,27 @@ func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash stri
 		&record.UsedAt,
 		&record.RequiresOTP,
 	)
+	if isUndefinedColumnError(err, "requires_otp") {
+		legacyQuery := `SELECT passport_id, email, role, action, expires_at, used_at
+			FROM magic_link_tokens
+			WHERE token_hash = $1`
+		legacyErr := r.db.Pool.QueryRow(ctx, legacyQuery, tokenHash).Scan(
+			&record.PassportID,
+			&record.Email,
+			&record.Role,
+			&record.Action,
+			&record.ExpiresAt,
+			&record.UsedAt,
+		)
+		if legacyErr == pgx.ErrNoRows {
+			return nil, nil
+		}
+		if legacyErr != nil {
+			return nil, fmt.Errorf("failed to fetch legacy magic link token: %w", legacyErr)
+		}
+		record.RequiresOTP = false
+		return &record, nil
+	}
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -246,7 +270,23 @@ func (r *Repository) SetRequiresOTP(ctx context.Context, tokenHash string, requi
 		`UPDATE magic_link_tokens SET requires_otp = $1 WHERE token_hash = $2`,
 		required, tokenHash,
 	)
+	if isUndefinedColumnError(err, "requires_otp") {
+		return nil
+	}
 	return err
+}
+
+func isUndefinedColumnError(err error, columnName string) bool {
+	if err == nil {
+		return false
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "42703" && strings.EqualFold(pgErr.ColumnName, columnName)
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), strings.ToLower(columnName))
 }
 
 // CleanupExpiredOTPs removes OTP records older than 30 minutes.
