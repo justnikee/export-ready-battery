@@ -294,7 +294,18 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	tokenHash := auth.HashToken(tokenString)
 	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
 	if err != nil {
-		slog.Error("Failed to fetch magic link token", "error", err)
+		// Enhanced error logging with full context
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		slog.Error("Failed to fetch magic link token from database",
+			"error", err,
+			"token_hash_prefix", tokenPrefix,
+			"passport_id", passportID,
+			"endpoint", "TransitionWithMagicLink",
+			"remote_addr", r.RemoteAddr,
+		)
 		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
 		return
 	}
@@ -540,6 +551,18 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 	tokenHash := auth.HashToken(tokenString)
 	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
 	if err != nil {
+		// Enhanced error logging for diagnostics
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		slog.Error("Failed to fetch magic link token from database",
+			"error", err,
+			"token_hash_prefix", tokenPrefix,
+			"passport_id", passportID,
+			"endpoint", "GetPassportForAction",
+			"remote_addr", r.RemoteAddr,
+		)
 		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
 		return
 	}
@@ -654,6 +677,18 @@ func (h *MagicLinkHandler) UpdateSoHWithMagicLink(w http.ResponseWriter, r *http
 	tokenHash := auth.HashToken(tokenString)
 	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
 	if err != nil {
+		// Enhanced error logging for SoH endpoint
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		slog.Error("Failed to fetch magic link token from database",
+			"error", err,
+			"token_hash_prefix", tokenPrefix,
+			"passport_id", passportID,
+			"endpoint", "UpdateSoHWithMagicLink",
+			"remote_addr", r.RemoteAddr,
+		)
 		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
 		return
 	}
