@@ -2,6 +2,7 @@
 
 import { Suspense } from "react"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
+import { Loader2 } from "lucide-react"
 
 function ResetPasswordContent() {
  return <ResetPasswordForm />
@@ -10,8 +11,8 @@ function ResetPasswordContent() {
 export default function ResetPasswordPage() {
  return (
  <Suspense fallback={
- <div className="min-h-screen flex items-center justify-center bg-black">
- <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+ <div className="min-h-screen flex items-center justify-center bg-background">
+ <Loader2 className="h-8 w-8 animate-spin text-[var(--brand)]" />
  </div>
  }>
  <ResetPasswordContent />

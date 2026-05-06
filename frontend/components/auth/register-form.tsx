@@ -42,15 +42,12 @@ export function RegisterForm({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [tosAccepted, setTosAccepted] = useState(false);
-  // After successful registration, show verify-email screen (non-invite flow only)
   const [registered, setRegistered] = useState(false);
 
-  // Keep email in sync if prefill changes
   useEffect(() => {
     if (prefillEmail) setEmail(prefillEmail);
   }, [prefillEmail]);
 
-  // Password requirements
   const passwordRequirements = [
     { label: "At least 8 characters", met: password.length >= 8 },
     { label: "One uppercase letter", met: /[A-Z]/.test(password) },
@@ -100,13 +97,11 @@ export function RegisterForm({
       }
 
       if (isInviteFlow) {
-        // 201: account created + email pre-verified — go straight to login
         toast.success("Account created! You can now log in.");
         router.push("/login");
         return;
       }
 
-      // 202: verification email sent
       setRegistered(true);
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -119,21 +114,21 @@ export function RegisterForm({
   if (registered) {
     return (
       <div className="flex flex-col items-center gap-5 py-4 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1F7A5F]/10">
-          <MailCheck className="h-8 w-8 text-[#1F7A5F]" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--brand)]/10">
+          <MailCheck className="h-8 w-8 text-[var(--brand)]" />
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl text-[#0B1F3B]">Check your email</h2>
+          <h2 className="text-xl text-foreground">Check your email</h2>
           <p className="text-sm text-muted-foreground">
             We sent a verification link to{" "}
-            <span className=" text-[#0B1F3B]">{email}</span>.
+            <span className="text-foreground font-medium">{email}</span>.
             <br />
             Click the link to activate your account and sign in.
           </p>
         </div>
 
-        <div className="w-full rounded-lg border border-border bg-background p-4 text-left space-y-1">
+        <div className="w-full rounded-lg border border-border bg-card p-4 text-left space-y-1">
           <p className="text-xs font-medium text-muted-foreground">
             Didn&apos;t get it?
           </p>
@@ -150,17 +145,14 @@ export function RegisterForm({
   // ── Registration form ──────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Company Name — hidden in invite flow (they're joining an existing org) */}
+      {/* Company Name */}
       {!isInviteFlow && (
         <div className="space-y-2">
-          <Label
-            htmlFor="company"
-            className="text-sm font-medium text-[#0B1F3B]"
-          >
+          <Label htmlFor="company" className="text-sm font-medium text-foreground">
             Company / Manufacturer name
           </Label>
           <div className="relative group">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
               <Building2 className="h-5 w-5" />
             </div>
             <Input
@@ -169,7 +161,7 @@ export function RegisterForm({
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
-              className="pl-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+              className="pl-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
             />
           </div>
         </div>
@@ -177,11 +169,11 @@ export function RegisterForm({
 
       {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-sm font-medium text-[#0B1F3B]">
+        <Label htmlFor="email" className="text-sm font-medium text-foreground">
           Business email
         </Label>
         <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
             <Mail className="h-5 w-5" />
           </div>
           <Input
@@ -192,21 +184,18 @@ export function RegisterForm({
             onChange={(e) => setEmail(e.target.value)}
             readOnly={isInviteFlow && Boolean(prefillEmail)}
             required
-            className="pl-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none read-only:opacity-70 read-only:cursor-not-allowed"
+            className="pl-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md read-only:opacity-70 read-only:cursor-not-allowed"
           />
         </div>
       </div>
 
       {/* Password */}
       <div className="space-y-2">
-        <Label
-          htmlFor="password"
-          className="text-sm font-medium text-[#0B1F3B]"
-        >
+        <Label htmlFor="password" className="text-sm font-medium text-foreground">
           Password
         </Label>
         <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
             <Lock className="h-5 w-5" />
           </div>
           <Input
@@ -218,12 +207,12 @@ export function RegisterForm({
             onFocus={() => setPasswordFocused(true)}
             onBlur={() => setPasswordFocused(false)}
             required
-            className="pl-10 pr-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+            className="pl-10 pr-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#0B1F3B] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
             {showPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -243,12 +232,12 @@ export function RegisterForm({
               {passwordRequirements.map((req, index) => (
                 <div key={index} className="flex items-center gap-1.5">
                   {req.met ? (
-                    <Check className="h-3.5 w-3.5 text-[#1F7A5F]" />
+                    <Check className="h-3.5 w-3.5 text-[var(--brand)]" />
                   ) : (
                     <X className="h-3.5 w-3.5 text-muted-foreground" />
                   )}
                   <span
-                    className={`text-xs ${req.met ? "text-[#1F7A5F]" : "text-muted-foreground"}`}
+                    className={`text-xs ${req.met ? "text-[var(--brand)]" : "text-muted-foreground"}`}
                   >
                     {req.label}
                   </span>
@@ -261,14 +250,11 @@ export function RegisterForm({
 
       {/* Confirm Password */}
       <div className="space-y-2">
-        <Label
-          htmlFor="confirmPassword"
-          className="text-sm font-medium text-[#0B1F3B]"
-        >
+        <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
           Confirm password
         </Label>
         <div className="relative group">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
             <Lock className="h-5 w-5" />
           </div>
           <Input
@@ -278,12 +264,12 @@ export function RegisterForm({
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="pl-10 pr-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+            className="pl-10 pr-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#0B1F3B] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
             {showConfirmPassword ? (
               <EyeOff className="h-5 w-5" />
@@ -294,20 +280,20 @@ export function RegisterForm({
         </div>
         {confirmPassword.length > 0 && (
           <p
-            className={`text-xs ${passwordsMatch ? "text-[#1F7A5F]" : "text-red-500"}`}
+            className={`text-xs ${passwordsMatch ? "text-[var(--brand)]" : "text-destructive"}`}
           >
             {passwordsMatch ? "✓ Passwords match" : "Passwords do not match"}
           </p>
         )}
       </div>
 
-      {/* Terms — explicit consent required by GDPR Art.7 & India DPDP Act 2023 */}
+      {/* Terms */}
       <div className="flex items-start gap-3">
         <Checkbox
           id="tos-accept"
           checked={tosAccepted}
           onCheckedChange={(checked) => setTosAccepted(checked === true)}
-          className="mt-0.5 border-border data-[state=checked]:border-[#1F7A5F] data-[state=checked]:bg-[#1F7A5F]"
+          className="mt-0.5 border-border data-[state=checked]:border-[var(--brand)] data-[state=checked]:bg-[var(--brand)]"
         />
         <label
           htmlFor="tos-accept"
@@ -318,7 +304,7 @@ export function RegisterForm({
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#1F7A5F] hover:text-[#0B1F3B] underline"
+            className="text-[var(--brand)] hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             Terms of Service
@@ -328,12 +314,12 @@ export function RegisterForm({
             href="/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#1F7A5F] hover:text-[#0B1F3B] underline"
+            className="text-[var(--brand)] hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             Privacy Policy
           </a>
-          . <span className="text-red-500">*</span>
+          . <span className="text-destructive">*</span>
         </label>
       </div>
 
@@ -343,7 +329,8 @@ export function RegisterForm({
         disabled={
           isLoading || !allRequirementsMet || !passwordsMatch || !tosAccepted
         }
-        className="w-full h-12 bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
+        variant="accent"
+        className="w-full h-12 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <>
@@ -372,7 +359,7 @@ export function RegisterForm({
         <Button
           type="button"
           variant="outline"
-          className="w-full h-11 border-border hover:bg-accent text-[#0B1F3B] rounded-none"
+          className="w-full h-11 border-border hover:bg-accent text-foreground rounded-md"
           onClick={() => {
             const apiBase = (
               process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
@@ -405,7 +392,7 @@ export function RegisterForm({
   );
 }
 
-// ── Small inline component for resend button ───────────────────────────────────
+// ── Inline resend button ─────────────────────────────────────────────────────
 function ResendButton({ email }: { email: string }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -422,7 +409,7 @@ function ResendButton({ email }: { email: string }) {
 
   if (sent) {
     return (
-      <p className="mt-2 text-xs font-medium text-[#1F7A5F]">
+      <p className="mt-2 text-xs font-medium text-[var(--brand)]">
         ✓ Email sent again!
       </p>
     );
@@ -433,7 +420,7 @@ function ResendButton({ email }: { email: string }) {
       type="button"
       onClick={handleResend}
       disabled={loading}
-      className="mt-2 flex items-center gap-1 text-xs font-medium text-[#1F7A5F] underline underline-offset-2 hover:text-[#0B1F3B] disabled:opacity-60"
+      className="mt-2 flex items-center gap-1 text-xs font-medium text-[var(--brand)] underline underline-offset-2 hover:opacity-80 disabled:opacity-60"
     >
       {loading && <Loader2 className="h-3 w-3 animate-spin" />}
       Resend verification email

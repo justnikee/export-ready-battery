@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { usePathname } from "next/navigation";
 import {
-  LogOut,
   X,
   Home,
   Box,
@@ -26,8 +25,7 @@ import {
   Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/auth-context";
+
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import NProgress from "nprogress";
@@ -100,8 +98,6 @@ export function DashboardSidebar({
   onToggleCollapse,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
-
   const [devExpanded, setDevExpanded] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem("sidebar-dev-expanded");
@@ -111,10 +107,6 @@ export function DashboardSidebar({
   useEffect(() => {
     localStorage.setItem("sidebar-dev-expanded", JSON.stringify(devExpanded));
   }, [devExpanded]);
-
-  const initials = user?.company_name
-    ? user.company_name.substring(0, 2).toUpperCase()
-    : user?.email?.substring(0, 2).toUpperCase() || "U";
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === href;
@@ -155,7 +147,7 @@ export function DashboardSidebar({
             className="flex items-center gap-2"
             onClick={onClose}
           >
-            <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+            <BarChart3 className="h-7 w-7 text-(--brand)" />
             <span
               className={clsx(
                 "text-xl tracking-tight text-foreground",
@@ -196,7 +188,7 @@ export function DashboardSidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 px-3">
           {navGroups.map((group, groupIndex) => {
             const isDevGroup = group.collapsible;
             const isGroupExpanded = isDevGroup ? devExpanded : true;
@@ -247,9 +239,9 @@ export function DashboardSidebar({
                           }}
                           title={isCollapsed ? item.name : undefined}
                           className={clsx(
-                            "group relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
+                            "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200",
                             active
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-[var(--brand)]"
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                             isCollapsed && "md:justify-center md:px-0",
                           )}
@@ -258,7 +250,7 @@ export function DashboardSidebar({
                             className={clsx(
                               "h-5 w-5 shrink-0 transition-colors",
                               active
-                                ? "text-[var(--brand)]"
+                                ? "text-(--brand)"
                                 : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
                             )}
                           />
@@ -274,46 +266,6 @@ export function DashboardSidebar({
             );
           })}
         </nav>
-
-        {/* User Section */}
-        <div className="border-t border-sidebar-border p-3">
-          <div
-            className={clsx(
-              "flex items-center gap-3 p-2 rounded-md hover:bg-sidebar-accent transition-colors",
-              isCollapsed && "md:justify-center",
-            )}
-          >
-            <Avatar className="h-9 w-9 border border-sidebar-border shrink-0">
-              <AvatarImage src={user?.logo_url} />
-              <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className={clsx("flex-1 min-w-0", isCollapsed && "md:hidden")}>
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.company_name || "Account"}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            onClick={() => {
-              logout();
-              onClose();
-            }}
-            className={clsx(
-              "w-full mt-2 text-destructive hover:bg-destructive/10 hover:text-destructive justify-start",
-              isCollapsed && "md:justify-center md:px-0",
-            )}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span className={clsx(isCollapsed && "md:hidden")}>Sign Out</span>
-          </Button>
-        </div>
       </aside>
     </>
   );

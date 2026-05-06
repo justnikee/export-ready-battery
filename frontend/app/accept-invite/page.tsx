@@ -72,7 +72,7 @@ function AcceptInviteContent() {
 
  {status === "success" && (
  <>
- <CheckCircle2 className="h-10 w-10 text-green-500" />
+ <CheckCircle2 className="h-10 w-10 text-[var(--brand)]" />
  <p className="text-sm font-medium">{message}</p>
  </>
  )}

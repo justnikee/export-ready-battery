@@ -37,7 +37,7 @@ function VerifyEmailContent() {
  if (status === "verifying") {
  return (
  <div className="flex flex-col items-center gap-4 text-center py-8">
- <Loader2 className="h-10 w-10 animate-spin text-[#1F7A5F]" />
+ <Loader2 className="h-10 w-10 animate-spin text-[var(--brand)]" />
  <p className="text-sm text-muted-foreground">Verifying your email…</p>
  </div>
  )
@@ -46,18 +46,19 @@ function VerifyEmailContent() {
  if (status === "success") {
  return (
  <div className="flex flex-col items-center gap-5 text-center py-4">
- <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1F7A5F]/10">
- <MailCheck className="h-8 w-8 text-[#1F7A5F]" />
+ <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--brand)]/10">
+ <MailCheck className="h-8 w-8 text-[var(--brand)]" />
  </div>
  <div className="space-y-1">
- <h2 className="text-xl text-[#0B1F3B]">Email verified!</h2>
+ <h2 className="text-xl text-foreground">Email verified!</h2>
  <p className="text-sm text-muted-foreground">
  Your account is now active. You can sign in anytime.
  </p>
  </div>
  <Button
  onClick={() => router.push("/login")}
- className="h-11 w-full bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white rounded-none"
+ variant="accent"
+ className="h-11 w-full rounded-md"
  >
  Go to Sign in
  </Button>
@@ -65,20 +66,19 @@ function VerifyEmailContent() {
  )
  }
 
- // error
  return (
  <div className="flex flex-col items-center gap-5 text-center py-4">
- <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
- <XCircle className="h-8 w-8 text-red-500" />
+ <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+ <XCircle className="h-8 w-8 text-destructive" />
  </div>
  <div className="space-y-1">
- <h2 className="text-xl text-[#0B1F3B]">Verification failed</h2>
+ <h2 className="text-xl text-foreground">Verification failed</h2>
  <p className="text-sm text-muted-foreground">{message}</p>
  </div>
  <Button
  onClick={() => router.push("/login")}
  variant="outline"
- className="h-11 w-full border-border text-foreground rounded-none"
+ className="h-11 w-full border-border text-foreground rounded-md"
  >
  Back to Sign in
  </Button>
@@ -90,12 +90,12 @@ export default function VerifyEmailPage() {
  return (
  <div className="mx-auto max-w-sm space-y-6 pt-12 px-4">
  <div className="space-y-1 text-center">
- <h1 className="text-2xl text-[#0B1F3B]">Email Verification</h1>
+ <h1 className="text-2xl text-foreground">Email Verification</h1>
  </div>
  <div className="rounded-lg border border-border bg-card p-6 shadow-none">
  <Suspense fallback={
  <div className="flex justify-center py-8">
- <Loader2 className="h-8 w-8 animate-spin text-[#1F7A5F]" />
+ <Loader2 className="h-8 w-8 animate-spin text-[var(--brand)]" />
  </div>
  }>
  <VerifyEmailContent />

@@ -18,7 +18,6 @@ export function LoginForm() {
  const [password, setPassword] = useState("")
  const [isLoading, setIsLoading] = useState(false)
  const [showPassword, setShowPassword] = useState(false)
- // Track when server tells us email isn't verified
  const [emailNotVerified, setEmailNotVerified] = useState(false)
  const [isResending, setIsResending] = useState(false)
 
@@ -31,7 +30,6 @@ export function LoginForm() {
  const response = await authApi.login(email, password)
 
  if (response.error) {
- // Special gate: email not yet verified
  if (response.code === "email_not_verified") {
  setEmailNotVerified(true)
  return
@@ -42,8 +40,6 @@ export function LoginForm() {
 
  toast.success("Welcome back!")
 
- // Use AuthContext login — sets token, cookie, fetches full user, and navigates.
- // Awaiting ensures the loading spinner stays visible until navigation begins.
  const redirectTo = searchParams.get("redirect") || "/dashboard"
  await login(response.token, {
  id: response.tenant_id,
@@ -74,11 +70,11 @@ export function LoginForm() {
  <form onSubmit={handleSubmit} className="space-y-5">
  {/* Email Field */}
  <div className="space-y-2">
- <Label htmlFor="email" className="text-sm font-medium text-[#0B1F3B]">
+ <Label htmlFor="email" className="text-sm font-medium text-foreground">
  Email address
  </Label>
  <div className="relative group">
- <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
  <Mail className="h-5 w-5" />
  </div>
  <Input
@@ -88,7 +84,7 @@ export function LoginForm() {
  value={email}
  onChange={(e) => { setEmail(e.target.value); setEmailNotVerified(false) }}
  required
- className="pl-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+ className="pl-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
  />
  </div>
  </div>
@@ -96,18 +92,18 @@ export function LoginForm() {
  {/* Password Field */}
  <div className="space-y-2">
  <div className="flex items-center justify-between">
- <Label htmlFor="password" className="text-sm font-medium text-[#0B1F3B]">
+ <Label htmlFor="password" className="text-sm font-medium text-foreground">
  Password
  </Label>
  <Link
  href="/forgot-password"
- className="text-sm text-[#1F7A5F] hover:text-[#0B1F3B] transition-colors"
+ className="text-sm text-[var(--brand)] hover:underline transition-colors"
  >
  Forgot password?
  </Link>
  </div>
  <div className="relative group">
- <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#1F7A5F] transition-colors">
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
  <Lock className="h-5 w-5" />
  </div>
  <Input
@@ -117,12 +113,12 @@ export function LoginForm() {
  value={password}
  onChange={(e) => setPassword(e.target.value)}
  required
- className="pl-10 pr-10 h-12 bg-card border-border text-[#0B1F3B] placeholder:text-muted-foreground focus:border-[#1F7A5F] focus:ring-[#1F7A5F]/20 transition-all rounded-none"
+ className="pl-10 pr-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
  />
  <button
  type="button"
  onClick={() => setShowPassword(!showPassword)}
- className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#0B1F3B] transition-colors"
+ className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
  >
  {showPassword ? (
  <EyeOff className="h-5 w-5" />
@@ -135,20 +131,20 @@ export function LoginForm() {
 
  {/* Email not verified banner */}
  {emailNotVerified && (
- <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-500/10 p-4">
+ <div className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
  <div className="flex-1 space-y-2">
- <p className="text-sm font-medium text-amber-800">
+ <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
  Please verify your email first
  </p>
- <p className="text-xs text-amber-500">
+ <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
  Check your inbox for a verification link. If you didn&apos;t receive it, click below.
  </p>
  <button
  type="button"
  onClick={handleResendVerification}
  disabled={isResending}
- className="flex items-center gap-1.5 text-xs text-amber-800 underline underline-offset-2 hover:text-amber-900 disabled:opacity-60"
+ className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300 disabled:opacity-60"
  >
  {isResending ? (
  <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -165,7 +161,8 @@ export function LoginForm() {
  <Button
  type="submit"
  disabled={isLoading}
- className="w-full h-12 bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white transition-all duration-200 rounded-none"
+ variant="accent"
+ className="w-full h-12 rounded-md"
  >
  {isLoading ? (
  <>
@@ -194,7 +191,7 @@ export function LoginForm() {
  <Button
  type="button"
  variant="outline"
- className="w-full h-11 border-border hover:bg-accent text-[#0B1F3B] rounded-none"
+ className="w-full h-11 border-border hover:bg-accent text-foreground rounded-md"
  onClick={() => {
  const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1').replace('/api/v1', '')
  window.location.href = `${apiBase}/api/v1/auth/google`
