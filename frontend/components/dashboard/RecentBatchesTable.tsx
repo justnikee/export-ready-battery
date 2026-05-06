@@ -46,7 +46,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
  Recent Batches
  </CardTitle>
  <Link
- href="/batches"
+ href="/dashboard/batches"
  className="flex items-center gap-1 text-xs text-[var(--brand-link)] hover:opacity-80 font-medium transition-colors"
  >
  View all

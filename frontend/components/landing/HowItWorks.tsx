@@ -13,25 +13,25 @@ const steps = [
     Illustration: CreateBatchIllustration,
     title: "Create Batch",
     description:
-      "Upload your production data via CSV or connect through the API. Fields are mapped automatically.",
+      "Upload production manifests via CSV or REST API. Fields auto-map to regulatory schemas for EU Regulation 2023/1542 and India BWM Rules.",
   },
   {
     Illustration: GeneratePassportsIllustration,
     title: "Generate Passports",
     description:
-      "Our compliance engine validates data, generates unique digital battery passports with QR codes.",
+      "Compliance engine validates every unit against current regulatory rulesets. Each battery receives a unique UUID + scannable QR passport.",
   },
   {
     Illustration: TrackLifecycleIllustration,
     title: "Track Lifecycle",
     description:
-      "Monitor every battery unit from manufacturing to recycling with tamper-proof audit trails.",
+      "Enforce the DPP lifecycle state machine — Created → Active → Shipped → In-Service → Recycled — with BLAKE2b cryptographic proof at every transition.",
   },
   {
     Illustration: ExportCompliantIllustration,
     title: "Export & Stay Compliant",
     description:
-      "Download QR labels, export regulatory documents, and stay audit-ready at all times.",
+      "Print QR labels for physical battery units, export audit-proof documentation (CSV + PDF), and stay customs-ready for EU and India export clearance.",
   },
 ];
 
@@ -52,7 +52,7 @@ export function HowItWorks() {
             From Batch to Compliance in Minutes
           </h2>
           <p className="text-base max-w-[48ch] mx-auto text-gray-600">
-            Four simple steps to fully compliant battery passports.
+            Four simple steps to fully compliant battery passports — designed for production-line speed.
           </p>
         </motion.div>
 
@@ -73,6 +73,9 @@ export function HowItWorks() {
               </div>
 
               <div className="p-5">
+                <span className="text-xs font-mono text-accent-green uppercase tracking-wider mb-1 block">
+                  Step {i + 1}
+                </span>
                 <h3 className="text-gray-900 font-semibold mb-2">{step.title}</h3>
                 <p className="text-sm leading-relaxed text-gray-600">
                   {step.description}

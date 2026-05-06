@@ -1246,7 +1246,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
  Your Organization is missing an IEC Code. You cannot create IMPORTED batches until you add it in Settings.
  </p>
  <a
- href="/settings"
+ href="/dashboard/settings"
  target="_blank"
  className="inline-block text-xs px-3 py-1.5 bg-red-500/30 text-red-200 rounded hover:bg-red-500/40 transition-colors font-medium"
  >

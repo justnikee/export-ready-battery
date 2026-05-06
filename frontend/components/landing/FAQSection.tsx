@@ -12,22 +12,22 @@ const faqs = [
   {
     question: "How is ExportReady different from manual compliance tracking?",
     answer:
-      "ExportReady automates the entire compliance workflow. Instead of manually filling spreadsheets and chasing certifications, our platform validates battery specifications in real-time, generates compliant documentation automatically, and maintains an immutable audit trail. What takes weeks manually happens in minutes with ExportReady.",
+      "ExportReady automates the entire compliance workflow — real-time validation, automated documentation generation, and an immutable BLAKE2b cryptographic audit chain. What takes compliance teams weeks of spreadsheet work and manual certification-chasing happens in minutes.",
   },
   {
     question: "Can I integrate ExportReady with my existing ERP system?",
     answer:
-      "Yes. ExportReady provides a REST API with comprehensive documentation for seamless integration with SAP, Oracle, Microsoft Dynamics, and custom ERP systems. We support webhooks for real-time updates and offer dedicated integration support during onboarding.",
+      "Yes. ExportReady provides a REST API with comprehensive documentation for integration with SAP, Oracle, Microsoft Dynamics, and custom ERP systems. We support CSV batch upload, webhooks for real-time status updates, and dedicated integration support during onboarding.",
   },
   {
-    question: "What certifications does ExportReady have?",
+    question: "What regulatory frameworks does ExportReady validate against?",
     answer:
-      "ExportReady is built to comply with EU Battery Regulation 2023/1542, India BIS standards (IS 16046), and CPCB EPR guidelines. Our platform undergoes regular third-party audits and maintains SOC 2 Type II certification for data security. All compliance validations are based on official regulatory databases updated in real-time.",
+      "ExportReady validates against EU Battery Regulation 2023/1542 (carbon footprint, recycled content, supply chain due diligence), India BIS IS 16046, and CPCB Battery Waste Management Rules 2022. Validation rulesets update from official regulatory sources.",
   },
   {
     question: "How long does implementation take?",
     answer:
-      "Most manufacturers are fully operational within 2-3 weeks. This includes API integration, team training, and initial batch uploads. We provide dedicated onboarding support, migration assistance from existing systems, and comprehensive documentation to ensure a smooth transition.",
+      "Most manufacturers are operational within 2–3 weeks — including API/CSV integration, team training, and initial batch upload. We provide dedicated onboarding support, migration assistance from legacy tracking systems, and comprehensive documentation.",
   },
   {
     question: "What happens if my battery fails compliance validation?",
@@ -97,7 +97,7 @@ export function FAQSection() {
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border border-gray-200 rounded-xl px-6 bg-white hover:border-green-200 transition-colors"
+                className="border border-gray-200 rounded-xl bg-white hover:border-green-300 transition-colors"
               >
                 <AccordionTrigger className="text-left text-base font-semibold text-gray-900 hover:text-green-600 py-5 hover:no-underline">
                   {faq.question}

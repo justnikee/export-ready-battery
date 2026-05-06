@@ -21,7 +21,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
  <div className="flex items-center justify-between">
  <CardTitle className="text-lg ">Passport Quota</CardTitle>
  <Link
- href="/billing"
+ href="/dashboard/billing"
  className="text-xs text-[var(--brand)] hover:text-[var(--brand)]/80 flex items-center gap-1 transition-colors font-medium"
  >
  <CreditCard className="h-3 w-3" />
@@ -50,7 +50,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
  </div>
 
  {isOverLimit && (
- <Link href="/billing" className="block">
+ <Link href="/dashboard/billing" className="block">
  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center justify-between text-xs text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer">
  <div className="flex items-center gap-2">
  <AlertTriangle className="h-4 w-4" />
@@ -61,7 +61,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
  </Link>
  )}
  {!isOverLimit && isLow && (
- <Link href="/billing" className="block">
+ <Link href="/dashboard/billing" className="block">
  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-center justify-between text-xs text-yellow-500 hover:bg-yellow-500/20 transition-colors cursor-pointer">
  <div className="flex items-center gap-2">
  <AlertTriangle className="h-4 w-4" />

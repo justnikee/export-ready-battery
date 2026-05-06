@@ -1,24 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Routes that require authentication
-const protectedRoutes = [
-    '/dashboard',
-    '/analytics',
-    '/batches',
-    '/billing',
-    '/compliance',
-    '/developer',
-    '/exports',
-    '/lifecycle',
-    '/partners',
-    '/rewards',
-    '/settings',
-    '/team',
-    '/templates',
-    '/onboarding',
-    '/admin',
-]
+// Routes that require authentication (prefix-based)
+const protectedPrefixes = ['/dashboard', '/onboarding', '/admin', '/accept-invite']
 
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
@@ -32,16 +16,18 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Never interfere with bypass routes
-    if (bypassRoutes.some(route => pathname.startsWith(route))) {
+    if (bypassRoutes.some(route => pathname === route)) {
         return NextResponse.next()
     }
 
-    // Check if route is protected
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+    // Check if route is protected (prefix match)
+    const isProtected = protectedPrefixes.some(prefix => pathname.startsWith(prefix))
+
+    // Check if route is an auth route (exact match)
+    const isAuthRoute = authRoutes.some(route => pathname === route)
 
     // Redirect to login if accessing protected route without token
-    if (isProtectedRoute && !token) {
+    if (isProtected && !token) {
         const loginUrl = new URL('/login', request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)

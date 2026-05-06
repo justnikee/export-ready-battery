@@ -36,7 +36,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
  {/* Right: Quota + Support */}
  <div className="flex items-center gap-3">
  {/* Quota Badge */}
- <Link href="/billing">
+ <Link href="/dashboard/billing">
  <div className={clsx(
  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors border",
  isLowQuota

@@ -1011,7 +1011,7 @@ export default function LifecyclePage() {
               </p>
               {statusFilter === "ALL" && !batchFilter && (
                 <Link
-                  href="/batches"
+                  href="/dashboard/batches"
                   className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-foreground rounded-lg hover:opacity-90 transition-opacity"
                 >
                   <Package className="h-4 w-4" />

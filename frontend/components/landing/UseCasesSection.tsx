@@ -13,37 +13,37 @@ import {
 
 const useCases = [
   {
-    title: "BIS Certification",
+    title: "BIS Certification (India)",
     description:
-      "Track and manage BIS certification lifecycle with automated compliance checks and documentation.",
+      "End-to-end BIS registration workflow — from application tracking to automated compliance checks to certificate generation for battery exports.",
     href: "/compliance",
     Illustration: BISIllustration,
   },
   {
-    title: "EPR Obligations",
+    title: "EPR Obligations (India)",
     description:
-      "Monitor EPR targets, recycling data, and compliance status in real time.",
+      "Monitor Extended Producer Responsibility targets, track recycling data against CPCB benchmarks, and file compliance reports in real time.",
     href: "/compliance",
     Illustration: EPRIllustration,
   },
   {
-    title: "EU Battery Regulation",
+    title: "EU Battery Regulation 2023/1542",
     description:
-      "Generate digital battery passports and meet EU regulatory requirements effortlessly.",
+      "Generate EU-compliant digital battery passports with carbon footprint declarations, recycled content disclosure, and supply chain due diligence data.",
     href: "/docs/compliance",
     Illustration: EUIllustration,
   },
   {
-    title: "Digital Battery Passports",
+    title: "Digital Battery Passports (Dual)",
     description:
-      "Assign a unique identity to every battery with QR-based public verification.",
+      "Assign a UUID + QR identity to every battery unit. Single passport works for both EU and India regulatory frameworks — one scan, full compliance visibility.",
     href: "/batches",
     Illustration: PassportIllustration,
   },
   {
-    title: "PCB Export Filing",
+    title: "Battery Waste Management (India)",
     description:
-      "Export-ready documentation and filings generated automatically.",
+      "CPCB-compliant waste filing: track recycling partners, generate Form 1–4 documentation, and maintain auditable disposal records per BWM Rules 2022.",
     href: "/compliance",
     Illustration: CPCBIllustration,
   },
@@ -67,8 +67,7 @@ export function UseCasesSection() {
             Compliance Made Simple
           </h2>
           <p className="text-base max-w-[52ch] mx-auto text-gray-600">
-            From BIS certification to EU digital passports — every compliance
-            workflow your manufacturing line needs, in one platform.
+            From BIS certification to EU digital passports to CPCB waste filings — every regulatory workflow your manufacturing operation needs, in one platform.
           </p>
         </motion.div>
 

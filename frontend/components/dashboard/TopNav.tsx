@@ -25,13 +25,13 @@ export function TopNav() {
 
  const navItems = [
  { name: "Overview", href: "/dashboard", icon: Home },
- { name: "Batches", href: "/batches", icon: Box },
+ { name: "Batches", href: "/dashboard/batches", icon: Box },
  { name: "Dispatch", href: "/dashboard/dispatch", icon: Truck },
- { name: "Partners", href: "/partners", icon: Users },
- { name: "Team", href: "/team", icon: UserPlus },
- { name: "Rewards", href: "/rewards", icon: Trophy },
- { name: "Billing", href: "/billing", icon: CreditCard },
- { name: "Settings", href: "/settings", icon: Settings },
+ { name: "Partners", href: "/dashboard/partners", icon: Users },
+ { name: "Team", href: "/dashboard/team", icon: UserPlus },
+ { name: "Rewards", href: "/dashboard/rewards", icon: Trophy },
+ { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+ { name: "Settings", href: "/dashboard/settings", icon: Settings },
  ]
 
  const quotaBalance = user?.quota_balance ?? 0
@@ -90,7 +90,7 @@ export function TopNav() {
  {/* Right: Quota Badge + User Profile */}
  <div className="flex items-center gap-2 md:gap-3">
  {/* Quota Badge */}
- <Link href="/billing">
+ <Link href="/dashboard/billing">
  <div className={clsx(
  "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
  isLowQuota

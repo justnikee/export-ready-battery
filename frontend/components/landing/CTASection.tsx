@@ -5,12 +5,12 @@ import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 const features = [
-  "Automated EU Battery Passport generation",
-  "Real-time BIS certification validation",
-  "10-year audit trail with cryptographic proof",
-  "Multi-market compliance (EU + India)",
-  "API integration with existing ERP systems",
-  "Dedicated compliance support team",
+  "Automated EU Digital Battery Passport generation",
+  "Real-time BIS IS 16046 & CPCB validation",
+  "BLAKE2b cryptographic audit trail (10-year retention)",
+  "Single passport for EU + India compliance",
+  "CSV batch upload & REST API integration",
+  "Compliance expert support during onboarding",
 ];
 
 export function CTASection() {
@@ -30,22 +30,23 @@ export function CTASection() {
           {/* Urgency badge */}
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs mb-8 bg-white/80 border-green-200 text-green-800 backdrop-blur-sm">
             <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            2027 EU deadline approaching — start early
+            EU 2027 & India 2026 deadlines approaching — prepare now
           </span>
 
           {/* Headline */}
           <h2 className="text-section-headline text-gray-900 mb-6">
-            Start Exporting Without
+            Ready to Ship Compliant Batteries
             <br />
             <span className="text-accent-green">
-              Compliance Headaches
+              Across Borders?
             </span>
           </h2>
 
           {/* Subheadline */}
           <p className="text-base sm:text-lg max-w-[56ch] mx-auto mb-10 text-gray-600">
-            Join 50+ manufacturers already using ExportReady to simplify battery
-            compliance and accelerate market entry.
+            Join 50+ manufacturers across India and Europe already using ExportReady to
+            simplify battery compliance, accelerate customs clearance, and enter
+            regulated markets faster.
           </p>
 
           {/* Feature Checklist */}
@@ -87,12 +88,13 @@ export function CTASection() {
           {/* Pricing & Trust Signals */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
             <span>
-              Starts at <span className="font-semibold text-gray-900">₹4,999/month</span>
+              Plans start at{" "}
+              <span className="font-semibold text-gray-900">₹4,999/mo</span>
             </span>
             <div className="hidden sm:block h-4 w-px bg-gray-300" />
             <span>14-day free trial</span>
             <div className="hidden sm:block h-4 w-px bg-gray-300" />
-            <span>No credit card required</span>
+            <span>No credit card</span>
           </div>
         </motion.div>
       </div>

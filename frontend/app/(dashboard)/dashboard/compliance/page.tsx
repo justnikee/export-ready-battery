@@ -62,7 +62,7 @@ export default function CompliancePage() {
  <p className="text-sm font-medium text-amber-800">EPR Registration Missing</p>
  <p className="text-xs text-amber-500 mt-0.5">
  Add your CPCB EPR registration number in{' '}
- <a href="/settings" className="underline font-medium">Settings → India Compliance</a>{' '}
+ <a href="/dashboard/settings" className="underline font-medium">Settings → India Compliance</a>{' '}
  to unlock full compliance tracking.
  </p>
  </div>
@@ -73,7 +73,7 @@ export default function CompliancePage() {
  <div className="bg-card border border-border rounded-lg p-5">
  <div className="flex items-center justify-between mb-4">
  <h3 className="text-sm text-foreground">Compliance Readiness</h3>
- <a href="/settings" className="text-xs text-muted-foreground hover:text-foreground underline">
+ <a href="/dashboard/settings" className="text-xs text-muted-foreground hover:text-foreground underline">
  Manage in Settings
  </a>
  </div>
@@ -662,7 +662,7 @@ function BISTrackerTab() {
  <div className="flex-1">
  <p className="text-sm font-medium text-blue-800">Upload your BIS certificate</p>
  <p className="text-xs text-blue-500 mt-0.5">
- Go to <a href="/settings" className="underline font-medium">Settings → India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
+ Go to <a href="/dashboard/settings" className="underline font-medium">Settings → India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
  </p>
  </div>
  </div>

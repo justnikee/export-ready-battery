@@ -18,10 +18,10 @@ import { usePathname } from "next/navigation"
 
 const navItems = [
  { label: "Overview", href: "/dashboard" },
- { label: "Batches", href: "/batches" },
- { label: "Analytics", href: "/analytics" },
- { label: "Billing", href: "/billing" },
- { label: "Settings", href: "/settings" },
+ { label: "Batches", href: "/dashboard/batches" },
+ { label: "Analytics", href: "/dashboard/analytics" },
+ { label: "Billing", href: "/dashboard/billing" },
+ { label: "Settings", href: "/dashboard/settings" },
 ]
 
 export function Header() {
@@ -67,7 +67,7 @@ export function Header() {
  {/* Right: Quota Badge + User Profile */}
  <div className="flex items-center gap-3">
  {/* Quota Badge */}
- <Link href="/billing">
+ <Link href="/dashboard/billing">
  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border ${isLowQuota
  ? 'border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15'
  : 'border-[var(--brand-border)] bg-emerald-500/10 text-[var(--brand)] hover:bg-emerald-500/15'

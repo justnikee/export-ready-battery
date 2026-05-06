@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 
 const stats = [
-  { value: "10,000+", label: "Passports Generated" },
+  { value: "10,000+", label: "Passports Issued" },
+  { value: "500,000+", label: "Audit Trail Entries" },
   { value: "99.8%", label: "Compliance Accuracy" },
-  { value: "EU + India", label: "Multi-Region Support" },
-  { value: "<40ms", label: "API Response Time" },
+  { value: "EU + India", label: "Dual Regulation Ready" },
 ];
 
 export function StatsSection() {
@@ -27,8 +27,8 @@ export function StatsSection() {
             Built for Production-Scale Manufacturing
           </h2>
           <p className="text-base max-w-[52ch] mx-auto text-gray-600">
-            From small manufacturers to enterprise battery exporters —
-            ExportReady scales with your operations.
+            From mid-size producers to enterprise battery exporters —
+            ExportReady handles multi-thousand-unit batches with zero compliance drift.
           </p>
         </motion.div>
 

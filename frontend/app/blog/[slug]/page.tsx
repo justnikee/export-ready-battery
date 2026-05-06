@@ -121,17 +121,29 @@ export default async function BlogPostPage({ params }: Props) {
 
  {/* Content */}
  <div className="prose prose-lg dark:prose-invert max-w-none mx-auto">
- {/* Note: This requires 'react-markdown' package */}
- {/* If strictly no extra deps allowed, replace with simple text rendering */}
  <ReactMarkdown>
  {post.content}
  </ReactMarkdown>
  </div>
  </article>
 
- {/* Footer / CTA usually goes here */}
+ {/* CTA Footer */}
  <div className="mt-16 pt-8 border-t">
- {/* Related or Newsletter */}
+   <div className="bg-gradient-hero rounded-2xl p-10 text-center border border-green-100">
+     <h3 className="text-xl font-semibold text-[#0B1F3B] mb-3">
+       Ready to simplify battery compliance?
+     </h3>
+     <p className="text-sm text-zinc-600 mb-6 max-w-md mx-auto">
+       Join 50+ manufacturers using ExportReady to generate digital battery
+       passports and stay audit-ready across EU and India markets.
+     </p>
+     <Link
+       href="/contact"
+       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25"
+     >
+       Start Free Trial
+     </Link>
+   </div>
  </div>
  </div>
  );

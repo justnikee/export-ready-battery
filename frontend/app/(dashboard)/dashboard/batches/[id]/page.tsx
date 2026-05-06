@@ -149,7 +149,7 @@ export default function BatchDetailsPage() {
  duration: 10000,
  action: {
  label: 'View Exports',
- onClick: () => router.push('/exports')
+ onClick: () => router.push('/dashboard/exports')
  }
  });
  } catch (error: unknown) {
@@ -199,7 +199,7 @@ export default function BatchDetailsPage() {
  duration: 10000,
  action: {
  label: 'View Exports',
- onClick: () => router.push('/exports')
+ onClick: () => router.push('/dashboard/exports')
  }
  });
  } catch (error: unknown) {
@@ -460,10 +460,10 @@ export default function BatchDetailsPage() {
   const settingsProfileKeys = ["tenant.company_name", "tenant.address", "tenant.eu_authorized_representative_name", "tenant.eu_authorized_representative_address", "tenant.eu_contact_email"]
 
   if (settingsComplianceKeys.includes(key)) {
-   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/settings?tab=compliance") }
+   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/dashboard/settings?tab=compliance") }
   }
   if (settingsProfileKeys.includes(key)) {
-   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/settings") }
+   return { label: "Fix in Settings", icon: <ExternalLink className="h-3 w-3" />, loading: false, onClick: () => router.push("/dashboard/settings") }
   }
   if (key === "carbon_footprint_result") {
    return { label: "Carbon Calculator", icon: <Leaf className="h-3 w-3" />, loading: false, onClick: () => setActiveTab("upload") }
@@ -633,7 +633,7 @@ export default function BatchDetailsPage() {
  console.error('Failed to activate batch:', error)
  if (apiError.response?.status === 402) {
  toast.error('Insufficient quota. Please purchase more quota units.')
- router.push('/billing')
+ router.push('/dashboard/billing')
  } else if (apiError.response?.status === 403) {
  // Parse rich error from backend
  const data = apiError.response?.data as { error?: string; missing?: string[]; errors?: string[] } | undefined
@@ -699,7 +699,7 @@ export default function BatchDetailsPage() {
  try {
  await api.delete(`/batches/${params.id}/draft`)
  toast.success('Draft batch deleted successfully')
- router.push('/batches')
+ router.push('/dashboard/batches')
  } catch (error: unknown) {
  const apiError = toApiError(error)
  console.error('Failed to delete draft batch:', error)
@@ -733,7 +733,7 @@ export default function BatchDetailsPage() {
  <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
- <Button variant="ghost" size="icon" onClick={() => router.push('/batches')} className="text-muted-foreground hover:text-foreground hover:bg-muted">
+ <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/batches')} className="text-muted-foreground hover:text-foreground hover:bg-muted">
  <ArrowLeft className="h-5 w-5" />
  </Button>
  <div>

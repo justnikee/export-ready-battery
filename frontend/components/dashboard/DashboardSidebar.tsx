@@ -49,38 +49,38 @@ const navGroups: NavGroup[] = [
     label: "Overview",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: Home },
-      { name: "Analytics", href: "/analytics", icon: TrendingUp },
+      { name: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
     ],
   },
   {
     label: "Production",
     items: [
-      { name: "Batches", href: "/batches", icon: Box },
-      { name: "Lifecycle", href: "/lifecycle", icon: Activity },
-      { name: "Templates", href: "/templates", icon: LayoutTemplate },
+      { name: "Batches", href: "/dashboard/batches", icon: Box },
+      { name: "Lifecycle", href: "/dashboard/lifecycle", icon: Activity },
+      { name: "Templates", href: "/dashboard/templates", icon: LayoutTemplate },
     ],
   },
   {
     label: "Compliance",
     items: [
-      { name: "Compliance", href: "/compliance", icon: Shield },
-      { name: "Exports", href: "/exports", icon: FileDown },
+      { name: "Compliance", href: "/dashboard/compliance", icon: Shield },
+      { name: "Exports", href: "/dashboard/exports", icon: FileDown },
     ],
   },
   {
     label: "Account",
     items: [
-      { name: "Team", href: "/team", icon: Users },
-      { name: "Partners", href: "/partners", icon: Building2 },
-      { name: "Billing", href: "/billing", icon: CreditCard },
-      { name: "Settings", href: "/settings", icon: Settings },
+      { name: "Team", href: "/dashboard/team", icon: Users },
+      { name: "Partners", href: "/dashboard/partners", icon: Building2 },
+      { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+      { name: "Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
   {
     label: "Developer",
     collapsible: true,
     items: [
-      { name: "API Keys", href: "/developer", icon: Key },
+      { name: "API Keys", href: "/dashboard/developer", icon: Key },
       { name: "Docs", href: "/docs", icon: BookOpen },
     ],
   },

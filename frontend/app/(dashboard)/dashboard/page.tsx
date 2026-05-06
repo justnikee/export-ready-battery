@@ -242,7 +242,7 @@ export default function DashboardPage() {
  <p className="text-sm text-muted-foreground mt-1">Overview of your battery passport operations</p>
  </div>
  <Link
- href="/batches"
+ href="/dashboard/batches"
  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
  >
  <Package className="h-4 w-4" />
@@ -277,7 +277,7 @@ export default function DashboardPage() {
  {allVerified ? (
  <span className="text-sm text-emerald-500 font-medium">✓ All India compliance documents verified</span>
  ) : (
- <Link href="/settings" className="text-sm text-blue-500 hover:text-blue-500 font-medium hover:underline">
+ <Link href="/dashboard/settings" className="text-sm text-blue-500 hover:text-blue-500 font-medium hover:underline">
  Complete your compliance setup →
  </Link>
  )}
@@ -287,28 +287,28 @@ export default function DashboardPage() {
 
  {/* Section 3: Quick Actions Bar */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
- <Link href="/batches" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
+ <Link href="/dashboard/batches" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
  <Package className="h-5 w-5 text-emerald-500" />
  </div>
  <div className="text-sm font-medium text-foreground group-hover:text-muted-foreground">Create Batch</div>
  <div className="text-xs text-muted-foreground mt-0.5">Start a new production batch</div>
  </Link>
- <Link href="/batches" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
+ <Link href="/dashboard/batches" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-3">
  <Upload className="h-5 w-5 text-blue-500" />
  </div>
  <div className="text-sm font-medium text-foreground group-hover:text-muted-foreground">Upload CSV</div>
  <div className="text-xs text-muted-foreground mt-0.5">Bulk import serial numbers</div>
  </Link>
- <Link href="/compliance" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
+ <Link href="/dashboard/compliance" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-3">
  <Shield className="h-5 w-5 text-amber-500" />
  </div>
  <div className="text-sm font-medium text-foreground group-hover:text-muted-foreground">View Compliance</div>
  <div className="text-xs text-muted-foreground mt-0.5">EPR obligations & certificates</div>
  </Link>
- <Link href="/compliance" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
+ <Link href="/dashboard/compliance" className="bg-card border border-border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer group">
  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mb-3">
  <FileDown className="h-5 w-5 text-indigo-600" />
  </div>
@@ -361,7 +361,7 @@ export default function DashboardPage() {
  <AlertCircle className="h-3 w-3" />
  Over by {(quotaUsed - quotaLimit).toLocaleString()}
  </div>
- <Link href="/billing" className="text-xs text-blue-500 hover:underline font-medium">Top Up →</Link>
+ <Link href="/dashboard/billing" className="text-xs text-blue-500 hover:underline font-medium">Top Up →</Link>
  </div>
  )}
  </div>
@@ -400,7 +400,7 @@ export default function DashboardPage() {
  <div className="lg:col-span-2 bg-card border border-border rounded-lg overflow-hidden">
  <div className="px-6 py-4 border-b border-border flex items-center justify-between">
  <h3 className="text-base font-medium text-foreground">Recent Batches</h3>
- <Link href="/batches" className="text-xs text-blue-500 hover:underline font-medium">View All →</Link>
+ <Link href="/dashboard/batches" className="text-xs text-blue-500 hover:underline font-medium">View All →</Link>
  </div>
  <table className="w-full">
  <thead className="bg-muted border-b border-border">

@@ -9,11 +9,11 @@ const benefits = [
     title: "Automated Compliance",
     metric: "< 2 minutes",
     description:
-      "Generate EU Battery Passports and validate BIS certification automatically. No manual data entry, no spreadsheets, no errors.",
+      "Generate EU Battery Passports and validate BIS certification automatically. Eliminates 40+ hours of manual paperwork per bill-of-lading cycle.",
     features: [
-      "Real-time validation",
-      "Auto-generated QR codes",
-      "Instant compliance reports",
+      "EU 2023/1542 Art 77 auto-validation",
+      "BIS IS 16046 real-time verification",
+      "JRC carbon footprint classification (A-G)",
     ],
   },
   {
@@ -21,11 +21,11 @@ const benefits = [
     title: "Multi-Market Coverage",
     metric: "EU + India",
     description:
-      "Single platform for both EU Battery Regulation 2023/1542 and India BIS/EPR requirements. Expand to new markets without new systems.",
+      "Single platform for both EU Battery Regulation 2023/1542 and India BIS/EPR requirements. One product entry. Two regulatory frameworks. Zero duplication.",
     features: [
-      "EU Battery Passport",
-      "BIS R-Number validation",
-      "CPCB EPR tracking",
+      "EU Battery Passport (Reg. 2023/1542)",
+      "India CPCB EPR obligation tracking",
+      "BPAN V2 serialization for Indian market",
     ],
   },
   {
@@ -33,11 +33,11 @@ const benefits = [
     title: "Audit-Ready from Day 1",
     metric: "10-year retention",
     description:
-      "Immutable audit trails with cryptographic proof. Every compliance check, every validation, every change — permanently recorded and regulator-ready.",
+      "Immutable, tamper-proof BLAKE2b cryptographic audit chain. Every compliance check, every validation, every lifecycle transition — permanently recorded and regulator-ready.",
     features: [
-      "Cryptographic signing",
-      "Tamper-proof records",
-      "One-click audit exports",
+      "BLAKE2b hash chain integrity proof",
+      "Tamper-evident lifecycle records",
+      "One-click CSV + PDF audit exports",
     ],
   },
 ];
@@ -62,7 +62,7 @@ export function WhyChooseSection() {
           </h2>
           <p className="text-base text-muted-light max-w-[60ch] mx-auto">
             Built for high-volume manufacturers who need strict regulatory
-            adherence without slowing down production lines.
+            adherence without slowing down production. Single platform for EU and India compliance — from batch registration to export-ready documentation.
           </p>
         </motion.div>
 
@@ -125,7 +125,7 @@ export function WhyChooseSection() {
           <p className="text-sm text-muted-light">
             Trusted by{" "}
             <span className="font-semibold text-gray-900">50+ manufacturers</span>{" "}
-            across India and Europe
+            across India and Europe — from EV producers to consumer electronics exporters
           </p>
         </motion.div>
       </div>
