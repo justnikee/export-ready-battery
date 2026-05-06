@@ -61,7 +61,11 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Generate key
 	keyService := services.NewAPIKeyService()
@@ -124,7 +128,11 @@ func (h *Handler) ListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	keys, err := h.repo.ListAPIKeys(r.Context(), tenantID)
 	if err != nil {
@@ -153,7 +161,11 @@ func (h *Handler) GetAPIKey(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	apiKey, err := h.repo.GetAPIKeyByID(r.Context(), keyID)
 	if err != nil {
@@ -192,7 +204,11 @@ func (h *Handler) UpdateAPIKey(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify ownership
 	apiKey, err := h.repo.GetAPIKeyByID(r.Context(), keyID)
@@ -230,7 +246,11 @@ func (h *Handler) DeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify ownership
 	apiKey, err := h.repo.GetAPIKeyByID(r.Context(), keyID)

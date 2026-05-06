@@ -167,13 +167,16 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 		// rather than the generic EU-based DEFAULT.
 		assemblySubcategory := "DEFAULT"
 		if input.FactoryCountry != "" {
-			if _, lookupErr := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", input.FactoryCountry); lookupErr == nil {
+			if factor, lookupErr := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", input.FactoryCountry); lookupErr == nil && factor != nil {
 				assemblySubcategory = input.FactoryCountry
 			}
 		}
 		assemblyFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ASSEMBLY", assemblySubcategory)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get assembly factor (%s): %w", assemblySubcategory, err)
+		}
+		if assemblyFactor == nil {
+			return nil, fmt.Errorf("assembly factor %q not found in database", assemblySubcategory)
 		}
 		breakdown.Assembly = assemblyFactor.FactorValue * input.CapacityKWh
 		factorsUsed = append(factorsUsed, FactorUsed{

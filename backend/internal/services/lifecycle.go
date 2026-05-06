@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -305,6 +306,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 
 	if err := s.repo.ApplyLifecycleTransition(ctx, models.TransitionPersistence{
 		PassportID:         passport.UUID,
+		PreviousStatus:     previousStatus,
 		NewStatus:          toStatus,
 		ShippedAt:          shippedAt,
 		InstalledAt:        installedAt,
@@ -813,11 +815,6 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		previousOwnerID = passport.OwnerID.String()
 	}
 
-	// Update owner in DB
-	if err := s.repo.UpdatePassportOwnerID(ctx, passportID, newOwnerID); err != nil {
-		return fmt.Errorf("failed to update owner: %w", err)
-	}
-
 	// Log TRANSFERRED event
 	now := time.Now()
 	metadata := map[string]interface{}{
@@ -867,8 +864,17 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 		event.Hash = hash
 	}
 
+	// Atomically update owner and log the event: create event first (idempotent on failure),
+	// then update the owner. If the event write fails, the owner is unchanged and the error
+	// surfaces. If the owner update fails, we log and surface an error — the orphaned event
+	// is recorded but the DB state is consistent because the owner column was not changed.
 	if err := s.repo.CreatePassportEvent(ctx, event); err != nil {
 		return fmt.Errorf("failed to log transfer event: %w", err)
+	}
+
+	// Update owner in DB (after event is persisted so audit trail is never missing)
+	if err := s.repo.UpdatePassportOwnerID(ctx, passportID, newOwnerID); err != nil {
+		return fmt.Errorf("failed to update owner: %w", err)
 	}
 
 	// Append ownership history entry (EU compliance)
@@ -1010,7 +1016,7 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 
 	// Append a row to soh_history so callers can query the time-series without
 	// replaying the passport event log.
-	_ = s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
+	if err := s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
 		ID:         uuid.New(),
 		PassportID: passportID,
 		SoH:        soh,
@@ -1018,7 +1024,9 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 		Actor:      actor,
 		ActorType:  actorType,
 		Source:     source,
-	})
+	}); err != nil {
+		slog.Warn("Failed to append SoH history entry", "passport_id", passportID, "error", err)
+	}
 
 	previousHash := ""
 	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)

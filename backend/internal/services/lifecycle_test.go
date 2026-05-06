@@ -51,6 +51,9 @@ func TestApplyTransition_Success_Ship(t *testing.T) {
 	// Return empty list of events for previous hash calculation
 	mockRepo.On("GetPassportEvents", ctx, passportID).Return([]*models.PassportEvent{}, nil)
 
+	// Mock GetBatchTenantID for webhook dispatch
+	mockRepo.On("GetBatchTenantID", ctx, passport.BatchID).Return(uuid.Nil, nil)
+
 	// Expect ApplyLifecycleTransition
 	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
 		return p.PassportID == passportID &&

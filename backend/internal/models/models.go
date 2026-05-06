@@ -702,6 +702,7 @@ type AuditEventRow struct {
 // TransitionPersistence bundles a lifecycle transition with its audit event for atomic persistence.
 type TransitionPersistence struct {
 	PassportID         uuid.UUID
+	PreviousStatus     string // Required for TOCTOU protection: UPDATE WHERE status = PreviousStatus
 	NewStatus          string
 	ShippedAt          *time.Time
 	InstalledAt        *time.Time

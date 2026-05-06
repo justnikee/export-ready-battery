@@ -66,9 +66,9 @@ func formatMessage(count int, noun string, verb string) string {
 	}
 
 	if verb == "" {
-		return string(rune(count)) + " " + noun + suffix
+		return strconv.Itoa(count) + " " + noun + suffix
 	}
-	return string(rune(count)) + " " + noun + suffix + " " + verb
+	return strconv.Itoa(count) + " " + noun + suffix + " " + verb
 }
 
 // ArchiveBatch handles POST /api/v1/batches/{id}/archive
@@ -87,7 +87,11 @@ func (h *Handler) ArchiveBatch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify batch belongs to tenant
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
@@ -136,7 +140,11 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify batch belongs to tenant
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)

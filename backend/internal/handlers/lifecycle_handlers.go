@@ -246,7 +246,11 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 			respondError(w, http.StatusBadRequest, "invalid document_id format")
 			return
 		}
-		tenantUUID, _ := uuid.Parse(tenantIDStr)
+		tenantUUID, tenantParseErr := uuid.Parse(tenantIDStr)
+		if tenantParseErr != nil {
+			respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+			return
+		}
 		doc, fetchErr := h.docRepo.GetPassportDocument(r.Context(), parsedDocID, tenantUUID)
 		if fetchErr != nil || doc == nil {
 			respondError(w, http.StatusBadRequest, "document not found or not owned by tenant")
@@ -277,6 +281,10 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 	})
 
 	if err != nil {
+		if result == nil {
+			respondError(w, http.StatusInternalServerError, "Internal error during transition")
+			return
+		}
 		switch {
 		case errors.Is(err, services.ErrMissingActorContext):
 			respondError(w, http.StatusUnauthorized, result.Error)
@@ -421,7 +429,11 @@ func (h *LifecycleHandler) BulkTransitionPassports(w http.ResponseWriter, r *htt
 
 	// Resolve tenant from JWT for scoped batch fetch.
 	tenantIDStr := middleware.GetTenantID(r.Context())
-	tenantUUID, _ := uuid.Parse(tenantIDStr)
+	tenantUUID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	actorContext, status, err := h.buildActorContext(r.Context(), req.Action)
 	if err != nil {

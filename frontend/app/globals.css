@@ -138,6 +138,20 @@
   --ld-text-muted: #A1A1AA;
   --ld-accent:     #3ecf8e;
   --ld-accent-hi:  #34D399;
+
+  /* ── Gradient System (DefendLab-inspired) ── */
+  --gradient-hero: linear-gradient(135deg, #FFFFFF 0%, #F0FDF4 50%, #DCFCE7 100%);
+  --gradient-hero-radial: radial-gradient(ellipse at top, #F0FDF4 0%, #FFFFFF 50%, #FAFAFA 100%);
+  --gradient-cta: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --gradient-subtle: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+  --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+  
+  /* ── Light Theme Specific Backgrounds ── */
+  --bg-gradient-start: #FFFFFF;
+  --bg-gradient-end: #DCFCE7;
+  --card-bg-light: #FFFFFF;
+  --card-border-light: #E5E7EB;
+  --section-bg-subtle: #F9FAFB;
 }
 
 /* ============================================
@@ -392,7 +406,6 @@
 .docs-scrollbar::-webkit-scrollbar-track { background: transparent !important; }
 .docs-scrollbar::-webkit-scrollbar-thumb { background: var(--border-prominent) !important; border-radius: 3px !important; }
 .docs-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground) !important; }
-
 /* ============================================
    Landing Page Animations
    ============================================ */
@@ -401,5 +414,108 @@
 .animate-spin-slow { animation: spin-slow 20s linear infinite; }
 .animate-spin-slow-reverse { animation: spin-slow-reverse 25s linear infinite; }
 .bg-gradient-conic { background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to)); }
+
+/* ============================================
+   Gradient Background Utilities
+   DefendLab-inspired light gradients
+   ============================================ */
+@layer utilities {
+  /* Hero gradient backgrounds */
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .bg-gradient-hero-radial {
+    background: var(--gradient-hero-radial);
+  }
+  
+  .bg-gradient-cta-button {
+    background: var(--gradient-cta);
+  }
+  
+  .bg-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+  
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  /* Section backgrounds */
+  .bg-section-light {
+    background-color: #FFFFFF;
+  }
+  
+  .bg-section-subtle {
+    background-color: var(--section-bg-subtle);
+  }
+  
+  /* Card with hover gradient effect */
+  .card-gradient-hover {
+    background: var(--card-bg-light);
+    border: 1px solid var(--card-border-light);
+    transition: all 200ms ease;
+  }
+  
+  .card-gradient-hover:hover {
+    background: var(--gradient-card);
+    border-color: #10B981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+  }
+  
+  /* Typography utilities for landing page */
+  .text-hero {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  
+  .text-section-headline {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  
+  .text-feature-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  /* Accent colors for light theme */
+  .text-accent-green {
+    color: #10B981;
+  }
+  
+  .text-accent-blue {
+    color: #3B82F6;
+  }
+  
+  .text-muted-light {
+    color: #6B7280;
+  }
+  
+  /* Border utilities */
+  .border-light {
+    border-color: var(--card-border-light);
+  }
+  
+  .border-accent {
+    border-color: #10B981;
+  }
+  
+  /* Feature checklist item */
+  .checklist-item {
+    @apply flex items-start gap-3 text-sm;
+  }
+  
+  .checklist-item svg {
+    @apply h-5 w-5 shrink-0 mt-0.5;
+    color: #10B981;
+  }
+}
+
 
 

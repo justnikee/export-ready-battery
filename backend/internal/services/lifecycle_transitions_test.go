@@ -174,6 +174,7 @@ func TestApplyTransition_AllHappyPaths(t *testing.T) {
 		action     string
 		actor      models.ActorContext
 		evidence   models.Evidence
+		reasonCode string
 		wantStatus string
 	}{
 		{
@@ -182,6 +183,7 @@ func TestApplyTransition_AllHappyPaths(t *testing.T) {
 			action:     string(models.ActionActivate),
 			actor:      systemActor(),
 			evidence:   nil,
+			reasonCode: "BATCH_QC_PASS",
 			wantStatus: models.PassportStatusActive,
 		},
 		{
@@ -285,6 +287,7 @@ func TestApplyTransition_AllHappyPaths(t *testing.T) {
 				Action:       tc.action,
 				ActorContext: tc.actor,
 				Evidence:     tc.evidence,
+				ReasonCode:   tc.reasonCode,
 			})
 			if err != nil {
 				t.Fatalf("expected success, got error: %v", err)

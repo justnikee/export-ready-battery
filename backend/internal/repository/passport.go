@@ -601,8 +601,9 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 	              recycling_status = COALESCE($5, recycling_status),
 	              recycler_epr_id = COALESCE($6, recycler_epr_id),
 	              recycling_date = COALESCE($7, recycling_date)
-	          WHERE uuid = $8`
-	_, err = tx.Exec(ctx, query,
+	          WHERE uuid = $8
+	            AND status = $9`
+	tag, err := tx.Exec(ctx, query,
 		params.NewStatus,
 		params.ShippedAt,
 		params.InstalledAt,
@@ -611,9 +612,13 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 		nullableString(params.RecyclerEprID),
 		params.RecyclingDate,
 		params.PassportID,
+		params.PreviousStatus,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update passport status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("concurrent modification: passport %s status changed before this transition could be applied", params.PassportID)
 	}
 
 	if params.MagicLinkTokenHash != "" {
@@ -683,7 +688,7 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 	                 metadata, created_at, COALESCE(hash, ''), COALESCE(previous_hash, '') 
 	          FROM public.passport_events 
 	          WHERE passport_id = $1 
-	          ORDER BY created_at ASC`
+	          ORDER BY created_at ASC, id ASC`
 
 	rows, err := r.db.Pool.Query(ctx, query, passportID)
 	if err != nil {
@@ -724,6 +729,9 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 
 		events = append(events, event)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating passport events: %w", err)
+	}
 
 	return events, nil
 }
@@ -738,7 +746,7 @@ func (r *Repository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([
 	          FROM public.passport_events e
 	          JOIN public.passports p ON p.uuid = e.passport_id
 	          WHERE p.batch_id = $1
-	          ORDER BY e.created_at ASC`
+	          ORDER BY e.created_at ASC, e.id ASC`
 
 	rows, err := r.db.Pool.Query(ctx, query, batchID)
 	if err != nil {
@@ -779,6 +787,9 @@ func (r *Repository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([
 		}
 
 		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating batch events: %w", err)
 	}
 
 	return results, nil

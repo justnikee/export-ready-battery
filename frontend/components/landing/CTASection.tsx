@@ -2,73 +2,102 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+
+const features = [
+  "Automated EU Battery Passport generation",
+  "Real-time BIS certification validation",
+  "10-year audit trail with cryptographic proof",
+  "Multi-market compliance (EU + India)",
+  "API integration with existing ERP systems",
+  "Dedicated compliance support team",
+];
 
 export function CTASection() {
- return (
- <section style={{ background: "var(--ld-bg-dark)" }}>
- <div className="max-w-3xl mx-auto text-center px-6 py-32">
- <motion.div
- initial={{ opacity: 0, y: 20 }}
- whileInView={{ opacity: 1, y: 0 }}
- viewport={{ once: true }}
- transition={{ duration: 0.5 }}
- >
- {/* Urgency badge */}
- <span
- className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs mb-8"
- style={{
- background: "var(--ld-bg-surface)",
- borderColor: "var(--ld-border)",
- color: "var(--ld-text-muted)",
- }}
- >
- EU Battery Passport compliance is mandatory by 2027. Start early.
- </span>
+  return (
+    <section className="bg-gradient-hero relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-green-100 rounded-full blur-3xl opacity-20" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-green-50 rounded-full blur-3xl opacity-30" />
+      
+      <div className="max-w-4xl mx-auto text-center px-6 py-32 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Urgency badge */}
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs mb-8 bg-white/80 border-green-200 text-green-800 backdrop-blur-sm">
+            <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            2027 EU deadline approaching — start early
+          </span>
 
- <h2 className="text-3xl md:text-4xl lg:text-5xl text-white mb-6 leading-[1.00]">
- Start Exporting Without
- <br />
- <span style={{ color: "var(--ld-accent)" }}>
- Compliance Headaches
- </span>
- </h2>
+          {/* Headline */}
+          <h2 className="text-section-headline text-gray-900 mb-6">
+            Start Exporting Without
+            <br />
+            <span className="text-accent-green">
+              Compliance Headaches
+            </span>
+          </h2>
 
- <p
- className="text-base sm:text-lg max-w-[52ch] mx-auto mb-10"
- style={{ color: "var(--ld-text-muted)" }}
- >
- Join manufacturers already using ExportReady to simplify battery
- compliance.
- </p>
+          {/* Subheadline */}
+          <p className="text-base sm:text-lg max-w-[56ch] mx-auto mb-10 text-gray-600">
+            Join 50+ manufacturers already using ExportReady to simplify battery
+            compliance and accelerate market entry.
+          </p>
 
- <div className="flex flex-wrap items-center justify-center gap-3">
- <Link
- href="/contact"
- className="inline-flex items-center gap-2 px-8 py-3 rounded-[6px] text-sm text-white transition-all duration-200 hover:opacity-90"
- style={{ background: "#006239" }}
- >
- Start Free Trial
- </Link>
- <Link
- href="/contact?demo=true"
- className="inline-flex items-center gap-2 px-8 py-3 rounded-[6px] text-sm border transition-all duration-200 hover:bg-white/5"
- style={{
- borderColor: "var(--ld-border)",
- color: "#fafafa",
- }}
- >
- Book Demo
- </Link>
- </div>
+          {/* Feature Checklist */}
+          <div className="max-w-2xl mx-auto mb-10">
+            <div className="grid sm:grid-cols-2 gap-4 text-left">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={feature}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="checklist-item"
+                >
+                  <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700">{feature}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
 
- {/* Pricing teaser */}
- <p className="mt-8 text-sm" style={{ color: "var(--ld-text-muted)" }}>
- Starts at{" "}
- <span className="text-white">₹4,999/month</span>
- {" "}· Free trial available
- </p>
- </motion.div>
- </div>
- </section>
- );
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25 hover:scale-105"
+            >
+              Start Free Trial
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/contact?demo=true"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium border-2 border-gray-300 bg-white text-gray-700 transition-all duration-200 hover:border-green-500 hover:text-green-700 hover:bg-green-50"
+            >
+              Book Demo
+            </Link>
+          </div>
+
+          {/* Pricing & Trust Signals */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
+            <span>
+              Starts at <span className="font-semibold text-gray-900">₹4,999/month</span>
+            </span>
+            <div className="hidden sm:block h-4 w-px bg-gray-300" />
+            <span>14-day free trial</span>
+            <div className="hidden sm:block h-4 w-px bg-gray-300" />
+            <span>No credit card required</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
 }
+
+// Made with Bob

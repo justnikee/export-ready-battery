@@ -27,10 +27,10 @@ import (
 
 // sohRateLimiter tracks the last successful SoH push timestamp per token hash.
 // Enforces a minimum interval between pushes from the same token to prevent flooding.
-// The map is never explicitly cleaned up — each entry is just a time.Time (≈24 bytes),
-// and SOH_UPDATE tokens expire after 24h, so the worst-case size is tiny.
+// Protected by sohRateLimiterMu to prevent TOCTOU races in concurrent requests.
 var (
-	sohRateLimiter    sync.Map
+	sohRateLimiterMu   sync.Mutex
+	sohRateLimiterMap  = make(map[string]time.Time)
 	sohMinPushInterval = time.Minute // max 1 push per minute per token
 )
 
@@ -449,6 +449,10 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	})
 
 	if err != nil {
+		if result == nil {
+			respondError(w, http.StatusInternalServerError, "Internal error during transition")
+			return
+		}
 		switch {
 		case errors.Is(err, services.ErrMissingActorContext):
 			respondError(w, http.StatusUnauthorized, result.Error)
@@ -711,14 +715,16 @@ func (h *MagicLinkHandler) UpdateSoHWithMagicLink(w http.ResponseWriter, r *http
 
 	// Rate limit: max 1 push per minute per token to prevent flooding.
 	now := time.Now()
-	if last, ok := sohRateLimiter.Load(tokenHash); ok {
-		if now.Sub(last.(time.Time)) < sohMinPushInterval {
-			remaining := sohMinPushInterval - now.Sub(last.(time.Time))
-			respondError(w, http.StatusTooManyRequests,
-				fmt.Sprintf("Rate limit: wait %ds before next SoH push", int(remaining.Seconds())+1))
-			return
-		}
+	sohRateLimiterMu.Lock()
+	last, exists := sohRateLimiterMap[tokenHash]
+	if exists && now.Sub(last) < sohMinPushInterval {
+		remaining := sohMinPushInterval - now.Sub(last)
+		sohRateLimiterMu.Unlock()
+		respondError(w, http.StatusTooManyRequests,
+			fmt.Sprintf("Rate limit: wait %ds before next SoH push", int(remaining.Seconds())+1))
+		return
 	}
+	sohRateLimiterMu.Unlock()
 
 	// Parse request body
 	var req SOHUpdateRequest
@@ -742,7 +748,9 @@ func (h *MagicLinkHandler) UpdateSoHWithMagicLink(w http.ResponseWriter, r *http
 	}
 
 	// Record timestamp for rate limiting — only update after a successful push
-	sohRateLimiter.Store(tokenHash, time.Now())
+	sohRateLimiterMu.Lock()
+	sohRateLimiterMap[tokenHash] = time.Now()
+	sohRateLimiterMu.Unlock()
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":         true,
@@ -889,6 +897,10 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		MagicLinkTokenHash: tokenHash,
 	})
 	if err != nil {
+		if result == nil {
+			respondError(w, http.StatusInternalServerError, "Internal error during transition")
+			return
+		}
 		switch {
 		case errors.Is(err, services.ErrActionNotAllowed):
 			respondError(w, http.StatusConflict, result.Error)
