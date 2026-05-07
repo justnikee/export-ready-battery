@@ -139,7 +139,7 @@ export default function PublicPassportPage() {
  <p className="text-muted-foreground mb-6">{error}</p>
  <button
  onClick={() => window.location.reload()}
- className="px-6 py-3 bg-[#171717] hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
+ className="px-6 py-3 bg-background hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
  >
  {t("error_retry")}
  </button>
@@ -159,7 +159,7 @@ export default function PublicPassportPage() {
  <p className="text-muted-foreground mb-6">{t("unavailable_subtitle")}</p>
  <button
  onClick={() => window.location.reload()}
- className="px-6 py-3 bg-[#171717] hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
+ className="px-6 py-3 bg-background hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
  >
  {t("error_retry")}
  </button>

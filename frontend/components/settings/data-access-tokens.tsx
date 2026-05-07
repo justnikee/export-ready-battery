@@ -276,7 +276,7 @@ export function DataAccessTokens() {
  <button
  type="submit"
  disabled={isGenerating}
- className="inline-flex items-center justify-center rounded-lg bg-[#171717] px-6 py-2.5 text-sm font-medium text-white shadow-none hover:bg-primary/90 disabled:opacity-50 transition-colors"
+ className="inline-flex items-center justify-center rounded-lg bg-background px-6 py-2.5 text-sm font-medium text-white shadow-none hover:bg-primary/90 disabled:opacity-50 transition-colors"
  >
  {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
  Generate Token

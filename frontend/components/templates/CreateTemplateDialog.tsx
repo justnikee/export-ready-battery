@@ -243,7 +243,7 @@ export function CreateTemplateDialog({
  <Button
  type="submit"
  disabled={isLoading}
- className="bg-[#171717] hover:bg-primary/90 text-white"
+ className="bg-background hover:bg-primary/90 text-white"
  >
  {isLoading ? "Creating..." : "Create Template"}
  </Button>

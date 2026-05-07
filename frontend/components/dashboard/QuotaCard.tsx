@@ -16,7 +16,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
  const isLow = percentage >= 80
 
  return (
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader className="pb-2">
  <div className="flex items-center justify-between">
  <CardTitle className="text-lg ">Passport Quota</CardTitle>
@@ -51,7 +51,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
 
  {isOverLimit && (
  <Link href="/dashboard/billing" className="block">
- <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center justify-between text-xs text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer">
+ <div className="bg-red-500/10 border border-red-500/20 p-3 flex items-center justify-between text-xs text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer">
  <div className="flex items-center gap-2">
  <AlertTriangle className="h-4 w-4" />
  Over limit by {used - limit} passports
@@ -62,7 +62,7 @@ export function QuotaCard({ used, limit }: QuotaCardProps) {
  )}
  {!isOverLimit && isLow && (
  <Link href="/dashboard/billing" className="block">
- <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-center justify-between text-xs text-yellow-500 hover:bg-yellow-500/20 transition-colors cursor-pointer">
+ <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 flex items-center justify-between text-xs text-yellow-500 hover:bg-yellow-500/20 transition-colors cursor-pointer">
  <div className="flex items-center gap-2">
  <AlertTriangle className="h-4 w-4" />
  Approaching plan limit

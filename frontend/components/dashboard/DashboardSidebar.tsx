@@ -175,7 +175,7 @@ export function DashboardSidebar({
             className={clsx(
               "h-7 w-7 hidden md:flex",
               isCollapsed &&
-                "md:absolute md:-right-3 md:top-4 md:bg-card md:border md:border-border md:rounded-full",
+                "md:absolute md:-right-3 md:top-4 md:bg-transparent md:border md:border-border md:rounded-full",
             )}
             onClick={onToggleCollapse}
           >

@@ -18,7 +18,7 @@ export function BulkActionToolbar({
 
  return (
  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-200">
- <div className="bg-[#171717] border border-border rounded-xl shadow-none px-4 py-3 flex items-center gap-4">
+ <div className="bg-background border border-border rounded-xl shadow-none px-4 py-3 flex items-center gap-4">
  <div className="flex items-center gap-2">
  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-foreground text-sm">
  {selectedIds.length}

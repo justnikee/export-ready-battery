@@ -91,7 +91,7 @@ function Section({ children, className }: { children: React.ReactNode; className
  initial={{ y: 24, opacity: 0 }}
  animate={{ y: 0, opacity: 1 }}
  transition={{ duration: 0.5 }}
- className={clsx("relative rounded-2xl border border-white/[0.06] bg-[#171717]/80 backdrop-blur-xl overflow-hidden", className)}
+ className={clsx("relative rounded-2xl border border-white/[0.06] bg-background/80 backdrop-blur-xl overflow-hidden", className)}
  >
  {children}
  </motion.div>

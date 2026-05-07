@@ -68,7 +68,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
  }
 
  return (
- <Card className="bg-card border-border text-card-foreground h-full flex flex-col">
+ <Card className="bg-transparent border-border text-card-foreground h-full flex flex-col">
  {/* Header - Matches RecentBatches */}
  <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-border">
  <CardTitle className="code-label">
@@ -100,7 +100,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
  }`}
  >
  {/* Icon - Compact, color-coded */}
- <div className={`flex-shrink-0 w-7 h-7 rounded-md border flex items-center justify-center mt-0.5 ${data.accent}`}>
+ <div className={`flex-shrink-0 w-7 h-7 border flex items-center justify-center mt-0.5 ${data.accent}`}>
  {data.icon}
  </div>
 

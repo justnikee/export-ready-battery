@@ -368,7 +368,7 @@ function PassportActionContent() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-[#171717]/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-8 text-center"
+          className="max-w-md w-full bg-background/80 backdrop-blur-xl rounded-2xl border border-red-500/20 p-8 text-center"
         >
           <div className="mx-auto w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-6">
             <AlertCircle className="h-8 w-8 text-red-400" />
@@ -466,7 +466,7 @@ function PassportActionContent() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-[#171717]/80 backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-8 text-center"
+          className="max-w-md w-full bg-background/80 backdrop-blur-xl rounded-2xl border border-emerald-500/20 p-8 text-center"
         >
           <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6">
             <CheckCircle className="h-10 w-10 text-emerald-400" />
@@ -557,7 +557,7 @@ function PassportActionContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
+          className="bg-background/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
         >
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -578,7 +578,7 @@ function PassportActionContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
+          className="bg-background/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
         >
           <p className="text-muted-foreground text-sm mb-1">Current Status</p>
           <p className="text-lg text-white">{info?.passport?.status}</p>
@@ -614,7 +614,7 @@ function PassportActionContent() {
                   className={`w-full p-4 rounded-xl border transition-all text-left ${
                     isSelected
                       ? `bg-${config.color}-500/10 border-${config.color}-500/50`
-                      : "bg-[#171717]/60 border-border hover:border-border"
+                      : "bg-background/60 border-border hover:border-border"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -644,7 +644,7 @@ function PassportActionContent() {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="bg-[#171717]/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
+            className="bg-background/60 backdrop-blur-xl rounded-xl border border-border p-4 mb-6"
           >
             <p className="text-muted-foreground text-sm mb-3">
               Evidence Required

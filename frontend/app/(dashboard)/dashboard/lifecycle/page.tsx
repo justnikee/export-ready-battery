@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -238,14 +238,22 @@ function LifecycleTableSkeleton() {
         {Array.from({ length: 7 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-lg border border-border bg-card p-3 space-y-2"
+            className="relative border border-border bg-transparent p-3 space-y-2"
           >
+            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-7 w-12" />
           </div>
         ))}
       </div>
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="relative border border-border overflow-visible">
+        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
         <div className="border-b border-border bg-muted/60 px-4 py-3">
           <Skeleton className="h-4 w-48" />
         </div>
@@ -255,7 +263,7 @@ function LifecycleTableSkeleton() {
               key={index}
               className="grid grid-cols-[32px_1.4fr_1fr_120px_120px_100px_32px] gap-4 px-4 py-3 items-center"
             >
-              <Skeleton className="h-4 w-4 rounded-sm" />
+              <Skeleton className="h-4 w-4" />
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-6 w-20 rounded-full" />
@@ -299,7 +307,7 @@ export default function LifecyclePage() {
   const [processing, setProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkStatusMsg, setBulkStatusMsg] = useState("");
-  // Refs for smooth progress animation — target driven by async steps
+  // Refs for smooth progress animation â€” target driven by async steps
   const progressTargetRef = useRef(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -346,7 +354,7 @@ export default function LifecyclePage() {
     sha256_hash: string;
   } | null>(null);
 
-  // ─── Events panel (Phase 6 proof viewer) ──────────────────────────────────
+  // â”€â”€â”€ Events panel (Phase 6 proof viewer) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   interface PassportEventEntry {
     id: string;
     action: string;
@@ -411,7 +419,7 @@ export default function LifecyclePage() {
     }
   };
 
-  // ─── Fetch batches once for the dropdown ─────────────────────────────────
+  // â”€â”€â”€ Fetch batches once for the dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user?.tenant_id) return;
     api
@@ -434,7 +442,7 @@ export default function LifecyclePage() {
       });
   }, [user?.tenant_id]);
 
-  // ─── Fetch passports ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Fetch passports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchPassports = useCallback(
     async (signal?: AbortSignal) => {
       setLoading(true);
@@ -524,7 +532,7 @@ export default function LifecyclePage() {
     return () => controller.abort();
   }, [selectAllMode, statusFilter, searchTerm, batchFilter]);
 
-  // ─── Search debounce ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Search debounce â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSearchChange = (val: string) => {
     setSearchInput(val);
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -551,7 +559,7 @@ export default function LifecyclePage() {
     setSelectAllMode(false);
   };
 
-  // ─── Selection ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const toggleSelect = (uuid: string) => {
     // Deselecting any individual item exits selectAllMode
     if (selectedIds.has(uuid)) setSelectAllMode(false);
@@ -573,7 +581,7 @@ export default function LifecyclePage() {
     }
   };
 
-  // ─── Bulk action ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Bulk action â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const openBulkModal = (action: string) => {
     setBulkAction(action);
     setEvidence({});
@@ -597,7 +605,7 @@ export default function LifecyclePage() {
       return;
     }
 
-    // ── Smooth progress animation ──────────────────────────────────────────
+    // â”€â”€ Smooth progress animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // An interval ticks the displayed value toward progressTargetRef at a
     // decelerating rate, so even single-chunk jobs show a visible sweep.
     const setTarget = (t: number, msg?: string) => {
@@ -632,7 +640,7 @@ export default function LifecyclePage() {
         bulkAction.charAt(0) + bulkAction.slice(1).toLowerCase();
 
       if (selectAllMode) {
-        setTarget(30, "Resolving filtered passports…");
+        setTarget(30, "Resolving filtered passportsâ€¦");
         const res = await api.post("/passports/bulk/transition", {
           ...payload,
           select_all: true,
@@ -646,7 +654,7 @@ export default function LifecyclePage() {
         const failed: number = res.data.failed ?? 0;
         const doneMsg =
           failed > 0
-            ? `Done — ${succeeded} transitioned, ${failed} failed`
+            ? `Done â€” ${succeeded} transitioned, ${failed} failed`
             : `${succeeded.toLocaleString()} passport${succeeded !== 1 ? "s" : ""} ${actionLabel}d ✓`;
         setTarget(100, doneMsg);
 
@@ -657,7 +665,7 @@ export default function LifecyclePage() {
             res.data.message || `${succeeded} transitioned, ${failed} failed`,
           );
         } else {
-          toast.success(`${succeeded} passport(s) → ${bulkAction}`);
+          toast.success(`${succeeded} passport(s) â†’ ${bulkAction}`);
         }
         setShowBulkModal(false);
         setSelectedIds(new Set());
@@ -672,7 +680,7 @@ export default function LifecyclePage() {
         return;
       }
 
-      // ── Standard path: fetch explicit IDs then chunk ─────────────────────
+      // â”€â”€ Standard path: fetch explicit IDs then chunk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const idsToProcess = Array.from(selectedIds);
 
       setTarget(30);
@@ -684,7 +692,7 @@ export default function LifecyclePage() {
       for (let i = 0; i < idsToProcess.length; i += CHUNK_SIZE) {
         const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
         setTarget(
-          30 + Math.round((chunkIndex / totalChunks) * 60), // 30 → 90
+          30 + Math.round((chunkIndex / totalChunks) * 60), // 30 â†’ 90
           totalChunks > 1
             ? `Applying ${actionLabel}\u2026 (${chunkIndex} of ${totalChunks})`
             : `Applying ${actionLabel}\u2026`,
@@ -756,7 +764,7 @@ export default function LifecyclePage() {
     }
   };
 
-  // ─── Per-row single transition ────────────────────────────────────────────
+  // â”€â”€â”€ Per-row single transition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleRowTransition = async () => {
     if (!rowAction) return;
     const requiredFields = EVIDENCE_FIELDS[rowAction.action] || [];
@@ -773,7 +781,7 @@ export default function LifecyclePage() {
     }
     setProcessing(true);
     try {
-      // Capture GPS for field actions — best-effort, never blocks transition
+      // Capture GPS for field actions â€” best-effort, never blocks transition
       let location: {
         lat: number;
         lng: number;
@@ -799,7 +807,9 @@ export default function LifecyclePage() {
             accuracy_meters: pos.coords.accuracy,
           };
         } catch {
-          toast.warning("Location not captured — audit record will note this");
+          toast.warning(
+            "Location not captured â€” audit record will note this",
+          );
         }
       }
 
@@ -814,7 +824,7 @@ export default function LifecyclePage() {
         payload,
       );
       toast.success(
-        `${rowAction.passport.serial_number || rowAction.passport.uuid.slice(0, 8)} → ${rowAction.action}`,
+        `${rowAction.passport.serial_number || rowAction.passport.uuid.slice(0, 8)} â†’ ${rowAction.action}`,
       );
       setRowAction(null);
       setRowEvidence({});
@@ -851,7 +861,7 @@ export default function LifecyclePage() {
         maintenanceEvidence,
       );
       toast.success(
-        `${maintenanceAction.passport.serial_number || maintenanceAction.passport.uuid.slice(0, 8)} → ${maintenanceAction.action}`,
+        `${maintenanceAction.passport.serial_number || maintenanceAction.passport.uuid.slice(0, 8)} â†’ ${maintenanceAction.action}`,
       );
       const refreshedPassport = maintenanceAction.passport;
       setMaintenanceAction(null);
@@ -898,8 +908,8 @@ export default function LifecyclePage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-5">
-        {/* ── Header ── */}
+      <div className="mx-auto px-6 py-6 space-y-5">
+        {/* â”€â”€ Header â”€â”€ */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl text-foreground">Lifecycle Operations</h1>
@@ -910,14 +920,14 @@ export default function LifecyclePage() {
           </div>
           <button
             onClick={() => fetchPassports()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-muted-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
           </button>
         </div>
 
-        {/* ── Status Funnel (server-side counts) ── */}
+        {/* â”€â”€ Status Funnel (server-side counts) â”€â”€ */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
           {LIFECYCLE_STATES.slice(1).map((status) => {
             const Icon = STATUS_ICONS[status] || Package;
@@ -926,10 +936,10 @@ export default function LifecyclePage() {
               <button
                 key={status}
                 onClick={() => handleStatusFilter(status)}
-                className={`p-3 rounded-lg border text-left transition-all ${
+                className={`p-3 border text-left transition-all ${
                   isActive
                     ? "border-foreground bg-muted ring-1 ring-foreground/20"
-                    : "border-border bg-card hover:bg-muted/50"
+                    : "border-border bg-transparent hover:bg-muted/50"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
@@ -946,7 +956,7 @@ export default function LifecyclePage() {
           })}
         </div>
 
-        {/* ── Filter bar ── */}
+        {/* â”€â”€ Filter bar â”€â”€ */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 min-w-55">
@@ -954,7 +964,7 @@ export default function LifecyclePage() {
             <input
               type="text"
               placeholder="Search serial or UUID..."
-              className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              className="w-full pl-9 pr-4 py-2 border border-border text-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
               value={searchInput}
               onChange={(e) => handleSearchChange(e.target.value)}
             />
@@ -962,7 +972,7 @@ export default function LifecyclePage() {
 
           {/* Batch filter */}
           <select
-            className="border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground min-w-45 focus:outline-none focus:ring-1 focus:ring-ring"
+            className="border border-border px-3 py-2 text-sm bg-background text-foreground min-w-45 focus:outline-none focus:ring-1 focus:ring-ring"
             value={batchFilter}
             onChange={(e) => handleBatchFilter(e.target.value)}
           >
@@ -977,7 +987,7 @@ export default function LifecyclePage() {
           {statusFilter !== "ALL" && (
             <button
               onClick={() => handleStatusFilter("ALL")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-foreground"
             >
               <span>Status: {statusFilter.replace(/_/g, " ")}</span>
               <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -987,13 +997,17 @@ export default function LifecyclePage() {
           {/* Page size info */}
           <span className="text-xs text-muted-foreground ml-auto">
             {totalCount > 0
-              ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, totalCount)} of ${totalCount}`
+              ? `${(currentPage - 1) * PAGE_SIZE + 1}â€“${Math.min(currentPage * PAGE_SIZE, totalCount)} of ${totalCount}`
               : "0 passports"}
           </span>
         </div>
 
-        {/* ── Table ── */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {/* â”€â”€ Table â”€â”€ */}
+        <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
           {loading ? (
             <LifecycleTableSkeleton />
           ) : passports.length === 0 ? (
@@ -1012,7 +1026,7 @@ export default function LifecyclePage() {
               {statusFilter === "ALL" && !batchFilter && (
                 <Link
                   href="/dashboard/batches"
-                  className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-foreground rounded-lg hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-medium text-white bg-foreground hover:opacity-90 transition-opacity"
                 >
                   <Package className="h-4 w-4" />
                   Go to Batches
@@ -1021,7 +1035,7 @@ export default function LifecyclePage() {
             </div>
           ) : (
             <>
-              {/* ── Gmail-style cross-page select-all banner ── */}
+              {/* â”€â”€ Gmail-style cross-page select-all banner â”€â”€ */}
               {allPageSelected && totalCount > passports.length && (
                 <div className="border-b border-border bg-blue-500/8 px-4 py-2.5 flex items-center gap-2 text-sm">
                   {selectAllMode ? (
@@ -1122,11 +1136,11 @@ export default function LifecyclePage() {
                               rel="noreferrer"
                               className="text-sm font-mono text-blue-500 hover:underline"
                             >
-                              {p.serial_number || p.uuid.slice(0, 12) + "…"}
+                              {p.serial_number || p.uuid.slice(0, 12) + "â€¦"}
                             </a>
                           </td>
                           <td className="px-4 py-3 text-sm text-muted-foreground max-w-40 truncate">
-                            {p.batch_name || "—"}
+                            {p.batch_name || "â€”"}
                           </td>
                           <td className="px-4 py-3">
                             <span
@@ -1140,14 +1154,14 @@ export default function LifecyclePage() {
                               <SoHBar value={p.state_of_health} />
                             ) : (
                               <span className="text-xs text-muted-foreground">
-                                —
+                                â€”
                               </span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                             {p.updated_at
                               ? new Date(p.updated_at).toLocaleDateString()
-                              : "—"}
+                              : "â€”"}
                           </td>
                           <td className="px-4 py-3">
                             <DropdownMenu>
@@ -1260,13 +1274,13 @@ export default function LifecyclePage() {
           )}
         </div>
 
-        {/* ── Pagination ── */}
+        {/* â”€â”€ Pagination â”€â”€ */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between text-sm">
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -1280,7 +1294,7 @@ export default function LifecyclePage() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -1289,21 +1303,21 @@ export default function LifecyclePage() {
         )}
       </div>
 
-      {/* ── Sticky bulk selection footer ── */}
+      {/* â”€â”€ Sticky bulk selection footer â”€â”€ */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-background border border-border rounded-full shadow-xl">
           <span className="text-sm font-medium text-foreground whitespace-nowrap">
             {effectiveCount.toLocaleString()} selected
           </span>
           <select
-            className="border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            className="border border-border px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             value={bulkAction}
             onChange={(e) => setBulkAction(e.target.value)}
           >
             <option value="">
               {bulkAllowedActionsLoading
-                ? "Loading actions…"
-                : "Choose action…"}
+                ? "Loading actionsâ€¦"
+                : "Choose actionâ€¦"}
             </option>
             {bulkActionOptions.map((action) => (
               <option key={action} value={action}>
@@ -1314,7 +1328,7 @@ export default function LifecyclePage() {
           <button
             disabled={!bulkAction || bulkAllowedActionsLoading}
             onClick={() => bulkAction && openBulkModal(bulkAction)}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-40 transition-opacity"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-foreground text-background text-sm font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
             <ArrowRight className="h-4 w-4" />
             Apply
@@ -1333,7 +1347,7 @@ export default function LifecyclePage() {
         </div>
       )}
 
-      {/* ── Bulk action confirmation modal ── */}
+      {/* â”€â”€ Bulk action confirmation modal â”€â”€ */}
       <Dialog open={showBulkModal} onOpenChange={setShowBulkModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1359,7 +1373,7 @@ export default function LifecyclePage() {
                       [field.key]: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             ))}
@@ -1375,7 +1389,7 @@ export default function LifecyclePage() {
                     placeholder="e.g. BATCH_QC_PASS, MANUAL_OVERRIDE"
                     value={reasonCode}
                     onChange={(e) => setReasonCode(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1391,7 +1405,7 @@ export default function LifecyclePage() {
                     placeholder="Optional free-text note (max 500 chars)"
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                   />
                 </div>
               </>
@@ -1403,7 +1417,7 @@ export default function LifecyclePage() {
             </p>
           </div>
 
-          {/* Progress bar — visible only while processing */}
+          {/* Progress bar â€” visible only while processing */}
           {processing && (
             <div className="space-y-1.5 px-1 pb-1">
               <div className="flex items-center justify-between gap-2">
@@ -1429,14 +1443,14 @@ export default function LifecyclePage() {
             <button
               onClick={() => setShowBulkModal(false)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleBulkTransition}
               disabled={processing}
-              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {!processing && <ArrowRight className="h-4 w-4" />}
               {processing ? "Working\u2026" : `Confirm ${bulkAction}`}
@@ -1445,7 +1459,7 @@ export default function LifecyclePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Per-row single transition modal ── */}
+      {/* â”€â”€ Per-row single transition modal â”€â”€ */}
       <Dialog
         open={!!rowAction}
         onOpenChange={(open) => {
@@ -1486,7 +1500,7 @@ export default function LifecyclePage() {
                       [field.key]: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
             ))}
@@ -1502,7 +1516,7 @@ export default function LifecyclePage() {
                     placeholder="e.g. BATCH_QC_PASS, MANUAL_OVERRIDE"
                     value={rowReasonCode}
                     onChange={(e) => setRowReasonCode(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1518,7 +1532,7 @@ export default function LifecyclePage() {
                     placeholder="Optional free-text note (max 500 chars)"
                     value={rowAdminNote}
                     onChange={(e) => setRowAdminNote(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                   />
                 </div>
               </>
@@ -1544,7 +1558,7 @@ export default function LifecyclePage() {
                     placeholder="Label (e.g. Bill of Lading)"
                     value={rowDocLabel}
                     onChange={(e) => setRowDocLabel(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="flex-1 px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
                 <div className="flex gap-2 items-center">
@@ -1591,10 +1605,10 @@ export default function LifecyclePage() {
                   />
                   <label
                     htmlFor="row-doc-upload"
-                    className="cursor-pointer px-3 py-2 text-xs border border-border rounded-lg hover:bg-muted transition-colors"
+                    className="cursor-pointer px-3 py-2 text-xs border border-border hover:bg-muted transition-colors"
                   >
                     {rowDocUploading
-                      ? "Uploading…"
+                      ? "Uploadingâ€¦"
                       : rowDocFile
                         ? "Change file"
                         : "Choose file"}
@@ -1616,14 +1630,14 @@ export default function LifecyclePage() {
             <button
               onClick={() => setRowAction(null)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleRowTransition}
               disabled={processing}
-              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {processing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1679,7 +1693,7 @@ export default function LifecyclePage() {
                         [field.key]: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                   />
                 ) : (
                   <input
@@ -1691,7 +1705,7 @@ export default function LifecyclePage() {
                         [field.key]: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 )}
               </div>
@@ -1709,14 +1723,14 @@ export default function LifecyclePage() {
                 setMaintenanceEvidence({});
               }}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleMaintenanceEvent}
               disabled={processing}
-              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="flex items-center gap-1.5 px-4 py-2 bg-foreground text-background text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {processing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1731,7 +1745,7 @@ export default function LifecyclePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Magic link modal ── */}
+      {/* â”€â”€ Magic link modal â”€â”€ */}
       {magicLinkPassport && (
         <RequestMagicLinkModal
           passportId={magicLinkPassport.uuid}
@@ -1740,7 +1754,7 @@ export default function LifecyclePage() {
         />
       )}
 
-      {/* ── Phase 6: Events panel / Proof Viewer ── */}
+      {/* â”€â”€ Phase 6: Events panel / Proof Viewer â”€â”€ */}
       <Dialog
         open={!!eventsPassport}
         onOpenChange={(o) => {
@@ -1750,7 +1764,7 @@ export default function LifecyclePage() {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Lifecycle events — {eventsPassport?.serial_number}
+              Lifecycle events â€” {eventsPassport?.serial_number}
             </DialogTitle>
           </DialogHeader>
           {eventsLoading ? (
@@ -1758,8 +1772,12 @@ export default function LifecyclePage() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-lg border border-border p-4 space-y-3"
+                  className="relative border border-border p-4 space-y-3"
                 >
+                  <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+                  <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+                  <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
                   <div className="flex items-center justify-between gap-3">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />
@@ -1789,10 +1807,7 @@ export default function LifecyclePage() {
                   : undefined;
 
                 return (
-                  <div
-                    key={ev.id}
-                    className="border rounded-lg p-3 space-y-1.5 text-sm"
-                  >
+                  <div key={ev.id} className="border p-3 space-y-1.5 text-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">
@@ -1800,7 +1815,7 @@ export default function LifecyclePage() {
                         </span>
                         {ev.status_from && ev.status_to && (
                           <span className="text-muted-foreground text-xs">
-                            {ev.status_from} → {ev.status_to}
+                            {ev.status_from} â†’ {ev.status_to}
                           </span>
                         )}
                         {reasonCode && (
@@ -1851,7 +1866,7 @@ export default function LifecyclePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Phase 6: Document detail modal ── */}
+      {/* â”€â”€ Phase 6: Document detail modal â”€â”€ */}
       <Dialog
         open={!!docModalDoc}
         onOpenChange={(o) => {

@@ -146,8 +146,12 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
  {templates.map((template) => (
  <div
  key={template.id}
- className="border border-border rounded-lg p-4 hover:border-border transition-colors bg-card"
+ className="relative border border-border p-4 hover:border-border transition-colors bg-transparent"
  >
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex items-start justify-between">
  <div className="flex-1">
  <div className="flex items-center gap-2 mb-2">

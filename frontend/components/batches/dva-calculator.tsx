@@ -51,7 +51,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  </button>
  )}
  </DialogTrigger>
- <DialogContent className="sm:max-w-md bg-[#171717] border-border text-foreground">
+ <DialogContent className="sm:max-w-md bg-background border-border text-foreground">
  <DialogHeader>
  <DialogTitle className="flex items-center gap-2 text-xl">
  <Calculator className="h-5 w-5 text-teal-500" />
@@ -72,7 +72,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  min="0"
  value={salePrice}
  onChange={(e) => setSalePrice(e.target.value)}
- className="flex h-10 w-full rounded-md border border-border bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500"
+ className="flex h-10 w-full border border-border bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500"
  placeholder="e.g 15000"
  />
  <p className="text-[10px] text-muted-foreground">Net selling price of battery excluding GST.</p>
@@ -85,7 +85,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  min="0"
  value={importedCost}
  onChange={(e) => setImportedCost(e.target.value)}
- className="flex h-10 w-full rounded-md border border-border bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500"
+ className="flex h-10 w-full border border-border bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500"
  placeholder="e.g 6000"
  />
  <p className="text-[10px] text-muted-foreground">CIF value of all imported cells, electronics, and potential raw materials.</p>
@@ -129,7 +129,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  <button
  onClick={handleApply}
  disabled={parseFloat(salePrice) <= 0}
- className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-card text-foreground px-4 py-2.5 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:pointer-events-none transition-colors"
+ className="w-full inline-flex items-center justify-center gap-2 bg-transparent text-foreground px-4 py-2.5 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:pointer-events-none transition-colors"
  >
  Apply to Batch
  <ArrowRight className="h-4 w-4" />

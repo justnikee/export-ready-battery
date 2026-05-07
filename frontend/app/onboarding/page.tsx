@@ -245,7 +245,7 @@ export default function OnboardingPage() {
 
  {/* Form Card */}
  <motion.div
- className="bg-[#171717]/80 backdrop-blur-xl p-8 rounded-2xl border border-border shadow-none overflow-hidden"
+ className="bg-background/80 backdrop-blur-xl p-8 rounded-2xl border border-border shadow-none overflow-hidden"
  layout
  >
  <AnimatePresence mode="wait" custom={direction}>

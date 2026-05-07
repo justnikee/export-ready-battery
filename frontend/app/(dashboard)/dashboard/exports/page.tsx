@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -130,7 +130,7 @@ export default function ExportsPage() {
  <button
  onClick={fetchExports}
  disabled={loading}
- className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+ className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
  >
  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
  Refresh
@@ -139,7 +139,11 @@ export default function ExportsPage() {
 
  {/* Empty State */}
  {exports.length === 0 ? (
- <div className="bg-card border border-border rounded-lg p-12">
+ <div className="relative bg-transparent border border-border p-12">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex flex-col items-center justify-center text-center">
  <div className="p-4 bg-muted rounded-full mb-4">
  <FileArchive className="w-8 h-8 text-muted-foreground" />
@@ -150,7 +154,11 @@ export default function ExportsPage() {
  </div>
  ) : (
  /* Data Table */
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <table className="w-full">
  <thead className="bg-muted border-b border-border">
  <tr>
@@ -204,20 +212,20 @@ export default function ExportsPage() {
  {job.status === 'COMPLETED' && job.download_url && (
  <button
  onClick={() => handleDownload(job)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+ className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
  >
  <Download className="w-4 h-4" />
  Download
  </button>
  )}
  {job.status === 'PROCESSING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 rounded-md border border-blue-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 border border-blue-500/20">
  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
  Processing...
  </span>
  )}
  {job.status === 'PENDING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 rounded-md border border-amber-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 border border-amber-500/20">
  <Clock className="w-3 h-3 mr-1.5" />
  Queued
  </span>
@@ -238,14 +246,14 @@ export default function ExportsPage() {
  <button
  onClick={() => setPage(p => Math.max(0, p - 1))}
  disabled={page === 0}
- className="px-3 py-1.5 text-sm font-medium border border-border rounded-md bg-card text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Previous
  </button>
  <button
  onClick={() => setPage(p => p + 1)}
  disabled={(page + 1) * limit >= total}
- className="px-3 py-1.5 text-sm font-medium border border-border rounded-md bg-card text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Next
  </button>

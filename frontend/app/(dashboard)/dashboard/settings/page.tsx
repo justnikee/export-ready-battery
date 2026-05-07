@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
@@ -93,7 +93,7 @@ function DocumentUpload({
  case "REJECTED":
  return (
  <span className="flex items-center gap-1.5 text-red-500 text-xs font-medium" title="Document rejected. Please upload a valid document.">
- ❌ Rejected
+ âŒ Rejected
  </span>
  )
  default:
@@ -143,7 +143,7 @@ function DocumentUpload({
  type="button"
  onClick={() => fileInputRef.current?.click()}
  disabled={uploading}
- className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border border-border bg-card text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
+ className="flex items-center gap-1.5 text-xs px-2.5 py-1 border border-border bg-transparent text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
  >
  {uploading ? (
  <>
@@ -229,7 +229,7 @@ function LogoUpload({
  type="button"
  onClick={() => fileInputRef.current?.click()}
  disabled={uploading}
- className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border bg-card text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
+ className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-border bg-transparent text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
  >
  {uploading ? (
  <>
@@ -353,7 +353,7 @@ export default function SettingsPage() {
  </div>
 
  {/* Settings Tabs */}
- <div className="flex gap-1 bg-muted rounded-lg p-1">
+ <div className="flex gap-1 bg-muted p-1">
  {[
  { id: 'profile' as const, label: 'Profile' },
  { id: 'compliance' as const, label: 'India Compliance' },
@@ -364,9 +364,9 @@ export default function SettingsPage() {
  key={tab.id}
  type="button"
  onClick={() => setActiveSettingsTab(tab.id)}
- className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+ className={`flex-1 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
  activeSettingsTab === tab.id
- ? 'bg-card text-foreground shadow-none'
+ ? 'bg-transparent text-foreground shadow-none'
  : 'text-muted-foreground hover:text-foreground'
  }`}
  >
@@ -378,10 +378,14 @@ export default function SettingsPage() {
  <form onSubmit={handleSubmit} className="space-y-6">
  {activeSettingsTab === 'profile' && (<>
  {/* Company Profile Card */}
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-100">
+ <div className="p-2 bg-blue-500/10 border border-blue-100">
  <Building2 className="h-5 w-5 text-blue-500" />
  </div>
  <div>
@@ -401,7 +405,7 @@ export default function SettingsPage() {
  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="Acme Battery Co."
  value={formData.company_name}
  onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -418,7 +422,7 @@ export default function SettingsPage() {
  <div className="relative">
  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
  <textarea
- className="flex min-h-[80px] w-full rounded-md border border-border bg-card px-3 py-2 pl-9 text-sm text-foreground shadow-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex min-h-[80px] w-full border border-border bg-transparent px-3 py-2 pl-9 text-sm text-foreground shadow-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="123 Industrial Park, Energy City, Country"
  value={formData.address}
  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -437,7 +441,7 @@ export default function SettingsPage() {
  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
  <input
  type="email"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="support@acme.com"
  value={formData.support_email}
  onChange={(e) => setFormData({ ...formData, support_email: e.target.value })}
@@ -454,7 +458,7 @@ export default function SettingsPage() {
  <Globe className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
  <input
  type="url"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="https://acme.com"
  value={formData.website}
  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
@@ -470,7 +474,7 @@ export default function SettingsPage() {
  </label>
  <div className="flex items-start gap-4">
  {/* Logo Preview */}
- <div className="relative h-20 w-20 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+ <div className="relative h-20 w-20 border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
  {formData.logo_url && !logoError ? (
  <Image
  src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
@@ -505,15 +509,19 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'compliance' && (<>
  {/* India Compliance Vault Card */}
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-100">
+ <div className="p-2 bg-emerald-500/10 border border-emerald-100">
  <ShieldCheck className="h-5 w-5 text-emerald-500" />
  </div>
  <div>
  <h3 className="text-base font-medium text-foreground">India Compliance Vault</h3>
- <p className="text-xs text-muted-foreground">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
+ <p className="text-xs text-muted-foreground">BWM 2022 & BIS Safety Standards â€¢ Upload certificates for verification</p>
  </div>
  </div>
  {/* Compliance Readiness Indicator */}
@@ -553,7 +561,7 @@ export default function SettingsPage() {
  <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="EPR/B/2024/XXXX"
  value={formData.epr_registration_number}
  onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
@@ -577,7 +585,7 @@ export default function SettingsPage() {
  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="R-12345678"
  value={formData.bis_r_number}
  onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
@@ -603,7 +611,7 @@ export default function SettingsPage() {
  <FileText className="absolute left-3 top-2.5 h-4 w-4 text-amber-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="AAACT1234A"
  value={formData.iec_code}
  onChange={(e) => setFormData({ ...formData, iec_code: e.target.value })}
@@ -617,7 +625,7 @@ export default function SettingsPage() {
  <label className="text-sm font-medium leading-none text-foreground">
  PLI Scheme Certificate
  </label>
- <div className="p-3 rounded-md border border-border bg-background">
+ <div className="p-3 border border-border bg-background">
  <p className="text-xs text-muted-foreground mb-2">
  Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
  </p>
@@ -644,7 +652,7 @@ export default function SettingsPage() {
  <input
  type="text"
  maxLength={3}
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono uppercase disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="NKY"
  value={formData.morth_manufacturer_code}
  onChange={(e) => setFormData({ ...formData, morth_manufacturer_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })}
@@ -652,7 +660,7 @@ export default function SettingsPage() {
  </div>
  {formData.morth_manufacturer_code === 'TBC' && (
  <p className="text-xs text-amber-500">
- ⚠️ “TBC” is a placeholder — replace it with your actual 3-character MoRTH-registered code.
+ âš ï¸ â€œTBCâ€ is a placeholder â€” replace it with your actual 3-character MoRTH-registered code.
  </p>
  )}
  <p className="text-xs text-muted-foreground">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
@@ -666,7 +674,7 @@ export default function SettingsPage() {
  <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
  placeholder='[{"code":"01","name":"Pune Plant"},{"code":"02","name":"Chennai Plant"}]'
  value={formData.morth_factory_codes}
  onChange={(e) => setFormData({ ...formData, morth_factory_codes: e.target.value })}
@@ -681,10 +689,14 @@ export default function SettingsPage() {
 
  {/* EU Compliance Contact Card */}
  {activeSettingsTab === 'profile' && (
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-100">
+ <div className="p-2 bg-indigo-500/10 border border-indigo-100">
  <Globe className="h-5 w-5 text-indigo-600" />
  </div>
  <div>
@@ -703,7 +715,7 @@ export default function SettingsPage() {
  <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="EU Rep GmbH"
  value={formData.eu_authorized_representative_name}
  onChange={(e) => setFormData({ ...formData, eu_authorized_representative_name: e.target.value })}
@@ -720,7 +732,7 @@ export default function SettingsPage() {
  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
  <input
  type="email"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="compliance@eurep.eu"
  value={formData.eu_contact_email}
  onChange={(e) => setFormData({ ...formData, eu_contact_email: e.target.value })}
@@ -737,7 +749,7 @@ export default function SettingsPage() {
  <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-indigo-500" />
  <input
  type="text"
- className="flex h-9 w-full rounded-md border border-border bg-card px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
  placeholder="Street, City, Country"
  value={formData.eu_authorized_representative_address}
  onChange={(e) => setFormData({ ...formData, eu_authorized_representative_address: e.target.value })}
@@ -761,7 +773,7 @@ export default function SettingsPage() {
  <button
  type="submit"
  disabled={loading}
- className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+ className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
  >
  {loading ? (
  <Loader2 className="h-4 w-4 animate-spin" />

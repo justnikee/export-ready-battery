@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
@@ -56,13 +56,13 @@ export default function CompliancePage() {
 
  {/* EPR Registration Banner */}
  {!eprRegistered && (
- <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+ <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20">
  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
  <div>
  <p className="text-sm font-medium text-amber-800">EPR Registration Missing</p>
  <p className="text-xs text-amber-500 mt-0.5">
  Add your CPCB EPR registration number in{' '}
- <a href="/dashboard/settings" className="underline font-medium">Settings → India Compliance</a>{' '}
+ <a href="/dashboard/settings" className="underline font-medium">Settings â†’ India Compliance</a>{' '}
  to unlock full compliance tracking.
  </p>
  </div>
@@ -70,7 +70,11 @@ export default function CompliancePage() {
  )}
 
  {/* India Compliance Readiness */}
- <div className="bg-card border border-border rounded-lg p-5">
+ <div className="relative bg-transparent border border-border p-5">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex items-center justify-between mb-4">
  <h3 className="text-sm text-foreground">Compliance Readiness</h3>
  <a href="/dashboard/settings" className="text-xs text-muted-foreground hover:text-foreground underline">
@@ -104,7 +108,7 @@ export default function CompliancePage() {
  return (
  <div
  key={item.label}
- className={`p-4 rounded-lg border ${
+ className={`p-4 border ${
  isVerified
  ? 'bg-emerald-500/10 border-emerald-500/20'
  : isPending
@@ -135,16 +139,16 @@ export default function CompliancePage() {
  </div>
 
  {/* Tabs */}
- <div className="flex gap-1 bg-muted rounded-lg p-1">
+ <div className="flex gap-1 bg-muted p-1">
  {tabs.map(tab => {
  const Icon = tab.icon;
  return (
  <button
  key={tab.id}
  onClick={() => setActiveTab(tab.id)}
- className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+ className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
  activeTab === tab.id
- ? 'bg-card text-foreground shadow-none'
+ ? 'bg-transparent text-foreground shadow-none'
  : 'text-muted-foreground hover:text-foreground'
  }`}
  >
@@ -167,7 +171,7 @@ export default function CompliancePage() {
 }
 
 // ============================================================================
-// OVERVIEW TAB — Multi-year obligation summary
+// OVERVIEW TAB â€” Multi-year obligation summary
 // ============================================================================
 
 function OverviewTab() {
@@ -197,7 +201,11 @@ function OverviewTab() {
  return (
  <div className="space-y-4">
  {obligations.map(ob => (
- <div key={ob.year} className="bg-card border border-border rounded-lg p-6">
+ <div key={ob.year} className="relative bg-transparent border border-border p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex items-center justify-between mb-4">
  <div className="flex items-center gap-3">
  <h3 className="text-lg text-foreground">FY {ob.financial_year}</h3>
@@ -268,7 +276,7 @@ function OverviewTab() {
 }
 
 // ============================================================================
-// CERTIFICATES TAB — CRUD Table
+// CERTIFICATES TAB â€” CRUD Table
 // ============================================================================
 
 function CertificatesTab() {
@@ -341,7 +349,7 @@ function CertificatesTab() {
  <select
  value={selectedFY}
  onChange={e => setSelectedFY(e.target.value)}
- className="appearance-none pl-3 pr-8 py-2 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+ className="appearance-none pl-3 pr-8 py-2 text-sm border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
  >
  {fyOptions.map(fy => (
  <option key={fy} value={fy}>FY {fy}</option>
@@ -355,7 +363,7 @@ function CertificatesTab() {
  </div>
  <button
  onClick={() => setShowForm(!showForm)}
- className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+ className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
  >
  <Plus className="w-4 h-4" />
  Add Certificate
@@ -381,7 +389,11 @@ function CertificatesTab() {
  ) : certificates.length === 0 ? (
  <EmptyState message="No certificates for this financial year" />
  ) : (
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <table className="w-full">
  <thead className="bg-muted border-b border-border">
  <tr>
@@ -448,7 +460,7 @@ function CertificatesTab() {
 }
 
 // ============================================================================
-// EXPORT TAB — CPCB Form 3 CSV Download
+// EXPORT TAB â€” CPCB Form 3 CSV Download
 // ============================================================================
 
 function ExportTab() {
@@ -468,14 +480,18 @@ function ExportTab() {
  };
 
  return (
- <div className="bg-card border border-border rounded-lg p-8">
+ <div className="relative bg-transparent border border-border p-8">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="max-w-lg mx-auto text-center space-y-6">
  <div className="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
  <FileSpreadsheet className="w-8 h-8 text-emerald-500" />
  </div>
 
  <div>
- <h3 className="text-lg text-foreground">CPCB Annual Return — Form 3</h3>
+ <h3 className="text-lg text-foreground">CPCB Annual Return â€” Form 3</h3>
  <p className="text-sm text-muted-foreground mt-1">
  Generate a CSV for your CPCB portal submission. Includes production data,
  recycler certificates, and battery category aggregations.
@@ -487,7 +503,7 @@ function ExportTab() {
  <select
  value={selectedFY}
  onChange={e => setSelectedFY(e.target.value)}
- className="appearance-none pl-4 pr-10 py-2.5 text-sm border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+ className="appearance-none pl-4 pr-10 py-2.5 text-sm border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
  >
  {fyOptions.map(fy => (
  <option key={fy} value={fy}>FY {fy}</option>
@@ -499,7 +515,7 @@ function ExportTab() {
  <button
  onClick={handleDownload}
  disabled={downloading}
- className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+ className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
  >
  {downloading ? (
  <Loader2 className="w-4 h-4 animate-spin" />
@@ -564,7 +580,11 @@ function CertificateForm({
  };
 
  return (
- <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-6 space-y-4">
+ <form onSubmit={handleSubmit} className="relative bg-transparent border border-border p-6 space-y-4">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <h4 className="text-sm text-foreground">Add EPR Certificate</h4>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <Input label="Certificate Number *" value={form.certificate_number} onChange={v => update('certificate_number', v)} placeholder="EPR/WP/CERT/2025/001" />
@@ -575,10 +595,10 @@ function CertificateForm({
  <Input label="Issued Date *" type="date" value={form.issued_date} onChange={v => update('issued_date', v)} />
  </div>
  <div className="flex justify-end gap-2 pt-2">
- <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border rounded-md hover:bg-accent transition-colors">
+ <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border hover:bg-accent transition-colors">
  Cancel
  </button>
- <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50">
+ <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
  Save Certificate
  </button>
@@ -599,16 +619,20 @@ function BISTrackerTab() {
  return (
  <div className="space-y-6">
  {/* BIS Status Card */}
- <div className="bg-card border border-border rounded-lg p-6">
- <h3 className="text-base text-foreground mb-4">BIS CRS Registration — IS 16046</h3>
+ <div className="relative bg-transparent border border-border p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
+ <h3 className="text-base text-foreground mb-4">BIS CRS Registration â€” IS 16046</h3>
  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
  <div>
  <p className="text-xs text-muted-foreground mb-1">R-Number</p>
- <p className="text-sm font-mono text-foreground">{bisNumber || '—'}</p>
+ <p className="text-sm font-mono text-foreground">{bisNumber || 'â€”'}</p>
  </div>
  <div>
  <p className="text-xs text-muted-foreground mb-1">Certificate Status</p>
- <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
+ <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
  bisStatus === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
  bisStatus === 'PENDING' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
  bisStatus === 'REJECTED' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
@@ -616,7 +640,7 @@ function BISTrackerTab() {
  }`}>
  {bisStatus === 'VERIFIED' ? '✅ Verified' :
  bisStatus === 'PENDING' ? '⏳ Pending Review' :
- bisStatus === 'REJECTED' ? '❌ Rejected' :
+ bisStatus === 'REJECTED' ? 'âŒ Rejected' :
  'Not Uploaded'}
  </span>
  </div>
@@ -624,7 +648,11 @@ function BISTrackerTab() {
  </div>
 
  {/* BIS Requirements Checklist */}
- <div className="bg-card border border-border rounded-lg">
+ <div className="relative bg-transparent border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="px-6 py-4 border-b border-border">
  <h3 className="text-sm text-foreground">IS 16046 Requirements Checklist</h3>
  <p className="text-xs text-muted-foreground mt-0.5">Safety requirements for lithium-ion batteries used in portable electronics and EVs</p>
@@ -657,12 +685,12 @@ function BISTrackerTab() {
 
  {/* Action Link */}
  {bisStatus !== 'VERIFIED' && (
- <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+ <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20">
  <Shield className="w-5 h-5 text-blue-500 shrink-0" />
  <div className="flex-1">
  <p className="text-sm font-medium text-blue-800">Upload your BIS certificate</p>
  <p className="text-xs text-blue-500 mt-0.5">
- Go to <a href="/dashboard/settings" className="underline font-medium">Settings → India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
+ Go to <a href="/dashboard/settings" className="underline font-medium">Settings â†’ India Compliance Vault</a> to upload your BIS IS 16046 certificate for verification.
  </p>
  </div>
  </div>
@@ -687,7 +715,7 @@ function Input({ label, value, onChange, placeholder, type = 'text' }: {
  value={value}
  onChange={e => onChange(e.target.value)}
  placeholder={placeholder}
- className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+ className="w-full px-3 py-2 text-sm border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
  />
  </div>
  );
@@ -695,7 +723,7 @@ function Input({ label, value, onChange, placeholder, type = 'text' }: {
 
 function StatCard({ label, value, highlight }: { label: string; value: string | number; highlight?: 'green' | 'red' }) {
  return (
- <div className="p-3 bg-muted rounded-lg">
+ <div className="p-3 bg-muted">
  <p className="text-xs text-muted-foreground mb-1">{label}</p>
  <p className={`text-lg ${
  highlight === 'green' ? 'text-emerald-500' :
@@ -786,7 +814,11 @@ function EURegulationTab() {
 
  if (batches.length === 0) {
  return (
- <div className="text-center py-12 bg-card rounded-xl border border-border">
+ <div className="relative text-center py-12 bg-transparent border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
  <p className="text-muted-foreground">No EU/GLOBAL active batches found</p>
  <p className="text-xs text-muted-foreground mt-1">Create a batch with EU or GLOBAL market region to see EU compliance data</p>
@@ -802,7 +834,7 @@ function EURegulationTab() {
  <select
  value={selectedBatch}
  onChange={(e) => setSelectedBatch(e.target.value)}
- className="border border-border rounded-lg px-3 py-2 text-sm flex-1 max-w-xs"
+ className="border border-border px-3 py-2 text-sm flex-1 max-w-xs"
  >
  {batches.map(b => (
  <option key={b.id} value={b.id}>{b.batch_name || b.model_name}</option>
@@ -812,7 +844,11 @@ function EURegulationTab() {
 
  {/* Score Overview */}
  {scoreResult && (
- <div className="bg-card rounded-xl border border-border p-6">
+ <div className="relative bg-transparent border border-border p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex items-center gap-6 mb-4">
  <div className={`text-4xl ${
  scoreResult.score >= 80 ? 'text-emerald-500' : scoreResult.score >= 50 ? 'text-amber-500' : 'text-red-500'
@@ -842,7 +878,11 @@ function EURegulationTab() {
  const attrs = scoreResult.attributes.filter(a => a.category === cat);
  const filledCount = attrs.filter(a => a.filled).length;
  return (
- <div key={cat} className="bg-card rounded-xl border border-border">
+ <div key={cat} className="relative bg-transparent border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="px-5 py-3 border-b border-border flex items-center justify-between">
  <h3 className="text-sm font-medium text-foreground">{cat}</h3>
  <span className={`text-xs font-medium ${filledCount === attrs.length ? 'text-emerald-500' : 'text-amber-500'}`}>
@@ -869,7 +909,11 @@ function EURegulationTab() {
  })}
 
  {/* EU Deadlines */}
- <div className="bg-card rounded-xl border border-border p-5">
+ <div className="relative bg-transparent border border-border p-5">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
  <AlertTriangle className="h-4 w-4 text-amber-500" />
  EU Battery Regulation Deadlines
@@ -930,7 +974,7 @@ function LoadingState() {
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
  return (
- <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 text-center">
+ <div className="bg-red-500/10 border border-red-500/20 p-6 text-center">
  <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
  <p className="text-sm text-red-500">{message}</p>
  <button onClick={onRetry} className="mt-3 inline-flex items-center gap-1 text-sm text-red-500 hover:text-red-800">
@@ -942,7 +986,11 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 function EmptyState({ message }: { message: string }) {
  return (
- <div className="bg-card border border-border rounded-lg p-12">
+ <div className="relative bg-transparent border border-border p-12">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex flex-col items-center justify-center text-center">
  <div className="p-4 bg-muted rounded-full mb-4">
  <Shield className="w-8 h-8 text-muted-foreground" />

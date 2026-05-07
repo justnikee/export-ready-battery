@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { useAuth } from "@/context/auth-context"
@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
  <div>
  <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-3">
- <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+ <div className="p-2 bg-emerald-500/10 border border-emerald-500/20">
  <BarChart3 className="h-5 w-5 text-emerald-500" />
  </div>
  Scan Analytics
@@ -178,7 +178,7 @@ export default function AnalyticsPage() {
  {/* Charts Column */}
  <div className="lg:col-span-2 space-y-6">
  {/* Country Chart */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <CardTitle className="text-foreground flex items-center gap-2">
  <Globe className="h-5 w-5 text-purple-600" />
@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
  </Card>
 
  {/* Device Chart */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <CardTitle className="text-foreground flex items-center gap-2">
  <Smartphone className="h-5 w-5 text-amber-500" />
@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
 
  {/* Live Feed Column */}
  <div>
- <Card className="bg-card border-border h-full">
+ <Card className="bg-transparent border-border h-full">
  <CardHeader>
  <CardTitle className="text-foreground flex items-center gap-2">
  <Activity className="h-5 w-5 text-emerald-500" />

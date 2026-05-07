@@ -49,7 +49,7 @@ export function PricingCard({
  {!isEnterprise && <span className="text-lg text-muted-foreground font-normal">/ license</span>}
  </div>
  {!isEnterprise && (
- <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border border-border mt-2">
+ <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-amber-500" />
  <span className="text-xs text-muted-foreground">
  <span className="text-foreground font-medium">{batchCount} batches</span> @ {pricePerBatch}/batch
@@ -57,7 +57,7 @@ export function PricingCard({
  </div>
  )}
  {isEnterprise && (
- <div className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-background border border-border mt-2">
+ <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-emerald-500" />
  <span className="text-xs text-muted-foreground">
  <span className="text-foreground font-medium">200+ batches</span> @ Custom rates
@@ -87,7 +87,7 @@ export function PricingCard({
  onClick={onAction}
  disabled={loading}
  className={`w-full py-6 font-medium text-base ${isEnterprise
- ? 'bg-card text-foreground hover:bg-background border border-border'
+ ? 'bg-transparent text-foreground hover:bg-background border border-border'
  : isPopular
  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-none shadow-emerald-100'
  : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}

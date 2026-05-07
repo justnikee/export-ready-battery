@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import type React from "react"
@@ -227,7 +227,7 @@ export default function BatchDetailsPage() {
  const apiError = toApiError(error)
  console.error("Failed to download labels", error);
  if (apiError.response?.status === 403) {
- toast.error("⚠️ You must Activate this batch before downloading labels.", {
+ toast.error("âš ï¸ You must Activate this batch before downloading labels.", {
  id: 'labels-download',
  description: "Click 'Activate Batch' to unlock downloads.",
  duration: 5000
@@ -412,20 +412,20 @@ export default function BatchDetailsPage() {
  "cell_source": "Cell source (IMPORTED/DOMESTIC)",
  "specs.certifications: AIS-156": "AIS-156 certification",
  "specs.certifications: AIS-038": "AIS-038 certification",
- "tenant.epr_registration_number": "EPR Registration (Settings → Compliance)",
- "tenant.bis_r_number": "BIS R-Number (Settings → Compliance)",
- "tenant.iec_code": "IEC Code (Settings → Compliance)",
- "tenant.morth_manufacturer_code": "MoRTH Code (Settings → Compliance)",
+ "tenant.epr_registration_number": "EPR Registration (Settings â†’ Compliance)",
+ "tenant.bis_r_number": "BIS R-Number (Settings â†’ Compliance)",
+ "tenant.iec_code": "IEC Code (Settings â†’ Compliance)",
+ "tenant.morth_manufacturer_code": "MoRTH Code (Settings â†’ Compliance)",
  "bill_of_entry_no": "Bill of Entry number",
  "country_of_origin": "Cell country of origin",
  "customs_date": "Import date",
  "domestic_value_add": "Domestic value-add percentage",
  "specs.battery_category": "EU battery category",
- "tenant.company_name": "Company name (Settings → Profile)",
- "tenant.address": "Company address (Settings → Profile)",
- "tenant.eu_authorized_representative_name": "EU Representative name (Settings → Compliance)",
- "tenant.eu_authorized_representative_address": "EU Representative address (Settings → Compliance)",
- "tenant.eu_contact_email": "EU contact email (Settings → Compliance)",
+ "tenant.company_name": "Company name (Settings â†’ Profile)",
+ "tenant.address": "Company address (Settings â†’ Profile)",
+ "tenant.eu_authorized_representative_name": "EU Representative name (Settings â†’ Compliance)",
+ "tenant.eu_authorized_representative_address": "EU Representative address (Settings â†’ Compliance)",
+ "tenant.eu_contact_email": "EU contact email (Settings â†’ Compliance)",
  "carbon_footprint_result": "Carbon footprint (use Carbon Calculator tab)",
  "specs.material_composition": "Material composition (at least one non-zero %)",
  "specs.hazardous_substances.declaration": "Hazardous substances declaration",
@@ -452,9 +452,9 @@ export default function BatchDetailsPage() {
  }
 
  // Returns a contextual action for each blocker key:
- //   - Settings issues   → navigate to /settings
- //   - Tab-specific      → switch active tab
- //   - Certifications    → inline PATCH to add the cert
+ //   - Settings issues   â†’ navigate to /settings
+ //   - Tab-specific      â†’ switch active tab
+ //   - Certifications    â†’ inline PATCH to add the cert
  const getBlockerAction = (key: string): { label: string; icon: React.ReactNode; onClick: () => void; loading: boolean } | null => {
   const settingsComplianceKeys = ["tenant.epr_registration_number", "tenant.bis_r_number", "tenant.iec_code", "tenant.morth_manufacturer_code"]
   const settingsProfileKeys = ["tenant.company_name", "tenant.address", "tenant.eu_authorized_representative_name", "tenant.eu_authorized_representative_address", "tenant.eu_contact_email"]
@@ -537,7 +537,7 @@ export default function BatchDetailsPage() {
 
  // PLI DVA threshold
  if (b.pli_compliant && (b.domestic_value_add ?? 0) < 50) {
- warnings.push("PLI requires ≥50% DVA (current: " + (b.domestic_value_add ?? 0) + "%)")
+ warnings.push("PLI requires â‰¥50% DVA (current: " + (b.domestic_value_add ?? 0) + "%)")
  }
  }
 
@@ -606,12 +606,12 @@ export default function BatchDetailsPage() {
  if (preflight.blocking.length > 0) {
  toast.error(
  <div className="space-y-2">
- <p className="">Cannot activate — {preflight.blocking.length} requirement{preflight.blocking.length > 1 ? "s" : ""} missing:</p>
+ <p className="">Cannot activate â€” {preflight.blocking.length} requirement{preflight.blocking.length > 1 ? "s" : ""} missing:</p>
  <ul className="list-disc pl-4 text-sm space-y-0.5">
  {preflight.blocking.slice(0, 8).map((b, i) => (
  <li key={i}>{formatBlockerLabel(b)}</li>
  ))}
- {preflight.blocking.length > 8 && <li>…and {preflight.blocking.length - 8} more</li>}
+ {preflight.blocking.length > 8 && <li>â€¦and {preflight.blocking.length - 8} more</li>}
  </ul>
  {preflight.warnings.length > 0 && (
  <p className="text-amber-500 text-xs mt-1">+ {preflight.warnings.length} warning{preflight.warnings.length > 1 ? "s" : ""}</p>
@@ -730,7 +730,11 @@ export default function BatchDetailsPage() {
  <div className="min-h-screen bg-background text-foreground p-8 font-sans">
  <div className="w-full mx-auto space-y-8">
  {/* Header with Compliance Badge */}
- <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+ <div className="relative overflow-visible border border-border bg-transparent p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
  <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/batches')} className="text-muted-foreground hover:text-foreground hover:bg-muted">
@@ -762,7 +766,7 @@ export default function BatchDetailsPage() {
  : "bg-emerald-600 hover:bg-emerald-500/100 text-white shadow-none shadow-emerald-500/20"}
  disabled={activating || activationResult.blocking.length > 0}
  title={activationResult.blocking.length > 0
- ? `${activationResult.blocking.length} requirement(s) missing — see blockers below`
+ ? `${activationResult.blocking.length} requirement(s) missing â€” see blockers below`
  : "Activate this batch"}
  >
  {activating ? (
@@ -851,14 +855,14 @@ export default function BatchDetailsPage() {
 
 
 
-  {/* Activation Blockers Panel — shown only for draft batches with issues */}
+  {/* Activation Blockers Panel â€” shown only for draft batches with issues */}
   {isDraft && (activationResult.blocking.length > 0 || activationResult.warnings.length > 0) && (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border overflow-hidden">
       {activationResult.blocking.length > 0 && (
         <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-3">
           <div className="flex items-center gap-2 text-red-500 text-sm mb-3">
             <AlertTriangle className="h-4 w-4" />
-            <span>{activationResult.blocking.length} Blocking Issue{activationResult.blocking.length > 1 ? "s" : ""} — Must Fix Before Activation</span>
+            <span>{activationResult.blocking.length} Blocking Issue{activationResult.blocking.length > 1 ? "s" : ""} â€” Must Fix Before Activation</span>
           </div>
           <div className="space-y-2">
             {activationResult.blocking.map((key, i) => {
@@ -908,7 +912,11 @@ export default function BatchDetailsPage() {
   )}
 
  {/* Tab Navigation */}
- <div className="bg-card border border-border rounded-lg">
+ <div className="relative bg-transparent border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex border-b border-border px-4">
  {[
  { id: 'overview', label: 'Overview' },
@@ -937,10 +945,10 @@ export default function BatchDetailsPage() {
  {activeTab === 'overview' && (
  <div className="space-y-6">
  {/* Common Specifications - LIGHT THEME */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <CardTitle className="flex items-center gap-2 text-foreground">
- <div className="p-2 rounded-lg bg-blue-500/10">
+ <div className="p-2 bg-blue-500/10">
  <Battery className="h-5 w-5 text-blue-500" />
  </div>
  Core Specifications
@@ -948,34 +956,34 @@ export default function BatchDetailsPage() {
  </CardHeader>
  <CardContent>
  <dl className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Manufacturer</dt>
  <dd className=" text-foreground">{batch.specs.manufacturer || 'N/A'}</dd>
  </div>
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Chemistry</dt>
  <dd className=" text-foreground">{batch.specs.chemistry || 'N/A'}</dd>
  </div>
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Capacity</dt>
  <dd className=" text-emerald-400">{batch.specs.capacity || 'N/A'}</dd>
  </div>
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Voltage</dt>
  <dd className=" text-foreground">{batch.specs.voltage || 'N/A'}</dd>
  </div>
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Weight</dt>
  <dd className=" text-foreground">{batch.specs.weight || 'N/A'}</dd>
  </div>
- <div className="p-3 rounded-lg bg-background border border-border">
+ <div className="p-3 bg-background border border-border">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Country of Origin</dt>
  <dd className=" text-foreground">{batch.specs.country_of_origin || 'N/A'}</dd>
  </div>
 
  {/* Manufacturer Contact Info - Full Width */}
  {batch.specs.manufacturer_address && (
- <div className="p-3 rounded-lg bg-background border border-border col-span-2">
+ <div className="p-3 bg-background border border-border col-span-2">
  <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">Manufacturer Address</dt>
  <dd className=" text-foreground text-sm">{batch.specs.manufacturer_address}</dd>
  </div>
@@ -986,7 +994,7 @@ export default function BatchDetailsPage() {
 
  {/* Market-Specific Compliance Card - INDIA LIGHT THEME */}
  {isIndia && (
- <Card className="bg-card border-border border-l-4 border-l-orange-500">
+ <Card className="bg-transparent border-border border-l-4 border-l-orange-500">
  <CardHeader className="pb-4">
  <CardTitle className="flex items-center gap-3 text-foreground">
  <span className="text-2xl">🇮🇳</span>
@@ -996,7 +1004,7 @@ export default function BatchDetailsPage() {
  </CardHeader>
  <CardContent>
  <dl className="grid grid-cols-2 gap-4 text-sm">
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
  <Scale className="h-3.5 w-3.5 text-orange-400" />
  Domestic Value Add
@@ -1038,7 +1046,7 @@ export default function BatchDetailsPage() {
  </div>
  )}
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
  <Factory className="h-3.5 w-3.5 text-orange-400" />
  Cell Source
@@ -1056,13 +1064,13 @@ export default function BatchDetailsPage() {
  ) : 'Not specified'}
  </dd>
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">HSN Code</dt>
  <dd className="font-mono text-lg text-foreground">
  {batch.hsn_code || 'N/A'}
  </dd>
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">PLI Subsidy Eligible</dt>
  <dd className="">
  {batch.pli_compliant ? (
@@ -1075,13 +1083,13 @@ export default function BatchDetailsPage() {
  {/* Financial Data for DVA Calculation */}
  {(batch.specs?.sale_price_inr || batch.specs?.import_cost_inr) && (
  <>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Sale Price</dt>
  <dd className=" text-foreground">
  ₹{batch.specs.sale_price_inr?.toLocaleString('en-IN') || '0'}
  </dd>
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Import Material Cost</dt>
  <dd className=" text-foreground">
  ₹{batch.specs.import_cost_inr?.toLocaleString('en-IN') || '0'}
@@ -1089,9 +1097,9 @@ export default function BatchDetailsPage() {
  </div>
  </>
  )}
- <div className="col-span-2 p-4 rounded-xl bg-background border border-border">
+ <div className="col-span-2 p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Serial Format (BPAN)</dt>
- <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 rounded-lg border border-orange-500/20 inline-block">
+ <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 border border-orange-500/20 inline-block">
  IN-{user?.morth_manufacturer_code?.trim() && user.morth_manufacturer_code.trim() !== 'TBC' ? user.morth_manufacturer_code.trim() : 'XXX'}-{batch.specs?.chemistry || 'LFP'}-2026-XXXXX
  </dd>
  </div>
@@ -1099,7 +1107,7 @@ export default function BatchDetailsPage() {
 
  {/* Import Details Section (for IMPORTED cells) */}
  {batch.cell_source === "IMPORTED" && batch.bill_of_entry_no && (
- <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+ <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20">
  <div className="flex items-center gap-2 mb-3">
  <FileText className="h-4 w-4 text-amber-400" />
  <span className="text-sm font-medium text-amber-400">Customs Declaration</span>
@@ -1131,7 +1139,7 @@ export default function BatchDetailsPage() {
 
  {/* Market-Specific Compliance Card - EU LIGHT THEME */}
  {isEU && (
- <Card className="bg-card border-border border-l-4 border-l-blue-500">
+ <Card className="bg-transparent border-border border-l-4 border-l-blue-500">
  <CardHeader className="pb-4">
  <CardTitle className="flex items-center gap-3 text-foreground">
  <span className="text-2xl">🇪🇺</span>
@@ -1141,7 +1149,7 @@ export default function BatchDetailsPage() {
  </CardHeader>
  <CardContent>
  <dl className="grid grid-cols-2 gap-4 text-sm">
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
  <Leaf className="h-3.5 w-3.5 text-emerald-400" />
  Carbon Footprint
@@ -1150,18 +1158,18 @@ export default function BatchDetailsPage() {
  <span className="text-xl text-emerald-400">{batch.specs.carbon_footprint || 'N/A'}</span>
  {batch.specs.carbon_footprint && (
  <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">
- CO₂e Certified
+ COâ‚‚e Certified
  </span>
  )}
  </dd>
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
  <dd className=" text-foreground">
  {hasRecycledContent ? `${batch.specs.recycled_content_pct}%` : "Not declared"}
  </dd>
  </div>
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Certifications</dt>
  <dd className="flex gap-2 flex-wrap">
  {certifications.length > 0 ? (
@@ -1176,12 +1184,12 @@ export default function BatchDetailsPage() {
  </dd>
  </div>
  {batch.specs.battery_category && (
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Battery Category</dt>
  <dd className=" text-foreground">{batch.specs.battery_category}</dd>
  </div>
  )}
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider flex items-center gap-2">
  <Atom className="h-3.5 w-3.5 text-teal-400" />
  Material Data
@@ -1200,7 +1208,7 @@ export default function BatchDetailsPage() {
 
  {/* EU Representative */}
  {batch.specs.eu_representative && (
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">EU Representative</dt>
  <dd className=" text-foreground">{batch.specs.eu_representative}</dd>
  {batch.specs.eu_representative_email && (
@@ -1217,13 +1225,13 @@ export default function BatchDetailsPage() {
  {(hasWarrantyMonths || hasExpectedLifetime) && (
  <>
  {hasWarrantyMonths && (
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Warranty Period</dt>
  <dd className=" text-foreground">{batch.specs.warranty_months} months</dd>
  </div>
  )}
  {hasExpectedLifetime && (
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Expected Lifetime</dt>
  <dd className=" text-foreground">{expectedLifetimeCycles?.toLocaleString()} cycles</dd>
  </div>
@@ -1233,7 +1241,7 @@ export default function BatchDetailsPage() {
 
  {/* Recycled Content */}
  {hasRecycledContent && (
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">Recycled Content</dt>
  <dd className=" text-emerald-400">{batch.specs.recycled_content_pct}%</dd>
  </div>
@@ -1241,7 +1249,7 @@ export default function BatchDetailsPage() {
 
  {/* Material Composition - Full Width */}
  {materialComposition && (
- <div className="col-span-2 p-4 rounded-xl bg-background border border-border">
+ <div className="col-span-2 p-4 bg-background border border-border">
  <dt className="text-muted-foreground mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
  <Atom className="h-3.5 w-3.5 text-teal-400" />
  Material Composition
@@ -1289,7 +1297,7 @@ export default function BatchDetailsPage() {
 
  {/* Hazardous Substances Declaration - Full Width */}
  {batch.specs.hazardous_substances && (
- <div className="col-span-2 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+ <div className="col-span-2 p-4 bg-amber-500/10 border border-amber-500/20">
  <dt className="text-muted-foreground mb-3 text-xs uppercase tracking-wider flex items-center gap-2">
  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
  Hazardous Substances Declaration
@@ -1327,7 +1335,7 @@ export default function BatchDetailsPage() {
  {/* Summary & Market Info */}
  <div className="grid gap-6 md:grid-cols-2">
  {/* Summary Card - DARK THEME */}
- <Card className={`bg-card border-border ${isIndia ? "border-l-4 border-l-orange-500" :
+ <Card className={`bg-transparent border-border ${isIndia ? "border-l-4 border-l-orange-500" :
  isEU ? "border-l-4 border-l-blue-500" :
  "border-l-4 border-l-emerald-500"
  }`}>
@@ -1347,7 +1355,7 @@ export default function BatchDetailsPage() {
  </CardContent>
  </Card>
  {/* Market Info Badge - DARK THEME */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardContent className="pt-6">
  <div className="text-center">
  <div className="text-5xl mb-3">
@@ -1440,10 +1448,10 @@ export default function BatchDetailsPage() {
  {activeTab === 'upload' && (
  <div className="space-y-6">
  {/* Upload Section - LIGHT THEME */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <CardTitle className="flex items-center gap-2 text-foreground">
- <div className="p-2 rounded-lg bg-teal-50">
+ <div className="p-2 bg-teal-50">
  <FileSpreadsheet className="h-5 w-5 text-teal-600" />
  </div>
  Upload Data
@@ -1469,10 +1477,10 @@ export default function BatchDetailsPage() {
  <div className="space-y-6">
  {/* Compliance Engine Score Card */}
  {batch.status === 'ACTIVE' && (
- <Card className="bg-card border-border border-l-4 border-l-emerald-500">
+ <Card className="bg-transparent border-border border-l-4 border-l-emerald-500">
  <CardHeader className="pb-4">
  <CardTitle className="flex items-center gap-3 text-foreground">
- <div className="p-2 rounded-lg bg-emerald-500/10">
+ <div className="p-2 bg-emerald-500/10">
  <Shield className="h-5 w-5 text-emerald-500" />
  </div>
  <span>Compliance Score</span>
@@ -1517,7 +1525,7 @@ export default function BatchDetailsPage() {
  />
  </div>
 
- {/* Compliance Issues (ERROR severity — affect score) */}
+ {/* Compliance Issues (ERROR severity â€” affect score) */}
  {complianceGaps.filter(g => g.severity === 'ERROR').length > 0 && (
  <div className="mt-4 space-y-2">
  <h4 className="text-xs font-medium text-red-500 uppercase tracking-wider">
@@ -1525,11 +1533,11 @@ export default function BatchDetailsPage() {
  </h4>
  <div className="space-y-1.5 max-h-48 overflow-y-auto">
  {complianceGaps.filter(g => g.severity === 'ERROR').map((gap, i) => (
- <div key={i} className="flex items-start gap-2 text-sm p-2 rounded-lg bg-red-500/10">
+ <div key={i} className="flex items-start gap-2 text-sm p-2 bg-red-500/10">
  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-500" />
  <div>
  <span className="font-medium text-foreground">{gap.field}</span>
- <span className="text-muted-foreground ml-1">— {gap.message}</span>
+ <span className="text-muted-foreground ml-1">â€” {gap.message}</span>
  <span className="block text-xs text-muted-foreground mt-0.5">{gap.regulation}</span>
  </div>
  </div>
@@ -1538,19 +1546,19 @@ export default function BatchDetailsPage() {
  </div>
  )}
 
- {/* Advisory Warnings (WARNING severity — informational, don't affect score) */}
+ {/* Advisory Warnings (WARNING severity â€” informational, don't affect score) */}
   {complianceGaps.filter(g => g.severity === 'WARNING').length > 0 && (
   <div className="mt-4 space-y-2">
   <h4 className="text-xs font-medium text-amber-500 uppercase tracking-wider">
-  Advisory Warnings ({complianceGaps.filter(g => g.severity === 'WARNING').length}) — recommended, not blocking
+  Advisory Warnings ({complianceGaps.filter(g => g.severity === 'WARNING').length}) â€” recommended, not blocking
   </h4>
   <div className="space-y-1.5 max-h-48 overflow-y-auto">
   {complianceGaps.filter(g => g.severity === 'WARNING').map((gap, i) => (
-  <div key={i} className="flex items-start gap-2 text-sm p-2 rounded-lg bg-amber-500/10">
+  <div key={i} className="flex items-start gap-2 text-sm p-2 bg-amber-500/10">
   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
   <div>
   <span className="font-medium text-foreground">{gap.field}</span>
-  <span className="text-muted-foreground ml-1">— {gap.message}</span>
+  <span className="text-muted-foreground ml-1">â€” {gap.message}</span>
   <span className="block text-xs text-muted-foreground mt-0.5">{gap.regulation}</span>
   </div>
   </div>
@@ -1560,7 +1568,7 @@ export default function BatchDetailsPage() {
   )}
 
  {complianceGaps.length === 0 && (
- <div className="flex items-center gap-2 text-sm text-emerald-500 bg-emerald-500/10 p-3 rounded-lg">
+ <div className="flex items-center gap-2 text-sm text-emerald-500 bg-emerald-500/10 p-3">
  <CheckCircle className="h-4 w-4" />
  All compliance checks passed
  </div>
@@ -1602,7 +1610,7 @@ export default function BatchDetailsPage() {
  {/* Reports Tab */}
  {activeTab === 'reports' && (
  <div className="grid gap-4 md:grid-cols-2">
- <Card className="bg-card border-border hover:border-blue-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-blue-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-blue-500/10 hover:border-blue-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1617,7 +1625,7 @@ export default function BatchDetailsPage() {
  </CardContent>
  </Card>
 
- <Card className="bg-card border-border hover:border-emerald-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-emerald-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-emerald-500/10 hover:border-emerald-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1632,7 +1640,7 @@ export default function BatchDetailsPage() {
  </CardContent>
  </Card>
 
- <Card className="bg-card border-border hover:border-teal-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-teal-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-teal-50 hover:border-teal-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1647,7 +1655,7 @@ export default function BatchDetailsPage() {
  </CardContent>
  </Card>
 
- <Card className="bg-card border-border hover:border-amber-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-amber-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-amber-500/10 hover:border-amber-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1660,7 +1668,7 @@ export default function BatchDetailsPage() {
  </CardContent>
  </Card>
 
- <Card className="bg-card border-border hover:border-emerald-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-emerald-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-emerald-500/10 hover:border-emerald-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1676,7 +1684,7 @@ export default function BatchDetailsPage() {
  </Card>
 
  {(batch.market_region === "EU" || batch.market_region === "GLOBAL") && (
- <Card className="bg-card border-border hover:border-emerald-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-emerald-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-emerald-500/10 hover:border-emerald-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1693,7 +1701,7 @@ export default function BatchDetailsPage() {
  )}
 
  {(batch.market_region === "EU" || batch.market_region === "GLOBAL") && (
- <Card className="bg-card border-border hover:border-indigo-300 transition-colors">
+ <Card className="bg-transparent border-border hover:border-indigo-300 transition-colors">
  <CardContent className="pt-6">
  <Button
  className="w-full bg-muted hover:bg-indigo-500/10 hover:border-indigo-300 text-foreground border border-border disabled:opacity-50 transition-all duration-200"
@@ -1722,7 +1730,7 @@ export default function BatchDetailsPage() {
  />
 
  {/* Confirmation Dialogs */}
- {/* Cert declaration — user self-declares they hold the certification */}
+ {/* Cert declaration â€” user self-declares they hold the certification */}
  <ConfirmDialog
  open={!!confirmCert}
  onOpenChange={(open) => { if (!open) setConfirmCert(null) }}

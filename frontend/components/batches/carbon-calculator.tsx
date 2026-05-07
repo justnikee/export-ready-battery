@@ -178,11 +178,11 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  const maxBreakdownValue = breakdownItems.length > 0 ? Math.max(...breakdownItems.map(i => i.value)) : 1
 
  return (
- <Card className="bg-card border-border border-l-4 border-l-emerald-500">
+ <Card className="bg-transparent border-border border-l-4 border-l-emerald-500">
  <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
  <div className="flex items-center justify-between">
  <CardTitle className="flex items-center gap-3 text-foreground">
- <div className="p-2 rounded-lg bg-emerald-500/10">
+ <div className="p-2 bg-emerald-500/10">
  <Leaf className="h-5 w-5 text-emerald-500" />
  </div>
  Carbon Footprint Calculator
@@ -346,18 +346,18 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  <div className="space-y-4 pt-2">
  {/* Summary Row */}
  <div className="grid grid-cols-2 gap-4">
- <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-200">
+ <div className="p-4 bg-emerald-500/10 border border-emerald-200">
  <div className="text-xs text-emerald-500 uppercase tracking-wider mb-1">Total Carbon Footprint</div>
  <div className="text-2xl text-emerald-500">{result.total_kg_co2e.toFixed(1)} <span className="text-sm font-normal">kg CO₂e</span></div>
  </div>
- <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-200">
+ <div className="p-4 bg-blue-500/10 border border-blue-200">
  <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">Per kWh</div>
  <div className="text-2xl text-blue-500">{result.per_kwh_kg_co2e.toFixed(2)} <span className="text-sm font-normal">kg CO₂e / kWh</span></div>
  </div>
  </div>
 
  {/* Breakdown Bar Chart */}
- <div className="p-4 rounded-xl bg-background border border-border space-y-3">
+ <div className="p-4 bg-background border border-border space-y-3">
  <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Breakdown</div>
  {breakdownItems.map(item => (
  <div key={item.label} className="space-y-1">
@@ -379,7 +379,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  </div>
 
  {/* Declaration */}
- <div className="p-4 rounded-xl bg-background border border-border">
+ <div className="p-4 bg-background border border-border">
  <div className="flex items-start gap-2">
  <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
  <div>
@@ -401,7 +401,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  {showFactors ? "Hide" : "Show"} factors used ({result.factors_used.length})
  </button>
  {showFactors && (
- <div className="mt-2 rounded-lg border border-border overflow-hidden">
+ <div className="mt-2 border border-border overflow-hidden">
  <table className="w-full text-xs">
  <thead className="bg-background text-muted-foreground">
  <tr>

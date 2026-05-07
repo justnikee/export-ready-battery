@@ -270,7 +270,7 @@ export default function DeveloperPage() {
                 Generate API Key
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border sm:max-w-md">
+            <DialogContent className="bg-background border-border sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-foreground">
                   Generate API Key
@@ -318,7 +318,7 @@ export default function DeveloperPage() {
                   <Label className="text-foreground">
                     Lifecycle Role{" "}
                     <span className="text-muted-foreground text-xs font-normal">
-                      (optional — required for supply-chain transitions)
+                      (optional â€” required for supply-chain transitions)
                     </span>
                   </Label>
                   <Select value={keyRole} onValueChange={setKeyRole}>
@@ -330,25 +330,25 @@ export default function DeveloperPage() {
                         value=""
                         className="text-muted-foreground focus:bg-accent focus:text-accent-foreground"
                       >
-                        None — no lifecycle transitions
+                        None â€” no lifecycle transitions
                       </SelectItem>
                       <SelectItem
                         value="LOGISTICS"
                         className="text-foreground focus:bg-accent focus:text-accent-foreground"
                       >
-                        LOGISTICS — can ship passports
+                        LOGISTICS â€” can ship passports
                       </SelectItem>
                       <SelectItem
                         value="TECHNICIAN"
                         className="text-foreground focus:bg-accent focus:text-accent-foreground"
                       >
-                        TECHNICIAN — can mark as installed
+                        TECHNICIAN â€” can mark as installed
                       </SelectItem>
                       <SelectItem
                         value="RECYCLER"
                         className="text-foreground focus:bg-accent focus:text-accent-foreground"
                       >
-                        RECYCLER — can close recycling loop
+                        RECYCLER â€” can close recycling loop
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -405,7 +405,7 @@ export default function DeveloperPage() {
 
         {/* Key Reveal Dialog */}
         <Dialog open={showKeyReveal} onOpenChange={setShowKeyReveal}>
-          <DialogContent className="bg-card border-border sm:max-w-lg">
+          <DialogContent className="bg-background border-border sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-foreground flex items-center gap-2">
                 <Key className="w-5 h-5 text-green-600" />
@@ -413,14 +413,14 @@ export default function DeveloperPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20">
                 <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                 <p className="text-amber-500 text-sm">
                   Copy this key now. It will only be shown once!
                 </p>
               </div>
               <div className="relative">
-                <code className="block w-full p-4 bg-muted border border-border rounded-lg font-mono text-sm text-green-700 break-all">
+                <code className="block w-full p-4 bg-muted border border-border font-mono text-sm text-green-700 break-all">
                   {newKeyData?.key}
                 </code>
                 <Button
@@ -477,7 +477,7 @@ export default function DeveloperPage() {
                 {apiKeys.map((key) => (
                   <div
                     key={key.id}
-                    className="flex items-center justify-between p-4 bg-muted border border-border rounded-lg"
+                    className="flex items-center justify-between p-4 bg-muted border border-border"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -545,7 +545,11 @@ export default function DeveloperPage() {
         </Card>
 
         {/* Quick Start */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
           <div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium text-foreground">Quick Start</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -661,7 +665,7 @@ export default function DeveloperPage() {
                 {deviceTokens.map((token) => (
                   <div
                     key={token.id}
-                    className="flex items-center justify-between p-3 bg-muted border border-border rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted border border-border"
                   >
                     <div className="flex items-center gap-3">
                       <Cpu className="h-4 w-4 text-teal-600" />
@@ -680,7 +684,7 @@ export default function DeveloperPage() {
                           )}
                           {token.batch_id && (
                             <span className="text-xs text-muted-foreground">
-                              Batch: {token.batch_id.slice(0, 8)}…
+                              Batch: {token.batch_id.slice(0, 8)}â€¦
                             </span>
                           )}
                           <span className="text-xs text-muted-foreground">
@@ -706,7 +710,7 @@ export default function DeveloperPage() {
             )}
 
             {/* Sample payload */}
-            <div className="mt-4 p-3 bg-[#171717] rounded-lg">
+            <div className="mt-4 p-3 bg-background">
               <p className="text-xs text-muted-foreground mb-2">
                 Sample telemetry request:
               </p>
@@ -735,13 +739,13 @@ export default function DeveloperPage() {
                 again.
               </DialogDescription>
             </DialogHeader>
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+            <div className="bg-amber-500/10 border border-amber-500/20 p-3">
               <div className="flex items-center gap-2 text-amber-800 text-sm font-medium">
                 <AlertTriangle className="h-4 w-4" />
-                Copy this token now — it will only be shown once!
+                Copy this token now â€” it will only be shown once!
               </div>
             </div>
-            <div className="p-3 bg-[#171717] rounded-lg flex items-center justify-between">
+            <div className="p-3 bg-background flex items-center justify-between">
               <code className="text-green-400 text-sm break-all">
                 {newTokenRaw}
               </code>
@@ -778,7 +782,7 @@ export default function DeveloperPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-card border-border text-foreground hover:bg-accent">
+              <AlertDialogCancel className="bg-transparent border-border text-foreground hover:bg-accent">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
@@ -803,7 +807,7 @@ export default function DeveloperPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 text-sm">
-              <div className="p-3 bg-muted border border-border rounded-lg">
+              <div className="p-3 bg-muted border border-border">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-green-600 text-white">POST</Badge>
                   <code className="text-foreground">
@@ -818,7 +822,7 @@ export default function DeveloperPage() {
                 </div>
                 <p className="text-muted-foreground mt-1">Create a new batch</p>
               </div>
-              <div className="p-3 bg-muted border border-border rounded-lg">
+              <div className="p-3 bg-muted border border-border">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-green-600 text-white">POST</Badge>
                   <code className="text-foreground">
@@ -835,7 +839,7 @@ export default function DeveloperPage() {
                   Add passports via JSON (up to 500 per request)
                 </p>
               </div>
-              <div className="p-3 bg-muted border border-border rounded-lg">
+              <div className="p-3 bg-muted border border-border">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-blue-600 text-white">GET</Badge>
                   <code className="text-foreground">
@@ -852,7 +856,7 @@ export default function DeveloperPage() {
                   Download PDF labels for printing
                 </p>
               </div>
-              <div className="p-3 bg-muted border border-border rounded-lg">
+              <div className="p-3 bg-muted border border-border">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-blue-600 text-white">GET</Badge>
                   <code className="text-foreground">
@@ -898,7 +902,7 @@ export default function DeveloperPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-card border-border text-foreground hover:bg-accent">
+              <AlertDialogCancel className="bg-transparent border-border text-foreground hover:bg-accent">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction

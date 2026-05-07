@@ -121,7 +121,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95, y: 20 }}
  onClick={(e) => e.stopPropagation()}
- className="bg-[#171717] rounded-2xl border border-border w-full max-w-md overflow-hidden"
+ className="bg-background rounded-2xl border border-border w-full max-w-md overflow-hidden"
  >
  {/* Header */}
  <div className="flex items-center justify-between p-4 border-b border-border">

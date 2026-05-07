@@ -230,7 +230,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
 
  {/* CSV Upload Tab */}
  <TabsContent value="csv">
- <div className="space-y-4 rounded-lg border border-dashed p-6">
+ <div className="space-y-4 border border-dashed p-6">
  {!file ? (
  <div className="flex flex-col items-center gap-2 text-center">
  <Upload className="h-10 w-10 text-muted-foreground" />
@@ -263,7 +263,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  ) : !validationResult && !uploadResult ? (
  <div className="flex flex-col gap-4">
  {/* File Info */}
- <div className="flex items-center justify-between rounded-md border p-3">
+ <div className="flex items-center justify-between border p-3">
  <div className="flex items-center gap-3">
  <FileText className="h-8 w-8 text-blue-500" />
  <div className="text-left">
@@ -332,7 +332,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  </div>
 
  {/* Error Table */}
- <div className="max-h-40 overflow-y-auto bg-card rounded border text-sm mb-3">
+ <div className="max-h-40 overflow-y-auto bg-transparent rounded border text-sm mb-3">
  {validationResult.errors.map((err, i) => (
  <div key={`err-${i}`} className="flex items-center gap-2 p-2 border-b last:border-0">
  <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
@@ -379,7 +379,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
 
  {/* Auto-Generate Tab */}
  <TabsContent value="auto">
- <div className="space-y-4 rounded-lg border p-6">
+ <div className="space-y-4 border p-6">
  {!generateResult ? (
  <>
  <div className="grid gap-4">
