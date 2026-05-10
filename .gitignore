@@ -62,6 +62,18 @@ CLAUDE.md
 # Scratch / temp files
 temp.ts
 .graphifyignore
+.ruff_cache/
+.venv/
+server.exe
+
+# Local build artifacts
+backend/*.exe
+frontend/tsconfig.tsbuildinfo
+
+# Backend test and debug dumps
+backend/build_errors*.txt
+backend/test_output*.txt
+backend/test_output*.json
 
 # Build error logs (debug artifacts, never commit)
 backend/build_err.txt

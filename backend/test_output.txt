@@ -1,6 +1,0 @@
-# exportready-battery/internal/services_test [exportready-battery/internal/services.test]
-internal\services\lifecycle_test.go:44:4: undefined: Dates
-internal\services\lifecycle_test.go:165:2: declared and not used: event1
-internal\services\lifecycle_test.go:176:2: declared and not used: hashData1
-FAIL	exportready-battery/internal/services [build failed]
-FAIL

@@ -23,6 +23,7 @@ Use this file as the starting point for repository documentation. Older phase sn
 | ------------------------------- | ------------------------------------------------------------ |
 | `PROJECT_FULL_DOCUMENTATION.md` | Broad project reference when you need one long-form overview |
 | `PASSPORT_LIFECYCLE_GUIDE.md`   | Lifecycle concepts and API behavior overview                 |
+| `TEXTILE_DPP_RESEARCH.md`       | Textile DPP research and product-extension blueprint         |
 | `DEMO_READINESS_AUDIT.md`       | Demo-specific gap checklist                                  |
 | `CODEBASE_REVIEW.md`            | Snapshot feature inventory and architecture review           |
 | `PLATFORM_BLUEPRINT.md`         | Current rollout blueprint and implementation checkpoints     |
