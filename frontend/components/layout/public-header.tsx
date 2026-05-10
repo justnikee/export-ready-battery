@@ -49,7 +49,7 @@ export function PublicHeader() {
           </Link>
           <Link
             href="/contact"
-            className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25 rounded-lg"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-cta-button px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:opacity-95"
           >
             Book a Demo
           </Link>
@@ -98,7 +98,7 @@ export function PublicHeader() {
             </Link>
             <Link
               href="/contact"
-              className="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 rounded-lg"
+              className="inline-flex w-full items-center justify-center rounded-full bg-gradient-cta-button px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:opacity-95"
             >
               Book a Demo
             </Link>

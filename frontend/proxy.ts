@@ -11,7 +11,7 @@ const authRoutes = ['/login', '/register', '/forgot-password', '/reset-password'
 // so an existing session cookie must not redirect it away and lose the params)
 const bypassRoutes = ['/auth/callback']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value
     const { pathname } = request.nextUrl
 

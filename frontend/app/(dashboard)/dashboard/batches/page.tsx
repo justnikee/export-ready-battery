@@ -6,7 +6,7 @@ import { CreateBatchDialog } from "@/components/batches/create-batch-dialog";
 import { TemplatesDialog } from "@/components/batches/templates-dialog";
 import api from "@/lib/api";
 import { duplicateBatch } from "@/lib/api/batches";
-import { type ApiError, toApiError } from "@/lib/utils";
+import { toApiError } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

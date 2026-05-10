@@ -152,11 +152,27 @@ export default function PartnersPage() {
     }
   }, [apiUrl, getAuthHeaders]);
 
+  const fetchWebhooks = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/outbound-webhooks`, {
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWebhooks(data.webhooks || []);
+      }
+    } catch {
+      console.error("Failed to fetch webhooks");
+    } finally {
+      setLoadingWebhooks(false);
+    }
+  }, [apiUrl, getAuthHeaders]);
+
   useEffect(() => {
     fetchPartners();
     fetchCodes();
     fetchWebhooks();
-  }, [fetchCodes, fetchPartners]);
+  }, [fetchCodes, fetchPartners, fetchWebhooks]);
 
   // Add trusted partner
   const handleAddPartner = async () => {
@@ -276,21 +292,6 @@ export default function PartnersPage() {
   };
 
   // Webhook functions
-  const fetchWebhooks = async () => {
-    try {
-      const res = await fetch(`${apiUrl}/outbound-webhooks`, {
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setWebhooks(data.webhooks || []);
-      }
-    } catch {
-      console.error("Failed to fetch webhooks");
-    } finally {
-      setLoadingWebhooks(false);
-    }
-  };
 
   const handleAddWebhook = async () => {
     if (!newWebhookUrl.trim()) {

@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Factory, QrCode, FileCheck } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Factory,
+  QrCode,
+  FileCheck,
+} from "lucide-react";
 
 const blueprintGrid =
   'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2740%27 height=%2740%27 viewBox=%270 0 40 40%27%3E%3Crect width=%2740%27 height=%2740%27 fill=%27none%27 stroke=%27%23cbd5e1%27 stroke-width=%270.5%27/%3E%3C/svg%3E")';
@@ -21,7 +27,13 @@ export function HeroSection() {
     <section className="relative overflow-hidden bg-[#f8fafc]">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(180deg,#f8fafc_0%,#f1f5f9_40%,#e8f5e9_100%)]" />
-        <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: blueprintGrid, backgroundSize: "40px 40px" }} />
+        <div
+          className="absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage: blueprintGrid,
+            backgroundSize: "40px 40px",
+          }}
+        />
         <div
           className="absolute -left-24 -top-36 rounded-full blur-3xl"
           style={{
@@ -82,15 +94,15 @@ export function HeroSection() {
           </h1>
 
           <p className="mx-auto mb-10 max-w-[40rem] text-lg leading-8 text-slate-600 sm:text-xl">
-            Generate EU Battery Passports and India BIS certificates in under 2 minutes.
-            Track every unit from production to recycling with tamper-proof audit trails
-            — purpose-built for battery manufacturers.
+            Generate EU Battery Passports and India BIS certificates in under 2
+            minutes. Track every unit from production to recycling with
+            tamper-proof audit trails — purpose-built for battery manufacturers.
           </p>
 
           <div className="mb-12 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#006239,#0ea371)] px-8 py-3.5 text-sm font-medium text-white shadow-[0_18px_40px_rgba(14,163,113,0.28)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_24px_48px_rgba(14,163,113,0.36)]"
+              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#006239,#0ea371)] px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02]"
             >
               Start Compliance Trial
               <ArrowRight className="h-4 w-4" />
@@ -151,13 +163,20 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="grid grid-cols-3 rounded-2xl border border-slate-200 bg-white/60 backdrop-blur-sm divide-x divide-slate-200 overflow-hidden"
         >
-          {productionStats.map((stat, i) => {
+          {productionStats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="flex flex-col items-center justify-center py-5 px-4 text-center gap-2">
+              <div
+                key={stat.label}
+                className="flex flex-col items-center justify-center py-5 px-4 text-center gap-2"
+              >
                 <Icon className="h-5 w-5 text-green-600 mb-1" />
-                <span className="text-2xl md:text-3xl font-bold text-slate-900">{stat.value}</span>
-                <span className="text-xs text-slate-500 leading-tight">{stat.label}</span>
+                <span className="text-2xl md:text-3xl font-bold text-slate-900">
+                  {stat.value}
+                </span>
+                <span className="text-xs text-slate-500 leading-tight">
+                  {stat.label}
+                </span>
               </div>
             );
           })}

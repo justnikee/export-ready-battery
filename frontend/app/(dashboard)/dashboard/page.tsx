@@ -12,7 +12,6 @@ import {
   QrCode,
   FolderPlus,
   MoreHorizontal,
-  ArrowUpRight,
   ArrowRight,
   Trash2,
   Shield,

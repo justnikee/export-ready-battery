@@ -19,7 +19,7 @@ export function CTASection() {
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-green-100 rounded-full blur-3xl opacity-20" />
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-green-50 rounded-full blur-3xl opacity-30" />
-      
+
       <div className="max-w-4xl mx-auto text-center px-6 py-32 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -37,16 +37,14 @@ export function CTASection() {
           <h2 className="text-section-headline text-gray-900 mb-6">
             Ready to Ship Compliant Batteries
             <br />
-            <span className="text-accent-green">
-              Across Borders?
-            </span>
+            <span className="text-accent-green">Across Borders?</span>
           </h2>
 
           {/* Subheadline */}
           <p className="text-base sm:text-lg max-w-[56ch] mx-auto mb-10 text-gray-600">
-            Join 50+ manufacturers across India and Europe already using ExportReady to
-            simplify battery compliance, accelerate customs clearance, and enter
-            regulated markets faster.
+            Join 50+ manufacturers across India and Europe already using
+            ExportReady to simplify battery compliance, accelerate customs
+            clearance, and enter regulated markets faster.
           </p>
 
           {/* Feature Checklist */}
@@ -72,14 +70,14 @@ export function CTASection() {
           <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25 hover:scale-105"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-cta-button px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02]"
             >
               Start Free Trial
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/contact?demo=true"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium border-2 border-gray-300 bg-white text-gray-700 transition-all duration-200 hover:border-green-500 hover:text-green-700 hover:bg-green-50"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-8 py-3.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-green-500 hover:bg-green-50 hover:text-green-700"
             >
               Book Demo
             </Link>

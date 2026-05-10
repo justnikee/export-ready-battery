@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { motion } from "framer-motion"
-import { Briefcase, Code, Shield, Users, ArrowRight, Mail } from "lucide-react"
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Briefcase, Code, Shield, Users, ArrowRight, Mail } from "lucide-react";
 
 const values = [
   {
@@ -23,7 +23,7 @@ const values = [
     description:
       "Product, engineering, and compliance domain experts collaborate directly. No silos between understanding the problem and shipping the solution.",
   },
-]
+];
 
 const roles = [
   {
@@ -44,7 +44,7 @@ const roles = [
     location: "Remote (India / EU)",
     type: "Full-time",
   },
-]
+];
 
 export default function CareersPage() {
   return (
@@ -63,8 +63,9 @@ export default function CareersPage() {
             Careers at ExportReady
           </h1>
           <p className="text-lg text-zinc-600 max-w-3xl mx-auto">
-            We&apos;re building compliance infrastructure for the global battery supply chain.
-            High-stakes systems, real-world impact, and problems worth solving.
+            We&apos;re building compliance infrastructure for the global battery
+            supply chain. High-stakes systems, real-world impact, and problems
+            worth solving.
           </p>
         </motion.div>
 
@@ -87,8 +88,12 @@ export default function CareersPage() {
                 <div className="w-10 h-10 rounded-lg bg-accent-green/10 flex items-center justify-center mb-4">
                   <v.icon className="h-5 w-5 text-accent-green" />
                 </div>
-                <h3 className="text-lg font-semibold text-[#0B1F3B] mb-2">{v.title}</h3>
-                <p className="text-sm text-zinc-600 leading-relaxed">{v.description}</p>
+                <h3 className="text-lg font-semibold text-[#0B1F3B] mb-2">
+                  {v.title}
+                </h3>
+                <p className="text-sm text-zinc-600 leading-relaxed">
+                  {v.description}
+                </p>
               </div>
             ))}
           </div>
@@ -128,7 +133,10 @@ export default function CareersPage() {
           </div>
           <p className="text-center text-sm text-zinc-500 mt-6">
             Don&apos;t see a fit? Send your resume to{" "}
-            <a href="mailto:careers@exportready.com" className="text-accent-green font-medium hover:underline">
+            <a
+              href="mailto:careers@exportready.com"
+              className="text-accent-green font-medium hover:underline"
+            >
               careers@exportready.com
             </a>
           </p>
@@ -143,19 +151,19 @@ export default function CareersPage() {
         >
           <a
             href="mailto:careers@exportready.com"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium text-white bg-gradient-cta-button transition-all duration-200 hover:shadow-lg hover:shadow-green-500/25"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-cta-button px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:opacity-95"
           >
             <Mail className="h-4 w-4" />
             Send Your Resume
           </a>
           <Link
             href="/about"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg text-sm font-medium border-2 border-gray-300 bg-white text-gray-700 transition-all duration-200 hover:border-accent-green hover:text-accent-green"
+            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-8 py-3.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-accent-green hover:text-accent-green"
           >
             Learn About Us
           </Link>
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

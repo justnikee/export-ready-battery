@@ -1,14 +1,14 @@
 const COLORS = {
-  darkGreen1: "#0d1f17",
-  darkGreen2: "#142e22",
-  midGreen: "#1a4d3a",
-  brandGreen: "#006239",
-  brightGreen: "#0ea371",
-  neonGreen: "#3ecf8e",
-  lightGreen: "#4ade80",
-  teal: "#14b8a6",
-  figureLight: "#c4d4ce",
-  outline: "#2e5e48",
+  darkGreen1: "#16342e",
+  darkGreen2: "#214740",
+  midGreen: "#2d6054",
+  brandGreen: "#0f7354",
+  brightGreen: "#158a64",
+  neonGreen: "#39b983",
+  lightGreen: "#8dd8b0",
+  teal: "#4ba99a",
+  figureLight: "#d8e2dd",
+  outline: "#8aa89b",
 };
 
 export function CreateBatchIllustration({ className }: { className?: string }) {
@@ -920,7 +920,7 @@ export function GeneratePassportsIllustration({
         width={70}
         height={45}
         rx={4}
-        fill="#0d1f17"
+        fill={COLORS.darkGreen1}
         stroke={COLORS.neonGreen}
         strokeWidth={0.8}
       />
