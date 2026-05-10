@@ -1,0 +1,405 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ============================================
+   EXPORTREADY BATTERY — PRECISION v5.0
+   Design System — April 2026
+
+   Supabase-Inspired · Dual Theme (Light + Dark)
+   Inter (Circular substitute) · Source Code Pro
+   Border-based depth · No shadows · Pill CTAs
+   ============================================ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Source Code Pro', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Sidebar */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Semantic Colors */
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ============================================
+   LIGHT THEME (Default)
+   Clean enterprise · Zinc neutrals · Subtle depth
+   ============================================ */
+:root {
+  --radius: 8px;
+
+  /* ── Core Surfaces ── */
+  --background: #FAFAFA;
+  --foreground: #18181B;
+  --card: #FFFFFF;
+  --card-foreground: #18181B;
+  --popover: #FFFFFF;
+  --popover-foreground: #18181B;
+
+  /* ── Primary ── */
+  --primary: #0f0f0f;
+  --primary-foreground: #fafafa;
+
+  /* ── Secondary ── */
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181B;
+
+  /* ── Muted ── */
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;
+
+  /* ── Accent ── */
+  --accent: #F4F4F5;
+  --accent-foreground: #18181B;
+
+  /* ── Utility ── */
+  --destructive: #DC2626;
+  --border: #E4E4E7;
+  --input: #E4E4E7;
+  --ring: #3ecf8e;
+
+  /* ── Brand (identity marker — use sparingly) ── */
+  --brand: #3ecf8e;
+  --brand-foreground: #0f0f0f;
+  --brand-link: #00c573;
+  --brand-border: rgba(62, 207, 142, 0.3);
+
+  /* ── Border Hierarchy (design.md: depth through borders) ── */
+  --border-subtle: #e4e4e7;
+  --border-default: #d4d4d8;
+  --border-prominent: #a1a1aa;
+
+  /* ── Charts ── */
+  --chart-1: #10B981;
+  --chart-2: #3B82F6;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EF4444;
+
+  /* ── Sidebar ── */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #3F3F46;
+  --sidebar-primary: #3ecf8e;
+  --sidebar-primary-foreground: #0f0f0f;
+  --sidebar-accent: #F4F4F5;
+  --sidebar-accent-foreground: #18181B;
+  --sidebar-border: #E4E4E7;
+  --sidebar-ring: #3ecf8e;
+
+  /* ── Landing Page Tokens ── */
+  --ld-bg-dark:    #09090B;
+  --ld-bg-surface: #18181B;
+  --ld-bg-mid:     #27272A;
+  --ld-bg-light:   #FAFAFA;
+  --ld-border:     #3F3F46;
+  --ld-border-mid: #52525B;
+  --ld-text-muted: #A1A1AA;
+  --ld-accent:     #3ecf8e;
+  --ld-accent-hi:  #34D399;
+}
+
+/* ============================================
+   DARK THEME
+   Supabase-inspired · Deep neutrals · Emerald accents
+   ============================================ */
+.dark {
+  /* ── Core Surfaces ── */
+  --background: #171717;
+  --foreground: #fafafa;
+  --card: #1c1c1c;
+  --card-foreground: #fafafa;
+  --popover: #1c1c1c;
+  --popover-foreground: #fafafa;
+
+  /* ── Primary ── */
+  --primary: #fafafa;
+  --primary-foreground: #0f0f0f;
+
+  /* ── Secondary ── */
+  --secondary: #242424;
+  --secondary-foreground: #fafafa;
+
+  /* ── Muted ── */
+  --muted: #242424;
+  --muted-foreground: #898989;
+
+  /* ── Accent ── */
+  --accent: #242424;
+  --accent-foreground: #fafafa;
+
+  /* ── Utility ── */
+  --destructive: #DC2626;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
+  --ring: #3ecf8e;
+
+  /* ── Brand ── */
+  --brand: #3ecf8e;
+  --brand-foreground: #0f0f0f;
+  --brand-link: #3ecf8e;
+  --brand-border: rgba(62, 207, 142, 0.25);
+
+  /* ── Border Hierarchy ── */
+  --border-subtle: #242424;
+  --border-default: #2e2e2e;
+  --border-prominent: #363636;
+
+  /* ── Charts ── */
+  --chart-1: #3ecf8e;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f87171;
+
+  /* ── Sidebar ── */
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #b4b4b4;
+  --sidebar-primary: #3ecf8e;
+  --sidebar-primary-foreground: #0f0f0f;
+  --sidebar-accent: #242424;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #3ecf8e;
+
+  /* ── Landing Page Tokens (dark) ── */
+  --ld-bg-dark:    #0a0a0a;
+  --ld-bg-surface: #141414;
+  --ld-bg-mid:     #1c1c1c;
+  --ld-bg-light:   #242424;
+  --ld-border:     #2e2e2e;
+  --ld-border-mid: #363636;
+  --ld-text-muted: #898989;
+  --ld-accent:     #3ecf8e;
+  --ld-accent-hi:  #5ae4a8;
+}
+
+/* ============================================
+   BASE LAYER
+   design.md typography: weight 400, size-based hierarchy
+   ============================================ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.50;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography — design.md: hierarchy through SIZE, not weight
+     Weight 400 default — only nav/buttons use 500 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--foreground);
+    letter-spacing: normal;
+  }
+
+  h1 { font-size: 36px; line-height: 1.25; }
+  h2 { font-size: 24px; line-height: 1.33; letter-spacing: -0.16px; }
+  h3 { font-size: 18px; line-height: 1.56; }
+  h4 { font-size: 16px; line-height: 1.50; }
+
+  p {
+    line-height: 1.50;
+    color: var(--muted-foreground);
+  }
+
+  /* Monospace for data (IDs, compliance numbers, code) */
+  .font-mono, code, pre {
+    font-family: var(--font-mono);
+  }
+
+  /* Focus states — brand green ring */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Smooth transitions */
+  a, button, input, textarea, select {
+    transition: all 150ms ease;
+  }
+}
+
+/* ============================================
+   COMPONENT UTILITIES
+   ============================================ */
+@layer components {
+  /* Form label — design.md uppercase mono labels */
+  .form-label {
+    @apply text-[11px] font-medium uppercase tracking-wider mb-1.5 block;
+    color: var(--muted-foreground);
+  }
+
+  /* Divider */
+  .divider {
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  /* Brand link */
+  .link {
+    color: var(--brand-link);
+    font-weight: 500;
+  }
+  .link:hover {
+    opacity: 0.85;
+  }
+
+  /* Mono text */
+  .mono-text {
+    @apply font-mono text-[13px];
+    color: var(--muted-foreground);
+  }
+
+  /* Source Code Pro uppercase label (design.md nav group label) */
+  .code-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted-foreground);
+    font-weight: 400;
+  }
+
+  /* Display Hero — design.md: 72px/1.00, the defining typographic gesture */
+  .display-hero {
+    font-size: 72px;
+    line-height: 1.00;
+    font-weight: 400;
+    letter-spacing: normal;
+    color: var(--foreground);
+  }
+
+  /* Data Table — theme-aware */
+  .data-table { @apply w-full; }
+  .data-table thead { 
+    background: var(--muted);
+    border-bottom: 1px solid var(--border); 
+  }
+  .data-table th { 
+    @apply px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider;
+    color: var(--muted-foreground);
+  }
+  .data-table tbody tr { 
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--card);
+  }
+  .data-table tbody tr:hover { background: var(--accent); }
+  .data-table td { 
+    @apply px-4 py-3 text-sm;
+    color: var(--foreground);
+  }
+  .data-table td.mono { 
+    @apply font-mono text-[13px];
+    color: var(--muted-foreground);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   NProgress Loading Bar — Brand Green
+   ============================================ */
+#nprogress { pointer-events: none; }
+
+#nprogress .bar {
+  background: linear-gradient(90deg, #3ecf8e, #00c573);
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 8px #3ecf8e, 0 0 4px #3ecf8e;
+  opacity: 1;
+  transform: rotate(3deg) translate(0, -4px);
+}
+
+/* ============================================
+   Custom Scrollbar — theme-aware
+   ============================================ */
+.docs-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--border-prominent) transparent !important;
+}
+
+.docs-scrollbar::-webkit-scrollbar { width: 6px !important; }
+.docs-scrollbar::-webkit-scrollbar-track { background: transparent !important; }
+.docs-scrollbar::-webkit-scrollbar-thumb { background: var(--border-prominent) !important; border-radius: 3px !important; }
+.docs-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground) !important; }
+
+/* ============================================
+   Landing Page Animations
+   ============================================ */
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin-slow-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
+.animate-spin-slow-reverse { animation: spin-slow-reverse 25s linear infinite; }
+.bg-gradient-conic { background: conic-gradient(from 0deg, var(--tw-gradient-from), var(--tw-gradient-to)); }
+
+

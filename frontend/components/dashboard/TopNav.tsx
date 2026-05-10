@@ -25,13 +25,13 @@ export function TopNav() {
 
  const navItems = [
  { name: "Overview", href: "/dashboard", icon: Home },
- { name: "Batches", href: "/batches", icon: Box },
+ { name: "Batches", href: "/dashboard/batches", icon: Box },
  { name: "Dispatch", href: "/dashboard/dispatch", icon: Truck },
- { name: "Partners", href: "/partners", icon: Users },
- { name: "Team", href: "/team", icon: UserPlus },
- { name: "Rewards", href: "/rewards", icon: Trophy },
- { name: "Billing", href: "/billing", icon: CreditCard },
- { name: "Settings", href: "/settings", icon: Settings },
+ { name: "Partners", href: "/dashboard/partners", icon: Users },
+ { name: "Team", href: "/dashboard/team", icon: UserPlus },
+ { name: "Rewards", href: "/dashboard/rewards", icon: Trophy },
+ { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+ { name: "Settings", href: "/dashboard/settings", icon: Settings },
  ]
 
  const quotaBalance = user?.quota_balance ?? 0
@@ -75,7 +75,7 @@ export function TopNav() {
  key={item.href}
  href={item.href}
  className={clsx(
- "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+ "px-3 py-1.5 text-sm font-medium transition-colors",
  isActive
  ? "text-[var(--brand)] border-b-2 border-[var(--brand)] rounded-none pb-4"
  : "text-muted-foreground hover:text-foreground pb-4"
@@ -90,7 +90,7 @@ export function TopNav() {
  {/* Right: Quota Badge + User Profile */}
  <div className="flex items-center gap-2 md:gap-3">
  {/* Quota Badge */}
- <Link href="/billing">
+ <Link href="/dashboard/billing">
  <div className={clsx(
  "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
  isLowQuota
@@ -151,7 +151,7 @@ export function TopNav() {
  />
 
  {/* Slide-out Menu */}
- <div className="absolute left-0 top-0 h-full w-72 bg-card shadow-none border-r border-border animate-in slide-in-from-left duration-300">
+ <div className="absolute left-0 top-0 h-full w-72 bg-transparent shadow-none border-r border-border animate-in slide-in-from-left duration-300">
  {/* Menu Header */}
  <div className="flex items-center justify-between border-b border-border p-4">
  <Link
@@ -185,7 +185,7 @@ export function TopNav() {
  href={item.href}
  onClick={() => setMobileMenuOpen(false)}
  className={clsx(
- "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+ "flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors",
  isActive
  ? "bg-accent text-[var(--brand)]"
  : "text-muted-foreground hover:bg-accent hover:text-foreground"

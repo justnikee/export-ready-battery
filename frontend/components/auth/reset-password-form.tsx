@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { AuthLayout } from "./auth-layout"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { motion } from "framer-motion"
 import { Lock, Loader2, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -25,7 +24,6 @@ export function ResetPasswordForm() {
  const [isSuccess, setIsSuccess] = useState(false)
  const [error, setError] = useState<string | null>(null)
 
- // Password strength checks
  const passwordChecks = {
  minLength: password.length >= 8,
  hasNumber: /\d/.test(password),
@@ -62,7 +60,6 @@ export function ResetPasswordForm() {
  })
  setIsSuccess(true)
  toast.success("Password reset successfully!")
- // Redirect to login after 2 seconds
  setTimeout(() => router.push("/login"), 2000)
  } catch (err: unknown) {
  const apiError = err as { response?: { data?: { error?: string } } }
@@ -81,13 +78,9 @@ export function ResetPasswordForm() {
  subtitle="This password reset link is invalid or has expired"
  type="login"
  >
- <motion.div
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- className="text-center space-y-6"
- >
- <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center">
- <XCircle className="h-8 w-8 text-red-400" />
+ <div className="text-center space-y-6">
+ <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+ <XCircle className="h-8 w-8 text-destructive" />
  </div>
 
  <p className="text-muted-foreground">
@@ -96,17 +89,17 @@ export function ResetPasswordForm() {
 
  <div className="flex flex-col gap-3">
  <Link href="/forgot-password" className="w-full">
- <Button className="w-full h-11 bg-teal-600 hover:bg-teal-500 text-white">
+ <Button variant="accent" className="w-full h-11 rounded-md">
  Request new link
  </Button>
  </Link>
  <Link href="/login" className="w-full">
- <Button variant="ghost" className="w-full h-11 text-muted-foreground">
+ <Button variant="ghost" className="w-full h-11 text-muted-foreground rounded-md">
  Back to login
  </Button>
  </Link>
  </div>
- </motion.div>
+ </div>
  </AuthLayout>
  )
  }
@@ -118,13 +111,9 @@ export function ResetPasswordForm() {
  subtitle="Your password has been successfully updated"
  type="login"
  >
- <motion.div
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- className="text-center space-y-6"
- >
- <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center">
- <CheckCircle className="h-8 w-8 text-emerald-400" />
+ <div className="text-center space-y-6">
+ <div className="mx-auto w-16 h-16 bg-[var(--brand)]/10 rounded-full flex items-center justify-center">
+ <CheckCircle className="h-8 w-8 text-[var(--brand)]" />
  </div>
 
  <p className="text-muted-foreground">
@@ -132,11 +121,11 @@ export function ResetPasswordForm() {
  </p>
 
  <Link href="/login" className="w-full">
- <Button className="w-full h-11 bg-teal-600 hover:bg-teal-500 text-white">
+ <Button variant="accent" className="w-full h-11 rounded-md">
  Continue to login
  </Button>
  </Link>
- </motion.div>
+ </div>
  </AuthLayout>
  )
  }
@@ -148,19 +137,14 @@ export function ResetPasswordForm() {
  type="login"
  >
  <form onSubmit={handleSubmit} className="space-y-5">
- {/* New Password Field */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.1 }}
- className="space-y-2"
- >
- <Label htmlFor="password" className="text-muted-foreground text-sm font-medium">
+ {/* New Password */}
+ <div className="space-y-2">
+ <Label htmlFor="password" className="text-sm font-medium text-foreground">
  New Password
  </Label>
  <div className="relative group">
- <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
- <Lock className="h-4 w-4 text-muted-foreground group-focus-within:text-blue-400 transition-colors" />
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
+ <Lock className="h-5 w-5" />
  </div>
  <Input
  id="password"
@@ -169,49 +153,43 @@ export function ResetPasswordForm() {
  value={password}
  onChange={(e) => setPassword(e.target.value)}
  required
- className="pl-10 pr-10 h-12 bg-[#171717]/50 border-border text-white placeholder:text-muted-foreground focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+ className="pl-10 pr-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
  />
  <button
  type="button"
  onClick={() => setShowPassword(!showPassword)}
- className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-muted-foreground hover:text-muted-foreground transition-colors"
+ className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
  >
- {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+ {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
  </button>
  </div>
 
- {/* Password strength indicators */}
  {password.length > 0 && (
  <div className="space-y-1 mt-2">
- <div className={`flex items-center gap-2 text-xs ${passwordChecks.minLength ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+ <div className={`flex items-center gap-2 text-xs ${passwordChecks.minLength ? 'text-[var(--brand)]' : 'text-muted-foreground'}`}>
  {passwordChecks.minLength ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
  At least 8 characters
  </div>
- <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasLetter ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+ <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasLetter ? 'text-[var(--brand)]' : 'text-muted-foreground'}`}>
  {passwordChecks.hasLetter ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
  Contains a letter
  </div>
- <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasNumber ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+ <div className={`flex items-center gap-2 text-xs ${passwordChecks.hasNumber ? 'text-[var(--brand)]' : 'text-muted-foreground'}`}>
  {passwordChecks.hasNumber ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
  Contains a number
  </div>
  </div>
  )}
- </motion.div>
+ </div>
 
- {/* Confirm Password Field */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.2 }}
- className="space-y-2"
- >
- <Label htmlFor="confirmPassword" className="text-muted-foreground text-sm font-medium">
+ {/* Confirm Password */}
+ <div className="space-y-2">
+ <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
  Confirm Password
  </Label>
  <div className="relative group">
- <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
- <Lock className="h-4 w-4 text-muted-foreground group-focus-within:text-blue-400 transition-colors" />
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
+ <Lock className="h-5 w-5" />
  </div>
  <Input
  id="confirmPassword"
@@ -220,47 +198,38 @@ export function ResetPasswordForm() {
  value={confirmPassword}
  onChange={(e) => setConfirmPassword(e.target.value)}
  required
- className="pl-10 pr-10 h-12 bg-[#171717]/50 border-border text-white placeholder:text-muted-foreground focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+ className="pl-10 pr-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
  />
  <button
  type="button"
  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
- className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-muted-foreground hover:text-muted-foreground transition-colors"
+ className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
  >
- {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+ {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
  </button>
  </div>
 
- {/* Password match indicator */}
  {confirmPassword.length > 0 && (
- <div className={`flex items-center gap-2 text-xs ${passwordsMatch ? 'text-emerald-400' : 'text-red-400'}`}>
+ <div className={`flex items-center gap-2 text-xs ${passwordsMatch ? 'text-[var(--brand)]' : 'text-destructive'}`}>
  {passwordsMatch ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
  {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
  </div>
  )}
- </motion.div>
+ </div>
 
  {/* Error display */}
  {error && (
- <motion.div
- initial={{ opacity: 0 }}
- animate={{ opacity: 1 }}
- className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
- >
+ <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
  {error}
- </motion.div>
+ </div>
  )}
 
  {/* Submit Button */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.3 }}
- >
  <Button
  type="submit"
  disabled={isLoading || !passwordsMatch || !passwordChecks.minLength}
- className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white shadow-none shadow-blue-500/25 transition-all duration-200 disabled:opacity-50"
+ variant="accent"
+ className="w-full h-12 rounded-md disabled:opacity-50"
  >
  {isLoading ? (
  <>
@@ -271,7 +240,6 @@ export function ResetPasswordForm() {
  "Reset password"
  )}
  </Button>
- </motion.div>
  </form>
  </AuthLayout>
  )

@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { AuthLayout } from "./auth-layout"
 import api from "@/lib/api"
 import { toast } from "sonner"
-import { motion } from "framer-motion"
 import { Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -25,7 +24,6 @@ export function ForgotPasswordForm() {
  setIsSubmitted(true)
  toast.success("Reset instructions sent to your email")
  } catch {
- // Always show success for security (don't reveal if email exists)
  setIsSubmitted(true)
  toast.success("If the email exists, reset instructions will be sent")
  } finally {
@@ -40,18 +38,14 @@ export function ForgotPasswordForm() {
  subtitle="We&apos;ve sent password reset instructions"
  type="login"
  >
- <motion.div
- initial={{ opacity: 0, scale: 0.95 }}
- animate={{ opacity: 1, scale: 1 }}
- className="text-center space-y-6"
- >
- <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center">
- <CheckCircle className="h-8 w-8 text-emerald-400" />
+ <div className="text-center space-y-6">
+ <div className="mx-auto w-16 h-16 bg-[var(--brand)]/10 rounded-full flex items-center justify-center">
+ <CheckCircle className="h-8 w-8 text-[var(--brand)]" />
  </div>
 
  <div className="space-y-2">
  <p className="text-muted-foreground">
- If an account exists for <span className="font-medium text-white">{email}</span>,
+ If an account exists for <span className="font-medium text-foreground">{email}</span>,
  you&apos;ll receive an email with instructions to reset your password.
  </p>
  <p className="text-muted-foreground text-sm">
@@ -63,7 +57,7 @@ export function ForgotPasswordForm() {
  <Button
  onClick={() => setIsSubmitted(false)}
  variant="outline"
- className="w-full h-11 bg-[#171717]/50 border-border text-muted-foreground hover:bg-primary/90"
+ className="w-full h-11 border-border text-muted-foreground rounded-md"
  >
  Try another email
  </Button>
@@ -71,14 +65,14 @@ export function ForgotPasswordForm() {
  <Link href="/login" className="w-full">
  <Button
  variant="ghost"
- className="w-full h-11 text-teal-400 hover:text-teal-300 hover:bg-teal-500/10"
+ className="w-full h-11 text-[var(--brand)] hover:bg-[var(--brand)]/10 rounded-md"
  >
  <ArrowLeft className="mr-2 h-4 w-4" />
  Back to login
  </Button>
  </Link>
  </div>
- </motion.div>
+ </div>
  </AuthLayout>
  )
  }
@@ -90,19 +84,13 @@ export function ForgotPasswordForm() {
  type="login"
  >
  <form onSubmit={handleSubmit} className="space-y-5">
- {/* Email Field */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.1 }}
- className="space-y-2"
- >
- <Label htmlFor="email" className="text-muted-foreground text-sm font-medium">
+ <div className="space-y-2">
+ <Label htmlFor="email" className="text-sm font-medium text-foreground">
  Email address
  </Label>
  <div className="relative group">
- <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
- <Mail className="h-4 w-4 text-muted-foreground group-focus-within:text-blue-400 transition-colors" />
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[var(--brand)] transition-colors">
+ <Mail className="h-5 w-5" />
  </div>
  <Input
  id="email"
@@ -111,21 +99,16 @@ export function ForgotPasswordForm() {
  value={email}
  onChange={(e) => setEmail(e.target.value)}
  required
- className="pl-10 h-12 bg-[#171717]/50 border-border text-white placeholder:text-muted-foreground focus:border-blue-500 focus:ring-blue-500/20 transition-all"
+ className="pl-10 h-12 border-border focus:border-[var(--brand)] focus:ring-[var(--brand)]/20 transition-all rounded-md"
  />
  </div>
- </motion.div>
+ </div>
 
- {/* Submit Button */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.2 }}
- >
  <Button
  type="submit"
  disabled={isLoading}
- className="w-full h-12 bg-gradient-to-r from-blue-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white shadow-none shadow-blue-500/25 transition-all duration-200"
+ variant="accent"
+ className="w-full h-12 rounded-md"
  >
  {isLoading ? (
  <>
@@ -136,23 +119,16 @@ export function ForgotPasswordForm() {
  "Send reset instructions"
  )}
  </Button>
- </motion.div>
 
- {/* Back to login */}
- <motion.div
- initial={{ opacity: 0, y: 10 }}
- animate={{ opacity: 1, y: 0 }}
- transition={{ delay: 0.3 }}
- className="text-center"
- >
+ <div className="text-center">
  <Link
  href="/login"
- className="inline-flex items-center text-sm text-teal-400 hover:text-teal-300 transition-colors"
+ className="inline-flex items-center text-sm text-[var(--brand)] hover:underline transition-colors"
  >
  <ArrowLeft className="mr-2 h-4 w-4" />
  Back to login
  </Link>
- </motion.div>
+ </div>
  </form>
  </AuthLayout>
  )

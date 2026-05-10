@@ -3,6 +3,7 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,8 +88,14 @@ func (rl *RateLimiter) Stop() {
 // Limit is the middleware that applies rate limiting
 func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get real IP (support for proxies)
+		// Get real IP (support for proxies). Take only the first (leftmost) IP from
+		// X-Forwarded-For to prevent header injection attacks.
 		ip := r.Header.Get("X-Forwarded-For")
+		if ip != "" {
+			if idx := strings.Index(ip, ","); idx != -1 {
+				ip = strings.TrimSpace(ip[:idx])
+			}
+		}
 		if ip == "" {
 			ip = r.Header.Get("X-Real-IP")
 		}

@@ -39,14 +39,14 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
  }
 
  return (
- <Card className="bg-card border-border text-card-foreground h-full">
+ <Card className="bg-transparent border-border text-card-foreground h-full">
  {/* Header */}
  <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-border">
  <CardTitle className="code-label">
  Recent Batches
  </CardTitle>
  <Link
- href="/batches"
+ href="/dashboard/batches"
  className="flex items-center gap-1 text-xs text-[var(--brand-link)] hover:opacity-80 font-medium transition-colors"
  >
  View all
@@ -56,7 +56,7 @@ export function RecentBatchesTable({ batches }: RecentBatchesTableProps) {
 
  <CardContent className="p-0">
  {/* Table header */}
- <div className="flex items-center px-5 py-2.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-card/50 border-b border-border">
+ <div className="flex items-center px-5 py-2.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-transparent/50 border-b border-border">
  <span className="flex-1">Batch</span>
  <span className="w-20 text-right">Volume</span>
  <span className="w-20 text-center">Status</span>

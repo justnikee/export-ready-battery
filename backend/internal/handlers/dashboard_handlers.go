@@ -5,20 +5,22 @@ import (
 	"net/http"
 	"strconv"
 
+	"exportready-battery/internal/middleware"
+
 	"github.com/google/uuid"
 )
 
 // GetDashboardStats handles GET /api/v1/dashboard/stats
 func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
-	tenantIDStr := r.URL.Query().Get("tenant_id")
+	tenantIDStr := middleware.GetTenantID(r.Context())
 	if tenantIDStr == "" {
-		respondError(w, http.StatusBadRequest, "tenant_id query parameter is required")
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
 
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid tenant_id format")
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
 		return
 	}
 
@@ -34,15 +36,15 @@ func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 
 // GetRecentBatches handles GET /api/v1/batches/recent
 func (h *Handler) GetRecentBatches(w http.ResponseWriter, r *http.Request) {
-	tenantIDStr := r.URL.Query().Get("tenant_id")
+	tenantIDStr := middleware.GetTenantID(r.Context())
 	if tenantIDStr == "" {
-		respondError(w, http.StatusBadRequest, "tenant_id query parameter is required")
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
 
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid tenant_id format")
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
 		return
 	}
 
@@ -69,15 +71,15 @@ func (h *Handler) GetRecentBatches(w http.ResponseWriter, r *http.Request) {
 
 // GetScanFeed handles GET /api/v1/scans/feed
 func (h *Handler) GetScanFeed(w http.ResponseWriter, r *http.Request) {
-	tenantIDStr := r.URL.Query().Get("tenant_id")
+	tenantIDStr := middleware.GetTenantID(r.Context())
 	if tenantIDStr == "" {
-		respondError(w, http.StatusBadRequest, "tenant_id query parameter is required")
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
 
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid tenant_id format")
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
 		return
 	}
 

@@ -61,7 +61,7 @@ func (cv *ChainVerifier) verifyAll(ctx context.Context) (checked, failed int, er
 		rows, qErr := cv.pool.Query(ctx, `
 			SELECT DISTINCT pe.passport_id, p.tenant_id
 			FROM   passport_events pe
-			JOIN   passports p ON p.id = pe.passport_id
+			JOIN   passports p ON p.uuid = pe.passport_id
 			ORDER  BY pe.passport_id
 			LIMIT  $1 OFFSET $2
 		`, chainVerifyBatchSize, offset)

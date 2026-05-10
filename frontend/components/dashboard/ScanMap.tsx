@@ -49,7 +49,7 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
 
  return (
  <div
- className="relative overflow-hidden rounded-lg"
+ className="relative overflow-hidden"
  style={{ height }}
  >
  {/* Background — adapts to theme */}
@@ -174,7 +174,11 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
 
  {/* Top-left title badge */}
  <div className="absolute top-3 left-3 flex items-center gap-2">
- <div className="flex items-center gap-1.5 px-2.5 py-1 bg-card/90 backdrop-blur-sm rounded-md border border-border">
+ <div className="relative flex items-center gap-1.5 px-2.5 py-1 bg-transparent/90 backdrop-blur-sm border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <span className="relative flex h-2 w-2">
  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/100"></span>
@@ -185,7 +189,11 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
 
  {/* Bottom-right stats */}
  <div className="absolute bottom-3 right-3 flex items-center gap-2">
- <div className="px-2.5 py-1 bg-card/90 backdrop-blur-sm rounded-md border border-border">
+ <div className="relative px-2.5 py-1 bg-transparent/90 backdrop-blur-sm border border-border">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <span className="text-xs font-medium text-muted-foreground">
  {markers.length} {markers.length === 1 ? "location" : "locations"}
  </span>

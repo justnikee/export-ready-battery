@@ -41,7 +41,6 @@ func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath s
 		"url", url,
 		"bucket", s.bucketName,
 		"supabaseURL", s.supabaseURL,
-		"keyPrefix", s.serviceRoleKey[:20]+"...",
 	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))

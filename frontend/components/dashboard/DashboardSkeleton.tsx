@@ -9,7 +9,11 @@ export function DashboardSkeleton() {
  <div className="max-w-[1600px] mx-auto space-y-8">
 
  {/* Header Skeleton */}
- <div className="rounded-xl border border-border bg-card p-6">
+ <div className="relative border border-border bg-transparent p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <Skeleton className="h-8 w-48 bg-muted" />
  <Skeleton className="h-4 w-80 mt-2 bg-muted/50" />
  </div>
@@ -17,7 +21,7 @@ export function DashboardSkeleton() {
  {/* Stats Row - 4 cards */}
  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
  {[1, 2, 3, 4].map((i) => (
- <Card key={i} className="bg-card border-border">
+ <Card key={i} className="bg-transparent border-border">
  <CardContent className="p-6">
  <Skeleton className="h-4 w-24 bg-muted/50" />
  <Skeleton className="h-10 w-20 mt-3 bg-muted" />
@@ -30,18 +34,18 @@ export function DashboardSkeleton() {
  {/* Charts Row */}
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  {/* Main Chart */}
- <Card className="lg:col-span-2 bg-card border-border">
+ <Card className="lg:col-span-2 bg-transparent border-border">
  <CardHeader className="pb-2">
  <Skeleton className="h-5 w-40 bg-muted/50" />
  </CardHeader>
  <CardContent>
- <Skeleton className="h-[250px] w-full bg-muted/30 rounded-lg" />
+ <Skeleton className="h-[250px] w-full bg-muted/30" />
  </CardContent>
  </Card>
 
  {/* Right Column - Quota & Status */}
  <div className="space-y-6">
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader className="pb-2">
  <Skeleton className="h-5 w-32 bg-muted/50" />
  </CardHeader>
@@ -54,7 +58,7 @@ export function DashboardSkeleton() {
  </CardContent>
  </Card>
 
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader className="pb-2">
  <Skeleton className="h-5 w-36 bg-muted/50" />
  </CardHeader>
@@ -68,7 +72,7 @@ export function DashboardSkeleton() {
  {/* Bottom Row - Tables */}
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  {/* Recent Batches */}
- <Card className="lg:col-span-2 bg-card border-border">
+ <Card className="lg:col-span-2 bg-transparent border-border">
  <CardHeader className="flex flex-row items-center justify-between py-4 border-b border-border">
  <Skeleton className="h-4 w-32 bg-muted/50" />
  <Skeleton className="h-3 w-16 bg-muted/30" />
@@ -99,7 +103,7 @@ export function DashboardSkeleton() {
  </Card>
 
  {/* Activity Feed */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader className="flex flex-row items-center justify-between py-4 border-b border-border">
  <Skeleton className="h-4 w-24 bg-muted/50" />
  <Skeleton className="h-5 w-12 rounded-full bg-emerald-500/10" />
@@ -107,7 +111,7 @@ export function DashboardSkeleton() {
  <CardContent className="p-0">
  {[1, 2, 3, 4, 5, 6].map((i) => (
  <div key={i} className="flex items-start gap-3 px-5 py-3 border-b border-border/30 last:border-0">
- <Skeleton className="h-7 w-7 rounded-md bg-muted/50 shrink-0" />
+ <Skeleton className="h-7 w-7 bg-muted/50 shrink-0" />
  <div className="flex-1">
  <div className="flex justify-between">
  <Skeleton className="h-4 w-28 bg-muted/50" />

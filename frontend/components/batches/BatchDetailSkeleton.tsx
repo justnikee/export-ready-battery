@@ -9,23 +9,27 @@ export function BatchDetailSkeleton() {
  <div className="w-full mx-auto space-y-8">
 
  {/* Header Card */}
- <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+ <div className="relative overflow-visible border border-border bg-transparent p-6">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
- <Skeleton className="h-10 w-10 rounded-md bg-muted/50" />
+ <Skeleton className="h-10 w-10 bg-muted/50" />
  <div>
  <div className="flex items-center gap-3">
  <Skeleton className="h-9 w-64 bg-muted" />
- <Skeleton className="h-7 w-20 rounded-md bg-muted/50" />
+ <Skeleton className="h-7 w-20 bg-muted/50" />
  </div>
  <div className="flex items-center gap-2 mt-2">
- <Skeleton className="h-6 w-24 rounded-md bg-muted/50" />
+ <Skeleton className="h-6 w-24 bg-muted/50" />
  <Skeleton className="h-4 w-36 bg-muted/30" />
  </div>
  </div>
  </div>
  <div className="flex gap-2">
- <Skeleton className="h-10 w-36 rounded-md bg-emerald-500/20" />
+ <Skeleton className="h-10 w-36 bg-emerald-500/20" />
  </div>
  </div>
  </div>
@@ -35,17 +39,17 @@ export function BatchDetailSkeleton() {
  <div className="md:col-span-2 space-y-6">
 
  {/* Core Specifications Card */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <div className="flex items-center gap-2">
- <Skeleton className="h-9 w-9 rounded-lg bg-blue-500/10" />
+ <Skeleton className="h-9 w-9 bg-blue-500/10" />
  <Skeleton className="h-6 w-40 bg-muted" />
  </div>
  </CardHeader>
  <CardContent>
  <div className="grid grid-cols-2 gap-x-4 gap-y-6">
  {[1, 2, 3, 4, 5, 6].map((i) => (
- <div key={i} className="p-3 rounded-lg bg-background border border-border">
+ <div key={i} className="p-3 bg-background border border-border">
  <Skeleton className="h-3 w-20 bg-muted/50" />
  <Skeleton className="h-5 w-32 mt-2 bg-muted" />
  </div>
@@ -55,7 +59,7 @@ export function BatchDetailSkeleton() {
  </Card>
 
  {/* Compliance Card Skeleton */}
- <Card className="bg-card border-border border-l-4 border-l-orange-500">
+ <Card className="bg-transparent border-border border-l-4 border-l-orange-500">
  <CardHeader className="pb-4">
  <div className="flex items-center gap-3">
  <Skeleton className="h-8 w-8 rounded bg-muted/50" />
@@ -66,31 +70,31 @@ export function BatchDetailSkeleton() {
  <CardContent>
  <div className="grid grid-cols-2 gap-4">
  {[1, 2, 3, 4].map((i) => (
- <div key={i} className="p-4 rounded-xl bg-background border border-border">
+ <div key={i} className="p-4 bg-background border border-border">
  <Skeleton className="h-3 w-28 bg-muted/50" />
  <Skeleton className="h-7 w-20 mt-2 bg-muted" />
  </div>
  ))}
- <div className="col-span-2 p-4 rounded-xl bg-background border border-border">
+ <div className="col-span-2 p-4 bg-background border border-border">
  <Skeleton className="h-3 w-32 bg-muted/50" />
- <Skeleton className="h-8 w-64 mt-2 rounded-lg bg-orange-500/10" />
+ <Skeleton className="h-8 w-64 mt-2 bg-orange-500/10" />
  </div>
  </div>
  </CardContent>
  </Card>
 
  {/* Upload Section Card */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <div className="flex items-center gap-2">
- <Skeleton className="h-9 w-9 rounded-lg bg-teal-50" />
+ <Skeleton className="h-9 w-9 bg-teal-50" />
  <Skeleton className="h-6 w-28 bg-muted" />
  </div>
  <Skeleton className="h-4 w-80 mt-2 bg-muted/50" />
  </CardHeader>
  <CardContent>
- <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center">
- <Skeleton className="h-12 w-12 rounded-lg bg-muted/50" />
+ <div className="border-2 border-dashed border-border p-8 flex flex-col items-center justify-center">
+ <Skeleton className="h-12 w-12 bg-muted/50" />
  <Skeleton className="h-5 w-48 mt-4 bg-muted" />
  <Skeleton className="h-4 w-64 mt-2 bg-muted/50" />
  </div>
@@ -101,19 +105,19 @@ export function BatchDetailSkeleton() {
  {/* Sidebar */}
  <div className="space-y-6">
  {/* Actions Card */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <Skeleton className="h-6 w-20 bg-muted" />
  </CardHeader>
  <CardContent className="space-y-3">
  {[1, 2, 3].map((i) => (
- <Skeleton key={i} className="h-10 w-full rounded-md bg-muted/50" />
+ <Skeleton key={i} className="h-10 w-full bg-muted/50" />
  ))}
  </CardContent>
  </Card>
 
  {/* Stats Card */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader>
  <Skeleton className="h-6 w-32 bg-muted" />
  </CardHeader>
@@ -130,15 +134,15 @@ export function BatchDetailSkeleton() {
  </div>
 
  {/* Passports Table Section */}
- <Card className="bg-card border-border">
+ <Card className="bg-transparent border-border">
  <CardHeader className="flex flex-row items-center justify-between py-4 border-b border-border">
  <div className="flex items-center gap-2">
- <Skeleton className="h-9 w-9 rounded-lg bg-muted/50" />
+ <Skeleton className="h-9 w-9 bg-muted/50" />
  <Skeleton className="h-6 w-40 bg-muted" />
  </div>
  <div className="flex items-center gap-2">
- <Skeleton className="h-8 w-24 rounded-md bg-muted/50" />
- <Skeleton className="h-8 w-24 rounded-md bg-muted/50" />
+ <Skeleton className="h-8 w-24 bg-muted/50" />
+ <Skeleton className="h-8 w-24 bg-muted/50" />
  </div>
  </CardHeader>
  <CardContent className="p-0">

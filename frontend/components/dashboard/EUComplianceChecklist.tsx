@@ -81,7 +81,11 @@ export function EUComplianceChecklist({ batches }: EUComplianceWidgetProps) {
  : "text-red-500"
 
  return (
- <div className="bg-card border border-border rounded-lg overflow-hidden">
+ <div className="relative bg-transparent border border-border overflow-visible">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="px-6 py-4 border-b border-border flex items-center justify-between">
  <div>
  <h3 className="text-base font-medium text-foreground flex items-center gap-2">

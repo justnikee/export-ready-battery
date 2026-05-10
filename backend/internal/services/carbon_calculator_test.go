@@ -119,11 +119,12 @@ func TestCalculateCarbon_NMC_Ship(t *testing.T) {
 	// Transport = 0.016 * (400/1000) * 5000 = 0.016 * 0.4 * 5000 = 32.0
 	assert.InDelta(t, 32.0, result.Breakdown.Transport, 0.01, "transport: 0.016 * 0.4 * 5000")
 
-	// Total = 3250 + 4.2 + 400 + 32 = 3686.2
+	// Total = 3250 + 4.2 + 400 + 32 + EOLRecycling(default 10*50=500) = 4186.2
 	expectedTotal := result.Breakdown.CellProduction +
 		result.Breakdown.CellEnergy +
 		result.Breakdown.Assembly +
-		result.Breakdown.Transport
+		result.Breakdown.Transport +
+		result.Breakdown.EOLRecycling
 	assert.InDelta(t, expectedTotal, result.TotalKgCO2e, 0.01, "total must equal sum of breakdown")
 
 	// Per-kWh = total / capacity

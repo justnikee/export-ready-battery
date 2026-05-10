@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -276,13 +276,13 @@ export default function DispatchPage() {
  <div className="flex items-center justify-between">
  <div>
  <h1 className="text-3xl tracking-tight text-foreground flex items-center gap-3">
- <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-none shadow-amber-500/20">
+ <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-none shadow-amber-500/20">
  <Truck className="h-5 w-5 text-white" />
  </div>
  Rapid Dispatch
  </h1>
  <p className="text-muted-foreground mt-1 ml-[52px]">
- High-volume scanning • Keyboard-first • Auto-dispatch
+ High-volume scanning â€¢ Keyboard-first â€¢ Auto-dispatch
  </p>
  </div>
  <div className="flex items-center gap-2">
@@ -314,9 +314,9 @@ export default function DispatchPage() {
  {/* Scanner Input - THE HERO */}
  <div className="relative">
  {/* Animated glow effect when focused */}
- <div className={`absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 rounded-xl blur-lg transition-opacity duration-500 ${isFocused ? 'opacity-20' : 'opacity-0'}`} />
+ <div className={`absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 blur-lg transition-opacity duration-500 ${isFocused ? 'opacity-20' : 'opacity-0'}`} />
 
- <Card className={`relative p-6 bg-card border-2 transition-colors duration-300 shadow-none ${isFocused ? 'border-amber-500' : 'border-border'}`}>
+ <Card className={`relative p-6 bg-transparent border-2 transition-colors duration-300 shadow-none ${isFocused ? 'border-amber-500' : 'border-border'}`}>
  {/* Targeting corners */}
  <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-amber-500/40" />
  <div className="absolute top-3 right-3 w-4 h-4 border-r-2 border-t-2 border-amber-500/40" />
@@ -357,7 +357,11 @@ export default function DispatchPage() {
  </div>
 
  {/* Pending List */}
- <div className="flex-1 flex flex-col bg-card rounded-xl border border-border p-5 min-h-[300px] shadow-none">
+ <div className="relative flex-1 flex flex-col bg-transparent border border-border p-5 min-h-[300px] shadow-none">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
  <div className="flex items-center justify-between mb-4">
  <h2 className=" text-lg text-foreground flex items-center gap-2">
  <Package className="h-5 w-5 text-amber-500" />
@@ -372,7 +376,7 @@ export default function DispatchPage() {
  </div>
 
  {scannedItems.length === 0 ? (
- <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg bg-muted/50">
+ <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border bg-muted/50">
  {/* Animated target icon */}
  <div className="relative mb-4">
  <Target className="h-16 w-16 text-muted-foreground" />
@@ -388,14 +392,14 @@ export default function DispatchPage() {
  {scannedItems.map((item, idx) => (
  <div
  key={item.id}
- className={`p-3 rounded-lg border flex items-center justify-between group animate-in slide-in-from-top-2 duration-200 ${item.failed
+ className={`p-3 border flex items-center justify-between group animate-in slide-in-from-top-2 duration-200 ${item.failed
  ? 'bg-red-500/10 border-red-500/20'
  : 'bg-muted border-border hover:border-border'
  }`}
  style={{ animationDelay: `${idx * 50}ms` }}
  >
  <div className="flex items-center gap-3 flex-1">
- <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-mono ${item.failed
+ <div className={`w-8 h-8 flex items-center justify-center text-xs font-mono ${item.failed
  ? 'bg-red-100 text-red-500'
  : 'bg-amber-100 text-amber-500 border border-amber-500/20'
  }`}>
@@ -434,10 +438,10 @@ export default function DispatchPage() {
 
  {/* Right Col: Action Panel */}
  <div className="flex flex-col">
- <Card className="p-6 flex flex-col gap-6 h-full bg-card border-border shadow-none">
+ <Card className="p-6 flex flex-col gap-6 h-full bg-transparent border-border shadow-none">
  <div className="space-y-2">
  <h2 className=" text-xl text-foreground flex items-center gap-2">
- <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-500/20 flex items-center justify-center">
+ <div className="w-8 h-8 bg-amber-100 border border-amber-500/20 flex items-center justify-center">
  <Truck className="h-4 w-4 text-amber-500" />
  </div>
  Dispatch Details

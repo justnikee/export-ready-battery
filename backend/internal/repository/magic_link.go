@@ -86,7 +86,11 @@ func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash stri
 			return nil, nil
 		}
 		if legacyErr != nil {
-			return nil, fmt.Errorf("failed to fetch legacy magic link token: %w", legacyErr)
+			tokenPrefix := tokenHash
+			if len(tokenHash) > 8 {
+				tokenPrefix = tokenHash[:8]
+			}
+			return nil, fmt.Errorf("failed to fetch legacy magic link token (hash_prefix=%s): %w", tokenPrefix, legacyErr)
 		}
 		record.RequiresOTP = false
 		return &record, nil
@@ -95,7 +99,11 @@ func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash stri
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch magic link token: %w", err)
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		return nil, fmt.Errorf("failed to fetch magic link token (hash_prefix=%s): %w", tokenPrefix, err)
 	}
 	return &record, nil
 }

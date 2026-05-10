@@ -1,36 +1,65 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowUpRight, TrendingUp, TrendingDown } from "lucide-react"
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface StatsCardProps {
- title: string
- value: string | number
- subtext?: string
- trend?: string
- isPositive?: boolean
+  title: string;
+  value: string | number;
+  subtext?: string;
+  trend?: string;
+  isPositive?: boolean;
+  accentColor?: string;
 }
 
-export function StatsCard({ title, value, subtext, trend, isPositive }: StatsCardProps) {
- return (
- <Card className="bg-card border-border hover:border-[var(--border-prominent)] transition-colors cursor-pointer group">
- <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
- <CardTitle className="code-label">{title}</CardTitle>
- {trend && (
- <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md ${isPositive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
- {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
- {trend}
- </span>
- )}
- </CardHeader>
- <CardContent>
- <div className="stat-value text-3xl tracking-tight text-foreground">{value}</div>
- <div className="flex items-center justify-between mt-2">
- <p className="text-xs text-muted-foreground leading-relaxed">{subtext}</p>
- <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-[var(--brand)] transition-colors duration-200" />
- </div>
- </CardContent>
- </Card>
- )
-}
+export function StatsCard({
+  title,
+  value,
+  subtext,
+  trend,
+  isPositive,
+  accentColor = "var(--brand)",
+}: StatsCardProps) {
+  return (
+    <div className="relative bg-transparent border border-border rounded-none p-5 hover:border-(--border-prominent) transition-colors cursor-pointer overflow-visible">
+      {/* Corner squares */}
+      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
 
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          {title}
+        </span>
+        <div
+          className="w-5 h-5 flex items-center justify-center"
+          style={{
+            backgroundColor: `color-mix(in srgb, ${accentColor} 15%, transparent)`,
+          }}
+        >
+          <div className="w-2 h-2" style={{ backgroundColor: accentColor }} />
+        </div>
+      </div>
+
+      <div className="font-mono text-3xl text-foreground tracking-tight">
+        {value}
+      </div>
+
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">{subtext}</p>
+        {trend && (
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-mono ${isPositive ? "text-emerald-500" : "text-red-500"}`}
+          >
+            {isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            {trend}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

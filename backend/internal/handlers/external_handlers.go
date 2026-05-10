@@ -67,7 +67,11 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Validate market region
 	marketRegion := models.MarketRegion(req.MarketRegion)
@@ -180,7 +184,11 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify batch ownership (enforced at DB level)
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
@@ -309,8 +317,27 @@ func (h *Handler) ExternalGetPassport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Enforce tenant isolation — every external endpoint must be scoped to the API key's tenant.
+	tenantIDStr := middleware.GetAPIKeyTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
+
 	passport, err := h.repo.GetPassportWithSpecs(r.Context(), passportID)
 	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	// Verify the passport belongs to the requesting tenant.
+	passBatch, batchErr := h.repo.GetBatch(r.Context(), passport.Passport.BatchID, tenantID)
+	if batchErr != nil || passBatch == nil {
 		respondError(w, http.StatusNotFound, "Passport not found")
 		return
 	}
@@ -337,7 +364,11 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, _ := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant ID")
+		return
+	}
 
 	// Verify batch ownership (enforced at DB level)
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
