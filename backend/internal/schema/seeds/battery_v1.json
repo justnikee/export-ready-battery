@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "exportready/battery/v1",
+  "$id": "anvayalabs/battery/v1",
   "title": "Battery v1 Specification Schema",
   "description": "Exhaustive field definitions for a Battery Digital Product Passport. Covers EU Battery Regulation 2023/1542, India AIS-156/AIS-038/BIS/EPR requirements, and PLI Phase II compliance.",
   "type": "object",

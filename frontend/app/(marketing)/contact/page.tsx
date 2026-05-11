@@ -61,7 +61,7 @@ export default function ContactPage() {
             Get in Touch
           </span>
           <h1 className="text-4xl md:text-5xl font-heading text-[#0B1F3B]">
-            Contact ExportReady
+            Contact AnvayaLabs
           </h1>
           <p className="text-lg text-zinc-600 max-w-2xl mx-auto">
             Product questions, compliance consultations, or partnership
@@ -88,10 +88,10 @@ export default function ContactPage() {
                 Technical help, account issues, or platform questions.
               </p>
               <a
-                href="mailto:support@exportready.com"
+                href="mailto:support@anvayalabs.com"
                 className="text-sm text-accent-green font-medium hover:underline"
               >
-                support@exportready.com
+                support@anvayalabs.com
               </a>
             </div>
             <div className="p-6 rounded-xl border border-gray-200 bg-zinc-50">
@@ -105,10 +105,10 @@ export default function ContactPage() {
                 Demos, custom plans, or volume pricing for enterprise.
               </p>
               <a
-                href="mailto:sales@exportready.com"
+                href="mailto:sales@anvayalabs.com"
                 className="text-sm text-accent-green font-medium hover:underline"
               >
-                sales@exportready.com
+                sales@anvayalabs.com
               </a>
             </div>
           </motion.div>

@@ -58,8 +58,8 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold text-[#0B1F3B]">6. Contact</h2>
         <p className="text-sm text-zinc-600 leading-relaxed">
           Questions about this Privacy Policy? Contact us at{" "}
-          <a href="mailto:support@exportready.com" className="text-accent-green hover:underline">
-            support@exportready.com
+          <a href="mailto:support@anvayalabs.com" className="text-accent-green hover:underline">
+            support@anvayalabs.com
           </a>
           .
         </p>

@@ -1,5 +1,5 @@
 -- =============================================================================
--- ExportReady v2: Rollback Product-Agnostic Architecture Migration
+-- AnvayaLabs v2: Rollback Product-Agnostic Architecture Migration
 -- =============================================================================
 
 DROP POLICY IF EXISTS product_schemas_read_all ON product_schemas;

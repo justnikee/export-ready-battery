@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Key,
   BookOpen,
-  BarChart3,
   LayoutTemplate,
   TrendingUp,
   Shield,
@@ -115,10 +114,13 @@ export function DashboardSidebar({ isOpen, onClose }: DashboardSidebarProps) {
         )}
       >
         <div className="flex items-center justify-between border-b border-sidebar-border h-14 px-4">
-          <Link to="/dashboard" className="flex items-center gap-2" onClick={onClose}>
-            <BarChart3 className="h-7 w-7 text-[var(--brand)]" />
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2"
+            onClick={onClose}
+          >
             <span className="text-xl tracking-tight text-foreground">
-              EXPORTLENS
+              ANVAYALABS
             </span>
           </Link>
           <Button

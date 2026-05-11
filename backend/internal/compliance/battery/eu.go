@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"exportready-battery/internal/compliance"
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/compliance"
+	"anvayalabs-battery/internal/models"
 )
 
 // Regulatory reference strings used in Gap objects for EU market.

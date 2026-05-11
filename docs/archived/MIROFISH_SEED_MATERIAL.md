@@ -1,6 +1,6 @@
-# 🐟 MiroFish Seed Material — ExportReady: Universal Product Passport Engine
+# 🐟 MiroFish Seed Material — AnvayaLabs: Universal Product Passport Engine
 
-> **Prediction Objective:** Simulate the future trajectory (2026–2030) of ExportReady — a SaaS platform currently focused on Digital Battery Passports — as it expands into a universal Product Passport Engine covering batteries, textiles, electronics, and other regulated industries at global scale.
+> **Prediction Objective:** Simulate the future trajectory (2026–2030) of AnvayaLabs — a SaaS platform currently focused on Digital Battery Passports — as it expands into a universal Product Passport Engine covering batteries, textiles, electronics, and other regulated industries at global scale.
 
 ---
 
@@ -31,7 +31,7 @@
 - **CPCB Online Portal**: Centralized portal for EPR compliance, recycling certificate tracking, and producer registration. Quarterly compliance monitoring.
 - **Sep 2025**: Government approved incentive scheme to support recycling of e-waste and Li-ion battery scrap — 270 kilotonnes recycling capacity target FY2025–2031.
 - **Delhi EV Policy 2.0 (Mar 2026)**: EV battery recycling framework under development, DPCC as nodal agency.
-- **India Gap**: A full "battery passport" system (EU-style) is recognized as a critical need but not yet fully regulated. This represents a FIRST-MOVER opportunity for ExportReady in the Indian market.
+- **India Gap**: A full "battery passport" system (EU-style) is recognized as a critical need but not yet fully regulated. This represents a FIRST-MOVER opportunity for AnvayaLabs in the Indian market.
 
 ### 1.4 Other Emerging Regulations
 
@@ -59,7 +59,7 @@
 
 ### 2.2 Addressable Industries (Product Passport Expansion)
 
-| Industry | DPP Mandate Timeline | Market Readiness | ExportReady Expansion Potential |
+| Industry | DPP Mandate Timeline | Market Readiness | AnvayaLabs Expansion Potential |
 |----------|---------------------|------------------|--------------------------------|
 | **Batteries** | Active (2026–2027) | HIGH — Enforcement ongoing | ✅ Current core product |
 | **Textiles** | 2027–2028 | MEDIUM — Brands preparing | 🎯 High-priority expansion |
@@ -74,7 +74,7 @@
 - PLI (Production Linked Incentive) scheme for Advanced Chemistry Cells — ₹18,100 crore allocated.
 - India's EV market projected to reach $113.99 billion by 2029 (CAGR 66.52%).
 - Indian textile industry: $165 billion in 2025, world's 2nd largest textile exporter. EU DPP compliance will be mandatory for Indian textile brands exporting to Europe.
-- No competing Indian-origin DPP platform exists at scale — ExportReady has a clear first-mover advantage in the India market.
+- No competing Indian-origin DPP platform exists at scale — AnvayaLabs has a clear first-mover advantage in the India market.
 
 ---
 
@@ -82,7 +82,7 @@
 
 ### 3.1 Global Competitors (DPP SaaS Platforms)
 
-| Company | HQ | Focus | Funding | Key Strength | Weakness vs. ExportReady |
+| Company | HQ | Focus | Funding | Key Strength | Weakness vs. AnvayaLabs |
 |---------|-----|-------|---------|--------------|--------------------------|
 | **Avery Dennison (atma.io)** | USA | Multi-industry DPP-as-a-Service | Public company | Scale, enterprise relationships | Expensive, not India-focused |
 | **Circulor** | UK | Material traceability (mining/battery) | $25M+ raised | Blockchain provenance | Narrow focus, complex integration |
@@ -93,7 +93,7 @@
 | **Arianee** | France | Blockchain DPP for luxury goods | $21M+ | Web3/NFT provenance | Luxury-niche, not compliance-driven |
 | **Minespider** | Germany | Critical materials traceability | Seed-stage | Blockchain origin tracking | Raw materials only |
 
-### 3.2 ExportReady's Competitive Moats
+### 3.2 AnvayaLabs's Competitive Moats
 
 1. **India-first + Global**: Only platform designed from day one for both Indian (BIS, CPCB, EPR) and EU (2023/1542, ESPR) compliance.
 2. **Multi-market passports**: Supports EU, India, and Global market regions with market-specific form fields and validation.
@@ -101,11 +101,11 @@
 4. **Three-tier access**: Public, Partner (via Magic Links), and Regulator views — aligned with EU Article 78.
 5. **Built-in compliance calculators**: EPR obligation calculator + JRC-aligned carbon footprint calculator.
 6. **SME-friendly pricing**: Tiered plans (Free → Starter → Growth → Enterprise) vs. enterprise-only competitors.
-7. **Expansion to universal Product Passport Engine**: If textiles DPP support is added before EU 2027 mandate, ExportReady becomes a multi-vertical platform while competitors are still single-industry.
+7. **Expansion to universal Product Passport Engine**: If textiles DPP support is added before EU 2027 mandate, AnvayaLabs becomes a multi-vertical platform while competitors are still single-industry.
 
 ---
 
-## 🧬 Seed Signal 4: ExportReady — Current Product DNA
+## 🧬 Seed Signal 4: AnvayaLabs — Current Product DNA
 
 ### 4.1 Platform Capabilities (As of March 2026)
 
@@ -132,7 +132,7 @@
 
 ### 4.3 Expansion Vision — Universal Product Passport Engine
 
-ExportReady is evolving from a battery-focused compliance tool into a **universal Product Passport Engine** that supports:
+AnvayaLabs is evolving from a battery-focused compliance tool into a **universal Product Passport Engine** that supports:
 
 1. **Batteries** (current) → EU 2023/1542 + India BWM Rules
 2. **Textiles** (next) → EU ESPR textile DPP (2027 mandate)
@@ -182,23 +182,23 @@ ExportReady is evolving from a battery-focused compliance tool into a **universa
 
 ### Primary Prediction Question
 
-> **"If ExportReady expands from a battery passport platform to a universal Product Passport Engine supporting batteries, textiles, and electronics — targeting both Indian and EU markets — what will happen over the next 3–5 years (2026–2030) in terms of market adoption, competitive dynamics, regulatory response, and the company's growth trajectory?"**
+> **"If AnvayaLabs expands from a battery passport platform to a universal Product Passport Engine supporting batteries, textiles, and electronics — targeting both Indian and EU markets — what will happen over the next 3–5 years (2026–2030) in terms of market adoption, competitive dynamics, regulatory response, and the company's growth trajectory?"**
 
 ### Sub-Questions for Simulation
 
 1. **Market Adoption**: How quickly will Indian battery manufacturers adopt digital passport platforms? Will the "India-first" positioning create a defensible moat or will global players (Avery Dennison, Siemens) dominate with their distribution networks?
 
-2. **Textile Expansion Timing**: If ExportReady launches textile DPP support by mid-2027 (before EU mandate enforcement), will Indian textile exporters adopt it proactively or wait until enforcement? How does this compare to the battery adoption curve?
+2. **Textile Expansion Timing**: If AnvayaLabs launches textile DPP support by mid-2027 (before EU mandate enforcement), will Indian textile exporters adopt it proactively or wait until enforcement? How does this compare to the battery adoption curve?
 
 3. **Competitive Response**: How will well-funded competitors (Circulor, Avery Dennison) respond to a low-cost, multi-vertical, India-focused challenger? Will they acquire, compete, or ignore?
 
-4. **Regulatory Evolution**: Will India adopt a full battery passport regulation (EU-style) by 2028? How will this impact ExportReady's positioning? What if China mandates DPPs for its battery exports?
+4. **Regulatory Evolution**: Will India adopt a full battery passport regulation (EU-style) by 2028? How will this impact AnvayaLabs's positioning? What if China mandates DPPs for its battery exports?
 
-5. **Pricing & Revenue Model**: In a market with Free-tier offerings, can ExportReady maintain SaaS margins while competing against enterprise players? Will usage-based pricing (per passport issued) or subscription (per seat) be the winning model?
+5. **Pricing & Revenue Model**: In a market with Free-tier offerings, can AnvayaLabs maintain SaaS margins while competing against enterprise players? Will usage-based pricing (per passport issued) or subscription (per seat) be the winning model?
 
 6. **Global Scale Challenges**: What technical, legal, and operational challenges emerge when scaling from India+EU to US, China, Japan, ASEAN, and Latin America? Data sovereignty, language localization, payment infrastructure, regulatory mapping complexity.
 
-7. **Technology Risk**: Will blockchain-based competitors (Circulor, Arianee) gain credibility advantages, or will SaaS-native approaches (like ExportReady) win on simplicity and cost?
+7. **Technology Risk**: Will blockchain-based competitors (Circulor, Arianee) gain credibility advantages, or will SaaS-native approaches (like AnvayaLabs) win on simplicity and cost?
 
 8. **Exit Scenarios**: What are the most likely outcomes by 2030 — IPO, strategic acquisition (by a Siemens, SAP, or Avery Dennison), sustained independent growth, or market consolidation?
 
@@ -206,7 +206,7 @@ ExportReady is evolving from a battery-focused compliance tool into a **universa
 
 ## 📎 Supporting Data Files
 
-> These files from the ExportReady codebase can provide additional depth:
+> These files from the AnvayaLabs codebase can provide additional depth:
 
 | File | Description |
 |------|-------------|
@@ -225,4 +225,4 @@ ExportReady is evolving from a battery-focused compliance tool into a **universa
 ---
 
 *Seed material prepared: March 21, 2026*
-*Source: ExportReady-Battery codebase + EU/India regulatory intelligence + DPP market research*
+*Source: AnvayaLabs-Battery codebase + EU/India regulatory intelligence + DPP market research*

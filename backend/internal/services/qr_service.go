@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/skip2/go-qrcode"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // QRService handles QR code generation
@@ -74,8 +74,8 @@ func (s *QRService) GenerateQRCodeEnriched(passportUUID uuid.UUID, serialNumber 
 // BuildQRPayload constructs the QR code URL, enriching it with decoded BPAN
 // metadata as query parameters when the serial follows BPAN V2 format.
 //
-// Plain legacy serial:  https://app.exportready.in/p/{uuid}
-// BPAN V2 serial:       https://app.exportready.in/p/{uuid}?bpan=IN-TEN-LFP-2026-00001&chem=LFP&yr=2026&mfr=TEN&rgn=IN
+// Plain legacy serial:  https://app.anvayalabs.in/p/{uuid}
+// BPAN V2 serial:       https://app.anvayalabs.in/p/{uuid}?bpan=IN-TEN-LFP-2026-00001&chem=LFP&yr=2026&mfr=TEN&rgn=IN
 // EU with carbon:       ...&co2=65.00
 func (s *QRService) BuildQRPayload(passportUUID uuid.UUID, serialNumber string, ctx *QRLabelContext) string {
 	base := fmt.Sprintf("%s/p/%s", s.baseURL, passportUUID.String())

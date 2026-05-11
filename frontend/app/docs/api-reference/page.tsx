@@ -50,7 +50,7 @@ export default function ApiReferencePage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Complete reference for all ExportReady-Battery API endpoints.
+ Complete reference for all AnvayaLabs-Battery API endpoints.
  All endpoints use JSON for request and response bodies.
  </p>
  </section>
@@ -59,7 +59,7 @@ export default function ApiReferencePage() {
  <section className="p-6 rounded-2xl border border-white/10 bg-white/5">
  <h3 className="text-lg text-white mb-3">Base URL</h3>
  <CodeBlock
- code={`https://api.exportready.com/api/v1`}
+ code={`https://api.anvayalabs.com/api/v1`}
  language="text"
  />
  <p className="mt-3 text-sm text-gray-400">

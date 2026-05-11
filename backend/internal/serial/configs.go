@@ -3,7 +3,7 @@
 // format is the canonical serial standard for battery products.
 package serial
 
-import "exportready-battery/internal/models"
+import "anvayalabs-battery/internal/models"
 
 // Format defines the structure and constraints of a product serial number format.
 type Format struct {

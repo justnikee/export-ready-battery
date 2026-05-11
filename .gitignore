@@ -82,3 +82,5 @@ backend/errors_full.txt
 .agents
 skills-lock.json
 .claude
+
+DUAL_PRODUCT_ROLLOUT_PLAN.md

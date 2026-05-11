@@ -56,7 +56,7 @@ export default function GettingStartedPage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Get up and running with ExportReady-Battery in under 10 minutes.
+ Get up and running with AnvayaLabs-Battery in under 10 minutes.
  This guide covers installation, configuration, and your first battery passport.
  </p>
  </section>
@@ -97,8 +97,8 @@ export default function GettingStartedPage() {
  <Step number={1} title="Clone the Repository">
  <p className="mb-4">Start by cloning the repository to your local machine:</p>
  <CodeBlock
- code={`git clone https://github.com/your-org/exportready-battery.git
-cd exportready-battery`}
+ code={`git clone https://github.com/your-org/anvayalabs-battery.git
+cd anvayalabs-battery`}
  language="bash"
  title="Terminal"
  />

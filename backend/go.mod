@@ -1,4 +1,4 @@
-module exportready-battery
+module anvayalabs-battery
 
 go 1.24.3
 

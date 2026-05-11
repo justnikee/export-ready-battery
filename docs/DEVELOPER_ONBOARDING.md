@@ -1,4 +1,4 @@
-# 🔋 ExportReady Battery — Complete Developer Onboarding Guide
+# 🔋 AnvayaLabs Battery — Complete Developer Onboarding Guide
 
 > **For new developers joining the project.** This document is your single source of truth — read it fully before writing a single line of code.
 
@@ -26,7 +26,7 @@
 
 ## 1. What Is This Project?
 
-**ExportReady Battery** is a **Digital Battery Passport (DBP) platform** for global regulatory compliance. It serves battery manufacturers who need to:
+**AnvayaLabs Battery** is a **Digital Battery Passport (DBP) platform** for global regulatory compliance. It serves battery manufacturers who need to:
 
 - Generate a unique digital identity (UUID + QR code) for **every individual battery unit** they produce
 - Track that battery through its **entire lifecycle** — from factory → shipping → installation → end-of-life recycling
@@ -49,7 +49,7 @@ Battery manufacturers globally face two converging regulatory pressures:
 | **EU**    | EU Battery Regulation 2023/1542        | Digital Battery Passport (Article 77), Carbon footprint declaration (Article 7), Regulator data access (Article 78) |
 | **India** | Battery Aadhaar Initiative / BIS / EPR | Unique battery ID (BPAN), BIS IS 16046 certification, Extended Producer Responsibility registration                 |
 
-Without a platform like this, manufacturers would need to build compliance infrastructure from scratch — a complex, expensive, multi-year engineering effort. ExportReady provides it as a service.
+Without a platform like this, manufacturers would need to build compliance infrastructure from scratch — a complex, expensive, multi-year engineering effort. AnvayaLabs provides it as a service.
 
 ### 2.2 Who Are the Users?
 
@@ -1462,7 +1462,7 @@ Understanding the regulations drives understanding the code. Here's the minimum 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  ExportReady Battery — Quick Reference                         │
+│  AnvayaLabs Battery — Quick Reference                         │
 ├─────────────────────────────────────────────────────────────────┤
 │  Backend:  http://localhost:8080  (Go 1.24)                    │
 │  Frontend: http://localhost:3000  (Next.js 16)                 │

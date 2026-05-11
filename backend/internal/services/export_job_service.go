@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -372,7 +372,7 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	// Send email notification
 	userEmail, err := s.getUserEmail(ctx, job.RequestedBy)
 	if err == nil && userEmail != "" {
-		s.sendExportReadyEmail(ctx, userEmail, batch.BatchName, string(job.JobType), downloadURL)
+		s.sendAnvayaLabsEmail(ctx, userEmail, batch.BatchName, string(job.JobType), downloadURL)
 	}
 
 	return nil
@@ -555,8 +555,8 @@ func (s *ExportJobService) getUserEmail(ctx context.Context, userID uuid.UUID) (
 	return email, err
 }
 
-// sendExportReadyEmail sends notification that export is ready
-func (s *ExportJobService) sendExportReadyEmail(ctx context.Context, email, batchName, exportType, downloadURL string) {
+// sendAnvayaLabsEmail sends notification that export is ready
+func (s *ExportJobService) sendAnvayaLabsEmail(ctx context.Context, email, batchName, exportType, downloadURL string) {
 	// Use email service to send notification
 	subject := fmt.Sprintf("Your %s export is ready - %s", exportType, batchName)
 	body := fmt.Sprintf(`
@@ -566,7 +566,7 @@ func (s *ExportJobService) sendExportReadyEmail(ctx context.Context, email, batc
 		<p><small>This download link expires in 24 hours.</small></p>
 	`, exportType, batchName, downloadURL)
 
-	if err := s.emailService.SendExportReady(email, subject, body); err != nil {
+	if err := s.emailService.SendAnvayaLabs(email, subject, body); err != nil {
 		s.logger.Error("failed to send export ready email", "email", email, "error", err)
 	}
 }

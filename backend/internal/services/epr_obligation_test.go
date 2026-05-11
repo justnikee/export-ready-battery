@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 func makeEPRTenant(eprNumber string) *models.Tenant {

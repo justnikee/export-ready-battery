@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // BatchSnapshot captures immutable batch + tenant compliance data at passport creation time.

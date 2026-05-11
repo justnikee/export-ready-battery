@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/serial"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/serial"
 )
 
 // PassportService wraps the serial number generator for passport creation.

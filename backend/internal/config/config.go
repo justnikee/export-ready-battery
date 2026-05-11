@@ -70,7 +70,7 @@ func Load() *Config {
 
 	return &Config{
 		Port:              port,
-		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/exportready?sslmode=disable"),
+		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/anvayalabs?sslmode=disable"),
 		BaseURL:           getEnv("BASE_URL", "http://localhost:3000"),
 		BackendURL:        getEnv("BACKEND_URL", fmt.Sprintf("http://localhost:%s", port)),
 		Environment:       env,

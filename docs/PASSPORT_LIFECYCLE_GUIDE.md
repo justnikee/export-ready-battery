@@ -1,4 +1,4 @@
-# ExportReady Passport Lifecycle - Complete Implementation Guide
+# AnvayaLabs Passport Lifecycle - Complete Implementation Guide
 
 Last Updated: 2026-02-08  
 Purpose: Comprehensive reference for Phases 1-6 lifecycle enforcement  
@@ -23,7 +23,7 @@ Audience: Developers, Integrators, Compliance Officers
 
 ## Overview
 
-The ExportReady Battery Passport system implements a compliance-first lifecycle model across six phases:
+The AnvayaLabs Battery Passport system implements a compliance-first lifecycle model across six phases:
 
 | Phase | Name                       | Purpose                        |
 | ----- | -------------------------- | ------------------------------ |

@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // CreateTransaction logs a quota usage event

@@ -12,11 +12,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"exportready-battery/internal/db"
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/db"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 )
 
 // AuthHandler handles authentication endpoints

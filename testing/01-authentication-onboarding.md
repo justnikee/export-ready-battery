@@ -1,7 +1,7 @@
 # Comprehensive Manual Test Plan: Authentication & Onboarding
 
 ## Overview
-This document meticulously details the steps to verify the authentication and onboarding workflows for manufacturers on the ExportReady Battery platform, ensuring complete validation of all required regulatory states.
+This document meticulously details the steps to verify the authentication and onboarding workflows for manufacturers on the AnvayaLabs Battery platform, ensuring complete validation of all required regulatory states.
 
 ---
 

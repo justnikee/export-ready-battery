@@ -107,10 +107,10 @@ You requested to reset your password. Click the link below to create a new passw
 This link expires in 1 hour.
 If you didn't request this, please ignore this email.
 
-© 2026 ExportReady Battery
+© 2026 AnvayaLabs Battery
 `, resetLink)
 
-	return e.sendEmail(toEmail, "Reset Your Password - ExportReady", htmlBuf.String(), plainText)
+	return e.sendEmail(toEmail, "Reset Your Password - AnvayaLabs", htmlBuf.String(), plainText)
 }
 
 // SendVerificationEmail sends an email with a link to verify the user's email address.
@@ -130,23 +130,23 @@ Please click the link below to verify your email address:
 %s
 
 This link expires in 24 hours.
-If you did not create an ExportReady account, please ignore this email.
+If you did not create an AnvayaLabs account, please ignore this email.
 
-© 2026 ExportReady Battery
+© 2026 AnvayaLabs Battery
 `, verifyLink)
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
 <h2>Verify Your Email Address</h2>
-<p>Thank you for signing up for ExportReady Battery.</p>
+<p>Thank you for signing up for AnvayaLabs Battery.</p>
 <p>Please click the link below to verify your email address:</p>
 <p><a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px">Verify Email</a></p>
 <p>Or copy this link: %s</p>
 <p><small>This link expires in 24 hours. If you did not create an account, please ignore this email.</small></p>
-<p>© 2026 ExportReady Battery</p>
+<p>© 2026 AnvayaLabs Battery</p>
 </body></html>`, verifyLink, verifyLink)
 
-	return e.sendEmail(toEmail, "Verify your email - ExportReady", html, plainText)
+	return e.sendEmail(toEmail, "Verify your email - AnvayaLabs", html, plainText)
 }
 
 // ResendEmailRequest is the Resend API request structure
@@ -220,7 +220,7 @@ Passport ID: %s
 This link expires in 1 hour.
 If you didn't request this, please ignore this email.
 
-© 2026 ExportReady Battery
+© 2026 AnvayaLabs Battery
 `, actionTitle, actionDescription, magicLink, passportID)
 
 	return e.sendEmail(toEmail, fmt.Sprintf("%s - Battery Passport", actionTitle), htmlBuf.String(), plainText)
@@ -295,18 +295,18 @@ func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role st
 		return fmt.Errorf("failed to execute email template: %w", err)
 	}
 
-	plainText := fmt.Sprintf("You've been invited to join %s as a %s on ExportReady.\n\nAccept: %s\n\nExpires in 7 days.\n© 2026 ExportReady Battery", companyName, role, inviteLink)
+	plainText := fmt.Sprintf("You've been invited to join %s as a %s on AnvayaLabs.\n\nAccept: %s\n\nExpires in 7 days.\n© 2026 AnvayaLabs Battery", companyName, role, inviteLink)
 
-	return e.sendEmail(toEmail, fmt.Sprintf("You're invited to join %s on ExportReady", companyName), htmlBuf.String(), plainText)
+	return e.sendEmail(toEmail, fmt.Sprintf("You're invited to join %s on AnvayaLabs", companyName), htmlBuf.String(), plainText)
 }
 
-// ExportReadyData contains data for the export ready email template
-type ExportReadyData struct {
+// AnvayaLabsData contains data for the export ready email template
+type AnvayaLabsData struct {
 	Content template.HTML
 }
 
-// SendExportReady sends a notification that an export job is complete using template
-func (e *EmailService) SendExportReady(toEmail, subject, htmlContent string) error {
+// SendAnvayaLabs sends a notification that an export job is complete using template
+func (e *EmailService) SendAnvayaLabs(toEmail, subject, htmlContent string) error {
 	if !e.enabled {
 		slog.Info("Export ready email (mock)", "to", toEmail)
 		return nil
@@ -319,7 +319,7 @@ func (e *EmailService) SendExportReady(toEmail, subject, htmlContent string) err
 		return fmt.Errorf("failed to parse email template: %w", err)
 	}
 
-	data := ExportReadyData{
+	data := AnvayaLabsData{
 		Content: template.HTML(htmlContent),
 	}
 
@@ -385,10 +385,10 @@ func GetEmailServiceFromEnv(frontendBaseURL string) *EmailService {
 	fromName := os.Getenv("EMAIL_FROM_NAME")
 
 	if fromName == "" {
-		fromName = "ExportReady Battery"
+		fromName = "AnvayaLabs Battery"
 	}
 	if fromEmail == "" {
-		fromEmail = "noreply@exportready.io"
+		fromEmail = "noreply@anvayalabs.io"
 	}
 
 	return NewResendEmailService(apiKey, fromEmail, fromName, frontendBaseURL)

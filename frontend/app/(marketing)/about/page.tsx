@@ -42,9 +42,9 @@ export default function AboutPage() {
             Compliance Infrastructure for Battery Manufacturers
           </h1>
           <p className="text-lg text-zinc-600 max-w-3xl mx-auto">
-            ExportReady was built to solve the compliance gap battery
+            AnvayaLabs was built to solve the compliance gap battery
             manufacturers face when exporting across regulated markets. Before
-            ExportReady, compliance meant spreadsheets, manual certification
+            AnvayaLabs, compliance meant spreadsheets, manual certification
             tracking, and regulatory uncertainty. We replaced that with
             automation, cryptographic audit trails, and a single platform for EU
             and India compliance.

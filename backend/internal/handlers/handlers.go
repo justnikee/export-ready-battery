@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"exportready-battery/internal/db"
-	"exportready-battery/internal/events"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/db"
+	"anvayalabs-battery/internal/events"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 )
 
 // Handler holds dependencies for HTTP handlers

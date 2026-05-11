@@ -31,7 +31,7 @@ export function DeveloperSection() {
  className="text-base leading-relaxed mb-8"
  style={{ color: "var(--ld-text-muted)" }}
  >
- Integrate ExportReady directly into your production systems using
+ Integrate AnvayaLabs directly into your production systems using
  secure REST APIs. Automate passport generation, batch creation,
  and compliance workflows.
  </p>

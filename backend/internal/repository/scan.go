@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // CreateScanEvent records a new scan event

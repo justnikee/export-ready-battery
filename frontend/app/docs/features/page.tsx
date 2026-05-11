@@ -96,7 +96,7 @@ export default function FeaturesPage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Explore all the powerful features of ExportReady-Battery.
+ Explore all the powerful features of AnvayaLabs-Battery.
  From batch management to compliance tracking, we&apos;ve got you covered.
  </p>
  </section>
@@ -184,7 +184,7 @@ export default function FeaturesPage() {
  code={`https://your-domain.com/p/{passport-uuid}
 
 Example:
-https://exportready.com/p/550e8400-e29b-41d4-a716-446655440000`}
+https://anvayalabs.com/p/550e8400-e29b-41d4-a716-446655440000`}
  language="text"
  />
  </FeatureCard>

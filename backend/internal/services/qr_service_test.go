@@ -9,19 +9,19 @@ import (
 )
 
 func TestBuildQRPayload_LegacySerial(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 
 	url := svc.BuildQRPayload(id, "LEGACY-SERIAL-123", nil)
 
-	expected := "https://app.exportready.in/p/11111111-1111-1111-1111-111111111111"
+	expected := "https://app.anvayalabs.in/p/11111111-1111-1111-1111-111111111111"
 	if url != expected {
 		t.Errorf("legacy serial should produce plain URL\ngot:  %s\nwant: %s", url, expected)
 	}
 }
 
 func TestBuildQRPayload_BPANv2India(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	serial := "IN-TEN-LFP-2026-00042"
 
@@ -46,7 +46,7 @@ func TestBuildQRPayload_BPANv2India(t *testing.T) {
 }
 
 func TestBuildQRPayload_EUWithCarbon(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	serial := "EU-BAT-NMC-2026-00001"
 	ctx := &QRLabelContext{CarbonPerKWh: 65.42}
@@ -61,7 +61,7 @@ func TestBuildQRPayload_EUWithCarbon(t *testing.T) {
 }
 
 func TestBuildQRPayload_GlobalNoCarbon(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("44444444-4444-4444-4444-444444444444")
 	serial := "GL-SOL-LFP-2026-00007"
 
@@ -99,7 +99,7 @@ func TestExtractCarbonPerKWh_InvalidJSON(t *testing.T) {
 }
 
 func TestGenerateQRCode_EnrichedProducesPNG(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 
 	result, err := svc.GenerateQRCodeEnriched(id, "IN-TEN-LFP-2026-00001", &QRLabelContext{CarbonPerKWh: 42.0})
@@ -115,7 +115,7 @@ func TestGenerateQRCode_EnrichedProducesPNG(t *testing.T) {
 }
 
 func TestGenerateQRCode_BackwardCompatible(t *testing.T) {
-	svc := NewQRService("https://app.exportready.in")
+	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("66666666-6666-6666-6666-666666666666")
 
 	result, err := svc.GenerateQRCode(id, "LEGACY-001")

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // CPCBRow represents one row in the CPCB Form 3 annual return CSV

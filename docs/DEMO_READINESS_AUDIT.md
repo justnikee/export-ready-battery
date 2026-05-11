@@ -2,7 +2,7 @@
 
 **Audit Scope:** Core demo flows (batch creation → passport generation → QR scan), compliance activation, and environment gaps.  
 **Architecture:** Go 1.24.3 / Chi Router / pgx v5 backend · Next.js 16 / React 19 / Tailwind 4 / shadcn-radix frontend · PostgreSQL 16 (Supabase)  
-**Module:** `exportready-battery`  
+**Module:** `anvayalabs-battery`  
 **Migrations:** 41 applied · **API routes:** 60+ fully implemented · **Compliance engine:** 14 India + 12 EU checkpoints
 
 ---

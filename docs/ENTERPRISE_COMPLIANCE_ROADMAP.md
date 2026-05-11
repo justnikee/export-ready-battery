@@ -245,9 +245,9 @@ If `req.Location != nil`:
 
 Implement `BuildEPCISDocument(passportID, events []*PassportEvent) *EPCISDocument`
 
-Map ExportReady fields → EPCIS 2.0 concepts:
+Map AnvayaLabs fields → EPCIS 2.0 concepts:
 
-| ExportReady field                             | EPCIS 2.0 field                                                                                                                                                                                                                                                          |
+| AnvayaLabs field                             | EPCIS 2.0 field                                                                                                                                                                                                                                                          |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `passport_events.action`                      | `bizStep` (e.g. `urn:epcglobal:cbv:bizstep:commissioning`)                                                                                                                                                                                                               |
 | `passport_events.status_from → status_to`     | `disposition`                                                                                                                                                                                                                                                            |

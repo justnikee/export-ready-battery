@@ -90,7 +90,7 @@ export default function NotFound() {
 
  {/* Footer */}
  <p className="text-xs text-gray-400 dark:text-gray-600 pt-8">
- © {new Date().getFullYear()} ExportReady. All rights reserved.
+ © {new Date().getFullYear()} AnvayaLabs. All rights reserved.
  </p>
  </div>
  </div>

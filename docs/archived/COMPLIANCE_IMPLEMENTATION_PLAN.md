@@ -1,4 +1,4 @@
-# ExportReady-Battery — Regulatory Compliance Implementation Plan
+# AnvayaLabs-Battery — Regulatory Compliance Implementation Plan
 
 > **Created:** 2026-02-15  
 > **Last Updated:** 2026-02-27  
@@ -417,7 +417,7 @@ func DecodeBDS(bds string) (chemistry string, voltageClass string, capacityClass
 
 For India market batteries, the QR code payload should include:
 
-1. **URL:** `https://app.exportready.in/p/{uuid}` (existing)
+1. **URL:** `https://app.anvayalabs.in/p/{uuid}` (existing)
 2. **Embedded BDS data:** The 6-char BDS section decoded into human-readable format
 
 **Update:** [`pdf_service.go`](backend/internal/services/pdf_service.go)

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 )

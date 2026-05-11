@@ -56,7 +56,7 @@ export default function DeploymentPage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Complete guide for deploying ExportReady-Battery to production.
+ Complete guide for deploying AnvayaLabs-Battery to production.
  Covers environment configuration, build commands, and hosting options.
  </p>
  </section>
@@ -120,13 +120,13 @@ export default function DeploymentPage() {
  />
  <EnvVar
  name="FRONTEND_URL"
- example="https://app.exportready.com"
+ example="https://app.anvayalabs.com"
  required={true}
  description="Frontend URL for CORS configuration."
  />
  <EnvVar
  name="QR_BASE_URL"
- example="https://app.exportready.com"
+ example="https://app.anvayalabs.com"
  required={true}
  description="Base URL for QR code links. Points to public passport pages."
  />
@@ -149,8 +149,8 @@ export default function DeploymentPage() {
 DATABASE_URL=postgresql://postgres:password@db.supabase.co:5432/postgres
 JWT_SECRET=your-super-secure-random-string-here
 PORT=8080
-FRONTEND_URL=https://app.exportready.com
-QR_BASE_URL=https://app.exportready.com
+FRONTEND_URL=https://app.anvayalabs.com
+QR_BASE_URL=https://app.anvayalabs.com
 RAZORPAY_KEY_ID=rzp_live_xxxx
 RAZORPAY_KEY_SECRET=xxxx`}
  language="bash"
@@ -167,7 +167,7 @@ RAZORPAY_KEY_SECRET=xxxx`}
  <div className="grid gap-3">
  <EnvVar
  name="NEXT_PUBLIC_API_URL"
- example="https://api.exportready.com/api/v1"
+ example="https://api.anvayalabs.com/api/v1"
  required={true}
  description="Backend API base URL."
  />
@@ -181,7 +181,7 @@ RAZORPAY_KEY_SECRET=xxxx`}
 
  <CodeBlock
  code={`# Frontend .env.local example
-NEXT_PUBLIC_API_URL=https://api.exportready.com/api/v1
+NEXT_PUBLIC_API_URL=https://api.anvayalabs.com/api/v1
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_xxxx`}
  language="bash"
  title=".env.local"
@@ -393,13 +393,13 @@ fly deploy`}
  Nginx Reverse Proxy
  </h2>
  <CodeBlock
- code={`# /etc/nginx/sites-available/exportready
+ code={`# /etc/nginx/sites-available/anvayalabs
 server {
  listen 443 ssl http2;
- server_name app.exportready.com;
+ server_name app.anvayalabs.com;
 
- ssl_certificate /etc/letsencrypt/live/app.exportready.com/fullchain.pem;
- ssl_certificate_key /etc/letsencrypt/live/app.exportready.com/privkey.pem;
+ ssl_certificate /etc/letsencrypt/live/app.anvayalabs.com/fullchain.pem;
+ ssl_certificate_key /etc/letsencrypt/live/app.anvayalabs.com/privkey.pem;
 
  # Frontend
  location / {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Linkedin, Twitter, Github, BarChart3 } from "lucide-react";
+import { Linkedin, Twitter, Github } from "lucide-react";
 
 const footerLinks = {
   product: [
@@ -36,10 +36,9 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2 text-xl mb-4">
-              <BarChart3 className="h-7 w-7 text-green-600" />
+            <Link href="/" className="flex items-center text-xl mb-4">
               <span className="text-xl tracking-tight text-gray-900 font-semibold">
-                EXPORTLENS
+                ANVAYALABS
               </span>
             </Link>
             <p className="text-sm mb-6 max-w-xs leading-relaxed text-gray-600">
@@ -119,7 +118,7 @@ export function PublicFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
-            © 2026 ExportReady. All rights reserved.
+            © 2026 AnvayaLabs. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">

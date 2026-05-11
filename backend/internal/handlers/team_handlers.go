@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
 )
 
 // ============================================================================

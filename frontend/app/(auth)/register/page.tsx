@@ -19,7 +19,7 @@ export default async function RegisterPage({
       title={
         isInviteFlow
           ? "Complete your invitation"
-          : "Get started with ExportLens"
+          : "Get started with AnvayaLabs"
       }
       subtitle={
         isInviteFlow

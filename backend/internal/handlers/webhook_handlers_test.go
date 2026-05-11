@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/services"
 )
 
 // TestRazorpayWebhook_SignatureVerification tests webhook signature validation

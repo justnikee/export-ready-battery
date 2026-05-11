@@ -9,7 +9,7 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-[#0B1F3B]">1. Acceptance of Terms</h2>
         <p className="text-sm text-zinc-600 leading-relaxed">
-          By accessing and using the ExportReady platform (&quot;the Service&quot;), you accept and agree
+          By accessing and using the AnvayaLabs platform (&quot;the Service&quot;), you accept and agree
           to be bound by the terms and provisions of this agreement. If you do not agree, do not
           use the Service.
         </p>
@@ -18,7 +18,7 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-[#0B1F3B]">2. Description of Service</h2>
         <p className="text-sm text-zinc-600 leading-relaxed">
-          ExportReady provides digital battery passport generation, compliance validation against
+          AnvayaLabs provides digital battery passport generation, compliance validation against
           EU Regulation 2023/1542 and India BIS/CPCB standards, lifecycle tracking, and audit
           trail management for battery manufacturers and importers.
         </p>
@@ -29,7 +29,7 @@ export default function TermsPage() {
         <p className="text-sm text-zinc-600 leading-relaxed">
           Manufacturers are solely responsible for the accuracy of technical specifications, material
           composition data, supply chain information, and sustainability metrics provided for battery
-          passport generation. ExportReady validates data against regulatory rule sets but does not
+          passport generation. AnvayaLabs validates data against regulatory rule sets but does not
           guarantee regulatory approval by any government body.
         </p>
       </section>
@@ -37,7 +37,7 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-[#0B1F3B]">4. Compliance Responsibility</h2>
         <p className="text-sm text-zinc-600 leading-relaxed">
-          While ExportReady aligns with EU Battery Regulation 2023/1542, India BIS IS 16046, and
+          While AnvayaLabs aligns with EU Battery Regulation 2023/1542, India BIS IS 16046, and
           CPCB Battery Waste Management Rules 2022, the final responsibility for regulatory
           compliance, customs clearance, and market access lies with the manufacturer or importer.
         </p>
@@ -64,7 +64,7 @@ export default function TermsPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-[#0B1F3B]">7. Termination</h2>
         <p className="text-sm text-zinc-600 leading-relaxed">
-          ExportReady reserves the right to terminate access for violations of these terms. Upon
+          AnvayaLabs reserves the right to terminate access for violations of these terms. Upon
           termination, users may export their compliance data within 30 days. Audit trail records
           are retained per regulatory requirements.
         </p>

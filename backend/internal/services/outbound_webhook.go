@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // OutboundWebhookRepository defines storage methods for webhook configuration
@@ -88,7 +88,7 @@ func (s *OutboundWebhookService) deliver(ctx context.Context, wh *models.Outboun
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "ExportReady-Webhook/1.0")
+	req.Header.Set("User-Agent", "AnvayaLabs-Webhook/1.0")
 
 	// Sign with HMAC-SHA256 if secret is configured
 	if wh.Secret != "" {

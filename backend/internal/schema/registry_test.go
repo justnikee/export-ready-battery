@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/schema"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/schema"
 )
 
 // ============================================================================

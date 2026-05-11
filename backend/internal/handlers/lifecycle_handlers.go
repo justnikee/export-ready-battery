@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"strings"
 
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
 )

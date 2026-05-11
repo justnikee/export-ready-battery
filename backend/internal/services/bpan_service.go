@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // ============================================================================

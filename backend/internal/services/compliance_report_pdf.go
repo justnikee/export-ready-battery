@@ -11,7 +11,7 @@ import (
 
 	"github.com/jung-kurt/gofpdf"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // ============================================================================
@@ -201,7 +201,7 @@ func GenerateComplianceReport(batch *models.Batch, tenant *models.Tenant) ([]byt
 	pdf.SetFont("Helvetica", "I", 8)
 	d.colSecondary()
 	pdf.MultiCell(d.contentW, 4,
-		"This report is generated automatically by ExportReady and reflects the compliance status at the time of batch activation. "+
+		"This report is generated automatically by AnvayaLabs and reflects the compliance status at the time of batch activation. "+
 			"It does not constitute a legal certification. Manufacturers are responsible for ensuring full regulatory compliance "+
 			"with applicable standards (EU 2023/1542, AIS-156, BIS CRS, BWM Rules 2022).",
 		"", "L", false)

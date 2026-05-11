@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // Generator is the interface for product-type-aware serial number generation.

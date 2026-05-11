@@ -3,8 +3,8 @@ package handlers
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/repository"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/repository"
 	"fmt"
 	"io"
 	"log/slog"

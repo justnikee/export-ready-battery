@@ -1,4 +1,4 @@
-# ExportReady Battery - Change Status (Codex)
+# AnvayaLabs Battery - Change Status (Codex)
 
 Last updated: 2026-02-08
 

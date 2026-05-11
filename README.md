@@ -1,8 +1,8 @@
-# ExportReady-Battery
+# AnvayaLabs-Battery
 
 Digital Battery Passport platform for global regulatory compliance.
 
-ExportReady-Battery helps battery manufacturers comply with EU Battery Regulation (2023/1542) and India's Battery Aadhaar initiative. Generate unique digital passports, QR codes, and maintain traceability for every battery unit.
+AnvayaLabs-Battery helps battery manufacturers comply with EU Battery Regulation (2023/1542) and India's Battery Aadhaar initiative. Generate unique digital passports, QR codes, and maintain traceability for every battery unit.
 
 ---
 
@@ -73,8 +73,8 @@ ExportReady-Battery helps battery manufacturers comply with EU Battery Regulatio
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/ExportReady-Battery.git
-cd ExportReady-Battery
+git clone https://github.com/your-org/AnvayaLabs-Battery.git
+cd AnvayaLabs-Battery
 ```
 
 ### 2. Setup Backend
@@ -128,7 +128,7 @@ Frontend runs on `http://localhost:3000`.
 ## Project Structure
 
 ```
-ExportReady-Battery/
+AnvayaLabs-Battery/
 ├── backend/                 # Go REST API
 │   ├── api/                 # OpenAPI specification
 │   ├── cmd/server/          # Application entry point

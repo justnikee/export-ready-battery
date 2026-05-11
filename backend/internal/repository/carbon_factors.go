@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/jackc/pgx/v5"
 )

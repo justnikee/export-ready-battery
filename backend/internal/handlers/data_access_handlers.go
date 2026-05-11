@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
 )

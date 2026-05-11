@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 )

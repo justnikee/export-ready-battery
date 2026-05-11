@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // ============================================================================
@@ -175,7 +175,7 @@ func TestDeriveManufacturerCode(t *testing.T) {
 		{"With numbers", "123 Corp", "COR"},
 		{"Unicode", "München GmbH", "MÜN"},
 		{"Spaces and special", "  A-B_C  ", "ABC"},
-		{"Long name", "ExportReady Battery Solutions", "EXP"},
+		{"Long name", "AnvayaLabs Battery Solutions", "EXP"},
 	}
 
 	for _, tt := range tests {

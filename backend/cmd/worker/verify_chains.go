@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/services"
 )
 
 const (

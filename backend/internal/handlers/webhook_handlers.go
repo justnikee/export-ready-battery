@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/logger"
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/logger"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/services"
 )
 
 // WebhookHandler handles incoming webhooks from payment providers

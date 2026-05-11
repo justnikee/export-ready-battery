@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
 )
 
 var (

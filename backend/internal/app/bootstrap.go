@@ -1,4 +1,4 @@
-// Package app provides shared initialization logic used by all ExportReady
+// Package app provides shared initialization logic used by all AnvayaLabs
 // binary entry-points (cmd/server, cmd/worker, cmd/migrate, etc.).
 //
 // Every binary performs three identical boot steps before doing anything
@@ -19,9 +19,9 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"exportready-battery/internal/config"
-	"exportready-battery/internal/db"
-	"exportready-battery/internal/logger"
+	"anvayalabs-battery/internal/config"
+	"anvayalabs-battery/internal/db"
+	"anvayalabs-battery/internal/logger"
 )
 
 // Deps holds the shared infrastructure dependencies that every binary needs.

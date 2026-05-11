@@ -4,7 +4,7 @@ Last reviewed: 2026-04-26
 
 This is the current manual test reference for lifecycle transitions. Older phase snapshot docs should be treated as historical context, not the active test source of truth.
 
-This document provides a comprehensive guide for manually testing the passport lifecycle system in ExportReady-Battery.
+This document provides a comprehensive guide for manually testing the passport lifecycle system in AnvayaLabs-Battery.
 
 ---
 
@@ -90,7 +90,7 @@ CREATED ──ACTIVATE──► ACTIVE ──SHIP──► SHIPPED ──INSTALL
 Ensure your `.env` file has:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/exportready
+DATABASE_URL=postgresql://user:password@localhost:5432/anvayalabs
 JWT_SECRET=your-jwt-secret
 PORT=8080
 ```

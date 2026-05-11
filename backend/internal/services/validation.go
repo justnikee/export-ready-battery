@@ -2,7 +2,7 @@ package services
 
 import (
 	"errors"
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 	"fmt"
 	"regexp"
 	"strings"

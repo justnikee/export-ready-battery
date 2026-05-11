@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 )
 
 // APIKeyContextKey is the context key for API key data

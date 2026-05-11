@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/stretchr/testify/assert"
 )

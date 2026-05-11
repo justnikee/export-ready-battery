@@ -134,7 +134,7 @@ export default async function BlogPostPage({ params }: Props) {
        Ready to simplify battery compliance?
      </h3>
      <p className="text-sm text-zinc-600 mb-6 max-w-md mx-auto">
-       Join 50+ manufacturers using ExportReady to generate digital battery
+       Join 50+ manufacturers using AnvayaLabs to generate digital battery
        passports and stay audit-ready across EU and India markets.
      </p>
      <Link

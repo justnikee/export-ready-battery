@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"exportready-battery/internal/repository"
+	"anvayalabs-battery/internal/repository"
 
 	"github.com/google/uuid"
 )

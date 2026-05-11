@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/serial"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/serial"
 )
 
 // ============================================================================
@@ -191,7 +191,7 @@ func TestDeriveManufacturerCode(t *testing.T) {
 		{"One letter", "X Ltd", "XLT"},   // X, L, T from "X Ltd"
 		{"Empty", "", "MFG"},
 		{"Numbers first", "123 Corp", "COR"},
-		{"Long name", "ExportReady Battery Solutions", "EXP"},
+		{"Long name", "AnvayaLabs Battery Solutions", "EXP"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"exportready-battery/internal/db"
+	"anvayalabs-battery/internal/db"
 
 	"github.com/joho/godotenv"
 )

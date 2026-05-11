@@ -1,4 +1,4 @@
-# ExportReady-Battery — Full Project Documentation
+# AnvayaLabs-Battery — Full Project Documentation
 
 > **Last Updated:** 2026-02-15  
 > **Purpose:** Comprehensive documentation of all features, flows, architecture, and identified gaps.
@@ -36,7 +36,7 @@
 
 ## 1. Project Overview
 
-**ExportReady-Battery** is a SaaS platform that helps battery manufacturers comply with:
+**AnvayaLabs-Battery** is a SaaS platform that helps battery manufacturers comply with:
 
 - **EU Battery Regulation 2023/1542** — Digital Battery Passport (Article 77)
 - **India Battery Aadhaar** — Unique battery identification, PLI compliance, BIS/EPR certification

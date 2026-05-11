@@ -1,7 +1,7 @@
 # Battery Passport Market: Competitive Analysis
 
 > **Date:** January 23, 2026  
-> **Purpose:** Assess market viability and competitive positioning for ExportReady-Battery
+> **Purpose:** Assess market viability and competitive positioning for AnvayaLabs-Battery
 
 ---
 
@@ -138,7 +138,7 @@ No competitor has all three.
 
 1. **Land 5-10 paying customers before June 2026** - Proves product-market fit
 2. **Complete EU mandatory fields** - Without this, EU export value prop fails
-3. **Build case studies** - "Company X exported 10,000 batteries using ExportReady"
+3. **Build case studies** - "Company X exported 10,000 batteries using AnvayaLabs"
 4. **Partner with Indian trade associations** - IESA, ACMA, CII
 
 ---
@@ -171,7 +171,7 @@ No competitor has all three.
 
 > **For** Indian battery manufacturers exporting to EU  
 > **Who** need to comply with both India's EPR/BIS and EU's Battery Passport  
-> **ExportReady** is a compliance platform  
+> **AnvayaLabs** is a compliance platform  
 > **That** generates dual-mode battery passports with one-click  
 > **Unlike** Circulor or SAP which are enterprise-only and EU-focused  
 > **We** offer India-first compliance with PLI/DVA calculators at SMB pricing

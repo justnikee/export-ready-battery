@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"exportready-battery/internal/compliance"
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/compliance"
+	"anvayalabs-battery/internal/models"
 )
 
 // ============================================================================

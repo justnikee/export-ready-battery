@@ -6,7 +6,7 @@ import { Quote, Star, Play } from "lucide-react";
 const testimonials = [
   {
     quote:
-      "ExportReady saved us weeks of compliance work for our EU exports. The lifecycle tracking is exactly what regulators want to see.",
+      "AnvayaLabs saved us weeks of compliance work for our EU exports. The lifecycle tracking is exactly what regulators want to see.",
     author: "Rajesh Kumar",
     role: "Compliance Head",
     company: "Nexus Power Solutions",
@@ -126,7 +126,7 @@ export function TestimonialsSection() {
             Trusted by battery manufacturers worldwide
           </h2>
           <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
-            See how companies are simplifying compliance with ExportLens.
+            See how companies are simplifying compliance with AnvayaLabs.
           </p>
         </motion.div>
 

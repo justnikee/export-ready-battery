@@ -1,11 +1,11 @@
-# ExportReady Battery — Design System
+# AnvayaLabs Battery — Design System
 
 > **Precision v4.0** — April 2026
 > Clean Enterprise Compliance · Zinc Neutrals · Emerald Accent · Inter + JetBrains Mono
 
 ---
 
-**Project:** ExportReady Battery — Digital Battery Passport Platform
+**Project:** AnvayaLabs Battery — Digital Battery Passport Platform
 **Category:** B2B Compliance SaaS
 **Inspired by:** Linear, Vercel Dashboard, Vanta, Stripe
 

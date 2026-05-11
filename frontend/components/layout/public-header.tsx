@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, BarChart3 } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -28,10 +28,9 @@ export function PublicHeader() {
       }
     >
       <div className="mx-auto flex h-16 w-full max-w-330 items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2 group">
-          <BarChart3 className="h-7 w-7 text-green-600" />
+        <Link href="/" className="flex items-center group">
           <span className="text-xl tracking-tight text-gray-900 font-semibold">
-            EXPORTLENS
+            ANVAYALABS
           </span>
         </Link>
 

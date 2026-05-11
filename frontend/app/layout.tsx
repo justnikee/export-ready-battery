@@ -18,7 +18,7 @@ const sourceCodePro = Source_Code_Pro({
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "ExportReady - Digital Battery Passport",
+  title: "AnvayaLabs - Digital Battery Passport",
   description: "Manage and track battery passports",
 };
 

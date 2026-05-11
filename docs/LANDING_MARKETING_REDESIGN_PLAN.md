@@ -2,7 +2,7 @@
 
 ## Product Context
 
-**ExportReady** is a SaaS Digital Battery Passport platform for battery manufacturers complying with EU Battery Regulation 2023/1542 and India BWM Rules. It generates UUID+QR passports per battery unit, enforces a strict lifecycle state machine, provides immutable BLAKE2b audit trails, and handles three-tier data access (Art 78). Revenue comes from one-time license purchases (₹4,999–₹49,999) via Razorpay.
+**AnvayaLabs** is a SaaS Digital Battery Passport platform for battery manufacturers complying with EU Battery Regulation 2023/1542 and India BWM Rules. It generates UUID+QR passports per battery unit, enforces a strict lifecycle state machine, provides immutable BLAKE2b audit trails, and handles three-tier data access (Art 78). Revenue comes from one-time license purchases (₹4,999–₹49,999) via Razorpay.
 
 ## Design Goal
 
@@ -205,9 +205,9 @@ Each feature section reuses concepts from docs but presented as marketing copy w
 Structure:
 1. **Hero:** "Navigate EU and India battery regulations with confidence"
 2. **Regulatory Timeline** (horizontal stepper): 2025 BWM Rules → Aug 2026 EU Carbon Classes → Feb 2027 Full DBP mandate → onwards
-3. **EU Battery Regulation 2023/1542** section: Key articles (7, 8, 77, 78), what they mean, how ExportReady handles each
-4. **India BWM Rules 2022/2025** section: BIS, CPCB EPR, PLI DVA, MoRTH AIS — what's required and how ExportReady handles each
-5. **Comparison table:** What ExportReady does vs. manual compliance vs. other tools
+3. **EU Battery Regulation 2023/1542** section: Key articles (7, 8, 77, 78), what they mean, how AnvayaLabs handles each
+4. **India BWM Rules 2022/2025** section: BIS, CPCB EPR, PLI DVA, MoRTH AIS — what's required and how AnvayaLabs handles each
+5. **Comparison table:** What AnvayaLabs does vs. manual compliance vs. other tools
 6. **Checklist download CTA:** "Download the complete EU+India compliance checklist (PDF)"
 
 #### 3C. `/use-cases` Page (NEW)

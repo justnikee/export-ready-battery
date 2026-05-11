@@ -11,18 +11,18 @@ import (
 	"syscall"
 	"time"
 
-	"exportready-battery/internal/app"
-	"exportready-battery/internal/compliance"
-	battery "exportready-battery/internal/compliance/battery"
-	"exportready-battery/internal/events"
-	"exportready-battery/internal/handlers"
-	"exportready-battery/internal/logger"
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/schema"
-	schemaSeeds "exportready-battery/internal/schema/seeds"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/app"
+	"anvayalabs-battery/internal/compliance"
+	battery "anvayalabs-battery/internal/compliance/battery"
+	"anvayalabs-battery/internal/events"
+	"anvayalabs-battery/internal/handlers"
+	"anvayalabs-battery/internal/logger"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/schema"
+	schemaSeeds "anvayalabs-battery/internal/schema/seeds"
+	"anvayalabs-battery/internal/services"
 )
 
 func main() {
@@ -165,7 +165,7 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","service":"exportready-battery"}`))
+		w.Write([]byte(`{"status":"healthy","service":"anvayalabs-battery"}`))
 	})
 
 	// ============================================
@@ -184,7 +184,7 @@ func main() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExportReady Battery API - Documentation</title>
+    <title>AnvayaLabs Battery API - Documentation</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
     <style>
         body { margin: 0; padding: 0; }

@@ -1,4 +1,4 @@
-# ExportLens Landing Page Improvement Plan
+# AnvayaLabs Landing Page Improvement Plan
 
 ## Multi-Million Dollar Company UI Best Practices
 

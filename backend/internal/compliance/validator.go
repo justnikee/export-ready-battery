@@ -3,7 +3,7 @@ package compliance
 import (
 	"encoding/json"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // Validator is the core interface every compliance module must implement.

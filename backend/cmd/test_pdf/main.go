@@ -7,15 +7,15 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/services"
 )
 
 func main() {
 	fmt.Println("=== PDF Label Generator Test ===")
 
 	// Create PDF service
-	pdfService := services.NewPDFService("https://exportready.app")
+	pdfService := services.NewPDFService("https://anvayalabs.app")
 
 	// Create mock tenant with India compliance fields
 	tenant := &models.Tenant{

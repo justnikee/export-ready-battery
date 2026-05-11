@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"exportready-battery/internal/app"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/app"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/services"
 )
 
 const (

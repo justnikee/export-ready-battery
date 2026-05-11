@@ -560,7 +560,7 @@ export default function DeveloperPage() {
             <pre className="text-xs text-emerald-400 font-mono whitespace-pre-wrap overflow-x-auto">
               {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
  -H "Content-Type: application/json" \\
- ${typeof window !== "undefined" ? window.location.origin : "https://api.exportready.io"}/api/v1/batches`}
+ ${typeof window !== "undefined" ? window.location.origin : "https://api.anvayalabs.io"}/api/v1/batches`}
             </pre>
           </div>
         </div>

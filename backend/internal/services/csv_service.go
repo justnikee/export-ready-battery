@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // CSVService handles CSV parsing

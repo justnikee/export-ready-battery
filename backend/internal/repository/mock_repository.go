@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"

@@ -17,7 +17,6 @@ import {
   ChevronUp,
   Key,
   BookOpen,
-  BarChart3,
   LayoutTemplate,
   TrendingUp,
   Shield,
@@ -147,14 +146,13 @@ export function DashboardSidebar({
             className="flex items-center gap-2"
             onClick={onClose}
           >
-            <BarChart3 className="h-7 w-7 text-(--brand)" />
             <span
               className={clsx(
                 "text-xl tracking-tight text-foreground",
                 isCollapsed && "md:hidden",
               )}
             >
-              EXPORTLENS
+              ANVAYALABS
             </span>
           </Link>
 

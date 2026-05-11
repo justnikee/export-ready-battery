@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
 )

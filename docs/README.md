@@ -1,4 +1,4 @@
-# ExportReady-Battery Docs Index
+# AnvayaLabs-Battery Docs Index
 
 Last reviewed: 2026-04-26
 

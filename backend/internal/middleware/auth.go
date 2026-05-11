@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/services"
 )
 
 // ContextKey type for context values

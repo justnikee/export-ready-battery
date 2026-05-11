@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ExportReady Battery API
+  title: AnvayaLabs Battery API
   description: |
     API for Battery Passport Management System supporting EU Battery Regulation 2023/1542 
     and BIS India compliance requirements.
@@ -12,8 +12,8 @@ info:
     Payment webhooks (Razorpay) use HMAC-SHA256 signature verification.
   version: 1.0.0
   contact:
-    name: ExportReady Support
-    email: support@exportready.app
+    name: AnvayaLabs Support
+    email: support@anvayalabs.app
 
 servers:
   - url: /api/v1

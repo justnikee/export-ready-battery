@@ -1,4 +1,4 @@
-# ExportReady-Battery Codebase Review
+# AnvayaLabs-Battery Codebase Review
 
 > **Review Date**: January 30, 2026  
 > **Project Status**: Production-Ready with Team Management Features
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-The ExportReady-Battery platform is a **comprehensive battery passport and compliance management system** for EU and India markets. The codebase is well-structured with a Go backend and Next.js frontend, both production-ready after recent build fixes.
+The AnvayaLabs-Battery platform is a **comprehensive battery passport and compliance management system** for EU and India markets. The codebase is well-structured with a Go backend and Next.js frontend, both production-ready after recent build fixes.
 
 | Metric | Count |
 |--------|-------|
@@ -261,7 +261,7 @@ Well-organized with:
 
 ## Summary
 
-**The ExportReady-Battery codebase is production-ready** with a comprehensive feature set for battery passport management. The architecture is solid, code is well-organized, and both frontend and backend build successfully.
+**The AnvayaLabs-Battery codebase is production-ready** with a comprehensive feature set for battery passport management. The architecture is solid, code is well-organized, and both frontend and backend build successfully.
 
 ### What's Working Well
 - ✅ Full auth system with JWT

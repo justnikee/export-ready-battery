@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // Store is the persistence interface for loading ProductSchemas from the database.

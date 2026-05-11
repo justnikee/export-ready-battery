@@ -1,4 +1,4 @@
-# ExportReady Passport Lifecycle - Phases 1-6 Implementation Report
+# AnvayaLabs Passport Lifecycle - Phases 1-6 Implementation Report
 Last updated: 2026-02-08
 
 This report summarizes all changes implemented across Phases 1-6 (state model lockdown through evidence and magic-link hardening). It is intended to be a single, regulator-defensible record of what was done, what changed in models and APIs, and what can break if clients or data do not comply.

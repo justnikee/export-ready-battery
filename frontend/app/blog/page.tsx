@@ -17,7 +17,7 @@ import Image from "next/image";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
- title: "The ExportReady Blog | Battery Passport & Compliance Insights",
+ title: "The AnvayaLabs Blog | Battery Passport & Compliance Insights",
  description:
  "Latest news, updates, and expert insights on battery regulation, compliance, and sustainability.",
 };
@@ -29,7 +29,7 @@ export default async function BlogIndexPage() {
  <div className="container py-12 max-w-6xl mx-auto space-y-12">
  <div className="text-center space-y-4">
  <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
- ExportReady Insights
+ AnvayaLabs Insights
  </h1>
  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
  Stay ahead of battery regulations. Expert analysis on EU Battery

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/repository"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/repository"
 	"log/slog"
 	"net/http"
 	"strconv"

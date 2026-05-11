@@ -268,7 +268,7 @@ For each event row in the panel, verify:
 
 ### 7.2 Open the magic link
 
-1. Check your email for the magic link (subject contains "ExportReady").
+1. Check your email for the magic link (subject contains "AnvayaLabs").
 2. Click the link — it opens `/p/<uuid>/action?token=<jwt>` in the browser.
    - **Expected:** The action page loads and shows the passport info and allowed action (RECYCLE).
 

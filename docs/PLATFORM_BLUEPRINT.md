@@ -571,7 +571,7 @@ RECYCLED → END_OF_LIFE
 ### STEP 7: TELEMETRY / SOH (IN-SERVICE PHASE)
 
 ```
-Physical battery → BMS device → Internet → ExportReady API
+Physical battery → BMS device → Internet → AnvayaLabs API
 
 Device Setup:
   1. Manufacturer creates device token in /developer
@@ -654,7 +654,7 @@ SoH-Driven Actions:
 
 ---
 
-### How ExportReady Currently Handles Lifecycle
+### How AnvayaLabs Currently Handles Lifecycle
 
 **Strengths:**
 
@@ -850,15 +850,15 @@ Physical Battery
   └── BMS (Battery Management System)
         └── CAN Bus / UART → Microcontroller (ESP32, Raspberry Pi, etc.)
               └── MQTT / REST → IoT Gateway (cloud or on-prem)
-                    └── ExportReady Telemetry API
+                    └── AnvayaLabs Telemetry API
                           POST /api/v1/telemetry
                           Headers: Authorization: Bearer {device_token}
 
 Integration options (in order of complexity):
   1. Direct REST: Gateway posts JSON directly to /api/v1/telemetry (simplest)
-  2. MQTT bridge: Gateway publishes to MQTT topic → ExportReady MQTT subscriber → ingests
+  2. MQTT bridge: Gateway publishes to MQTT topic → AnvayaLabs MQTT subscriber → ingests
   3. AWS IoT Core / Azure IoT Hub: manufacturer uses cloud IoT platform →
-     webhook/event → ExportReady ingestion endpoint
+     webhook/event → AnvayaLabs ingestion endpoint
   4. Catena-X connector: for EU OEM customers already on Catena-X network
 ```
 

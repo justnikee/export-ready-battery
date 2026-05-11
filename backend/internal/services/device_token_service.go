@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/repository"
+	"anvayalabs-battery/internal/repository"
 )
 
 var (

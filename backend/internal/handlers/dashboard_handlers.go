@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"exportready-battery/internal/middleware"
+	"anvayalabs-battery/internal/middleware"
 
 	"github.com/google/uuid"
 )

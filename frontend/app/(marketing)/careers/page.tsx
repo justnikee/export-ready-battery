@@ -60,7 +60,7 @@ export default function CareersPage() {
             Join Us
           </span>
           <h1 className="text-4xl md:text-5xl font-heading text-[#0B1F3B]">
-            Careers at ExportReady
+            Careers at AnvayaLabs
           </h1>
           <p className="text-lg text-zinc-600 max-w-3xl mx-auto">
             We&apos;re building compliance infrastructure for the global battery
@@ -123,7 +123,7 @@ export default function CareersPage() {
                   </p>
                 </div>
                 <a
-                  href={`mailto:careers@exportready.com?subject=Application: ${encodeURIComponent(role.title)}`}
+                  href={`mailto:careers@anvayalabs.com?subject=Application: ${encodeURIComponent(role.title)}`}
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-accent-green hover:text-green-700 transition-colors shrink-0"
                 >
                   Apply <ArrowRight className="h-3.5 w-3.5" />
@@ -134,10 +134,10 @@ export default function CareersPage() {
           <p className="text-center text-sm text-zinc-500 mt-6">
             Don&apos;t see a fit? Send your resume to{" "}
             <a
-              href="mailto:careers@exportready.com"
+              href="mailto:careers@anvayalabs.com"
               className="text-accent-green font-medium hover:underline"
             >
-              careers@exportready.com
+              careers@anvayalabs.com
             </a>
           </p>
         </motion.div>
@@ -150,7 +150,7 @@ export default function CareersPage() {
           className="flex flex-wrap justify-center gap-4"
         >
           <a
-            href="mailto:careers@exportready.com"
+            href="mailto:careers@anvayalabs.com"
             className="inline-flex items-center gap-2 rounded-full bg-gradient-cta-button px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:opacity-95"
           >
             <Mail className="h-4 w-4" />

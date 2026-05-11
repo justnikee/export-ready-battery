@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // FieldError represents a single spec validation error.

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // routeKey is the map key that uniquely identifies a (ProductType, MarketRegion) pair.

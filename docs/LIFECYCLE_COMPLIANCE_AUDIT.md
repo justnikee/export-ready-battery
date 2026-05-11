@@ -343,9 +343,9 @@ Telemetry, SoH, warranty events, service records, and recycler actions are tied 
 
 EPCIS export is a good start. The next maturity step is broader ecosystem-ready exchange and claim semantics that make passport data consumable across supply-chain, compliance, and OEM networks.
 
-## Where ExportReady Is Different In A Good Way
+## Where AnvayaLabs Is Different In A Good Way
 
-ExportReady is not only behind. It already has some practical strengths that are useful in real operations.
+AnvayaLabs is not only behind. It already has some practical strengths that are useful in real operations.
 
 ### 1. Magic-link lifecycle operations are pragmatic
 

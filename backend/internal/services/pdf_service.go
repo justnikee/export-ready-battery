@@ -8,7 +8,7 @@ import (
 	"github.com/jung-kurt/gofpdf"
 	"github.com/skip2/go-qrcode"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // PDFService handles PDF label sheet generation
@@ -373,7 +373,7 @@ func (s *PDFService) GenerateLabelSheetSimple(batchName string, serials []string
 
 		pdf.SetFont("Arial", "B", 8)
 		pdf.SetXY(textX, y+8)
-		pdf.Cell(30, 4, "ExportReady Battery")
+		pdf.Cell(30, 4, "AnvayaLabs Battery")
 
 		pdf.SetFont("Arial", "", 7)
 		pdf.SetXY(textX, y+13)

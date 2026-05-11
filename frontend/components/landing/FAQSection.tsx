@@ -10,19 +10,19 @@ import {
 
 const faqs = [
   {
-    question: "How is ExportReady different from manual compliance tracking?",
+    question: "How is AnvayaLabs different from manual compliance tracking?",
     answer:
-      "ExportReady automates the entire compliance workflow — real-time validation, automated documentation generation, and an immutable BLAKE2b cryptographic audit chain. What takes compliance teams weeks of spreadsheet work and manual certification-chasing happens in minutes.",
+      "AnvayaLabs automates the entire compliance workflow — real-time validation, automated documentation generation, and an immutable BLAKE2b cryptographic audit chain. What takes compliance teams weeks of spreadsheet work and manual certification-chasing happens in minutes.",
   },
   {
-    question: "Can I integrate ExportReady with my existing ERP system?",
+    question: "Can I integrate AnvayaLabs with my existing ERP system?",
     answer:
-      "Yes. ExportReady provides a REST API with comprehensive documentation for integration with SAP, Oracle, Microsoft Dynamics, and custom ERP systems. We support CSV batch upload, webhooks for real-time status updates, and dedicated integration support during onboarding.",
+      "Yes. AnvayaLabs provides a REST API with comprehensive documentation for integration with SAP, Oracle, Microsoft Dynamics, and custom ERP systems. We support CSV batch upload, webhooks for real-time status updates, and dedicated integration support during onboarding.",
   },
   {
-    question: "What regulatory frameworks does ExportReady validate against?",
+    question: "What regulatory frameworks does AnvayaLabs validate against?",
     answer:
-      "ExportReady validates against EU Battery Regulation 2023/1542 (carbon footprint, recycled content, supply chain due diligence), India BIS IS 16046, and CPCB Battery Waste Management Rules 2022. Validation rulesets update from official regulatory sources.",
+      "AnvayaLabs validates against EU Battery Regulation 2023/1542 (carbon footprint, recycled content, supply chain due diligence), India BIS IS 16046, and CPCB Battery Waste Management Rules 2022. Validation rulesets update from official regulatory sources.",
   },
   {
     question: "How long does implementation take?",
@@ -32,10 +32,10 @@ const faqs = [
   {
     question: "What happens if my battery fails compliance validation?",
     answer:
-      "ExportReady identifies compliance gaps immediately with specific remediation guidance. You'll receive detailed reports showing which specifications don't meet regulatory requirements, suggested corrections, and alternative certification paths. Our compliance team can provide expert consultation for complex cases.",
+      "AnvayaLabs identifies compliance gaps immediately with specific remediation guidance. You'll receive detailed reports showing which specifications don't meet regulatory requirements, suggested corrections, and alternative certification paths. Our compliance team can provide expert consultation for complex cases.",
   },
   {
-    question: "How does ExportReady ensure data security?",
+    question: "How does AnvayaLabs ensure data security?",
     answer:
       "All data is encrypted at rest (AES-256) and in transit (TLS 1.3). We maintain SOC 2 Type II compliance, conduct regular penetration testing, and store data in ISO 27001 certified data centers. You retain full ownership of your data with options for on-premise deployment for enterprise customers.",
   },
@@ -47,15 +47,15 @@ const faqs = [
   {
     question: "What is the EU Battery Passport deadline?",
     answer:
-      "The EU Battery Regulation 2023/1542 mandates digital battery passports for all batteries above 2 kWh by February 2027. Manufacturers must start preparing now as the regulation includes transitional periods for different battery categories. ExportReady helps you meet these deadlines with automated passport generation.",
+      "The EU Battery Regulation 2023/1542 mandates digital battery passports for all batteries above 2 kWh by February 2027. Manufacturers must start preparing now as the regulation includes transitional periods for different battery categories. AnvayaLabs helps you meet these deadlines with automated passport generation.",
   },
   {
-    question: "Does ExportReady support India BIS certification?",
+    question: "Does AnvayaLabs support India BIS certification?",
     answer:
-      "Yes. ExportReady validates against all India BIS standards including IS 16046 (lithium-ion batteries), tracks BIS R-Number validity, monitors EPR obligations under CPCB guidelines, and generates India-specific compliance documentation. We maintain updated databases of approved testing laboratories and certification bodies.",
+      "Yes. AnvayaLabs validates against all India BIS standards including IS 16046 (lithium-ion batteries), tracks BIS R-Number validity, monitors EPR obligations under CPCB guidelines, and generates India-specific compliance documentation. We maintain updated databases of approved testing laboratories and certification bodies.",
   },
   {
-    question: "How much does ExportReady cost?",
+    question: "How much does AnvayaLabs cost?",
     answer:
       "Pricing starts at ₹4,999/month for up to 500 battery passports. We offer volume discounts for high-volume manufacturers and custom enterprise plans with dedicated support, on-premise deployment, and SLA guarantees. Contact our sales team for a detailed quote based on your production volume.",
   },
@@ -81,7 +81,7 @@ export function FAQSection() {
           </h2>
           <p className="text-base text-muted-light max-w-[60ch] mx-auto">
             Everything you need to know about battery compliance automation and
-            ExportReady.
+            AnvayaLabs.
           </p>
         </motion.div>
 

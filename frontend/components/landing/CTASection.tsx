@@ -43,7 +43,7 @@ export function CTASection() {
           {/* Subheadline */}
           <p className="text-base sm:text-lg max-w-[56ch] mx-auto mb-10 text-gray-600">
             Join 50+ manufacturers across India and Europe already using
-            ExportReady to simplify battery compliance, accelerate customs
+            AnvayaLabs to simplify battery compliance, accelerate customs
             clearance, and enter regulated markets faster.
           </p>
 

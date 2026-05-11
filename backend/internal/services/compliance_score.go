@@ -1,6 +1,6 @@
 package services
 
-import "exportready-battery/internal/models"
+import "anvayalabs-battery/internal/models"
 
 // CalculateComplianceScore evaluates a batch against the EU BatteryPass
 // consortium's 80-attribute checklist and returns coverage percentage.

@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // ActivationComplianceResult captures missing or invalid fields for activation

@@ -77,7 +77,7 @@ func (s *AuthService) GenerateToken(tenantID, email, role string) (string, error
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "exportready-battery",
+			Issuer:    "anvayalabs-battery",
 		},
 	}
 
@@ -97,7 +97,7 @@ func (s *AuthService) GenerateRefreshToken(tenantID, email, role string) (string
 			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.refreshExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "exportready-battery",
+			Issuer:    "anvayalabs-battery",
 		},
 	}
 

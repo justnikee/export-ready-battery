@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"exportready-battery/internal/auth"
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/auth"
+	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
 )

@@ -97,7 +97,7 @@ export default function Login() {
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              ExportReady Terminal
+              AnvayaLabs Terminal
             </h1>
             <p className="text-sm text-muted-foreground">
               Sign in to manage your battery passports and compliance

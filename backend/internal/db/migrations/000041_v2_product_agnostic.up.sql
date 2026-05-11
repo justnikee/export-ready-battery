@@ -1,5 +1,5 @@
 -- =============================================================================
--- ExportReady v2: Product-Agnostic Architecture Migration
+-- AnvayaLabs v2: Product-Agnostic Architecture Migration
 -- =============================================================================
 -- This migration is ADDITIVE ONLY — no column drops, no data loss.
 -- Existing battery data gets product_type = 'BATTERY' via DEFAULT.

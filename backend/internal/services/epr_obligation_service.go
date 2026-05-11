@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // BWM Rules 2022 — Extended Producer Responsibility collection targets (%)

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 // CarbonFactorRepository defines the interface for fetching carbon factors.

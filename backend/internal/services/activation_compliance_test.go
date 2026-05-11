@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/models"
 )
 
 func makeBaseBatch(region models.MarketRegion) *models.Batch {

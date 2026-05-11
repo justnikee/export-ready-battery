@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"exportready-battery/internal/db"
+	"anvayalabs-battery/internal/db"
 )
 
 // Repository handles all database operations

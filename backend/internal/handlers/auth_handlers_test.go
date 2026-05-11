@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"exportready-battery/internal/services"
+	"anvayalabs-battery/internal/services"
 )
 
 // MockDB implements a minimal mock for testing

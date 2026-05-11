@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"exportready-battery/internal/middleware"
-	"exportready-battery/internal/models"
+	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 )

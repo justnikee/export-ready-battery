@@ -1,6 +1,6 @@
 # Battery Passport Platform — Gap Analysis & Competitive Benchmarking
 
-> **Scope:** ExportReady Battery Passport Platform (Go backend + Next.js 16 frontend)  
+> **Scope:** AnvayaLabs Battery Passport Platform (Go backend + Next.js 16 frontend)  
 > **Reviewed against:** EU Battery Regulation 2023/1542 · Circulor · Circularise · BatteryPass consortium (thebatterypass.eu) · Catena-X  
 > **Key deadline:** February 18, 2027 — EU Battery Passport mandatory (EV, LMT, Industrial >2 kWh)
 
@@ -21,7 +21,7 @@
 
 ## 1. Executive Summary
 
-The ExportReady battery passport platform has a **solid, well-architected core**. The lifecycle state machine, hash-chain audit trail, three-tier data access, BPAN serial format, carbon calculator, and compliance activation gate are all correctly built and production-quality.
+The AnvayaLabs battery passport platform has a **solid, well-architected core**. The lifecycle state machine, hash-chain audit trail, three-tier data access, BPAN serial format, carbon calculator, and compliance activation gate are all correctly built and production-quality.
 
 However, **five critical gaps** block EU regulatory compliance by Feb 2027, and **the platform is significantly behind** the feature depth of commercial leaders like Circulor and Circularise in two key areas:
 
@@ -30,7 +30,7 @@ However, **five critical gaps** block EU regulatory compliance by Feb 2027, and 
 
 Beyond that, there are EU data points that the regulation mandates (battery category, disassembly instructions, performance metrics, Art. 48 due diligence) that are either missing from the data model or only partially captured.
 
-Against big players, ExportReady is **stronger than expected** for a startup — the audit trail, India compliance dual-mode, and PDF due diligence report are genuine differentiators for the Indian-to-EU export use case. The roadmap below closes the critical gaps before 2027.
+Against big players, AnvayaLabs is **stronger than expected** for a startup — the audit trail, India compliance dual-mode, and PDF due diligence report are genuine differentiators for the Indian-to-EU export use case. The roadmap below closes the critical gaps before 2027.
 
 ---
 
@@ -381,7 +381,7 @@ if passport.TenantID != tenantID {
 
 **Circularise's key differentiator:** Claims can be attested by third-party verifiers (auditors, certification bodies). The platform cryptographically links the verifier's signature to the claim.
 
-**ExportReady:** No verifier concept exists. All data is self-declared by the manufacturer.
+**AnvayaLabs:** No verifier concept exists. All data is self-declared by the manufacturer.
 
 **Impact:** EU Art. 39 does not require third-party verification for the passport itself, but for supply chain due diligence (Art. 48), independent audit is encouraged. Having an attestation mechanism would be a strong differentiator.
 
@@ -459,21 +459,21 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 
 **Position:** World's first enterprise battery passport at industrial scale. Deployed with Volvo Cars. ISO 27001 + ISO 9001 certified.
 
-| Capability | Circulor | ExportReady |
+| Capability | Circulor | AnvayaLabs |
 |-----------|---------|-------------|
 | Battery passport at scale (millions of units) | ✅ Proven | 🟡 Architecture supports it |
 | Item-level configurable permissions | ✅ Any field, any role | 🟡 Three fixed tiers only |
 | DPP template library (prEN18239 aligned) | ✅ | ❌ No standard mapping |
 | Multi-tier supply chain traceability | ✅ Mine → smelter → cell | ❌ Country only |
 | ISO 27001 certification | ✅ | ❌ Not documented |
-| Brand customization per passport | ✅ Unlimited themes | ❌ Single ExportReady branding |
+| Brand customization per passport | ✅ Unlimited themes | ❌ Single AnvayaLabs branding |
 | Blockchain-anchored provenance | ✅ | ❌ Hash chain is internal only |
-| India compliance (BIS, EPR, AIS, MoRTH) | ❌ Not their market | ✅ **ExportReady wins** |
-| Dual India + EU activation gate | ❌ | ✅ **ExportReady wins** |
+| India compliance (BIS, EPR, AIS, MoRTH) | ❌ Not their market | ✅ **AnvayaLabs wins** |
+| Dual India + EU activation gate | ❌ | ✅ **AnvayaLabs wins** |
 | Carbon calculator (JRC) | 🟡 (integration) | ✅ Native, built-in |
 | Developer API + API keys | 🟡 Enterprise sales | ✅ Self-serve API key system |
 
-**ExportReady advantages over Circulor:** India-specific compliance (BIS/EPR/AIS/MoRTH/IEC), dual-mode activation, native JRC carbon calculator, self-serve SaaS model (vs enterprise sales).
+**AnvayaLabs advantages over Circulor:** India-specific compliance (BIS/EPR/AIS/MoRTH/IEC), dual-mode activation, native JRC carbon calculator, self-serve SaaS model (vs enterprise sales).
 
 ---
 
@@ -481,7 +481,7 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 
 **Position:** Privacy-first digital product passport platform. Key differentiator: zero-knowledge selective disclosure.
 
-| Capability | Circularise | ExportReady |
+| Capability | Circularise | AnvayaLabs |
 |-----------|-----------|-------------|
 | Zero-knowledge selective disclosure | ✅ ZK proofs per field | ❌ Three-tier fixed views |
 | Primary data + third-party attestation | ✅ Verifier signatures on claims | ❌ Self-declared only |
@@ -492,7 +492,7 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 | Recycled content tracking | ✅ | ✅ |
 | API for integration | 🟡 | ✅ Self-serve |
 
-**Where to learn from Circularise:** Field-level selective disclosure is the right long-term direction. Even without ZK proofs, ExportReady should make `DataVisibility` JSONB config actually enforce which fields are visible per tier (this is **GAP-4** — the config is stored but ignored).
+**Where to learn from Circularise:** Field-level selective disclosure is the right long-term direction. Even without ZK proofs, AnvayaLabs should make `DataVisibility` JSONB config actually enforce which fields are visible per tier (this is **GAP-4** — the config is stored but ignored).
 
 ---
 
@@ -506,7 +506,7 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 - Test environment for validators (launched 2025)
 - prEN18239 CEN/CENELEC standard (March 2026 delivery)
 
-**Gap vs BatteryPass reference model:** ExportReady covers approximately 55% of the 80+ attributes. Key missing categories:
+**Gap vs BatteryPass reference model:** AnvayaLabs covers approximately 55% of the 80+ attributes. Key missing categories:
 - Battery category (EV/LMT/industrial/portable)
 - Structured performance specs (Art. 10)
 - Disassembly instructions (Art. 11)
@@ -514,7 +514,7 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 - Carbon footprint performance class (A–G, Art. 7 Aug 2027)
 - Certified capacity at 80% SoH threshold
 
-**Recommendation:** Map ExportReady's data model explicitly to the BatteryPass consortium attribute list. This produces a compliance gap table that can be shown to customers as "X of 80+ attributes covered."
+**Recommendation:** Map AnvayaLabs's data model explicitly to the BatteryPass consortium attribute list. This produces a compliance gap table that can be shown to customers as "X of 80+ attributes covered."
 
 ---
 
@@ -527,14 +527,14 @@ Based on EU Battery Regulation 2023/1542 and the 80+ data attributes defined by 
 - Primary data (not industry averages) — enables 46% PCF reduction in Ford case study
 - Battery passport as part of broader digital product pass ecosystem
 
-**ExportReady vs Catena-X:** These serve different markets. Catena-X targets large OEMs and their Tier-1/2 suppliers. ExportReady targets Indian battery manufacturers exporting directly. There is no direct competition, but Catena-X sets the expectation for **primary supply chain data** that EU customers (importers of Indian batteries) will expect to see.
+**AnvayaLabs vs Catena-X:** These serve different markets. Catena-X targets large OEMs and their Tier-1/2 suppliers. AnvayaLabs targets Indian battery manufacturers exporting directly. There is no direct competition, but Catena-X sets the expectation for **primary supply chain data** that EU customers (importers of Indian batteries) will expect to see.
 
 ---
 
-### 6.5 Summary: Where ExportReady Stands
+### 6.5 Summary: Where AnvayaLabs Stands
 
 ```
-Feature Area                ExportReady  Circulor  Circularise  BatteryPass
+Feature Area                AnvayaLabs  Circulor  Circularise  BatteryPass
 ─────────────────────────────────────────────────────────────────────────────
 Core Lifecycle Engine       ████████     ████████  ████████     N/A
 Three-tier Access Control   ██████       ████████  ████████     N/A
@@ -549,7 +549,7 @@ Selective Disclosure        ░░░░         ██████    ███
 Developer Self-Serve API    ████████     ░░░░      ░░░░         N/A
 ```
 
-**ExportReady's defensible moat:** India-specific compliance (BIS/EPR/AIS/MoRTH) + native dual-mode India+EU activation — **no competitor serves this market**. This is a genuine first-mover advantage for the Indian battery export segment.
+**AnvayaLabs's defensible moat:** India-specific compliance (BIS/EPR/AIS/MoRTH) + native dual-mode India+EU activation — **no competitor serves this market**. This is a genuine first-mover advantage for the Indian battery export segment.
 
 ---
 
@@ -684,7 +684,7 @@ Prioritized by EU compliance deadline and business impact:
 
 1. **The core engine is solid.** Lifecycle state machine, hash chain, three-tier access, carbon calculator, and India compliance are better built than most competitors would expect from a startup.
 
-2. **India-to-EU is a genuine differentiator.** No competitor (Circulor, Circularise, BatteryPass) serves the Indian manufacturer compliance use case. This is ExportReady's defensible moat.
+2. **India-to-EU is a genuine differentiator.** No competitor (Circulor, Circularise, BatteryPass) serves the Indian manufacturer compliance use case. This is AnvayaLabs's defensible moat.
 
 3. **Five critical gaps block EU compliance** — battery category, supply chain provenance, REPAIR/REPLACE actions, DataVisibility enforcement, and genesis hash anchor. These must be fixed before Feb 2027.
 
@@ -694,4 +694,4 @@ Prioritized by EU compliance deadline and business impact:
 
 ---
 
-*Document last updated: 2025. Generated by ExportReady engineering review.*
+*Document last updated: 2025. Generated by AnvayaLabs engineering review.*

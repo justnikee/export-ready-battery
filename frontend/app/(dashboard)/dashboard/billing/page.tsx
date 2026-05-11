@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
@@ -245,7 +245,7 @@ export default function BillingPage() {
   const handleBuyPackage = async (pkg: Package) => {
     if (pkg.isEnterprise) {
       window.location.href =
-        "mailto:sales@exportready.com?subject=Enterprise License Inquiry";
+        "mailto:sales@anvayalabs.com?subject=Enterprise License Inquiry";
       return;
     }
 
@@ -267,7 +267,7 @@ export default function BillingPage() {
         key: key_id,
         amount: amount,
         currency: "INR",
-        name: "ExportReady Battery",
+        name: "AnvayaLabs Battery",
         description: pkg.description,
         order_id: order_id,
         handler: async function (response: RazorpayResponse) {

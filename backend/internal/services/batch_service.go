@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"exportready-battery/internal/compliance"
-	"exportready-battery/internal/models"
-	"exportready-battery/internal/repository"
-	"exportready-battery/internal/schema"
+	"anvayalabs-battery/internal/compliance"
+	"anvayalabs-battery/internal/models"
+	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/schema"
 
 	"github.com/google/uuid"
 )
