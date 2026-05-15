@@ -135,7 +135,7 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	// Ensure action is valid for current state (intent validation before persistence).
 	// SOH_UPDATE is not a state machine transition, so no status check is needed.
 	if req.Action != string(models.ActionSOHUpdate) {
-		if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status) {
+		if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status, passport.ProductType) {
 			respondError(w, http.StatusConflict, "Action not allowed from current status")
 			return
 		}
@@ -407,8 +407,14 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	}
 
 	// Perform the transition using lifecycle service
+	passport, err := h.repo.GetPassportByUUID(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
 	currentOwnerIdentifier := ""
-	if definition, ok := models.GetTransitionDefinition(models.TransitionAction(req.Action)); ok {
+	if definition, ok := models.GetTransitionDefinition(models.TransitionAction(req.Action), passport.ProductType); ok {
 		if definition.To == models.PassportStatusInService || definition.To == models.PassportStatusShipped {
 			currentOwnerIdentifier = claims.Email
 		}
@@ -612,7 +618,7 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 	if claims.Action == string(models.ActionSOHUpdate) {
 		allowedForToken = []string{string(models.ActionSOHUpdate)}
 	} else {
-		for _, action := range models.GetAllowedActionsForRole(passport.Status, models.ActorRole(claims.Role)) {
+		for _, action := range models.GetAllowedActionsForRole(passport.Status, models.ActorRole(claims.Role), passport.ProductType) {
 			if string(action) == claims.Action {
 				allowedForToken = append(allowedForToken, string(action))
 			}

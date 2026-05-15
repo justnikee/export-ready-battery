@@ -226,7 +226,7 @@ func (r *Repository) CreatePassportsWithEvents(ctx context.Context, passports []
 func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Passport, error) {
 	passport := &models.Passport{}
 
-	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at 
+	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at, product_type 
 	          FROM public.passports WHERE uuid = $1`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
@@ -236,6 +236,7 @@ func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Pas
 		&passport.ManufactureDate,
 		&passport.Status,
 		&passport.CreatedAt,
+		&passport.ProductType,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -930,12 +931,13 @@ func (r *Repository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([
 
 // PassportListItem is a lightweight summary for the lifecycle list view.
 type PassportListItem struct {
-	UUID         string   `json:"uuid"`
-	SerialNumber string   `json:"serial_number"`
-	Status       string   `json:"status"`
-	StateOfHealth *float64 `json:"state_of_health"`
-	BatchName    string   `json:"batch_name"`
-	UpdatedAt    string   `json:"updated_at"`
+	UUID         string             `json:"uuid"`
+	SerialNumber string             `json:"serial_number"`
+	Status       string             `json:"status"`
+	StateOfHealth *float64           `json:"state_of_health"`
+	BatchName    string             `json:"batch_name"`
+	UpdatedAt    string             `json:"updated_at"`
+	ProductType  models.ProductType `json:"product_type"`
 }
 
 // ListPassportsByTenant returns a tenant-scoped paginated list of passports
@@ -948,7 +950,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		WHERE b.tenant_id = $1
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
-		  AND ($4 = '' OR b.id::text = $4) AND ($5 = '' OR b.product_type = $5)
+		  AND ($4 = '' OR b.id::text = $4)
 		  AND ($5 = '' OR b.product_type = $5)`
 
 	var total int
@@ -958,6 +960,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 
 	query := `
 		SELECT p.uuid, p.serial_number, p.status, p.state_of_health, b.batch_name,
+		       COALESCE(b.product_type, 'BATTERY') AS product_type,
 		       GREATEST(p.created_at,
 		                COALESCE(p.shipped_at, p.created_at),
 		                COALESCE(p.last_soh_update_timestamp, p.created_at)) AS updated_at
@@ -967,6 +970,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR b.id::text = $4)
+		  AND ($5 = '' OR b.product_type = $5)
 		ORDER BY updated_at DESC
 		LIMIT $6 OFFSET $7`
 
@@ -986,6 +990,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 			&item.Status,
 			&item.StateOfHealth,
 			&item.BatchName,
+			&item.ProductType,
 			&updatedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan passport: %w", err)

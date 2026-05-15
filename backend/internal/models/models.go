@@ -59,11 +59,11 @@ func (m MarketRegion) IsValid() bool {
 type BatteryCategory string
 
 const (
-	BatteryCategoryEV         BatteryCategory = "EV"          // Electric vehicle (>25 kWh)
-	BatteryCategoryLMT        BatteryCategory = "LMT"         // Light means of transport (e-bikes, e-scooters)
-	BatteryCategoryIndustrial BatteryCategory = "INDUSTRIAL"   // Industrial batteries (>2 kWh, stationary storage)
-	BatteryCategoryPortable   BatteryCategory = "PORTABLE"     // Portable batteries (<5 kg, consumer)
-	BatteryCategorySLI        BatteryCategory = "SLI"          // Starting, Lighting, Ignition (automotive 12V)
+	BatteryCategoryEV         BatteryCategory = "EV"         // Electric vehicle (>25 kWh)
+	BatteryCategoryLMT        BatteryCategory = "LMT"        // Light means of transport (e-bikes, e-scooters)
+	BatteryCategoryIndustrial BatteryCategory = "INDUSTRIAL" // Industrial batteries (>2 kWh, stationary storage)
+	BatteryCategoryPortable   BatteryCategory = "PORTABLE"   // Portable batteries (<5 kg, consumer)
+	BatteryCategorySLI        BatteryCategory = "SLI"        // Starting, Lighting, Ignition (automotive 12V)
 )
 
 // IsValid checks if the battery category is valid
@@ -80,17 +80,16 @@ func (c BatteryCategory) IsValid() bool {
 // TENANT
 // ============================================================================
 
-
 // Tenant represents a company using the platform
 type Tenant struct {
-	ID           uuid.UUID `json:"id"`
-	CompanyName  string    `json:"company_name"`
-	Address      string    `json:"address,omitempty"`
-	LogoURL      string    `json:"logo_url,omitempty"`
-	SupportEmail string    `json:"support_email,omitempty"`
-	Website      string    `json:"website,omitempty"`
+	ID           uuid.UUID   `json:"id"`
+	CompanyName  string      `json:"company_name"`
+	Address      string      `json:"address,omitempty"`
+	LogoURL      string      `json:"logo_url,omitempty"`
+	SupportEmail string      `json:"support_email,omitempty"`
+	Website      string      `json:"website,omitempty"`
 	ProductType  ProductType `json:"product_type"`
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedAt    time.Time   `json:"created_at"`
 
 	// Quota System (Monetization)
 	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
@@ -186,20 +185,20 @@ type Batch struct {
 	Status    string    `json:"status"` // DRAFT, ACTIVE, ARCHIVED
 
 	// v2: Product-agnostic fields
-	ProductType   ProductType     `json:"product_type"`          // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
-	SchemaVersion int             `json:"schema_version"`        // Schema version used for specs validation
-	ComplianceScore float64       `json:"compliance_score"`      // 0-100, computed by compliance engine
-	ComplianceGaps json.RawMessage `json:"compliance_gaps,omitempty"` // [{field, market, regulation}]
+	ProductType     ProductType     `json:"product_type"`              // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
+	SchemaVersion   int             `json:"schema_version"`            // Schema version used for specs validation
+	ComplianceScore float64         `json:"compliance_score"`          // 0-100, computed by compliance engine
+	ComplianceGaps  json.RawMessage `json:"compliance_gaps,omitempty"` // [{field, market, regulation}]
 
 	// Manufacturing window (legal declaration)
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 
 	// Dual-Mode Compliance Fields
-	MarketRegion     MarketRegion `json:"market_region"`         // INDIA, EU, or GLOBAL
-	PLICompliant     bool         `json:"pli_compliant"`         // India: PLI subsidy eligibility
-	DomesticValueAdd float64      `json:"domestic_value_add"`    // India: % of local value (stored as literal: 45.5 = 45.5%)
-	TotalPassports   int          `json:"total_passports"`       // Computed count of passports
+	MarketRegion     MarketRegion `json:"market_region"`      // INDIA, EU, or GLOBAL
+	PLICompliant     bool         `json:"pli_compliant"`      // India: PLI subsidy eligibility
+	DomesticValueAdd float64      `json:"domestic_value_add"` // India: % of local value (stored as literal: 45.5 = 45.5%)
+	TotalPassports   int          `json:"total_passports"`    // Computed count of passports
 
 	// ── v2: Battery-specific fields moved to Specs JSONB ──
 	// CellSource, BillOfEntryNo, CountryOfOrigin, CustomsDate, HSNCode, BISNumber,
@@ -260,23 +259,23 @@ type BatchSpec struct {
 	SupplyChainProvenance *SupplyChainProvenance `json:"supply_chain_provenance,omitempty"` // Raw material sourcing (Art 39)
 
 	// ── Textile-Specific Fields ───────────────────────────────────────────────
-	GSM                    float64                `json:"gsm,omitempty"`                      // Grams per square meter
-	WaterUsageLiters       float64                `json:"water_usage_liters,omitempty"`       // Liters per unit/kg
-	EnergyUsageKWh         float64                `json:"energy_usage_kwh,omitempty"`         // kWh per unit/kg
-	DyeProcess             string                 `json:"dye_process,omitempty"`              // reactive, vat, disperse, acid, natural, pigment, none
-	FiberComposition       *FiberComposition      `json:"fiber_composition,omitempty"`        // Structured fiber breakdown %
-	SupplierTier           *SupplierTier          `json:"supplier_tier,omitempty"`            // Supply chain tier mapping
-	LaborCompliance        *LaborCompliance       `json:"labor_compliance,omitempty"`         // SA8000, BSCI, SEDEX, Fair Trade
+	GSM                    float64                 `json:"gsm,omitempty"`                      // Grams per square meter
+	WaterUsageLiters       float64                 `json:"water_usage_liters,omitempty"`       // Liters per unit/kg
+	EnergyUsageKWh         float64                 `json:"energy_usage_kwh,omitempty"`         // kWh per unit/kg
+	DyeProcess             string                  `json:"dye_process,omitempty"`              // reactive, vat, disperse, acid, natural, pigment, none
+	FiberComposition       *FiberComposition       `json:"fiber_composition,omitempty"`        // Structured fiber breakdown %
+	SupplierTier           *SupplierTier           `json:"supplier_tier,omitempty"`            // Supply chain tier mapping
+	LaborCompliance        *LaborCompliance        `json:"labor_compliance,omitempty"`         // SA8000, BSCI, SEDEX, Fair Trade
 	ChemicalComplianceZDHC *ChemicalComplianceZDHC `json:"chemical_compliance_zdhc,omitempty"` // ZDHC MRSL compliance
-	DyeChemicals           []string               `json:"dye_chemicals,omitempty"`            // Key dyes and chemicals used
-	FinishType             []string               `json:"finish_type,omitempty"`              // mercerized, brushed, peached, etc.
-	Color                  string                 `json:"color,omitempty"`                    // Product color
-	Dimensions             string                 `json:"dimensions,omitempty"`               // Size dimensions or roll width
-	PackagingType          string                 `json:"packaging_type,omitempty"`           // Packaging material description
-	OrderQuantity          int                    `json:"order_quantity,omitempty"`           // Total units in production order
-	BiodegradablePct       *float64               `json:"biodegradable_pct,omitempty"`        // % biodegradable fibers
-	ExpectedLifetimeWashes *int                   `json:"expected_lifetime_washes,omitempty"` // Expected wash cycles
-	FiberOrigin            string                 `json:"fiber_origin,omitempty"`             // Raw fiber sourcing region/country
+	DyeChemicals           []string                `json:"dye_chemicals,omitempty"`            // Key dyes and chemicals used
+	FinishType             []string                `json:"finish_type,omitempty"`              // mercerized, brushed, peached, etc.
+	Color                  string                  `json:"color,omitempty"`                    // Product color
+	Dimensions             string                  `json:"dimensions,omitempty"`               // Size dimensions or roll width
+	PackagingType          string                  `json:"packaging_type,omitempty"`           // Packaging material description
+	OrderQuantity          int                     `json:"order_quantity,omitempty"`           // Total units in production order
+	BiodegradablePct       *float64                `json:"biodegradable_pct,omitempty"`        // % biodegradable fibers
+	ExpectedLifetimeWashes *int                    `json:"expected_lifetime_washes,omitempty"` // Expected wash cycles
+	FiberOrigin            string                  `json:"fiber_origin,omitempty"`             // Raw fiber sourcing region/country
 }
 
 // MaterialComposition holds the critical raw material percentages (EU Battery Regulation)
@@ -300,11 +299,11 @@ type MaterialComposition struct {
 
 // HazardousSubstances holds REACH/RoHS compliance declarations
 type HazardousSubstances struct {
-	LeadPresent    bool   `json:"lead_present"`         // Does product contain lead?
-	MercuryPresent bool   `json:"mercury_present"`      // Does product contain mercury?
-	CadmiumPresent bool   `json:"cadmium_present"`      // Does product contain cadmium?
+	LeadPresent    bool   `json:"lead_present"`          // Does product contain lead?
+	MercuryPresent bool   `json:"mercury_present"`       // Does product contain mercury?
+	CadmiumPresent bool   `json:"cadmium_present"`       // Does product contain cadmium?
 	Declaration    string `json:"declaration,omitempty"` // Compliance statement
-	Exemptions     string `json:"exemptions,omitempty"` // Any RoHS exemptions claimed
+	Exemptions     string `json:"exemptions,omitempty"`  // Any RoHS exemptions claimed
 }
 
 // ============================================================================
@@ -313,20 +312,20 @@ type HazardousSubstances struct {
 
 // PerformanceSpec holds rated electrical/thermal performance data (EU Annex IV)
 type PerformanceSpec struct {
-	RatedCapacityAh    *float64 `json:"rated_capacity_ah,omitempty"`               // Nominal capacity in Ah
-	RatedCapacityWh    *float64 `json:"rated_capacity_wh,omitempty"`               // Nominal energy in Wh
-	RatedVoltage       *float64 `json:"rated_voltage,omitempty"`                   // Nominal voltage (V)
-	MinVoltage         *float64 `json:"min_voltage,omitempty"`                     // Minimum voltage (V)
-	MaxVoltage         *float64 `json:"max_voltage,omitempty"`                     // Maximum voltage (V)
-	InternalResistance *float64 `json:"internal_resistance_mohm,omitempty"`        // Initial internal resistance (mΩ)
-	MaxChargeCRate     *float64 `json:"max_charge_c_rate,omitempty"`               // Max charge C-rate
-	MaxDischargeCRate  *float64 `json:"max_discharge_c_rate,omitempty"`            // Max discharge C-rate
-	OperatingTempMin   *float64 `json:"operating_temp_min_c,omitempty"`            // Min operating temp (°C)
-	OperatingTempMax   *float64 `json:"operating_temp_max_c,omitempty"`            // Max operating temp (°C)
-	CapacityAt80SoH    *float64 `json:"capacity_at_80_soh_ah,omitempty"`           // Capacity at 80% SoH threshold (Ah)
-	RoundTripEffPct    *float64 `json:"round_trip_efficiency_pct,omitempty"`        // Energy round-trip efficiency (%)
-	CathodeMaterial    string   `json:"cathode_material,omitempty"`                // e.g., "LiFePO4", "LiNiMnCoO2"
-	AnodeMaterial      string   `json:"anode_material,omitempty"`                  // e.g., "Graphite", "Li4Ti5O12"
+	RatedCapacityAh    *float64 `json:"rated_capacity_ah,omitempty"`         // Nominal capacity in Ah
+	RatedCapacityWh    *float64 `json:"rated_capacity_wh,omitempty"`         // Nominal energy in Wh
+	RatedVoltage       *float64 `json:"rated_voltage,omitempty"`             // Nominal voltage (V)
+	MinVoltage         *float64 `json:"min_voltage,omitempty"`               // Minimum voltage (V)
+	MaxVoltage         *float64 `json:"max_voltage,omitempty"`               // Maximum voltage (V)
+	InternalResistance *float64 `json:"internal_resistance_mohm,omitempty"`  // Initial internal resistance (mΩ)
+	MaxChargeCRate     *float64 `json:"max_charge_c_rate,omitempty"`         // Max charge C-rate
+	MaxDischargeCRate  *float64 `json:"max_discharge_c_rate,omitempty"`      // Max discharge C-rate
+	OperatingTempMin   *float64 `json:"operating_temp_min_c,omitempty"`      // Min operating temp (°C)
+	OperatingTempMax   *float64 `json:"operating_temp_max_c,omitempty"`      // Max operating temp (°C)
+	CapacityAt80SoH    *float64 `json:"capacity_at_80_soh_ah,omitempty"`     // Capacity at 80% SoH threshold (Ah)
+	RoundTripEffPct    *float64 `json:"round_trip_efficiency_pct,omitempty"` // Energy round-trip efficiency (%)
+	CathodeMaterial    string   `json:"cathode_material,omitempty"`          // e.g., "LiFePO4", "LiNiMnCoO2"
+	AnodeMaterial      string   `json:"anode_material,omitempty"`            // e.g., "Graphite", "Li4Ti5O12"
 }
 
 // DisassemblyGuide holds battery disassembly/recycling info (EU Art 57)
@@ -348,14 +347,14 @@ type SupplyChainProvenance struct {
 
 // SupplyChainTier represents one material source in the supply chain
 type SupplyChainTier struct {
-	Material        string  `json:"material"`                       // cobalt, lithium, nickel, manganese, graphite
-	SupplierName    string  `json:"supplier_name,omitempty"`        // Supplier company name
-	CountryOfOrigin string  `json:"country_of_origin"`              // ISO Alpha-2
-	MineOrRefinery  string  `json:"mine_or_refinery,omitempty"`     // Name of mine or refinery
-	Certified       bool    `json:"certified"`                      // Third-party audited?
-	CertBody        string  `json:"certification_body,omitempty"`   // e.g., "RMI", "IRMA"
-	RecycledSource  bool    `json:"recycled_source"`                // From recycled material?
-	Percentage      float64 `json:"percentage,omitempty"`           // % of total material from this source
+	Material        string  `json:"material"`                     // cobalt, lithium, nickel, manganese, graphite
+	SupplierName    string  `json:"supplier_name,omitempty"`      // Supplier company name
+	CountryOfOrigin string  `json:"country_of_origin"`            // ISO Alpha-2
+	MineOrRefinery  string  `json:"mine_or_refinery,omitempty"`   // Name of mine or refinery
+	Certified       bool    `json:"certified"`                    // Third-party audited?
+	CertBody        string  `json:"certification_body,omitempty"` // e.g., "RMI", "IRMA"
+	RecycledSource  bool    `json:"recycled_source"`              // From recycled material?
+	Percentage      float64 `json:"percentage,omitempty"`         // % of total material from this source
 }
 
 // ============================================================================
@@ -389,19 +388,19 @@ type SupplierTier struct {
 
 // LaborCompliance holds social compliance certifications and audit results.
 type LaborCompliance struct {
-	SA8000Certified   bool    `json:"sa8000_certified,omitempty"`
-	BSCIAudited       bool    `json:"bsci_audited,omitempty"`
-	SedexMember       bool    `json:"sedex_member,omitempty"`
-	FairTradeCertified bool   `json:"fair_trade_certified,omitempty"`
-	AuditDate         string  `json:"audit_date,omitempty"`  // YYYY-MM-DD
-	AuditScore        float64 `json:"audit_score,omitempty"` // 0-100
+	SA8000Certified    bool    `json:"sa8000_certified,omitempty"`
+	BSCIAudited        bool    `json:"bsci_audited,omitempty"`
+	SedexMember        bool    `json:"sedex_member,omitempty"`
+	FairTradeCertified bool    `json:"fair_trade_certified,omitempty"`
+	AuditDate          string  `json:"audit_date,omitempty"`  // YYYY-MM-DD
+	AuditScore         float64 `json:"audit_score,omitempty"` // 0-100
 }
 
 // ChemicalComplianceZDHC holds ZDHC MRSL (Manufacturing Restricted Substances List) compliance data.
 type ChemicalComplianceZDHC struct {
-	ZDHCLevel               string   `json:"zdhc_level,omitempty"`                // "1", "2", "3", "NA"
-	MRSLTested              bool     `json:"mrsl_tested,omitempty"`
-	TestReportURL           string   `json:"test_report_url,omitempty"`
+	ZDHCLevel                 string   `json:"zdhc_level,omitempty"` // "1", "2", "3", "NA"
+	MRSLTested                bool     `json:"mrsl_tested,omitempty"`
+	TestReportURL             string   `json:"test_report_url,omitempty"`
 	RestrictedSubstancesFound []string `json:"restricted_substances_found,omitempty"`
 }
 
@@ -419,7 +418,7 @@ type Passport struct {
 	CreatedAt       time.Time `json:"created_at"`
 
 	// v2: Product-agnostic fields
-	ProductType ProductType     `json:"product_type"` // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
+	ProductType ProductType     `json:"product_type"`        // BATTERY, TEXTILE, ELECTRONICS (default: BATTERY)
 	Telemetry   json.RawMessage `json:"telemetry,omitempty"` // IoT telemetry data (product-specific)
 
 	// Immutable snapshot of batch data at creation time
@@ -505,6 +504,12 @@ const (
 	ActorRoleTechnician       ActorRole = "TECHNICIAN"
 	ActorRoleRecycler         ActorRole = "RECYCLER"
 	ActorRoleAdmin            ActorRole = "ADMIN"
+
+	// Textile-specific supply chain actor roles
+	ActorRoleSupplier       ActorRole = "SUPPLIER"      // Fiber / yarn supplier
+	ActorRoleSpinningMill   ActorRole = "SPINNING_MILL" // Spinning / weaving facility
+	ActorRoleDyeHouse       ActorRole = "DYE_HOUSE"     // Dyeing / finishing facility
+	ActorRoleCutSewFacility ActorRole = "CUT_SEW"       // Cut-make-trim (CMT) facility
 )
 
 // ActionSource defines where the action originated
@@ -537,19 +542,24 @@ func IsValidActorType(actorType ActorType) bool {
 	return false
 }
 
-// IsValidActorRole checks if the actor role is valid
+// IsValidActorRole checks if the actor role is valid.
+// Accepts both battery and textile roles.
 func IsValidActorRole(role ActorRole) bool {
 	switch role {
-	case ActorRoleSystem, ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler, ActorRoleAdmin:
+	case ActorRoleSystem, ActorRoleInternalOperator, ActorRoleLogistics,
+		ActorRoleTechnician, ActorRoleRecycler, ActorRoleAdmin,
+		ActorRoleSupplier, ActorRoleSpinningMill, ActorRoleDyeHouse, ActorRoleCutSewFacility:
 		return true
 	}
 	return false
 }
 
-// IsValidPartnerRole checks if the role is valid for external partners
+// IsValidPartnerRole checks if the role is valid for external partners.
+// Accepts both battery and textile supply chain partner roles.
 func IsValidPartnerRole(role string) bool {
 	switch ActorRole(role) {
-	case ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler:
+	case ActorRoleLogistics, ActorRoleTechnician, ActorRoleRecycler,
+		ActorRoleSupplier, ActorRoleSpinningMill, ActorRoleDyeHouse, ActorRoleCutSewFacility:
 		return true
 	}
 	return false
@@ -594,12 +604,21 @@ func ValidateActorContext(ctx ActorContext) error {
 type TransitionAction string
 
 const (
-	ActionActivate  TransitionAction = "ACTIVATE"
-	ActionShip      TransitionAction = "SHIP"
-	ActionInstall   TransitionAction = "INSTALL"
-	ActionRecycle   TransitionAction = "RECYCLE"
-	ActionClose     TransitionAction = "CLOSE"
-	ActionRecall    TransitionAction = "RECALL"
+	// Battery lifecycle actions
+	ActionActivate TransitionAction = "ACTIVATE"
+	ActionShip     TransitionAction = "SHIP"
+	ActionInstall  TransitionAction = "INSTALL"
+	ActionRecycle  TransitionAction = "RECYCLE"
+	ActionClose    TransitionAction = "CLOSE"
+	ActionRecall   TransitionAction = "RECALL"
+
+	// Textile supply chain lifecycle actions
+	ActionProduce TransitionAction = "PRODUCE" // Raw material → in production
+	ActionDye     TransitionAction = "DYE"     // In production → finished (dyeing/finishing)
+	ActionFinish  TransitionAction = "FINISH"  // In production → finished (CMT)
+	ActionSell    TransitionAction = "SELL"    // Finished → shipped
+	ActionCollect TransitionAction = "COLLECT" // In use → recycled
+
 	// ActionSOHUpdate is not a lifecycle state transition — it does not change PassportStatus.
 	// It is a pseudo-action used exclusively for issuing magic link tokens that allow
 	// external partners (technicians, fleet operators) to push SoH readings via
@@ -610,11 +629,15 @@ const (
 // IsValidMagicLinkAction returns true for actions that can be encoded in a magic link token.
 // This includes all lifecycle TransitionActions (which change state) plus SOH_UPDATE
 // (which only records a health reading without changing state).
+// Checks against both battery and textile action sets since the token is validated
+// before the product type is known.
 func IsValidMagicLinkAction(action string) bool {
 	if action == string(ActionSOHUpdate) {
 		return true
 	}
-	return IsValidAction(action)
+	_, okBat := BatteryTransitionMap[TransitionAction(action)]
+	_, okTex := TextileTransitionMap[TransitionAction(action)]
+	return okBat || okTex
 }
 
 // TransitionDefinition defines allowed from-states and resulting state for an action.
@@ -624,8 +647,24 @@ type TransitionDefinition struct {
 	To          string
 }
 
-// TransitionActionOrder ensures deterministic ordering for allowed actions.
-var TransitionActionOrder = []TransitionAction{
+// transitionMaps returns the transition map and action order for a product type.
+func transitionMaps(productType ProductType) (map[TransitionAction]TransitionDefinition, []TransitionAction) {
+	if productType == ProductTypeTextile {
+		return TextileTransitionMap, TextileTransitionActionOrder
+	}
+	return BatteryTransitionMap, BatteryTransitionActionOrder
+}
+
+// roleMaps returns the allowed-roles map for a product type.
+func roleMaps(productType ProductType) map[TransitionAction][]ActorRole {
+	if productType == ProductTypeTextile {
+		return TextileAllowedRolesByAction
+	}
+	return BatteryAllowedRolesByAction
+}
+
+// BatteryTransitionActionOrder ensures deterministic ordering for battery actions.
+var BatteryTransitionActionOrder = []TransitionAction{
 	ActionActivate,
 	ActionShip,
 	ActionInstall,
@@ -634,8 +673,17 @@ var TransitionActionOrder = []TransitionAction{
 	ActionRecall,
 }
 
-// TransitionMap defines the canonical action-based lifecycle transitions.
-var TransitionMap = map[TransitionAction]TransitionDefinition{
+// TextileTransitionActionOrder ensures deterministic ordering for textile actions.
+var TextileTransitionActionOrder = []TransitionAction{
+	ActionProduce,
+	ActionDye,
+	ActionFinish,
+	ActionSell,
+	ActionCollect,
+}
+
+// BatteryTransitionMap defines the canonical battery lifecycle transitions.
+var BatteryTransitionMap = map[TransitionAction]TransitionDefinition{
 	ActionActivate: {
 		AllowedFrom: []string{PassportStatusCreated},
 		To:          PassportStatusActive,
@@ -662,8 +710,32 @@ var TransitionMap = map[TransitionAction]TransitionDefinition{
 	},
 }
 
-// AllowedRolesByAction defines which roles can perform which actions
-var AllowedRolesByAction = map[TransitionAction][]ActorRole{
+// TextileTransitionMap defines the canonical textile supply chain transitions.
+var TextileTransitionMap = map[TransitionAction]TransitionDefinition{
+	ActionProduce: {
+		AllowedFrom: []string{TextileStatusRawMaterial},
+		To:          TextileStatusInProduction,
+	},
+	ActionDye: {
+		AllowedFrom: []string{TextileStatusInProduction},
+		To:          TextileStatusFinished,
+	},
+	ActionFinish: {
+		AllowedFrom: []string{TextileStatusInProduction},
+		To:          TextileStatusFinished,
+	},
+	ActionSell: {
+		AllowedFrom: []string{TextileStatusFinished},
+		To:          TextileStatusShipped,
+	},
+	ActionCollect: {
+		AllowedFrom: []string{TextileStatusInUse, TextileStatusShipped},
+		To:          TextileStatusRecycled,
+	},
+}
+
+// BatteryAllowedRolesByAction defines which roles can perform battery actions.
+var BatteryAllowedRolesByAction = map[TransitionAction][]ActorRole{
 	ActionActivate: {ActorRoleSystem},
 	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
 	ActionInstall:  {ActorRoleTechnician},
@@ -672,9 +744,18 @@ var AllowedRolesByAction = map[TransitionAction][]ActorRole{
 	ActionRecall:   {ActorRoleAdmin},
 }
 
-// IsRoleAllowedForAction checks if a role is allowed to perform an action
-func IsRoleAllowedForAction(action TransitionAction, role ActorRole) bool {
-	allowedRoles, exists := AllowedRolesByAction[action]
+// TextileAllowedRolesByAction defines which roles can perform textile actions.
+var TextileAllowedRolesByAction = map[TransitionAction][]ActorRole{
+	ActionProduce: {ActorRoleSystem, ActorRoleInternalOperator, ActorRoleSupplier},
+	ActionDye:     {ActorRoleDyeHouse, ActorRoleInternalOperator, ActorRoleAdmin},
+	ActionFinish:  {ActorRoleCutSewFacility, ActorRoleInternalOperator, ActorRoleAdmin},
+	ActionSell:    {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
+	ActionCollect: {ActorRoleRecycler, ActorRoleSystem},
+}
+
+// IsRoleAllowedForAction checks if a role is allowed to perform an action for a given product type.
+func IsRoleAllowedForAction(action TransitionAction, role ActorRole, productType ProductType) bool {
+	allowedRoles, exists := roleMaps(productType)[action]
 	if !exists {
 		return false
 	}
@@ -686,21 +767,24 @@ func IsRoleAllowedForAction(action TransitionAction, role ActorRole) bool {
 	return false
 }
 
-// IsValidAction checks if a transition action is defined in the canonical map.
-func IsValidAction(action string) bool {
-	_, exists := TransitionMap[TransitionAction(action)]
+// IsValidAction checks if a transition action is defined for a product type.
+func IsValidAction(action string, productType ProductType) bool {
+	m, _ := transitionMaps(productType)
+	_, exists := m[TransitionAction(action)]
 	return exists
 }
 
-// GetTransitionDefinition returns the transition definition for a given action.
-func GetTransitionDefinition(action TransitionAction) (TransitionDefinition, bool) {
-	def, exists := TransitionMap[action]
+// GetTransitionDefinition returns the transition definition for a given action and product type.
+func GetTransitionDefinition(action TransitionAction, productType ProductType) (TransitionDefinition, bool) {
+	m, _ := transitionMaps(productType)
+	def, exists := m[action]
 	return def, exists
 }
 
-// IsActionAllowedFrom checks if an action is allowed from the current status.
-func IsActionAllowedFrom(action TransitionAction, currentStatus string) bool {
-	def, exists := TransitionMap[action]
+// IsActionAllowedFrom checks if an action is allowed from the current status for a product type.
+func IsActionAllowedFrom(action TransitionAction, currentStatus string, productType ProductType) bool {
+	m, _ := transitionMaps(productType)
+	def, exists := m[action]
 	if !exists {
 		return false
 	}
@@ -712,29 +796,60 @@ func IsActionAllowedFrom(action TransitionAction, currentStatus string) bool {
 	return false
 }
 
-// GetAllowedActions returns the list of valid actions for a given current status.
-func GetAllowedActions(currentStatus string) []TransitionAction {
+// GetAllowedActions returns the list of valid actions for a given current status and product type.
+func GetAllowedActions(currentStatus string, productType ProductType) []TransitionAction {
+	m, order := transitionMaps(productType)
 	allowed := make([]TransitionAction, 0)
-	for _, action := range TransitionActionOrder {
-		if IsActionAllowedFrom(action, currentStatus) {
-			allowed = append(allowed, action)
+	for _, action := range order {
+		def, ok := m[action]
+		if !ok {
+			continue
+		}
+		for _, status := range def.AllowedFrom {
+			if status == currentStatus {
+				allowed = append(allowed, action)
+				break
+			}
 		}
 	}
 	return allowed
 }
 
 // GetAllowedActionsForRole returns the list of valid actions for a given
-// current status filtered by the actor role that is asking for them.
-func GetAllowedActionsForRole(currentStatus string, role ActorRole) []TransitionAction {
+// current status and actor role, filtered by product type.
+func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType ProductType) []TransitionAction {
+	m, order := transitionMaps(productType)
+	rm := roleMaps(productType)
 	allowed := make([]TransitionAction, 0)
-	for _, action := range TransitionActionOrder {
-		if !IsActionAllowedFrom(action, currentStatus) {
+	for _, action := range order {
+		def, ok := m[action]
+		if !ok {
 			continue
 		}
-		if !IsRoleAllowedForAction(action, role) {
+		found := false
+		for _, status := range def.AllowedFrom {
+			if status == currentStatus {
+				found = true
+				break
+			}
+		}
+		if !found {
 			continue
 		}
-		allowed = append(allowed, action)
+		allowedRoles, ok := rm[action]
+		if !ok {
+			continue
+		}
+		roleAllowed := false
+		for _, r := range allowedRoles {
+			if r == role {
+				roleAllowed = true
+				break
+			}
+		}
+		if roleAllowed {
+			allowed = append(allowed, action)
+		}
 	}
 	return allowed
 }
@@ -1257,8 +1372,8 @@ type OutboundWebhook struct {
 	ID              uuid.UUID  `json:"id"`
 	TenantID        uuid.UUID  `json:"tenant_id"`
 	URL             string     `json:"url"`
-	Secret          string     `json:"-"`                            // HMAC-SHA256 signing secret (never exposed)
-	EventTypes      []string   `json:"event_types"`                 // e.g., ["STATUS_CHANGED","SOH_UPDATED","TRANSFER"]
+	Secret          string     `json:"-"`           // HMAC-SHA256 signing secret (never exposed)
+	EventTypes      []string   `json:"event_types"` // e.g., ["STATUS_CHANGED","SOH_UPDATED","TRANSFER"]
 	IsActive        bool       `json:"is_active"`
 	FailureCount    int        `json:"failure_count"`
 	LastTriggeredAt *time.Time `json:"last_triggered_at,omitempty"`
@@ -1276,8 +1391,8 @@ type WebhookPayload struct {
 	Event      string                 `json:"event"`       // e.g., "STATUS_CHANGED"
 	PassportID string                 `json:"passport_id"` // UUID of affected passport
 	TenantID   string                 `json:"tenant_id"`
-	Timestamp  string                 `json:"timestamp"`   // ISO 8601
-	Data       map[string]interface{} `json:"data"`        // Event-specific payload
+	Timestamp  string                 `json:"timestamp"` // ISO 8601
+	Data       map[string]interface{} `json:"data"`      // Event-specific payload
 }
 
 // ============================================================================
@@ -1295,8 +1410,8 @@ type ComplianceAttribute struct {
 
 // ComplianceScoreResult holds the overall compliance attribute coverage
 type ComplianceScoreResult struct {
-	Score      float64                `json:"score"`       // 0-100%
-	Filled     int                    `json:"filled"`
-	Total      int                    `json:"total"`
-	Attributes []ComplianceAttribute  `json:"attributes"`
+	Score      float64               `json:"score"` // 0-100%
+	Filled     int                   `json:"filled"`
+	Total      int                   `json:"total"`
+	Attributes []ComplianceAttribute `json:"attributes"`
 }

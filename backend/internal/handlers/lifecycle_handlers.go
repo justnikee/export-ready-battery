@@ -594,7 +594,7 @@ func (h *LifecycleHandler) GetAllowedActions(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	allowedActions := models.GetAllowedActionsForRole(passport.Status, actorRole)
+	allowedActions := models.GetAllowedActionsForRole(passport.Status, actorRole, passport.ProductType)
 	allowed := make([]string, 0, len(allowedActions))
 	for _, action := range allowedActions {
 		allowed = append(allowed, string(action))

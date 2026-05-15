@@ -132,7 +132,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 
 	// Validate action exists
 	action := models.TransitionAction(req.Action)
-	if !models.IsValidAction(req.Action) {
+	if !models.IsValidAction(req.Action, passport.ProductType) {
 		return &TransitionResult{
 			Success:        false,
 			PreviousStatus: previousStatus,
@@ -141,7 +141,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 	}
 
 	// Validate actor role is allowed for action
-	if !models.IsRoleAllowedForAction(action, req.ActorContext.ActorRole) {
+	if !models.IsRoleAllowedForAction(action, req.ActorContext.ActorRole, passport.ProductType) {
 		return &TransitionResult{
 			Success:        false,
 			PreviousStatus: previousStatus,
@@ -151,8 +151,8 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 	}
 
 	// Validate action allowed from current state
-	if !models.IsActionAllowedFrom(action, previousStatus) {
-		allowedActions := models.GetAllowedActions(previousStatus)
+	if !models.IsActionAllowedFrom(action, previousStatus, passport.ProductType) {
+		allowedActions := models.GetAllowedActions(previousStatus, passport.ProductType)
 		allowedStrings := make([]string, 0, len(allowedActions))
 		for _, a := range allowedActions {
 			allowedStrings = append(allowedStrings, string(a))
@@ -165,7 +165,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		}, ErrActionNotAllowed
 	}
 
-	definition, _ := models.GetTransitionDefinition(action)
+	definition, _ := models.GetTransitionDefinition(action, passport.ProductType)
 	toStatus := definition.To
 
 	validation, err := models.ValidateEvidence(action, req.Evidence)
@@ -487,8 +487,8 @@ func (r *BulkTransitionResult) addFailure(passportID uuid.UUID, errMsg string, s
 	}
 }
 
-func formatActionNotAllowedError(action models.TransitionAction, currentStatus string) string {
-	allowedActions := models.GetAllowedActions(currentStatus)
+func formatActionNotAllowedError(action models.TransitionAction, currentStatus string, productType models.ProductType) string {
+	allowedActions := models.GetAllowedActions(currentStatus, productType)
 	allowedStrings := make([]string, 0, len(allowedActions))
 	for _, allowedAction := range allowedActions {
 		allowedStrings = append(allowedStrings, string(allowedAction))
@@ -565,8 +565,8 @@ func (s *LifecycleService) prevalidateBulkTransition(ctx context.Context, passpo
 			continue
 		}
 
-		if !models.IsActionAllowedFrom(action, passport.Status) {
-			result.addFailure(passportID, formatActionNotAllowedError(action, passport.Status), passport.Status)
+		if !models.IsActionAllowedFrom(action, passport.Status, passport.ProductType) {
+			result.addFailure(passportID, formatActionNotAllowedError(action, passport.Status, passport.ProductType), passport.Status)
 			continue
 		}
 
@@ -593,17 +593,11 @@ type ReplacementEventInput struct {
 
 // BulkTransitionPassports handles bulk passport status transitions with validation
 func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req BulkTransitionRequest) (*BulkTransitionResult, error) {
-	if !models.IsValidAction(req.Action) {
-		return nil, ErrUnknownAction
-	}
 	if req.ActorContext.ActorID == "" || req.ActorContext.ActorType == "" || req.ActorContext.ActorRole == "" || req.ActorContext.Source == "" {
 		return nil, ErrMissingActorContext
 	}
 	if err := models.ValidateActorContext(req.ActorContext); err != nil {
 		return nil, ErrInvalidActorContext
-	}
-	if !models.IsRoleAllowedForAction(models.TransitionAction(req.Action), req.ActorContext.ActorRole) {
-		return nil, ErrRoleNotAllowed
 	}
 	if _, err := models.ValidateEvidence(models.TransitionAction(req.Action), req.Evidence); err != nil {
 		return nil, ErrInvalidEvidence
@@ -682,7 +676,7 @@ func (s *LifecycleService) GetBulkAllowedActionsForFilter(ctx context.Context, t
 		}
 
 		for _, item := range items {
-			allowed := models.GetAllowedActionsForRole(item.Status, role)
+			allowed := models.GetAllowedActionsForRole(item.Status, role, item.ProductType)
 			if !initialized {
 				intersection = append([]models.TransitionAction{}, allowed...)
 				initialized = true
