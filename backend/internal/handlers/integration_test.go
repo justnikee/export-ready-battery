@@ -16,6 +16,7 @@ import (
 	"anvayalabs-battery/internal/models"
 	"anvayalabs-battery/internal/repository"
 	"anvayalabs-battery/internal/schema"
+	schemaSeeds "anvayalabs-battery/internal/schema/seeds"
 	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -35,9 +36,17 @@ func newTestHandler(m *repository.MockRepository) *Handler {
 	complianceReg.Register(models.ProductTypeTextile, models.MarketRegionIndia, textile.NewIndiaValidator())
 	complianceReg.Register(models.ProductTypeTextile, models.MarketRegionEU, textile.NewEUValidator())
 
+	schemaReg := schema.NewRegistry(nil)
+	if batteryV1, err := schemaSeeds.LoadBatteryV1(); err == nil {
+		schemaReg.Seed(batteryV1)
+	}
+	if textileV1, err := schemaSeeds.LoadTextileV1(); err == nil {
+		schemaReg.Seed(textileV1)
+	}
+
 	return &Handler{
 		repo:         m,
-		batchService: services.NewBatchService(schema.NewRegistry(nil), complianceReg, m),
+		batchService: services.NewBatchService(schemaReg, complianceReg, m),
 	}
 }
 
@@ -564,7 +573,8 @@ func TestCreateBatch_TextileIndia_Success(t *testing.T) {
 		"manufacturing_end_date": "2026-01-31",
 		"specs": {
 			"material_profile": "100% organic cotton",
-			"country_of_origin": "India",
+			"manufacturer": "Anvaya Mills",
+			"country_of_origin": "IN",
 			"production_stage": "finished_goods",
 			"gsm": 180,
 			"fiber_composition": {"cotton_pct": 100},
