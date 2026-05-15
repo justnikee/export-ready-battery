@@ -1,4 +1,4 @@
-.PHONY: run build test clean deps migrate-up migrate-down migrate-create migrate-force migrate-verify
+.PHONY: run build test clean deps migrate-up migrate-down migrate-create migrate-force migrate-verify migrate-version migrate-reset
 
 # Load .env file for database URL (from backend for consistency)
 include backend/.env
@@ -30,30 +30,30 @@ dev:
 	cd backend && air
 
 # ============================================
-# Database Migrations (golang-migrate)
-# Install: go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+# Database Migrations (repo-native runner)
 # ============================================
 
 # Run all pending migrations
 migrate-up:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose up
+	cd backend && go run ./cmd/migration_runner up
 
 # Rollback the last migration
 migrate-down:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down 1
+	cd backend && go run ./cmd/migration_runner down
 
-# Rollback ALL migrations (use with caution!)
+# Rollback ALL migrations (use with caution)
 migrate-reset:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down -all
+	@echo "Use repeated 'make migrate-down' or 'go run ./backend/cmd/migration_runner force <version>' for explicit resets."
+	@exit 1
 
 # Show current migration version
 migrate-version:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" version
+	cd backend && go run ./cmd/migration_runner version
 
 # Force set migration version (use when stuck)
 migrate-force:
 	@read -p "Enter version to force: " version; \
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" force $$version
+	cd backend && go run ./cmd/migration_runner force $$version
 
 # Create a new migration file
 migrate-create:

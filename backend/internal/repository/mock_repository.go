@@ -1,4 +1,4 @@
-package repository
+﻿package repository
 
 import (
 	"context"
@@ -112,8 +112,8 @@ func (m *MockRepository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uu
 	return args.Get(0).(*models.Batch), args.Error(1)
 }
 
-func (m *MockRepository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.Batch, int, error) {
-	args := m.Called(ctx, tenantID, limit, offset)
+func (m *MockRepository) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) {
+	args := m.Called(ctx, tenantID, productType, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Int(1), args.Error(2)
 	}
@@ -359,8 +359,8 @@ func (m *MockRepository) CountPassportsByBatch(ctx context.Context, batchID uuid
 	return args.Int(0), args.Error(1)
 }
 
-func (m *MockRepository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error) {
-	args := m.Called(ctx, tenantID, status, search, batchID, limit, offset)
+func (m *MockRepository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*PassportListItem, int, error) {
+	args := m.Called(ctx, tenantID, status, search, batchID, productType, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Int(1), args.Error(2)
 	}
@@ -551,7 +551,7 @@ func (m *MockRepository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, li
 	return args.Get(0).([]*models.ScanFeedItem), args.Error(1)
 }
 
-func (m *MockRepository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) (*models.DashboardStats, error) {
+func (m *MockRepository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
 	args := m.Called(ctx, tenantID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -640,8 +640,8 @@ func (m *MockRepository) GetPendingInvitesByEmail(ctx context.Context, email str
 // template.go
 // ============================================================================
 
-func (m *MockRepository) CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error) {
-	args := m.Called(ctx, tenantID, name, marketRegion, specs)
+func (m *MockRepository) CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, productType models.ProductType, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error) {
+	args := m.Called(ctx, tenantID, name, productType, marketRegion, specs)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

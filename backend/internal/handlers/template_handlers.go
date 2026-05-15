@@ -27,8 +27,15 @@ func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if req.ProductType == "" {
+		req.ProductType = models.DefaultProductType()
+	}
+	if !req.ProductType.IsValid() {
+		respondError(w, http.StatusBadRequest, "invalid product_type")
+		return
+	}
 
-	template, err := h.repo.CreateTemplate(r.Context(), req.TenantID, req.Name, req.MarketRegion, req.Specs)
+	template, err := h.repo.CreateTemplate(r.Context(), req.TenantID, req.Name, req.ProductType, req.MarketRegion, req.Specs)
 	if err != nil {
 		slog.Error("Failed to create template", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create template")
@@ -53,12 +60,30 @@ func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "Invalid tenant_id format")
 		return
 	}
+	productTypeQuery := r.URL.Query().Get("product_type")
+	var filterProductType models.ProductType
+	if productTypeQuery != "" {
+		filterProductType = models.ProductType(productTypeQuery)
+		if !filterProductType.IsValid() {
+			respondError(w, http.StatusBadRequest, "Invalid product_type query parameter")
+			return
+		}
+	}
 
 	templates, err := h.repo.ListTemplates(r.Context(), tenantID)
 	if err != nil {
 		slog.Error("Failed to list templates", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list templates")
 		return
+	}
+	if filterProductType != "" {
+		filtered := make([]*models.Template, 0, len(templates))
+		for _, template := range templates {
+			if template.ProductType == filterProductType {
+				filtered = append(filtered, template)
+			}
+		}
+		templates = filtered
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{

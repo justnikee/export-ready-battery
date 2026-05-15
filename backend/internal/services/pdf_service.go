@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/skip2/go-qrcode"
@@ -47,7 +48,7 @@ const (
 	cellPadding = 2.0 // mm
 )
 
-// GenerateLabelSheet creates an A4 PDF with a grid of battery stickers.
+// GenerateLabelSheet creates an A4 PDF with a grid of printable product labels.
 // Guarded to max 500 passports to prevent OOM; larger batches should use async export jobs.
 func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models.Passport, tenant *models.Tenant, lang ...string) (*bytes.Buffer, error) {
 	labelLang := "en"
@@ -105,20 +106,23 @@ func (s *PDFService) GenerateLabelSheet(batch *models.Batch, passports []*models
 	return &buf, nil
 }
 
-// drawLabel draws a single sticker label at the given position.
+// drawLabel draws a single product label at the given position.
 // Layout:
 //
 //	+-------------------------------+
-//	| [QR]  Chemistry    [REGION] |
+//	| [QR]  Product Info  [REGION] |
 //	|        SERIAL-NUMBER          |
-//	|        LFP | 2026 | Seq #42  |
-//	|        V / Ah | Manufacturer  |
-//	|        EPR / BIS / CO2        |
-//	|        CELL_SOURCE            |
+//	|        Product-specific line  |
+//	|        Spec / Origin line     |
+//	|        Footer info            |
+//	|        Footer info            |
 //	+-------------------------------+
 func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	batch *models.Batch, passport *models.Passport, tenant *models.Tenant,
 	carbonPerKWh float64, lang string) {
+
+	tenant.EnsureBatteryProfile()
+	tenant.EnsureTextileProfile()
 
 	tr := GetLabelTranslations(lang)
 
@@ -133,10 +137,10 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// Generate enriched QR code
 	var qrCtx *QRLabelContext
-	if carbonPerKWh > 0 || tenant.EPRRegistrationNumber != "" {
+	if carbonPerKWh > 0 || tenant.BatteryProfile.EPRRegistrationNumber != "" {
 		qrCtx = &QRLabelContext{
 			CarbonPerKWh: carbonPerKWh,
-			EPRNumber:    tenant.EPRRegistrationNumber,
+			EPRNumber:    tenant.BatteryProfile.EPRRegistrationNumber,
 		}
 	}
 	qrURL := (&QRService{baseURL: s.baseURL}).BuildQRPayload(passport.UUID, passport.SerialNumber, qrCtx)
@@ -152,15 +156,11 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	textY := y + cellPadding
 	textWidth := cellWidth - qrSize - cellPadding*3
 
-	// --- Row 1: Chemistry + Market Region Badge ---
+	// --- Row 1: Product descriptor + Market Region Badge ---
 	pdf.SetFont("Arial", "B", 8)
 	pdf.SetTextColor(0, 0, 0)
 	pdf.SetXY(textX, textY)
-	chemistry := batch.Specs.Chemistry
-	if chemistry == "" {
-		chemistry = tr.DefaultChemistry
-	}
-	pdf.CellFormat(textWidth-12, 4, chemistry, "", 0, "L", false, 0, "")
+	pdf.CellFormat(textWidth-12, 4, labelPrimaryText(batch, tr), "", 0, "L", false, 0, "")
 
 	// Market region badge (top-right of text area)
 	s.drawRegionBadge(pdf, textX+textWidth-12, textY, models.MarketRegion(batch.MarketRegion))
@@ -191,41 +191,21 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 		pdf.CellFormat(textWidth, 3.5, serial, "", 0, "L", false, 0, "")
 	}
 
-	// --- Row 3: Decoded BPAN info (if parseable) ---
+	// --- Row 3: Product-specific detail line ---
 	textY += 4
-	if comp != nil {
+	detailLine := labelDetailText(batch, passport, comp)
+	if detailLine != "" {
 		pdf.SetFont("Arial", "", 5.5)
 		pdf.SetTextColor(80, 80, 80)
 		pdf.SetXY(textX, textY)
-		bdsLine := fmt.Sprintf("%s-%s | %s | %d | #%05d", comp.Region, comp.Manufacturer, comp.Chemistry, comp.Year, comp.Sequence)
-		pdf.CellFormat(textWidth, 3, bdsLine, "", 0, "L", false, 0, "")
+		pdf.CellFormat(textWidth, 3, detailLine, "", 0, "L", false, 0, "")
 	}
 
-	// --- Row 4: Voltage / Capacity | Manufacturer ---
+	// --- Row 4: Product-specific specs ---
 	textY += 3.5
 	pdf.SetFont("Arial", "", 5.5)
 	pdf.SetTextColor(60, 60, 60)
-	specs := batch.Specs
-	specLine := ""
-	if specs.NominalVoltage != "" {
-		specLine += specs.NominalVoltage
-	}
-	if specs.Capacity != "" {
-		if specLine != "" {
-			specLine += " | "
-		}
-		specLine += specs.Capacity
-	}
-	if specs.Manufacturer != "" {
-		if specLine != "" {
-			specLine += " | "
-		}
-		mfr := specs.Manufacturer
-		if len(mfr) > 15 {
-			mfr = mfr[:15] + ".."
-		}
-		specLine += mfr
-	}
+	specLine := labelSpecText(batch)
 	if specLine != "" {
 		pdf.SetXY(textX, textY)
 		pdf.CellFormat(textWidth, 3, specLine, "", 0, "L", false, 0, "")
@@ -233,13 +213,23 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// === FOOTER: Compliance Info ===
 	footerY := y + cellHeight - 10
+	if batch.ProductType == models.ProductTypeTextile {
+		for _, footerLine := range labelTextileFooterLines(batch, tenant) {
+			pdf.SetXY(textX, footerY)
+			pdf.SetFont("Arial", "", 4.5)
+			pdf.SetTextColor(60, 60, 60)
+			pdf.CellFormat(textWidth, 2.5, footerLine, "", 0, "L", false, 0, "")
+			footerY += 2.5
+		}
+		return
+	}
 
 	// EPR Registration
 	pdf.SetFont("Arial", "", 4.5)
 	pdf.SetTextColor(60, 60, 60)
-	if tenant.EPRRegistrationNumber != "" {
+	if tenant.BatteryProfile.EPRRegistrationNumber != "" {
 		pdf.SetXY(textX, footerY)
-		eprText := fmt.Sprintf("EPR: %s", tenant.EPRRegistrationNumber)
+		eprText := fmt.Sprintf("EPR: %s", tenant.BatteryProfile.EPRRegistrationNumber)
 		if len(eprText) > 30 {
 			eprText = eprText[:30] + ".."
 		}
@@ -248,9 +238,9 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	}
 
 	// BIS R-Number
-	if tenant.BISRNumber != "" {
+	if tenant.BatteryProfile.BISRNumber != "" {
 		pdf.SetXY(textX, footerY)
-		bisText := fmt.Sprintf("BIS: R-%s", tenant.BISRNumber)
+		bisText := fmt.Sprintf("BIS: R-%s", tenant.BatteryProfile.BISRNumber)
 		pdf.CellFormat(textWidth, 2.5, bisText, "", 0, "L", false, 0, "")
 		footerY += 2.5
 	}
@@ -295,6 +285,112 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 	}
 	pdf.SetFont("Arial", "B", 4.5)
 	pdf.CellFormat(textWidth, 2.5, cellSourceDisplay, "", 0, "L", false, 0, "")
+}
+
+func labelPrimaryText(batch *models.Batch, tr LabelTranslations) string {
+	if batch.ProductType == models.ProductTypeTextile {
+		if batch.Specs.MaterialProfile != "" {
+			return truncateLabelText(batch.Specs.MaterialProfile, 22)
+		}
+		if batch.ModelName != "" {
+			return truncateLabelText(batch.ModelName, 22)
+		}
+		return "Textile Passport"
+	}
+
+	chemistry := batch.Specs.Chemistry
+	if chemistry == "" {
+		chemistry = tr.DefaultChemistry
+	}
+	return truncateLabelText(chemistry, 22)
+}
+
+func labelDetailText(batch *models.Batch, passport *models.Passport, comp *models.BPANComponents) string {
+	if batch.ProductType == models.ProductTypeTextile {
+		parts := make([]string, 0, 2)
+		if batch.Specs.ProductionStage != "" {
+			parts = append(parts, batch.Specs.ProductionStage)
+		}
+		if batch.Specs.LotSize != "" {
+			parts = append(parts, batch.Specs.LotSize)
+		}
+		return truncateLabelText(strings.Join(parts, " | "), 34)
+	}
+
+	if comp == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s-%s | %s | %d | #%05d", comp.Region, comp.Manufacturer, comp.Chemistry, comp.Year, comp.Sequence)
+}
+
+func labelSpecText(batch *models.Batch) string {
+	parts := make([]string, 0, 3)
+	if batch.ProductType == models.ProductTypeTextile {
+		if batch.Specs.Manufacturer != "" {
+			parts = append(parts, truncateLabelText(batch.Specs.Manufacturer, 15))
+		}
+		if batch.Specs.CountryOfOrigin != "" {
+			parts = append(parts, batch.Specs.CountryOfOrigin)
+		}
+		return strings.Join(parts, " | ")
+	}
+
+	if batch.Specs.NominalVoltage != "" {
+		parts = append(parts, batch.Specs.NominalVoltage)
+	}
+	if batch.Specs.Capacity != "" {
+		parts = append(parts, batch.Specs.Capacity)
+	}
+	if batch.Specs.Manufacturer != "" {
+		parts = append(parts, truncateLabelText(batch.Specs.Manufacturer, 15))
+	}
+	return strings.Join(parts, " | ")
+}
+
+func labelTextileFooterLines(batch *models.Batch, tenant *models.Tenant) []string {
+	tenant.EnsureTextileProfile()
+	lines := make([]string, 0, 3)
+	profileLine := strings.TrimSpace(strings.Join(compactStrings(
+		tenant.TextileProfile.FacilityType,
+		tenant.TextileProfile.SupplyChainTier,
+	), " | "))
+	if profileLine != "" {
+		lines = append(lines, truncateLabelText(profileLine, 32))
+	}
+	if len(batch.Specs.Certifications) > 0 {
+		lines = append(lines, truncateLabelText("CERT: "+strings.Join(batch.Specs.Certifications, ", "), 32))
+	}
+	if batch.Specs.CountryOfOrigin != "" {
+		lines = append(lines, truncateLabelText("Origin: "+batch.Specs.CountryOfOrigin, 32))
+	}
+	if len(lines) == 0 {
+		return []string{"TEXTILE PASSPORT"}
+	}
+	if len(lines) > 3 {
+		return lines[:3]
+	}
+	return lines
+}
+
+func compactStrings(values ...string) []string {
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			parts = append(parts, value)
+		}
+	}
+	return parts
+}
+
+func truncateLabelText(value string, maxLen int) string {
+	if len(value) <= maxLen {
+		return value
+	}
+	if maxLen <= 2 {
+		return value[:maxLen]
+	}
+	return value[:maxLen-2] + ".."
 }
 
 // drawRegionBadge draws a small colored market region badge.

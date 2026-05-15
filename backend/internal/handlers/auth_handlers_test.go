@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"anvayalabs-battery/internal/models"
 	"anvayalabs-battery/internal/services"
 )
 
@@ -305,7 +306,7 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	tenantID := uuid.New().String()
 	email := "test@example.com"
 
-	token, err := authService.GenerateToken(tenantID, email, "owner")
+	token, err := authService.GenerateToken(tenantID, email, "owner", models.ProductTypeTextile)
 	if err != nil {
 		t.Fatalf("Failed to generate token: %v", err)
 	}
@@ -331,6 +332,9 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	if claims.Role != "owner" {
 		t.Errorf("Expected role 'owner', got %s", claims.Role)
 	}
+	if claims.ProductType != models.ProductTypeTextile {
+		t.Errorf("Expected product type %s, got %s", models.ProductTypeTextile, claims.ProductType)
+	}
 }
 
 // TestAuthService_GenerateRefreshToken tests refresh token generation
@@ -340,7 +344,7 @@ func TestAuthService_GenerateRefreshToken(t *testing.T) {
 	tenantID := uuid.New().String()
 	email := "test@example.com"
 
-	refreshToken, jti, err := authService.GenerateRefreshToken(tenantID, email, "owner")
+	refreshToken, jti, err := authService.GenerateRefreshToken(tenantID, email, "owner", models.ProductTypeBattery)
 	if err != nil {
 		t.Fatalf("Failed to generate refresh token: %v", err)
 	}
@@ -360,6 +364,9 @@ func TestAuthService_GenerateRefreshToken(t *testing.T) {
 
 	if claims.TenantID != tenantID {
 		t.Errorf("Expected tenant ID %s, got %s", tenantID, claims.TenantID)
+	}
+	if claims.ProductType != models.ProductTypeBattery {
+		t.Errorf("Expected product type %s, got %s", models.ProductTypeBattery, claims.ProductType)
 	}
 	// JTI must match the registered claim
 	if claims.RegisteredClaims.ID != jti {

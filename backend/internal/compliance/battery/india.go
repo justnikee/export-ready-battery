@@ -92,19 +92,21 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// Tenant-level India compliance credentials
 	// ----------------------------------------------------------------
 
-	if tenant.EPRRegistrationNumber == "" {
+	tenant.EnsureBatteryProfile()
+
+	if tenant.BatteryProfile.EPRRegistrationNumber == "" {
 		addMissing("tenant.epr_registration_number",
 			"EPR registration number is mandatory under BWM Rules 2022", indiaBWMRef)
 	}
-	if tenant.BISRNumber == "" {
+	if tenant.BatteryProfile.BISRNumber == "" {
 		addMissing("tenant.bis_r_number",
 			"BIS R-Number (CRS IS 16046) is mandatory for lithium-ion batteries", indiaBISRef)
 	}
-	if tenant.IECCode == "" {
+	if tenant.BatteryProfile.IECCode == "" {
 		addMissing("tenant.iec_code",
 			"Import Export Code (IEC) is required for India market operations", "DGFT IEC Regulations")
 	}
-	if tenant.MorthManufacturerCode == "" {
+	if tenant.BatteryProfile.MorthManufacturerCode == "" {
 		addMissing("tenant.morth_manufacturer_code",
 			"MoRTH manufacturer code is required for vehicle battery registration", "MoRTH Notification S.O. 3400(E)")
 	}

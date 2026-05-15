@@ -288,15 +288,15 @@ func (d *crPDF) addIndiaChecklistSection(batch *models.Batch, tenant *models.Ten
 }
 
 func (d *crPDF) checkBISRegistration(tenant *models.Tenant) ais156Check {
-	if tenant != nil && tenant.BISRNumber != "" {
-		return ais156Check{"BIS CRS Registration (IS 16046)", "PASS", fmt.Sprintf("R-No: %s", tenant.BISRNumber)}
+	if tenant != nil && tenant.BatteryProfile.BISRNumber != "" {
+		return ais156Check{"BIS CRS Registration (IS 16046)", "PASS", fmt.Sprintf("R-No: %s", tenant.BatteryProfile.BISRNumber)}
 	}
 	return ais156Check{"BIS CRS Registration (IS 16046)", "FAIL", "No BIS R-number found on tenant profile"}
 }
 
 func (d *crPDF) checkEPRCertificate(tenant *models.Tenant) ais156Check {
-	if tenant != nil && tenant.EPRRegistrationNumber != "" {
-		return ais156Check{"EPR Registration (BWM Rules 2022)", "PASS", fmt.Sprintf("EPR-ID: %s", tenant.EPRRegistrationNumber)}
+	if tenant != nil && tenant.BatteryProfile.EPRRegistrationNumber != "" {
+		return ais156Check{"EPR Registration (BWM Rules 2022)", "PASS", fmt.Sprintf("EPR-ID: %s", tenant.BatteryProfile.EPRRegistrationNumber)}
 	}
 	return ais156Check{"EPR Registration (BWM Rules 2022)", "FAIL", "No EPR registration number found"}
 }

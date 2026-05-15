@@ -57,7 +57,10 @@ func Bootstrap(serviceName string) (*Deps, error) {
 	log.Info("starting " + serviceName)
 
 	// 3. Load typed configuration.
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("bootstrap: invalid configuration: %w", err)
+	}
 
 	// 4. Connect to PostgreSQL.
 	database, err := db.Connect(cfg.DatabaseURL)

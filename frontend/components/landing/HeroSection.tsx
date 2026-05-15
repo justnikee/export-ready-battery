@@ -8,7 +8,10 @@ import {
   Factory,
   QrCode,
   FileCheck,
+  Shirt,
+  BatteryCharging,
 } from "lucide-react";
+import { productRoutesFromSlug } from "@/lib/routes";
 
 const blueprintGrid =
   'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2740%27 height=%2740%27 viewBox=%270 0 40 40%27%3E%3Crect width=%2740%27 height=%2740%27 fill=%27none%27 stroke=%27%23cbd5e1%27 stroke-width=%270.5%27/%3E%3C/svg%3E")';
@@ -20,6 +23,27 @@ const productionStats = [
   { icon: Factory, value: "50+", label: "Production Lines Connected" },
   { icon: QrCode, value: "< 2 min", label: "Per Passport Generation" },
   { icon: FileCheck, value: "99.8%", label: "Compliance Accuracy Rate" },
+];
+
+const productLaunchCards = [
+  {
+    slug: "battery" as const,
+    icon: BatteryCharging,
+    eyebrow: "Battery Passport",
+    title: "Start a battery compliance workspace",
+    description:
+      "Register directly into the battery flow for EU battery passports, BIS validation, and manufacturing traceability.",
+    accent: "from-emerald-600 to-green-500",
+  },
+  {
+    slug: "textile" as const,
+    icon: Shirt,
+    eyebrow: "Textile Passport",
+    title: "Start a textile traceability workspace",
+    description:
+      "Register directly into the textile flow for digital product passports, tier mapping, and supply-chain disclosures.",
+    accent: "from-sky-600 to-cyan-500",
+  },
 ];
 
 export function HeroSection() {
@@ -99,20 +123,67 @@ export function HeroSection() {
             tamper-proof audit trails — purpose-built for battery manufacturers.
           </p>
 
-          <div className="mb-12 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#006239,#0ea371)] px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02]"
-            >
-              Start Compliance Trial
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/contact?demo=true"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-8 py-3.5 text-sm font-medium text-slate-800 backdrop-blur-md transition-all duration-200 hover:border-emerald-300 hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-8 py-3.5 text-sm font-medium text-slate-800 backdrop-blur-md transition-all duration-200 hover:border-emerald-300 hover:bg-white"
             >
-              Book a Demo
+              Book a Platform Demo
             </Link>
+          </div>
+
+          <div className="mx-auto mb-12 max-w-4xl text-left">
+            <div className="mb-4 flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
+              <span className="h-px w-8 bg-slate-300" />
+              Choose your product line
+              <span className="h-px w-8 bg-slate-300" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {productLaunchCards.map((product) => {
+                const Icon = product.icon;
+                const routes = productRoutesFromSlug(product.slug);
+                return (
+                  <div
+                    key={product.slug}
+                    className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur-md"
+                  >
+                    <div className="mb-4 flex items-center gap-3">
+                      <div
+                        className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${product.accent} text-white shadow-lg`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          {product.eyebrow}
+                        </p>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          {product.title}
+                        </h3>
+                      </div>
+                    </div>
+                    <p className="mb-5 text-sm leading-6 text-slate-600">
+                      {product.description}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={routes.register}
+                        className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02]"
+                      >
+                        Launch workspace
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href={routes.login}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        Sign in
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex flex-col items-center justify-center gap-6 text-sm text-slate-600 sm:flex-row">

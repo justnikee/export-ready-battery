@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": ["material_profile", "manufacturer", "country_of_origin"],
+  "properties": {
+    "material_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lot_size": {
+      "type": "string"
+    },
+    "manufacturer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "weight": {
+      "type": "string"
+    },
+    "carbon_footprint": {
+      "type": "string"
+    },
+    "country_of_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "production_stage": {
+      "type": "string",
+      "enum": ["fiber", "fabric", "dyeing", "cut_sew", "finished_goods"]
+    },
+    "certifications": {
+      "type": "array"
+    }
+  }
+}

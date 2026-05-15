@@ -183,7 +183,7 @@ func (f *fakeLifecycleRepo) GetPassportIDsByBatch(ctx context.Context, batchID, 
 	return passportIDs, nil
 }
 
-func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*repository.PassportListItem, int, error) {
 	items := make([]*repository.PassportListItem, 0)
 	for _, passport := range f.passports {
 		batchTenantID, ok := f.batchTenants[passport.BatchID]

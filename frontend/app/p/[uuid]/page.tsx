@@ -89,7 +89,8 @@ export default function PublicPassportPage() {
             bill_of_entry_no: data.bill_of_entry_no,
             country_of_origin: data.country_of_origin,
             customs_date: data.customs_date,
-            product_type: data.product_type || "BATTERY",
+            product_type: data.product_type,
+            template_variant: data.template_variant,
           };
           setPassport(reshaped);
         } else {

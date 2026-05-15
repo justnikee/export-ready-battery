@@ -14,6 +14,7 @@ import (
 	"anvayalabs-battery/internal/app"
 	"anvayalabs-battery/internal/compliance"
 	battery "anvayalabs-battery/internal/compliance/battery"
+	textileCompliance "anvayalabs-battery/internal/compliance/textile"
 	"anvayalabs-battery/internal/events"
 	"anvayalabs-battery/internal/handlers"
 	"anvayalabs-battery/internal/logger"
@@ -39,7 +40,7 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
-	authEmailService := services.NewEmailService(cfg.BaseURL)
+	authEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
 	magicLinkEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
 
 	// Initialize repository
@@ -65,11 +66,23 @@ func main() {
 			slog.Info("Battery v1 schema seeded into product_schemas table")
 		}
 	}
+	if textileV1, seedErr := schemaSeeds.LoadTextileV1(); seedErr != nil {
+		slog.Warn("Failed to load textile_v1 seed schema — textile batch validation will be skipped", "error", seedErr)
+	} else {
+		schemaRegistry.Seed(textileV1)
+		if upsertErr := repo.UpsertProductSchema(context.Background(), textileV1); upsertErr != nil {
+			slog.Warn("Failed to upsert textile_v1 schema to DB — using in-memory seed only", "error", upsertErr)
+		} else {
+			slog.Info("Textile v1 schema seeded into product_schemas table")
+		}
+	}
 
 	// 2. Compliance Registry — India and EU battery validators registered.
 	complianceRegistry := compliance.NewRegistry()
 	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionIndia, battery.NewIndiaValidator())
 	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionEU, battery.NewEUValidator())
+	complianceRegistry.Register(models.ProductTypeTextile, models.MarketRegionIndia, textileCompliance.NewIndiaValidator())
+	complianceRegistry.Register(models.ProductTypeTextile, models.MarketRegionEU, textileCompliance.NewEUValidator())
 
 	// 3. Event Bus — async domain event dispatch.
 	eventBus := events.NewBus()

@@ -361,7 +361,6 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	// BPAN V2: Build prefix from batch region + tenant + chemistry
 	// ================================================================
 	regionPrefix := services.MapRegionPrefix(batch.MarketRegion)
-	chemCode := services.MapChemistryCode(batch.Specs.Chemistry)
 	year := time.Now().Year()
 
 	// Get or derive manufacturer code from tenant
@@ -371,16 +370,32 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		mfrCode = services.DeriveManufacturerCode(tenant.CompanyName)
 	}
 
-	// Prefer MoRTH-registered manufacturer code when set in profile.
-	// Treat "TBC" (and blank) as unset — fall back to the derived code so
-	// passports are not stamped with a placeholder manufacturer segment.
-	morthCode := strings.TrimSpace(tenant.MorthManufacturerCode)
-	if morthCode != "" && morthCode != "TBC" {
-		mfrCode = morthCode
-		slog.Info("Using MoRTH manufacturer code for BPAN", "morth_code", mfrCode)
+	// Product-aware code segment: chemistry for batteries, generic code for others.
+	var productCode string
+	if batch.ProductType == models.ProductTypeBattery {
+		productCode = services.MapChemistryCode(batch.Specs.Chemistry)
+
+		// Prefer MoRTH-registered manufacturer code when set in profile.
+		// Treat "TBC" (and blank) as unset — fall back to the derived code so
+		// passports are not stamped with a placeholder manufacturer segment.
+		morthCode := strings.TrimSpace(tenant.BatteryProfile.MorthManufacturerCode)
+		if morthCode != "" && morthCode != "TBC" {
+			mfrCode = morthCode
+			slog.Info("Using MoRTH manufacturer code for BPAN", "morth_code", mfrCode)
+		}
+	} else {
+		// Non-battery products use a generic product-type code.
+		switch batch.ProductType {
+		case models.ProductTypeTextile:
+			productCode = "TXT"
+		case models.ProductTypeElectronics:
+			productCode = "ELE"
+		default:
+			productCode = "GEN"
+		}
 	}
 
-	bpanPrefix := services.BuildBPANPrefix(regionPrefix, mfrCode, chemCode, year)
+	bpanPrefix := services.BuildBPANPrefix(regionPrefix, mfrCode, productCode, year)
 
 	// Atomically reserve a batch of sequence numbers
 	slog.Info("AutoGenerate: reserving sequences", "prefix", bpanPrefix, "count", req.Count)

@@ -333,17 +333,23 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	// ===== PHASE 7: OTP GATE =====
 	// RECYCLE and RECALL actions require a one-time OTP challenge.
 	if record.RequiresOTP {
-		otp, otpErr := h.issueOrGetOTP(r.Context(), tokenHash)
+		otp, issued, otpErr := h.ensureActiveOTP(r.Context(), tokenHash, record.Email, record.Action)
 		if otpErr != nil {
 			slog.Error("OTP issue failed", "error", otpErr)
 			respondError(w, http.StatusInternalServerError, "Failed to issue OTP")
 			return
 		}
-		_ = otp // OTP value sent via email by issueOrGetOTP
-		respondJSON(w, http.StatusAccepted, map[string]interface{}{
+		response := map[string]interface{}{
 			"status":  "otp_required",
 			"message": "A 6-digit OTP has been sent to your email. Please confirm via /confirm-otp.",
-		})
+		}
+		if !issued {
+			response["message"] = "An active 6-digit OTP is already pending. Check your email or use resend after the cooldown."
+		}
+		if (h.emailService == nil || !h.emailService.IsEnabled()) && issued && otp != "" {
+			response["otp_dev"] = otp
+		}
+		respondJSON(w, http.StatusAccepted, response)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
@@ -783,7 +789,7 @@ func hashOTP(otp, secret string) string {
 
 // issueOrGetOTP generates a new OTP, stores its hash, and sends it via email.
 // It replaces any existing unused OTP for the same tokenHash.
-func (h *MagicLinkHandler) issueOrGetOTP(ctx context.Context, tokenHash string) (string, error) {
+func (h *MagicLinkHandler) issueOrGetOTP(ctx context.Context, tokenHash, email, action string) (string, error) {
 	otp, err := generateOTPCode()
 	if err != nil {
 		return "", fmt.Errorf("generate otp: %w", err)
@@ -792,7 +798,34 @@ func (h *MagicLinkHandler) issueOrGetOTP(ctx context.Context, tokenHash string) 
 	if err := h.repo.ReplaceOTP(ctx, tokenHash, otpHash); err != nil {
 		return "", fmt.Errorf("store otp: %w", err)
 	}
+	if h.emailService != nil {
+		if err := h.emailService.SendMagicLinkOTP(email, action, otp); err != nil {
+			return "", fmt.Errorf("send otp email: %w", err)
+		}
+	} else {
+		slog.Info("OTP issued (dev mode)", "email", email, "action", action, "otp", otp)
+	}
 	return otp, nil
+}
+
+// ensureActiveOTP reuses an existing active OTP challenge when possible to avoid
+// reissuing a fresh OTP on every repeated transition request.
+func (h *MagicLinkHandler) ensureActiveOTP(ctx context.Context, tokenHash, email, action string) (string, bool, error) {
+	otpRec, err := h.repo.GetMagicLinkOTP(ctx, tokenHash)
+	if err != nil {
+		return "", false, fmt.Errorf("fetch active otp: %w", err)
+	}
+
+	if otpRec != nil && time.Since(otpRec.CreatedAt) <= 10*time.Minute {
+		return "", false, nil
+	}
+
+	otp, err := h.issueOrGetOTP(ctx, tokenHash, email, action)
+	if err != nil {
+		return "", false, err
+	}
+
+	return otp, true, nil
 }
 
 // ConfirmOTPRequest is the body for POST /api/v1/magic-links/{token}/confirm-otp
@@ -803,15 +836,12 @@ type ConfirmOTPRequest struct {
 // ConfirmOTP handles POST /api/v1/magic-links/{token}/confirm-otp
 // Validates the OTP and, if correct, applies the pending lifecycle transition.
 func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
-	// URL format: /api/v1/magic-links/{token}/confirm-otp
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
 		respondError(w, http.StatusBadRequest, "Invalid URL path")
 		return
 	}
 	tokenString := pathParts[4]
-
-	// Validate JWT structure (but don't require it to be unused yet)
 	tokenHash := auth.HashToken(tokenString)
 
 	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
@@ -843,14 +873,10 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "No active OTP found. Request a new one.")
 		return
 	}
-
-	// Check expiry (10 min)
 	if time.Since(otpRec.CreatedAt) > 10*time.Minute {
 		respondError(w, http.StatusUnauthorized, "OTP expired. Request a new one.")
 		return
 	}
-
-	// Check attempt lockout
 	if otpRec.AttemptCount >= otpRec.MaxAttempts {
 		respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
 			"error": "OTP locked due to too many failed attempts",
@@ -858,7 +884,6 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate OTP
 	expected := hashOTP(req.OTP, h.jwtSecret)
 	if !hmac.Equal([]byte(expected), []byte(otpRec.OTPHash)) {
 		_ = h.repo.IncrementOTPAttempt(r.Context(), otpRec.ID)
@@ -870,19 +895,17 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"error":            "Invalid OTP",
+			"error":              "Invalid OTP",
 			"attempts_remaining": remaining,
 		})
 		return
 	}
 
-	// OTP correct — consume it and perform the transition
 	if err := h.repo.MarkOTPUsed(r.Context(), otpRec.ID); err != nil {
 		slog.Error("Failed to mark OTP used", "error", err)
 	}
 
-	passportID := record.PassportID
-	actorContext := models.ActorContext{
+	passengerContext := models.ActorContext{
 		ActorType: models.ActorTypePartner,
 		ActorID:   record.Email,
 		ActorRole: models.ActorRole(record.Role),
@@ -890,9 +913,9 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
-		PassportID:         passportID,
+		PassportID:         record.PassportID,
 		Action:             record.Action,
-		ActorContext:       actorContext,
+		ActorContext:       passengerContext,
 		IPAddress:          r.RemoteAddr,
 		MagicLinkTokenHash: tokenHash,
 	})
@@ -912,7 +935,7 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":      true,
-		"passport_id":  passportID,
+		"passport_id":  record.PassportID,
 		"action":       record.Action,
 		"new_status":   result.NewStatus,
 		"otp_verified": true,
@@ -947,35 +970,29 @@ func (h *MagicLinkHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if otpRec != nil {
-		// Check resend limit
 		if otpRec.ResendCount >= otpRec.MaxResends {
 			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
 				"error": "Maximum OTP resend limit reached",
 			})
 			return
 		}
-		// Enforce 60s cooldown
 		if otpRec.LastResentAt != nil && time.Since(*otpRec.LastResentAt) < 60*time.Second {
 			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
 				"error": "Please wait 60 seconds before requesting another OTP",
 			})
 			return
 		}
-		// Record the resend before issuing new OTP
-		_ = h.repo.RecordOTPResend(r.Context(), otpRec.ID)
 	}
 
-	otp, err := h.issueOrGetOTP(r.Context(), tokenHash)
+	otp, err := h.issueOrGetOTP(r.Context(), tokenHash, record.Email, record.Action)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to generate OTP")
 		return
 	}
-
-	// Send via email if available
-	if h.emailService != nil && h.emailService.IsEnabled() {
-		// TODO: add dedicated OTP email template; for now reuse SendMagicLink log
-		slog.Info("Resent OTP", "email", record.Email, "otp_dev", otp)
-	} else {
+	if otpRec != nil {
+		_ = h.repo.RecordOTPResend(r.Context(), otpRec.ID)
+	}
+	if h.emailService == nil || !h.emailService.IsEnabled() {
 		slog.Info("OTP resent (dev mode)", "email", record.Email, "otp", otp)
 	}
 

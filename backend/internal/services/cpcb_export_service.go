@@ -107,7 +107,7 @@ func GenerateCPCBForm3CSV(
 	if len(categories) == 0 {
 		row := []string{
 			tenant.CompanyName,
-			tenant.EPRRegistrationNumber,
+			tenant.BatteryProfile.EPRRegistrationNumber,
 			financialYear,
 			"N/A",
 			"0.00",
@@ -131,7 +131,7 @@ func GenerateCPCBForm3CSV(
 
 		row := []string{
 			tenant.CompanyName,
-			tenant.EPRRegistrationNumber,
+			tenant.BatteryProfile.EPRRegistrationNumber,
 			financialYear,
 			category,
 			fmt.Sprintf("%.2f", data.totalWeightKg),

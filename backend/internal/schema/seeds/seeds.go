@@ -17,6 +17,9 @@ import (
 //go:embed battery_v1.json
 var batteryV1JSON []byte
 
+//go:embed textile_v1.json
+var textileV1JSON []byte
+
 // batteryV1DisplayConfig defines field-level access rules for battery specs.
 // Fields not listed here default to PUBLIC visibility.
 var batteryV1DisplayConfig = models.DisplayConfig{
@@ -70,5 +73,22 @@ func LoadBatteryV1() (*models.ProductSchema, error) {
 		DisplayConfig: json.RawMessage(dcJSON),
 		IsActive:      true,
 		CreatedAt:     time.Now(),
+	}, nil
+}
+
+// LoadTextileV1 parses the embedded textile_v1.json and returns a ProductSchema.
+func LoadTextileV1() (*models.ProductSchema, error) {
+	var schemaObj map[string]any
+	if err := json.Unmarshal(textileV1JSON, &schemaObj); err != nil {
+		return nil, err
+	}
+
+	return &models.ProductSchema{
+		ID:          uuid.New(),
+		ProductType: models.ProductTypeTextile,
+		Version:     1,
+		SchemaJSON:  json.RawMessage(textileV1JSON),
+		IsActive:    true,
+		CreatedAt:   time.Now(),
 	}, nil
 }

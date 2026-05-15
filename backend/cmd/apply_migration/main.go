@@ -1,3 +1,7 @@
+// DANGER: This is a one-off manual migration script.
+// It bypasses schema_migrations version tracking and hardcodes SQL inline.
+// Use backend/cmd/migration_runner for all normal migration operations.
+// Only run this if you know exactly why the normal migrator cannot be used.
 package main
 
 import (

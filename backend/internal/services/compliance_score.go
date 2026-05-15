@@ -45,9 +45,9 @@ func buildAttributeChecklist(batch *models.Batch, tenant *models.Tenant) []model
 		// EU Representative (Art 38)
 		{ID: "EU-11", Name: "EU Representative Name", Category: "EU Rep", RegRef: "Art 38", Filled: s.EURepresentative != ""},
 		{ID: "EU-12", Name: "EU Representative Email", Category: "EU Rep", RegRef: "Art 38", Filled: s.EURepresentativeEmail != ""},
-		{ID: "EU-13", Name: "EU Auth Rep Name (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.EUAuthorizedRepresentativeName != ""},
-		{ID: "EU-14", Name: "EU Auth Rep Address (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.EUAuthorizedRepresentativeAddress != ""},
-		{ID: "EU-15", Name: "EU Contact Email (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.EUContactEmail != ""},
+		{ID: "EU-13", Name: "EU Auth Rep Name (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.BatteryProfile.EUAuthorizedRepresentativeName != ""},
+		{ID: "EU-14", Name: "EU Auth Rep Address (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.BatteryProfile.EUAuthorizedRepresentativeAddress != ""},
+		{ID: "EU-15", Name: "EU Contact Email (Tenant)", Category: "EU Rep", RegRef: "Art 38", Filled: tenant != nil && tenant.BatteryProfile.EUContactEmail != ""},
 
 		// Performance & Durability (Annex IV)
 		{ID: "EU-16", Name: "Expected Lifetime Cycles", Category: "Performance", RegRef: "Annex IV", Filled: s.ExpectedLifetimeCycles != nil && *s.ExpectedLifetimeCycles > 0},

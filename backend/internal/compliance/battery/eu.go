@@ -20,7 +20,7 @@ const (
 
 // euTotalCheckpoints is the number of discrete hard rules evaluated
 // by the EU validator. Used as the denominator for the compliance score.
-const euTotalCheckpoints = 12
+const euTotalCheckpoints = 13
 
 // EUValidator validates battery batch and tenant data against the EU Battery
 // Regulation 2023/1542, covering carbon footprint disclosure (Art. 7),
@@ -63,6 +63,16 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 			Severity:   "ERROR",
 		})
 	}
+	addError := func(field, msg, regulation string) {
+		errors = append(errors, msg)
+		gaps = append(gaps, compliance.Gap{
+			Field:      field,
+			Market:     euMarket,
+			Regulation: regulation,
+			Message:    msg,
+			Severity:   "ERROR",
+		})
+	}
 	addWarning := func(field, msg, regulation string) {
 		warnings = append(warnings, msg)
 		gaps = append(gaps, compliance.Gap{
@@ -78,6 +88,8 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	// Tenant-level EU compliance — Authorized Representative
 	// ----------------------------------------------------------------
 
+	tenant.EnsureBatteryProfile()
+
 	if tenant.CompanyName == "" {
 		addMissing("tenant.company_name",
 			"Manufacturer company name is required for EU DPP", euBatRegRef)
@@ -86,17 +98,30 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 		addMissing("tenant.address",
 			"Manufacturer address is required for EU DPP", euBatRegRef)
 	}
-	if tenant.EUAuthorizedRepresentativeName == "" {
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
 		addMissing("tenant.eu_authorized_representative_name",
 			"EU Authorized Representative name is mandatory for non-EU manufacturers", euBatRegRef)
 	}
-	if tenant.EUAuthorizedRepresentativeAddress == "" {
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
 		addMissing("tenant.eu_authorized_representative_address",
 			"EU Authorized Representative address is mandatory", euBatRegRef)
 	}
-	if tenant.EUContactEmail == "" {
+	if tenant.BatteryProfile.EUContactEmail == "" {
 		addMissing("tenant.eu_contact_email",
 			"EU point-of-contact email is mandatory for DPP access queries", euBatRegRef)
+	}
+
+	// ----------------------------------------------------------------
+	// Battery category classification (EU 2023/1542 Art. 2)
+	// ----------------------------------------------------------------
+
+	if batch.Specs.BatteryCategory == "" {
+		addMissing("batch.specs.battery_category",
+			"Battery category is mandatory (EV, LMT, INDUSTRIAL, PORTABLE, or SLI)", euBatRegRef)
+	} else if !batch.Specs.BatteryCategory.IsValid() {
+		addError("batch.specs.battery_category",
+			fmt.Sprintf("Invalid battery_category: %s (must be EV, LMT, INDUSTRIAL, PORTABLE, or SLI)", batch.Specs.BatteryCategory),
+			euBatRegRef)
 	}
 
 	// ----------------------------------------------------------------

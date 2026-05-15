@@ -175,7 +175,7 @@ func TestDeriveManufacturerCode(t *testing.T) {
 		{"With numbers", "123 Corp", "COR"},
 		{"Unicode", "München GmbH", "MÜN"},
 		{"Spaces and special", "  A-B_C  ", "ABC"},
-		{"Long name", "AnvayaLabs Battery Solutions", "EXP"},
+		{"Long name", "AnvayaLabs Battery Solutions", "ANV"},
 	}
 
 	for _, tt := range tests {

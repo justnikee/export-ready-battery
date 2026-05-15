@@ -48,10 +48,37 @@ func generateState() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+func parseOAuthProductType(raw string) (models.ProductType, error) {
+	if raw == "" {
+		return models.DefaultProductType(), nil
+	}
+
+	pt := models.ProductType(raw)
+	if !pt.IsValid() || pt == models.ProductTypeElectronics {
+		return "", fmt.Errorf("invalid product type")
+	}
+
+	return pt, nil
+}
+
+func productLoginPath(pt models.ProductType) string {
+	if pt == models.ProductTypeTextile {
+		return "/textile/login"
+	}
+
+	return "/battery/login"
+}
+
 // GoogleRedirect handles GET /api/v1/auth/google
 func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 	if !h.oauthService.GoogleEnabled() {
 		respondError(w, http.StatusServiceUnavailable, "Google OAuth is not configured")
+		return
+	}
+
+	productType, err := parseOAuthProductType(r.URL.Query().Get("product_type"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or TEXTILE")
 		return
 	}
 
@@ -75,6 +102,16 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_product_type",
+		Value:    string(productType),
+		Path:     "/",
+		MaxAge:   300,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	authURL := h.oauthService.GetGoogleAuthURL(state)
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
@@ -91,6 +128,12 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	productType, err := parseOAuthProductType(r.URL.Query().Get("product_type"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or TEXTILE")
+		return
+	}
+
 	state, err := generateState()
 	if err != nil {
 		slog.Error("Failed to generate OAuth state", "error", err)
@@ -104,6 +147,16 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
+		Path:     "/",
+		MaxAge:   300,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_product_type",
+		Value:    string(productType),
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
@@ -139,9 +192,24 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	productType := models.DefaultProductType()
+	if productCookie, err := r.Cookie("oauth_product_type"); err == nil {
+		parsedProductType, parseErr := parseOAuthProductType(productCookie.Value)
+		if parseErr == nil {
+			productType = parsedProductType
+		}
+	}
+
 	// Clear state cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_product_type",
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
@@ -173,7 +241,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Find or create tenant
-	tenantID, companyName, err := h.findOrCreateTenant(r.Context(), profile)
+	tenantID, companyName, err := h.findOrCreateTenant(r.Context(), profile, productType)
 	if err != nil {
 		slog.Error("Failed to find/create tenant for OAuth", "provider", provider, "error", err)
 		h.redirectWithError(w, r, "Failed to create account")
@@ -187,14 +255,14 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 
 	// Generate tokens (OAuth users are pre-verified owners)
 	const oauthRole = "owner"
-	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email, oauthRole)
+	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email, oauthRole, productType)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
 
-	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email, oauthRole)
+	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email, oauthRole, productType)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
@@ -214,19 +282,20 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	setRefreshCookie(w, refreshToken, h.authService.GetRefreshExpiry())
 
 	// Redirect to frontend callback page — no refresh_token in URL
-	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&tenant_id=%s&email=%s&company_name=%s",
+	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&tenant_id=%s&email=%s&company_name=%s&product_type=%s",
 		h.frontendURL,
 		url.QueryEscape(token),
 		url.QueryEscape(tenantID.String()),
 		url.QueryEscape(profile.Email),
 		url.QueryEscape(companyName),
+		url.QueryEscape(string(productType)),
 	)
 
 	http.Redirect(w, r, callbackURL, http.StatusTemporaryRedirect)
 }
 
 // findOrCreateTenant finds an existing tenant by email or creates a new one for OAuth users
-func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services.OAuthProfile) (uuid.UUID, string, error) {
+func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services.OAuthProfile, productType models.ProductType) (uuid.UUID, string, error) {
 	// First, try to find existing tenant by email
 	var tenantID uuid.UUID
 	var companyName string
@@ -253,9 +322,9 @@ func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services
 	companyName = profile.Name // Could be user's display name; onboarding will ask for real company name
 
 	_, err = h.db.Pool.Exec(ctx,
-		`INSERT INTO public.tenants (id, company_name, email, oauth_provider, oauth_provider_id, email_verified, created_at)
-		 VALUES ($1, $2, $3, $4, $5, true, $6)`,
-		tenantID, companyName, profile.Email, profile.Provider, profile.ProviderID, time.Now())
+		`INSERT INTO public.tenants (id, company_name, email, product_type, oauth_provider, oauth_provider_id, email_verified, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, true, $7)`,
+		tenantID, companyName, profile.Email, productType, profile.Provider, profile.ProviderID, time.Now())
 	if err != nil {
 		return uuid.UUID{}, "", fmt.Errorf("failed to create tenant: %w", err)
 	}
@@ -275,6 +344,14 @@ func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services
 
 // redirectWithError redirects to the frontend login page with an error message
 func (h *OAuthHandler) redirectWithError(w http.ResponseWriter, r *http.Request, message string) {
-	errorURL := fmt.Sprintf("%s/login?error=%s", h.frontendURL, url.QueryEscape(message))
+	productType := models.DefaultProductType()
+	if productCookie, err := r.Cookie("oauth_product_type"); err == nil {
+		parsedProductType, parseErr := parseOAuthProductType(productCookie.Value)
+		if parseErr == nil {
+			productType = parsedProductType
+		}
+	}
+
+	errorURL := fmt.Sprintf("%s%s?error=%s", h.frontendURL, productLoginPath(productType), url.QueryEscape(message))
 	http.Redirect(w, r, errorURL, http.StatusTemporaryRedirect)
 }

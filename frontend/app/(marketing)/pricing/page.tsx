@@ -10,6 +10,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { productRoutesFromSlug } from "@/lib/routes";
+
+const batteryRoutes = productRoutesFromSlug("battery");
 
 const comparisonRows = [
   {
@@ -175,7 +178,7 @@ export default function PricingPage() {
               price={4999}
               priceSuffix="/ 10 batches"
               ctaText="Buy Starter License"
-              ctaLink="/register?plan=starter"
+              ctaLink={`${batteryRoutes.register}?plan=starter`}
               features={[
                 { text: "10 Batch Activations" },
                 { text: "EU & India Compliance Validation" },
@@ -192,7 +195,7 @@ export default function PricingPage() {
               priceSuffix="/ 50 batches"
               recommended={true}
               ctaText="Buy Growth License"
-              ctaLink="/register?plan=growth"
+              ctaLink={`${batteryRoutes.register}?plan=growth`}
               ctaVariant="default"
               features={[
                 { text: "50 Batch Activations", highlight: true },
@@ -274,7 +277,7 @@ export default function PricingPage() {
             </div>
             <div className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white">
               <div className="overflow-x-auto">
-                <div className="min-w-[760px]">
+                <div className="min-w-190">
                   <div className="grid grid-cols-[minmax(240px,1.3fr)_repeat(3,minmax(140px,1fr))] border-b border-zinc-200 bg-linear-to-r from-zinc-50 via-white to-emerald-50/70">
                     <div className="px-6 py-5">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">

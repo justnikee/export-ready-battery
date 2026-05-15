@@ -41,7 +41,17 @@ interface ApiErrorResponse {
   };
 }
 
-export function DataAccessTokens() {
+interface DataAccessTokensProps {
+  description?: string;
+  tokenAccessDescription?: string;
+  emptyStateDescription?: string;
+}
+
+export function DataAccessTokens({
+  description = "Manage API tokens for Partners and Regulators to access Battery Passports via Article 78.",
+  tokenAccessDescription = "This token grants direct access to your battery passports.",
+  emptyStateDescription = "Generate tokens to grant secure, role-based access to your battery passports.",
+}: DataAccessTokensProps = {}) {
   const { user } = useAuth();
   const [tokens, setTokens] = useState<DataAccessToken[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,10 +186,7 @@ export function DataAccessTokens() {
           <h2 className="text-lg text-foreground border-none m-0">
             Data Access Tokens
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage API tokens for Partners and Regulators to access Battery
-            Passports via Article 78.
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         </div>
         {!showNewTokenForm && !newTokenResult && (
           <button
@@ -204,7 +211,7 @@ export function DataAccessTokens() {
                 Save Your Token: {newTokenResult.label}
               </h3>
               <p className="text-sm text-amber-800 mt-1">
-                This token grants direct access to your battery passports.{" "}
+                {tokenAccessDescription}{" "}
                 <strong>It will never be shown again.</strong> Copy it now and
                 store it securely.
               </p>
@@ -406,8 +413,7 @@ export function DataAccessTokens() {
               No Access Tokens
             </h4>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-              Generate tokens to grant secure, role-based access to your battery
-              passports.
+              {emptyStateDescription}
             </p>
           </div>
         ) : (

@@ -157,11 +157,11 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 	var certPath string
 	switch documentType {
 	case "epr":
-		certPath = tenant.EPRCertificatePath
+		certPath = tenant.BatteryProfile.EPRCertificatePath
 	case "bis":
-		certPath = tenant.BISCertificatePath
+		certPath = tenant.BatteryProfile.BISCertificatePath
 	case "pli":
-		certPath = tenant.PLICertificatePath
+		certPath = tenant.BatteryProfile.PLICertificatePath
 	}
 
 	if certPath == "" {

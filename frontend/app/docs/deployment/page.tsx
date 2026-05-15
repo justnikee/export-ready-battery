@@ -166,6 +166,12 @@ RAZORPAY_KEY_SECRET=xxxx`}
 
  <div className="grid gap-3">
  <EnvVar
+ name="JWT_SECRET"
+ example="same-value-as-backend-jwt-secret"
+ required={true}
+ description="Required by proxy.ts to verify signed auth token product claims. Must match the backend JWT_SECRET exactly."
+ />
+ <EnvVar
  name="NEXT_PUBLIC_API_URL"
  example="https://api.anvayalabs.com/api/v1"
  required={true}
@@ -181,6 +187,7 @@ RAZORPAY_KEY_SECRET=xxxx`}
 
  <CodeBlock
  code={`# Frontend .env.local example
+JWT_SECRET=your-super-secure-random-string-here
 NEXT_PUBLIC_API_URL=https://api.anvayalabs.com/api/v1
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_xxxx`}
  language="bash"

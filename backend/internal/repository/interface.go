@@ -28,7 +28,7 @@ type RepositoryInterface interface {
 	// batch.go
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
-	ListBatches(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.Batch, int, error)
+	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error
 	PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error
@@ -79,7 +79,7 @@ type RepositoryInterface interface {
 	GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error)
 	GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error)
 	CountPassportsByBatch(ctx context.Context, batchID uuid.UUID) (int, error)
-	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*PassportListItem, int, error)
 	GetPassportStatusCounts(ctx context.Context, tenantID uuid.UUID, batchID string) (map[string]int, error)
 	FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error)
 	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
@@ -110,7 +110,7 @@ type RepositoryInterface interface {
 	CreateScanEvent(ctx context.Context, event *models.ScanEvent) error
 	GetLastScanTime(ctx context.Context, passportID uuid.UUID) (*time.Time, error)
 	GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error)
-	GetDashboardStats(ctx context.Context, tenantID uuid.UUID) (*models.DashboardStats, error)
+	GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error)
 	GetRecentBatches(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchSummary, error)
 
 	// team_repository.go
@@ -126,7 +126,7 @@ type RepositoryInterface interface {
 	GetPendingInvitesByEmail(ctx context.Context, email string) ([]models.TeamMember, error)
 
 	// template.go
-	CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error)
+	CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, productType models.ProductType, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error)
 	ListTemplates(ctx context.Context, tenantID uuid.UUID) ([]*models.Template, error)
 	GetTemplate(ctx context.Context, id uuid.UUID) (*models.Template, error)
 	DeleteTemplate(ctx context.Context, id uuid.UUID) error

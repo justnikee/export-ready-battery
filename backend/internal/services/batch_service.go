@@ -95,3 +95,10 @@ func (s *BatchService) GetActiveSchema(ctx context.Context, productType models.P
 func (s *BatchService) RunComplianceCheck(ctx context.Context, productType models.ProductType, marketRegion models.MarketRegion, specsJSON json.RawMessage) (compliance.Result, error) {
 	return s.complianceRegistry.Validate(productType, marketRegion, specsJSON)
 }
+
+// ValidateActivation runs the activation compliance gate against a batch.
+// It checks activation-common fields and then delegates market-specific
+// regulatory validation to the compliance registry.
+func (s *BatchService) ValidateActivation(batch *models.Batch, tenant *models.Tenant) ActivationComplianceResult {
+	return validateActivationWithRegistry(batch, tenant, s.complianceRegistry)
+}

@@ -6,13 +6,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
+
+	"anvayalabs-battery/internal/db"
 )
 
 // expectedTables lists every table the application requires.
 var expectedTables = []string{
 	"tenants",
+	"battery_tenant_profiles",
+	"textile_tenant_profiles",
 	"batches",
 	"passports",
 	"passport_events",
@@ -57,6 +60,22 @@ var expectedColumns = []struct{ table, column string }{
 	{"tenants", "refresh_token_jti"},
 	{"tenants", "email_verified"},
 	{"tenants", "email_verification_token"},
+	{"tenants", "product_type"},
+
+	// product profiles
+	{"battery_tenant_profiles", "tenant_id"},
+	{"battery_tenant_profiles", "epr_registration_number"},
+	{"battery_tenant_profiles", "bis_r_number"},
+	{"battery_tenant_profiles", "iec_code"},
+	{"battery_tenant_profiles", "eu_authorized_representative_name"},
+	{"battery_tenant_profiles", "morth_manufacturer_code"},
+	{"textile_tenant_profiles", "tenant_id"},
+	{"textile_tenant_profiles", "facility_type"},
+	{"textile_tenant_profiles", "supply_chain_tier"},
+	{"textile_tenant_profiles", "primary_markets"},
+	{"textile_tenant_profiles", "default_fiber_types"},
+	{"textile_tenant_profiles", "certifications"},
+	{"textile_tenant_profiles", "compliance_defaults"},
 
 	// batches
 	{"batches", "tenant_id"},
@@ -93,6 +112,7 @@ var expectedColumns = []struct{ table, column string }{
 
 	// magic_link_tokens
 	{"magic_link_tokens", "action"},
+	{"batch_templates", "product_type"},
 }
 
 func main() {
@@ -106,13 +126,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	conn, err := pgx.Connect(ctx, dbURL)
+	database, err := db.Connect(dbURL)
 	if err != nil {
 		fmt.Printf("FAIL connect: %v\n", err)
 		os.Exit(1)
 	}
-	defer conn.Close(ctx)
-	conn.Exec(ctx, "SET search_path TO public")
+	defer database.Close()
+	pool := database.Pool
 
 	allGood := true
 	tableOK := 0
@@ -123,10 +143,10 @@ func main() {
 	// --- Migration version ---
 	var version int
 	var dirty bool
-	err = conn.QueryRow(ctx,
+	err = pool.QueryRow(ctx,
 		`SELECT version, dirty FROM schema_migrations LIMIT 1`).Scan(&version, &dirty)
 	if err != nil {
-		fmt.Println("[WARN] schema_migrations table not found — golang-migrate may not have been run yet")
+		fmt.Printf("[WARN] could not read schema_migrations: %v\n", err)
 	} else {
 		status := "clean"
 		if dirty {
@@ -141,13 +161,19 @@ func main() {
 	for _, t := range expectedTables {
 		var exists bool
 		// Use pg_class as fallback — information_schema can miss tables via Supabase transaction pooler
-		conn.QueryRow(ctx,
+		err = pool.QueryRow(ctx,
 			`SELECT EXISTS(
 				SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=$1
 				UNION ALL
 				SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=$1 AND c.relkind IN ('r','v','m')
 			)`,
 			t).Scan(&exists)
+		if err != nil {
+			fmt.Printf("  [ERROR]   table:%s (%v)\n", t, err)
+			tableMissing++
+			allGood = false
+			continue
+		}
 		if exists {
 			fmt.Printf("  [OK]      table:%s\n", t)
 			tableOK++
@@ -163,7 +189,7 @@ func main() {
 	for _, c := range expectedColumns {
 		var exists bool
 		// Use pg_attribute as fallback for Supabase pooler compatibility
-		conn.QueryRow(ctx,
+		err = pool.QueryRow(ctx,
 			`SELECT EXISTS(
 				SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name=$2
 				UNION ALL
@@ -171,6 +197,12 @@ func main() {
 				WHERE n.nspname='public' AND c.relname=$1 AND a.attname=$2 AND a.attnum>0 AND NOT a.attisdropped
 			)`,
 			c.table, c.column).Scan(&exists)
+		if err != nil {
+			fmt.Printf("  [ERROR]   %s.%s (%v)\n", c.table, c.column, err)
+			colMissing++
+			allGood = false
+			continue
+		}
 		if exists {
 			fmt.Printf("  [OK]      %s.%s\n", c.table, c.column)
 			colOK++

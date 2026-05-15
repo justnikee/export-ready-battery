@@ -191,7 +191,7 @@ func TestDeriveManufacturerCode(t *testing.T) {
 		{"One letter", "X Ltd", "XLT"},   // X, L, T from "X Ltd"
 		{"Empty", "", "MFG"},
 		{"Numbers first", "123 Corp", "COR"},
-		{"Long name", "AnvayaLabs Battery Solutions", "EXP"},
+		{"Long name", "AnvayaLabs Battery Solutions", "ANV"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

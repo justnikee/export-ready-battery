@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +16,21 @@ import { LogOut, HelpCircle } from "lucide-react";
 import Link from "next/link";
 
 import { usePathname } from "next/navigation";
+import { dashboardPathFromPathname } from "@/lib/routes";
 
 const navItems = [
-  { label: "Overview", href: "/dashboard" },
-  { label: "Batches", href: "/dashboard/batches" },
-  { label: "Analytics", href: "/dashboard/analytics" },
-  { label: "Billing", href: "/dashboard/billing" },
-  { label: "Settings", href: "/dashboard/settings" },
+  { label: "Overview" },
+  { label: "Batches", subpath: "batches" },
+  { label: "Analytics", subpath: "analytics" },
+  { label: "Billing", subpath: "billing" },
+  { label: "Settings", subpath: "settings" },
 ];
 
 export function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const dashboardHref = dashboardPathFromPathname(pathname);
+  const billingHref = dashboardPathFromPathname(pathname, "billing");
 
   const initials = user?.company_name
     ? user.company_name.substring(0, 2).toUpperCase()
@@ -38,7 +42,14 @@ export function Header() {
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-background px-6">
       {/* Left: Logo */}
-      <Link href="/dashboard" className="flex items-center shrink-0 group">
+      <Link href={dashboardHref} className="flex items-center shrink-0 group">
+        <Image
+          src="/logo/logo-1.svg"
+          className=""
+          alt="ANVAYALABS"
+          width={32}
+          height={32}
+        />
         <span className="text-xl tracking-tight text-foreground">
           ANVAYALABS
         </span>
@@ -47,17 +58,18 @@ export function Header() {
       {/* Center: Navigation */}
       <nav className="hidden md:flex items-center gap-1">
         {navItems.map((item) => {
+          const href = dashboardPathFromPathname(pathname, item.subpath);
           const isActive =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            pathname === href ||
+            (href !== dashboardHref && pathname.startsWith(`${href}/`));
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.label}
+              href={href}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-accent text-[var(--brand)]"
+                  ? "bg-accent text-(--brand)"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
             >
@@ -70,16 +82,16 @@ export function Header() {
       {/* Right: Quota Badge + User Profile */}
       <div className="flex items-center gap-3">
         {/* Quota Badge */}
-        <Link href="/dashboard/billing">
+        <Link href={billingHref}>
           <div
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border ${
               isLowQuota
                 ? "border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15"
-                : "border-[var(--brand-border)] bg-emerald-500/10 text-[var(--brand)] hover:bg-emerald-500/15"
+                : "border-(--brand-border) bg-emerald-500/10 text-(--brand) hover:bg-emerald-500/15"
             }`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${isLowQuota ? "bg-red-500/100" : "bg-emerald-500/100"}`}
+              className={`h-1.5 w-1.5 rounded-full ${isLowQuota ? "bg-red-500" : "bg-emerald-500"}`}
             />
             <span>Licenses: {quotaBalance}</span>
           </div>

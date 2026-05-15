@@ -61,7 +61,7 @@ type LifecycleRepository interface {
 	AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	// GetPassportIDsByBatch returns all non-terminal passport UUIDs in a batch, scoped to tenant.
 	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
-	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error)
+	ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*repository.PassportListItem, int, error)
 }
 
 // NewLifecycleService creates a new lifecycle service
@@ -508,7 +508,7 @@ func (s *LifecycleService) resolveBulkPassportIDs(ctx context.Context, req BulkT
 		passportIDs := make([]uuid.UUID, 0)
 		offset := 0
 		for {
-			items, total, err := s.repo.ListPassportsByTenant(ctx, req.TenantID, req.StateFilter, req.SearchQuery, batchFilter, pageSize, offset)
+			items, total, err := s.repo.ListPassportsByTenant(ctx, req.TenantID, req.StateFilter, req.SearchQuery, batchFilter, "", pageSize, offset)
 			if err != nil {
 				return nil, fmt.Errorf("failed to list passports: %w", err)
 			}
@@ -673,7 +673,7 @@ func (s *LifecycleService) GetBulkAllowedActionsForFilter(ctx context.Context, t
 	offset := 0
 
 	for {
-		items, total, err := s.repo.ListPassportsByTenant(ctx, tenantID, status, search, batchID, pageSize, offset)
+		items, total, err := s.repo.ListPassportsByTenant(ctx, tenantID, status, search, batchID, "", pageSize, offset)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list passports: %w", err)
 		}

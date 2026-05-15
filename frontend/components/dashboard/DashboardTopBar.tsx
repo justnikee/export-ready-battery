@@ -16,19 +16,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/auth-context";
 import { clsx } from "clsx";
+import { dashboardPathFromPathname, stripProductPrefix } from "@/lib/routes";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/dashboard/batches": "Batches",
-  "/dashboard/passports": "Passports",
-  "/dashboard/compliance": "Compliance",
-  "/dashboard/billing": "Billing",
-  "/dashboard/settings": "Settings",
-  "/dashboard/templates": "Templates",
-  "/dashboard/tokens": "API Tokens",
-  "/dashboard/exports": "Exports",
-  "/dashboard/analytics": "Analytics",
-  "/dashboard/onboarding": "Onboarding",
+  "": "Dashboard",
+  batches: "Batches",
+  passports: "Passports",
+  compliance: "Compliance",
+  billing: "Billing",
+  settings: "Settings",
+  templates: "Templates",
+  tokens: "API Tokens",
+  exports: "Exports",
+  analytics: "Analytics",
+  onboarding: "Onboarding",
 };
 
 interface DashboardTopBarProps {
@@ -38,16 +39,21 @@ interface DashboardTopBarProps {
 export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const unprefixedPathname = stripProductPrefix(pathname);
+  const dashboardSubpath =
+    unprefixedPathname === "/dashboard"
+      ? ""
+      : unprefixedPathname.replace(/^\/dashboard\/?/, "");
 
   const quotaBalance = user?.quota_balance ?? 0;
   const isLowQuota = quotaBalance <= 2;
 
   // Derive page title: exact match first, then longest prefix match
   const pageTitle =
-    PAGE_TITLES[pathname] ??
+    PAGE_TITLES[dashboardSubpath] ??
     PAGE_TITLES[
       Object.keys(PAGE_TITLES)
-        .filter((k) => k !== "/dashboard" && pathname.startsWith(k))
+        .filter((key) => key && dashboardSubpath.startsWith(`${key}/`))
         .sort((a, b) => b.length - a.length)[0] ?? ""
     ] ??
     "Dashboard";
@@ -74,7 +80,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
       {/* Right: Quota + Theme + Profile */}
       <div className="flex items-center gap-2">
         {/* Quota Badge */}
-        <Link href="/dashboard/billing">
+        <Link href={dashboardPathFromPathname(pathname, "billing")}>
           <div
             className={clsx(
               "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border",
@@ -135,7 +141,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
               className="rounded-none focus:rounded-none"
             >
               <Link
-                href="/dashboard/settings"
+                href={dashboardPathFromPathname(pathname, "settings")}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Settings className="h-4 w-4" />

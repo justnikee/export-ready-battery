@@ -1,45 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Shield, Zap, Globe } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { getProductConfig, type ProductSlug } from "@/lib/products";
+import { productRoutesFromSlug } from "@/lib/routes";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle: string;
   type: "login" | "register";
+  productSlug: ProductSlug;
 }
-
-const features = [
-  {
-    icon: Shield,
-    title: "India (PLI/EPR) & EU Regulation Ready",
-    description: "Full compliance with 2026 Draft Rules & EU 2027",
-  },
-  {
-    icon: Globe,
-    title: "Secure Traceability from Cell to Pack",
-    description: "End-to-end battery passport tracking",
-  },
-  {
-    icon: Zap,
-    title: "Industrial-Scale Label Generation",
-    description: "Generate thousands of QR labels in seconds",
-  },
-];
 
 export function AuthLayout({
   children,
   title,
   subtitle,
   type,
+  productSlug,
 }: AuthLayoutProps) {
+  const product = getProductConfig(productSlug);
+  if (!product) {
+    return null;
+  }
+
+  const routes = productRoutesFromSlug(productSlug);
+
   return (
     <div className="min-h-screen flex">
       {/* Left Panel — Brand */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-zinc-900">
         {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-900 to-[var(--brand)]/5" />
+        <div className="absolute inset-0 bg-linear-to-br from-zinc-900 via-zinc-900 to-(--brand)/5" />
 
         {/* Grid pattern */}
         <div
@@ -62,22 +55,22 @@ export function AuthLayout({
           <div className="space-y-8">
             <div>
               <h2 className="text-4xl text-white leading-tight">
-                Compliance Infrastructure
+                {product.auth.heroTitle}
                 <br />
-                <span className="text-[var(--brand)]">
-                  for Battery Manufacturers
+                <span className="text-(--brand)">
+                  {product.auth.heroHighlight}
                 </span>
               </h2>
             </div>
 
             <div className="space-y-4">
-              {features.map((feature) => (
+              {product.auth.features.map((feature) => (
                 <div
                   key={feature.title}
-                  className="flex items-start gap-4 p-4 rounded-xl bg-white/[0.04] border border-white/[0.08]"
+                  className="flex items-start gap-4 rounded-xl border border-white/8 bg-white/4 p-4"
                 >
-                  <div className="p-2 rounded-lg bg-[var(--brand)]/10 shrink-0">
-                    <feature.icon className="h-5 w-5 text-[var(--brand)]" />
+                  <div className="shrink-0 rounded-lg bg-(--brand)/10 p-2">
+                    <feature.icon className="h-5 w-5 text-(--brand)" />
                   </div>
                   <div>
                     <h3 className="text-white text-sm">{feature.title}</h3>
@@ -91,9 +84,7 @@ export function AuthLayout({
           </div>
 
           {/* Bottom tagline */}
-          <p className="text-zinc-500 text-sm">
-            Powering compliance for battery manufacturers across India & Europe
-          </p>
+          <p className="text-zinc-500 text-sm">{product.auth.footerTagline}</p>
         </div>
       </div>
 
@@ -138,8 +129,8 @@ export function AuthLayout({
                   <>
                     Don&apos;t have an account?{" "}
                     <Link
-                      href="/register"
-                      className="text-[var(--brand)] hover:underline font-medium transition-colors"
+                      href={routes.register}
+                      className="text-(--brand) font-medium transition-colors hover:underline"
                     >
                       Create account
                     </Link>
@@ -148,8 +139,8 @@ export function AuthLayout({
                   <>
                     Already have an account?{" "}
                     <Link
-                      href="/login"
-                      className="text-[var(--brand)] hover:underline font-medium transition-colors"
+                      href={routes.login}
+                      className="text-(--brand) font-medium transition-colors hover:underline"
                     >
                       Sign in
                     </Link>

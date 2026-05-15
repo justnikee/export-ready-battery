@@ -40,7 +40,7 @@ func (f *fakeLifecycleRepo) GetBatchTenantID(ctx context.Context, batchID uuid.U
 	return uuid.Nil, nil
 }
 
-func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*repository.PassportListItem, int, error) {
 	return []*repository.PassportListItem{}, 0, nil
 }
 

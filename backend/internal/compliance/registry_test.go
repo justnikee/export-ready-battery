@@ -77,6 +77,18 @@ func TestRegistry_Validate_RoutesToCorrectValidator(t *testing.T) {
 	assert.True(t, resultEU.Valid)
 }
 
+func TestRegistry_Validate_GlobalAggregatesMarketValidators(t *testing.T) {
+	r := compliance.NewRegistry()
+	r.Register(models.ProductTypeTextile, models.MarketRegionIndia, alwaysFailValidator{"india.field"})
+	r.Register(models.ProductTypeTextile, models.MarketRegionEU, alwaysPassValidator{})
+
+	result, err := r.Validate(models.ProductTypeTextile, models.MarketRegionGlobal, json.RawMessage("{}"))
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "india.field")
+	assert.InDelta(t, 50.0, result.Score, 0.001)
+}
+
 // ============================================================================
 // ScoreFromCheckpoints tests
 // ============================================================================

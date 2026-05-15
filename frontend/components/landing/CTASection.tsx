@@ -2,23 +2,41 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BatteryCharging, CheckCircle2, Shirt } from "lucide-react";
+import { productRoutesFromSlug } from "@/lib/routes";
 
 const features = [
-  "Automated EU Digital Battery Passport generation",
-  "Real-time BIS IS 16046 & CPCB validation",
-  "BLAKE2b cryptographic audit trail (10-year retention)",
-  "Single passport for EU + India compliance",
-  "CSV batch upload & REST API integration",
-  "Compliance expert support during onboarding",
+  "Product-specific registration paths for battery and textile workflows",
+  "Real-time compliance and traceability data capture from day one",
+  "Shared audit trail, QR identity, and API integration foundations",
+  "Role-based invites and workspace onboarding tied to the selected product",
+  "CSV batch upload and operations tooling across both product lines",
+  "Implementation support during product-specific onboarding",
+];
+
+const productActions = [
+  {
+    slug: "battery" as const,
+    label: "Battery workspace",
+    description:
+      "Enter the battery flow with EU passport and BIS-ready onboarding.",
+    icon: BatteryCharging,
+  },
+  {
+    slug: "textile" as const,
+    label: "Textile workspace",
+    description:
+      "Enter the textile flow with DPP and supply-chain traceability onboarding.",
+    icon: Shirt,
+  },
 ];
 
 export function CTASection() {
   return (
     <section className="bg-gradient-hero relative overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-green-100 rounded-full blur-3xl opacity-20" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-green-50 rounded-full blur-3xl opacity-30" />
+      <div className="absolute top-0 left-0 h-75 w-75 rounded-full bg-green-100 opacity-20 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-100 w-100 rounded-full bg-green-50 opacity-30 blur-3xl" />
 
       <div className="max-w-4xl mx-auto text-center px-6 py-32 relative z-10">
         <motion.div
@@ -35,16 +53,16 @@ export function CTASection() {
 
           {/* Headline */}
           <h2 className="text-section-headline text-gray-900 mb-6">
-            Ready to Ship Compliant Batteries
+            Choose the Product Workspace
             <br />
-            <span className="text-accent-green">Across Borders?</span>
+            <span className="text-accent-green">You Want to Launch</span>
           </h2>
 
           {/* Subheadline */}
           <p className="text-base sm:text-lg max-w-[56ch] mx-auto mb-10 text-gray-600">
-            Join 50+ manufacturers across India and Europe already using
-            AnvayaLabs to simplify battery compliance, accelerate customs
-            clearance, and enter regulated markets faster.
+            Start in the exact flow your customer needs. Battery leads enter the
+            battery passport funnel. Textile leads enter the textile passport
+            funnel. Both keep their own forms, routes, invites, and email links.
           </p>
 
           {/* Feature Checklist */}
@@ -67,19 +85,42 @@ export function CTASection() {
           </div>
 
           {/* CTA Buttons */}
+          <div className="mb-8 grid gap-4 md:grid-cols-2">
+            {productActions.map((product) => {
+              const Icon = product.icon;
+              const routes = productRoutesFromSlug(product.slug);
+              return (
+                <Link
+                  key={product.slug}
+                  href={routes.register}
+                  className="group rounded-3xl border border-white/70 bg-white/90 p-5 text-left shadow-[0_18px_48px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-green-300"
+                >
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      {product.label}
+                    </span>
+                  </div>
+                  <p className="mb-4 text-sm leading-6 text-gray-600">
+                    {product.description}
+                  </p>
+                  <span className="inline-flex items-center gap-2 text-sm font-medium text-green-700">
+                    Start registration
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+
           <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-cta-button px-8 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02]"
-            >
-              Start Free Trial
-              <ArrowRight className="h-4 w-4" />
-            </Link>
             <Link
               href="/contact?demo=true"
               className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-8 py-3.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-green-500 hover:bg-green-50 hover:text-green-700"
             >
-              Book Demo
+              Book Platform Demo
             </Link>
           </div>
 

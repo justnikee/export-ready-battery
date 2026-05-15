@@ -9,9 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"anvayalabs-battery/internal/compliance"
+	"anvayalabs-battery/internal/compliance/battery"
+	"anvayalabs-battery/internal/compliance/textile"
 	"anvayalabs-battery/internal/middleware"
 	"anvayalabs-battery/internal/models"
 	"anvayalabs-battery/internal/repository"
+	"anvayalabs-battery/internal/schema"
 	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -25,8 +29,15 @@ import (
 
 // newTestHandler creates a Handler with a MockRepository for integration tests.
 func newTestHandler(m *repository.MockRepository) *Handler {
+	complianceReg := compliance.NewRegistry()
+	complianceReg.Register(models.ProductTypeBattery, models.MarketRegionIndia, battery.NewIndiaValidator())
+	complianceReg.Register(models.ProductTypeBattery, models.MarketRegionEU, battery.NewEUValidator())
+	complianceReg.Register(models.ProductTypeTextile, models.MarketRegionIndia, textile.NewIndiaValidator())
+	complianceReg.Register(models.ProductTypeTextile, models.MarketRegionEU, textile.NewEUValidator())
+
 	return &Handler{
-		repo: m,
+		repo:         m,
+		batchService: services.NewBatchService(schema.NewRegistry(nil), complianceReg, m),
 	}
 }
 

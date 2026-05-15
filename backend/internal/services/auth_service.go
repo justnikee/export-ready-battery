@@ -11,6 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+
+	"anvayalabs-battery/internal/models"
 )
 
 // getBcryptCost returns the bcrypt cost from BCRYPT_COST env var, defaulting to bcrypt.DefaultCost.
@@ -50,6 +52,7 @@ type Claims struct {
 	TenantID string `json:"tenant_id"`
 	Email    string `json:"email"`
 	Role     string `json:"role"` // RBAC: owner | operator | viewer
+	ProductType models.ProductType `json:"product_type,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -68,12 +71,20 @@ func (s *AuthService) CheckPassword(password, hash string) bool {
 	return err == nil
 }
 
+func normalizeClaimProductType(productType models.ProductType) models.ProductType {
+	if !productType.IsValid() {
+		return models.DefaultProductType()
+	}
+	return productType
+}
+
 // GenerateToken generates a JWT access token with role embedded
-func (s *AuthService) GenerateToken(tenantID, email, role string) (string, error) {
+func (s *AuthService) GenerateToken(tenantID, email, role string, productType models.ProductType) (string, error) {
 	claims := &Claims{
 		TenantID: tenantID,
 		Email:    email,
 		Role:     role,
+		ProductType: normalizeClaimProductType(productType),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -87,12 +98,13 @@ func (s *AuthService) GenerateToken(tenantID, email, role string) (string, error
 
 // GenerateRefreshToken generates a refresh token with a unique JTI for revocation.
 // Returns (tokenString, jti, error). Callers MUST persist the jti in the DB.
-func (s *AuthService) GenerateRefreshToken(tenantID, email, role string) (string, string, error) {
+func (s *AuthService) GenerateRefreshToken(tenantID, email, role string, productType models.ProductType) (string, string, error) {
 	jti := uuid.New().String()
 	claims := &Claims{
 		TenantID: tenantID,
 		Email:    email,
 		Role:     role,
+		ProductType: normalizeClaimProductType(productType),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.refreshExpiry)),

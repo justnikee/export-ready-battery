@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
 	"anvayalabs-battery/internal/repository"
 	"log/slog"
 	"net/http"
@@ -211,7 +212,7 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, batchID, limit, offset)
+	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, batchID, models.ProductType(middleware.GetProductType(r.Context())), limit, offset)
 	if err != nil {
 		slog.Error("Failed to list passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list passports")

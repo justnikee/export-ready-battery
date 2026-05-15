@@ -52,6 +52,8 @@ type PublicPassportView struct {
 	// Batch context
 	BatchName    string       `json:"batch_name"`
 	ModelName    string       `json:"model_name,omitempty"`
+	ProductType  ProductType  `json:"product_type"`
+	TemplateVariant string    `json:"template_variant,omitempty"`
 	MarketRegion MarketRegion `json:"market_region"`
 
 	// Manufacturing window
@@ -81,6 +83,9 @@ type PublicSpecsView struct {
 	CarbonFootprint        string               `json:"carbon_footprint"`
 	CountryOfOrigin        string               `json:"country_of_origin"`
 	Manufacturer           string               `json:"manufacturer"`
+	MaterialProfile        string               `json:"material_profile,omitempty"`
+	LotSize                string               `json:"lot_size,omitempty"`
+	ProductionStage        string               `json:"production_stage,omitempty"`
 	ManufacturerAddress    string               `json:"manufacturer_address,omitempty"`
 	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`
 	Certifications         []string             `json:"certifications,omitempty"`
@@ -102,6 +107,8 @@ type PublicTenantView struct {
 	CompanyName                       string    `json:"company_name"`
 	Address                           string    `json:"address,omitempty"`
 	SupportEmail                      string    `json:"support_email,omitempty"`
+	TextileFacilityType               string    `json:"textile_facility_type,omitempty"`
+	TextileSupplyChainTier            string    `json:"textile_supply_chain_tier,omitempty"`
 	EPRRegistrationNumber             string    `json:"epr_registration_number,omitempty"`
 	BISRNumber                        string    `json:"bis_r_number,omitempty"`
 	BISCertificatePath                string    `json:"bis_certificate_path,omitempty"`
@@ -110,6 +117,39 @@ type PublicTenantView struct {
 	EUAuthorizedRepresentativeName    string    `json:"eu_authorized_representative_name,omitempty"`
 	EUAuthorizedRepresentativeAddress string    `json:"eu_authorized_representative_address,omitempty"`
 	EUContactEmail                    string    `json:"eu_contact_email,omitempty"`
+}
+
+type publicViewBatchSnapshot struct {
+	BatchName              string              `json:"batch_name"`
+	ModelName              string              `json:"model_name,omitempty"`
+	ProductType            ProductType         `json:"product_type"`
+	TemplateVariant        string              `json:"template_variant,omitempty"`
+	MarketRegion           MarketRegion        `json:"market_region"`
+	Specs                  *BatchSpec          `json:"specs,omitempty"`
+	ManufacturingStartDate *time.Time          `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time          `json:"manufacturing_end_date,omitempty"`
+	CellSource             string              `json:"cell_source,omitempty"`
+	DomesticValueAdd       float64             `json:"domestic_value_add,omitempty"`
+	PLICompliant           bool                `json:"pli_compliant,omitempty"`
+	HSNCode                string              `json:"hsn_code,omitempty"`
+	DVASource              string              `json:"dva_source,omitempty"`
+	BillOfEntryNo          string              `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin        string              `json:"country_of_origin,omitempty"`
+	CustomsDate            *time.Time          `json:"customs_date,omitempty"`
+	Tenant                 *publicTenantSnapshot `json:"tenant,omitempty"`
+}
+
+type publicTenantSnapshot struct {
+	TenantID                          string `json:"tenant_id"`
+	CompanyName                       string `json:"company_name"`
+	Address                           string `json:"address,omitempty"`
+	TextileFacilityType               string `json:"textile_facility_type,omitempty"`
+	TextileSupplyChainTier            string `json:"textile_supply_chain_tier,omitempty"`
+	EPRRegistrationNumber             string `json:"epr_registration_number,omitempty"`
+	BISRNumber                        string `json:"bis_r_number,omitempty"`
+	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name,omitempty"`
+	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address,omitempty"`
+	EUContactEmail                    string `json:"eu_contact_email,omitempty"`
 }
 
 // ============================================================================
@@ -188,6 +228,8 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 
 		BatchName:    full.BatchName,
 		ModelName:    full.ModelName,
+		ProductType:  full.ProductType,
+		TemplateVariant: ResolvePassportTemplateVariant(full.ProductType, full.MarketRegion),
 		MarketRegion: full.MarketRegion,
 
 		ManufacturingStartDate: full.ManufacturingStartDate,
@@ -206,48 +248,161 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 	}
 
 	// Map specs
-	if full.Specs != nil {
-		view.Specs = &PublicSpecsView{
-			Chemistry:              full.Specs.Chemistry,
-			NominalVoltage:         full.Specs.NominalVoltage,
-			Capacity:               full.Specs.Capacity,
-			Weight:                 full.Specs.Weight,
-			CarbonFootprint:        full.Specs.CarbonFootprint,
-			CountryOfOrigin:        full.Specs.CountryOfOrigin,
-			Manufacturer:           full.Specs.Manufacturer,
-			ManufacturerAddress:    full.Specs.ManufacturerAddress,
-			MaterialComposition:    full.Specs.MaterialComposition,
-			Certifications:         full.Specs.Certifications,
-			HazardousSubstances:    full.Specs.HazardousSubstances,
-			WarrantyMonths:         full.Specs.WarrantyMonths,
-			ExpectedLifetimeCycles: full.Specs.ExpectedLifetimeCycles,
-			RecycledContentPct:     full.Specs.RecycledContentPct,
-			BatteryCategory:        full.Specs.BatteryCategory,
-			PerformanceSpec:        full.Specs.PerformanceSpec,
-			BISNumber:              full.Specs.BISNumber,
-			EPRNumber:              full.Specs.EPRNumber,
-		}
-	}
+	view.Specs = buildPublicSpecsView(full.Specs)
 
 	// Map tenant (public-safe fields only)
-	if full.Tenant != nil {
-		view.Tenant = &PublicTenantView{
-			ID:                                full.Tenant.ID,
-			CompanyName:                       full.Tenant.CompanyName,
-			Address:                           full.Tenant.Address,
-			SupportEmail:                      full.Tenant.SupportEmail,
-			EPRRegistrationNumber:             full.Tenant.EPRRegistrationNumber,
-			BISRNumber:                        full.Tenant.BISRNumber,
-			BISCertificatePath:                full.Tenant.BISCertificatePath,
-			EPRCertificatePath:                full.Tenant.EPRCertificatePath,
-			PLICertificatePath:                full.Tenant.PLICertificatePath,
-			EUAuthorizedRepresentativeName:    full.Tenant.EUAuthorizedRepresentativeName,
-			EUAuthorizedRepresentativeAddress: full.Tenant.EUAuthorizedRepresentativeAddress,
-			EUContactEmail:                    full.Tenant.EUContactEmail,
+	view.Tenant = buildPublicTenantView(full.Tenant)
+	applySnapshotOverrides(view, p.BatchSnapshot)
+
+	return view
+}
+
+func buildPublicSpecsView(specs *BatchSpec) *PublicSpecsView {
+	if specs == nil {
+		return nil
+	}
+
+	return &PublicSpecsView{
+		Chemistry:              specs.Chemistry,
+		NominalVoltage:         specs.NominalVoltage,
+		Capacity:               specs.Capacity,
+		Weight:                 specs.Weight,
+		CarbonFootprint:        specs.CarbonFootprint,
+		CountryOfOrigin:        specs.CountryOfOrigin,
+		Manufacturer:           specs.Manufacturer,
+		MaterialProfile:        specs.MaterialProfile,
+		LotSize:                specs.LotSize,
+		ProductionStage:        specs.ProductionStage,
+		ManufacturerAddress:    specs.ManufacturerAddress,
+		MaterialComposition:    specs.MaterialComposition,
+		Certifications:         specs.Certifications,
+		HazardousSubstances:    specs.HazardousSubstances,
+		WarrantyMonths:         specs.WarrantyMonths,
+		ExpectedLifetimeCycles: specs.ExpectedLifetimeCycles,
+		RecycledContentPct:     specs.RecycledContentPct,
+		BatteryCategory:        specs.BatteryCategory,
+		PerformanceSpec:        specs.PerformanceSpec,
+		BISNumber:              specs.BISNumber,
+		EPRNumber:              specs.EPRNumber,
+	}
+}
+
+func buildPublicTenantView(tenant *Tenant) *PublicTenantView {
+	if tenant == nil {
+		return nil
+	}
+
+	tenant.EnsureBatteryProfile()
+	tenant.EnsureTextileProfile()
+
+	return &PublicTenantView{
+		ID:                                tenant.ID,
+		CompanyName:                       tenant.CompanyName,
+		Address:                           tenant.Address,
+		SupportEmail:                      tenant.SupportEmail,
+		TextileFacilityType:               tenant.TextileProfile.FacilityType,
+		TextileSupplyChainTier:            tenant.TextileProfile.SupplyChainTier,
+		EPRRegistrationNumber:             tenant.BatteryProfile.EPRRegistrationNumber,
+		BISRNumber:                        tenant.BatteryProfile.BISRNumber,
+		BISCertificatePath:                tenant.BatteryProfile.BISCertificatePath,
+		EPRCertificatePath:                tenant.BatteryProfile.EPRCertificatePath,
+		PLICertificatePath:                tenant.BatteryProfile.PLICertificatePath,
+		EUAuthorizedRepresentativeName:    tenant.BatteryProfile.EUAuthorizedRepresentativeName,
+		EUAuthorizedRepresentativeAddress: tenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
+		EUContactEmail:                    tenant.BatteryProfile.EUContactEmail,
+	}
+}
+
+func buildPublicTenantViewFromSnapshot(snapshot *publicTenantSnapshot) *PublicTenantView {
+	if snapshot == nil {
+		return nil
+	}
+
+	view := &PublicTenantView{
+		CompanyName:                       snapshot.CompanyName,
+		Address:                           snapshot.Address,
+		TextileFacilityType:               snapshot.TextileFacilityType,
+		TextileSupplyChainTier:            snapshot.TextileSupplyChainTier,
+		EPRRegistrationNumber:             snapshot.EPRRegistrationNumber,
+		BISRNumber:                        snapshot.BISRNumber,
+		EUAuthorizedRepresentativeName:    snapshot.EUAuthorizedRepresentativeName,
+		EUAuthorizedRepresentativeAddress: snapshot.EUAuthorizedRepresentativeAddress,
+		EUContactEmail:                    snapshot.EUContactEmail,
+	}
+
+	if snapshot.TenantID != "" {
+		if parsedID, err := uuid.Parse(snapshot.TenantID); err == nil {
+			view.ID = parsedID
 		}
 	}
 
 	return view
+}
+
+func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
+	if view == nil || len(raw) == 0 {
+		return
+	}
+
+	var snapshot publicViewBatchSnapshot
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		return
+	}
+
+	if snapshot.BatchName != "" {
+		view.BatchName = snapshot.BatchName
+	}
+	if snapshot.ModelName != "" {
+		view.ModelName = snapshot.ModelName
+	}
+	if snapshot.ProductType.IsValid() {
+		view.ProductType = snapshot.ProductType
+		if view.TemplateVariant == "" {
+			view.TemplateVariant = ResolvePassportTemplateVariant(snapshot.ProductType, snapshot.MarketRegion)
+		}
+	}
+	if snapshot.TemplateVariant != "" {
+		view.TemplateVariant = snapshot.TemplateVariant
+	}
+	if snapshot.MarketRegion != "" {
+		view.MarketRegion = snapshot.MarketRegion
+	}
+	if snapshot.ManufacturingStartDate != nil {
+		view.ManufacturingStartDate = snapshot.ManufacturingStartDate
+	}
+	if snapshot.ManufacturingEndDate != nil {
+		view.ManufacturingEndDate = snapshot.ManufacturingEndDate
+	}
+	if snapshot.CellSource != "" {
+		view.CellSource = snapshot.CellSource
+	}
+	if snapshot.DomesticValueAdd != 0 {
+		view.DomesticValueAdd = snapshot.DomesticValueAdd
+	}
+	if snapshot.PLICompliant {
+		view.PLICompliant = true
+	}
+	if snapshot.HSNCode != "" {
+		view.HSNCode = snapshot.HSNCode
+	}
+	if snapshot.DVASource != "" {
+		view.DVASource = snapshot.DVASource
+	}
+	if snapshot.BillOfEntryNo != "" {
+		view.BillOfEntryNo = snapshot.BillOfEntryNo
+	}
+	if snapshot.CountryOfOrigin != "" {
+		view.CountryOfOrigin = snapshot.CountryOfOrigin
+	}
+	if snapshot.CustomsDate != nil {
+		view.CustomsDate = snapshot.CustomsDate
+	}
+	if snapshot.Specs != nil {
+		view.Specs = buildPublicSpecsView(snapshot.Specs)
+	}
+	if snapshot.Tenant != nil {
+		view.Tenant = buildPublicTenantViewFromSnapshot(snapshot.Tenant)
+	}
 }
 
 // BuildPartnerView creates a PartnerPassportView from full passport data.

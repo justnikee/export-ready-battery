@@ -161,13 +161,17 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 
 	// Send invite email
 	if h.emailService != nil {
-		if err := h.emailService.SendTeamInvite(req.Email, tenant.CompanyName, token, req.Role); err != nil {
+		if err := h.emailService.SendTeamInvite(req.Email, tenant.CompanyName, token, req.Role, tenant.ProductType); err != nil {
 			// Log the error but don't fail the request - invite was created
 			slog.Warn("Failed to send invite email", "to", req.Email, "error", err)
 		}
 	}
 
-	inviteURL := fmt.Sprintf("/invite?token=%s", token)
+	productSlug := "battery"
+	if tenant.ProductType == models.ProductTypeTextile {
+		productSlug = "textile"
+	}
+	inviteURL := fmt.Sprintf("/%s/accept-invite?token=%s", productSlug, token)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":    "Invitation sent successfully",
@@ -241,6 +245,11 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	productSlug := "battery"
+	if tenant, tenantErr := h.repo.GetTenant(r.Context(), member.TenantID); tenantErr == nil && tenant.ProductType == models.ProductTypeTextile {
+		productSlug = "textile"
+	}
+
 	// Check if already accepted
 	if member.Status == models.TeamStatusActive {
 		respondError(w, http.StatusConflict, "This invitation has already been accepted")
@@ -267,7 +276,8 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respondJSON(w, http.StatusOK, map[string]string{
-			"message": "Invitation accepted successfully",
+			"message":       "Invitation accepted successfully",
+			"dashboard_url": fmt.Sprintf("/%s/dashboard", productSlug),
 		})
 	} else {
 		// New user - they need to register first
@@ -276,7 +286,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			"status":       "registration_required",
 			"message":      "Please complete registration to accept this invitation",
 			"email":        member.Email,
-			"register_url": fmt.Sprintf("/register?email=%s&invite=%s", member.Email, req.Token),
+			"register_url": fmt.Sprintf("/%s/register?email=%s&invite=%s", productSlug, member.Email, req.Token),
 		})
 	}
 }

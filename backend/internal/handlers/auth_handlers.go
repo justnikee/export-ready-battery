@@ -42,6 +42,7 @@ type RegisterRequest struct {
 	CompanyName string `json:"company_name"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+	ProductType string `json:"product_type"`
 	InviteToken string `json:"invite_token"` // optional — skips email verification
 }
 
@@ -57,6 +58,7 @@ type AuthResponse struct {
 	TenantID    string `json:"tenant_id"`
 	Email       string `json:"email"`
 	CompanyName string `json:"company_name"`
+	ProductType string `json:"product_type,omitempty"`
 	ExpiresIn   int    `json:"expires_in"` // seconds
 }
 
@@ -81,6 +83,21 @@ func (h *AuthHandler) saveRefreshJTI(ctx context.Context, tenantID uuid.UUID, jt
 		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
 		jti, expires, tenantID)
 	return err
+}
+
+func (h *AuthHandler) getTenantProductType(ctx context.Context, tenantID uuid.UUID) (models.ProductType, error) {
+	var productType models.ProductType
+	err := h.db.Pool.QueryRow(ctx,
+		"SELECT COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE id = $1",
+		tenantID,
+	).Scan(&productType)
+	if err != nil {
+		return "", err
+	}
+	if !productType.IsValid() {
+		return models.DefaultProductType(), nil
+	}
+	return productType, nil
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,6 +168,14 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, "password must be at least 8 characters")
 		return
 	}
+	if req.ProductType == "" {
+		req.ProductType = string(models.DefaultProductType())
+	}
+	productType := models.ProductType(req.ProductType)
+	if !productType.IsValid() || productType == models.ProductTypeElectronics {
+		respondError(w, http.StatusBadRequest, "product_type must be BATTERY or TEXTILE")
+		return
+	}
 
 	// Check if email already exists
 	var exists bool
@@ -196,10 +221,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	tenantID := uuid.New()
 	_, err = h.db.Pool.Exec(r.Context(),
 		`INSERT INTO public.tenants
-			(id, company_name, email, password_hash, email_verified, email_verification_token, email_verification_expires, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			(id, company_name, email, password_hash, product_type, email_verified, email_verification_token, email_verification_expires, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		tenantID, req.CompanyName, req.Email, passwordHash,
-		emailVerified, verificationToken, verificationExpires, time.Now())
+		productType, emailVerified, verificationToken, verificationExpires, time.Now())
 	if err != nil {
 		slog.Error("Failed to create tenant", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
@@ -220,7 +245,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Send verification email only for non-invite registrations
 	if !emailVerified {
-		if err := h.emailService.SendVerificationEmail(req.Email, verificationToken); err != nil {
+		if err := h.emailService.SendVerificationEmail(req.Email, verificationToken, productType); err != nil {
 			slog.Warn("Failed to send verification email", "error", err)
 		}
 		respondJSON(w, http.StatusAccepted, map[string]string{
@@ -301,9 +326,10 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	// Lookup tenant — do NOT reveal if email exists
 	var tenantID uuid.UUID
 	var emailVerified bool
+	var productType models.ProductType
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id, email_verified FROM public.tenants WHERE email = $1", req.Email).
-		Scan(&tenantID, &emailVerified)
+		"SELECT id, email_verified, COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE email = $1", req.Email).
+		Scan(&tenantID, &emailVerified, &productType)
 	if err != nil {
 		// Silently succeed to prevent email enumeration
 		respondJSON(w, http.StatusOK, map[string]string{
@@ -338,7 +364,7 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.emailService.SendVerificationEmail(req.Email, newToken); err != nil {
+	if err := h.emailService.SendVerificationEmail(req.Email, newToken, productType); err != nil {
 		slog.Warn("Failed to send verification email", "error", err)
 	}
 
@@ -367,13 +393,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	// Get tenant by email
 	var tenantID uuid.UUID
 	var companyName string
+	var productType models.ProductType
 	var passwordHash *string
 	var oauthProvider *string
 	var emailVerified bool
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, company_name, password_hash, oauth_provider, COALESCE(email_verified, true)
+		`SELECT id, company_name, COALESCE(product_type, 'BATTERY'), password_hash, oauth_provider, COALESCE(email_verified, true)
 		 FROM public.tenants WHERE email = $1`,
-		req.Email).Scan(&tenantID, &companyName, &passwordHash, &oauthProvider, &emailVerified)
+		req.Email).Scan(&tenantID, &companyName, &productType, &passwordHash, &oauthProvider, &emailVerified)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusUnauthorized, "Invalid email or password")
@@ -414,14 +441,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	role := "owner"
 
 	// Generate tokens
-	token, err := h.authService.GenerateToken(tenantID.String(), req.Email, role)
+	token, err := h.authService.GenerateToken(tenantID.String(), req.Email, role, productType)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
-	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email, role)
+	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), req.Email, role, productType)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
@@ -443,6 +470,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		TenantID:    tenantID.String(),
 		Email:       req.Email,
 		CompanyName: companyName,
+		ProductType: string(productType),
 		ExpiresIn:   900,
 	})
 }
@@ -484,8 +512,18 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	productType := claims.ProductType
+	if !productType.IsValid() {
+		productType, err = h.getTenantProductType(r.Context(), tenantID)
+		if err != nil {
+			slog.Error("Failed to resolve product type for refresh", "error", err, "tenant_id", tenantID)
+			respondError(w, http.StatusInternalServerError, "Failed to generate token")
+			return
+		}
+	}
+
 	// Generate new access token
-	token, err := h.authService.GenerateToken(claims.TenantID, claims.Email, claims.Role)
+	token, err := h.authService.GenerateToken(claims.TenantID, claims.Email, claims.Role, productType)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
@@ -493,7 +531,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rotate refresh token (issue new JTI, invalidate old one)
-	newRefreshToken, newJTI, err := h.authService.GenerateRefreshToken(claims.TenantID, claims.Email, claims.Role)
+	newRefreshToken, newJTI, err := h.authService.GenerateRefreshToken(claims.TenantID, claims.Email, claims.Role, productType)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate token")
@@ -570,8 +608,9 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	// Check if email exists
 	var tenantID uuid.UUID
+	var productType models.ProductType
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id FROM public.tenants WHERE email = $1", req.Email).Scan(&tenantID)
+		"SELECT id, COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE email = $1", req.Email).Scan(&tenantID, &productType)
 	if err != nil {
 		// Don't reveal if email exists or not
 		respondJSON(w, http.StatusOK, map[string]string{
@@ -600,7 +639,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send password reset email (or log to console if not configured)
-	if err := h.emailService.SendPasswordResetEmail(req.Email, resetToken); err != nil {
+	if err := h.emailService.SendPasswordResetEmail(req.Email, resetToken, productType); err != nil {
 		slog.Warn("Failed to send reset email", "error", err)
 		// Don't fail the request - still return success for security
 	}
@@ -755,6 +794,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"id":                                   tenant.ID,
 		"tenant_id":                            tenant.ID.String(),
 		"company_name":                         tenant.CompanyName,
+		"product_type":                         tenant.ProductType,
 		"email":                                loginEmail,
 		"address":                              tenant.Address,
 		"logo_url":                             tenant.LogoURL,
@@ -763,23 +803,29 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"created_at":                           tenant.CreatedAt,
 		"last_login":                           lastLogin,
 		"quota_balance":                        tenant.QuotaBalance,
-		"epr_registration_number":              tenant.EPRRegistrationNumber,
-		"bis_r_number":                         tenant.BISRNumber,
-		"iec_code":                             tenant.IECCode,
-		"eu_authorized_representative_name":    tenant.EUAuthorizedRepresentativeName,
-		"eu_authorized_representative_address": tenant.EUAuthorizedRepresentativeAddress,
-		"eu_contact_email":                     tenant.EUContactEmail,
-		"morth_manufacturer_code":              tenant.MorthManufacturerCode,
-		"morth_factory_codes":                  tenant.MorthFactoryCodes,
+		"epr_registration_number":              tenant.BatteryProfile.EPRRegistrationNumber,
+		"bis_r_number":                         tenant.BatteryProfile.BISRNumber,
+		"iec_code":                             tenant.BatteryProfile.IECCode,
+		"eu_authorized_representative_name":    tenant.BatteryProfile.EUAuthorizedRepresentativeName,
+		"eu_authorized_representative_address": tenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
+		"eu_contact_email":                     tenant.BatteryProfile.EUContactEmail,
+		"morth_manufacturer_code":              tenant.BatteryProfile.MorthManufacturerCode,
+		"morth_factory_codes":                  tenant.BatteryProfile.MorthFactoryCodes,
 		"data_visibility":                      tenant.DataVisibility,
+		"textile_facility_type":                tenant.TextileProfile.FacilityType,
+		"textile_supply_chain_tier":            tenant.TextileProfile.SupplyChainTier,
+		"textile_primary_markets":              tenant.TextileProfile.PrimaryMarkets,
+		"textile_default_fiber_types":          tenant.TextileProfile.DefaultFiberTypes,
+		"textile_certifications":               tenant.TextileProfile.Certifications,
+		"textile_compliance_defaults":          tenant.TextileProfile.ComplianceDefaults,
 		// Certificate Document Paths
-		"epr_certificate_path": tenant.EPRCertificatePath,
-		"bis_certificate_path": tenant.BISCertificatePath,
-		"pli_certificate_path": tenant.PLICertificatePath,
+		"epr_certificate_path": tenant.BatteryProfile.EPRCertificatePath,
+		"bis_certificate_path": tenant.BatteryProfile.BISCertificatePath,
+		"pli_certificate_path": tenant.BatteryProfile.PLICertificatePath,
 		// Document Verification Status
-		"epr_status": tenant.EPRStatus,
-		"bis_status": tenant.BISStatus,
-		"pli_status": tenant.PLIStatus,
+		"epr_status": tenant.BatteryProfile.EPRStatus,
+		"bis_status": tenant.BatteryProfile.BISStatus,
+		"pli_status": tenant.BatteryProfile.PLIStatus,
 		// Onboarding Status
 		"onboarding_completed": tenant.OnboardingCompleted,
 		// Role from JWT

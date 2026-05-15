@@ -4,10 +4,10 @@ import { Batch } from '@/lib/types'
 
 // Query keys factory for consistent cache management
 export const queryKeys = {
-    batches: (tenantId: string) => ['batches', tenantId] as const,
+    batches: (tenantId: string, productType?: string) => ['batches', tenantId, productType] as const,
     batch: (id: string) => ['batch', id] as const,
     dashboardStats: (tenantId: string) => ['dashboardStats', tenantId] as const,
-    templates: (tenantId: string) => ['templates', tenantId] as const,
+    templates: (tenantId: string, productType?: string) => ['templates', tenantId, productType] as const,
     analytics: (tenantId: string) => ['analytics', tenantId] as const,
     billingBalance: () => ['billingBalance'] as const,
     billingPackages: () => ['billingPackages'] as const,
@@ -15,11 +15,15 @@ export const queryKeys = {
 }
 
 // Batches hooks
-export function useBatches(tenantId: string | undefined) {
+export function useBatches(tenantId: string | undefined, productType?: string) {
     return useQuery({
-        queryKey: queryKeys.batches(tenantId || ''),
+        queryKey: queryKeys.batches(tenantId || '', productType),
         queryFn: async () => {
-            const response = await api.get(`/batches?tenant_id=${tenantId}`)
+            const params = new URLSearchParams({ tenant_id: tenantId || '' })
+            if (productType) {
+                params.append('product_type', productType)
+            }
+            const response = await api.get(`/batches?${params.toString()}`)
             const batches = (response.data.batches || []) as Batch[]
             return batches.sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -53,11 +57,15 @@ export function useDashboardStats(tenantId: string | undefined) {
 }
 
 // Templates hooks
-export function useTemplates(tenantId: string | undefined) {
+export function useTemplates(tenantId: string | undefined, productType?: string) {
     return useQuery({
-        queryKey: queryKeys.templates(tenantId || ''),
+        queryKey: queryKeys.templates(tenantId || '', productType),
         queryFn: async () => {
-            const response = await api.get(`/templates?tenant_id=${tenantId}`)
+            const params = new URLSearchParams({ tenant_id: tenantId || '' })
+            if (productType) {
+                params.append('product_type', productType)
+            }
+            const response = await api.get(`/templates?${params.toString()}`)
             return response.data.templates || []
         },
         enabled: !!tenantId,

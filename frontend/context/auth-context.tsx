@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "@/lib/api";
 import { authApi } from "@/lib/auth-api";
 import { useRouter } from "next/navigation";
+import { productRoutes } from "@/lib/routes";
+import { clearProductCookies, syncProductCookies } from "@/lib/product-session";
 
 interface User {
   id: string;
@@ -36,8 +38,18 @@ interface User {
   pli_status?: string;
   // Onboarding status from DB
   onboarding_completed?: boolean;
+  // Product type — set after Phase 1 backend lands; defaults to BATTERY
+  product_type?: string;
   // Data Visibility Preferences
   data_visibility?: Record<string, string>;
+  textile_facility_type?: string;
+  textile_supply_chain_tier?: string;
+  textile_primary_markets?: string[];
+  textile_default_fiber_types?: string[];
+  textile_certifications?: string[];
+  textile_compliance_defaults?: {
+    publish_scope?: string;
+  };
 }
 
 interface AuthContextType {
@@ -66,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Cookie may still exist from a previous session while localStorage was cleared.
       // Clear it so the middleware doesn't redirect back to /dashboard in a loop.
       document.cookie = "auth_token=; path=/; max-age=0";
+      clearProductCookies();
       setLoading(false);
       return;
     }
@@ -73,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await api.get("/auth/me");
       setUser(response.data);
+      syncProductCookies(response.data.product_type);
     } catch (error: unknown) {
       console.error("Auth check failed:", error);
       // Only clear tokens on genuine auth failures (401/403).
@@ -84,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (status === 401 || status === 403) {
         localStorage.removeItem("token");
         document.cookie = "auth_token=; path=/; max-age=0";
+        clearProductCookies();
       }
       // For non-auth errors (network timeout, 500, etc.) we
       // leave tokens in place so the user isn't randomly logged out.
@@ -111,22 +126,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // layout will handle the redirect correctly on the next page load.
     }
 
+    syncProductCookies(resolvedUser.product_type || newUser.product_type);
     setUser(resolvedUser);
 
     // Route to onboarding only when no explicit destination is given and the
     // profile is genuinely incomplete; explicit redirectTo always wins.
+    const routes = productRoutes(resolvedUser.product_type);
     const destination = redirectTo
       ? redirectTo
       : resolvedUser.onboarding_completed
-        ? "/dashboard"
-        : "/onboarding";
+        ? routes.dashboard
+        : routes.onboarding;
     router.push(destination);
   };
 
   const logout = async () => {
+    // Capture product type before clearing user so we redirect to the correct login page.
+    const routes = productRoutes(user?.product_type);
     await authApi.logout(); // revokes JTI server-side, clears localStorage + cookie
+    clearProductCookies();
     setUser(null);
-    router.push("/login");
+    router.push(routes.login);
   };
 
   const refreshUser = async () => {

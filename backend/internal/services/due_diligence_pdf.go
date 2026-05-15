@@ -159,8 +159,22 @@ func (d *ddPDF) statusBadge(x, y float64, label string, status string) {
 
 // --- Report generation -------------------------------------------------------
 
-// GenerateDueDiligenceReport creates the full due diligence PDF.
+// GenerateDueDiligenceReport routes to the correct product-specific due diligence renderer.
 func GenerateDueDiligenceReport(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
+	tenant.EnsureBatteryProfile()
+	tenant.EnsureTextileProfile()
+	switch batch.ProductType {
+	case "", models.ProductTypeBattery:
+		return generateBatteryDueDiligenceReport(batch, tenant)
+	case models.ProductTypeTextile:
+		return GenerateTextileDueDiligenceReport(batch, tenant)
+	default:
+		return nil, fmt.Errorf("unsupported product type for due diligence report: %s", batch.ProductType)
+	}
+}
+
+// generateBatteryDueDiligenceReport creates the full battery due diligence PDF.
+func generateBatteryDueDiligenceReport(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
 	d := newDDPDF()
 
 	d.drawHeader(batch, tenant)
@@ -427,10 +441,10 @@ func (d *ddPDF) drawSupplyChain(batch *models.Batch, tenant *models.Tenant) {
 	euRepName := batch.Specs.EURepresentative
 	euRepEmail := batch.Specs.EURepresentativeEmail
 	if euRepName == "" {
-		euRepName = tenant.EUAuthorizedRepresentativeName
+		euRepName = tenant.BatteryProfile.EUAuthorizedRepresentativeName
 	}
 	if euRepEmail == "" {
-		euRepEmail = tenant.EUContactEmail
+		euRepEmail = tenant.BatteryProfile.EUContactEmail
 	}
 
 	if euRepName != "" {
@@ -441,8 +455,8 @@ func (d *ddPDF) drawSupplyChain(batch *models.Batch, tenant *models.Tenant) {
 	if euRepEmail != "" {
 		d.keyValue("Contact Email", euRepEmail)
 	}
-	if tenant.EUAuthorizedRepresentativeAddress != "" {
-		d.keyValue("EU Address", tenant.EUAuthorizedRepresentativeAddress)
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress != "" {
+		d.keyValue("EU Address", tenant.BatteryProfile.EUAuthorizedRepresentativeAddress)
 	}
 
 	// India-specific compliance (if applicable)

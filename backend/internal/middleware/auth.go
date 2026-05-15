@@ -18,6 +18,8 @@ const (
 	EmailKey ContextKey = "email"
 	// RoleKey is the context key for RBAC role
 	RoleKey ContextKey = "role"
+	// ProductTypeKey is the context key for tenant product type
+	ProductTypeKey ContextKey = "product_type"
 )
 
 // Auth middleware for JWT authentication
@@ -69,6 +71,7 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), TenantIDKey, claims.TenantID)
 		ctx = context.WithValue(ctx, EmailKey, claims.Email)
 		ctx = context.WithValue(ctx, RoleKey, claims.Role)
+		ctx = context.WithValue(ctx, ProductTypeKey, string(claims.ProductType))
 
 		// Call next handler with enriched context
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -114,6 +117,14 @@ func GetEmail(ctx context.Context) string {
 func GetRole(ctx context.Context) string {
 	if role, ok := ctx.Value(RoleKey).(string); ok {
 		return role
+	}
+	return ""
+}
+
+// GetProductType extracts the tenant product type from context.
+func GetProductType(ctx context.Context) string {
+	if productType, ok := ctx.Value(ProductTypeKey).(string); ok {
+		return productType
 	}
 	return ""
 }

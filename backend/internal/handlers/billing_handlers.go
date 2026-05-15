@@ -10,7 +10,6 @@ import (
 	"anvayalabs-battery/internal/events"
 	"anvayalabs-battery/internal/middleware"
 	"anvayalabs-battery/internal/models"
-	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -189,12 +188,13 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
-	compliance := services.ValidateActivationCompliance(batch, tenant)
+	compliance := h.batchService.ValidateActivation(batch, tenant)
 	if !compliance.Valid {
 		respondJSON(w, http.StatusForbidden, map[string]interface{}{
 			"error":   "Compliance requirements missing or invalid. Activation blocked.",
 			"missing": compliance.Missing,
 			"errors":  compliance.Errors,
+			"warnings": compliance.Warnings,
 		})
 		return
 	}

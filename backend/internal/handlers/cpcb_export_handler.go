@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
 	"anvayalabs-battery/internal/services"
 
 	"github.com/google/uuid"
@@ -37,7 +38,7 @@ func (h *Handler) ExportCPCBForm3(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, 1000, 0)
+	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, models.ProductTypeBattery, 1000, 0)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to load batches")
 		return

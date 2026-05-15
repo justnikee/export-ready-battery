@@ -19,17 +19,22 @@ import {
 } from "lucide-react";
 import { authApi, type RegisterParams } from "@/lib/auth-api";
 import { toast } from "sonner";
+import { type ProductSlug, productSlugToType } from "@/lib/products";
+import { productRoutesFromSlug } from "@/lib/routes";
 
 type RegisterFormProps = {
   inviteToken?: string;
   prefillEmail?: string;
+  productSlug: ProductSlug;
 };
 
 export function RegisterForm({
   inviteToken = "",
   prefillEmail = "",
+  productSlug,
 }: RegisterFormProps) {
   const router = useRouter();
+  const routes = productRoutesFromSlug(productSlug);
 
   const isInviteFlow = Boolean(inviteToken);
 
@@ -86,6 +91,7 @@ export function RegisterForm({
         email,
         password,
         company_name: companyName,
+        product_type: productSlugToType(productSlug),
         ...(isInviteFlow && { invite_token: inviteToken }),
       };
 
@@ -98,7 +104,7 @@ export function RegisterForm({
 
       if (isInviteFlow) {
         toast.success("Account created! You can now log in.");
-        router.push("/login");
+        router.push(routes.login);
         return;
       }
 
@@ -148,7 +154,10 @@ export function RegisterForm({
       {/* Company Name */}
       {!isInviteFlow && (
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-sm font-medium text-foreground">
+          <Label
+            htmlFor="company"
+            className="text-sm font-medium text-foreground"
+          >
             Company / Manufacturer name
           </Label>
           <div className="relative group">
@@ -191,7 +200,10 @@ export function RegisterForm({
 
       {/* Password */}
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-sm font-medium text-foreground">
+        <Label
+          htmlFor="password"
+          className="text-sm font-medium text-foreground"
+        >
           Password
         </Label>
         <div className="relative group">
@@ -250,7 +262,10 @@ export function RegisterForm({
 
       {/* Confirm Password */}
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+        <Label
+          htmlFor="confirmPassword"
+          className="text-sm font-medium text-foreground"
+        >
           Confirm password
         </Label>
         <div className="relative group">

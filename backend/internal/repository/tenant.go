@@ -12,6 +12,98 @@ import (
 	"anvayalabs-battery/internal/models"
 )
 
+const tenantSelectColumns = `
+	t.id,
+	t.company_name,
+	COALESCE(t.address, ''),
+	COALESCE(t.logo_url, ''),
+	COALESCE(t.support_email, ''),
+	COALESCE(t.website, ''),
+	COALESCE(t.product_type, 'BATTERY'),
+	t.created_at,
+	COALESCE(t.quota_balance, 2),
+	COALESCE(bp.epr_registration_number, ''),
+	COALESCE(bp.bis_r_number, ''),
+	COALESCE(bp.iec_code, ''),
+	COALESCE(bp.eu_authorized_representative_name, ''),
+	COALESCE(bp.eu_authorized_representative_address, ''),
+	COALESCE(bp.eu_contact_email, ''),
+	COALESCE(bp.epr_certificate_path, ''),
+	COALESCE(bp.bis_certificate_path, ''),
+	COALESCE(bp.pli_certificate_path, ''),
+	COALESCE(bp.epr_status, 'NOT_UPLOADED'),
+	COALESCE(bp.bis_status, 'NOT_UPLOADED'),
+	COALESCE(bp.pli_status, 'NOT_UPLOADED'),
+	COALESCE(t.onboarding_completed, FALSE),
+	COALESCE(t.manufacturer_code, ''),
+	COALESCE(bp.morth_manufacturer_code, ''),
+	COALESCE(bp.morth_factory_codes, ''),
+	COALESCE(t.data_visibility, '{}'::jsonb),
+	COALESCE(tp.facility_type, ''),
+	COALESCE(tp.supply_chain_tier, ''),
+	COALESCE(tp.primary_markets, '[]'::jsonb),
+	COALESCE(tp.default_fiber_types, '[]'::jsonb),
+	COALESCE(tp.certifications, '[]'::jsonb),
+	COALESCE(tp.compliance_defaults, '{}'::jsonb)
+`
+
+const tenantProfileJoin = `
+	FROM public.tenants t
+	LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
+	LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
+`
+
+func scanTenant(row pgx.Row, tenant *models.Tenant) error {
+	bp := &models.BatteryTenantProfile{}
+	tp := &models.TextileTenantProfile{}
+
+	err := row.Scan(
+		&tenant.ID,
+		&tenant.CompanyName,
+		&tenant.Address,
+		&tenant.LogoURL,
+		&tenant.SupportEmail,
+		&tenant.Website,
+		&tenant.ProductType,
+		&tenant.CreatedAt,
+		&tenant.QuotaBalance,
+		&bp.EPRRegistrationNumber,
+		&bp.BISRNumber,
+		&bp.IECCode,
+		&bp.EUAuthorizedRepresentativeName,
+		&bp.EUAuthorizedRepresentativeAddress,
+		&bp.EUContactEmail,
+		&bp.EPRCertificatePath,
+		&bp.BISCertificatePath,
+		&bp.PLICertificatePath,
+		&bp.EPRStatus,
+		&bp.BISStatus,
+		&bp.PLIStatus,
+		&tenant.OnboardingCompleted,
+		&tenant.ManufacturerCode,
+		&bp.MorthManufacturerCode,
+		&bp.MorthFactoryCodes,
+		&tenant.DataVisibility,
+		&tp.FacilityType,
+		&tp.SupplyChainTier,
+		&tp.PrimaryMarkets,
+		&tp.DefaultFiberTypes,
+		&tp.Certifications,
+		&tp.ComplianceDefaults,
+	)
+	if err != nil {
+		return err
+	}
+
+	bp.TenantID = tenant.ID
+	tp.TenantID = tenant.ID
+
+	tenant.BatteryProfile = bp
+	tenant.TextileProfile = tp
+
+	return nil
+}
+
 // safeJSONStr encodes a json.RawMessage as a Go string for pgx SimpleProtocol.
 // In SimpleProtocol mode pgx encodes []byte as PostgreSQL bytea (hex: \x...) which
 // PostgreSQL CANNOT cast to JSONB. A Go string is sent as a plain text literal
@@ -23,16 +115,24 @@ func safeJSONStr(v json.RawMessage) string {
 	return string(v)
 }
 
+func safeJSONStrWithDefault(v json.RawMessage, fallback string) string {
+	if len(v) == 0 {
+		return fallback
+	}
+	return string(v)
+}
+
 // CreateTenant creates a new tenant
 func (r *Repository) CreateTenant(ctx context.Context, companyName string) (*models.Tenant, error) {
 	tenant := &models.Tenant{
 		ID:          uuid.New(),
 		CompanyName: companyName,
+		ProductType: models.DefaultProductType(),
 		CreatedAt:   time.Now(),
 	}
 
-	query := `INSERT INTO public.tenants (id, company_name, created_at) VALUES ($1, $2, $3)`
-	_, err := r.db.Pool.Exec(ctx, query, tenant.ID, tenant.CompanyName, tenant.CreatedAt)
+	query := `INSERT INTO public.tenants (id, company_name, product_type, created_at) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Pool.Exec(ctx, query, tenant.ID, tenant.CompanyName, tenant.ProductType, tenant.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tenant: %w", err)
 	}
@@ -43,45 +143,9 @@ func (r *Repository) CreateTenant(ctx context.Context, companyName string) (*mod
 // GetTenant retrieves a tenant by ID
 func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error) {
 	tenant := &models.Tenant{}
-	query := `SELECT id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
-	          COALESCE(quota_balance, 2),
-	          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
-	          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
-	          COALESCE(epr_certificate_path, ''), COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''),
-	          COALESCE(epr_status, 'NOT_UPLOADED'), COALESCE(bis_status, 'NOT_UPLOADED'), COALESCE(pli_status, 'NOT_UPLOADED'),
-	          COALESCE(onboarding_completed, FALSE),
-	          COALESCE(manufacturer_code, ''),
-	          COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''),
-	          COALESCE(data_visibility, '{}'::jsonb)
-	          FROM public.tenants WHERE id = $1`
+	query := fmt.Sprintf(`SELECT %s %s WHERE t.id = $1`, tenantSelectColumns, tenantProfileJoin)
 
-	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
-		&tenant.ID,
-		&tenant.CompanyName,
-		&tenant.Address,
-		&tenant.LogoURL,
-		&tenant.SupportEmail,
-		&tenant.Website,
-		&tenant.CreatedAt,
-		&tenant.QuotaBalance,
-		&tenant.EPRRegistrationNumber,
-		&tenant.BISRNumber,
-		&tenant.IECCode,
-		&tenant.EUAuthorizedRepresentativeName,
-		&tenant.EUAuthorizedRepresentativeAddress,
-		&tenant.EUContactEmail,
-		&tenant.EPRCertificatePath,
-		&tenant.BISCertificatePath,
-		&tenant.PLICertificatePath,
-		&tenant.EPRStatus,
-		&tenant.BISStatus,
-		&tenant.PLIStatus,
-		&tenant.OnboardingCompleted,
-		&tenant.ManufacturerCode,
-		&tenant.MorthManufacturerCode,
-		&tenant.MorthFactoryCodes,
-		&tenant.DataVisibility,
-	)
+	err := scanTenant(r.db.Pool.QueryRow(ctx, query, id), tenant)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("tenant not found")
@@ -98,49 +162,128 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 	// The SQL merges the existing value (COALESCE to false) with the new eligibility check,
 	// so clearing address/support_email in Settings can never un-complete onboarding.
 	newlyComplete := req.Address != "" && req.SupportEmail != ""
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin tenant profile update: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	query := `
-		UPDATE public.tenants 
-		SET company_name = $2, address = $3, logo_url = $4, support_email = $5, website = $6,
-		    epr_registration_number = $7, bis_r_number = $8, iec_code = $9,
-		    eu_authorized_representative_name = $10,
-		    eu_authorized_representative_address = $11,
-		    eu_contact_email = $12,
-		    onboarding_completed = (COALESCE(onboarding_completed, false) OR $13),
-		    morth_manufacturer_code = $14,
-		    morth_factory_codes = $15
-		WHERE id = $1 
-		RETURNING id, company_name, COALESCE(address, ''), COALESCE(logo_url, ''), COALESCE(support_email, ''), COALESCE(website, ''), created_at,
-		          COALESCE(epr_registration_number, ''), COALESCE(bis_r_number, ''), COALESCE(iec_code, ''),
-		          COALESCE(eu_authorized_representative_name, ''), COALESCE(eu_authorized_representative_address, ''), COALESCE(eu_contact_email, ''),
-		          onboarding_completed, COALESCE(morth_manufacturer_code, ''), COALESCE(morth_factory_codes, ''),
-		          COALESCE(data_visibility, '{}'::jsonb)`
+	var productType models.ProductType
+	err = tx.QueryRow(ctx,
+		`SELECT COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE id = $1 FOR UPDATE`,
+		id,
+	).Scan(&productType)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("tenant not found")
+		}
+		return nil, fmt.Errorf("failed to lock tenant for profile update: %w", err)
+	}
 
-	tenant := &models.Tenant{}
-	err := r.db.Pool.QueryRow(ctx, query, id, req.CompanyName, req.Address, req.LogoURL, req.SupportEmail, req.Website,
-		req.EPRRegistrationNumber, req.BISRNumber, req.IECCode,
-		req.EUAuthorizedRepresentativeName, req.EUAuthorizedRepresentativeAddress, req.EUContactEmail,
-		newlyComplete, req.MorthManufacturerCode, req.MorthFactoryCodes).Scan(
-		&tenant.ID,
-		&tenant.CompanyName,
-		&tenant.Address,
-		&tenant.LogoURL,
-		&tenant.SupportEmail,
-		&tenant.Website,
-		&tenant.CreatedAt,
-		&tenant.EPRRegistrationNumber,
-		&tenant.BISRNumber,
-		&tenant.IECCode,
-		&tenant.EUAuthorizedRepresentativeName,
-		&tenant.EUAuthorizedRepresentativeAddress,
-		&tenant.EUContactEmail,
-		&tenant.OnboardingCompleted,
-		&tenant.MorthManufacturerCode,
-		&tenant.MorthFactoryCodes,
-		&tenant.DataVisibility,
+	_, err = tx.Exec(ctx, `
+		UPDATE public.tenants
+		SET company_name = $2,
+		    address = $3,
+		    logo_url = $4,
+		    support_email = $5,
+		    website = $6,
+		    onboarding_completed = (COALESCE(onboarding_completed, false) OR $7),
+		    data_visibility = $8::jsonb
+		WHERE id = $1`,
+		id,
+		req.CompanyName,
+		req.Address,
+		req.LogoURL,
+		req.SupportEmail,
+		req.Website,
+		newlyComplete,
+		safeJSONStr(req.DataVisibility),
 	)
 	if err != nil {
+		return nil, fmt.Errorf("failed to update shared tenant profile: %w", err)
+	}
+
+	if productType == models.ProductTypeBattery {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO public.battery_tenant_profiles (
+				tenant_id,
+				epr_registration_number,
+				bis_r_number,
+				iec_code,
+				eu_authorized_representative_name,
+				eu_authorized_representative_address,
+				eu_contact_email,
+				morth_manufacturer_code,
+				morth_factory_codes,
+				updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				epr_registration_number = EXCLUDED.epr_registration_number,
+				bis_r_number = EXCLUDED.bis_r_number,
+				iec_code = EXCLUDED.iec_code,
+				eu_authorized_representative_name = EXCLUDED.eu_authorized_representative_name,
+				eu_authorized_representative_address = EXCLUDED.eu_authorized_representative_address,
+				eu_contact_email = EXCLUDED.eu_contact_email,
+				morth_manufacturer_code = EXCLUDED.morth_manufacturer_code,
+				morth_factory_codes = EXCLUDED.morth_factory_codes,
+				updated_at = NOW()`,
+			id,
+			req.EPRRegistrationNumber,
+			req.BISRNumber,
+			req.IECCode,
+			req.EUAuthorizedRepresentativeName,
+			req.EUAuthorizedRepresentativeAddress,
+			req.EUContactEmail,
+			req.MorthManufacturerCode,
+			req.MorthFactoryCodes,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update battery tenant profile: %w", err)
+		}
+	} else if productType == models.ProductTypeTextile {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO public.textile_tenant_profiles (
+				tenant_id,
+				facility_type,
+				supply_chain_tier,
+				primary_markets,
+				default_fiber_types,
+				certifications,
+				compliance_defaults,
+				updated_at
+			) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				facility_type = EXCLUDED.facility_type,
+				supply_chain_tier = EXCLUDED.supply_chain_tier,
+				primary_markets = EXCLUDED.primary_markets,
+				default_fiber_types = EXCLUDED.default_fiber_types,
+				certifications = EXCLUDED.certifications,
+				compliance_defaults = EXCLUDED.compliance_defaults,
+				updated_at = NOW()`,
+			id,
+			req.TextileFacilityType,
+			req.TextileSupplyChainTier,
+			safeJSONStrWithDefault(req.TextilePrimaryMarkets, "[]"),
+			safeJSONStrWithDefault(req.TextileDefaultFiberTypes, "[]"),
+			safeJSONStrWithDefault(req.TextileCertifications, "[]"),
+			safeJSONStrWithDefault(req.TextileComplianceDefaults, "{}"),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update textile tenant profile: %w", err)
+		}
+	}
+
+	tenant := &models.Tenant{}
+	err = scanTenant(tx.QueryRow(ctx,
+		fmt.Sprintf(`SELECT %s %s WHERE t.id = $1`, tenantSelectColumns, tenantProfileJoin),
+		id,
+	), tenant)
+	if err != nil {
 		return nil, fmt.Errorf("failed to update tenant profile: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit tenant profile update: %w", err)
 	}
 
 	return tenant, nil
@@ -192,11 +335,29 @@ func (r *Repository) UpdateCertificatePath(ctx context.Context, tenantID uuid.UU
 	var query string
 	switch docType {
 	case "epr":
-		query = `UPDATE public.tenants SET epr_certificate_path = $2, epr_status = 'PENDING' WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, epr_certificate_path, epr_status, updated_at)
+			VALUES ($1, $2, 'PENDING', NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				epr_certificate_path = EXCLUDED.epr_certificate_path,
+				epr_status = 'PENDING',
+				updated_at = NOW()`
 	case "bis":
-		query = `UPDATE public.tenants SET bis_certificate_path = $2, bis_status = 'PENDING' WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, bis_certificate_path, bis_status, updated_at)
+			VALUES ($1, $2, 'PENDING', NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				bis_certificate_path = EXCLUDED.bis_certificate_path,
+				bis_status = 'PENDING',
+				updated_at = NOW()`
 	case "pli":
-		query = `UPDATE public.tenants SET pli_certificate_path = $2, pli_status = 'PENDING' WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, pli_certificate_path, pli_status, updated_at)
+			VALUES ($1, $2, 'PENDING', NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				pli_certificate_path = EXCLUDED.pli_certificate_path,
+				pli_status = 'PENDING',
+				updated_at = NOW()`
 	default:
 		return fmt.Errorf("invalid document type: %s", docType)
 	}
@@ -219,11 +380,26 @@ func (r *Repository) UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUI
 	var query string
 	switch docType {
 	case "epr":
-		query = `UPDATE public.tenants SET epr_status = $2 WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, epr_status, updated_at)
+			VALUES ($1, $2, NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				epr_status = EXCLUDED.epr_status,
+				updated_at = NOW()`
 	case "bis":
-		query = `UPDATE public.tenants SET bis_status = $2 WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, bis_status, updated_at)
+			VALUES ($1, $2, NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				bis_status = EXCLUDED.bis_status,
+				updated_at = NOW()`
 	case "pli":
-		query = `UPDATE public.tenants SET pli_status = $2 WHERE id = $1`
+		query = `
+			INSERT INTO public.battery_tenant_profiles (tenant_id, pli_status, updated_at)
+			VALUES ($1, $2, NOW())
+			ON CONFLICT (tenant_id) DO UPDATE SET
+				pli_status = EXCLUDED.pli_status,
+				updated_at = NOW()`
 	default:
 		return fmt.Errorf("invalid document type: %s", docType)
 	}

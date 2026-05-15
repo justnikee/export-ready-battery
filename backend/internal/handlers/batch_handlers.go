@@ -107,8 +107,9 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// India Mode: Validate cell_source if provided
-	if req.MarketRegion == models.MarketRegionIndia {
+	// India Mode + Battery: PLI/DVA/HSN/customs logic is battery-specific.
+	// Textile and other products skip this block entirely.
+	if req.MarketRegion == models.MarketRegionIndia && req.ProductType == models.ProductTypeBattery {
 		if req.CellSource != "" && req.CellSource != "IMPORTED" && req.CellSource != "DOMESTIC" {
 			respondError(w, http.StatusBadRequest, "cell_source must be IMPORTED or DOMESTIC")
 			return
@@ -230,16 +231,16 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate IEC Code format if provided (India: 10 digits)
-	if tenant.IECCode != "" {
-		iecResult := h.validationService.ValidateIECCode(tenant.IECCode)
+	if tenant.BatteryProfile.IECCode != "" {
+		iecResult := h.validationService.ValidateIECCode(tenant.BatteryProfile.IECCode)
 		if !iecResult.Valid {
-			slog.Warn("Invalid IEC Code format", "company", tenant.CompanyName, "iec_code", tenant.IECCode, "message", iecResult.Message)
+			slog.Warn("Invalid IEC Code format", "company", tenant.CompanyName, "iec_code", tenant.BatteryProfile.IECCode, "message", iecResult.Message)
 		}
 	}
 
 	// For IMPORTED cells, ensure tenant has valid IEC
 	if req.MarketRegion == models.MarketRegionIndia && req.CellSource == "IMPORTED" {
-		if tenant.IECCode == "" {
+		if tenant.BatteryProfile.IECCode == "" {
 			respondError(w, http.StatusBadRequest, "IEC Code is required in Organization Settings for importing battery cells")
 			return
 		}
@@ -296,6 +297,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		TenantID:               req.TenantID,
 		BatchName:              req.BatchName,
 		ModelName:              req.ModelName,
+		ProductType:            req.ProductType,
 		Specs:                  req.Specs,
 		MarketRegion:           req.MarketRegion,
 		PLICompliant:           req.PLICompliant,
@@ -349,13 +351,23 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	offset := (page - 1) * limit
+	productTypeQuery := r.URL.Query().Get("product_type")
+	var filterProductType models.ProductType
+	if productTypeQuery != "" {
+		filterProductType = models.ProductType(productTypeQuery)
+		if !filterProductType.IsValid() {
+			respondError(w, http.StatusBadRequest, "Invalid product_type query parameter")
+			return
+		}
+	}
 
-	batches, totalCount, err := h.repo.ListBatches(r.Context(), tenantID, limit, offset)
+	batches, totalCount, err := h.repo.ListBatches(r.Context(), tenantID, filterProductType, limit, offset)
 	if err != nil {
 		slog.Error("Failed to list batches", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list batches")
 		return
 	}
+	// Server-side filtering now handled by repository query
 
 	totalPages := (totalCount + limit - 1) / limit
 
@@ -711,8 +723,8 @@ func (h *Handler) DownloadComplianceDeclaration(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Carbon footprint data is required for this declaration
-	if len(batch.CarbonFootprintResult) == 0 {
+	// Battery declarations remain carbon-footprint based; textile declarations do not.
+	if batch.ProductType == models.ProductTypeBattery && len(batch.CarbonFootprintResult) == 0 {
 		respondError(w, http.StatusBadRequest, "No carbon footprint data available. Run the carbon calculator first.")
 		return
 	}

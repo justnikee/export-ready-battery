@@ -156,6 +156,9 @@ export interface BatchSpec {
   weight: string;
   carbon_footprint: string;
   country_of_origin: string;
+  material_profile?: string;
+  lot_size?: string;
+  production_stage?: string;
   cell_source?: "IMPORTED" | "DOMESTIC";
   domestic_value_add?: number;
   hsn_code?: string;

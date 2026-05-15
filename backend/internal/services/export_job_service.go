@@ -462,38 +462,14 @@ func (s *ExportJobService) generateCSV(passports []*models.Passport) ([]byte, st
 // It queries the full batch (with specs, carbon result, and market region) since
 // getBatchData only loads the lightweight fields needed by other export types.
 func (s *ExportJobService) generateDueDiligence(ctx context.Context, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
-	// Re-query the full batch with all specs needed for the DD report
-	fullBatchQuery := `
-		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
-		       b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
-		       b.carbon_footprint_result
-		FROM batches b
-		WHERE b.id = $1`
-	fullBatch := &models.Batch{}
-	err := s.db.QueryRow(ctx, fullBatchQuery, batch.ID).Scan(
-		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
-		&fullBatch.Status, &fullBatch.CreatedAt,
-		&fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
-		&fullBatch.CarbonFootprintResult,
-	)
+	fullBatch, err := s.loadFullBatchForDocument(ctx, batch.ID)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load full batch for DD report: %w", err)
+		return nil, "", err
 	}
 
-	// Re-query tenant with EU representative fields
-	fullTenantQuery := `
-		SELECT id, company_name, address, logo_url, support_email, website,
-		       eu_authorized_representative_name, eu_authorized_representative_address, eu_contact_email
-		FROM tenants WHERE id = $1`
-	fullTenant := &models.Tenant{}
-	err = s.db.QueryRow(ctx, fullTenantQuery, tenant.ID).Scan(
-		&fullTenant.ID, &fullTenant.CompanyName, &fullTenant.Address,
-		&fullTenant.LogoURL, &fullTenant.SupportEmail, &fullTenant.Website,
-		&fullTenant.EUAuthorizedRepresentativeName, &fullTenant.EUAuthorizedRepresentativeAddress,
-		&fullTenant.EUContactEmail,
-	)
+	fullTenant, err := s.loadTenantForDocument(ctx, tenant.ID)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load full tenant for DD report: %w", err)
+		return nil, "", err
 	}
 
 	data, err := GenerateDueDiligenceReport(fullBatch, fullTenant)
@@ -506,38 +482,14 @@ func (s *ExportJobService) generateDueDiligence(ctx context.Context, batch *mode
 // generateComplianceDeclaration generates the EU Article 7 carbon footprint declaration PDF.
 // Re-queries batch to get full carbon_footprint_result and specs.
 func (s *ExportJobService) generateComplianceDeclaration(ctx context.Context, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
-	// Re-query the full batch with carbon footprint result
-	fullBatchQuery := `
-		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
-		       b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
-		       b.carbon_footprint_result
-		FROM batches b
-		WHERE b.id = $1`
-	fullBatch := &models.Batch{}
-	err := s.db.QueryRow(ctx, fullBatchQuery, batch.ID).Scan(
-		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
-		&fullBatch.Status, &fullBatch.CreatedAt,
-		&fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
-		&fullBatch.CarbonFootprintResult,
-	)
+	fullBatch, err := s.loadFullBatchForDocument(ctx, batch.ID)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load full batch for compliance declaration: %w", err)
+		return nil, "", err
 	}
 
-	// Re-query tenant with EU representative fields
-	fullTenantQuery := `
-		SELECT id, company_name, address, logo_url, support_email, website,
-		       eu_authorized_representative_name, eu_authorized_representative_address, eu_contact_email
-		FROM tenants WHERE id = $1`
-	fullTenant := &models.Tenant{}
-	err = s.db.QueryRow(ctx, fullTenantQuery, tenant.ID).Scan(
-		&fullTenant.ID, &fullTenant.CompanyName, &fullTenant.Address,
-		&fullTenant.LogoURL, &fullTenant.SupportEmail, &fullTenant.Website,
-		&fullTenant.EUAuthorizedRepresentativeName, &fullTenant.EUAuthorizedRepresentativeAddress,
-		&fullTenant.EUContactEmail,
-	)
+	fullTenant, err := s.loadTenantForDocument(ctx, tenant.ID)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load full tenant for compliance declaration: %w", err)
+		return nil, "", err
 	}
 
 	data, err := GenerateComplianceDeclaration(fullBatch, fullTenant)
@@ -545,6 +497,56 @@ func (s *ExportJobService) generateComplianceDeclaration(ctx context.Context, ba
 		return nil, "", err
 	}
 	return data, "application/pdf", nil
+}
+
+func (s *ExportJobService) loadFullBatchForDocument(ctx context.Context, batchID uuid.UUID) (*models.Batch, error) {
+	fullBatchQuery := `
+		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
+		       b.product_type, b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
+		       b.carbon_footprint_result
+		FROM batches b
+		WHERE b.id = $1`
+	fullBatch := &models.Batch{}
+	err := s.db.QueryRow(ctx, fullBatchQuery, batchID).Scan(
+		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
+		&fullBatch.Status, &fullBatch.CreatedAt,
+		&fullBatch.ProductType, &fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
+		&fullBatch.CarbonFootprintResult,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load full batch for document generation: %w", err)
+	}
+	return fullBatch, nil
+}
+
+func (s *ExportJobService) loadTenantForDocument(ctx context.Context, tenantID uuid.UUID) (*models.Tenant, error) {
+	fullTenantQuery := `
+		SELECT t.id, t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''),
+		       COALESCE(t.support_email, ''), COALESCE(t.website, ''),
+		       COALESCE(bp.eu_authorized_representative_name, ''),
+		       COALESCE(bp.eu_authorized_representative_address, ''),
+		       COALESCE(bp.eu_contact_email, ''),
+		       COALESCE(tp.facility_type, ''),
+		       COALESCE(tp.supply_chain_tier, ''),
+		       COALESCE(tp.certifications, '[]'::jsonb),
+		       COALESCE(tp.compliance_defaults, '{}'::jsonb)
+		FROM tenants t
+		LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
+		LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
+		WHERE t.id = $1`
+	fullTenant := &models.Tenant{}
+	err := s.db.QueryRow(ctx, fullTenantQuery, tenantID).Scan(
+		&fullTenant.ID, &fullTenant.CompanyName, &fullTenant.Address,
+		&fullTenant.LogoURL, &fullTenant.SupportEmail, &fullTenant.Website,
+		&fullTenant.BatteryProfile.EUAuthorizedRepresentativeName, &fullTenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
+		&fullTenant.BatteryProfile.EUContactEmail, &fullTenant.TextileProfile.FacilityType,
+		&fullTenant.TextileProfile.SupplyChainTier, &fullTenant.TextileProfile.Certifications,
+		&fullTenant.TextileProfile.ComplianceDefaults,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load full tenant for document generation: %w", err)
+	}
+	return fullTenant, nil
 }
 
 // getUserEmail retrieves user email for notifications

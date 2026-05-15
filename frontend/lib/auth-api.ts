@@ -1,10 +1,12 @@
 import api from "./api";
+import { clearProductCookies } from "@/lib/product-session";
 
 export interface AuthResponse {
   token: string;
   tenant_id: string;
   email: string;
   company_name: string;
+  product_type?: string;
   expires_in: number;
   error?: string;
 }
@@ -19,6 +21,7 @@ export interface RegisterParams {
   email: string;
   password: string;
   company_name: string;
+  product_type?: string;
   invite_token?: string;
 }
 
@@ -121,6 +124,7 @@ export const authApi = {
     } finally {
       localStorage.removeItem("token");
       document.cookie = "auth_token=; path=/; max-age=0";
+      clearProductCookies();
       // The HttpOnly refresh_token cookie is cleared by the backend Set-Cookie header
     }
   },

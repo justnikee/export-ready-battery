@@ -12,6 +12,8 @@ type BatchSnapshot struct {
 	BatchID                string              `json:"batch_id"`
 	BatchName              string              `json:"batch_name"`
 	ModelName              string              `json:"model_name,omitempty"`
+	ProductType            models.ProductType  `json:"product_type"`
+	TemplateVariant        string              `json:"template_variant,omitempty"`
 	MarketRegion           models.MarketRegion `json:"market_region"`
 	Specs                  models.BatchSpec    `json:"specs"`
 	ManufacturingStartDate *time.Time          `json:"manufacturing_start_date,omitempty"`
@@ -45,6 +47,8 @@ type TenantSnapshot struct {
 	TenantID                          string `json:"tenant_id"`
 	CompanyName                       string `json:"company_name"`
 	Address                           string `json:"address,omitempty"`
+	TextileFacilityType               string `json:"textile_facility_type,omitempty"`
+	TextileSupplyChainTier            string `json:"textile_supply_chain_tier,omitempty"`
 	EPRRegistrationNumber             string `json:"epr_registration_number,omitempty"`
 	BISRNumber                        string `json:"bis_r_number,omitempty"`
 	IECCode                           string `json:"iec_code,omitempty"`
@@ -57,10 +61,14 @@ type TenantSnapshot struct {
 
 // BuildBatchSnapshot builds a JSON snapshot for embedding in passports.
 func BuildBatchSnapshot(batch *models.Batch, tenant *models.Tenant) (json.RawMessage, error) {
+	tenant.EnsureBatteryProfile()
+	tenant.EnsureTextileProfile()
 	snapshot := BatchSnapshot{
 		BatchID:                batch.ID.String(),
 		BatchName:              batch.BatchName,
 		ModelName:              batch.ModelName,
+		ProductType:            batch.ProductType,
+		TemplateVariant:        models.ResolvePassportTemplateVariant(batch.ProductType, batch.MarketRegion),
 		MarketRegion:           batch.MarketRegion,
 		Specs:                  batch.Specs,
 		ManufacturingStartDate: batch.ManufacturingStartDate,
@@ -83,14 +91,16 @@ func BuildBatchSnapshot(batch *models.Batch, tenant *models.Tenant) (json.RawMes
 			TenantID:                          tenant.ID.String(),
 			CompanyName:                       tenant.CompanyName,
 			Address:                           tenant.Address,
-			EPRRegistrationNumber:             tenant.EPRRegistrationNumber,
-			BISRNumber:                        tenant.BISRNumber,
-			IECCode:                           tenant.IECCode,
-			EUAuthorizedRepresentativeName:    tenant.EUAuthorizedRepresentativeName,
-			EUAuthorizedRepresentativeAddress: tenant.EUAuthorizedRepresentativeAddress,
-			EUContactEmail:                    tenant.EUContactEmail,
-			MorthManufacturerCode:             tenant.MorthManufacturerCode,
-			MorthFactoryCodes:                 tenant.MorthFactoryCodes,
+			TextileFacilityType:               tenant.TextileProfile.FacilityType,
+			TextileSupplyChainTier:            tenant.TextileProfile.SupplyChainTier,
+			EPRRegistrationNumber:             tenant.BatteryProfile.EPRRegistrationNumber,
+			BISRNumber:                        tenant.BatteryProfile.BISRNumber,
+			IECCode:                           tenant.BatteryProfile.IECCode,
+			EUAuthorizedRepresentativeName:    tenant.BatteryProfile.EUAuthorizedRepresentativeName,
+			EUAuthorizedRepresentativeAddress: tenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
+			EUContactEmail:                    tenant.BatteryProfile.EUContactEmail,
+			MorthManufacturerCode:             tenant.BatteryProfile.MorthManufacturerCode,
+			MorthFactoryCodes:                 tenant.BatteryProfile.MorthFactoryCodes,
 		},
 		SnapshotAt: time.Now(),
 	}

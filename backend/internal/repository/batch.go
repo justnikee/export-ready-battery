@@ -279,7 +279,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 }
 
 // ListBatches retrieves batches for a tenant with dual-mode fields and pagination
-func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.Batch, int, error) {
+func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) {
 	// Default limit if not specified
 	if limit <= 0 {
 		limit = 50
@@ -290,7 +290,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 
 	// Get total count first
 	var totalCount int
-	countQuery := `SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND deleted_at IS NULL`
+	countQuery := `SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)`
 	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
@@ -319,7 +319,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	          COUNT(p.uuid)::int as total_passports
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
-	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND ($4 = '' OR b.product_type = $4)
 	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status, 
 	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
@@ -329,7 +329,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, limit,
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset, productType)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list batches: %w", err)
 	}

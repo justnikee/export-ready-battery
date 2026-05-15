@@ -95,7 +95,7 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 }
 
 // GetDashboardStats retrieves statistics for the dashboard
-func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) (*models.DashboardStats, error) {
+func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
 	stats := &models.DashboardStats{
 		QuotaLimit: 5000, // Hardcoded for MVP
 	}
@@ -104,8 +104,8 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) 
 	err := r.db.Pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1
-	`, tenantID).Scan(&stats.TotalPassports)
+		WHERE b.tenant_id = $1 AND ($2 = '' OR b.product_type = $2)
+	`, tenantID, productType).Scan(&stats.TotalPassports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count passports: %w", err)
 	}
@@ -114,8 +114,8 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) 
 
 	// Total batches
 	err = r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1
-	`, tenantID).Scan(&stats.TotalBatches)
+		SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2)
+	`, tenantID, productType).Scan(&stats.TotalBatches)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count batches: %w", err)
 	}
@@ -124,8 +124,8 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) 
 	var withCarbon int
 	err = r.db.Pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM public.batches 
-		WHERE tenant_id = $1 AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
-	`, tenantID).Scan(&withCarbon)
+		WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2) AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
+	`, tenantID, productType).Scan(&withCarbon)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count carbon compliant batches: %w", err)
 	}
@@ -138,8 +138,8 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID) 
 	err = r.db.Pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1 AND b.created_at >= NOW() - INTERVAL '7 days'
-	`, tenantID).Scan(&stats.PassportsThisWeek)
+		WHERE b.tenant_id = $1 AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
+	`, tenantID, productType).Scan(&stats.PassportsThisWeek)
 	if err != nil {
 		// Non-critical, default to 0
 		stats.PassportsThisWeek = 0

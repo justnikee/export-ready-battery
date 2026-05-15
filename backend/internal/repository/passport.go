@@ -256,25 +256,29 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       p.state_of_health, p.last_soh_update_timestamp,
 		       p.ownership_history, p.repair_events, p.replacement_events,
 		       p.recycling_status, p.recycler_epr_id, p.recycling_date, p.owner_id,
-		       b.batch_name, COALESCE(b.model_name, ''), b.specs, b.market_region,
+		       b.batch_name, COALESCE(b.model_name, ''), COALESCE(b.product_type, 'BATTERY'), b.specs, b.market_region,
        b.manufacturing_start_date, b.manufacturing_end_date,
        COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
        b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''), COALESCE(b.dva_source, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
-		       COALESCE(t.epr_registration_number, ''), COALESCE(t.bis_r_number, ''),
-		       COALESCE(t.epr_certificate_path, ''), COALESCE(t.bis_certificate_path, ''), COALESCE(t.pli_certificate_path, ''),
-		       COALESCE(t.eu_authorized_representative_name, ''), COALESCE(t.eu_authorized_representative_address, ''), COALESCE(t.eu_contact_email, ''),
+		       COALESCE(bp.epr_registration_number, ''), COALESCE(bp.bis_r_number, ''),
+		       COALESCE(bp.epr_certificate_path, ''), COALESCE(bp.bis_certificate_path, ''), COALESCE(bp.pli_certificate_path, ''),
+		       COALESCE(bp.eu_authorized_representative_name, ''), COALESCE(bp.eu_authorized_representative_address, ''), COALESCE(bp.eu_contact_email, ''),
+		       COALESCE(tp.facility_type, ''), COALESCE(tp.supply_chain_tier, ''),
 		       t.id,
 		       b.carbon_footprint_result
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
+		LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
+		LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
 		WHERE p.uuid = $1
 	`
 
 	passport := &models.Passport{}
 	var batchName string
 	var modelName string
+	var productType models.ProductType
 	var specsJSON []byte
 	var marketRegion models.MarketRegion
 	var manufacturingStartDate, manufacturingEndDate *time.Time
@@ -320,6 +324,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&ownerID,
 		&batchName,
 		&modelName,
+		&productType,
 		&specsJSON,
 		&marketRegion,
 		&manufacturingStartDate,
@@ -337,14 +342,16 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&tenant.LogoURL,
 		&tenant.SupportEmail,
 		&tenant.Website,
-		&tenant.EPRRegistrationNumber,
-		&tenant.BISRNumber,
-		&tenant.EPRCertificatePath,
-		&tenant.BISCertificatePath,
-		&tenant.PLICertificatePath,
-		&tenant.EUAuthorizedRepresentativeName,
-		&tenant.EUAuthorizedRepresentativeAddress,
-		&tenant.EUContactEmail,
+		&tenant.BatteryProfile.EPRRegistrationNumber,
+		&tenant.BatteryProfile.BISRNumber,
+		&tenant.BatteryProfile.EPRCertificatePath,
+		&tenant.BatteryProfile.BISCertificatePath,
+		&tenant.BatteryProfile.PLICertificatePath,
+		&tenant.BatteryProfile.EUAuthorizedRepresentativeName,
+		&tenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
+		&tenant.BatteryProfile.EUContactEmail,
+		&tenant.TextileProfile.FacilityType,
+		&tenant.TextileProfile.SupplyChainTier,
 		&tenant.ID,
 		&carbonFootprintResultJSON,
 	)
@@ -408,6 +415,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		Passport:               passport,
 		BatchName:              batchName,
 		ModelName:              modelName,
+		ProductType:            productType,
 		Specs:                  specs,
 		MarketRegion:           marketRegion,
 		Tenant:                 tenant,
@@ -932,7 +940,7 @@ type PassportListItem struct {
 
 // ListPassportsByTenant returns a tenant-scoped paginated list of passports
 // with optional status/search/batchID filters. Used by the lifecycle dashboard view.
-func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*PassportListItem, int, error) {
+func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*PassportListItem, int, error) {
 	countQuery := `
 		SELECT COUNT(*)
 		FROM public.passports p
@@ -940,10 +948,11 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		WHERE b.tenant_id = $1
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
-		  AND ($4 = '' OR b.id::text = $4)`
+		  AND ($4 = '' OR b.id::text = $4) AND ($5 = '' OR b.product_type = $5)
+		  AND ($5 = '' OR b.product_type = $5)`
 
 	var total int
-	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, status, search, batchID).Scan(&total); err != nil {
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, status, search, batchID, productType).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("failed to count passports: %w", err)
 	}
 
@@ -959,9 +968,9 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR b.id::text = $4)
 		ORDER BY updated_at DESC
-		LIMIT $5 OFFSET $6`
+		LIMIT $6 OFFSET $7`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID, status, search, batchID, limit, offset)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, status, search, batchID, productType, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list passports: %w", err)
 	}

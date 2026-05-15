@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import { usePathname } from "next/navigation";
 import {
   X,
@@ -24,14 +23,15 @@ import {
   Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+import { dashboardPathFromPathname } from "@/lib/routes";
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import NProgress from "nprogress";
 
 interface NavItem {
   name: string;
-  href: string;
+  href?: string;
+  dashboardSubpath?: string;
   icon: React.ElementType;
 }
 
@@ -41,53 +41,61 @@ interface NavGroup {
   collapsible?: boolean;
 }
 
-const navGroups: NavGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      { name: "Dashboard", href: "/dashboard", icon: Home },
-      { name: "Analytics", href: "/dashboard/analytics", icon: TrendingUp },
-    ],
-  },
-  {
-    label: "Production",
-    items: [
-      { name: "Batches", href: "/dashboard/batches", icon: Box },
-      { name: "Lifecycle", href: "/dashboard/lifecycle", icon: Activity },
-      { name: "Templates", href: "/dashboard/templates", icon: LayoutTemplate },
-    ],
-  },
-  {
-    label: "Compliance",
-    items: [
-      { name: "Compliance", href: "/dashboard/compliance", icon: Shield },
-      { name: "Exports", href: "/dashboard/exports", icon: FileDown },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { name: "Team", href: "/dashboard/team", icon: Users },
-      { name: "Partners", href: "/dashboard/partners", icon: Building2 },
-      { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-      { name: "Settings", href: "/dashboard/settings", icon: Settings },
-    ],
-  },
-  {
-    label: "Developer",
-    collapsible: true,
-    items: [
-      { name: "API Keys", href: "/dashboard/developer", icon: Key },
-      { name: "Docs", href: "/docs", icon: BookOpen },
-    ],
-  },
-];
-
 interface DashboardSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  productType?: string;
+}
+
+function getNavGroups(productType?: string): NavGroup[] {
+  const isTextile = productType === "TEXTILE";
+  return [
+    {
+      label: "Overview",
+      items: [
+        { name: "Dashboard", icon: Home },
+        { name: "Analytics", dashboardSubpath: "analytics", icon: TrendingUp },
+      ],
+    },
+    {
+      label: "Production",
+      items: [
+        { name: isTextile ? "Lots" : "Batches", dashboardSubpath: "batches", icon: Box },
+        { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },
+        {
+          name: "Templates",
+          dashboardSubpath: "templates",
+          icon: LayoutTemplate,
+        },
+      ],
+    },
+    {
+      label: "Compliance",
+      items: [
+        { name: "Compliance", dashboardSubpath: "compliance", icon: Shield },
+        { name: "Exports", dashboardSubpath: "exports", icon: FileDown },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { name: "Team", dashboardSubpath: "team", icon: Users },
+        { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
+        { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
+        { name: "Settings", dashboardSubpath: "settings", icon: Settings },
+      ],
+    },
+    {
+      label: "Developer",
+      collapsible: true,
+      items: [
+        { name: "API Keys", dashboardSubpath: "developer", icon: Key },
+        { name: "Docs", href: "/docs", icon: BookOpen },
+      ],
+    },
+  ];
 }
 
 export function DashboardSidebar({
@@ -95,7 +103,9 @@ export function DashboardSidebar({
   onClose,
   isCollapsed,
   onToggleCollapse,
+  productType,
 }: DashboardSidebarProps) {
+  const navGroups = getNavGroups(productType);
   const pathname = usePathname();
   const [devExpanded, setDevExpanded] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -108,13 +118,12 @@ export function DashboardSidebar({
   }, [devExpanded]);
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === href;
-    return pathname === href || pathname.startsWith(href);
+    if (href === dashboardPathFromPathname(pathname)) return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
@@ -122,19 +131,15 @@ export function DashboardSidebar({
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={clsx(
           "fixed left-0 top-0 z-50 h-full bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
-          // Mobile: slide in/out
           "md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
-          // Width based on collapsed state
           isCollapsed ? "md:w-16" : "md:w-60",
-          "w-72", // Mobile always full width
+          "w-72",
         )}
       >
-        {/* Header */}
         <div
           className={clsx(
             "flex items-center border-b border-sidebar-border h-14 px-4",
@@ -142,7 +147,7 @@ export function DashboardSidebar({
           )}
         >
           <Link
-            href="/dashboard"
+            href={dashboardPathFromPathname(pathname)}
             className="flex items-center gap-2"
             onClick={onClose}
           >
@@ -156,7 +161,6 @@ export function DashboardSidebar({
             </span>
           </Link>
 
-          {/* Mobile Close */}
           <Button
             variant="ghost"
             size="icon"
@@ -166,7 +170,6 @@ export function DashboardSidebar({
             <X className="h-5 w-5 text-muted-foreground" />
           </Button>
 
-          {/* Desktop Collapse Toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -185,7 +188,6 @@ export function DashboardSidebar({
           </Button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 px-3">
           {navGroups.map((group, groupIndex) => {
             const isDevGroup = group.collapsible;
@@ -193,7 +195,6 @@ export function DashboardSidebar({
 
             return (
               <div key={group.label} className={clsx(groupIndex > 0 && "mt-6")}>
-                {/* Group Label */}
                 {isDevGroup ? (
                   <button
                     onClick={() => setDevExpanded((prev: boolean) => !prev)}
@@ -220,17 +221,22 @@ export function DashboardSidebar({
                   </div>
                 )}
 
-                {/* Group Items */}
                 {isGroupExpanded && (
                   <div className="space-y-1">
                     {group.items.map((item) => {
+                      const href = item.href
+                        ? item.href
+                        : dashboardPathFromPathname(
+                            pathname,
+                            item.dashboardSubpath,
+                          );
                       const Icon = item.icon;
-                      const active = isActive(item.href);
+                      const active = isActive(href);
 
                       return (
                         <Link
-                          key={item.href}
-                          href={item.href}
+                          key={item.name}
+                          href={href}
                           onClick={() => {
                             if (!active) NProgress.start();
                             onClose();
@@ -269,7 +275,6 @@ export function DashboardSidebar({
   );
 }
 
-// Hook to manage sidebar state
 export function useSidebarState() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {

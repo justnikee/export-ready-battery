@@ -80,6 +80,7 @@ func (c BatteryCategory) IsValid() bool {
 // TENANT
 // ============================================================================
 
+
 // Tenant represents a company using the platform
 type Tenant struct {
 	ID           uuid.UUID `json:"id"`
@@ -88,6 +89,7 @@ type Tenant struct {
 	LogoURL      string    `json:"logo_url,omitempty"`
 	SupportEmail string    `json:"support_email,omitempty"`
 	Website      string    `json:"website,omitempty"`
+	ProductType  ProductType `json:"product_type"`
 	CreatedAt    time.Time `json:"created_at"`
 
 	// EU Authorized Representative (EU Battery Regulation)
@@ -128,6 +130,18 @@ type Tenant struct {
 	// Field Visibility Config stored as JSONB.
 	// Must be json.RawMessage ([]byte) — pgx SimpleProtocol cannot encode map types into JSONB.
 	DataVisibility json.RawMessage `json:"data_visibility,omitempty"`
+
+	// Product-specific profiles (populated from battery_tenant_profiles / textile_tenant_profiles).
+	BatteryProfile *BatteryTenantProfile  `json:"battery_profile,omitempty"`
+	TextileProfile *TextileTenantProfile  `json:"textile_profile,omitempty"`
+
+	// Textile-specific profile fields.
+	TextileFacilityType       string          `json:"textile_facility_type,omitempty"`
+	TextileSupplyChainTier    string          `json:"textile_supply_chain_tier,omitempty"`
+	TextilePrimaryMarkets     json.RawMessage `json:"textile_primary_markets,omitempty"`
+	TextileDefaultFiberTypes  json.RawMessage `json:"textile_default_fiber_types,omitempty"`
+	TextileCertifications     json.RawMessage `json:"textile_certifications,omitempty"`
+	TextileComplianceDefaults json.RawMessage `json:"textile_compliance_defaults,omitempty"`
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile
@@ -153,6 +167,14 @@ type UpdateProfileRequest struct {
 	// Field Visibility Config stored as JSONB.
 	// Must be json.RawMessage ([]byte) — pgx SimpleProtocol cannot encode map types into JSONB.
 	DataVisibility json.RawMessage `json:"data_visibility"`
+
+	// Textile-specific profile fields.
+	TextileFacilityType       string          `json:"textile_facility_type"`
+	TextileSupplyChainTier    string          `json:"textile_supply_chain_tier"`
+	TextilePrimaryMarkets     json.RawMessage `json:"textile_primary_markets"`
+	TextileDefaultFiberTypes  json.RawMessage `json:"textile_default_fiber_types"`
+	TextileCertifications     json.RawMessage `json:"textile_certifications"`
+	TextileComplianceDefaults json.RawMessage `json:"textile_compliance_defaults"`
 }
 
 // ============================================================================
@@ -164,6 +186,7 @@ type Template struct {
 	ID           uuid.UUID    `json:"id"`
 	TenantID     uuid.UUID    `json:"tenant_id"`
 	Name         string       `json:"name"`
+	ProductType  ProductType  `json:"product_type"`
 	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
 	Specs        BatchSpec    `json:"specs"`
 	CreatedAt    time.Time    `json:"created_at"`
@@ -173,6 +196,7 @@ type Template struct {
 type CreateTemplateRequest struct {
 	TenantID     uuid.UUID    `json:"tenant_id"`
 	Name         string       `json:"name"`
+	ProductType  ProductType  `json:"product_type"`
 	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
 	Specs        BatchSpec    `json:"specs"`
 }
@@ -236,6 +260,9 @@ type BatchSpec struct {
 	Weight          string `json:"weight"`           // String for flexibility (e.g., "500g")
 	CarbonFootprint string `json:"carbon_footprint"` // e.g., "10 kg CO2e"
 	CountryOfOrigin string `json:"country_of_origin"`
+	MaterialProfile string `json:"material_profile,omitempty"`
+	LotSize         string `json:"lot_size,omitempty"`
+	ProductionStage string `json:"production_stage,omitempty"`
 
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
@@ -413,6 +440,16 @@ const (
 	PassportStatusRecalled  = "RECALLED"    // Safety/compliance interruption
 	PassportStatusRecycled  = "RECYCLED"    // Processed by authorized recycler
 	PassportStatusEndOfLife = "END_OF_LIFE" // Final state
+)
+
+// TextilePassportStatus constants — textile-specific supply-chain lifecycle states
+const (
+	TextileStatusRawMaterial  = "RAW_MATERIAL"  // Fiber/fabric produced at Tier 3/4
+	TextileStatusInProduction = "IN_PRODUCTION" // Dyeing, cutting, sewing
+	TextileStatusFinished     = "FINISHED"      // Finished goods at factory
+	TextileStatusShipped      = "SHIPPED"       // In transit to brand/retailer
+	TextileStatusInUse        = "IN_USE"        // At retail or in consumer use
+	TextileStatusRecycled     = "RECYCLED"      // Processed by authorized recycler
 )
 
 // ActorType defines who performed a lifecycle action
@@ -846,6 +883,7 @@ type PassportWithSpecs struct {
 	Passport               *Passport    `json:"passport"`
 	BatchName              string       `json:"batch_name"`
 	ModelName              string       `json:"model_name,omitempty"`
+	ProductType            ProductType  `json:"product_type"`
 	Specs                  *BatchSpec   `json:"specs"`
 	MarketRegion           MarketRegion `json:"market_region"` // For conditional UI rendering
 	Tenant                 *Tenant      `json:"tenant"`        // Added for public profile display

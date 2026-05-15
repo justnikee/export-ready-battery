@@ -19,6 +19,7 @@ import {
   Replace,
 } from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n/i18n";
+import { resolvePassportTemplateConfig } from "@/lib/passport-template-config";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,9 @@ export interface PassportViewData {
     voltage?: string;
     weight?: string;
     carbon_footprint?: string;
+    material_profile?: string;
+    lot_size?: string;
+    production_stage?: string;
     expected_lifetime_cycles?: number | null;
     warranty_months?: number | null;
     bis_number?: string;
@@ -170,6 +174,8 @@ export interface PassportViewData {
     // Backend sends 'support_email', not 'manufacturer_email'
     support_email?: string;
     manufacturer_email?: string;
+    textile_facility_type?: string;
+    textile_supply_chain_tier?: string;
     epr_registration_number?: string;
     bis_r_number?: string;
     bis_certificate_path?: string;
@@ -198,6 +204,7 @@ export interface PassportViewData {
   country_of_origin?: string;
   customs_date?: string;
   product_type?: string;
+  template_variant?: string;
 }
 
 interface CertificateViewProps {
@@ -228,6 +235,9 @@ export function CertificateView({
   const capacityAh = specs?.capacity || null;
   const voltage = specs?.voltage || null;
   const weightKg = specs?.weight || null;
+  const materialProfile = specs?.material_profile || null;
+  const lotSize = specs?.lot_size || null;
+  const productionStage = specs?.production_stage || null;
   const cycleLife = specs?.expected_lifetime_cycles || null;
   const warrantyMonths = specs?.warranty_months || null;
   const hazardousSubs = specs?.hazardous_substances?.declaration || null;
@@ -329,7 +339,19 @@ export function CertificateView({
   const isIndia = marketRegion?.toUpperCase() === "INDIA";
   const isImported = cellSource?.toUpperCase() === "IMPORTED";
   const productType = passportData.product_type || "BATTERY";
-  const isBattery = productType.toUpperCase() === "BATTERY";
+  const templateConfig = resolvePassportTemplateConfig({
+    templateVariant: passportData.template_variant,
+    productType,
+    marketRegion,
+    t,
+  });
+  const templateVariant = templateConfig.variant;
+  const isBattery = templateConfig.family === "battery";
+  const productBadge = templateConfig.badge;
+  const primaryDescriptor = isBattery ? chemistry : materialProfile;
+  const isBatteryIndia = templateConfig.complianceMode === "battery_india";
+  const isBatteryStandard =
+    templateConfig.complianceMode === "battery_standard";
 
   // SoH
   const soh = passport.state_of_health;
@@ -381,19 +403,24 @@ export function CertificateView({
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 text-emerald-400 text-xs font-medium">
-            {isBattery ? "🔋" : "📦"} {productType}
+            {productBadge} {productType}
           </span>
           <span className="flex items-center gap-1.5">
             <Barcode className="w-4 h-4" /> {model}
           </span>
-          {chemistry && (
+          {primaryDescriptor && (
             <span className="flex items-center gap-1.5">
-              <FlaskConical className="w-4 h-4" /> {chemistry}
+              <FlaskConical className="w-4 h-4" /> {primaryDescriptor}
             </span>
           )}
-          {capacityAh && (
+          {templateConfig.showCapacityBadge && capacityAh && (
             <span className="flex items-center gap-1.5">
               <Battery className="w-4 h-4" /> {capacityAh}
+            </span>
+          )}
+          {templateConfig.showLotBadge && lotSize && (
+            <span className="flex items-center gap-1.5">
+              <Battery className="w-4 h-4" /> {lotSize}
             </span>
           )}
         </div>
@@ -424,8 +451,15 @@ export function CertificateView({
                   : null
               }
             />
-            <DataRow label={t("label_cell_source")} value={cellSourceLabel} />
+            {isBattery ? (
+              <DataRow label={t("label_cell_source")} value={cellSourceLabel} />
+            ) : (
+              <DataRow label="Production Stage" value={productionStage} />
+            )}
             <DataRow label={t("label_market")} value={marketRegion || null} />
+            {!isBattery && (
+              <DataRow label="Country of Origin" value={countryOfOrigin} />
+            )}
           </div>
 
           {/* Batch Window */}
@@ -458,16 +492,27 @@ export function CertificateView({
           </h3>
 
           <div className="space-y-0">
-            <DataRow label={t("label_chemistry")} value={chemistry} />
-            {batteryCategory && (
-              <DataRow
-                label={t("label_battery_category")}
-                value={batteryCategory}
-              />
+            {isBattery ? (
+              <>
+                <DataRow label={t("label_chemistry")} value={chemistry} />
+                {batteryCategory && (
+                  <DataRow
+                    label={t("label_battery_category")}
+                    value={batteryCategory}
+                  />
+                )}
+                <DataRow label={t("label_capacity")} value={capacityAh} />
+                <DataRow label={t("label_voltage")} value={voltage} />
+                <DataRow label={t("label_weight")} value={weightKg} />
+              </>
+            ) : (
+              <>
+                <DataRow label="Material Profile" value={materialProfile} />
+                <DataRow label="Lot Size" value={lotSize} />
+                <DataRow label="Production Stage" value={productionStage} />
+                <DataRow label={t("label_weight")} value={weightKg} />
+              </>
             )}
-            <DataRow label={t("label_capacity")} value={capacityAh} />
-            <DataRow label={t("label_voltage")} value={voltage} />
-            <DataRow label={t("label_weight")} value={weightKg} />
           </div>
         </div>
       </div>
@@ -475,7 +520,7 @@ export function CertificateView({
       {/* ═══════════════════════════════════════════════════════════════════
  CRITICAL RAW MATERIALS
  ═══════════════════════════════════════════════════════════════════ */}
-      {crm && (
+      {templateConfig.showCrm && crm && (
         <div className="p-6 md:p-8">
           <h3 className="text-foreground mb-4 flex items-center gap-2">
             <FlaskConical className="w-4 h-4 text-muted-foreground" />
@@ -539,34 +584,34 @@ export function CertificateView({
           </h3>
 
           <div className="space-y-0">
-            {isIndia && (
+            {isBatteryIndia && (
               <DataRow label={t("label_epr")} value={eprNumber} mono />
             )}
-            {isIndia && dvaPercent != null && (
+            {isBatteryIndia && dvaPercent != null && (
               <DataRow
                 label={t("label_dva")}
                 value={`${(dvaPercent as number).toFixed(1)}%`}
               />
             )}
-            {isIndia && (
+            {isBatteryIndia && (
               <DataRow
                 label={t("label_pli")}
                 value={pliCompliant ? "✅ Yes" : "No"}
               />
             )}
-            {isIndia && (
+            {isBatteryIndia && (
               <DataRow label={t("label_bis")} value={bisRNumber} mono />
             )}
-            {!isIndia && (
+            {isBatteryStandard && (
               <DataRow
                 label={t("label_carbon_footprint")}
                 value={carbonFootprint}
               />
             )}
-            {!isIndia && (
+            {isBatteryStandard && (
               <DataRow label={t("label_hazardous")} value={hazardousSubs} />
             )}
-            {!isIndia && (
+            {isBatteryStandard && (
               <DataRow
                 label={t("label_warranty")}
                 value={
@@ -576,7 +621,7 @@ export function CertificateView({
                 }
               />
             )}
-            {!isIndia && (
+            {isBatteryStandard && (
               <DataRow
                 label={t("label_lifetime")}
                 value={
@@ -584,67 +629,80 @@ export function CertificateView({
                 }
               />
             )}
+            {templateConfig.showTextileCompliance && (
+              <>
+                <DataRow label="Material Profile" value={materialProfile} />
+                <DataRow label="Country of Origin" value={countryOfOrigin} />
+                <DataRow label="Hazardous Substances" value={hazardousSubs} />
+                <DataRow
+                  label="Certifications"
+                  value={certifications.join(", ") || null}
+                />
+              </>
+            )}
           </div>
 
           {/* Document Downloads */}
-          <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5 text-muted-foreground" />{" "}
-              {t("section_documents")}
-            </p>
-            <div className="space-y-2">
-              {tenant.bis_certificate_path &&
-              tenant.bis_certificate_path.trim() ? (
-                <a
-                  href={`${getBaseUrl()}${tenant.bis_certificate_path}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
-                >
-                  <Download className="w-4 h-4 text-blue-500" />
-                  {t("doc_bis")}
-                </a>
-              ) : (
-                <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
-                  <FileText className="w-4 h-4" />
-                  {t("doc_bis_missing")}
-                </div>
-              )}
-              {tenant.epr_certificate_path &&
-              tenant.epr_certificate_path.trim() ? (
-                <a
-                  href={`${getBaseUrl()}${tenant.epr_certificate_path}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
-                >
-                  <Download className="w-4 h-4 text-emerald-500" />
-                  {t("doc_epr")}
-                </a>
-              ) : (
-                <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
-                  <FileText className="w-4 h-4" />
-                  {t("doc_epr_missing")}
-                </div>
-              )}
-              {pliCompliant &&
-                tenant.pli_certificate_path &&
-                tenant.pli_certificate_path.trim() && (
+          {templateConfig.showDocuments && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" />{" "}
+                {t("section_documents")}
+              </p>
+              <div className="space-y-2">
+                {tenant.bis_certificate_path &&
+                tenant.bis_certificate_path.trim() ? (
                   <a
-                    href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
+                    href={`${getBaseUrl()}${tenant.bis_certificate_path}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
                   >
-                    <Download className="w-4 h-4 text-amber-500" />
-                    {t("doc_pli")}
+                    <Download className="w-4 h-4 text-blue-500" />
+                    {t("doc_bis")}
                   </a>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
+                    <FileText className="w-4 h-4" />
+                    {t("doc_bis_missing")}
+                  </div>
                 )}
+                {tenant.epr_certificate_path &&
+                tenant.epr_certificate_path.trim() ? (
+                  <a
+                    href={`${getBaseUrl()}${tenant.epr_certificate_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
+                  >
+                    <Download className="w-4 h-4 text-emerald-500" />
+                    {t("doc_epr")}
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
+                    <FileText className="w-4 h-4" />
+                    {t("doc_epr_missing")}
+                  </div>
+                )}
+                {pliCompliant &&
+                  tenant.pli_certificate_path &&
+                  tenant.pli_certificate_path.trim() && (
+                    <a
+                      href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
+                    >
+                      <Download className="w-4 h-4 text-amber-500" />
+                      {t("doc_pli")}
+                    </a>
+                  )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Import details */}
-          {isIndia && isImported && (
+          {templateConfig.showImportDetails && isImported && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
                 <Truck className="w-3.5 h-3.5 text-muted-foreground" />{" "}
@@ -750,6 +808,24 @@ export function CertificateView({
               </div>
             )}
 
+            {templateConfig.showTextileProfile && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+                  Textile Profile
+                </p>
+                <div className="space-y-0">
+                  <DataRow
+                    label="Facility Type"
+                    value={tenant.textile_facility_type}
+                  />
+                  <DataRow
+                    label="Supply Chain Tier"
+                    value={tenant.textile_supply_chain_tier}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* EU Representative */}
             {showEURepresentative && (
               <div className="pt-3 border-t border-border">
@@ -784,7 +860,7 @@ export function CertificateView({
         </h3>
 
         {/* SoH Gauge */}
-        {isBattery && soh != null && <SoHGauge soh={soh} />}
+        {templateConfig.showSoh && soh != null && <SoHGauge soh={soh} />}
 
         <div className="space-y-0 mt-3">
           <DataRow
@@ -792,10 +868,10 @@ export function CertificateView({
             value={passport.current_owner_identifier}
             mono
           />
-          {isBattery && soh == null && (
+          {templateConfig.showSoh && soh == null && (
             <DataRow label={t("label_soh")} value={stateOfHealthLabel} />
           )}
-          {isBattery && (
+          {templateConfig.showSoh && (
             <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />
           )}
           <DataRow
@@ -863,7 +939,7 @@ export function CertificateView({
           </div>
         )}
 
-        {isIndia && (
+        {templateConfig.showIndiaRecycling && (
           <div className="mt-4 pt-4 border-t border-border">
             <DataRow
               label={t("label_recycling_status")}
@@ -893,9 +969,11 @@ export function CertificateView({
             <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-red-500 font-medium mb-1">
-                {t("safety_title")}
+                {templateConfig.safetyTitle}
               </h4>
-              <p className="text-red-500/80 text-sm">{t("safety_text")}</p>
+              <p className="text-red-500/80 text-sm">
+                {templateConfig.safetyBody}
+              </p>
             </div>
           </div>
         </div>
@@ -905,12 +983,10 @@ export function CertificateView({
             <Recycle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-emerald-500 font-medium mb-1">
-                {t("recycling_title")}
+                {templateConfig.circularityTitle}
               </h4>
               <p className="text-emerald-500/80 text-sm">
-                {isIndia
-                  ? t("recycling_text_india")
-                  : t("recycling_text_global")}
+                {templateConfig.circularityBody}
               </p>
             </div>
           </div>

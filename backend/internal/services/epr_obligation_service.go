@@ -57,15 +57,16 @@ func CalculateEPRObligation(
 	year int,
 	collectedKg float64,
 ) EPRObligation {
+	tenant.EnsureBatteryProfile()
 	target := getCollectionTarget(year)
 
 	result := EPRObligation{
 		Year:                year,
-		EPRRegistrationNo:   tenant.EPRRegistrationNumber,
+		EPRRegistrationNo:   tenant.BatteryProfile.EPRRegistrationNumber,
 		CollectionTargetPct: target,
 	}
 
-	if tenant.EPRRegistrationNumber == "" {
+	if tenant.BatteryProfile.EPRRegistrationNumber == "" {
 		result.Status = "NOT_REGISTERED"
 		result.Message = "No EPR registration number on file. Register with CPCB to comply with BWM Rules 2022."
 		return result

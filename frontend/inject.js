@@ -1,7 +1,7 @@
 void (async () => {
   const fs = await import("node:fs");
   let c = fs.readFileSync(
-    "d:/ExportReady-Battery/frontend/app/(dashboard)/settings/page.tsx",
+    "d:/ExportReady-Battery/frontend/components/settings/battery-settings-page.tsx",
     "utf8",
   );
 
@@ -26,7 +26,7 @@ void (async () => {
   );
 
   fs.writeFileSync(
-    "d:/ExportReady-Battery/frontend/app/(dashboard)/settings/page.tsx",
+    "d:/ExportReady-Battery/frontend/components/settings/battery-settings-page.tsx",
     c,
   );
 })();

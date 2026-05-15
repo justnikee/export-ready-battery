@@ -3,8 +3,10 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
+import { productRoutes } from "@/lib/routes";
 
 function CallbackHandler() {
   const searchParams = useSearchParams();
@@ -15,6 +17,8 @@ function CallbackHandler() {
   const tenantId = searchParams.get("tenant_id");
   const email = searchParams.get("email");
   const companyName = searchParams.get("company_name") || "";
+  const productType = searchParams.get("product_type");
+  const routes = productRoutes(productType);
   const error =
     searchParams.get("error") ||
     (!token || !tenantId || !email
@@ -56,6 +60,7 @@ function CallbackHandler() {
           tenant_id: tenantId,
           email: email,
           company_name: companyName,
+          product_type: productType || undefined,
           // onboarding_completed not set here — refreshUser already updated context
         });
       })
@@ -66,9 +71,10 @@ function CallbackHandler() {
           tenant_id: tenantId,
           email: email,
           company_name: companyName,
+          product_type: productType || undefined,
         });
       });
-  }, [companyName, email, error, tenantId, token]);
+  }, [companyName, email, error, productType, tenantId, token]);
 
   if (error) {
     return (
@@ -79,12 +85,12 @@ function CallbackHandler() {
           </div>
           <h2 className="text-lg text-[#0B1F3B]">Authentication Failed</h2>
           <p className="text-sm text-muted-foreground max-w-sm">{error}</p>
-          <a
-            href="/login"
+          <Link
+            href={routes.login}
             className="inline-block mt-2 px-6 py-2 bg-[#0B1F3B] text-white text-sm font-medium hover:bg-[#0B1F3B]/90 transition-colors"
           >
             Back to Login
-          </a>
+          </Link>
         </div>
       </div>
     );

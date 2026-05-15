@@ -84,7 +84,16 @@ func (f *fakeMagicRepo) SetRequiresOTP(ctx context.Context, tokenHash string, re
 }
 
 func (f *fakeMagicRepo) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
-	f.otps[tokenHash] = &repository.OTPRecord{ID: uuid.New(), MagicLinkTokenHash: tokenHash, OTPHash: otpHash}
+	f.otps[tokenHash] = &repository.OTPRecord{
+		ID:                 uuid.New(),
+		MagicLinkTokenHash: tokenHash,
+		OTPHash:            otpHash,
+		AttemptCount:       0,
+		MaxAttempts:        5,
+		ResendCount:        0,
+		MaxResends:         3,
+		CreatedAt:          time.Now(),
+	}
 	return nil
 }
 
@@ -93,19 +102,46 @@ func (f *fakeMagicRepo) GetMagicLinkOTP(ctx context.Context, tokenHash string) (
 }
 
 func (f *fakeMagicRepo) IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error {
+	for _, otp := range f.otps {
+		if otp.ID == otpID {
+			otp.AttemptCount++
+		}
+	}
 	return nil
 }
 
 func (f *fakeMagicRepo) MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error {
+	now := time.Now()
+	for _, otp := range f.otps {
+		if otp.ID == otpID {
+			otp.UsedAt = &now
+		}
+	}
 	return nil
 }
 
 func (f *fakeMagicRepo) RecordOTPResend(ctx context.Context, otpID uuid.UUID) error {
+	now := time.Now()
+	for _, otp := range f.otps {
+		if otp.ID == otpID {
+			otp.ResendCount++
+			otp.LastResentAt = &now
+		}
+	}
 	return nil
 }
 
 func (f *fakeMagicRepo) ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error {
-	f.otps[tokenHash] = &repository.OTPRecord{ID: uuid.New(), MagicLinkTokenHash: tokenHash, OTPHash: newOTPHash}
+	f.otps[tokenHash] = &repository.OTPRecord{
+		ID:                 uuid.New(),
+		MagicLinkTokenHash: tokenHash,
+		OTPHash:            newOTPHash,
+		AttemptCount:       0,
+		MaxAttempts:        5,
+		ResendCount:        0,
+		MaxResends:         3,
+		CreatedAt:          time.Now(),
+	}
 	return nil
 }
 
@@ -117,7 +153,7 @@ func (f *fakeMagicRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID)
 	return f.defaultTenantID, nil
 }
 
-func (f *fakeMagicRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, limit, offset int) ([]*repository.PassportListItem, int, error) {
+func (f *fakeMagicRepo) ListPassportsByTenant(ctx context.Context, tenantID uuid.UUID, status, search, batchID string, productType models.ProductType, limit, offset int) ([]*repository.PassportListItem, int, error) {
 	return []*repository.PassportListItem{}, 0, nil
 }
 
@@ -370,5 +406,46 @@ func TestGetPassportForAction_AllowsMatchingTokenRole(t *testing.T) {
 	}
 	if len(resp.AllowedActions) != 1 || resp.AllowedActions[0] != string(models.ActionShip) {
 		t.Fatalf("expected only SHIP, got %v", resp.AllowedActions)
+	}
+}
+
+func TestMagicLinkTransition_ActiveOTPIsReused(t *testing.T) {
+	handler, repo, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionRecall), "LOGISTICS")
+	repo.tokens[token.TokenHash].RequiresOTP = true
+
+	body := `{"action":"RECALL"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusAccepted {
+		t.Fatalf("expected status 202, got %d", rr.Code)
+	}
+	firstOTP := repo.otps[token.TokenHash]
+	if firstOTP == nil {
+		t.Fatal("expected OTP to be created")
+	}
+	firstHash := firstOTP.OTPHash
+
+	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Authorization", "Bearer "+token.Token)
+	rr2 := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr2, req2)
+	if rr2.Code != http.StatusAccepted {
+		t.Fatalf("expected status 202, got %d", rr2.Code)
+	}
+	secondOTP := repo.otps[token.TokenHash]
+	if secondOTP == nil {
+		t.Fatal("expected OTP to remain present")
+	}
+	if secondOTP.OTPHash != firstHash {
+		t.Fatal("expected existing active OTP to be reused instead of reissued")
+	}
+	if secondOTP.ResendCount != 0 {
+		t.Fatalf("expected resend count to remain 0, got %d", secondOTP.ResendCount)
 	}
 }

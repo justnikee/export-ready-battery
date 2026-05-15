@@ -28,8 +28,9 @@ func validEUBatch() *models.Batch {
 		ManufacturingEndDate:   &now,
 		CarbonFootprintResult:  json.RawMessage(`{"total_kg_co2e_per_kwh":42.5}`),
 		Specs: models.BatchSpec{
-			Chemistry: "NMC",
-			Capacity:  "75kWh",
+			Chemistry:       "NMC",
+			Capacity:        "75kWh",
+			BatteryCategory: models.BatteryCategoryEV,
 			Certifications: []string{"CE", "IEC 62133-2"},
 			MaterialComposition: &models.MaterialComposition{
 				CobaltPct:          12.5,

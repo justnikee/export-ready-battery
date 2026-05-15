@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"anvayalabs-battery/internal/middleware"
+	"anvayalabs-battery/internal/models"
 
 	"github.com/google/uuid"
 )
@@ -24,7 +25,7 @@ func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stats, err := h.repo.GetDashboardStats(r.Context(), tenantID)
+	stats, err := h.repo.GetDashboardStats(r.Context(), tenantID, models.ProductType(middleware.GetProductType(r.Context())))
 	if err != nil {
 		slog.Error("Failed to get dashboard stats", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get dashboard stats")

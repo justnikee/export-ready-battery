@@ -1,3 +1,7 @@
+// DANGER: This is a one-off manual migration script.
+// It bypasses schema_migrations version tracking and should NOT be used
+// as a standard migration runner. Use backend/cmd/migration_runner instead.
+// Only run this if you know exactly why the normal migrator cannot be used.
 package main
 
 import (
@@ -15,7 +19,7 @@ func main() {
 	godotenv.Load("../../.env")
 	godotenv.Load("../.env")
 	godotenv.Load(".env")
-	
+
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		fmt.Println("FAIL: DATABASE_URL not set")
@@ -38,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Applying 000048_create_passport_documents.up.sql...")
+	fmt.Println("Applying 000049_magic_link_otp.up.sql...")
 	_, err = database.Pool.Exec(ctx, string(sqlContent))
 	if err != nil {
 		fmt.Printf("FAIL execute: %v\n", err)

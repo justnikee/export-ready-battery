@@ -5,6 +5,14 @@ import { Eye, EyeOff, ShieldAlert, Globe } from "lucide-react";
 interface DataVisibilityProps {
   dataVisibility: Record<string, string>;
   onChange: (newVisibility: Record<string, string>) => void;
+  title?: string;
+  description?: string;
+  note?: string;
+  fields?: Array<{
+    key: string;
+    label: string;
+    desc: string;
+  }>;
 }
 
 const VISIBILITY_LEVELS = [
@@ -54,6 +62,10 @@ const FIELDS_TO_CONFIGURE = [
 export function DataVisibility({
   dataVisibility,
   onChange,
+  title = "Data Visibility Configuration",
+  description = "Control who can access different categories of data on your Battery Passports",
+  note = "Public data is visible to anyone scanning the passport QR code. Partner data requires a valid Data Access Token.",
+  fields = FIELDS_TO_CONFIGURE,
 }: DataVisibilityProps) {
   const handleLevelChange = (fieldKey: string, level: string) => {
     onChange({
@@ -70,13 +82,8 @@ export function DataVisibility({
             <Eye className="h-5 w-5 text-blue-500" />
           </div>
           <div>
-            <h3 className="text-base font-medium text-foreground">
-              Data Visibility Configuration
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Control who can access different categories of data on your
-              Battery Passports
-            </p>
+            <h3 className="text-base font-medium text-foreground">{title}</h3>
+            <p className="text-xs text-muted-foreground">{description}</p>
           </div>
         </div>
       </div>
@@ -94,7 +101,7 @@ export function DataVisibility({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {FIELDS_TO_CONFIGURE.map((field) => {
+            {fields.map((field) => {
               const currentLevel = dataVisibility?.[field.key] || "PARTNER";
 
               return (
@@ -130,8 +137,7 @@ export function DataVisibility({
       </div>
       <div className="px-6 py-3 bg-background/50 border-t border-border">
         <p className="text-xs text-muted-foreground">
-          <strong>Note:</strong> Public data is visible to anyone scanning the
-          passport QR code. Partner data requires a valid Data Access Token.
+          <strong>Note:</strong> {note}
         </p>
       </div>
     </div>

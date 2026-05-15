@@ -156,8 +156,22 @@ type carbonFactorUsed struct {
 	Source      string  `json:"source"`
 }
 
-// GenerateComplianceDeclaration creates the Article 7 carbon footprint declaration PDF.
+// GenerateComplianceDeclaration routes to the correct product-specific declaration renderer.
 func GenerateComplianceDeclaration(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
+	tenant.EnsureBatteryProfile()
+	tenant.EnsureTextileProfile()
+	switch batch.ProductType {
+	case "", models.ProductTypeBattery:
+		return generateBatteryComplianceDeclaration(batch, tenant)
+	case models.ProductTypeTextile:
+		return GenerateTextileComplianceDeclaration(batch, tenant)
+	default:
+		return nil, fmt.Errorf("unsupported product type for compliance declaration: %s", batch.ProductType)
+	}
+}
+
+// generateBatteryComplianceDeclaration creates the Article 7 carbon footprint declaration PDF.
+func generateBatteryComplianceDeclaration(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
 	// Parse carbon result from batch
 	var cr carbonResultJSON
 	if len(batch.CarbonFootprintResult) == 0 {
@@ -197,11 +211,11 @@ func GenerateComplianceDeclaration(batch *models.Batch, tenant *models.Tenant) (
 	if tenant.Address != "" {
 		d.keyValue("Address", tenant.Address)
 	}
-	if tenant.EUAuthorizedRepresentativeName != "" {
-		d.keyValue("EU Auth. Rep.", tenant.EUAuthorizedRepresentativeName)
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeName != "" {
+		d.keyValue("EU Auth. Rep.", tenant.BatteryProfile.EUAuthorizedRepresentativeName)
 	}
-	if tenant.EUAuthorizedRepresentativeAddress != "" {
-		d.keyValue("EU Rep. Address", tenant.EUAuthorizedRepresentativeAddress)
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress != "" {
+		d.keyValue("EU Rep. Address", tenant.BatteryProfile.EUAuthorizedRepresentativeAddress)
 	}
 	d.gap(2)
 	d.keyValue("Batch Name", batch.BatchName)

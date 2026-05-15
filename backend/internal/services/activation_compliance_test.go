@@ -10,6 +10,7 @@ import (
 func makeBaseBatch(region models.MarketRegion) *models.Batch {
 	now := time.Now()
 	return &models.Batch{
+		ProductType:             models.ProductTypeBattery,
 		ModelName:              "TestModel",
 		MarketRegion:           region,
 		CellSource:             "DOMESTIC",
@@ -19,6 +20,27 @@ func makeBaseBatch(region models.MarketRegion) *models.Batch {
 		Specs: models.BatchSpec{
 			Chemistry: "LFP",
 			Capacity:  "100 Ah",
+		},
+	}
+}
+
+func makeBaseTextileBatch(region models.MarketRegion) *models.Batch {
+	now := time.Now()
+	return &models.Batch{
+		ProductType:             models.ProductTypeTextile,
+		ModelName:              "TextileModel",
+		MarketRegion:           region,
+		ManufacturingStartDate: &now,
+		ManufacturingEndDate:   &now,
+		Specs: models.BatchSpec{
+			Manufacturer:    "Anvaya Textiles",
+			MaterialProfile: "Organic Cotton",
+			CountryOfOrigin: "India",
+			ProductionStage: "finished_goods",
+			LotSize:         "240 units",
+			HazardousSubstances: &models.HazardousSubstances{
+				Declaration: "No SVHC substances above threshold",
+			},
 		},
 	}
 }
@@ -128,6 +150,47 @@ func TestAISCertGate_GlobalBatchRequiresAIS(t *testing.T) {
 	}
 	if !foundAIS {
 		t.Error("GLOBAL batch should require AIS certs (India path)")
+	}
+}
+
+func TestTextileEUActivationDoesNotRequireBatteryFields(t *testing.T) {
+	batch := makeBaseTextileBatch(models.MarketRegionEU)
+	tenant := makeBaseTenant()
+
+	result := ValidateActivationCompliance(batch, tenant)
+
+	if !result.Valid {
+		t.Fatalf("expected textile EU batch to pass activation, got missing=%v errors=%v warnings=%v", result.Missing, result.Errors, result.Warnings)
+	}
+	if len(result.Warnings) == 0 {
+		t.Fatal("expected textile EU activation to preserve non-blocking warnings")
+	}
+	for _, m := range result.Missing {
+		if containsStr(m, "battery_category") || containsStr(m, "carbon_footprint_result") || containsStr(m, "expected_lifetime_cycles") || containsStr(m, "warranty_months") {
+			t.Errorf("textile activation should not require battery-only field: %s", m)
+		}
+	}
+}
+
+func TestTextileEUActivationRequiresHazardousDeclaration(t *testing.T) {
+	batch := makeBaseTextileBatch(models.MarketRegionEU)
+	batch.Specs.HazardousSubstances = nil
+	tenant := makeBaseTenant()
+
+	result := ValidateActivationCompliance(batch, tenant)
+
+	if result.Valid {
+		t.Fatal("expected textile EU batch without hazardous declaration to fail activation")
+	}
+
+	found := false
+	for _, m := range result.Missing {
+		if containsStr(m, "hazardous_substances.declaration") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected missing hazardous substances declaration for textile EU activation")
 	}
 }
 

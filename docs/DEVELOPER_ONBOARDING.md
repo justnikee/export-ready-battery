@@ -1254,13 +1254,13 @@ Batch status: DRAFT → ACTIVE
 
 ### Config Files
 
-| File                    | Purpose                                                       |
-| ----------------------- | ------------------------------------------------------------- |
-| `backend/.env.example`  | Backend environment variables (copy to `.env`)                |
-| `frontend/.env.example` | Frontend environment variables (copy to `.env.local`)         |
-| `backend/Makefile`      | Dev workflow commands                                         |
-| `mcp.json`              | MCP server config (filesystem, Railway deployment, Puppeteer) |
-| `package.json` (root)   | Root scripts: `npm run lint` runs frontend linter             |
+| File                          | Purpose                                                       |
+| ----------------------------- | ------------------------------------------------------------- |
+| `backend/.env.example`        | Backend environment variables (copy to `.env`)                |
+| `frontend/.env.local.example` | Frontend environment variables (copy to `.env.local`)         |
+| `backend/Makefile`            | Dev workflow commands                                         |
+| `mcp.json`                    | MCP server config (filesystem, Railway deployment, Puppeteer) |
+| `package.json` (root)         | Root scripts: `npm run lint` runs frontend linter             |
 
 ---
 
@@ -1308,7 +1308,8 @@ make dev
 cd frontend
 
 # Copy environment config
-cp .env.example .env.local
+cp .env.local.example .env.local
+# Set: JWT_SECRET=<same value as backend .env>
 # Set: NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 
 # Install dependencies

@@ -3,6 +3,7 @@ package compliance
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"anvayalabs-battery/internal/models"
 )
@@ -15,7 +16,9 @@ type routeKey struct {
 
 // Registry maps (ProductType, MarketRegion) pairs to their Validators.
 // It is the central router of the compliance engine.
+// It is safe for concurrent use by multiple goroutines.
 type Registry struct {
+	mu         sync.RWMutex
 	validators map[routeKey]Validator
 }
 
@@ -29,6 +32,9 @@ func NewRegistry() *Registry {
 // Register registers a Validator for the given product/market combination.
 // Panics on duplicate registration to catch misconfiguration at startup.
 func (r *Registry) Register(pt models.ProductType, mr models.MarketRegion, v Validator) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	k := routeKey{pt, mr}
 	if _, exists := r.validators[k]; exists {
 		panic(fmt.Sprintf("compliance: duplicate validator registration for product=%s market=%s", pt, mr))
@@ -38,6 +44,9 @@ func (r *Registry) Register(pt models.ProductType, mr models.MarketRegion, v Val
 
 // Get returns the Validator for the given product/market combination.
 func (r *Registry) Get(pt models.ProductType, mr models.MarketRegion) (Validator, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	if v, ok := r.validators[routeKey{pt, mr}]; ok {
 		return v, nil
 	}
@@ -46,11 +55,27 @@ func (r *Registry) Get(pt models.ProductType, mr models.MarketRegion) (Validator
 
 // Validate looks up the correct Validator and runs it against the raw specs JSON.
 func (r *Registry) Validate(pt models.ProductType, mr models.MarketRegion, specs json.RawMessage) (Result, error) {
+	if mr == models.MarketRegionGlobal {
+		return r.validateGlobalSpecs(pt, specs)
+	}
+
 	v, err := r.Get(pt, mr)
 	if err != nil {
 		return Result{}, err
 	}
 	return v.Validate(specs)
+}
+
+func (r *Registry) validateGlobalSpecs(pt models.ProductType, specs json.RawMessage) (Result, error) {
+	indiaResult, err := r.Validate(pt, models.MarketRegionIndia, specs)
+	if err != nil {
+		return Result{}, fmt.Errorf("compliance: global/india validation failed: %w", err)
+	}
+	euResult, err := r.Validate(pt, models.MarketRegionEU, specs)
+	if err != nil {
+		return Result{}, fmt.Errorf("compliance: global/eu validation failed: %w", err)
+	}
+	return Aggregate(indiaResult, euResult), nil
 }
 
 // ValidateBatch looks up the correct validator and, when it implements BatchValidator,

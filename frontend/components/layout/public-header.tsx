@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -8,14 +8,11 @@ import { useState } from "react";
 
 export function PublicHeader() {
   const pathname = usePathname();
-  const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/onboarding";
+  const isProductAppPage = /^\/(battery|textile)(\/|$)/.test(pathname);
   const isHomePage = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (isAuthPage) return null;
+  if (isProductAppPage) return null;
 
   const linkClass = "text-sm font-medium transition-colors hover:text-gray-900";
 
@@ -29,6 +26,13 @@ export function PublicHeader() {
     >
       <div className="mx-auto flex h-16 w-full max-w-330 items-center justify-between px-6">
         <Link href="/" className="flex items-center group">
+          <Image
+            src="/logo/logo-4.svg"
+            className=""
+            alt="ANVAYALABS"
+            width={32}
+            height={32}
+          />
           <span className="text-xl tracking-tight text-gray-900 font-semibold">
             ANVAYALABS
           </span>

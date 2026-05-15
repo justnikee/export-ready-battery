@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"anvayalabs-battery/internal/models"
 )
 
 // EmailService handles sending transactional emails
@@ -70,9 +72,38 @@ type PasswordResetData struct {
 	ResetLink string
 }
 
+func normalizeProductType(productType models.ProductType) models.ProductType {
+	if !productType.IsValid() || productType == models.ProductTypeElectronics {
+		return models.DefaultProductType()
+	}
+
+	return productType
+}
+
+func productSlug(productType models.ProductType) string {
+	if normalizeProductType(productType) == models.ProductTypeTextile {
+		return "textile"
+	}
+
+	return "battery"
+}
+
+func productLabel(productType models.ProductType) string {
+	if normalizeProductType(productType) == models.ProductTypeTextile {
+		return "Textile Passport"
+	}
+
+	return "Battery Passport"
+}
+
+func (e *EmailService) productLink(productType models.ProductType, page string, token string) string {
+	return fmt.Sprintf("%s/%s/%s?token=%s", e.baseURL, productSlug(productType), page, token)
+}
+
 // SendPasswordResetEmail sends a password reset email using template
-func (e *EmailService) SendPasswordResetEmail(toEmail, resetToken string) error {
-	resetLink := fmt.Sprintf("%s/auth/reset-password?token=%s", e.baseURL, resetToken)
+func (e *EmailService) SendPasswordResetEmail(toEmail, resetToken string, productType models.ProductType) error {
+	productType = normalizeProductType(productType)
+	resetLink := e.productLink(productType, "reset-password", resetToken)
 
 	if !e.enabled {
 		// Log to console in development
@@ -107,16 +138,17 @@ You requested to reset your password. Click the link below to create a new passw
 This link expires in 1 hour.
 If you didn't request this, please ignore this email.
 
-© 2026 AnvayaLabs Battery
-`, resetLink)
+© 2026 AnvayaLabs %s
+`, resetLink, productLabel(productType))
 
 	return e.sendEmail(toEmail, "Reset Your Password - AnvayaLabs", htmlBuf.String(), plainText)
 }
 
 // SendVerificationEmail sends an email with a link to verify the user's email address.
 // In dev mode (enabled=false), the link is logged to console.
-func (e *EmailService) SendVerificationEmail(toEmail, verificationToken string) error {
-	verifyLink := fmt.Sprintf("%s/auth/verify-email?token=%s", e.baseURL, verificationToken)
+func (e *EmailService) SendVerificationEmail(toEmail, verificationToken string, productType models.ProductType) error {
+	productType = normalizeProductType(productType)
+	verifyLink := e.productLink(productType, "verify-email", verificationToken)
 
 	if !e.enabled {
 		slog.Info("Email verification link generated (mock)", "to", toEmail, "link", verifyLink)
@@ -132,19 +164,19 @@ Please click the link below to verify your email address:
 This link expires in 24 hours.
 If you did not create an AnvayaLabs account, please ignore this email.
 
-© 2026 AnvayaLabs Battery
-`, verifyLink)
+© 2026 AnvayaLabs %s
+`, verifyLink, productLabel(productType))
 
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
 <h2>Verify Your Email Address</h2>
-<p>Thank you for signing up for AnvayaLabs Battery.</p>
+<p>Thank you for signing up for AnvayaLabs %s.</p>
 <p>Please click the link below to verify your email address:</p>
 <p><a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px">Verify Email</a></p>
 <p>Or copy this link: %s</p>
 <p><small>This link expires in 24 hours. If you did not create an account, please ignore this email.</small></p>
-<p>© 2026 AnvayaLabs Battery</p>
-</body></html>`, verifyLink, verifyLink)
+</body></html>`, productLabel(productType), verifyLink, verifyLink)
+	html = fmt.Sprintf("%s<p>© 2026 AnvayaLabs %s</p>", html[:len(html)-14], productLabel(productType)) + "</body></html>"
 
 	return e.sendEmail(toEmail, "Verify your email - AnvayaLabs", html, plainText)
 }
@@ -171,6 +203,41 @@ type MagicLinkData struct {
 	ActionTitle       string
 	ActionDescription string
 	ActionColor       string
+}
+
+// SendMagicLinkOTP sends the 6-digit OTP for high-risk magic link actions.
+func (e *EmailService) SendMagicLinkOTP(toEmail, action, otp string) error {
+	actionTitle, actionDescription, actionColor := getActionContent(action)
+	subject := fmt.Sprintf("%s verification code - AnvayaLabs", actionTitle)
+
+	if !e.enabled {
+		slog.Info("Magic link OTP (mock)", "to", toEmail, "action", action, "otp", otp)
+		return nil
+	}
+
+	plainText := fmt.Sprintf(`%s
+
+%s
+
+Your 6-digit verification code is: %s
+
+This code expires in 10 minutes.
+If you did not request this action, please ignore this email.
+
+© 2026 AnvayaLabs Battery
+`, actionTitle, actionDescription, otp)
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+<h2 style="margin-bottom:12px;">%s</h2>
+<p style="margin-bottom:16px;line-height:1.6;">%s</p>
+<p style="margin-bottom:8px;">Use this 6-digit verification code to continue:</p>
+<div style="display:inline-block;padding:14px 18px;border-radius:10px;background:%s;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:0.3em;">%s</div>
+<p style="margin-top:16px;line-height:1.6;">This code expires in 10 minutes. If you did not request this action, please ignore this email.</p>
+<p style="margin-top:24px;font-size:12px;color:#64748b;">© 2026 AnvayaLabs Battery</p>
+</body></html>`, actionTitle, actionDescription, actionColor, otp)
+
+	return e.sendEmail(toEmail, subject, html, plainText)
 }
 
 // SendMagicLink sends a magic link email for battery passport actions using template
@@ -268,8 +335,9 @@ type TeamInviteData struct {
 }
 
 // SendTeamInvite sends a team invitation email using template
-func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role string) error {
-	inviteLink := fmt.Sprintf("%s/accept-invite?token=%s", e.baseURL, inviteToken)
+func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role string, productType models.ProductType) error {
+	productType = normalizeProductType(productType)
+	inviteLink := fmt.Sprintf("%s/%s/accept-invite?token=%s", e.baseURL, productSlug(productType), inviteToken)
 
 	if !e.enabled {
 		slog.Info("Team invite email (mock)", "to", toEmail, "company", companyName, "role", role)
@@ -295,7 +363,7 @@ func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role st
 		return fmt.Errorf("failed to execute email template: %w", err)
 	}
 
-	plainText := fmt.Sprintf("You've been invited to join %s as a %s on AnvayaLabs.\n\nAccept: %s\n\nExpires in 7 days.\n© 2026 AnvayaLabs Battery", companyName, role, inviteLink)
+	plainText := fmt.Sprintf("You've been invited to join %s as a %s on AnvayaLabs.\n\nAccept: %s\n\nExpires in 7 days.\n© 2026 AnvayaLabs %s", companyName, role, inviteLink, productLabel(productType))
 
 	return e.sendEmail(toEmail, fmt.Sprintf("You're invited to join %s on AnvayaLabs", companyName), htmlBuf.String(), plainText)
 }

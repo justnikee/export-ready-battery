@@ -128,7 +128,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
 
  <button
  onClick={handleApply}
- disabled={parseFloat(salePrice) <= 0}
+ disabled={!salePrice || parseFloat(salePrice) <= 0}
  className="w-full inline-flex items-center justify-center gap-2 bg-transparent text-foreground px-4 py-2.5 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:pointer-events-none transition-colors"
  >
  Apply to Batch
