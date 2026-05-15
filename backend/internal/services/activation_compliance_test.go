@@ -38,9 +38,31 @@ func makeBaseTextileBatch(region models.MarketRegion) *models.Batch {
 			CountryOfOrigin: "India",
 			ProductionStage: "finished_goods",
 			LotSize:         "240 units",
+			GSM:             180,
+			DyeProcess:      "reactive",
+			WaterUsageLiters: 150,
+			EnergyUsageKWh:   25,
+			ExpectedLifetimeWashes: intPtr(100),
+			RecycledContentPct: float64Ptr(0),
+			FiberComposition: &models.FiberComposition{
+				CottonPct: 100,
+			},
+			LaborCompliance: &models.LaborCompliance{
+				SA8000Certified: true,
+				AuditScore:      85,
+				AuditDate:       "2026-01-15",
+			},
+			ChemicalComplianceZDHC: &models.ChemicalComplianceZDHC{
+				ZDHCLevel:  "2",
+				MRSLTested: true,
+			},
 			HazardousSubstances: &models.HazardousSubstances{
 				Declaration: "No SVHC substances above threshold",
 			},
+			SupplyChainProvenance: &models.SupplyChainProvenance{
+				DueDiligencePolicy: "https://example.com/policies/textile-dd",
+			},
+			Certifications: []string{"GOTS"},
 		},
 	}
 }
@@ -202,4 +224,12 @@ func containsStr(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func intPtr(v int) *int {
+	return &v
+}
+
+func float64Ptr(v float64) *float64 {
+	return &v
 }

@@ -80,6 +80,17 @@ func validateActivationWithRegistry(batch *models.Batch, tenant *models.Tenant, 
 			missing = append(missing, "batch.specs.capacity (rated_capacity)")
 		}
 	}
+	if productType == models.ProductTypeTextile {
+		if batch.Specs.MaterialProfile == "" {
+			missing = append(missing, "batch.specs.material_profile")
+		}
+		if batch.Specs.GSM <= 0 {
+			missing = append(missing, "batch.specs.gsm")
+		}
+		if batch.Specs.FiberComposition == nil {
+			missing = append(missing, "batch.specs.fiber_composition")
+		}
+	}
 	if batch.ManufacturingStartDate == nil {
 		missing = append(missing, "batch.manufacturing_start_date")
 	}
