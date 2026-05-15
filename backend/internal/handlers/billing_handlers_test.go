@@ -43,14 +43,16 @@ func validBillingBatch(tenantID uuid.UUID) *models.Batch {
 }
 
 func validBillingTenant(tenantID uuid.UUID) *models.Tenant {
-	return &models.Tenant{
-		ID:                    tenantID,
-		CompanyName:           "Test Battery Co",
-		EPRRegistrationNumber: "EPR/WP/2024/00001",
-		BISRNumber:            "R-12345678",
-		IECCode:               "IEC0123456",
-		MorthManufacturerCode: "TBC",
+	t := &models.Tenant{
+		ID:          tenantID,
+		CompanyName: "Test Battery Co",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00001"
+	t.BatteryProfile.BISRNumber = "R-12345678"
+	t.BatteryProfile.IECCode = "IEC0123456"
+	t.BatteryProfile.MorthManufacturerCode = "TBC"
+	return t
 }
 
 func activateBatchReq(batchID uuid.UUID, tenantID uuid.UUID) *http.Request {

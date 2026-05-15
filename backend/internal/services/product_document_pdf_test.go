@@ -39,12 +39,14 @@ func textileDocumentBatch() *models.Batch {
 }
 
 func textileDocumentTenant() *models.Tenant {
-	return &models.Tenant{
-		CompanyName:            "Anvaya Labs Textile",
-		Address:                "Surat, Gujarat, India",
-		TextileFacilityType:    "Cut and sew",
-		TextileSupplyChainTier: "Tier 1",
+	t := &models.Tenant{
+		CompanyName: "Anvaya Labs Textile",
+		Address:     "Surat, Gujarat, India",
 	}
+	t.EnsureTextileProfile()
+	t.TextileProfile.FacilityType = "Cut and sew"
+	t.TextileProfile.SupplyChainTier = "Tier 1"
+	return t
 }
 
 func TestGenerateComplianceDeclaration_TextileSucceedsWithoutCarbonData(t *testing.T) {

@@ -25,10 +25,10 @@ func TestTextileLabelLinesMatchGolden(t *testing.T) {
 			Certifications:  []string{"GOTS", "OEKO-TEX"},
 		},
 	}
-	tenant := &models.Tenant{
-		TextileFacilityType:    "Cut and sew",
-		TextileSupplyChainTier: "Tier 1",
-	}
+	tenant := &models.Tenant{}
+	tenant.EnsureTextileProfile()
+	tenant.TextileProfile.FacilityType = "Cut and sew"
+	tenant.TextileProfile.SupplyChainTier = "Tier 1"
 
 	actual := strings.Join([]string{
 		labelPrimaryText(batch, GetLabelTranslations("en")),

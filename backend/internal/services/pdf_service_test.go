@@ -21,10 +21,10 @@ func TestLabelHelpers_TextileContent(t *testing.T) {
 			Certifications:  []string{"GOTS", "OEKO-TEX"},
 		},
 	}
-	tenant := &models.Tenant{
-		TextileFacilityType:    "Cut and sew",
-		TextileSupplyChainTier: "Tier 1",
-	}
+	tenant := &models.Tenant{}
+	tenant.EnsureTextileProfile()
+	tenant.TextileProfile.FacilityType = "Cut and sew"
+	tenant.TextileProfile.SupplyChainTier = "Tier 1"
 
 	assert.Equal(t, "Organic Cotton / Rec..", labelPrimaryText(batch, GetLabelTranslations("en")))
 	assert.Equal(t, "finished_goods | 240 units", labelDetailText(batch, nil, nil))

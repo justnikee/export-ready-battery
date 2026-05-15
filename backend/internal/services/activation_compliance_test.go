@@ -68,16 +68,18 @@ func makeBaseTextileBatch(region models.MarketRegion) *models.Batch {
 }
 
 func makeBaseTenant() *models.Tenant {
-	return &models.Tenant{
-		CompanyName:                       "TestCorp",
-		Address:                           "123 Main St",
-		EPRRegistrationNumber:             "EPR-123",
-		BISRNumber:                        "BIS-456",
-		IECCode:                           "1234567890",
-		EUAuthorizedRepresentativeName:    "EU Rep",
-		EUAuthorizedRepresentativeAddress: "EU Address",
-		EUContactEmail:                    "eu@test.com",
+	t := &models.Tenant{
+		CompanyName: "TestCorp",
+		Address:     "123 Main St",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EPRRegistrationNumber = "EPR-123"
+	t.BatteryProfile.BISRNumber = "BIS-456"
+	t.BatteryProfile.IECCode = "1234567890"
+	t.BatteryProfile.EUAuthorizedRepresentativeName = "EU Rep"
+	t.BatteryProfile.EUAuthorizedRepresentativeAddress = "EU Address"
+	t.BatteryProfile.EUContactEmail = "eu@test.com"
+	return t
 }
 
 func TestAISCertGate_IndiaBatchWithoutCerts(t *testing.T) {

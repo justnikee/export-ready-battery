@@ -24,11 +24,12 @@ func TestBuildBatchSnapshot_TextileIncludesProductAndTenantFields(t *testing.T) 
 		},
 	}
 	tenant := &models.Tenant{
-		ID:                     uuid.New(),
-		CompanyName:            "Anvaya Labs Textile",
-		TextileFacilityType:    "Cut and sew",
-		TextileSupplyChainTier: "Tier 1",
+		ID:          uuid.New(),
+		CompanyName: "Anvaya Labs Textile",
 	}
+	tenant.EnsureTextileProfile()
+	tenant.TextileProfile.FacilityType = "Cut and sew"
+	tenant.TextileProfile.SupplyChainTier = "Tier 1"
 
 	raw, err := BuildBatchSnapshot(batch, tenant)
 	require.NoError(t, err)

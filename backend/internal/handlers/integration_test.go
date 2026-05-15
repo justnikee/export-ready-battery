@@ -70,10 +70,11 @@ func TestGetEPRObligation_Success(t *testing.T) {
 	mfgDate := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 
 	tenant := &models.Tenant{
-		ID:                    tenantID,
-		CompanyName:           "Test Battery Co",
-		EPRRegistrationNumber: "EPR/WP/2024/00001",
+		ID:          tenantID,
+		CompanyName: "Test Battery Co",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00001"
 
 	batches := []*models.Batch{
 		{
@@ -179,10 +180,11 @@ func TestGetEPRObligation_NotRegistered(t *testing.T) {
 
 	tenantID := uuid.New()
 	tenant := &models.Tenant{
-		ID:                    tenantID,
-		CompanyName:           "Unregistered Co",
-		EPRRegistrationNumber: "",
+		ID:          tenantID,
+		CompanyName: "Unregistered Co",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = ""
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 	mockRepo.On("ListBatches", mock.Anything, tenantID, models.ProductTypeBattery, 1000, 0).Return([]*models.Batch{}, 0, nil)
@@ -219,10 +221,11 @@ func TestGetEPRMultiYear_Success(t *testing.T) {
 
 	tenantID := uuid.New()
 	tenant := &models.Tenant{
-		ID:                    tenantID,
-		CompanyName:           "Multi Year Corp",
-		EPRRegistrationNumber: "EPR/WP/2024/00002",
+		ID:          tenantID,
+		CompanyName: "Multi Year Corp",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00002"
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 	mockRepo.On("ListBatches", mock.Anything, tenantID, models.ProductTypeBattery, 1000, 0).Return([]*models.Batch{}, 0, nil)
@@ -290,13 +293,14 @@ func TestActivation_IndiaWithAIS_Passes(t *testing.T) {
 		},
 	}
 	tenant := &models.Tenant{
-		ID:                    tid,
-		CompanyName:           "Test Co",
-		EPRRegistrationNumber: "EPR/WP/2024/00001",
-		BISRNumber:            "R-12345678",
-		IECCode:               "IEC0123456",
-		MorthManufacturerCode: "TCO",
+		ID:          tid,
+		CompanyName: "Test Co",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00001"
+	tenant.BatteryProfile.BISRNumber = "R-12345678"
+	tenant.BatteryProfile.IECCode = "IEC0123456"
+	tenant.BatteryProfile.MorthManufacturerCode = "TCO"
 
 	result := services.ValidateActivationCompliance(batch, tenant)
 
@@ -335,13 +339,14 @@ func TestActivation_IndiaWithoutAIS_Blocked(t *testing.T) {
 		},
 	}
 	tenant := &models.Tenant{
-		ID:                    tid,
-		CompanyName:           "Test Co",
-		EPRRegistrationNumber: "EPR/WP/2024/00001",
-		BISRNumber:            "R-12345678",
-		IECCode:               "IEC0123456",
-		MorthManufacturerCode: "TCO",
+		ID:          tid,
+		CompanyName: "Test Co",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00001"
+	tenant.BatteryProfile.BISRNumber = "R-12345678"
+	tenant.BatteryProfile.IECCode = "IEC0123456"
+	tenant.BatteryProfile.MorthManufacturerCode = "TCO"
 
 	result := services.ValidateActivationCompliance(batch, tenant)
 
@@ -666,12 +671,13 @@ func TestComplianceCheck_TextileEU_Valid(t *testing.T) {
 	tenantID := uuid.New()
 
 	tenant := &models.Tenant{
-		ID:                                tenantID,
-		CompanyName:                       "Anvaya Textiles EU",
-		Address:                           "Berlin, Germany",
-		EUAuthorizedRepresentativeName:    "EU Rep GmbH",
-		EUAuthorizedRepresentativeAddress: "Berlin, Germany",
+		ID:          tenantID,
+		CompanyName: "Anvaya Textiles EU",
+		Address:     "Berlin, Germany",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EUAuthorizedRepresentativeName = "EU Rep GmbH"
+	tenant.BatteryProfile.EUAuthorizedRepresentativeAddress = "Berlin, Germany"
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 

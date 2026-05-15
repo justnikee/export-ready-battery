@@ -54,13 +54,15 @@ func validEUBatch() *models.Batch {
 }
 
 func validEUTenant() *models.Tenant {
-	return &models.Tenant{
-		CompanyName:                       "TataEnergy GmbH",
-		Address:                           "123 Batterieplatz, Berlin, Germany",
-		EUAuthorizedRepresentativeName:    "EU Rep GmbH",
-		EUAuthorizedRepresentativeAddress: "456 Vertreter Str, Frankfurt, Germany",
-		EUContactEmail:                    "eu-dpp@tataenergy.de",
+	t := &models.Tenant{
+		CompanyName: "TataEnergy GmbH",
+		Address:     "123 Batterieplatz, Berlin, Germany",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EUAuthorizedRepresentativeName = "EU Rep GmbH"
+	t.BatteryProfile.EUAuthorizedRepresentativeAddress = "456 Vertreter Str, Frankfurt, Germany"
+	t.BatteryProfile.EUContactEmail = "eu-dpp@tataenergy.de"
+	return t
 }
 
 // ============================================================================

@@ -8,10 +8,12 @@ import (
 )
 
 func makeEPRTenant(eprNumber string) *models.Tenant {
-	return &models.Tenant{
-		CompanyName:           "Test Batteries Pvt Ltd",
-		EPRRegistrationNumber: eprNumber,
+	t := &models.Tenant{
+		CompanyName: "Test Batteries Pvt Ltd",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EPRRegistrationNumber = eprNumber
+	return t
 }
 
 func makeIndiaBatch(weight string, passports int, year int) *models.Batch {

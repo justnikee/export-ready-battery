@@ -48,12 +48,14 @@ func validEUTextileBatch() *models.Batch {
 }
 
 func validEUTextileTenant() *models.Tenant {
-	return &models.Tenant{
-		CompanyName:                       "Anvaya Labs Textile",
-		Address:                           "Surat, Gujarat, India",
-		EUAuthorizedRepresentativeName:    "EU Textile Rep GmbH",
-		EUAuthorizedRepresentativeAddress: "Berlin, Germany",
+	t := &models.Tenant{
+		CompanyName: "Anvaya Labs Textile",
+		Address:     "Surat, Gujarat, India",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EUAuthorizedRepresentativeName = "EU Textile Rep GmbH"
+	t.BatteryProfile.EUAuthorizedRepresentativeAddress = "Berlin, Germany"
+	return t
 }
 
 func TestEUValidator_ValidBatch_Passes(t *testing.T) {
@@ -79,7 +81,7 @@ func TestEUValidator_MissingCompanyName_Fails(t *testing.T) {
 func TestEUValidator_MissingEURepName_Fails(t *testing.T) {
 	batch := validEUTextileBatch()
 	tenant := validEUTextileTenant()
-	tenant.EUAuthorizedRepresentativeName = ""
+	tenant.BatteryProfile.EUAuthorizedRepresentativeName = ""
 
 	v := textile.NewEUValidator()
 	result, err := v.ValidateBatch(batch, tenant)

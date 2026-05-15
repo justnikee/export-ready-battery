@@ -11,6 +11,14 @@ import (
 )
 
 func TestBuildPublicView_TextileCarriesProductSpecificFields(t *testing.T) {
+	tenant := &Tenant{
+		ID:          uuid.New(),
+		CompanyName: "Anvaya Labs Textile",
+	}
+	tenant.EnsureTextileProfile()
+	tenant.TextileProfile.FacilityType = "Cut and sew"
+	tenant.TextileProfile.SupplyChainTier = "Tier 1"
+
 	full := &PassportWithSpecs{
 		Passport: &Passport{
 			UUID:         uuid.New(),
@@ -28,12 +36,7 @@ func TestBuildPublicView_TextileCarriesProductSpecificFields(t *testing.T) {
 			LotSize:         "500 units",
 			ProductionStage: "finished_goods",
 		},
-		Tenant: &Tenant{
-			ID:                     uuid.New(),
-			CompanyName:            "Anvaya Labs Textile",
-			TextileFacilityType:    "Cut and sew",
-			TextileSupplyChainTier: "Tier 1",
-		},
+		Tenant: tenant,
 	}
 
 	view := BuildPublicView(full)

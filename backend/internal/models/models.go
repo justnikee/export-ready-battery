@@ -92,31 +92,9 @@ type Tenant struct {
 	ProductType  ProductType `json:"product_type"`
 	CreatedAt    time.Time `json:"created_at"`
 
-	// EU Authorized Representative (EU Battery Regulation)
-	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name,omitempty"`
-	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address,omitempty"`
-	EUContactEmail                    string `json:"eu_contact_email,omitempty"`
-
 	// Quota System (Monetization)
 	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
 	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
-
-	// India Regulatory Compliance Fields (BWM Rules 2022 & BIS)
-	EPRRegistrationNumber string `json:"epr_registration_number,omitempty"` // CPCB EPR registration
-	BISRNumber            string `json:"bis_r_number,omitempty"`            // BIS CRS registration (IS 16046)
-	IECCode               string `json:"iec_code,omitempty"`                // Import Export Code (for importers)
-	MorthManufacturerCode string `json:"morth_manufacturer_code,omitempty"` // MoRTH manufacturer code
-	MorthFactoryCodes     string `json:"morth_factory_codes,omitempty"`     // MoRTH factory codes
-
-	// Certificate Document Paths (Compliance Vault)
-	EPRCertificatePath string `json:"epr_certificate_path,omitempty"` // Path to EPR certificate PDF
-	BISCertificatePath string `json:"bis_certificate_path,omitempty"` // Path to BIS certificate PDF
-	PLICertificatePath string `json:"pli_certificate_path,omitempty"` // Path to PLI certificate PDF
-
-	// Document Verification Status (NOT_UPLOADED, PENDING, VERIFIED, REJECTED)
-	EPRStatus string `json:"epr_status,omitempty"` // EPR certificate verification status
-	BISStatus string `json:"bis_status,omitempty"` // BIS certificate verification status
-	PLIStatus string `json:"pli_status,omitempty"` // PLI certificate verification status
 
 	// Partner Access (Tier B Magic Link Verification)
 	PartnerAccessCode string `json:"partner_access_code,omitempty"` // Secret code for external partner verification
@@ -132,16 +110,8 @@ type Tenant struct {
 	DataVisibility json.RawMessage `json:"data_visibility,omitempty"`
 
 	// Product-specific profiles (populated from battery_tenant_profiles / textile_tenant_profiles).
-	BatteryProfile *BatteryTenantProfile  `json:"battery_profile,omitempty"`
-	TextileProfile *TextileTenantProfile  `json:"textile_profile,omitempty"`
-
-	// Textile-specific profile fields.
-	TextileFacilityType       string          `json:"textile_facility_type,omitempty"`
-	TextileSupplyChainTier    string          `json:"textile_supply_chain_tier,omitempty"`
-	TextilePrimaryMarkets     json.RawMessage `json:"textile_primary_markets,omitempty"`
-	TextileDefaultFiberTypes  json.RawMessage `json:"textile_default_fiber_types,omitempty"`
-	TextileCertifications     json.RawMessage `json:"textile_certifications,omitempty"`
-	TextileComplianceDefaults json.RawMessage `json:"textile_compliance_defaults,omitempty"`
+	BatteryProfile *BatteryTenantProfile `json:"battery_profile,omitempty"`
+	TextileProfile *TextileTenantProfile `json:"textile_profile,omitempty"`
 }
 
 // UpdateProfileRequest represents the payload for updating tenant profile

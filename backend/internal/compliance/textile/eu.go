@@ -103,11 +103,12 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 		addMissing("tenant.address",
 			"Manufacturer address is required for EU textile passport disclosures", euESPRRef)
 	}
-	if tenant.EUAuthorizedRepresentativeName == "" {
+	tenant.EnsureBatteryProfile()
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
 		addMissing("tenant.eu_authorized_representative_name",
 			"EU Authorized Representative name is mandatory for non-EU manufacturers", euESPRRef)
 	}
-	if tenant.EUAuthorizedRepresentativeAddress == "" {
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
 		addMissing("tenant.eu_authorized_representative_address",
 			"EU Authorized Representative address is mandatory", euESPRRef)
 	}

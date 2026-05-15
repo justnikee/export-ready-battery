@@ -38,13 +38,15 @@ func validIndiaBatch() *models.Batch {
 }
 
 func validIndiaTenant() *models.Tenant {
-	return &models.Tenant{
-		CompanyName:           "Tata Energy",
-		EPRRegistrationNumber: "B-29016/2024-25/CPCB",
-		BISRNumber:            "R-41001234",
-		IECCode:               "TATPL1234C",
-		MorthManufacturerCode: "MFGR01",
+	t := &models.Tenant{
+		CompanyName: "Tata Energy",
 	}
+	t.EnsureBatteryProfile()
+	t.BatteryProfile.EPRRegistrationNumber = "B-29016/2024-25/CPCB"
+	t.BatteryProfile.BISRNumber = "R-41001234"
+	t.BatteryProfile.IECCode = "TATPL1234C"
+	t.BatteryProfile.MorthManufacturerCode = "MFGR01"
+	return t
 }
 
 // ============================================================================

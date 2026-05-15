@@ -19,14 +19,15 @@ func main() {
 
 	// Create mock tenant with India compliance fields
 	tenant := &models.Tenant{
-		ID:                    uuid.New(),
-		CompanyName:           "Acme Batteries Pvt. Ltd.",
-		Address:               "Industrial Area, Phase II, New Delhi",
-		SupportEmail:          "support@acmebatteries.in",
-		EPRRegistrationNumber: "B-29016/2024-25/CPCB",
-		BISRNumber:            "41001234",
-		IECCode:               "0504012345",
+		ID:           uuid.New(),
+		CompanyName:  "Acme Batteries Pvt. Ltd.",
+		Address:      "Industrial Area, Phase II, New Delhi",
+		SupportEmail: "support@acmebatteries.in",
 	}
+	tenant.EnsureBatteryProfile()
+	tenant.BatteryProfile.EPRRegistrationNumber = "B-29016/2024-25/CPCB"
+	tenant.BatteryProfile.BISRNumber = "41001234"
+	tenant.BatteryProfile.IECCode = "0504012345"
 
 	// Create mock batch
 	batch := &models.Batch{
