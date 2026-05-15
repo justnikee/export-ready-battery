@@ -7,8 +7,13 @@ import { formatDistanceToNow } from "date-fns";
 import {
   Layers3,
   AlertCircle,
-  ArrowRight,
-  Shield,
+  Plus,
+  FileCheck,
+  Leaf,
+  Shirt,
+  Droplets,
+  Zap,
+  Recycle,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,6 +22,10 @@ import type { Batch } from "@/lib/types";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import { getProductConfigByType } from "@/lib/products";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { CreateBatchDialog } from "@/components/batches/create-batch-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface DashboardStats {
   total_passports: number;
@@ -24,14 +33,6 @@ interface DashboardStats {
   quota_used: number;
   quota_limit: number;
   passports_this_week: number;
-}
-
-interface RecentBatch {
-  id: string;
-  name: string;
-  units: number;
-  status: string;
-  created_at: string;
 }
 
 interface BatchesResponse {
@@ -43,7 +44,7 @@ export default function TextileDashboardPage() {
   const pathname = usePathname();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentBatches, setRecentBatches] = useState<RecentBatch[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
 
   const batchesHref = dashboardPathFromPathname(pathname, "batches");
@@ -106,17 +107,7 @@ export default function TextileDashboardPage() {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
-      setRecentBatches(
-        sortedByDateDesc.slice(0, 5).map((b) => ({
-          id: b.id,
-          name: b.batch_name || "Lot",
-          units: b.total_passports || 0,
-          status: b.status || "DRAFT",
-          created_at: formatDistanceToNow(new Date(b.created_at), {
-            addSuffix: true,
-          }),
-        })),
-      );
+      setBatches(sortedByDateDesc);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
@@ -133,6 +124,66 @@ export default function TextileDashboardPage() {
   const quotaPercent = Math.round((quotaUsed / quotaLimit) * 100);
   const isOverLimit = quotaUsed > quotaLimit;
 
+  const recentBatches = batches.slice(0, 5);
+
+  // ── Aggregate textile metrics ──
+  const textileBatches = batches.filter((b) => b.product_type === "TEXTILE");
+
+  const avg = (key: keyof Batch["specs"]) => {
+    const values = textileBatches
+      .map((b) => b.specs?.[key])
+      .filter((v): v is number => typeof v === "number");
+    if (values.length === 0) return 0;
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  };
+
+  const avgWater = avg("water_usage_liters");
+  const avgEnergy = avg("energy_usage_kwh");
+  const avgRecycled = avg("recycled_content_pct");
+  const avgBiodegradable = avg("biodegradable_pct");
+
+  // ── Fiber breakdown ──
+  const fiberKeys = [
+    { key: "cotton_pct", label: "Cotton" },
+    { key: "polyester_pct", label: "Polyester" },
+    { key: "wool_pct", label: "Wool" },
+    { key: "silk_pct", label: "Silk" },
+    { key: "linen_pct", label: "Linen" },
+    { key: "viscose_pct", label: "Viscose" },
+    { key: "nylon_pct", label: "Nylon" },
+    { key: "acrylic_pct", label: "Acrylic" },
+    { key: "hemp_pct", label: "Hemp" },
+    { key: "other_pct", label: "Other" },
+  ] as const;
+
+  const fiberTotals = fiberKeys
+    .map(({ key, label }) => ({
+      key,
+      label,
+      value: textileBatches.reduce((sum, b) => {
+        const pct = b.specs?.fiber_composition?.[key];
+        return sum + (typeof pct === "number" ? pct : 0);
+      }, 0),
+    }))
+    .filter((f) => f.value > 0);
+
+  const totalFiber = fiberTotals.reduce((sum, f) => sum + f.value, 0) || 1;
+
+  // ── Compliance buckets ──
+  const greenLots = batches.filter(
+    (b) => (b.compliance_score ?? 0) > 75,
+  ).length;
+  const amberLots = batches.filter((b) => {
+    const s = b.compliance_score ?? 0;
+    return s >= 50 && s <= 75;
+  }).length;
+  const redLots = batches.filter(
+    (b) => (b.compliance_score ?? 0) < 50 && b.compliance_score !== undefined && b.compliance_score !== null,
+  ).length;
+  const unscoredLots = batches.filter(
+    (b) => b.compliance_score === undefined || b.compliance_score === null,
+  ).length;
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -140,6 +191,7 @@ export default function TextileDashboardPage() {
   return (
     <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">
@@ -149,15 +201,19 @@ export default function TextileDashboardPage() {
               {dashboardConfig.subtitle}
             </p>
           </div>
-          <Link
-            href={batchesHref}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Layers3 className="h-4 w-4" />
-            {dashboardConfig.primaryActionLabel}
-          </Link>
+          <div className="flex items-center gap-2">
+            <CreateBatchDialog onBatchCreated={fetchDashboardData} />
+            <Link
+              href={batchesHref}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Layers3 className="h-4 w-4" />
+              {dashboardConfig.primaryActionLabel}
+            </Link>
+          </div>
         </div>
 
+        {/* Banner */}
         {dashboardConfig.banner ? (
           <div className="relative bg-transparent border border-border rounded-none p-5">
             <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
@@ -183,6 +239,7 @@ export default function TextileDashboardPage() {
           </div>
         ) : null}
 
+        {/* Quick Actions Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {dashboardConfig.quickActions.map((action) => {
             const Icon = action.icon;
@@ -214,6 +271,18 @@ export default function TextileDashboardPage() {
           })}
         </div>
 
+        {/* Extra quick action links */}
+        <div className="flex items-center gap-3">
+          <Link
+            href={settingsHref}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <FileCheck className="h-4 w-4" />
+            Upload Compliance Certificates
+          </Link>
+        </div>
+
+        {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
             <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
@@ -302,7 +371,7 @@ export default function TextileDashboardPage() {
                 <span className="code-label text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {dashboardConfig.workspaceCard.title}
                 </span>
-                <Shield className="h-4 w-4 text-blue-500" />
+                <FileCheck className="h-4 w-4 text-blue-500" />
               </div>
               <p className="text-sm text-foreground">
                 {dashboardConfig.workspaceCard.description}
@@ -317,6 +386,160 @@ export default function TextileDashboardPage() {
           ) : null}
         </div>
 
+        {/* Textile-specific Widgets */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Sustainability Overview */}
+          <Card className="border border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <Leaf className="h-4 w-4 text-emerald-500" />
+                Sustainability Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Avg Water Usage</span>
+                  <span className="text-foreground font-medium">
+                    {avgWater.toFixed(1)} L
+                  </span>
+                </div>
+                <div className="w-full bg-muted h-1.5">
+                  <div
+                    className="h-1.5 bg-cyan-500"
+                    style={{ width: `${Math.min((avgWater / 100) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Avg Energy Usage</span>
+                  <span className="text-foreground font-medium">
+                    {avgEnergy.toFixed(1)} kWh
+                  </span>
+                </div>
+                <div className="w-full bg-muted h-1.5">
+                  <div
+                    className="h-1.5 bg-emerald-500"
+                    style={{ width: `${Math.min((avgEnergy / 50) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Recycled Content</span>
+                  <span className="text-foreground font-medium">
+                    {avgRecycled.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted h-1.5">
+                  <div
+                    className="h-1.5 bg-teal-500"
+                    style={{ width: `${Math.min(avgRecycled, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Biodegradable</span>
+                  <span className="text-foreground font-medium">
+                    {avgBiodegradable.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-muted h-1.5">
+                  <div
+                    className="h-1.5 bg-green-500"
+                    style={{ width: `${Math.min(avgBiodegradable, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fiber Breakdown */}
+          <Card className="border border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <Shirt className="h-4 w-4 text-cyan-500" />
+                Fiber Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {fiberTotals.length > 0 ? (
+                fiberTotals.map((fiber) => (
+                  <div key={fiber.key}>
+                    <div className="flex justify-between text-xs mb-0.5">
+                      <span className="text-muted-foreground">
+                        {fiber.label}
+                      </span>
+                      <span className="text-foreground font-medium">
+                        {((fiber.value / totalFiber) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted h-1.5">
+                      <div
+                        className="h-1.5 bg-cyan-500"
+                        style={{
+                          width: `${Math.min((fiber.value / totalFiber) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No fiber composition data available
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Compliance Status */}
+          <Card className="border border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <FileCheck className="h-4 w-4 text-emerald-500" />
+                Compliance Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-2 bg-emerald-500/5 border border-emerald-500/10">
+                <span className="text-xs text-muted-foreground">
+                  Green (&gt;75)
+                </span>
+                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                  {greenLots} lots
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-amber-500/5 border border-amber-500/10">
+                <span className="text-xs text-muted-foreground">
+                  Amber (50-75)
+                </span>
+                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                  {amberLots} lots
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-2 bg-red-500/5 border border-red-500/10">
+                <span className="text-xs text-muted-foreground">Red (&lt;50)</span>
+                <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
+                  {redLots} lots
+                </Badge>
+              </div>
+              {unscoredLots > 0 && (
+                <div className="flex items-center justify-between p-2 bg-muted border border-border">
+                  <span className="text-xs text-muted-foreground">
+                    Not Scored
+                  </span>
+                  <Badge className="bg-muted text-muted-foreground border-border">
+                    {unscoredLots} lots
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Lots Table */}
         <div className="relative bg-transparent border border-border rounded-none overflow-visible">
           <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
           <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
@@ -343,6 +566,18 @@ export default function TextileDashboardPage() {
                   Records
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Material Profile
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Production Stage
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  GSM
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Compliance
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -363,11 +598,42 @@ export default function TextileDashboardPage() {
                 >
                   <td className="px-4 py-3">
                     <span className="text-sm font-medium text-foreground hover:text-blue-500">
-                      {batch.name}
+                      {batch.batch_name || "Lot"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {batch.units}
+                    {batch.total_passports || 0}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {batch.specs?.material_profile || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {batch.specs?.production_stage
+                      ? batch.specs.production_stage
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (l) => l.toUpperCase())
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {batch.specs?.gsm ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {batch.compliance_score !== undefined &&
+                    batch.compliance_score !== null ? (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-xs font-medium border ${
+                          batch.compliance_score > 75
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : batch.compliance_score >= 50
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}
+                      >
+                        {batch.compliance_score}%
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -387,14 +653,16 @@ export default function TextileDashboardPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {batch.created_at}
+                    {formatDistanceToNow(new Date(batch.created_at), {
+                      addSuffix: true,
+                    })}
                   </td>
                 </tr>
               ))}
               {recentBatches.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     {dashboardConfig.recentEmptyState}

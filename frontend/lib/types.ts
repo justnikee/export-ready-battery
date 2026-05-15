@@ -148,6 +148,44 @@ export interface HazardousSubstances {
   exemptions?: string;
 }
 
+export interface FiberComposition {
+  cotton_pct?: number;
+  polyester_pct?: number;
+  wool_pct?: number;
+  silk_pct?: number;
+  linen_pct?: number;
+  viscose_pct?: number;
+  nylon_pct?: number;
+  acrylic_pct?: number;
+  hemp_pct?: number;
+  other_pct?: number;
+}
+
+export interface SupplierTier {
+  fiber_supplier?: string;
+  spinning_mill?: string;
+  weaving_knitting_mill?: string;
+  dye_house?: string;
+  finishing_facility?: string;
+  cut_sew_facility?: string;
+}
+
+export interface LaborCompliance {
+  sa8000_certified?: boolean;
+  bsci_audited?: boolean;
+  sedex_member?: boolean;
+  fair_trade_certified?: boolean;
+  audit_date?: string;
+  audit_score?: number;
+}
+
+export interface ChemicalComplianceZDHC {
+  zdhc_level?: "1" | "2" | "3" | "NA";
+  mrsl_tested?: boolean;
+  test_report_url?: string;
+  restricted_substances_found?: string[];
+}
+
 export interface BatchSpec {
   chemistry: string;
   voltage: string;
@@ -171,16 +209,42 @@ export interface BatchSpec {
   manufacturer_address?: string;
   eu_representative?: string;
   eu_representative_email?: string;
-  expected_lifetime_cycles?: number | null; // e.g., 1000
-  warranty_months?: number | null; // e.g., 24
-  recycled_content_pct?: number | null; // stored as literal: 15.5 = 15.5%
+  expected_lifetime_cycles?: number | null;
+  warranty_months?: number | null;
+  recycled_content_pct?: number | null;
   hazardous_substances?: HazardousSubstances;
 
   // India PLI Compliance Fields - Financial data for DVA calculation
-  sale_price_inr?: number; // Sale price in INR for DVA calculation
-  import_cost_inr?: number; // Import material cost in INR
+  sale_price_inr?: number;
+  import_cost_inr?: number;
 
-  battery_category?: string; // EV, LMT, INDUSTRIAL, PORTABLE, SLI
+  battery_category?: string;
+
+  // ── Textile-Specific Fields ──
+  gsm?: number;
+  water_usage_liters?: number;
+  energy_usage_kwh?: number;
+  dye_process?: "reactive" | "vat" | "disperse" | "acid" | "natural" | "pigment" | "none" | "undyed";
+  fiber_composition?: FiberComposition;
+  supplier_tier?: SupplierTier;
+  labor_compliance?: LaborCompliance;
+  chemical_compliance_zdhc?: ChemicalComplianceZDHC;
+  dye_chemicals?: string[];
+  finish_type?: string[];
+  color?: string;
+  dimensions?: string;
+  packaging_type?: string;
+  order_quantity?: number;
+  biodegradable_pct?: number;
+  expected_lifetime_washes?: number;
+  fiber_origin?: string;
+
+  // v2: Fields migrated from top-level Batch columns
+  bill_of_entry_no?: string;
+  customs_date?: string;
+  dva_source?: string;
+  audited_domestic_value_add?: number;
+  pli_certificate_url?: string;
 }
 
 export interface Batch {
@@ -198,33 +262,17 @@ export interface Batch {
   // Dual-Mode Compliance Fields
   market_region: MarketRegion;
   pli_compliant: boolean;
-  domestic_value_add: number; // stored as literal: 45.5 = 45.5%
-  cell_source?: "IMPORTED" | "DOMESTIC";
+  domestic_value_add: number;
   total_passports: number;
-
-  // India Import/Customs Fields
-  bill_of_entry_no?: string;
-  country_of_origin?: string;
-  customs_date?: string;
-
-  // India Compliance Fields
-  hsn_code?: string; // e.g., "8507.60"
-  bis_number?: string;
-  epr_number?: string;
-
-  // PLI/DVA Audit Compliance Fields
-  dva_source?: string;
-  audited_domestic_value_add?: number | null;
-  pli_certificate_url?: string;
 
   // EU Carbon Calculator Result (Article 7)
   carbon_footprint_result?: Record<string, unknown> | null;
 
-  // v2: Product-agnostic fields (Phase 3+)
+  // v2: Product-agnostic fields
   product_type?: ProductType;
   schema_version?: number;
-  compliance_score?: number; // 0–100, computed by compliance engine
-  compliance_gaps?: ComplianceGap[]; // structured gap list from engine
+  compliance_score?: number;
+  compliance_gaps?: ComplianceGap[];
 }
 
 // ============================================================================
