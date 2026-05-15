@@ -284,7 +284,7 @@ func TestGetBulkAllowedActionsForFilter_IntersectsAcrossFilteredDataset(t *testi
 		{UUID: uuid.New().String(), Status: models.PassportStatusActive},
 		{UUID: uuid.New().String(), Status: models.PassportStatusCreated},
 	}
-	mockRepo.On("ListPassportsByTenant", ctx, tenantID, "", "", "", 500, 0).Return(items, len(items), nil).Once()
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, "", "", "", mock.AnythingOfType("models.ProductType"), 500, 0).Return(items, len(items), nil).Once()
 
 	actions, err := service.GetBulkAllowedActionsForFilter(ctx, tenantID, "", "", "", models.ActorRoleInternalOperator)
 
@@ -306,7 +306,7 @@ func TestBulkTransitionPassports_SelectAllStrictPrecheckBlocksMixedStatuses(t *t
 		{UUID: activePassportID.String(), Status: models.PassportStatusActive},
 		{UUID: createdPassportID.String(), Status: models.PassportStatusCreated},
 	}
-	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "", "", 500, 0).Return(items, len(items), nil).Once()
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "", "", mock.AnythingOfType("models.ProductType"), 500, 0).Return(items, len(items), nil).Once()
 	mockRepo.On("GetPassportByUUID", ctx, activePassportID).Return(&models.Passport{UUID: activePassportID, BatchID: activeBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Twice()
 	mockRepo.On("GetBatchTenantID", ctx, activeBatchID).Return(tenantID, nil).Once()
 	mockRepo.On("GetPassportByUUID", ctx, createdPassportID).Return(&models.Passport{UUID: createdPassportID, BatchID: createdBatchID, Status: models.PassportStatusCreated, CreatedAt: time.Now()}, nil).Twice()
@@ -355,8 +355,8 @@ func TestBulkTransitionPassports_SelectAllResolvesPagedFilteredDataset(t *testin
 
 	firstPage := []*repository.PassportListItem{{UUID: firstPassportID.String(), Status: models.PassportStatusActive}}
 	secondPage := []*repository.PassportListItem{{UUID: secondPassportID.String(), Status: models.PassportStatusActive}}
-	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", 500, 0).Return(firstPage, 2, nil).Once()
-	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", 500, 1).Return(secondPage, 2, nil).Once()
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", mock.AnythingOfType("models.ProductType"), 500, 0).Return(firstPage, 2, nil).Once()
+	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", mock.AnythingOfType("models.ProductType"), 500, 1).Return(secondPage, 2, nil).Once()
 	mockRepo.On("GetPassportByUUID", ctx, firstPassportID).Return(&models.Passport{UUID: firstPassportID, BatchID: firstBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(4)
 	mockRepo.On("GetBatchTenantID", ctx, firstBatchID).Return(tenantID, nil).Times(3)
 	mockRepo.On("GetPassportEvents", ctx, firstPassportID).Return([]*models.PassportEvent{}, nil).Once()

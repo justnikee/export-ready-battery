@@ -92,7 +92,7 @@ func TestGetEPRObligation_Success(t *testing.T) {
 	}
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return(batches, 2, nil)
+	mockRepo.On("ListBatches", mock.Anything, tenantID, models.ProductTypeBattery, 1000, 0).Return(batches, 2, nil)
 	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation?year=2026", nil)
@@ -176,7 +176,7 @@ func TestGetEPRObligation_NotRegistered(t *testing.T) {
 	}
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return([]*models.Batch{}, 0, nil)
+	mockRepo.On("ListBatches", mock.Anything, tenantID, models.ProductTypeBattery, 1000, 0).Return([]*models.Batch{}, 0, nil)
 	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation?year=2026", nil)
@@ -216,7 +216,7 @@ func TestGetEPRMultiYear_Success(t *testing.T) {
 	}
 
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("ListBatches", mock.Anything, tenantID, 1000, 0).Return([]*models.Batch{}, 0, nil)
+	mockRepo.On("ListBatches", mock.Anything, tenantID, models.ProductTypeBattery, 1000, 0).Return([]*models.Batch{}, 0, nil)
 	mockRepo.On("GetEPRCertificateSummary", mock.Anything, tenantID, mock.AnythingOfType("string")).Return(float64(0), 0, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/epr/obligation/summary", nil)
@@ -518,5 +518,259 @@ func TestLifecycleFlow_SkipStateBlocked(t *testing.T) {
 
 	if rr.Code != http.StatusConflict {
 		t.Fatalf("expected 409 for skipped state, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// ============================================================================
+// TEXTILE INTEGRATION TESTS
+// ============================================================================
+
+func TestCreateBatch_TextileIndia_Success(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	handler := newTestHandler(mockRepo)
+
+	tenantID := uuid.New()
+
+	tenant := &models.Tenant{
+		ID:          tenantID,
+		CompanyName: "Anvaya Textiles",
+		Address:     "Surat, Gujarat",
+	}
+	tenant.EnsureBatteryProfile()
+
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+
+	// Capture the created batch
+	var capturedReq repository.CreateBatchRequest
+	mockRepo.On("CreateBatch", mock.Anything, mock.MatchedBy(func(req repository.CreateBatchRequest) bool {
+		capturedReq = req
+		return req.ProductType == models.ProductTypeTextile
+	})).Return(&models.Batch{
+		ID:           uuid.New(),
+		TenantID:     tenantID,
+		BatchName:    "Cotton Jersey Lot",
+		ProductType:  models.ProductTypeTextile,
+		MarketRegion: models.MarketRegionIndia,
+		Status:       models.BatchStatusDraft,
+	}, nil)
+
+	body := `{
+		"tenant_id": "` + tenantID.String() + `",
+		"batch_name": "Cotton Jersey Lot",
+		"model_name": "Jersey Tee",
+		"product_type": "TEXTILE",
+		"market_region": "INDIA",
+		"manufacturing_start_date": "2026-01-01",
+		"manufacturing_end_date": "2026-01-31",
+		"specs": {
+			"material_profile": "100% organic cotton",
+			"country_of_origin": "India",
+			"production_stage": "finished_goods",
+			"gsm": 180,
+			"fiber_composition": {"cotton_pct": 100},
+			"labor_compliance": {"sa8000_certified": true, "audit_score": 85}
+		}
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/batches", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = setAuthContext(req, tenantID, "admin@test.com")
+
+	rr := httptest.NewRecorder()
+	handler.CreateBatch(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	if capturedReq.ProductType != models.ProductTypeTextile {
+		t.Errorf("expected ProductType TEXTILE, got %s", capturedReq.ProductType)
+	}
+	if capturedReq.Specs.FiberComposition == nil {
+		t.Error("expected FiberComposition to be set")
+	}
+	if capturedReq.Specs.GSM != 180 {
+		t.Errorf("expected GSM 180, got %f", capturedReq.Specs.GSM)
+	}
+}
+
+func TestComplianceCheck_TextileIndia_Valid(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	handler := newTestHandler(mockRepo)
+
+	tenantID := uuid.New()
+
+	tenant := &models.Tenant{
+		ID:          tenantID,
+		CompanyName: "Anvaya Textiles",
+		Address:     "Surat, Gujarat",
+	}
+
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+
+	body := `{
+		"product_type": "TEXTILE",
+		"market_region": "INDIA",
+		"specs": {
+			"manufacturer": "Anvaya Textiles",
+			"material_profile": "100% organic cotton",
+			"country_of_origin": "India",
+			"production_stage": "finished_goods",
+			"gsm": 180,
+			"fiber_composition": {"cotton_pct": 100},
+			"expected_lifetime_washes": 100,
+			"labor_compliance": {"sa8000_certified": true, "audit_score": 85},
+			"water_usage_liters": 150,
+			"energy_usage_kwh": 25
+		}
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/compliance/check", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = setAuthContext(req, tenantID, "admin@test.com")
+
+	rr := httptest.NewRecorder()
+	handler.ComplianceCheck(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	// ComplianceCheck dry-run does not fetch tenant data, so tenant checks appear as missing.
+	// A complete textile batch should score ~81.8 (9/11 checks) without tenant context.
+	score, _ := result["score"].(float64)
+	if score < 75 {
+		t.Errorf("expected decent compliance score for complete specs, got %.1f", score)
+	}
+}
+
+func TestComplianceCheck_TextileEU_Valid(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	handler := newTestHandler(mockRepo)
+
+	tenantID := uuid.New()
+
+	tenant := &models.Tenant{
+		ID:                                tenantID,
+		CompanyName:                       "Anvaya Textiles EU",
+		Address:                           "Berlin, Germany",
+		EUAuthorizedRepresentativeName:    "EU Rep GmbH",
+		EUAuthorizedRepresentativeAddress: "Berlin, Germany",
+	}
+
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+
+	body := `{
+		"product_type": "TEXTILE",
+		"market_region": "EU",
+		"specs": {
+			"manufacturer": "Anvaya Textiles EU",
+			"material_profile": "100% organic cotton",
+			"country_of_origin": "India",
+			"production_stage": "finished_goods",
+			"gsm": 180,
+			"fiber_composition": {"cotton_pct": 100},
+			"expected_lifetime_washes": 100,
+			"recycled_content_pct": 15,
+			"water_usage_liters": 150,
+			"energy_usage_kwh": 25,
+			"chemical_compliance_zdhc": {"zdhc_level": "2", "mrsl_tested": true},
+			"hazardous_substances": {"declaration": "No SVHC above threshold"}
+		}
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/compliance/check", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = setAuthContext(req, tenantID, "admin@test.com")
+
+	rr := httptest.NewRecorder()
+	handler.ComplianceCheck(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	// ComplianceCheck dry-run does not fetch tenant data, so tenant checks appear as missing.
+	// A complete EU textile batch should score ~68.8 (11/16 checks) without tenant context.
+	score, _ := result["score"].(float64)
+	if score < 60 {
+		t.Errorf("expected decent compliance score for complete EU specs, got %.1f", score)
+	}
+}
+
+func TestActivateBatch_Textile_Success(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	handler := newTestHandler(mockRepo)
+
+	tenantID := uuid.New()
+	batchID := uuid.New()
+	now := time.Now()
+
+	tenant := &models.Tenant{
+		ID:            tenantID,
+		CompanyName:   "Anvaya Textiles",
+		Address:       "Surat, Gujarat",
+		QuotaBalance:  10,
+		PlanType:      "GROWTH",
+	}
+
+	batch := &models.Batch{
+		ID:                     batchID,
+		TenantID:               tenantID,
+		BatchName:              "Cotton Jersey Lot",
+		ModelName:              "Jersey Tee",
+		ProductType:            models.ProductTypeTextile,
+		MarketRegion:           models.MarketRegionIndia,
+		Status:                 models.BatchStatusDraft,
+		ManufacturingStartDate: &now,
+		ManufacturingEndDate:   &now,
+		Specs: models.BatchSpec{
+			Manufacturer:    "Anvaya Textiles",
+			MaterialProfile: "100% organic cotton",
+			CountryOfOrigin: "India",
+			ProductionStage: "finished_goods",
+			GSM:             180,
+			FiberComposition: &models.FiberComposition{
+				CottonPct: 100,
+			},
+			ExpectedLifetimeWashes: &[]int{100}[0],
+			LaborCompliance: &models.LaborCompliance{
+				SA8000Certified: true,
+				AuditScore:      85,
+			},
+			WaterUsageLiters: 150,
+			EnergyUsageKWh:   25,
+		},
+	}
+
+	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(10, nil)
+	mockRepo.On("DeductQuota", mock.Anything, tenantID).Return(nil)
+	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.AnythingOfType("float64"), mock.Anything).Return(nil)
+	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil)
+	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(nil)
+	mockRepo.On("UpdateTenantQuota", mock.Anything, tenantID, -1).Return(nil)
+	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/billing/activate/"+batchID.String(), nil)
+	req.SetPathValue("id", batchID.String())
+	req = setAuthContext(req, tenantID, "admin@test.com")
+
+	rr := httptest.NewRecorder()
+	handler.ActivateBatch(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 for textile activation, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

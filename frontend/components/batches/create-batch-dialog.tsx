@@ -581,7 +581,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         manufacturing_start_date: manufacturingStartDate || undefined,
         manufacturing_end_date: manufacturingEndDate || undefined,
         market_region: marketRegion,
-        product_type: user?.product_type || "BATTERY",
+        product_type: user?.product_type || "TEXTILE",
         specs: {
           capacity,
           voltage,

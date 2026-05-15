@@ -28,6 +28,65 @@ func CalculateComplianceScore(batch *models.Batch, tenant *models.Tenant) models
 }
 
 func buildAttributeChecklist(batch *models.Batch, tenant *models.Tenant) []models.ComplianceAttribute {
+	if batch.ProductType == models.ProductTypeTextile {
+		return buildTextileAttributeChecklist(batch, tenant)
+	}
+	return buildBatteryAttributeChecklist(batch, tenant)
+}
+
+func buildTextileAttributeChecklist(batch *models.Batch, tenant *models.Tenant) []models.ComplianceAttribute {
+	s := batch.Specs
+	return []models.ComplianceAttribute{
+		// General Information
+		{ID: "TX-1", Name: "Material Profile", Category: "General", RegRef: "ESPR Art. 7", Filled: s.MaterialProfile != ""},
+		{ID: "TX-2", Name: "Manufacturer Name", Category: "General", RegRef: "ESPR Art. 7", Filled: s.Manufacturer != ""},
+		{ID: "TX-3", Name: "Country of Origin", Category: "General", RegRef: "ESPR Art. 7", Filled: s.CountryOfOrigin != ""},
+		{ID: "TX-4", Name: "Production Stage", Category: "General", RegRef: "ESPR Art. 7", Filled: s.ProductionStage != ""},
+		{ID: "TX-5", Name: "GSM", Category: "General", RegRef: "QCO", Filled: s.GSM > 0},
+		{ID: "TX-6", Name: "Model Name", Category: "General", RegRef: "ESPR Art. 7", Filled: batch.ModelName != ""},
+
+		// Fiber Composition (Legal Metrology / ESPR)
+		{ID: "TX-7", Name: "Fiber Composition Declared", Category: "Composition", RegRef: "Legal Metrology", Filled: s.FiberComposition != nil},
+		{ID: "TX-8", Name: "Fiber Composition Total 100%", Category: "Composition", RegRef: "Legal Metrology", Filled: s.FiberComposition != nil && fiberTotalIsValid(s.FiberComposition)},
+
+		// Durability & Sustainability
+		{ID: "TX-9", Name: "Expected Lifetime (Washes)", Category: "Durability", RegRef: "ESPR Art. 7", Filled: s.ExpectedLifetimeWashes != nil && *s.ExpectedLifetimeWashes > 0},
+		{ID: "TX-10", Name: "Recycled Content %", Category: "Sustainability", RegRef: "ESPR Art. 7", Filled: s.RecycledContentPct != nil && *s.RecycledContentPct >= 0},
+		{ID: "TX-11", Name: "Biodegradable %", Category: "Sustainability", RegRef: "ESPR Art. 7", Filled: s.BiodegradablePct != nil && *s.BiodegradablePct >= 0},
+
+		// Environmental Parameters
+		{ID: "TX-12", Name: "Water Usage (L/kg)", Category: "Environment", RegRef: "ESPR Art. 9", Filled: s.WaterUsageLiters > 0},
+		{ID: "TX-13", Name: "Energy Usage (kWh/kg)", Category: "Environment", RegRef: "ESPR Art. 9", Filled: s.EnergyUsageKWh > 0},
+		{ID: "TX-14", Name: "Carbon Footprint Result", Category: "Environment", RegRef: "ESPR Art. 9", Filled: len(batch.CarbonFootprintResult) > 0},
+
+		// Chemical Compliance
+		{ID: "TX-15", Name: "ZDHC MRSL Level", Category: "Chemical", RegRef: "ZDHC MRSL", Filled: s.ChemicalComplianceZDHC != nil && s.ChemicalComplianceZDHC.ZDHCLevel != "" && s.ChemicalComplianceZDHC.ZDHCLevel != "NA"},
+		{ID: "TX-16", Name: "MRSL Tested", Category: "Chemical", RegRef: "ZDHC MRSL", Filled: s.ChemicalComplianceZDHC != nil && s.ChemicalComplianceZDHC.MRSLTested},
+		{ID: "TX-17", Name: "Hazardous Substances Declaration", Category: "Chemical", RegRef: "REACH", Filled: s.HazardousSubstances != nil && s.HazardousSubstances.Declaration != ""},
+
+		// Labor Compliance
+		{ID: "TX-18", Name: "Labor Compliance Declared", Category: "Labor", RegRef: "SA8000/BSCI", Filled: s.LaborCompliance != nil},
+		{ID: "TX-19", Name: "Labor Certification", Category: "Labor", RegRef: "SA8000/BSCI", Filled: s.LaborCompliance != nil && (s.LaborCompliance.SA8000Certified || s.LaborCompliance.BSCIAudited || s.LaborCompliance.SedexMember || s.LaborCompliance.FairTradeCertified)},
+
+		// Certifications
+		{ID: "TX-20", Name: "Certifications List", Category: "Certifications", RegRef: "ESPR Art. 7", Filled: len(s.Certifications) > 0},
+
+		// Supply Chain
+		{ID: "TX-21", Name: "Supply Chain Due Diligence", Category: "Supply Chain", RegRef: "ESPR Art. 10", Filled: s.SupplyChainProvenance != nil && s.SupplyChainProvenance.DueDiligencePolicy != ""},
+	}
+}
+
+func fiberTotalIsValid(fc *models.FiberComposition) bool {
+	if fc == nil {
+		return false
+	}
+	total := fc.CottonPct + fc.PolyesterPct + fc.WoolPct + fc.SilkPct +
+		fc.LinenPct + fc.ViscosePct + fc.NylonPct + fc.AcrylicPct +
+		fc.HempPct + fc.OtherPct
+	return total >= 99.0 && total <= 101.0
+}
+
+func buildBatteryAttributeChecklist(batch *models.Batch, tenant *models.Tenant) []models.ComplianceAttribute {
 	s := batch.Specs
 	attrs := []models.ComplianceAttribute{
 		// General Information (Art 2, Art 7)

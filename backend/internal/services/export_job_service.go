@@ -382,14 +382,14 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 func (s *ExportJobService) getBatchData(ctx context.Context, batchID, tenantID uuid.UUID) (*models.Batch, []*models.Passport, *models.Tenant, error) {
 	// Get batch with computed passport count
 	batchQuery := `
-		SELECT b.id, b.batch_name, b.tenant_id, 
+		SELECT b.id, b.batch_name, b.tenant_id, b.product_type,
 		       COALESCE((SELECT COUNT(*)::int FROM passports WHERE batch_id = b.id), 0) as total_passports,
 		       b.status, b.created_at 
 		FROM batches b 
 		WHERE b.id = $1 AND b.tenant_id = $2`
 	batch := &models.Batch{}
 	err := s.db.QueryRow(ctx, batchQuery, batchID, tenantID).Scan(
-		&batch.ID, &batch.BatchName, &batch.TenantID, &batch.TotalPassports, &batch.Status, &batch.CreatedAt,
+		&batch.ID, &batch.BatchName, &batch.TenantID, &batch.ProductType, &batch.TotalPassports, &batch.Status, &batch.CreatedAt,
 	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get batch: %w", err)

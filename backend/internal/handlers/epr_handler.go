@@ -40,7 +40,12 @@ func (h *Handler) GetEPRObligation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, models.ProductTypeBattery, 1000, 0)
+	// EPR obligation is battery-specific (BWM Rules 2022). Default to battery; callers may override.
+	productType := models.ProductTypeBattery
+	if ptQuery := r.URL.Query().Get("product_type"); ptQuery != "" {
+		productType = models.ProductType(ptQuery)
+	}
+	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, productType, 1000, 0)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to load batches")
 		return
@@ -76,7 +81,12 @@ func (h *Handler) GetEPRMultiYear(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, models.ProductTypeBattery, 1000, 0)
+	// EPR obligation is battery-specific (BWM Rules 2022). Default to battery; callers may override.
+	productType := models.ProductTypeBattery
+	if ptQuery := r.URL.Query().Get("product_type"); ptQuery != "" {
+		productType = models.ProductType(ptQuery)
+	}
+	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, productType, 1000, 0)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to load batches")
 		return

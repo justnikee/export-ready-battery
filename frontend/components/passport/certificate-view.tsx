@@ -394,7 +394,8 @@ export function CertificateView({
   // Market
   const isIndia = marketRegion?.toUpperCase() === "INDIA";
   const isImported = cellSource?.toUpperCase() === "IMPORTED";
-  const productType = passportData.product_type || "BATTERY";
+  const productType = passportData.product_type ||
+    (passportData.template_variant?.toUpperCase().startsWith("TEXTILE") ? "TEXTILE" : "BATTERY");
   const templateConfig = resolvePassportTemplateConfig({
     templateVariant: passportData.template_variant,
     productType,

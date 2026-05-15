@@ -35,12 +35,18 @@ func (s *PassportService) GenerateSerial(
 		mfrCode = serial.DeriveManufacturerCode(tenant.CompanyName)
 	}
 
+	// Derive product code (chemistry for battery, primary fiber for textile)
+	productCode := batch.Specs.Chemistry
+	if batch.ProductType == models.ProductTypeTextile {
+		productCode = derivePrimaryFiberCode(batch.Specs.FiberComposition)
+	}
+
 	result, err := s.gen.Generate(
 		batch.ProductType,
 		batch.MarketRegion,
 		serial.Options{
 			ManufacturerCode: mfrCode,
-			Chemistry:        batch.Specs.Chemistry,
+			Chemistry:        productCode,
 			Sequence:         seq,
 		},
 	)
@@ -48,6 +54,41 @@ func (s *PassportService) GenerateSerial(
 		return "", fmt.Errorf("passport_service: failed to generate serial: %w", err)
 	}
 	return result, nil
+}
+
+// derivePrimaryFiberCode finds the highest-percentage fiber in the composition
+// and returns its 3-letter BPAN fiber code (e.g., "CTN", "POL", "WOL").
+func derivePrimaryFiberCode(fc *models.FiberComposition) string {
+	if fc == nil {
+		return "GEN"
+	}
+	type fiberEntry struct {
+		name string
+		pct  float64
+	}
+	fibers := []fiberEntry{
+		{"cotton", fc.CottonPct},
+		{"polyester", fc.PolyesterPct},
+		{"wool", fc.WoolPct},
+		{"silk", fc.SilkPct},
+		{"linen", fc.LinenPct},
+		{"viscose", fc.ViscosePct},
+		{"nylon", fc.NylonPct},
+		{"acrylic", fc.AcrylicPct},
+		{"hemp", fc.HempPct},
+	}
+	var maxPct float64
+	var primary string
+	for _, f := range fibers {
+		if f.pct > maxPct {
+			maxPct = f.pct
+			primary = f.name
+		}
+	}
+	if primary == "" {
+		return "GEN"
+	}
+	return serial.MapFiberCode(primary)
 }
 
 // Generator returns the underlying serial.Generator for cases where callers

@@ -23,6 +23,7 @@ import (
 type ExternalCreateBatchRequest struct {
 	BatchName              string           `json:"batch_name"`
 	ModelName              string           `json:"model_name,omitempty"`
+	ProductType            string           `json:"product_type,omitempty"`
 	MarketRegion           string           `json:"market_region"`
 	Specs                  models.BatchSpec `json:"specs"`
 	PLICompliant           bool             `json:"pli_compliant,omitempty"`
@@ -133,6 +134,7 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		ModelName:              req.ModelName,
 		Specs:                  req.Specs,
 		MarketRegion:           marketRegion,
+		ProductType:            models.ProductType(req.ProductType),
 		PLICompliant:           req.PLICompliant,
 		DomesticValueAdd:       req.DomesticValueAdd,
 		ManufacturingStartDate: manufacturingStart,

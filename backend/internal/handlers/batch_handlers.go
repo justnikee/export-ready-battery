@@ -246,8 +246,8 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Validate HSN Code for India market
-	if req.MarketRegion == models.MarketRegionIndia {
+	// Validate HSN Code for India market (battery-specific; textiles use different HS codes)
+	if req.MarketRegion == models.MarketRegionIndia && req.ProductType == models.ProductTypeBattery {
 		hsnResult := h.validationService.ValidateHSNCode(req.HSNCode)
 		if !hsnResult.Valid {
 			respondError(w, http.StatusBadRequest, hsnResult.Message)
@@ -922,13 +922,14 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 	// Create new batch request with copied fields
 	newBatchName := fmt.Sprintf("%s (Copy)", originalBatch.BatchName)
 
-	// Create the batch copy — battery-specific fields are inside originalBatch.Specs
+	// Create the batch copy — preserve product type and all specs
 	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
 		TenantID:               originalBatch.TenantID,
 		BatchName:              newBatchName,
 		ModelName:              originalBatch.ModelName,
 		Specs:                  originalBatch.Specs,
 		MarketRegion:           originalBatch.MarketRegion,
+		ProductType:            originalBatch.ProductType,
 		PLICompliant:           originalBatch.PLICompliant,
 		DomesticValueAdd:       originalBatch.DomesticValueAdd,
 		ManufacturingStartDate: originalBatch.ManufacturingStartDate,
