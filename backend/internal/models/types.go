@@ -13,6 +13,7 @@ const (
 	PassportTemplateVariantBatteryIndia    = "BATTERY_INDIA"
 	PassportTemplateVariantBatteryStandard = "BATTERY_STANDARD"
 	PassportTemplateVariantTextileStandard = "TEXTILE_STANDARD"
+	PassportTemplateVariantTextileIndia    = "TEXTILE_INDIA"
 )
 
 // IsValid checks if the product type is a recognized value.
@@ -39,10 +40,13 @@ func DefaultPassportTemplateVariant(productType ProductType) string {
 // variant for a given product/market combination.
 func ResolvePassportTemplateVariant(productType ProductType, marketRegion MarketRegion) string {
 	if productType == ProductTypeTextile {
+		if marketRegion == MarketRegionIndia {
+			return PassportTemplateVariantTextileIndia
+		}
 		return PassportTemplateVariantTextileStandard
 	}
 	if marketRegion == MarketRegionIndia {
 		return PassportTemplateVariantBatteryIndia
 	}
 	return PassportTemplateVariantBatteryStandard
-	}
+}

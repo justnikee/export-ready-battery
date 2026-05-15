@@ -33,6 +33,7 @@ type formatKey struct {
 
 // formatRegistry maps every supported (ProductType, MarketRegion) pair to its Format.
 var formatRegistry = map[formatKey]Format{
+	// ── Battery ──────────────────────────────────────────────────────────────
 	{models.ProductTypeBattery, models.MarketRegionIndia}: {
 		Name:            "BPAN-V2",
 		RegionCode:      "IN",
@@ -59,6 +60,35 @@ var formatRegistry = map[formatKey]Format{
 		Description: "Global multi-region battery serial (no single market scope). " +
 			"Format: GL-{MFR3}-{CHEM3}-{YYYY}-{NNNNN}. " +
 			"e.g. GL-MFG-LFP-2026-00100",
+	},
+
+	// ── Textile ──────────────────────────────────────────────────────────────
+	{models.ProductTypeTextile, models.MarketRegionIndia}: {
+		Name:            "TPN-V1",
+		RegionCode:      "IN",
+		MaxSequence:     99999,
+		SequencePadding: 5,
+		Description: "Textile Passport Number — India traceability compliant. " +
+			"21-character format: IN-{MFR3}-{FBR3}-{YYYY}-{NNNNN}. " +
+			"e.g. IN-TEN-COT-2026-00001",
+	},
+	{models.ProductTypeTextile, models.MarketRegionEU}: {
+		Name:            "TPN-V1",
+		RegionCode:      "EU",
+		MaxSequence:     99999,
+		SequencePadding: 5,
+		Description: "EU ESPR textile traceability serial. " +
+			"Format: EU-{MFR3}-{FBR3}-{YYYY}-{NNNNN}. " +
+			"e.g. EU-BAT-COT-2026-00042",
+	},
+	{models.ProductTypeTextile, models.MarketRegionGlobal}: {
+		Name:            "TPN-V1",
+		RegionCode:      "GL",
+		MaxSequence:     99999,
+		SequencePadding: 5,
+		Description: "Global multi-region textile serial (no single market scope). " +
+			"Format: GL-{MFR3}-{FBR3}-{YYYY}-{NNNNN}. " +
+			"e.g. GL-MFG-POL-2026-00100",
 	},
 }
 

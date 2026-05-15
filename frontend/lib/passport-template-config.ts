@@ -13,7 +13,7 @@ export interface PassportTemplateConfig {
   showTextileProfile: boolean;
   showTextileCompliance: boolean;
   showIndiaRecycling: boolean;
-  complianceMode: "battery_india" | "battery_standard" | "textile_standard";
+  complianceMode: "battery_india" | "battery_standard" | "textile_standard" | "textile_india";
   safetyTitle: string;
   safetyBody: string;
   circularityTitle: string;
@@ -84,6 +84,20 @@ const TEXTILE_STANDARD_CONFIG: PassportTemplateConfig = {
     "Prefer repair, reuse, fiber recovery, and certified textile recycling channels where available.",
 };
 
+const TEXTILE_INDIA_CONFIG: PassportTemplateConfig = {
+  ...TEXTILE_STANDARD_CONFIG,
+  variant: "TEXTILE_INDIA",
+  showDocuments: true,
+  showIndiaRecycling: true,
+  complianceMode: "textile_india",
+  safetyTitle: "Care & QCO Guidance",
+  safetyBody:
+    "Follow care instructions. This product complies with India QCO (Quality Control Order) textile standards where applicable.",
+  circularityTitle: "Sustainability & Recycling",
+  circularityBody:
+    "India: Prefer repair, reuse, and fiber recovery through RRR (Reduce, Reuse, Recycle) centers. Check for local textile recycling programs.",
+};
+
 export function resolvePassportTemplateConfig({
   templateVariant,
   productType,
@@ -94,6 +108,9 @@ export function resolvePassportTemplateConfig({
   if (normalizedVariant === "TEXTILE_STANDARD") {
     return TEXTILE_STANDARD_CONFIG;
   }
+  if (normalizedVariant === "TEXTILE_INDIA") {
+    return TEXTILE_INDIA_CONFIG;
+  }
   if (normalizedVariant === "BATTERY_INDIA") {
     return BATTERY_INDIA_CONFIG(t);
   }
@@ -102,6 +119,9 @@ export function resolvePassportTemplateConfig({
   }
 
   if (productType?.trim().toUpperCase() === "TEXTILE") {
+    if (marketRegion?.trim().toUpperCase() === "INDIA") {
+      return TEXTILE_INDIA_CONFIG;
+    }
     return TEXTILE_STANDARD_CONFIG;
   }
   if (marketRegion?.trim().toUpperCase() === "INDIA") {

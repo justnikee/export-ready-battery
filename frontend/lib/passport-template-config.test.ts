@@ -34,15 +34,39 @@ describe("resolvePassportTemplateConfig", () => {
     expect(config.showTextileProfile).toBe(true);
   });
 
-  it("falls back to textile when productType is TEXTILE", () => {
+  it("returns textile india config for TEXTILE_INDIA variant", () => {
+    const config = resolvePassportTemplateConfig({
+      templateVariant: "TEXTILE_INDIA",
+      t: mockT,
+    });
+    expect(config.variant).toBe("TEXTILE_INDIA");
+    expect(config.family).toBe("textile");
+    expect(config.showLotBadge).toBe(true);
+    expect(config.showDocuments).toBe(true);
+    expect(config.showIndiaRecycling).toBe(true);
+    expect(config.complianceMode).toBe("textile_india");
+  });
+
+  it("falls back to textile standard when productType is TEXTILE and no market", () => {
     const config = resolvePassportTemplateConfig({
       productType: "TEXTILE",
       t: mockT,
     });
     expect(config.family).toBe("textile");
+    expect(config.variant).toBe("TEXTILE_STANDARD");
   });
 
-  it("falls back to battery india when marketRegion is INDIA", () => {
+  it("falls back to textile india when productType is TEXTILE and marketRegion is INDIA", () => {
+    const config = resolvePassportTemplateConfig({
+      productType: "TEXTILE",
+      marketRegion: "INDIA",
+      t: mockT,
+    });
+    expect(config.variant).toBe("TEXTILE_INDIA");
+    expect(config.family).toBe("textile");
+  });
+
+  it("falls back to battery india when marketRegion is INDIA and productType unknown", () => {
     const config = resolvePassportTemplateConfig({
       marketRegion: "INDIA",
       t: mockT,

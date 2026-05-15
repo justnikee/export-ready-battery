@@ -291,6 +291,25 @@ type BatchSpec struct {
 	PerformanceSpec       *PerformanceSpec       `json:"performance_spec,omitempty"`        // Rated electrical/thermal specs (Annex IV)
 	DisassemblyGuide      *DisassemblyGuide      `json:"disassembly_guide,omitempty"`       // Disassembly & recycling info (Art 57)
 	SupplyChainProvenance *SupplyChainProvenance `json:"supply_chain_provenance,omitempty"` // Raw material sourcing (Art 39)
+
+	// ── Textile-Specific Fields ───────────────────────────────────────────────
+	GSM                    float64                `json:"gsm,omitempty"`                      // Grams per square meter
+	WaterUsageLiters       float64                `json:"water_usage_liters,omitempty"`       // Liters per unit/kg
+	EnergyUsageKWh         float64                `json:"energy_usage_kwh,omitempty"`         // kWh per unit/kg
+	DyeProcess             string                 `json:"dye_process,omitempty"`              // reactive, vat, disperse, acid, natural, pigment, none
+	FiberComposition       *FiberComposition      `json:"fiber_composition,omitempty"`        // Structured fiber breakdown %
+	SupplierTier           *SupplierTier          `json:"supplier_tier,omitempty"`            // Supply chain tier mapping
+	LaborCompliance        *LaborCompliance       `json:"labor_compliance,omitempty"`         // SA8000, BSCI, SEDEX, Fair Trade
+	ChemicalComplianceZDHC *ChemicalComplianceZDHC `json:"chemical_compliance_zdhc,omitempty"` // ZDHC MRSL compliance
+	DyeChemicals           []string               `json:"dye_chemicals,omitempty"`            // Key dyes and chemicals used
+	FinishType             []string               `json:"finish_type,omitempty"`              // mercerized, brushed, peached, etc.
+	Color                  string                 `json:"color,omitempty"`                    // Product color
+	Dimensions             string                 `json:"dimensions,omitempty"`               // Size dimensions or roll width
+	PackagingType          string                 `json:"packaging_type,omitempty"`           // Packaging material description
+	OrderQuantity          int                    `json:"order_quantity,omitempty"`           // Total units in production order
+	BiodegradablePct       *float64               `json:"biodegradable_pct,omitempty"`        // % biodegradable fibers
+	ExpectedLifetimeWashes *int                   `json:"expected_lifetime_washes,omitempty"` // Expected wash cycles
+	FiberOrigin            string                 `json:"fiber_origin,omitempty"`             // Raw fiber sourcing region/country
 }
 
 // MaterialComposition holds the critical raw material percentages (EU Battery Regulation)
@@ -370,6 +389,53 @@ type SupplyChainTier struct {
 	CertBody        string  `json:"certification_body,omitempty"`   // e.g., "RMI", "IRMA"
 	RecycledSource  bool    `json:"recycled_source"`                // From recycled material?
 	Percentage      float64 `json:"percentage,omitempty"`           // % of total material from this source
+}
+
+// ============================================================================
+// TEXTILE-SPECIFIC STRUCTS
+// ============================================================================
+
+// FiberComposition holds structured fiber breakdown by percentage.
+// Mandatory for EU ESPR fiber traceability and India fiber labeling rules.
+type FiberComposition struct {
+	CottonPct    float64 `json:"cotton_pct,omitempty"`
+	PolyesterPct float64 `json:"polyester_pct,omitempty"`
+	WoolPct      float64 `json:"wool_pct,omitempty"`
+	SilkPct      float64 `json:"silk_pct,omitempty"`
+	LinenPct     float64 `json:"linen_pct,omitempty"`
+	ViscosePct   float64 `json:"viscose_pct,omitempty"`
+	NylonPct     float64 `json:"nylon_pct,omitempty"`
+	AcrylicPct   float64 `json:"acrylic_pct,omitempty"`
+	HempPct      float64 `json:"hemp_pct,omitempty"`
+	OtherPct     float64 `json:"other_pct,omitempty"`
+}
+
+// SupplierTier maps supply chain participants for textile traceability.
+type SupplierTier struct {
+	FiberSupplier       string `json:"fiber_supplier,omitempty"`
+	SpinningMill        string `json:"spinning_mill,omitempty"`
+	WeavingKnittingMill string `json:"weaving_knitting_mill,omitempty"`
+	DyeHouse            string `json:"dye_house,omitempty"`
+	FinishingFacility   string `json:"finishing_facility,omitempty"`
+	CutSewFacility      string `json:"cut_sew_facility,omitempty"`
+}
+
+// LaborCompliance holds social compliance certifications and audit results.
+type LaborCompliance struct {
+	SA8000Certified   bool    `json:"sa8000_certified,omitempty"`
+	BSCIAudited       bool    `json:"bsci_audited,omitempty"`
+	SedexMember       bool    `json:"sedex_member,omitempty"`
+	FairTradeCertified bool   `json:"fair_trade_certified,omitempty"`
+	AuditDate         string  `json:"audit_date,omitempty"`  // YYYY-MM-DD
+	AuditScore        float64 `json:"audit_score,omitempty"` // 0-100
+}
+
+// ChemicalComplianceZDHC holds ZDHC MRSL (Manufacturing Restricted Substances List) compliance data.
+type ChemicalComplianceZDHC struct {
+	ZDHCLevel               string   `json:"zdhc_level,omitempty"`                // "1", "2", "3", "NA"
+	MRSLTested              bool     `json:"mrsl_tested,omitempty"`
+	TestReportURL           string   `json:"test_report_url,omitempty"`
+	RestrictedSubstancesFound []string `json:"restricted_substances_found,omitempty"`
 }
 
 // ============================================================================

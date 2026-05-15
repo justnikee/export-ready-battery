@@ -28,9 +28,29 @@ func TestGetFormat_BatteryEU(t *testing.T) {
 	assert.Equal(t, "EU", f.RegionCode)
 }
 
-func TestGetFormat_UnknownFallsBackToGlobal(t *testing.T) {
-	f := serial.GetFormat(models.ProductTypeTextile, models.MarketRegion("UNKNOWN"))
-	assert.Equal(t, "GL", f.RegionCode, "unknown product/market should fallback to Global format")
+func TestGetFormat_TextileIndia(t *testing.T) {
+	f := serial.GetFormat(models.ProductTypeTextile, models.MarketRegionIndia)
+	assert.Equal(t, "TPN-V1", f.Name)
+	assert.Equal(t, "IN", f.RegionCode)
+	assert.Equal(t, 5, f.SequencePadding)
+	assert.Equal(t, 99999, f.MaxSequence)
+}
+
+func TestGetFormat_TextileEU(t *testing.T) {
+	f := serial.GetFormat(models.ProductTypeTextile, models.MarketRegionEU)
+	assert.Equal(t, "TPN-V1", f.Name)
+	assert.Equal(t, "EU", f.RegionCode)
+}
+
+func TestGetFormat_TextileGlobal(t *testing.T) {
+	f := serial.GetFormat(models.ProductTypeTextile, models.MarketRegionGlobal)
+	assert.Equal(t, "TPN-V1", f.Name)
+	assert.Equal(t, "GL", f.RegionCode)
+}
+
+func TestGetFormat_UnknownFallsBackToGlobalBattery(t *testing.T) {
+	f := serial.GetFormat(models.ProductTypeElectronics, models.MarketRegion("UNKNOWN"))
+	assert.Equal(t, "GL", f.RegionCode, "unknown product/market should fallback to Global battery format")
 }
 
 // ============================================================================
@@ -97,10 +117,25 @@ func TestGenerate_ZeroSequence_Errors(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGenerate_NonBatteryProduct_Errors(t *testing.T) {
+func TestGenerate_TextileIndia_ProducesCorrectFormat(t *testing.T) {
 	g := serial.NewBPANGenerator()
-	_, err := g.Generate(models.ProductTypeTextile, models.MarketRegionIndia, opts("TEN", "CTN", 1))
-	assert.Error(t, err)
+	s, err := g.Generate(models.ProductTypeTextile, models.MarketRegionIndia, opts("TEN", "Cotton", 1))
+	require.NoError(t, err)
+	assert.Equal(t, "IN-TEN-COT-2026-00001", s)
+}
+
+func TestGenerate_TextileEU_ProducesCorrectFormat(t *testing.T) {
+	g := serial.NewBPANGenerator()
+	s, err := g.Generate(models.ProductTypeTextile, models.MarketRegionEU, opts("BAT", "Polyester", 42))
+	require.NoError(t, err)
+	assert.Equal(t, "EU-BAT-POL-2026-00042", s)
+}
+
+func TestGenerate_TextileWithRecycledFiber(t *testing.T) {
+	g := serial.NewBPANGenerator()
+	s, err := g.Generate(models.ProductTypeTextile, models.MarketRegionGlobal, opts("MFG", "Recycled Cotton", 100))
+	require.NoError(t, err)
+	assert.Equal(t, "GL-MFG-RCO-2026-00100", s)
 }
 
 func TestGenerate_InvalidManufacturerCode_Errors(t *testing.T) {
@@ -161,16 +196,22 @@ func TestValidate_WrongPaddingWidth_Fails(t *testing.T) {
 	assert.False(t, g.Validate("IN-TEN-LFP-2026-001", models.ProductTypeBattery, models.MarketRegionIndia))
 }
 
-func TestValidate_NonBatteryProduct_Fails(t *testing.T) {
+func TestValidate_TextileIndiaSerial(t *testing.T) {
 	g := serial.NewBPANGenerator()
-	assert.False(t, g.Validate("IN-TEN-LFP-2026-00001", models.ProductTypeTextile, models.MarketRegionIndia))
+	assert.True(t, g.Validate("IN-TEN-COT-2026-00001", models.ProductTypeTextile, models.MarketRegionIndia))
+}
+
+func TestValidate_TextileWrongRegion_Fails(t *testing.T) {
+	g := serial.NewBPANGenerator()
+	// EU serial presented as India — should fail.
+	assert.False(t, g.Validate("EU-BAT-POL-2025-00042", models.ProductTypeTextile, models.MarketRegionIndia))
 }
 
 // ============================================================================
 // Round-trip test
 // ============================================================================
 
-func TestRoundTrip_GenerateThenValidate(t *testing.T) {
+func TestRoundTrip_BatteryGenerateThenValidate(t *testing.T) {
 	g := serial.NewBPANGenerator()
 	o := serial.Options{ManufacturerCode: "BAT", Chemistry: "NMC", Year: 2026, Sequence: 42}
 
@@ -178,6 +219,16 @@ func TestRoundTrip_GenerateThenValidate(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, g.Validate(s, models.ProductTypeBattery, models.MarketRegionEU),
 		"generated serial %q should pass its own validation", s)
+}
+
+func TestRoundTrip_TextileGenerateThenValidate(t *testing.T) {
+	g := serial.NewBPANGenerator()
+	o := serial.Options{ManufacturerCode: "TEN", Chemistry: "Organic Cotton", Year: 2026, Sequence: 99}
+
+	s, err := g.Generate(models.ProductTypeTextile, models.MarketRegionIndia, o)
+	require.NoError(t, err)
+	assert.True(t, g.Validate(s, models.ProductTypeTextile, models.MarketRegionIndia),
+		"generated textile serial %q should pass its own validation", s)
 }
 
 // ============================================================================
@@ -217,6 +268,55 @@ func TestMapChemistryCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			assert.Equal(t, tt.expected, serial.MapChemistryCode(tt.input))
+		})
+	}
+}
+
+// ============================================================================
+// MapFiberCode tests
+// ============================================================================
+
+func TestMapFiberCode(t *testing.T) {
+	tests := []struct{ input, expected string }{
+		{"Cotton", "COT"}, {"cotton", "COT"}, {"Organic Cotton", "COT"},
+		{"Polyester", "POL"}, {"PET", "POL"}, {"Recycled Polyester", "POL"},
+		{"Wool", "WOL"}, {"Merino", "WOL"}, {"Lambswool", "WOL"},
+		{"Silk", "SIL"}, {"LINEN", "LIN"}, {"Flax", "LIN"},
+		{"Viscose", "VIS"}, {"Rayon", "VIS"}, {"Modal", "VIS"}, {"Lyocell", "VIS"},
+		{"Nylon", "NYL"}, {"Polyamide", "NYL"},
+		{"Acrylic", "ACR"}, {"Hemp", "HEM"}, {"Jute", "JUT"},
+		{"Cashmere", "CAS"}, {"Alpaca", "ALP"}, {"Mohair", "MOH"},
+		{"Bamboo", "BAM"}, {"Tencel", "TEN"},
+		{"Recycled Cotton", "RCO"}, {"Recycled Wool", "RWO"},
+		{"UnknownFiber", "UNK"}, {"AB", "AB"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, serial.MapFiberCode(tt.input))
+		})
+	}
+}
+
+// ============================================================================
+// MapProductCode tests
+// ============================================================================
+
+func TestMapProductCode(t *testing.T) {
+	tests := []struct {
+		pt       models.ProductType
+		input    string
+		expected string
+	}{
+		{models.ProductTypeBattery, "LFP", "LFP"},
+		{models.ProductTypeBattery, "NMC811", "NMC"},
+		{models.ProductTypeTextile, "Cotton", "COT"},
+		{models.ProductTypeTextile, "Polyester", "POL"},
+		{models.ProductTypeElectronics, "Silicon", "SIL"},
+		{models.ProductTypeElectronics, "AB", "AB"},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.pt)+"_"+tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, serial.MapProductCode(tt.pt, tt.input))
 		})
 	}
 }

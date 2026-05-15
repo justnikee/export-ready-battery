@@ -43,10 +43,14 @@ type Options struct {
 	Sequence int
 }
 
-// BPANGenerator implements Generator for the BPAN V2 battery serial format.
+// BPANGenerator implements Generator for structured product serial formats.
 //
-//	Format:  {REGION}-{MFR3}-{CHEM3}-{YYYY}-{NNNNN}
-//	Example: IN-TEN-LFP-2026-00042  (21 chars for India)
+// The generator is product-type-aware: battery products use chemistry codes
+// in the 3rd segment, while textile products use fiber/material codes.
+//
+//	Format:  {REGION}-{MFR3}-{CODE3}-{YYYY}-{NNNNN}
+//	Example: IN-TEN-LFP-2026-00042  (battery, 21 chars)
+//	Example: IN-TEN-COT-2026-00001  (textile, 21 chars)
 //
 // BPANGenerator is safe for concurrent use.
 type BPANGenerator struct{}
@@ -56,14 +60,10 @@ func NewBPANGenerator() *BPANGenerator {
 	return &BPANGenerator{}
 }
 
-// Generate produces a BPAN V2 serial number for the given product and market.
-// Returns an error if the product type is not BATTERY, the manufacturer code
-// is not exactly 3 characters, or the sequence is out of range.
+// Generate produces a structured serial number for the given product and market.
+// Returns an error if no format is registered for the product/market combination,
+// the manufacturer code is not exactly 3 characters, or the sequence is out of range.
 func (g *BPANGenerator) Generate(pt models.ProductType, mr models.MarketRegion, opts Options) (string, error) {
-	if pt != models.ProductTypeBattery {
-		return "", fmt.Errorf("serial: BPANGenerator only supports BATTERY products, got %s", pt)
-	}
-
 	format := GetFormat(pt, mr)
 
 	mfr := strings.ToUpper(opts.ManufacturerCode)
@@ -80,7 +80,7 @@ func (g *BPANGenerator) Generate(pt models.ProductType, mr models.MarketRegion, 
 		}
 	}
 
-	chem := MapChemistryCode(opts.Chemistry)
+	code := MapProductCode(pt, opts.Chemistry)
 
 	year := opts.Year
 	if year == 0 {
@@ -95,16 +95,12 @@ func (g *BPANGenerator) Generate(pt models.ProductType, mr models.MarketRegion, 
 		return "", fmt.Errorf("serial: sequence %d exceeds maximum %d for format %s", seq, format.MaxSequence, format.Name)
 	}
 
-	return fmt.Sprintf("%s-%s-%s-%d-%0*d", format.RegionCode, mfr, chem, year, format.SequencePadding, seq), nil
+	return fmt.Sprintf("%s-%s-%s-%d-%0*d", format.RegionCode, mfr, code, year, format.SequencePadding, seq), nil
 }
 
-// Validate checks whether serial conforms to BPAN V2 format for the given
+// Validate checks whether serial conforms to the registered format for the given
 // product and market. Returns false for any structural violation.
 func (g *BPANGenerator) Validate(serial string, pt models.ProductType, mr models.MarketRegion) bool {
-	if pt != models.ProductTypeBattery {
-		return false
-	}
-
 	parts := strings.Split(serial, "-")
 	if len(parts) != 5 {
 		return false
@@ -207,7 +203,7 @@ func DeriveManufacturerCode(companyName string) string {
 	}
 }
 
-// MapChemistryCode normalises a chemistry string to a 2–3 char BPAN segment.
+// MapChemistryCode normalises a chemistry string to a 2–3 char segment.
 func MapChemistryCode(chemistry string) string {
 	upper := strings.ToUpper(strings.TrimSpace(chemistry))
 	switch upper {
@@ -226,6 +222,70 @@ func MapChemistryCode(chemistry string) string {
 	case "SODIUM", "NA-ION", "NAION":
 		return "NAI"
 	default:
+		if len(upper) >= 3 {
+			return upper[:3]
+		}
+		return upper
+	}
+}
+
+// MapFiberCode normalises a textile fiber string to a 2–3 char segment.
+func MapFiberCode(fiber string) string {
+	upper := strings.ToUpper(strings.TrimSpace(fiber))
+	switch upper {
+	case "COTTON", "COT", "ORGANIC COTTON", "ORGANICCOTTON":
+		return "COT"
+	case "POLYESTER", "POL", "PET", "RECYCLED POLYESTER":
+		return "POL"
+	case "WOOL", "WOL", "MERINO", "LAMBSWOOL":
+		return "WOL"
+	case "SILK", "SIL":
+		return "SIL"
+	case "LINEN", "LIN", "FLAX":
+		return "LIN"
+	case "VISCOSE", "VIS", "RAYON", "MODAL", "LYOCELL":
+		return "VIS"
+	case "NYLON", "NYL", "POLYAMIDE":
+		return "NYL"
+	case "ACRYLIC", "ACR":
+		return "ACR"
+	case "HEMP", "HEM":
+		return "HEM"
+	case "JUTE", "JUT":
+		return "JUT"
+	case "CASHMERE", "CAS":
+		return "CAS"
+	case "ALPACA", "ALP":
+		return "ALP"
+	case "MOHAIR", "MOH":
+		return "MOH"
+	case "BAMBOO", "BAM":
+		return "BAM"
+	case "TENCEL", "TEN":
+		return "TEN"
+	case "RECYCLED COTTON", "RECYCLED-COTTON", "RCOT":
+		return "RCO"
+	case "RECYCLED WOOL", "RECYCLED-WOOL", "RWOL":
+		return "RWO"
+	default:
+		if len(upper) >= 3 {
+			return upper[:3]
+		}
+		return upper
+	}
+}
+
+// MapProductCode dispatches to the appropriate normaliser based on product type.
+// Battery products use chemistry codes; textile products use fiber codes.
+// Unknown product types fall back to the first 3 characters of the input.
+func MapProductCode(pt models.ProductType, code string) string {
+	switch pt {
+	case models.ProductTypeBattery:
+		return MapChemistryCode(code)
+	case models.ProductTypeTextile:
+		return MapFiberCode(code)
+	default:
+		upper := strings.ToUpper(strings.TrimSpace(code))
 		if len(upper) >= 3 {
 			return upper[:3]
 		}
