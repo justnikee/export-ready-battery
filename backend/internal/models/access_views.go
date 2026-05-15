@@ -229,7 +229,7 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		BatchName:    full.BatchName,
 		ModelName:    full.ModelName,
 		ProductType:  full.ProductType,
-		TemplateVariant: ResolvePassportTemplateVariant(full.ProductType, full.MarketRegion),
+		TemplateVariant: resolveVariantForPassportWithSpecs(full),
 		MarketRegion: full.MarketRegion,
 
 		ManufacturingStartDate: full.ManufacturingStartDate,
@@ -358,7 +358,7 @@ func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
 	if snapshot.ProductType.IsValid() {
 		view.ProductType = snapshot.ProductType
 		if view.TemplateVariant == "" {
-			view.TemplateVariant = ResolvePassportTemplateVariant(snapshot.ProductType, snapshot.MarketRegion)
+			view.TemplateVariant = resolveVariantForSnapshot(&snapshot)
 		}
 	}
 	if snapshot.TemplateVariant != "" {
@@ -486,4 +486,30 @@ func ApplyDisplayConfigToPartnerView(view *PartnerPassportView, dc DisplayConfig
 	// have the correct AccessTier set to PARTNER, so fields accessible to
 	// PARTNER or PUBLIC will remain visible.
 	ApplyDisplayConfigToPublicView(&view.PublicPassportView, dc)
+}
+
+// resolveVariantForPassportWithSpecs safely resolves the template variant from
+// a PassportWithSpecs, handling nil specs gracefully.
+func resolveVariantForPassportWithSpecs(full *PassportWithSpecs) string {
+	if full == nil {
+		return PassportTemplateVariantBatteryStandard
+	}
+	b := Batch{ProductType: full.ProductType, MarketRegion: full.MarketRegion}
+	if full.Specs != nil {
+		b.Specs = *full.Specs
+	}
+	return ResolvePassportTemplateVariantForBatch(&b)
+}
+
+// resolveVariantForSnapshot safely resolves the template variant from a
+// publicViewBatchSnapshot, handling nil specs gracefully.
+func resolveVariantForSnapshot(snapshot *publicViewBatchSnapshot) string {
+	if snapshot == nil {
+		return PassportTemplateVariantBatteryStandard
+	}
+	b := Batch{ProductType: snapshot.ProductType, MarketRegion: snapshot.MarketRegion}
+	if snapshot.Specs != nil {
+		b.Specs = *snapshot.Specs
+	}
+	return ResolvePassportTemplateVariantForBatch(&b)
 }

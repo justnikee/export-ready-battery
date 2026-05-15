@@ -13,7 +13,7 @@ export interface PassportTemplateConfig {
   showTextileProfile: boolean;
   showTextileCompliance: boolean;
   showIndiaRecycling: boolean;
-  complianceMode: "battery_india" | "battery_standard" | "textile_standard" | "textile_india";
+  complianceMode: "battery_india" | "battery_standard" | "textile_standard" | "textile_india" | "textile_organic" | "textile_recycled";
   safetyTitle: string;
   safetyBody: string;
   circularityTitle: string;
@@ -98,6 +98,32 @@ const TEXTILE_INDIA_CONFIG: PassportTemplateConfig = {
     "India: Prefer repair, reuse, and fiber recovery through RRR (Reduce, Reuse, Recycle) centers. Check for local textile recycling programs.",
 };
 
+const TEXTILE_ORGANIC_CONFIG: PassportTemplateConfig = {
+  ...TEXTILE_STANDARD_CONFIG,
+  variant: "TEXTILE_ORGANIC",
+  badge: "🌿",
+  complianceMode: "textile_organic",
+  safetyTitle: "Organic Care Guidance",
+  safetyBody:
+    "Certified organic textile. Follow gentle care instructions to preserve fiber integrity and certification validity.",
+  circularityTitle: "Organic Circularity",
+  circularityBody:
+    "Prefer organic fiber recycling, composting for natural fibers, and certified organic textile recovery channels.",
+};
+
+const TEXTILE_RECYCLED_CONFIG: PassportTemplateConfig = {
+  ...TEXTILE_STANDARD_CONFIG,
+  variant: "TEXTILE_RECYCLED",
+  badge: "♻️",
+  complianceMode: "textile_recycled",
+  safetyTitle: "Recycled Material Care",
+  safetyBody:
+    "Contains recycled fibers. Follow care instructions to maximize durability and support circular material flows.",
+  circularityTitle: "Recycled Circularity",
+  circularityBody:
+    "At end of life, return to GRS-certified recycling streams or fiber recovery programs to close the material loop.",
+};
+
 export function resolvePassportTemplateConfig({
   templateVariant,
   productType,
@@ -110,6 +136,12 @@ export function resolvePassportTemplateConfig({
   }
   if (normalizedVariant === "TEXTILE_INDIA") {
     return TEXTILE_INDIA_CONFIG;
+  }
+  if (normalizedVariant === "TEXTILE_ORGANIC") {
+    return TEXTILE_ORGANIC_CONFIG;
+  }
+  if (normalizedVariant === "TEXTILE_RECYCLED") {
+    return TEXTILE_RECYCLED_CONFIG;
   }
   if (normalizedVariant === "BATTERY_INDIA") {
     return BATTERY_INDIA_CONFIG(t);

@@ -68,7 +68,7 @@ func BuildBatchSnapshot(batch *models.Batch, tenant *models.Tenant) (json.RawMes
 		BatchName:              batch.BatchName,
 		ModelName:              batch.ModelName,
 		ProductType:            batch.ProductType,
-		TemplateVariant:        models.ResolvePassportTemplateVariant(batch.ProductType, batch.MarketRegion),
+		TemplateVariant:        models.ResolvePassportTemplateVariantForBatch(batch),
 		MarketRegion:           batch.MarketRegion,
 		Specs:                  batch.Specs,
 		ManufacturingStartDate: batch.ManufacturingStartDate,
