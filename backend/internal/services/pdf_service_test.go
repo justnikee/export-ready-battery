@@ -28,7 +28,7 @@ func TestLabelHelpers_TextileContent(t *testing.T) {
 
 	assert.Equal(t, "Organic Cotton / Rec..", labelPrimaryText(batch, GetLabelTranslations("en")))
 	assert.Equal(t, "finished_goods | 240 units", labelDetailText(batch, nil, nil))
-	assert.Equal(t, "Anvaya Textil.. | India", labelSpecText(batch))
+	assert.Equal(t, "Anvaya Tex.. | India", labelSpecText(batch))
 	assert.Equal(t, []string{
 		"Cut and sew | Tier 1",
 		"CERT: GOTS, OEKO-TEX",

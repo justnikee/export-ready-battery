@@ -176,14 +176,19 @@ func GenerateComplianceReport(batch *models.Batch, tenant *models.Tenant) ([]byt
 
 	pdf.Ln(6)
 
-	// ---- India AIS-156 / EPR / BIS Checklist (when market = INDIA or GLOBAL) ----
-	if batch.MarketRegion == "INDIA" || batch.MarketRegion == "GLOBAL" {
-		d.addIndiaChecklistSection(batch, tenant)
-	}
+	// ---- Product-specific regulatory sections ----
+	if batch.ProductType == models.ProductTypeTextile {
+		d.addTextileComplianceSummary(batch, tenant)
+	} else {
+		// ---- India AIS-156 / EPR / BIS Checklist (when market = INDIA or GLOBAL) ----
+		if batch.MarketRegion == "INDIA" || batch.MarketRegion == "GLOBAL" {
+			d.addIndiaChecklistSection(batch, tenant)
+		}
 
-	// ---- EU 2023/1542 Regulatory References (when market = EU or GLOBAL) ----
-	if batch.MarketRegion == "EU" || batch.MarketRegion == "GLOBAL" {
-		d.addEURegulatorySection(batch)
+		// ---- EU 2023/1542 Regulatory References (when market = EU or GLOBAL) ----
+		if batch.MarketRegion == "EU" || batch.MarketRegion == "GLOBAL" {
+			d.addEURegulatorySection(batch)
+		}
 	}
 
 	// ---- Cryptographic Integrity Hash ----
@@ -200,11 +205,17 @@ func GenerateComplianceReport(batch *models.Batch, tenant *models.Tenant) ([]byt
 	// ---- Footer disclaimer ----
 	pdf.SetFont("Helvetica", "I", 8)
 	d.colSecondary()
-	pdf.MultiCell(d.contentW, 4,
-		"This report is generated automatically by AnvayaLabs and reflects the compliance status at the time of batch activation. "+
-			"It does not constitute a legal certification. Manufacturers are responsible for ensuring full regulatory compliance "+
-			"with applicable standards (EU 2023/1542, AIS-156, BIS CRS, BWM Rules 2022).",
-		"", "L", false)
+	var disclaimer string
+	if batch.ProductType == models.ProductTypeTextile {
+		disclaimer = "This report is generated automatically by AnvayaLabs and reflects the compliance status at the time of batch activation. " +
+			"It does not constitute a legal certification. Manufacturers are responsible for ensuring full regulatory compliance " +
+			"with applicable standards (Legal Metrology Rules 2011, Textiles QCO, ESPR, REACH/ZDHC MRSL)."
+	} else {
+		disclaimer = "This report is generated automatically by AnvayaLabs and reflects the compliance status at the time of batch activation. " +
+			"It does not constitute a legal certification. Manufacturers are responsible for ensuring full regulatory compliance " +
+			"with applicable standards (EU 2023/1542, AIS-156, BIS CRS, BWM Rules 2022)."
+	}
+	pdf.MultiCell(d.contentW, 4, disclaimer, "", "L", false)
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -234,6 +245,12 @@ func truncate(s string, max int) string {
 // ---- India AIS-156 / EPR / BIS Checklist ----
 
 type ais156Check struct {
+	Item   string
+	Status string // PASS, FAIL, N/A
+	Detail string
+}
+
+type textileCheck struct {
 	Item   string
 	Status string // PASS, FAIL, N/A
 	Detail string
@@ -366,6 +383,147 @@ func (d *crPDF) addEURegulatorySection(batch *models.Batch) {
 		pdf.CellFormat(d.contentW-25, 5, r.Title, "", 1, "L", false, 0, "")
 	}
 	pdf.Ln(4)
+}
+
+// ---- Textile Compliance Summary ----
+
+func (d *crPDF) addTextileComplianceSummary(batch *models.Batch, tenant *models.Tenant) {
+	pdf := d.pdf
+
+	pdf.SetFont("Helvetica", "B", 13)
+	d.colPrimary()
+	pdf.CellFormat(d.contentW, 8, "Textile Compliance Summary", "", 1, "L", false, 0, "")
+	pdf.Ln(2)
+
+	// Build checklist items
+	checks := []textileCheck{
+		checkFiberComposition(batch),
+		checkGSM(batch),
+		checkLaborCompliance(batch),
+		checkChemicalCompliance(batch),
+		checkWaterEnergyUsage(batch),
+		checkExpectedLifetime(batch),
+		checkCountryOfOriginTextile(batch),
+	}
+
+	colW := []float64{d.contentW * 0.35, d.contentW * 0.12, d.contentW * 0.53}
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(236, 253, 245) // emerald tint
+	d.colPrimary()
+	pdf.CellFormat(colW[0], 7, "Requirement", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(colW[1], 7, "Status", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(colW[2], 7, "Details", "1", 0, "L", true, 0, "")
+	pdf.Ln(-1)
+
+	pdf.SetFont("Helvetica", "", 8)
+	for _, c := range checks {
+		d.colBlack()
+		pdf.CellFormat(colW[0], 6, c.Item, "1", 0, "L", false, 0, "")
+		switch c.Status {
+		case "PASS":
+			d.colGreen()
+		case "FAIL":
+			d.colRed()
+		default:
+			d.colSecondary()
+		}
+		pdf.CellFormat(colW[1], 6, c.Status, "1", 0, "C", false, 0, "")
+		d.colBlack()
+		pdf.CellFormat(colW[2], 6, truncate(c.Detail, 70), "1", 0, "L", false, 0, "")
+		pdf.Ln(-1)
+	}
+	pdf.Ln(4)
+}
+
+func checkFiberComposition(batch *models.Batch) textileCheck {
+	if batch.Specs.FiberComposition == nil {
+		return textileCheck{"Fiber Composition (Legal Metrology)", "FAIL", "Not declared"}
+	}
+	total := batch.Specs.FiberComposition.CottonPct + batch.Specs.FiberComposition.PolyesterPct +
+		batch.Specs.FiberComposition.WoolPct + batch.Specs.FiberComposition.SilkPct +
+		batch.Specs.FiberComposition.LinenPct + batch.Specs.FiberComposition.ViscosePct +
+		batch.Specs.FiberComposition.NylonPct + batch.Specs.FiberComposition.AcrylicPct +
+		batch.Specs.FiberComposition.HempPct + batch.Specs.FiberComposition.OtherPct
+	if total >= 99.0 && total <= 101.0 {
+		return textileCheck{"Fiber Composition (Legal Metrology)", "PASS", fmt.Sprintf("Total: %.1f%%", total)}
+	}
+	return textileCheck{"Fiber Composition (Legal Metrology)", "FAIL", fmt.Sprintf("Total: %.1f%% (must be 100%%)", total)}
+}
+
+func checkGSM(batch *models.Batch) textileCheck {
+	if batch.Specs.GSM > 0 && batch.Specs.GSM < 2000 {
+		return textileCheck{"GSM (QCO Quality Parameter)", "PASS", fmt.Sprintf("%.0f g/m²", batch.Specs.GSM)}
+	}
+	if batch.Specs.GSM <= 0 {
+		return textileCheck{"GSM (QCO Quality Parameter)", "FAIL", "Not declared"}
+	}
+	return textileCheck{"GSM (QCO Quality Parameter)", "FAIL", fmt.Sprintf("%.0f g/m² (invalid)", batch.Specs.GSM)}
+}
+
+func checkLaborCompliance(batch *models.Batch) textileCheck {
+	lc := batch.Specs.LaborCompliance
+	if lc == nil {
+		return textileCheck{"Labor Compliance (SA8000/BSCI/SEDEX/Fair Trade)", "FAIL", "Not declared"}
+	}
+	if lc.SA8000Certified || lc.BSCIAudited || lc.SedexMember || lc.FairTradeCertified {
+		certs := []string{}
+		if lc.SA8000Certified {
+			certs = append(certs, "SA8000")
+		}
+		if lc.BSCIAudited {
+			certs = append(certs, "BSCI")
+		}
+		if lc.SedexMember {
+			certs = append(certs, "SEDEX")
+		}
+		if lc.FairTradeCertified {
+			certs = append(certs, "Fair Trade")
+		}
+		return textileCheck{"Labor Compliance (SA8000/BSCI/SEDEX/Fair Trade)", "PASS", strings.Join(certs, ", ")}
+	}
+	return textileCheck{"Labor Compliance (SA8000/BSCI/SEDEX/Fair Trade)", "FAIL", "No certification found"}
+}
+
+func checkChemicalCompliance(batch *models.Batch) textileCheck {
+	zdhc := batch.Specs.ChemicalComplianceZDHC
+	if zdhc == nil {
+		return textileCheck{"Chemical Compliance (ZDHC MRSL)", "FAIL", "Not declared"}
+	}
+	if zdhc.ZDHCLevel == "" || zdhc.ZDHCLevel == "NA" {
+		return textileCheck{"Chemical Compliance (ZDHC MRSL)", "FAIL", "ZDHC level not set"}
+	}
+	if !zdhc.MRSLTested {
+		return textileCheck{"Chemical Compliance (ZDHC MRSL)", "FAIL", fmt.Sprintf("Level %s — MRSL not tested", zdhc.ZDHCLevel)}
+	}
+	return textileCheck{"Chemical Compliance (ZDHC MRSL)", "PASS", fmt.Sprintf("Level %s — MRSL tested", zdhc.ZDHCLevel)}
+}
+
+func checkWaterEnergyUsage(batch *models.Batch) textileCheck {
+	parts := []string{}
+	if batch.Specs.WaterUsageLiters > 0 {
+		parts = append(parts, fmt.Sprintf("Water: %.1f L/kg", batch.Specs.WaterUsageLiters))
+	}
+	if batch.Specs.EnergyUsageKWh > 0 {
+		parts = append(parts, fmt.Sprintf("Energy: %.1f kWh/kg", batch.Specs.EnergyUsageKWh))
+	}
+	if len(parts) == 0 {
+		return textileCheck{"Water & Energy Usage (ESPR Art. 9)", "FAIL", "Not declared"}
+	}
+	return textileCheck{"Water & Energy Usage (ESPR Art. 9)", "PASS", strings.Join(parts, " | ")}
+}
+
+func checkExpectedLifetime(batch *models.Batch) textileCheck {
+	if batch.Specs.ExpectedLifetimeWashes != nil && *batch.Specs.ExpectedLifetimeWashes > 0 {
+		return textileCheck{"Expected Lifetime (ESPR Durability)", "PASS", fmt.Sprintf("%d washes", *batch.Specs.ExpectedLifetimeWashes)}
+	}
+	return textileCheck{"Expected Lifetime (ESPR Durability)", "FAIL", "Not declared"}
+}
+
+func checkCountryOfOriginTextile(batch *models.Batch) textileCheck {
+	if batch.Specs.CountryOfOrigin != "" {
+		return textileCheck{"Country of Origin Declaration", "PASS", batch.Specs.CountryOfOrigin}
+	}
+	return textileCheck{"Country of Origin Declaration", "FAIL", "Not declared"}
 }
 
 // ---- Cryptographic Hash ----

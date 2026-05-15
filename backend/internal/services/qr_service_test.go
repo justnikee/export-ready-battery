@@ -75,6 +75,30 @@ func TestBuildQRPayload_GlobalNoCarbon(t *testing.T) {
 	}
 }
 
+func TestBuildQRPayload_TextileUsesFiberParam(t *testing.T) {
+	svc := NewQRService("https://app.anvayalabs.in")
+	id := uuid.MustParse("77777777-7777-7777-7777-777777777777")
+	serial := "IN-TEN-CTN-2026-00001"
+	ctx := &QRLabelContext{ProductType: "TEXTILE"}
+
+	url := svc.BuildQRPayload(id, serial, ctx)
+
+	// Must use "fiber" param for textiles
+	if !strings.Contains(url, "fiber=CTN") {
+		t.Errorf("textile QR must contain fiber param, got: %s", url)
+	}
+	// Must NOT use "chem" param for textiles
+	if strings.Contains(url, "chem=") {
+		t.Errorf("textile QR should not contain chem param, got: %s", url)
+	}
+	// Must still have other BPAN params
+	for _, param := range []string{"bpan=IN-TEN-CTN-2026-00001", "yr=2026", "mfr=TEN", "rgn=IN"} {
+		if !strings.Contains(url, param) {
+			t.Errorf("textile URL missing expected param %q\ngot: %s", param, url)
+		}
+	}
+}
+
 func TestExtractCarbonPerKWh_Valid(t *testing.T) {
 	result := json.RawMessage(`{"total_kg_co2e": 500.0, "per_kwh_kg_co2e": 65.5}`)
 	got := ExtractCarbonPerKWh(result)

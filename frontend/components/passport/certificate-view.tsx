@@ -164,6 +164,48 @@ export interface PassportViewData {
       recycled_lead_pct?: number;
     } | null;
     certifications?: string[];
+    gsm?: number;
+    dye_process?: string;
+    finish_type?: string[];
+    water_usage_liters?: number;
+    energy_usage_kwh?: number;
+    biodegradable_pct?: number | null;
+    expected_lifetime_washes?: number | null;
+    recycled_content_pct?: number | null;
+    fiber_composition?: {
+      cotton_pct?: number;
+      polyester_pct?: number;
+      wool_pct?: number;
+      silk_pct?: number;
+      linen_pct?: number;
+      viscose_pct?: number;
+      nylon_pct?: number;
+      acrylic_pct?: number;
+      hemp_pct?: number;
+      other_pct?: number;
+    } | null;
+    supplier_tier?: {
+      fiber_supplier?: string;
+      spinning_mill?: string;
+      weaving_knitting_mill?: string;
+      dye_house?: string;
+      finishing_facility?: string;
+      cut_sew_facility?: string;
+    } | null;
+    labor_compliance?: {
+      sa8000_certified?: boolean;
+      bsci_audited?: boolean;
+      sedex_member?: boolean;
+      fair_trade_certified?: boolean;
+      audit_score?: number;
+      audit_date?: string;
+    } | null;
+    chemical_compliance_zdhc?: {
+      zdhc_level?: string;
+      mrsl_tested?: boolean;
+      test_report_url?: string;
+      restricted_substances_found?: string[];
+    } | null;
   } | null;
   tenant: {
     company_name?: string;
@@ -274,6 +316,20 @@ export function CertificateView({
   const recyclingDate = passport.recycling_date
     ? new Date(passport.recycling_date)
     : null;
+
+  // Textile derived values
+  const gsm = specs?.gsm || null;
+  const dyeProcess = specs?.dye_process || null;
+  const finishType = specs?.finish_type || [];
+  const waterUsage = specs?.water_usage_liters || null;
+  const energyUsage = specs?.energy_usage_kwh || null;
+  const biodegradablePct = specs?.biodegradable_pct || null;
+  const expectedLifetimeWashes = specs?.expected_lifetime_washes || null;
+  const recycledContentPct = specs?.recycled_content_pct || null;
+  const fiberComposition = specs?.fiber_composition;
+  const supplierTier = specs?.supplier_tier;
+  const laborCompliance = specs?.labor_compliance;
+  const chemicalCompliance = specs?.chemical_compliance_zdhc;
 
   // EU Representative — backend uses eu_authorized_representative_name / eu_contact_email
   const euRepresentativeName =
@@ -608,6 +664,12 @@ export function CertificateView({
                 value={carbonFootprint}
               />
             )}
+            {productType === "TEXTILE" && carbonFootprint && (
+              <DataRow
+                label="Carbon Footprint"
+                value={`${carbonFootprint} kgCO2e/kg`}
+              />
+            )}
             {isBatteryStandard && (
               <DataRow label={t("label_hazardous")} value={hazardousSubs} />
             )}
@@ -631,6 +693,80 @@ export function CertificateView({
             )}
             {templateConfig.showTextileCompliance && (
               <>
+                {fiberComposition && (
+                  <div className="py-2 border-b border-border">
+                    <span className="text-muted-foreground text-sm block mb-2">
+                      Fiber Composition
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "Cotton", pct: fiberComposition.cotton_pct },
+                        { label: "Polyester", pct: fiberComposition.polyester_pct },
+                        { label: "Wool", pct: fiberComposition.wool_pct },
+                        { label: "Silk", pct: fiberComposition.silk_pct },
+                        { label: "Linen", pct: fiberComposition.linen_pct },
+                        { label: "Viscose", pct: fiberComposition.viscose_pct },
+                        { label: "Nylon", pct: fiberComposition.nylon_pct },
+                        { label: "Acrylic", pct: fiberComposition.acrylic_pct },
+                        { label: "Hemp", pct: fiberComposition.hemp_pct },
+                        { label: "Other", pct: fiberComposition.other_pct },
+                      ]
+                        .filter((f) => f.pct != null && f.pct > 0)
+                        .map((f) => {
+                          const pct = f.pct ?? 0;
+                          return (
+                            <div key={f.label} className="flex items-center gap-2">
+                              <span className="text-foreground text-xs w-16 shrink-0">
+                                {f.label}
+                              </span>
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-cyan-500 rounded-full"
+                                  style={{ width: `${Math.min(100, pct)}%` }}
+                                />
+                              </div>
+                              <span className="text-foreground text-xs w-8 text-right">
+                                {pct}%
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+                <DataRow label="GSM" value={gsm} />
+                <DataRow
+                  label="Dye Process & Finish"
+                  value={
+                    dyeProcess || finishType.length > 0
+                      ? [dyeProcess, finishType.join(", ")].filter(Boolean).join(" | ")
+                      : null
+                  }
+                />
+                <DataRow
+                  label="Water Usage"
+                  value={waterUsage != null ? `${waterUsage} L` : null}
+                />
+                <DataRow
+                  label="Energy Usage"
+                  value={energyUsage != null ? `${energyUsage} kWh` : null}
+                />
+                <DataRow
+                  label="Biodegradable"
+                  value={biodegradablePct != null ? `${biodegradablePct}%` : null}
+                />
+                <DataRow
+                  label="Expected Lifetime"
+                  value={
+                    expectedLifetimeWashes != null
+                      ? `${expectedLifetimeWashes} washes`
+                      : null
+                  }
+                />
+                <DataRow
+                  label="Recycled Content"
+                  value={recycledContentPct != null ? `${recycledContentPct}%` : null}
+                />
                 <DataRow label="Material Profile" value={materialProfile} />
                 <DataRow label="Country of Origin" value={countryOfOrigin} />
                 <DataRow label="Hazardous Substances" value={hazardousSubs} />
@@ -639,6 +775,115 @@ export function CertificateView({
                   value={certifications.join(", ") || null}
                 />
               </>
+            )}
+            {supplierTier && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+                  Supplier Tier
+                </p>
+                <div className="space-y-0">
+                  <DataRow label="Fiber Supplier" value={supplierTier.fiber_supplier} />
+                  <DataRow label="Spinning Mill" value={supplierTier.spinning_mill} />
+                  <DataRow
+                    label="Weaving / Knitting Mill"
+                    value={supplierTier.weaving_knitting_mill}
+                  />
+                  <DataRow label="Dye House" value={supplierTier.dye_house} />
+                  <DataRow
+                    label="Finishing Facility"
+                    value={supplierTier.finishing_facility}
+                  />
+                  <DataRow
+                    label="Cut & Sew Facility"
+                    value={supplierTier.cut_sew_facility}
+                  />
+                </div>
+              </div>
+            )}
+            {laborCompliance && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+                  Labor Compliance
+                </p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { label: "SA8000", active: laborCompliance.sa8000_certified },
+                    { label: "BSCI", active: laborCompliance.bsci_audited },
+                    { label: "SEDEX", active: laborCompliance.sedex_member },
+                    { label: "Fair Trade", active: laborCompliance.fair_trade_certified },
+                  ].map((cert) => (
+                    <span
+                      key={cert.label}
+                      className={`px-2 py-0.5 rounded text-xs border ${
+                        cert.active
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          : "bg-muted text-muted-foreground border-border"
+                      }`}
+                    >
+                      {cert.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="space-y-0">
+                  <DataRow
+                    label="Audit Score"
+                    value={laborCompliance.audit_score ?? null}
+                  />
+                  <DataRow label="Audit Date" value={laborCompliance.audit_date || null} />
+                </div>
+              </div>
+            )}
+            {chemicalCompliance && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+                  Chemical Compliance (ZDHC)
+                </p>
+                <div className="space-y-0">
+                  <div className="flex items-baseline justify-between py-2 border-b border-border last:border-0 gap-4">
+                    <span className="text-muted-foreground text-sm whitespace-nowrap">
+                      ZDHC Level
+                    </span>
+                    <span className="text-foreground text-sm text-right">
+                      {chemicalCompliance.zdhc_level ? (
+                        <span className="px-2 py-0.5 rounded text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                          Level {chemicalCompliance.zdhc_level}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </span>
+                  </div>
+                  <DataRow
+                    label="MRSL Tested"
+                    value={
+                      chemicalCompliance.mrsl_tested != null
+                        ? chemicalCompliance.mrsl_tested
+                          ? "Yes ✓"
+                          : "No"
+                        : null
+                    }
+                  />
+                  <div className="flex items-baseline justify-between py-2 border-b border-border last:border-0 gap-4">
+                    <span className="text-muted-foreground text-sm whitespace-nowrap">
+                      Test Report
+                    </span>
+                    <span className="text-foreground text-sm text-right">
+                      {chemicalCompliance.test_report_url ? (
+                        <a
+                          href={chemicalCompliance.test_report_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline truncate block max-w-[200px]"
+                        >
+                          {chemicalCompliance.test_report_url}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

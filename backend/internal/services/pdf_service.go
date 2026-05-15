@@ -137,10 +137,11 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// Generate enriched QR code
 	var qrCtx *QRLabelContext
-	if carbonPerKWh > 0 || tenant.BatteryProfile.EPRRegistrationNumber != "" {
+	if carbonPerKWh > 0 || tenant.BatteryProfile.EPRRegistrationNumber != "" || batch.ProductType == models.ProductTypeTextile {
 		qrCtx = &QRLabelContext{
 			CarbonPerKWh: carbonPerKWh,
 			EPRNumber:    tenant.BatteryProfile.EPRRegistrationNumber,
+			ProductType:  batch.ProductType,
 		}
 	}
 	qrURL := (&QRService{baseURL: s.baseURL}).BuildQRPayload(passport.UUID, passport.SerialNumber, qrCtx)
@@ -307,7 +308,10 @@ func labelPrimaryText(batch *models.Batch, tr LabelTranslations) string {
 
 func labelDetailText(batch *models.Batch, passport *models.Passport, comp *models.BPANComponents) string {
 	if batch.ProductType == models.ProductTypeTextile {
-		parts := make([]string, 0, 2)
+		parts := make([]string, 0, 3)
+		if batch.Specs.GSM > 0 {
+			parts = append(parts, fmt.Sprintf("%.0f GSM", batch.Specs.GSM))
+		}
 		if batch.Specs.ProductionStage != "" {
 			parts = append(parts, batch.Specs.ProductionStage)
 		}
@@ -324,15 +328,21 @@ func labelDetailText(batch *models.Batch, passport *models.Passport, comp *model
 }
 
 func labelSpecText(batch *models.Batch) string {
-	parts := make([]string, 0, 3)
+	parts := make([]string, 0, 4)
 	if batch.ProductType == models.ProductTypeTextile {
 		if batch.Specs.Manufacturer != "" {
-			parts = append(parts, truncateLabelText(batch.Specs.Manufacturer, 15))
+			parts = append(parts, truncateLabelText(batch.Specs.Manufacturer, 12))
 		}
 		if batch.Specs.CountryOfOrigin != "" {
 			parts = append(parts, batch.Specs.CountryOfOrigin)
 		}
-		return strings.Join(parts, " | ")
+		if batch.Specs.DyeProcess != "" && batch.Specs.DyeProcess != "none" {
+			parts = append(parts, batch.Specs.DyeProcess)
+		}
+		if len(batch.Specs.FinishType) > 0 {
+			parts = append(parts, batch.Specs.FinishType[0])
+		}
+		return truncateLabelText(strings.Join(parts, " | "), 34)
 	}
 
 	if batch.Specs.NominalVoltage != "" {
@@ -349,13 +359,20 @@ func labelSpecText(batch *models.Batch) string {
 
 func labelTextileFooterLines(batch *models.Batch, tenant *models.Tenant) []string {
 	tenant.EnsureTextileProfile()
-	lines := make([]string, 0, 3)
+	lines := make([]string, 0, 4)
 	profileLine := strings.TrimSpace(strings.Join(compactStrings(
 		tenant.TextileProfile.FacilityType,
 		tenant.TextileProfile.SupplyChainTier,
 	), " | "))
 	if profileLine != "" {
 		lines = append(lines, truncateLabelText(profileLine, 32))
+	}
+	if batch.Specs.ChemicalComplianceZDHC != nil && batch.Specs.ChemicalComplianceZDHC.ZDHCLevel != "" && batch.Specs.ChemicalComplianceZDHC.ZDHCLevel != "NA" {
+		zdhcLine := fmt.Sprintf("ZDHC L%s", batch.Specs.ChemicalComplianceZDHC.ZDHCLevel)
+		if batch.Specs.ChemicalComplianceZDHC.MRSLTested {
+			zdhcLine += " | MRSL ✓"
+		}
+		lines = append(lines, truncateLabelText(zdhcLine, 32))
 	}
 	if len(batch.Specs.Certifications) > 0 {
 		lines = append(lines, truncateLabelText("CERT: "+strings.Join(batch.Specs.Certifications, ", "), 32))

@@ -729,7 +729,7 @@ func (h *Handler) DownloadComplianceDeclaration(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Battery declarations remain carbon-footprint based; textile declarations do not.
+	// Carbon footprint check: required for battery, optional for textile
 	if batch.ProductType == models.ProductTypeBattery && len(batch.CarbonFootprintResult) == 0 {
 		respondError(w, http.StatusBadRequest, "No carbon footprint data available. Run the carbon calculator first.")
 		return
@@ -743,8 +743,13 @@ func (h *Handler) DownloadComplianceDeclaration(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Generate PDF
-	pdfBytes, err := services.GenerateComplianceDeclaration(batch, tenant)
+	// Generate PDF — route by product type
+	var pdfBytes []byte
+	if batch.ProductType == models.ProductTypeTextile {
+		pdfBytes, err = services.GenerateTextileComplianceDeclaration(batch, tenant)
+	} else {
+		pdfBytes, err = services.GenerateComplianceDeclaration(batch, tenant)
+	}
 	if err != nil {
 		slog.Error("Failed to generate compliance declaration PDF", "error", err, "batch_id", batchID)
 		respondError(w, http.StatusInternalServerError, "Failed to generate compliance declaration PDF")
@@ -800,8 +805,13 @@ func (h *Handler) DownloadDueDiligenceReport(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Generate PDF
-	pdfBytes, err := services.GenerateDueDiligenceReport(batch, tenant)
+	// Generate PDF — route by product type
+	var pdfBytes []byte
+	if batch.ProductType == models.ProductTypeTextile {
+		pdfBytes, err = services.GenerateTextileDueDiligenceReport(batch, tenant)
+	} else {
+		pdfBytes, err = services.GenerateDueDiligenceReport(batch, tenant)
+	}
 	if err != nil {
 		slog.Error("Failed to generate due diligence report PDF", "error", err, "batch_id", batchID)
 		respondError(w, http.StatusInternalServerError, "Failed to generate due diligence report PDF")

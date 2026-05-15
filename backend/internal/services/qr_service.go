@@ -44,6 +44,8 @@ type QRLabelContext struct {
 	// EPRNumber is the producer's EPR registration number (India market).
 	// When set and the BPAN region is India (IN), this is embedded in the QR payload.
 	EPRNumber string
+	// ProductType drives QR parameter naming (chem for battery, fiber for textile).
+	ProductType models.ProductType
 }
 
 // GenerateQRCode generates a single QR code PNG.
@@ -89,7 +91,11 @@ func (s *QRService) BuildQRPayload(passportUUID uuid.UUID, serialNumber string, 
 	// BPAN V2: enrich with decoded metadata
 	params := url.Values{}
 	params.Set("bpan", serialNumber)
-	params.Set("chem", comp.Chemistry)
+	if ctx != nil && ctx.ProductType == models.ProductTypeTextile {
+		params.Set("fiber", comp.Chemistry)
+	} else {
+		params.Set("chem", comp.Chemistry)
+	}
 	params.Set("yr", fmt.Sprintf("%d", comp.Year))
 	params.Set("mfr", comp.Manufacturer)
 	params.Set("rgn", comp.Region)
