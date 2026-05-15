@@ -313,15 +313,15 @@ func (d *crPDF) checkDVAThreshold(batch *models.Batch) ais156Check {
 }
 
 func (d *crPDF) checkHSNCode(batch *models.Batch) ais156Check {
-	if batch.HSNCode != "" {
-		return ais156Check{"HSN Code (Customs)", "PASS", fmt.Sprintf("HSN: %s", batch.HSNCode)}
+	if batch.Specs.HSNCode != "" {
+		return ais156Check{"HSN Code (Customs)", "PASS", fmt.Sprintf("HSN: %s", batch.Specs.HSNCode)}
 	}
 	return ais156Check{"HSN Code (Customs)", "FAIL", "HSN code not provided"}
 }
 
 func (d *crPDF) checkCountryOfOrigin(batch *models.Batch) ais156Check {
-	if batch.CountryOfOrigin != "" {
-		return ais156Check{"Country of Origin Declaration", "PASS", batch.CountryOfOrigin}
+	if batch.Specs.CountryOfOrigin != "" {
+		return ais156Check{"Country of Origin Declaration", "PASS", batch.Specs.CountryOfOrigin}
 	}
 	return ais156Check{"Country of Origin Declaration", "FAIL", "Country of origin not declared"}
 }

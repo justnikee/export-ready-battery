@@ -21,7 +21,6 @@ func validIndiaBatch() *models.Batch {
 	return &models.Batch{
 		ModelName:              "EV-Pack-3K",
 		MarketRegion:           models.MarketRegionIndia,
-		CellSource:             "DOMESTIC",
 		DomesticValueAdd:       60.0,
 		PLICompliant:           false,
 		ManufacturingStartDate: &now,
@@ -31,6 +30,9 @@ func validIndiaBatch() *models.Batch {
 			Capacity:  "100Ah",
 			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
 			ExpectedLifetimeCycles: &cycles,
+			CellSource:       "DOMESTIC",
+			BISNumber:        "R-41001234",
+			EPRNumber:        "EPR/E-Waste/2024/00001",
 		},
 	}
 }
@@ -143,25 +145,24 @@ func TestIndiaValidator_PLIClaim_SufficientDVA_Passes(t *testing.T) {
 
 func TestIndiaValidator_ImportedCells_RequiresCustomsFields(t *testing.T) {
 	batch := validIndiaBatch()
-	batch.CellSource = "IMPORTED"
+	batch.Specs.CellSource = "IMPORTED"
 	// BillOfEntryNo, CountryOfOrigin, CustomsDate all empty
 
 	v := &battery.IndiaValidator{}
 	result, err := v.ValidateBatch(batch, validIndiaTenant())
 	require.NoError(t, err)
 	assert.False(t, result.Valid)
-	assert.Contains(t, result.Missing, "batch.bill_of_entry_no")
-	assert.Contains(t, result.Missing, "batch.country_of_origin")
-	assert.Contains(t, result.Missing, "batch.customs_date")
+	assert.Contains(t, result.Missing, "batch.specs.bill_of_entry_no")
+	assert.Contains(t, result.Missing, "batch.specs.country_of_origin")
+	assert.Contains(t, result.Missing, "batch.specs.customs_date")
 }
 
 func TestIndiaValidator_ImportedCells_AllCustomsFields_Passes(t *testing.T) {
 	batch := validIndiaBatch()
-	batch.CellSource = "IMPORTED"
-	batch.BillOfEntryNo = "BE/2024/001234"
-	batch.CountryOfOrigin = "CN"
-	now := time.Now()
-	batch.CustomsDate = &now
+	batch.Specs.CellSource = "IMPORTED"
+	batch.Specs.BillOfEntryNo = "BE/2024/001234"
+	batch.Specs.CountryOfOrigin = "CN"
+	batch.Specs.CustomsDate = time.Now().Format("2006-01-02")
 	batch.DomesticValueAdd = 0 // not required for imported
 
 	v := &battery.IndiaValidator{}
@@ -172,7 +173,7 @@ func TestIndiaValidator_ImportedCells_AllCustomsFields_Passes(t *testing.T) {
 
 func TestIndiaValidator_DomesticCells_MissingDVA(t *testing.T) {
 	batch := validIndiaBatch()
-	batch.CellSource = "DOMESTIC"
+	batch.Specs.CellSource = "DOMESTIC"
 	batch.DomesticValueAdd = 0
 
 	v := &battery.IndiaValidator{}
@@ -203,8 +204,8 @@ func TestIndiaValidator_Warnings_DoNotBlockActivation(t *testing.T) {
 	// A batch with all hard requirements met but missing BISNumber + EPRNumber
 	// (which are soft warnings) should still be valid.
 	batch := validIndiaBatch()
-	batch.BISNumber = ""
-	batch.EPRNumber = ""
+	batch.Specs.BISNumber = ""
+	batch.Specs.EPRNumber = ""
 
 	v := &battery.IndiaValidator{}
 	result, err := v.ValidateBatch(batch, validIndiaTenant())

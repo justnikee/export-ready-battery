@@ -118,6 +118,14 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// v2: Copy battery-specific fields into Specs JSONB
+	req.Specs.CellSource = req.CellSource
+	req.Specs.BillOfEntryNo = req.BillOfEntryNo
+	req.Specs.CountryOfOrigin = req.CountryOfOrigin
+	if customsDate != nil {
+		req.Specs.CustomsDate = customsDate.Format("2006-01-02")
+	}
+
 	// Create batch using repository request struct
 	createReq := repository.CreateBatchRequest{
 		TenantID:               tenantID,
@@ -127,12 +135,8 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		MarketRegion:           marketRegion,
 		PLICompliant:           req.PLICompliant,
 		DomesticValueAdd:       req.DomesticValueAdd,
-		CellSource:             req.CellSource,
 		ManufacturingStartDate: manufacturingStart,
 		ManufacturingEndDate:   manufacturingEnd,
-		BillOfEntryNo:          req.BillOfEntryNo,
-		CountryOfOrigin:        req.CountryOfOrigin,
-		CustomsDate:            customsDate,
 	}
 
 	batch, err := h.repo.CreateBatch(r.Context(), createReq)

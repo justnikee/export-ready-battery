@@ -32,12 +32,12 @@ func validBillingBatch(tenantID uuid.UUID) *models.Batch {
 		MarketRegion:           models.MarketRegionIndia,
 		ManufacturingStartDate: &mfgStart,
 		ManufacturingEndDate:   &mfgEnd,
-		CellSource:             "DOMESTIC",
 		DomesticValueAdd:       60.0,
 		Specs: models.BatchSpec{
 			Chemistry:      "LFP",
 			Capacity:       "100Ah",
 			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
+			CellSource:     "DOMESTIC",
 		},
 	}
 }

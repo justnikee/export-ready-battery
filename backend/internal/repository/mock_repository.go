@@ -125,8 +125,8 @@ func (m *MockRepository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *MockRepository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error {
-	args := m.Called(ctx, id, cellSource, billOfEntry, countryOrigin, domesticValue)
+func (m *MockRepository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error {
+	args := m.Called(ctx, id, domesticValue)
 	return args.Error(0)
 }
 

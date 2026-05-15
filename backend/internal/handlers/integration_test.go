@@ -270,7 +270,6 @@ func TestActivation_IndiaWithAIS_Passes(t *testing.T) {
 		MarketRegion:           models.MarketRegionIndia,
 		ManufacturingStartDate: &mfgStart,
 		ManufacturingEndDate:   &mfgEnd,
-		CellSource:             "DOMESTIC",
 		DomesticValueAdd:       55.0,
 		Specs: models.BatchSpec{
 			Chemistry:      "LFP",
@@ -278,6 +277,7 @@ func TestActivation_IndiaWithAIS_Passes(t *testing.T) {
 			NominalVoltage: "3.2V",
 			Weight:         "1.5kg",
 			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
+			CellSource:     "DOMESTIC",
 		},
 	}
 	tenant := &models.Tenant{
@@ -315,13 +315,13 @@ func TestActivation_IndiaWithoutAIS_Blocked(t *testing.T) {
 		MarketRegion:           models.MarketRegionIndia,
 		ManufacturingStartDate: &mfgStart,
 		ManufacturingEndDate:   &mfgEnd,
-		CellSource:             "DOMESTIC",
 		DomesticValueAdd:       55.0,
 		Specs: models.BatchSpec{
 			Chemistry:      "LFP",
 			Capacity:       "100Ah",
 			NominalVoltage: "3.2V",
 			Weight:         "1.5kg",
+			CellSource:     "DOMESTIC",
 			Certifications: []string{"BIS"},
 		},
 	}

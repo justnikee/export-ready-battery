@@ -290,6 +290,21 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// v2: Copy battery-specific top-level fields into Specs JSONB so the
+	// repository stores everything product-agnostically in one jsonb column.
+	req.Specs.CellSource = req.CellSource
+	req.Specs.BillOfEntryNo = req.BillOfEntryNo
+	req.Specs.CountryOfOrigin = req.CountryOfOrigin
+	if customsDate != nil {
+		req.Specs.CustomsDate = customsDate.Format("2006-01-02")
+	}
+	req.Specs.HSNCode = req.HSNCode
+	req.Specs.DVASource = req.DVASource
+	req.Specs.AuditedDomesticValueAdd = req.AuditedDomesticValueAdd
+	req.Specs.PLICertificateURL = req.PLICertificateURL
+	req.Specs.BISNumber = req.BISNumber
+	req.Specs.EPRNumber = req.EPRNumber
+
 	// Create the batch
 	slog.Debug("CreateBatch", "tenant_id", req.TenantID, "batch_name", req.BatchName, "market_region", req.MarketRegion)
 
@@ -302,17 +317,8 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		MarketRegion:           req.MarketRegion,
 		PLICompliant:           req.PLICompliant,
 		DomesticValueAdd:       req.DomesticValueAdd,
-		CellSource:             req.CellSource,
 		ManufacturingStartDate: manufacturingStart,
 		ManufacturingEndDate:   manufacturingEnd,
-		BillOfEntryNo:          req.BillOfEntryNo,
-		CountryOfOrigin:        req.CountryOfOrigin,
-		CustomsDate:            customsDate,
-		HSNCode:                req.HSNCode,
-		DVASource:              req.DVASource,
-		PLICertificateURL:      req.PLICertificateURL,
-		BISNumber:              req.BISNumber,
-		EPRNumber:              req.EPRNumber,
 	})
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
@@ -906,7 +912,7 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 	// Create new batch request with copied fields
 	newBatchName := fmt.Sprintf("%s (Copy)", originalBatch.BatchName)
 
-	// Create the batch copy
+	// Create the batch copy — battery-specific fields are inside originalBatch.Specs
 	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
 		TenantID:               originalBatch.TenantID,
 		BatchName:              newBatchName,
@@ -915,17 +921,8 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 		MarketRegion:           originalBatch.MarketRegion,
 		PLICompliant:           originalBatch.PLICompliant,
 		DomesticValueAdd:       originalBatch.DomesticValueAdd,
-		CellSource:             originalBatch.CellSource,
 		ManufacturingStartDate: originalBatch.ManufacturingStartDate,
 		ManufacturingEndDate:   originalBatch.ManufacturingEndDate,
-		BillOfEntryNo:          originalBatch.BillOfEntryNo,
-		CountryOfOrigin:        originalBatch.CountryOfOrigin,
-		CustomsDate:            originalBatch.CustomsDate,
-		HSNCode:                originalBatch.HSNCode,
-		DVASource:              originalBatch.DVASource,
-		PLICertificateURL:      originalBatch.PLICertificateURL,
-		BISNumber:              originalBatch.BISNumber,
-		EPRNumber:              originalBatch.EPRNumber,
 	})
 
 	if err != nil {

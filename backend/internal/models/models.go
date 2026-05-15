@@ -229,23 +229,13 @@ type Batch struct {
 	MarketRegion     MarketRegion `json:"market_region"`         // INDIA, EU, or GLOBAL
 	PLICompliant     bool         `json:"pli_compliant"`         // India: PLI subsidy eligibility
 	DomesticValueAdd float64      `json:"domestic_value_add"`    // India: % of local value (stored as literal: 45.5 = 45.5%)
-	CellSource       string       `json:"cell_source,omitempty"` // IMPORTED or DOMESTIC
 	TotalPassports   int          `json:"total_passports"`       // Computed count of passports
 
-	// India Import/Customs Fields (Required when CellSource = IMPORTED)
-	BillOfEntryNo   string     `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
-	CountryOfOrigin string     `json:"country_of_origin,omitempty"` // Source country for imported cells
-	CustomsDate     *time.Time `json:"customs_date,omitempty"`      // Date of customs clearance
-
-	// India Compliance Fields (Mandatory for market_region = INDIA)
-	HSNCode   string `json:"hsn_code,omitempty"`   // Harmonized System Nomenclature code (e.g., "8507.60")
-	BISNumber string `json:"bis_number,omitempty"` // BIS R-Number (e.g., "R-12345678") - Required for lithium-ion batteries
-	EPRNumber string `json:"epr_number,omitempty"` // EPR Registration Number (e.g., "EPR/E-Waste/2024/00001")
-
-	// PLI/DVA Audit Compliance Fields (reduces legal liability)
-	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
-	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"` // CA-certified DVA % (nullable)
-	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // Path to CA certificate
+	// ── v2: Battery-specific fields moved to Specs JSONB ──
+	// CellSource, BillOfEntryNo, CountryOfOrigin, CustomsDate, HSNCode, BISNumber,
+	// EPRNumber, DVASource, AuditedDomesticValueAdd, PLICertificateURL are now
+	// stored inside the specs JSONB column for product-agnostic schema design.
+	// Access them via batch.Specs.CellSource, batch.Specs.HSNCode, etc.
 
 	// EU Carbon Footprint Calculator Result (JSONB, from POST /api/v1/carbon/calculate)
 	CarbonFootprintResult json.RawMessage `json:"carbon_footprint_result,omitempty"`
@@ -274,6 +264,13 @@ type BatchSpec struct {
 	HSNCode          string  `json:"hsn_code,omitempty"`           // Harmonized System Nomenclature code
 	BISNumber        string  `json:"bis_number,omitempty"`         // BIS R-Number (e.g., "R-12345678")
 	EPRNumber        string  `json:"epr_number,omitempty"`         // EPR Registration Number
+
+	// ── Fields migrated from top-level Batch columns (v2 product-agnostic refactor) ──
+	BillOfEntryNo           string   `json:"bill_of_entry_no,omitempty"`           // Customs Bill of Entry number
+	CustomsDate             string   `json:"customs_date,omitempty"`               // YYYY-MM-DD
+	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
+	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"` // CA-certified DVA %
+	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // URL to CA certificate
 
 	// EU Battery Regulation 2023/1542 - MANDATORY FIELDS
 	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`     // Critical raw materials %

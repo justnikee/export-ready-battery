@@ -12,7 +12,9 @@ import (
 	"anvayalabs-battery/internal/models"
 )
 
-// CreateBatchRequest contains all parameters for creating a batch
+// CreateBatchRequest contains all parameters for creating a batch.
+// Battery-specific fields (CellSource, HSNCode, BISNumber, etc.) are stored
+// inside Specs JSONB — do not set them as top-level fields.
 type CreateBatchRequest struct {
 	TenantID         uuid.UUID
 	BatchName        string
@@ -22,25 +24,10 @@ type CreateBatchRequest struct {
 	ProductType      models.ProductType // v2: defaults to BATTERY if empty
 	PLICompliant     bool
 	DomesticValueAdd float64
-	CellSource       string
 
 	// Manufacturing window
 	ManufacturingStartDate *time.Time
 	ManufacturingEndDate   *time.Time
-
-	// India Import/Customs Fields
-	BillOfEntryNo   string
-	CountryOfOrigin string
-	CustomsDate     *time.Time
-	HSNCode         string // India: Harmonized System Nomenclature code
-
-	// DVA Audit Mode Fields
-	DVASource         string // "ESTIMATED" or "AUDITED"
-	PLICertificateURL string // URL to CA certificate (Supabase Storage)
-
-	// India Compliance Certification Fields
-	BISNumber string // BIS R-Number (e.g., "R-12345678")
-	EPRNumber string // EPR Registration Number
 }
 
 // CreateBatch creates a new batch with dual-mode support
@@ -69,17 +56,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		MarketRegion:           marketRegion,
 		PLICompliant:           req.PLICompliant,
 		DomesticValueAdd:       req.DomesticValueAdd,
-		CellSource:             req.CellSource,
 		ManufacturingStartDate: req.ManufacturingStartDate,
 		ManufacturingEndDate:   req.ManufacturingEndDate,
-		BillOfEntryNo:          req.BillOfEntryNo,
-		CountryOfOrigin:        req.CountryOfOrigin,
-		CustomsDate:            req.CustomsDate,
-		HSNCode:                req.HSNCode,
-		DVASource:              req.DVASource,
-		PLICertificateURL:      req.PLICertificateURL,
-		BISNumber:              req.BISNumber,
-		EPRNumber:              req.EPRNumber,
 	}
 
 	specsJSON, err := json.Marshal(req.Specs)
@@ -87,49 +65,12 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		return nil, fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
-	// Handle nullable cell_source
-	var cellSource interface{}
-	if req.CellSource != "" {
-		cellSource = req.CellSource
-	}
-
-	// Updated query to include hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result
-	query := `INSERT INTO public.batches 
-		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add, cell_source,
+	query := `INSERT INTO public.batches
+		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add,
 		 manufacturing_start_date, manufacturing_end_date,
-		 bill_of_entry_no, country_of_origin, customs_date, hsn_code, dva_source, pli_certificate_url, bis_number, epr_number, carbon_footprint_result,
-		 product_type, schema_version) 
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22::jsonb, $23, $24)`
-
-	// Handle nullable import fields
-	var billOfEntry, countryOrigin, hsnCode interface{}
-	if req.BillOfEntryNo != "" {
-		billOfEntry = req.BillOfEntryNo
-	}
-	if req.CountryOfOrigin != "" {
-		countryOrigin = req.CountryOfOrigin
-	}
-	if req.HSNCode != "" {
-		hsnCode = req.HSNCode
-	}
-
-	// Handle nullable DVA audit fields
-	var dvaSource, pliCertURL interface{}
-	if req.DVASource != "" {
-		dvaSource = req.DVASource
-	}
-	if req.PLICertificateURL != "" {
-		pliCertURL = req.PLICertificateURL
-	}
-
-	// Handle nullable India compliance fields
-	var bisNumber, eprNumber interface{}
-	if req.BISNumber != "" {
-		bisNumber = req.BISNumber
-	}
-	if req.EPRNumber != "" {
-		eprNumber = req.EPRNumber
-	}
+		 carbon_footprint_result,
+		 product_type, schema_version)
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15)`
 
 	_, err = r.db.Pool.Exec(ctx, query,
 		batch.ID,
@@ -142,17 +83,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		string(marketRegion),
 		batch.PLICompliant,
 		batch.DomesticValueAdd,
-		cellSource,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
-		billOfEntry,
-		countryOrigin,
-		req.CustomsDate,
-		hsnCode,
-		dvaSource,
-		pliCertURL,
-		bisNumber,
-		eprNumber,
 		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
 		string(productType),
 		batch.SchemaVersion,
@@ -170,29 +102,15 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	batch := &models.Batch{}
 	var specsJSON []byte
 	var marketRegion string
-	var cellSource *string
-	var billOfEntry, countryOrigin, hsnCode *string
-	var customsDate *time.Time
 	var manufacturingStart, manufacturingEnd *time.Time
-	var dvaSource, pliCertURL *string
-	var bisNumber, eprNumber *string
 
-	query := `SELECT id, tenant_id, batch_name, model_name, specs, created_at, 
+	query := `SELECT id, tenant_id, batch_name, model_name, specs, created_at,
 	          COALESCE(status, 'DRAFT') as status,
-	          COALESCE(market_region, 'GLOBAL') as market_region, 
-	          COALESCE(pli_compliant, false), 
-	          COALESCE(domestic_value_add, 0), 
-	          cell_source, 
+	          COALESCE(market_region, 'GLOBAL') as market_region,
+	          COALESCE(pli_compliant, false),
+	          COALESCE(domestic_value_add, 0),
 	          manufacturing_start_date,
 	          manufacturing_end_date,
-	          bill_of_entry_no,
-	          country_of_origin,
-	          customs_date,
-	          hsn_code,
-	          dva_source,
-	          pli_certificate_url,
-	          bis_number,
-	          epr_number,
 	          carbon_footprint_result,
 	          COALESCE(product_type, 'BATTERY') as product_type,
 	          COALESCE(schema_version, 1) as schema_version,
@@ -212,17 +130,8 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&marketRegion,
 		&batch.PLICompliant,
 		&batch.DomesticValueAdd,
-		&cellSource,
 		&manufacturingStart,
 		&manufacturingEnd,
-		&billOfEntry,
-		&countryOrigin,
-		&customsDate,
-		&hsnCode,
-		&dvaSource,
-		&pliCertURL,
-		&bisNumber,
-		&eprNumber,
 		&batch.CarbonFootprintResult,
 		&productType,
 		&batch.SchemaVersion,
@@ -242,38 +151,8 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 
 	batch.MarketRegion = models.MarketRegion(marketRegion)
 	batch.ProductType = models.ProductType(productType)
-
-	if cellSource != nil {
-		batch.CellSource = *cellSource
-	}
-
-	// Import fields
-	if billOfEntry != nil {
-		batch.BillOfEntryNo = *billOfEntry
-	}
-	if countryOrigin != nil {
-		batch.CountryOfOrigin = *countryOrigin
-	}
-	if hsnCode != nil {
-		batch.HSNCode = *hsnCode
-	}
-	batch.CustomsDate = customsDate
 	batch.ManufacturingStartDate = manufacturingStart
 	batch.ManufacturingEndDate = manufacturingEnd
-
-	// DVA audit fields
-	if dvaSource != nil {
-		batch.DVASource = *dvaSource
-	}
-	if pliCertURL != nil {
-		batch.PLICertificateURL = *pliCertURL
-	}
-	if bisNumber != nil {
-		batch.BISNumber = *bisNumber
-	}
-	if eprNumber != nil {
-		batch.EPRNumber = *eprNumber
-	}
 
 	return batch, nil
 }
@@ -295,22 +174,13 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
 
-	query := `SELECT b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, 
+	query := `SELECT b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at,
 	          COALESCE(b.status, 'DRAFT') as status,
-	          COALESCE(b.market_region::text, 'GLOBAL') as market_region, 
-	          COALESCE(b.pli_compliant, false), 
-	          COALESCE(b.domestic_value_add, 0), 
-	          b.cell_source, 
+	          COALESCE(b.market_region::text, 'GLOBAL') as market_region,
+	          COALESCE(b.pli_compliant, false),
+	          COALESCE(b.domestic_value_add, 0),
 	          b.manufacturing_start_date,
 	          b.manufacturing_end_date,
-	          b.bill_of_entry_no,
-	          b.country_of_origin,
-	          b.customs_date,
-	          b.hsn_code,
-	          b.dva_source,
-	          b.pli_certificate_url,
-	          b.bis_number,
-	          b.epr_number,
 	          b.carbon_footprint_result,
 	          COALESCE(b.product_type, 'BATTERY') as product_type,
 	          COALESCE(b.schema_version, 1) as schema_version,
@@ -320,11 +190,9 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
 	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND ($4 = '' OR b.product_type = $4)
-	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status, 
-	                   b.market_region, b.pli_compliant, b.domestic_value_add, b.cell_source,
+	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status,
+	                   b.market_region, b.pli_compliant, b.domestic_value_add,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
-	                   b.bill_of_entry_no, b.country_of_origin, b.customs_date, b.hsn_code,
-	                   b.dva_source, b.pli_certificate_url, b.bis_number, b.epr_number,
 	                   b.carbon_footprint_result, b.product_type, b.schema_version, b.compliance_score, b.compliance_gaps
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
@@ -340,12 +208,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 		batch := &models.Batch{}
 		var specsJSON []byte
 		var marketRegion string
-		var cellSource *string
-		var billOfEntry, countryOrigin, hsnCode *string
-		var customsDate *time.Time
 		var manufacturingStart, manufacturingEnd *time.Time
-		var dvaSource, pliCertURL *string
-		var bisNumber, eprNumber *string
 		var productType string
 
 		if err := rows.Scan(
@@ -359,17 +222,8 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 			&marketRegion,
 			&batch.PLICompliant,
 			&batch.DomesticValueAdd,
-			&cellSource,
 			&manufacturingStart,
 			&manufacturingEnd,
-			&billOfEntry,
-			&countryOrigin,
-			&customsDate,
-			&hsnCode,
-			&dvaSource,
-			&pliCertURL,
-			&bisNumber,
-			&eprNumber,
 			&batch.CarbonFootprintResult,
 			&productType,
 			&batch.SchemaVersion,
@@ -388,38 +242,8 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 
 		batch.MarketRegion = models.MarketRegion(marketRegion)
 		batch.ProductType = models.ProductType(productType)
-
-		if cellSource != nil {
-			batch.CellSource = *cellSource
-		}
-
-		// Import fields
-		if billOfEntry != nil {
-			batch.BillOfEntryNo = *billOfEntry
-		}
-		if countryOrigin != nil {
-			batch.CountryOfOrigin = *countryOrigin
-		}
-		if hsnCode != nil {
-			batch.HSNCode = *hsnCode
-		}
-		batch.CustomsDate = customsDate
 		batch.ManufacturingStartDate = manufacturingStart
 		batch.ManufacturingEndDate = manufacturingEnd
-
-		// DVA audit fields
-		if dvaSource != nil {
-			batch.DVASource = *dvaSource
-		}
-		if pliCertURL != nil {
-			batch.PLICertificateURL = *pliCertURL
-		}
-		if bisNumber != nil {
-			batch.BISNumber = *bisNumber
-		}
-		if eprNumber != nil {
-			batch.EPRNumber = *eprNumber
-		}
 
 		batches = append(batches, batch)
 	}
@@ -436,17 +260,15 @@ func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// UpdateBatchMetadata updates the import/domestic fields of a batch
-// Used when CSV upload contains these details
-func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, cellSource, billOfEntry, countryOrigin *string, domesticValue *float64) error {
-	query := `UPDATE public.batches SET 
-		cell_source = COALESCE($2, cell_source),
-		bill_of_entry_no = COALESCE($3, bill_of_entry_no),
-		country_of_origin = COALESCE($4, country_of_origin),
-		domestic_value_add = COALESCE($5, domestic_value_add)
+// UpdateBatchMetadata updates the domestic_value_add of a batch.
+// Battery-specific fields (cell_source, bill_of_entry, country_of_origin) are
+// now stored in specs JSONB and updated via PatchBatchDraft.
+func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error {
+	query := `UPDATE public.batches SET
+		domestic_value_add = COALESCE($2, domestic_value_add)
 		WHERE id = $1`
 
-	_, err := r.db.Pool.Exec(ctx, query, id, cellSource, billOfEntry, countryOrigin, domesticValue)
+	_, err := r.db.Pool.Exec(ctx, query, id, domesticValue)
 	if err != nil {
 		return fmt.Errorf("failed to update batch metadata: %w", err)
 	}
@@ -470,12 +292,8 @@ func (r *Repository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID
 		model_name              = COALESCE($3,  model_name),
 		manufacturing_start_date= COALESCE($4,  manufacturing_start_date),
 		manufacturing_end_date  = COALESCE($5,  manufacturing_end_date),
-		cell_source             = COALESCE($6,  cell_source),
-		bill_of_entry_no        = COALESCE($7,  bill_of_entry_no),
-		country_of_origin       = COALESCE($8,  country_of_origin),
-		customs_date            = COALESCE($9,  customs_date),
-		domestic_value_add      = COALESCE($10, domestic_value_add),
-		specs = CASE WHEN $11::text IS NULL THEN specs ELSE specs || $11::jsonb END
+		domestic_value_add      = COALESCE($6,  domestic_value_add),
+		specs = CASE WHEN $7::text IS NULL THEN specs ELSE specs || $7::jsonb END
 	WHERE id = $1 AND tenant_id = $2 AND COALESCE(status, 'DRAFT') = 'DRAFT'`
 
 	result, err := r.db.Pool.Exec(ctx, query,
@@ -483,10 +301,6 @@ func (r *Repository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID
 		req.ModelName,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
-		req.CellSource,
-		req.BillOfEntryNo,
-		req.CountryOfOrigin,
-		req.CustomsDate,
 		req.DomesticValueAdd,
 		specsFragment,
 	)

@@ -270,7 +270,7 @@ func (s *PDFService) drawLabel(pdf *gofpdf.Fpdf, x, y float64,
 
 	// Cell Source (Origin) — bottom line
 	pdf.SetXY(textX, footerY)
-	cellSource := batch.CellSource
+	cellSource := batch.Specs.CellSource
 	if cellSource == "" {
 		cellSource = "DOMESTIC"
 	}

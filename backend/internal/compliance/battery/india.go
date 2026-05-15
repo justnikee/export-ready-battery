@@ -115,23 +115,23 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// Cell source declaration
 	// ----------------------------------------------------------------
 
-	if batch.CellSource == "" {
-		addMissing("batch.cell_source",
+	if batch.Specs.CellSource == "" {
+		addMissing("batch.specs.cell_source",
 			"Cell source (IMPORTED or DOMESTIC) must be declared", indiaAIS156Ref)
-	} else if batch.CellSource == "IMPORTED" {
-		if batch.BillOfEntryNo == "" {
-			addMissing("batch.bill_of_entry_no",
+	} else if batch.Specs.CellSource == "IMPORTED" {
+		if batch.Specs.BillOfEntryNo == "" {
+			addMissing("batch.specs.bill_of_entry_no",
 				"Bill of Entry number is required for imported cells", indiaCustoms)
 		}
-		if batch.CountryOfOrigin == "" {
-			addMissing("batch.country_of_origin",
+		if batch.Specs.CountryOfOrigin == "" {
+			addMissing("batch.specs.country_of_origin",
 				"Country of origin is required for imported cells", indiaCustoms)
 		}
-		if batch.CustomsDate == nil {
-			addMissing("batch.customs_date",
+		if batch.Specs.CustomsDate == "" {
+			addMissing("batch.specs.customs_date",
 				"Customs clearance date is required for imported cells", indiaCustoms)
 		}
-	} else if batch.CellSource == "DOMESTIC" && batch.DomesticValueAdd <= 0 {
+	} else if batch.Specs.CellSource == "DOMESTIC" && batch.DomesticValueAdd <= 0 {
 		addMissing("batch.domestic_value_add",
 			"Domestic value add percentage must be declared for domestically sourced cells", indiaPLIRef)
 	}
@@ -174,19 +174,19 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// Soft warnings — recommended but not blocking
 	// ----------------------------------------------------------------
 
-	if batch.BISNumber == "" {
-		addWarning("batch.bis_number",
+	if batch.Specs.BISNumber == "" {
+		addWarning("batch.specs.bis_number",
 			"BIS batch-level certification number is recommended for IS 16046 compliance traceability", indiaBISRef)
 	}
-	if batch.EPRNumber == "" {
-		addWarning("batch.epr_number",
+	if batch.Specs.EPRNumber == "" {
+		addWarning("batch.specs.epr_number",
 			"EPR batch-level registration number is recommended for BWM traceability", indiaBWMRef)
 	}
 
 	// Compute denominator from only the hard (ERROR-severity) checkpoints that
 	// actually ran, so warnings never inflate the denominator or distort the score.
 	hardCheckpoints := indiaBaseCheckpoints
-	switch batch.CellSource {
+	switch batch.Specs.CellSource {
 	case "IMPORTED":
 		hardCheckpoints += 3 // bill_of_entry_no, country_of_origin, customs_date
 	case "DOMESTIC":

@@ -39,9 +39,9 @@ func main() {
 			Capacity:       "100Ah",
 			Manufacturer:   "Acme Batteries Pvt. Ltd.",
 			Weight:         "45kg",
+			CellSource:     "DOMESTIC",
 		},
 		MarketRegion: models.MarketRegionIndia,
-		CellSource:   "DOMESTIC",
 		PLICompliant: true,
 	}
 

@@ -13,13 +13,13 @@ func makeBaseBatch(region models.MarketRegion) *models.Batch {
 		ProductType:             models.ProductTypeBattery,
 		ModelName:              "TestModel",
 		MarketRegion:           region,
-		CellSource:             "DOMESTIC",
 		DomesticValueAdd:       60,
 		ManufacturingStartDate: &now,
 		ManufacturingEndDate:   &now,
 		Specs: models.BatchSpec{
-			Chemistry: "LFP",
-			Capacity:  "100 Ah",
+			Chemistry:  "LFP",
+			Capacity:   "100 Ah",
+			CellSource: "DOMESTIC",
 		},
 	}
 }
