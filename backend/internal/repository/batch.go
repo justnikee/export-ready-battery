@@ -170,7 +170,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	// Get total count first
 	var totalCount int
 	countQuery := `SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)`
-	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID).Scan(&totalCount); err != nil {
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, productType).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
 
