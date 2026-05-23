@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, LogOut, Settings } from "lucide-react";
+import { AlertBell } from "./alert-bell";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,12 +19,14 @@ import { useAuth } from "@/context/auth-context";
 import { clsx } from "clsx";
 import { dashboardPathFromPathname, stripProductPrefix } from "@/lib/routes";
 import { getProductConfigByType, getPageTitles } from "@/lib/products";
+import { useTranslations } from "next-intl";
 
 interface DashboardTopBarProps {
   onMenuClick: () => void;
 }
 
 export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
+  const t = useTranslations("topbar");
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const unprefixedPathname = stripProductPrefix(pathname);
@@ -46,7 +49,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
         .filter((key) => key && dashboardSubpath.startsWith(`${key}/`))
         .sort((a, b) => b.length - a.length)[0] ?? ""
     ] ??
-    "Dashboard";
+    t("dashboard");
 
   const initials = user?.company_name
     ? user.company_name.slice(0, 2).toUpperCase()
@@ -85,10 +88,13 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                 isLowQuota ? "bg-red-500" : "bg-emerald-500",
               )}
             />
-            <span className="hidden sm:inline">Licenses:</span>
+            <span className="hidden sm:inline">{t("quotaRemaining")}:</span>
             <span>{quotaBalance}</span>
           </div>
         </Link>
+
+        {/* Alerts Bell */}
+        <AlertBell />
 
         {/* Theme Toggle */}
         <ThemeToggle />
@@ -107,7 +113,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 rounded-none">
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal pb-1">
-              Company Account
+              {t("profileSettings")}
             </DropdownMenuLabel>
             <DropdownMenuItem className="flex items-center justify-between rounded-none focus:rounded-none cursor-default select-none">
               <div className="flex items-center gap-2 min-w-0">
@@ -135,7 +141,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Settings className="h-4 w-4" />
-                Settings
+                {t("profileSettings")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -144,7 +150,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
               className="flex items-center gap-2 rounded-none focus:rounded-none cursor-pointer text-muted-foreground"
             >
               <LogOut className="h-4 w-4" />
-              Sign Out
+              {t("logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
 import { type ProductSlug } from "@/lib/products";
+
+const intlMiddleware = createIntlMiddleware({
+  locales: ["en", "de"],
+  defaultLocale: "en",
+  localePrefix: "as-needed",
+});
 
 const adminPrefixes = ["/admin"];
 
@@ -133,6 +140,15 @@ function redirectToPath(request: NextRequest, pathname: string) {
 }
 
 export function proxy(request: NextRequest) {
+  const intlResponse = intlMiddleware(request);
+  if (intlResponse) {
+    // If next-intl returns a redirect/rewrite, respect it; otherwise continue to auth proxy
+    const rewrite = intlResponse.headers.get("x-middleware-rewrite");
+    const redirect = intlResponse.headers.get("location");
+    if (rewrite || (redirect && intlResponse.status >= 300 && intlResponse.status < 400)) {
+      return intlResponse;
+    }
+  }
   return handleProxy(request);
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Box,
   Home,
@@ -16,21 +17,22 @@ import {
 import { cn } from "@/lib/utils";
 import { dashboardPathFromPathname } from "@/lib/routes";
 
-const navItems = [
-  { icon: Home, label: "Overview" },
-  { icon: Box, label: "Batches", subpath: "batches" },
-  { icon: Users, label: "Partners", subpath: "partners" },
-  { icon: FileArchive, label: "Exports", subpath: "exports" },
-  { icon: Trophy, label: "Rewards", subpath: "rewards" },
-  { icon: CreditCard, label: "Billing", subpath: "billing" },
-  { icon: Code, label: "Developer", subpath: "developer" },
-  { icon: Users, label: "Team", subpath: "team" },
-  { icon: Settings, label: "Settings", subpath: "settings" },
-];
-
 export function Sidebar() {
+  const t = useTranslations("navigation");
   const pathname = usePathname();
   const dashboardHref = dashboardPathFromPathname(pathname);
+
+  const navItems = [
+    { icon: Home, label: t("overview") },
+    { icon: Box, label: t("batches"), subpath: "batches" },
+    { icon: Users, label: t("partners"), subpath: "partners" },
+    { icon: FileArchive, label: t("exports"), subpath: "exports" },
+    { icon: Trophy, label: t("rewards"), subpath: "rewards" },
+    { icon: CreditCard, label: t("billing"), subpath: "billing" },
+    { icon: Code, label: t("developer"), subpath: "developer" },
+    { icon: Users, label: t("team"), subpath: "team" },
+    { icon: Settings, label: t("settings"), subpath: "settings" },
+  ];
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-border bg-sidebar">

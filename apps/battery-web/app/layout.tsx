@@ -16,19 +16,24 @@ const sourceCodePro = Source_Code_Pro({
 });
 
 import { Providers } from "@/components/providers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "AnvayaLabs - Digital Battery Passport",
   description: "Manage and track battery passports",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Razorpay Checkout Script */}
         <script
@@ -39,7 +44,9 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${sourceCodePro.variable} font-sans antialiased`}
       >
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

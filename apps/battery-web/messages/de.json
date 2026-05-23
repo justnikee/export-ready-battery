@@ -1,0 +1,28 @@
+{
+  "navigation": {
+    "overview": "Übersicht",
+    "batches": "Chargen",
+    "partners": "Partner",
+    "exports": "Exporte",
+    "rewards": "Prämien",
+    "billing": "Abrechnung",
+    "developer": "Entwickler",
+    "team": "Team",
+    "settings": "Einstellungen"
+  },
+  "topbar": {
+    "dashboard": "Dashboard",
+    "passports": "Pässe",
+    "tokens": "API-Tokens",
+    "onboarding": "Onboarding",
+    "quotaLow": "Niedriges Kontingent",
+    "quotaRemaining": "Verbleibend",
+    "logout": "Abmelden",
+    "profileSettings": "Profileinstellungen"
+  },
+  "common": {
+    "createBatch": "Charge erstellen",
+    "uploadCSV": "CSV hochladen",
+    "search": "Suchen..."
+  }
+}

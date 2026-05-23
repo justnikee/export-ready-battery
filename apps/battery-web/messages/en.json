@@ -1,0 +1,28 @@
+{
+  "navigation": {
+    "overview": "Overview",
+    "batches": "Batches",
+    "partners": "Partners",
+    "exports": "Exports",
+    "rewards": "Rewards",
+    "billing": "Billing",
+    "developer": "Developer",
+    "team": "Team",
+    "settings": "Settings"
+  },
+  "topbar": {
+    "dashboard": "Dashboard",
+    "passports": "Passports",
+    "tokens": "API Tokens",
+    "onboarding": "Onboarding",
+    "quotaLow": "Low quota",
+    "quotaRemaining": "Remaining",
+    "logout": "Log out",
+    "profileSettings": "Profile settings"
+  },
+  "common": {
+    "createBatch": "Create Batch",
+    "uploadCSV": "Upload CSV",
+    "search": "Search..."
+  }
+}
