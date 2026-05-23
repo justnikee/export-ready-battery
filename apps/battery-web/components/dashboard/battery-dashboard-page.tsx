@@ -312,7 +312,8 @@ export default function DashboardPage() {
         }));
       setActivities([...scanEvents, ...batchEvents].slice(0, 5));
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      console.error("Failed to load dashboard data:", error);
+      toast.error("Failed to load dashboard data. Please refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -709,7 +710,7 @@ export default function DashboardPage() {
                     <td className="px-4 py-3">
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent">
+                          <button aria-label="Batch actions" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent">
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>

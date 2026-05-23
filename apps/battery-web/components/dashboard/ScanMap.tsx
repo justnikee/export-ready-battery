@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useMemo } from "react"
+import { useMemo } from "react"
 import {
  ComposableMap,
  Geographies,
@@ -227,4 +227,4 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
  )
 }
 
-export const ScanMap = memo(ScanMapComponent)
+export const ScanMap = ScanMapComponent
