@@ -17,6 +17,7 @@ import (
 	battery "github.com/anvayalabs/battery-api/internal/compliance/battery"
 	"github.com/anvayalabs/battery-api/internal/events"
 	"github.com/anvayalabs/battery-api/internal/handlers"
+	"github.com/anvayalabs/battery-api/internal/jobs"
 	"github.com/anvayalabs/battery-api/internal/logger"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -45,6 +46,12 @@ func main() {
 
 	// Initialize repository
 	repo := repository.New(database)
+
+	// Start background anchor upgrade ticker (every 30 minutes)
+	jobs.StartAnchorUpgradeTicker(repo, 30*time.Minute)
+
+	// Start background daily alert ticker (every 24 hours)
+	jobs.StartDailyAlertTicker(repo, authEmailService, 24*time.Hour)
 
 	// Initialize data access service
 	dataAccessService := services.NewDataAccessService(repo)
@@ -292,6 +299,22 @@ func main() {
 	mux.Handle("DELETE /api/v1/batches/{id}/draft", authMiddleware.Protect(http.HandlerFunc(h.DeleteDraftBatch)))
 
 	// ============================================
+	// CERTIFICATE BLOCKCHAIN ANCHORS (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/batches/{id}/anchors", authMiddleware.Protect(http.HandlerFunc(h.CreateCertificateAnchor)))
+	mux.Handle("GET /api/v1/batches/{id}/anchors", authMiddleware.Protect(http.HandlerFunc(h.GetCertificateAnchors)))
+	mux.Handle("POST /api/v1/jobs/upgrade-anchors", authMiddleware.Protect(http.HandlerFunc(h.UpgradeCertificateAnchors)))
+
+	// ============================================
+	// ALERTS (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/alerts", authMiddleware.Protect(http.HandlerFunc(h.GetAlerts)))
+	mux.Handle("GET /api/v1/alerts/unread", authMiddleware.Protect(http.HandlerFunc(h.GetUnreadAlerts)))
+	mux.Handle("GET /api/v1/alerts/unread-count", authMiddleware.Protect(http.HandlerFunc(h.GetUnreadAlertCount)))
+	mux.Handle("POST /api/v1/alerts/{id}/read", authMiddleware.Protect(http.HandlerFunc(h.MarkAlertRead)))
+	mux.Handle("POST /api/v1/jobs/daily-alerts", authMiddleware.Protect(http.HandlerFunc(h.RunDailyAlerts)))
+
+	// ============================================
 	// BULK OPERATIONS (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/bulk/status", authMiddleware.Protect(http.HandlerFunc(h.BulkUpdateStatus)))
@@ -381,6 +404,7 @@ func main() {
 	mux.Handle("GET /api/v1/billing/transactions", authMiddleware.Protect(http.HandlerFunc(h.GetTransactions)))
 	mux.Handle("POST /api/v1/batches/{id}/activate", authMiddleware.Protect(http.HandlerFunc(h.ActivateBatch)))
 	mux.Handle("PATCH /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.PatchBatch)))
+	mux.Handle("POST /api/v1/batches/{id}/carbon", authMiddleware.Protect(http.HandlerFunc(h.SaveCarbonFootprint)))
 	mux.Handle("POST /api/v1/batches/{id}/duplicate", authMiddleware.Protect(http.HandlerFunc(h.DuplicateBatch)))
 	mux.Handle("POST /api/v1/billing/top-up", authMiddleware.Protect(http.HandlerFunc(h.TopUpQuota)))
 
@@ -395,6 +419,15 @@ func main() {
 	carbonService := services.NewCarbonCalculatorService(repo)
 	carbonHandler := handlers.NewCarbonHandler(carbonService)
 	mux.Handle("POST /api/v1/carbon/calculate", authMiddleware.Protect(http.HandlerFunc(carbonHandler.CalculateCarbon)))
+
+	// ============================================
+	// AI / LLM ROUTES (Protected)
+	// ============================================
+	aiService := services.NewAIService(cfg.GroqAPIKey)
+	aiHandler := handlers.NewAIHandler(aiService)
+	mux.Handle("POST /api/v1/ai/parse-datasheet", authMiddleware.Protect(http.HandlerFunc(aiHandler.ParseDatasheet)))
+	mux.Handle("POST /api/v1/ai/parse-datasheet-upload", authMiddleware.Protect(http.HandlerFunc(aiHandler.ParseDatasheetFromUpload)))
+	mux.Handle("POST /api/v1/ai/nl-create-batch", authMiddleware.Protect(http.HandlerFunc(aiHandler.NLCreateBatch)))
 
 	// ============================================
 	// BMS TELEMETRY ROUTES (Device Token Authenticated)
@@ -542,10 +575,19 @@ func main() {
 	mux.Handle("GET /api/v1/external/batches/{id}/labels", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalDownloadLabels)))
 	mux.Handle("POST /api/v1/external/passports/{uuid}/transition", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalTransitionPassport)))
 
+	// Build handler chain: SecurityHeaders → MaxBytesReader → RecoverPanic → RequestLogger → CORS → mux
+	// MaxBytesReader prevents trivial large-body DoS (10 MB limit)
+	const maxBodyBytes = 10 << 20 // 10 MB
+	handler := middleware.SecurityHeaders(middleware.RecoverPanic(middleware.RequestLogger(corsMiddleware(cfg.CORSOrigins)(mux))))
+	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		handler.ServeHTTP(w, r)
+	})
+
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      middleware.RecoverPanic(middleware.RequestLogger(corsMiddleware(cfg.CORSOrigins)(mux))),
+		Handler:      handler,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 60 * time.Second, // Longer timeout for ZIP downloads
 		IdleTimeout:  60 * time.Second,

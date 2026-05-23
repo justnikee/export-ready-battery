@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -155,14 +156,14 @@ func (a *APIKeyAuth) checkRateLimit(w http.ResponseWriter, r *http.Request, key 
 	}
 
 	if count > limit {
-		w.Header().Set("X-RateLimit-Limit", string(rune(limit)))
+		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limit))
 		w.Header().Set("X-RateLimit-Remaining", "0")
 		http.Error(w, `{"error":"rate limit exceeded"}`, http.StatusTooManyRequests)
 		return false
 	}
 
-	w.Header().Set("X-RateLimit-Limit", string(rune(limit)))
-	w.Header().Set("X-RateLimit-Remaining", string(rune(limit-count)))
+	w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limit))
+	w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(limit-count))
 
 	return true
 }
