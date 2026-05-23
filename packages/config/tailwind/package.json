@@ -1,0 +1,14 @@
+{
+  "name": "@anvayalabs/tailwind-config",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "@anvayalabs/typescript-config/react-library.json",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

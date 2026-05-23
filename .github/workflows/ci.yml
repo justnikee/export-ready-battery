@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all apps and services
+        run: |
+          pnpm run build
+          for svc in services/*/; do
+            if [ -f "$svc/go.mod" ]; then
+              echo "Building $svc"
+              (cd "$svc" && go build ./...)
+            fi
+          done
+
+      - name: Run tests
+        run: |
+          pnpm run test
+          for svc in services/*/; do
+            if [ -f "$svc/go.mod" ]; then
+              echo "Testing $svc"
+              (cd "$svc" && go test ./...)
+            fi
+          done
