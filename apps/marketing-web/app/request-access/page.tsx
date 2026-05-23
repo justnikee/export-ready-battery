@@ -78,10 +78,35 @@ export default function RequestAccessPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    // TODO: wire to backend POST /api/v1/auth/request-access
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSubmitted(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/auth/request-access`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            company_name: form.companyName,
+            email: form.email,
+            gstin: form.gstin,
+            iec_code: form.iecCode,
+            product_type: form.productType,
+            estimated_batches: form.estimatedBatches,
+            market_region: form.marketRegion,
+            phone: form.phone,
+          }),
+        }
+      );
+      if (res.ok) {
+        setSubmitted(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setErrors({ submit: data.error || "Something went wrong. Please try again." });
+      }
+    } catch {
+      setErrors({ submit: "Network error. Please try again." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -295,6 +320,11 @@ export default function RequestAccessPage() {
               />
             </div>
 
+            {errors.submit && (
+              <p className="text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" /> {errors.submit}
+              </p>
+            )}
             <button
               type="submit"
               disabled={loading}
