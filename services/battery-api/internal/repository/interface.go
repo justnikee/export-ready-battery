@@ -29,13 +29,14 @@ type RepositoryInterface interface {
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
 	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
+	ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error
 	PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
 	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
-	SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error
+	SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte, carbonClass string) error
 	UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error
 
 	// schema_repository.go
@@ -43,6 +44,9 @@ type RepositoryInterface interface {
 	GetSchemaByVersion(ctx context.Context, productType models.ProductType, version int) (*models.ProductSchema, error)
 	UpsertProductSchema(ctx context.Context, s *models.ProductSchema) error
 	ListProductSchemas(ctx context.Context) ([]*models.ProductSchema, error)
+
+	// compliance_rules.go
+	GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error)
 
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)
@@ -207,4 +211,19 @@ type RepositoryInterface interface {
 
 	// passport.go — batch bulk action
 	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
+
+	// certificate_anchor.go
+	CreateCertificateAnchor(ctx context.Context, anchor *models.CertificateAnchor) error
+	GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error)
+	GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error)
+	UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error
+
+	// alerts.go
+	CreateAlert(ctx context.Context, alert *models.TenantAlert) error
+	GetAlertsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.TenantAlert, error)
+	GetUnreadAlerts(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.TenantAlert, error)
+	GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID) (int, error)
+	MarkAlertRead(ctx context.Context, alertID uuid.UUID) error
+	MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error
+	HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error)
 }

@@ -1,11 +1,14 @@
 package battery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
 // Regulatory reference strings used in Gap objects for EU market.
@@ -28,10 +31,20 @@ const euTotalCheckpoints = 13
 // and REACH/RoHS hazardous substance declarations.
 //
 // Implements compliance.Validator and compliance.BatchValidator.
-type EUValidator struct{}
+type EUValidator struct {
+	repo repository.RepositoryInterface
+}
 
 // NewEUValidator returns a ready-to-use EUValidator.
 func NewEUValidator() *EUValidator { return &EUValidator{} }
+
+// WithRepository injects a repository so the validator can query active
+// compliance rules from the database. Falls back to hard-coded defaults
+// if the repository is nil or the rules table is empty.
+func (v *EUValidator) WithRepository(repo repository.RepositoryInterface) *EUValidator {
+	v.repo = repo
+	return v
+}
 
 // Validate implements compliance.Validator.
 // Unmarshals specs into BatchSpec and delegates to ValidateBatch with an empty
@@ -43,6 +56,56 @@ func (v *EUValidator) Validate(specs json.RawMessage) (compliance.Result, error)
 		return compliance.Result{}, fmt.Errorf("eu validator: failed to parse specs: %w", err)
 	}
 	return v.ValidateBatch(&batch, &models.Tenant{})
+}
+
+// recycledThresholds holds the minimum recycled-content percentages for EU Art. 8.
+type recycledThresholds struct {
+	Cobalt   float64
+	Lithium  float64
+	Nickel   float64
+	Lead     float64
+}
+
+// hardCodedThresholds returns the default EU 2030 thresholds used when the DB
+// compliance_rules table is empty or the repository is not injected.
+func hardCodedThresholds() recycledThresholds {
+	return recycledThresholds{Cobalt: 16.0, Lithium: 6.0, Nickel: 6.0, Lead: 85.0}
+}
+
+// getRecycledThresholds queries the database for active compliance rules.
+// Falls back to hard-coded defaults on any error so validation never blocks
+// on a DB failure.
+func (v *EUValidator) getRecycledThresholds(ctx context.Context) recycledThresholds {
+	if v.repo == nil {
+		return hardCodedThresholds()
+	}
+
+	rules, err := v.repo.GetActiveComplianceRules(ctx, "battery", "eu")
+	if err != nil {
+		slog.Warn("compliance: failed to load EU compliance rules, using defaults", "error", err)
+		return hardCodedThresholds()
+	}
+	if len(rules) == 0 {
+		return hardCodedThresholds()
+	}
+
+	t := hardCodedThresholds()
+	for _, r := range rules {
+		if r.ThresholdValue == nil {
+			continue
+		}
+		switch r.RuleKey {
+		case "recycled_cobalt_min_pct":
+			t.Cobalt = *r.ThresholdValue
+		case "recycled_lithium_min_pct":
+			t.Lithium = *r.ThresholdValue
+		case "recycled_nickel_min_pct":
+			t.Nickel = *r.ThresholdValue
+		case "recycled_lead_min_pct":
+			t.Lead = *r.ThresholdValue
+		}
+	}
+	return t
 }
 
 // ValidateBatch implements compliance.BatchValidator, running all EU-specific
@@ -150,22 +213,36 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 				"Material composition must contain non-zero values for at least one critical raw material", euArt8Ref)
 		}
 
-		// Recycled content soft warnings — EU 2030 targets
-		if mc.CobaltPct > 0 && mc.RecycledCobaltPct <= 0 {
-			addWarning("batch.specs.material_composition.recycled_cobalt_pct",
-				"Recycled cobalt content not declared (EU 2030 target: ≥16%; 2035 target: ≥26%)", euArt8Ref)
+		// Recycled content thresholds — query DB for active rules, fall back to hard-coded defaults.
+		thresholds := v.getRecycledThresholds(context.Background())
+
+		if mc.CobaltPct > 0 && mc.RecycledCobaltPct < thresholds.Cobalt {
+			msg := fmt.Sprintf("Recycled cobalt content %.1f%% is below EU minimum %.1f%%", mc.RecycledCobaltPct, thresholds.Cobalt)
+			if mc.RecycledCobaltPct <= 0 {
+				msg = fmt.Sprintf("Recycled cobalt content not declared (EU minimum: ≥%.1f%%)", thresholds.Cobalt)
+			}
+			addError("batch.specs.material_composition.recycled_cobalt_pct", msg, euArt8Ref)
 		}
-		if mc.LithiumPct > 0 && mc.RecycledLithiumPct <= 0 {
-			addWarning("batch.specs.material_composition.recycled_lithium_pct",
-				"Recycled lithium content not declared (EU 2030 target: ≥6%; 2035 target: ≥12%)", euArt8Ref)
+		if mc.LithiumPct > 0 && mc.RecycledLithiumPct < thresholds.Lithium {
+			msg := fmt.Sprintf("Recycled lithium content %.1f%% is below EU minimum %.1f%%", mc.RecycledLithiumPct, thresholds.Lithium)
+			if mc.RecycledLithiumPct <= 0 {
+				msg = fmt.Sprintf("Recycled lithium content not declared (EU minimum: ≥%.1f%%)", thresholds.Lithium)
+			}
+			addError("batch.specs.material_composition.recycled_lithium_pct", msg, euArt8Ref)
 		}
-		if mc.NickelPct > 0 && mc.RecycledNickelPct <= 0 {
-			addWarning("batch.specs.material_composition.recycled_nickel_pct",
-				"Recycled nickel content not declared (EU 2030 target: ≥6%; 2035 target: ≥15%)", euArt8Ref)
+		if mc.NickelPct > 0 && mc.RecycledNickelPct < thresholds.Nickel {
+			msg := fmt.Sprintf("Recycled nickel content %.1f%% is below EU minimum %.1f%%", mc.RecycledNickelPct, thresholds.Nickel)
+			if mc.RecycledNickelPct <= 0 {
+				msg = fmt.Sprintf("Recycled nickel content not declared (EU minimum: ≥%.1f%%)", thresholds.Nickel)
+			}
+			addError("batch.specs.material_composition.recycled_nickel_pct", msg, euArt8Ref)
 		}
-		if mc.LeadPct > 0 && mc.RecycledLeadPct <= 0 {
-			addWarning("batch.specs.material_composition.recycled_lead_pct",
-				"Recycled lead content not declared (EU 2030/2035 target: ≥85%)", euArt8Ref)
+		if mc.LeadPct > 0 && mc.RecycledLeadPct < thresholds.Lead {
+			msg := fmt.Sprintf("Recycled lead content %.1f%% is below EU minimum %.1f%%", mc.RecycledLeadPct, thresholds.Lead)
+			if mc.RecycledLeadPct <= 0 {
+				msg = fmt.Sprintf("Recycled lead content not declared (EU minimum: ≥%.1f%%)", thresholds.Lead)
+			}
+			addError("batch.specs.material_composition.recycled_lead_pct", msg, euArt8Ref)
 		}
 	}
 
@@ -206,6 +283,9 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	return compliance.Result{
 		Valid:    criticalFailures == 0,
 		Score:    score,
+		PerMarket: map[string]compliance.MarketScore{
+			euMarket: {Score: score, Valid: criticalFailures == 0, Gaps: gaps},
+		},
 		Missing:  missing,
 		Errors:   errors,
 		Warnings: warnings,

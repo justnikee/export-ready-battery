@@ -124,6 +124,7 @@ func (f *fakeTeamRepo) UpdateAPIKeyLastUsed(ctx context.Context, keyID uuid.UUID
 func (f *fakeTeamRepo) UpdateAPIKey(ctx context.Context, id uuid.UUID, name *string, isActive *bool) error { return nil }
 func (f *fakeTeamRepo) DeleteAPIKey(ctx context.Context, id uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) GetOrCreateUsageWindow(ctx context.Context, keyID uuid.UUID, endpoint string) (*models.APIKeyUsage, error) { return nil, nil }
+func (f *fakeTeamRepo) GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error) { return nil, nil }
 func (f *fakeTeamRepo) IncrementUsage(ctx context.Context, keyID uuid.UUID, endpoint string) (int, error) { return 0, nil }
 func (f *fakeTeamRepo) CleanupOldUsage(ctx context.Context) error { return nil }
 
@@ -136,7 +137,7 @@ func (f *fakeTeamRepo) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenant
 func (f *fakeTeamRepo) SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error { return nil }
 func (f *fakeTeamRepo) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error) { return "", nil }
 func (f *fakeTeamRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) { return uuid.Nil, nil }
-func (f *fakeTeamRepo) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error { return nil }
+func (f *fakeTeamRepo) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte, carbonClass string) error { return nil }
 func (f *fakeTeamRepo) UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error { return nil }
 
 func (f *fakeTeamRepo) GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error) { return nil, nil }
@@ -278,6 +279,11 @@ func (f *fakeTeamRepo) InsertPassportDocument(ctx context.Context, doc *reposito
 func (f *fakeTeamRepo) GetPassportDocument(ctx context.Context, id, tenantID uuid.UUID) (*repository.PassportDocument, error) { return nil, nil }
 func (f *fakeTeamRepo) LinkDocumentToEvent(ctx context.Context, docID, eventID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*repository.PassportDocument, error) { return nil, nil }
+
+func (f *fakeTeamRepo) CreateCertificateAnchor(ctx context.Context, anchor *models.CertificateAnchor) error { return nil }
+func (f *fakeTeamRepo) GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error) { return nil, nil }
+func (f *fakeTeamRepo) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error { return nil }
 
 // ============================================================================
 // TEST HELPERS
@@ -669,3 +675,12 @@ func TestListTeamMembers_Success(t *testing.T) {
 		t.Errorf("expected seat_limit %d, got %v", models.GetSeatLimit(models.PlanTypeGrowth), resp["seat_limit"])
 	}
 }
+
+func (f *fakeTeamRepo) ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateAlert(ctx context.Context, alert *models.TenantAlert) error { return nil }
+func (f *fakeTeamRepo) GetAlertsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.TenantAlert, error) { return nil, nil }
+func (f *fakeTeamRepo) GetUnreadAlerts(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.TenantAlert, error) { return nil, nil }
+func (f *fakeTeamRepo) GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeTeamRepo) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error) { return false, nil }

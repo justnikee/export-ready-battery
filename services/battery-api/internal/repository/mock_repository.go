@@ -150,8 +150,8 @@ func (m *MockRepository) GetBatchTenantID(ctx context.Context, batchID uuid.UUID
 	return args.Get(0).(uuid.UUID), args.Error(1)
 }
 
-func (m *MockRepository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error {
-	args := m.Called(ctx, batchID, tenantID, resultJSON)
+func (m *MockRepository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte, carbonClass string) error {
+	args := m.Called(ctx, batchID, tenantID, resultJSON, carbonClass)
 	return args.Error(0)
 }
 
@@ -191,6 +191,14 @@ func (m *MockRepository) ListProductSchemas(ctx context.Context) ([]*models.Prod
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*models.ProductSchema), args.Error(1)
+}
+
+func (m *MockRepository) GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error) {
+	args := m.Called(ctx, productType, marketRegion)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.ComplianceRule), args.Error(1)
 }
 
 // ============================================================================
@@ -1034,4 +1042,79 @@ func (m *MockRepository) ListPassportDocuments(ctx context.Context, passportID, 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*PassportDocument), args.Error(1)
+}
+
+func (m *MockRepository) CreateCertificateAnchor(ctx context.Context, anchor *models.CertificateAnchor) error {
+	args := m.Called(ctx, anchor)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error) {
+	args := m.Called(ctx, batchID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.CertificateAnchor), args.Error(1)
+}
+
+func (m *MockRepository) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.CertificateAnchor), args.Error(1)
+}
+
+func (m *MockRepository) UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error {
+	args := m.Called(ctx, id, status, otsProof, bitcoinTxID, anchoredAt)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error) {
+	args := m.Called(ctx, productType, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.Batch), args.Error(1)
+}
+
+func (m *MockRepository) CreateAlert(ctx context.Context, alert *models.TenantAlert) error {
+	args := m.Called(ctx, alert)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetAlertsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.TenantAlert, error) {
+	args := m.Called(ctx, tenantID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.TenantAlert), args.Error(1)
+}
+
+func (m *MockRepository) GetUnreadAlerts(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.TenantAlert, error) {
+	args := m.Called(ctx, tenantID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.TenantAlert), args.Error(1)
+}
+
+func (m *MockRepository) GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID) (int, error) {
+	args := m.Called(ctx, tenantID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockRepository) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error {
+	args := m.Called(ctx, alertID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error {
+	args := m.Called(ctx, alertID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error) {
+	args := m.Called(ctx, tenantID, alertType, resourceID, within)
+	return args.Bool(0), args.Error(1)
 }

@@ -153,7 +153,7 @@ func TestEUValidator_MissingTenantEUFields(t *testing.T) {
 	assert.Contains(t, result.Missing, "tenant.eu_contact_email")
 }
 
-func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesWarnings(t *testing.T) {
+func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesErrors(t *testing.T) {
 	batch := validEUBatch()
 	// Remove per-material recycled content but keep raw material percentages.
 	batch.Specs.MaterialComposition.RecycledCobaltPct = 0
@@ -163,9 +163,9 @@ func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesWarnings(t *test
 	v := &battery.EUValidator{}
 	result, err := v.ValidateBatch(batch, validEUTenant())
 	require.NoError(t, err)
-	// Warnings should not block activation.
-	assert.True(t, result.Valid, "recycled content warnings should not block activation, missing=%v errors=%v", result.Missing, result.Errors)
-	assert.NotEmpty(t, result.Warnings)
+	// Hard threshold: missing recycled content is now an error.
+	assert.False(t, result.Valid, "recycled content below threshold should block activation, errors=%v", result.Errors)
+	assert.NotEmpty(t, result.Errors)
 }
 
 func TestEUValidator_OverallRecycledPct_Missing_ProducesWarning(t *testing.T) {
