@@ -510,6 +510,7 @@ func main() {
 	// PASSPORT ROUTES (Public - rate limited to prevent enumeration)
 	// ============================================
 	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
+	mux.Handle("POST /api/v1/passports/{uuid}/vc", authMiddleware.Protect(http.HandlerFunc(h.GenerateVCHandle)))
 
 	// ============================================
 	// MAGIC LINK PASSPORT ROUTES (Token Authenticated)

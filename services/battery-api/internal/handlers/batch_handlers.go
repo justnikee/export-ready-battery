@@ -117,6 +117,18 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// ===== BOM VALIDATION =====
+	if len(req.Specs.Components) > 0 {
+		bomResult := services.ValidateBOM(req.Specs.Components)
+		if !bomResult.Valid {
+			respondJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
+				"error":  "BOM validation failed",
+				"fields": bomResult.Errors,
+			})
+			return
+		}
+	}
+
 	// ===== DUAL-MODE VALIDATION =====
 
 	// EU Mode: allow draft creation without full compliance (hard-block at activation)
@@ -336,16 +348,21 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("CreateBatch", "tenant_id", req.TenantID, "batch_name", req.BatchName, "market_region", req.MarketRegion)
 
 	batch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:               req.TenantID,
-		BatchName:              req.BatchName,
-		ModelName:              req.ModelName,
-		ProductType:            req.ProductType,
-		Specs:                  req.Specs,
-		MarketRegion:           req.MarketRegion,
-		PLICompliant:           req.PLICompliant,
-		DomesticValueAdd:       req.DomesticValueAdd,
-		ManufacturingStartDate: manufacturingStart,
-		ManufacturingEndDate:   manufacturingEnd,
+		TenantID:                    req.TenantID,
+		BatchName:                   req.BatchName,
+		ModelName:                   req.ModelName,
+		ProductType:                 req.ProductType,
+		Specs:                       req.Specs,
+		MarketRegion:                req.MarketRegion,
+		PLICompliant:                req.PLICompliant,
+		DomesticValueAdd:            req.DomesticValueAdd,
+		ManufacturingStartDate:      manufacturingStart,
+		ManufacturingEndDate:        manufacturingEnd,
+		CEMarking:                   req.CEMarking,
+		CarbonPerformanceClass:      req.CarbonPerformanceClass,
+		RemovableAndReplaceable:     req.RemovableAndReplaceable,
+		NotifiedBodyNumber:          req.NotifiedBodyNumber,
+		DeclarationOfConformityPath: req.DeclarationOfConformityPath,
 	})
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
@@ -941,16 +958,21 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// Create the batch copy — preserve product type and all specs
 	newBatch, err := h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
-		TenantID:               originalBatch.TenantID,
-		BatchName:              newBatchName,
-		ModelName:              originalBatch.ModelName,
-		Specs:                  originalBatch.Specs,
-		MarketRegion:           originalBatch.MarketRegion,
-		ProductType:            originalBatch.ProductType,
-		PLICompliant:           originalBatch.PLICompliant,
-		DomesticValueAdd:       originalBatch.DomesticValueAdd,
-		ManufacturingStartDate: originalBatch.ManufacturingStartDate,
-		ManufacturingEndDate:   originalBatch.ManufacturingEndDate,
+		TenantID:                    originalBatch.TenantID,
+		BatchName:                   newBatchName,
+		ModelName:                   originalBatch.ModelName,
+		Specs:                       originalBatch.Specs,
+		MarketRegion:                originalBatch.MarketRegion,
+		ProductType:                 originalBatch.ProductType,
+		PLICompliant:                originalBatch.PLICompliant,
+		DomesticValueAdd:            originalBatch.DomesticValueAdd,
+		ManufacturingStartDate:      originalBatch.ManufacturingStartDate,
+		ManufacturingEndDate:        originalBatch.ManufacturingEndDate,
+		CEMarking:                   originalBatch.CEMarking,
+		CarbonPerformanceClass:      originalBatch.CarbonPerformanceClass,
+		RemovableAndReplaceable:     originalBatch.RemovableAndReplaceable,
+		NotifiedBodyNumber:          originalBatch.NotifiedBodyNumber,
+		DeclarationOfConformityPath: originalBatch.DeclarationOfConformityPath,
 	})
 
 	if err != nil {
@@ -1012,6 +1034,55 @@ func (h *Handler) PatchBatch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"batch":   batch,
+	})
+}
+
+// SaveCarbonFootprint handles POST /api/v1/batches/{id}/carbon
+// Persists the carbon calculator result and auto-populates carbon_performance_class.
+func (h *Handler) SaveCarbonFootprint(w http.ResponseWriter, r *http.Request) {
+	batchIDStr := r.PathValue("id")
+	batchID, err := uuid.Parse(batchIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID")
+		return
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	// Read raw body so we can store it verbatim and also extract carbon_class
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Failed to read request body")
+		return
+	}
+	defer r.Body.Close()
+
+	// Extract carbon_class from the JSON payload
+	var payload struct {
+		CarbonClass string `json:"carbon_class"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.repo.SaveCarbonFootprintResult(r.Context(), batchID, tenantID, body, payload.CarbonClass); err != nil {
+		if err.Error() == "batch not found" {
+			respondError(w, http.StatusNotFound, "Batch not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "Failed to save carbon footprint result")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"carbon_performance_class": payload.CarbonClass,
 	})
 }
 
