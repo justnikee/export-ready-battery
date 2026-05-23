@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { CreateBatchDialog } from "@/components/batches/create-batch-dialog";
+import { CreateBatchWizard } from "@/components/batches/create-batch-wizard";
 import { TemplatesDialog } from "@/components/batches/templates-dialog";
+import { BulkImportDialog } from "@/components/batches/bulk-import-dialog";
 import api from "@/lib/api";
 import { duplicateBatch } from "@/lib/api/batches";
 import { toApiError } from "@/lib/utils";
@@ -33,6 +34,9 @@ import {
   Battery,
   Package,
   Archive,
+  ShieldCheck,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -44,6 +48,7 @@ import { dashboardPathFromPathname } from "@/lib/routes";
 // Types
 type MarketRegion = "INDIA" | "EU" | "GLOBAL";
 type FilterType = "ALL" | "DRAFT" | "ACTIVE" | "ARCHIVED";
+type ComplianceFilter = "ALL" | "READY" | "NEEDS_WORK" | "BLOCKED";
 
 interface BatchesResponse {
   batches: Batch[];
@@ -60,6 +65,7 @@ export default function BatchesPage() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("ALL");
+  const [complianceFilter, setComplianceFilter] = useState<ComplianceFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -79,7 +85,6 @@ export default function BatchesPage() {
         setTotalCount(response.data.total || 0);
         setTotalPages(response.data.total_pages || 1);
       } catch (error: unknown) {
-        console.error("Failed to fetch batches:", error);
         toast.error("Failed to load batches");
       } finally {
         setLoading(false);
@@ -97,6 +102,10 @@ export default function BatchesPage() {
       const status = batch.status || "DRAFT";
       if (status !== filter) return false;
     }
+    if (complianceFilter !== "ALL") {
+      const { status } = getComplianceStatus(batch);
+      if (status !== complianceFilter) return false;
+    }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -111,7 +120,7 @@ export default function BatchesPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, searchQuery]);
+  }, [filter, complianceFilter, searchQuery]);
 
   const handleDuplicate = async (batchId: string) => {
     try {
@@ -119,7 +128,6 @@ export default function BatchesPage() {
       toast.success("Batch duplicated successfully");
       fetchBatches();
     } catch (error: unknown) {
-      console.error("Duplicate failed:", error);
       toast.error("Failed to duplicate batch");
     }
   };
@@ -128,6 +136,43 @@ export default function BatchesPage() {
     e.stopPropagation();
     navigator.clipboard.writeText(text);
     toast.success("ID copied to clipboard");
+  };
+
+  const getComplianceStatus = (batch: Batch): { status: "READY" | "NEEDS_WORK" | "BLOCKED"; label: string; score: number; blockerCount: number } => {
+    const score = batch.compliance_score ?? 0;
+    const gaps = batch.compliance_gaps || [];
+    const blockerCount = gaps.filter((g) => g.severity === "ERROR").length;
+    if (score >= 95 && blockerCount === 0) return { status: "READY", label: "Ready", score, blockerCount };
+    if (score >= 70 && blockerCount === 0) return { status: "NEEDS_WORK", label: "Needs work", score, blockerCount };
+    return { status: "BLOCKED", label: "Blocked", score, blockerCount };
+  };
+
+  const getComplianceBadge = (batch: Batch) => {
+    const { status, label, score, blockerCount } = getComplianceStatus(batch);
+    if (status === "READY") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" title={`${score.toFixed(0)}% compliant`}>
+          <ShieldCheck className="h-3 w-3" />
+          {label}
+        </span>
+      );
+    }
+    if (status === "NEEDS_WORK") {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20" title={`${score.toFixed(0)}% compliant`}>
+          <AlertTriangle className="h-3 w-3" />
+          {label}
+          {blockerCount > 0 && ` (${blockerCount})`}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20" title={`${score.toFixed(0)}% compliant`}>
+        <XCircle className="h-3 w-3" />
+        {label}
+        {blockerCount > 0 && ` (${blockerCount})`}
+      </span>
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -199,12 +244,13 @@ export default function BatchesPage() {
           </div>
           <div className="flex items-center gap-3">
             <TemplatesDialog />
-            <CreateBatchDialog onBatchCreated={fetchBatches} />
+            <BulkImportDialog />
+            <CreateBatchWizard onBatchCreated={fetchBatches} />
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
             <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
             <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
@@ -251,6 +297,23 @@ export default function BatchesPage() {
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
                 Drafts
+              </p>
+            </div>
+          </div>
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
+            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
+            <div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-2xl text-emerald-500">
+                {batches.filter((b) => getComplianceStatus(b).status === "READY").length}
+              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                Compliance Ready
               </p>
             </div>
           </div>
@@ -319,6 +382,59 @@ export default function BatchesPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-border text-foreground hover:text-foreground hover:bg-accent h-9 text-sm"
+                >
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  {complianceFilter === "ALL"
+                    ? "All Compliance"
+                    : complianceFilter === "READY"
+                      ? "Ready"
+                      : complianceFilter === "NEEDS_WORK"
+                        ? "Needs Work"
+                        : "Blocked"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="shadow-none min-w-35"
+              >
+                <DropdownMenuItem
+                  onClick={() => setComplianceFilter("ALL")}
+                  className="cursor-pointer"
+                >
+                  All Compliance
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setComplianceFilter("READY")}
+                  className="cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-1.5 text-emerald-500">
+                    <ShieldCheck className="h-3 w-3" /> Ready
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setComplianceFilter("NEEDS_WORK")}
+                  className="cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-1.5 text-amber-500">
+                    <AlertTriangle className="h-3 w-3" /> Needs Work
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setComplianceFilter("BLOCKED")}
+                  className="cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-1.5 text-red-500">
+                    <XCircle className="h-3 w-3" /> Blocked
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -344,6 +460,9 @@ export default function BatchesPage() {
                   Passports
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Compliance
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider pr-4">
@@ -355,7 +474,7 @@ export default function BatchesPage() {
               {paginatedBatches.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="h-48 text-center text-muted-foreground"
                   >
                     <div className="flex flex-col items-center gap-3">
@@ -369,7 +488,7 @@ export default function BatchesPage() {
                           battery passports
                         </p>
                       </div>
-                      <CreateBatchDialog onBatchCreated={fetchBatches} />
+                      <CreateBatchWizard onBatchCreated={fetchBatches} />
                     </div>
                   </td>
                 </tr>
@@ -457,6 +576,18 @@ export default function BatchesPage() {
                       </div>
                     </td>
 
+                    {/* Compliance */}
+                    <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        {getComplianceBadge(batch)}
+                        {batch.compliance_score !== undefined && batch.compliance_score > 0 && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {batch.compliance_score.toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Status */}
                     <td className="px-4 py-4">
                       {getStatusBadge(batch.status || "DRAFT")}
@@ -469,7 +600,7 @@ export default function BatchesPage() {
                           asChild
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <button className="p-1.5 rounded text-muted-foreground hover:text-muted-foreground hover:bg-muted">
+                          <button aria-label="Batch actions" className="p-1.5 rounded text-muted-foreground hover:text-muted-foreground hover:bg-muted">
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>

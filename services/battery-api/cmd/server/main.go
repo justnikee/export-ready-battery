@@ -76,7 +76,7 @@ func main() {
 	// 2. Compliance Registry — India and EU battery validators registered.
 	complianceRegistry := compliance.NewRegistry()
 	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionIndia, battery.NewIndiaValidator())
-	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionEU, battery.NewEUValidator())
+	complianceRegistry.Register(models.ProductTypeBattery, models.MarketRegionEU, battery.NewEUValidator().WithRepository(repo))
 	// 3. Event Bus — async domain event dispatch.
 	eventBus := events.NewBus()
 
@@ -281,6 +281,7 @@ func main() {
 	mux.Handle("POST /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.CreateBatch)))
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
+	mux.Handle("POST /api/v1/batches/bulk-import", authMiddleware.Protect(http.HandlerFunc(h.BulkImportBatches)))
 	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(http.HandlerFunc(h.UploadCSV)))
 	mux.Handle("POST /api/v1/batches/{id}/validate", authMiddleware.Protect(http.HandlerFunc(h.ValidateCSV)))
 	mux.Handle("POST /api/v1/batches/{id}/auto-generate", authMiddleware.Protect(http.HandlerFunc(h.AutoGeneratePassports)))

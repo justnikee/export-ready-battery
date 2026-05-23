@@ -1,14 +1,20 @@
 package handlers
 
 import (
-	"github.com/anvayalabs/battery-api/internal/middleware"
-	"github.com/anvayalabs/battery-api/internal/models"
-	"github.com/anvayalabs/battery-api/internal/repository"
+	"encoding/csv"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/anvayalabs/battery-api/internal/middleware"
+	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
 // ============================================================================
@@ -233,5 +239,216 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 		"passports":     items,
 		"total":         total,
 		"status_counts": statusCounts,
+	})
+}
+
+// BulkImportBatches handles POST /api/v1/batches/bulk-import
+// Accepts multipart/form-data with a CSV file containing batch definitions.
+// Returns a summary with created count, failed count, and per-row errors.
+func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
+	jwtTenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(jwtTenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	jwtProductType := models.ProductType(middleware.GetProductType(r.Context()))
+
+	// Parse multipart form (32MB max memory before disk)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		respondError(w, http.StatusBadRequest, "Failed to parse multipart form")
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "CSV file required (form field: file)")
+		return
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	reader.TrimLeadingSpace = true
+
+	header, err := reader.Read()
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Failed to read CSV header: "+err.Error())
+		return
+	}
+	if len(header) > 0 {
+		header[0] = strings.TrimPrefix(header[0], "\ufeff")
+	}
+
+	headerMap := make(map[string]int)
+	for i, h := range header {
+		headerMap[strings.ToLower(strings.TrimSpace(h))] = i
+	}
+
+	// Required columns
+	batchNameIdx, hasBatchName := headerMap["batch_name"]
+	modelNameIdx, hasModelName := headerMap["model_name"]
+	if !hasBatchName || !hasModelName {
+		respondError(w, http.StatusBadRequest, "CSV must have 'batch_name' and 'model_name' columns")
+		return
+	}
+
+	// Optional column indices
+	idx := func(name string) (int, bool) {
+		i, ok := headerMap[name]
+		return i, ok
+	}
+	chemistryIdx, _ := idx("chemistry")
+	voltageIdx, _ := idx("voltage")
+	capacityIdx, _ := idx("capacity")
+	manufacturerIdx, _ := idx("manufacturer")
+	weightIdx, _ := idx("weight")
+	countryOfOriginIdx, _ := idx("country_of_origin")
+	marketRegionIdx, _ := idx("market_region")
+	cellSourceIdx, _ := idx("cell_source")
+	lotSizeIdx, _ := idx("lot_size")
+	productionStageIdx, _ := idx("production_stage")
+	hsnCodeIdx, _ := idx("hsn_code")
+	bisNumberIdx, _ := idx("bis_number")
+	eprNumberIdx, _ := idx("epr_number")
+	billOfEntryIdx, _ := idx("bill_of_entry_no")
+	customsDateIdx, _ := idx("customs_date")
+	salePriceIdx, _ := idx("sale_price_inr")
+	importCostIdx, _ := idx("import_cost_inr")
+	pliCompliantIdx, _ := idx("pli_compliant")
+	domesticValueAddIdx, _ := idx("domestic_value_add")
+	mfgStartIdx, _ := idx("manufacturing_start_date")
+	mfgEndIdx, _ := idx("manufacturing_end_date")
+
+	type importError struct {
+		Row     int    `json:"row"`
+		Message string `json:"message"`
+	}
+
+	var (
+		created int
+		failed  int
+		errors  []importError
+	)
+
+	const maxRows = 500
+	rowNum := 1 // header is row 1
+
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			errors = append(errors, importError{Row: rowNum + 1, Message: "CSV parse error: " + err.Error()})
+			failed++
+			rowNum++
+			continue
+		}
+		rowNum++
+
+		if rowNum > maxRows+1 {
+			errors = append(errors, importError{Row: rowNum, Message: fmt.Sprintf("Exceeded maximum row limit (%d)", maxRows)})
+			failed++
+			break
+		}
+
+		batchName := strings.TrimSpace(record[batchNameIdx])
+		modelName := strings.TrimSpace(record[modelNameIdx])
+		if batchName == "" || modelName == "" {
+			errors = append(errors, importError{Row: rowNum, Message: "batch_name and model_name are required"})
+			failed++
+			continue
+		}
+
+		get := func(idx int, has bool) string {
+			if !has || idx >= len(record) {
+				return ""
+			}
+			return strings.TrimSpace(record[idx])
+		}
+
+		getFloat := func(idx int, has bool) float64 {
+			s := get(idx, has)
+			if s == "" {
+				return 0
+			}
+			v, _ := strconv.ParseFloat(s, 64)
+			return v
+		}
+
+		getBool := func(idx int, has bool) bool {
+			s := strings.ToLower(get(idx, has))
+			return s == "true" || s == "1" || s == "yes"
+		}
+
+		marketRegion := models.MarketRegion(get(marketRegionIdx, marketRegionIdx >= 0))
+		if marketRegion == "" {
+			marketRegion = models.MarketRegionGlobal
+		}
+		if !marketRegion.IsValid() {
+			errors = append(errors, importError{Row: rowNum, Message: fmt.Sprintf("Invalid market_region: %s", marketRegion)})
+			failed++
+			continue
+		}
+
+		var mfgStart, mfgEnd *time.Time
+		if s := get(mfgStartIdx, mfgStartIdx >= 0); s != "" {
+			if t, err := time.Parse("2006-01-02", s); err == nil {
+				mfgStart = &t
+			}
+		}
+		if s := get(mfgEndIdx, mfgEndIdx >= 0); s != "" {
+			if t, err := time.Parse("2006-01-02", s); err == nil {
+				mfgEnd = &t
+			}
+		}
+
+		specs := models.BatchSpec{
+			Chemistry:        get(chemistryIdx, chemistryIdx >= 0),
+			NominalVoltage:   get(voltageIdx, voltageIdx >= 0),
+			Capacity:         get(capacityIdx, capacityIdx >= 0),
+			Manufacturer:     get(manufacturerIdx, manufacturerIdx >= 0),
+			Weight:           get(weightIdx, weightIdx >= 0),
+			CountryOfOrigin:  get(countryOfOriginIdx, countryOfOriginIdx >= 0),
+			LotSize:          get(lotSizeIdx, lotSizeIdx >= 0),
+			ProductionStage:  get(productionStageIdx, productionStageIdx >= 0),
+			CellSource:       get(cellSourceIdx, cellSourceIdx >= 0),
+			HSNCode:          get(hsnCodeIdx, hsnCodeIdx >= 0),
+			BISNumber:        get(bisNumberIdx, bisNumberIdx >= 0),
+			EPRNumber:        get(eprNumberIdx, eprNumberIdx >= 0),
+			BillOfEntryNo:    get(billOfEntryIdx, billOfEntryIdx >= 0),
+			CustomsDate:      get(customsDateIdx, customsDateIdx >= 0),
+			SalePriceINR:     getFloat(salePriceIdx, salePriceIdx >= 0),
+			ImportCostINR:    getFloat(importCostIdx, importCostIdx >= 0),
+			DomesticValueAdd: getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0),
+		}
+
+		_, err = h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
+			TenantID:               tenantID,
+			BatchName:              batchName,
+			ModelName:              modelName,
+			ProductType:            jwtProductType,
+			Specs:                  specs,
+			MarketRegion:           marketRegion,
+			PLICompliant:           getBool(pliCompliantIdx, pliCompliantIdx >= 0),
+			DomesticValueAdd:       specs.DomesticValueAdd,
+			ManufacturingStartDate: mfgStart,
+			ManufacturingEndDate:   mfgEnd,
+		})
+		if err != nil {
+			errors = append(errors, importError{Row: rowNum, Message: "DB error: " + err.Error()})
+			failed++
+			continue
+		}
+
+		created++
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"total":   created + failed,
+		"created": created,
+		"failed":  failed,
+		"errors":  errors,
 	})
 }
