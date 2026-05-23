@@ -48,6 +48,12 @@ type RepositoryInterface interface {
 	// compliance_rules.go
 	GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error)
 
+	// signup_requests.go
+	CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error
+	GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error)
+	ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error)
+	UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error
+
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)
 	BulkDeletePassports(ctx context.Context, passportIDs []uuid.UUID) (int64, error)

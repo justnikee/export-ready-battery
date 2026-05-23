@@ -828,6 +828,24 @@ type PassportVC struct {
 	UpdatedAt          time.Time       `json:"updated_at"`
 }
 
+// SignupRequest stores a qualification form submission for gated signup review.
+type SignupRequest struct {
+	ID               uuid.UUID  `json:"id"`
+	CompanyName      string     `json:"company_name"`
+	Email            string     `json:"email"`
+	GSTIN            string     `json:"gstin,omitempty"`
+	IECCode          string     `json:"iec_code,omitempty"`
+	ProductType      string     `json:"product_type"`
+	EstimatedBatches string     `json:"estimated_batches,omitempty"`
+	MarketRegion     string     `json:"market_region,omitempty"`
+	Phone            string     `json:"phone,omitempty"`
+	Status           string     `json:"status"`
+	RejectionReason  string     `json:"rejection_reason,omitempty"`
+	ReviewedAt       *time.Time `json:"reviewed_at,omitempty"`
+	ReviewedBy       *uuid.UUID `json:"reviewed_by,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
 type PassportEvent struct {
 	ID           uuid.UUID              `json:"id"`
 	PassportID   uuid.UUID              `json:"passport_id"`

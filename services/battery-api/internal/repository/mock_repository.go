@@ -201,6 +201,32 @@ func (m *MockRepository) GetActiveComplianceRules(ctx context.Context, productTy
 	return args.Get(0).([]*models.ComplianceRule), args.Error(1)
 }
 
+func (m *MockRepository) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SignupRequest), args.Error(1)
+}
+
+func (m *MockRepository) ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error) {
+	args := m.Called(ctx, status, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*models.SignupRequest), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error {
+	args := m.Called(ctx, id, status, reason, reviewedBy)
+	return args.Error(0)
+}
+
 // ============================================================================
 // bulk.go
 // ============================================================================

@@ -245,6 +245,7 @@ func main() {
 	authMux.HandleFunc("POST /api/v1/auth/forgot-password", authHandler.ForgotPassword)
 	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
+	authMux.HandleFunc("POST /api/v1/auth/request-access", h.RequestAccess)
 	// Email verification (public, rate-limited)
 	authMux.HandleFunc("GET /api/v1/auth/verify-email", authHandler.VerifyEmail)
 	authMux.HandleFunc("POST /api/v1/auth/resend-verification", authHandler.ResendVerification)
@@ -278,6 +279,10 @@ func main() {
 	// ============================================
 	// BATCH ROUTES (Protected)
 	// ============================================
+	mux.Handle("POST /api/v1/admin/signup-requests/{id}/approve", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ApproveSignupRequest))))
+	mux.Handle("POST /api/v1/admin/signup-requests/{id}/reject", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.RejectSignupRequest))))
+	mux.Handle("GET /api/v1/admin/signup-requests", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ListSignupRequests))))
+
 	mux.Handle("POST /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.CreateBatch)))
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))

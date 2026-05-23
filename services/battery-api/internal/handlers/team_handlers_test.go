@@ -125,6 +125,10 @@ func (f *fakeTeamRepo) UpdateAPIKey(ctx context.Context, id uuid.UUID, name *str
 func (f *fakeTeamRepo) DeleteAPIKey(ctx context.Context, id uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) GetOrCreateUsageWindow(ctx context.Context, keyID uuid.UUID, endpoint string) (*models.APIKeyUsage, error) { return nil, nil }
 func (f *fakeTeamRepo) GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error { return nil }
+func (f *fakeTeamRepo) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) { return nil, nil }
+func (f *fakeTeamRepo) ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) IncrementUsage(ctx context.Context, keyID uuid.UUID, endpoint string) (int, error) { return 0, nil }
 func (f *fakeTeamRepo) CleanupOldUsage(ctx context.Context) error { return nil }
 
