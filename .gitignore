@@ -97,3 +97,6 @@ DUAL_PRODUCT_ROLLOUT_PLAN.md
 apps/**/fullpage*.png
 screencapture-*.png
 apps/marketing-web/ss.js
+
+# MaxMind GeoIP databases (large binaries)
+*.mmdb
