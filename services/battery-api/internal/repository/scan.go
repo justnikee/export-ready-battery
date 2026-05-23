@@ -60,7 +60,7 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 			p.serial_number,
 			b.batch_name
 		FROM public.scan_events s
-		JOIN public.passports p ON s.passport_id = p.uuid
+		JOIN public.passports p ON s.passport_id = p.uuid AND p.deleted_at IS NULL
 		JOIN public.batches b ON p.batch_id = b.id
 		WHERE b.tenant_id = $1
 		ORDER BY s.scanned_at DESC
@@ -104,7 +104,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 	err := r.db.Pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1 AND ($2 = '' OR b.product_type = $2)
+		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2)
 	`, tenantID, productType).Scan(&stats.TotalPassports)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count passports: %w", err)
@@ -137,7 +137,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 	err = r.db.Pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1 AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
+		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
 	`, tenantID, productType).Scan(&stats.PassportsThisWeek)
 	if err != nil {
 		// Non-critical, default to 0
@@ -154,7 +154,7 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 			b.id,
 			b.batch_name,
 			b.created_at,
-			COALESCE((SELECT COUNT(*) FROM public.passports WHERE batch_id = b.id), 0) as total_units
+			COALESCE((SELECT COUNT(*) FROM public.passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_units
 		FROM public.batches b
 		WHERE b.tenant_id = $1
 		ORDER BY b.created_at DESC

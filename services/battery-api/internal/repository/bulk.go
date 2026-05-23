@@ -17,7 +17,7 @@ func (r *Repository) BulkUpdatePassportStatus(ctx context.Context, passportIDs [
 		return 0, nil
 	}
 
-	query := `UPDATE public.passports SET status = $1 WHERE uuid = ANY($2)`
+	query := `UPDATE public.passports SET status = $1 WHERE uuid = ANY($2) AND deleted_at IS NULL`
 
 	result, err := r.db.Pool.Exec(ctx, query, newStatus, passportIDs)
 	if err != nil {
@@ -33,7 +33,7 @@ func (r *Repository) BulkDeletePassports(ctx context.Context, passportIDs []uuid
 		return 0, nil
 	}
 
-	query := `DELETE FROM public.passports WHERE uuid = ANY($1)`
+	query := `UPDATE public.passports SET deleted_at = NOW() WHERE uuid = ANY($1) AND deleted_at IS NULL`
 
 	result, err := r.db.Pool.Exec(ctx, query, passportIDs)
 	if err != nil {
@@ -47,14 +47,14 @@ func (r *Repository) BulkDeletePassports(ctx context.Context, passportIDs []uuid
 func (r *Repository) DeleteBatchWithPassports(ctx context.Context, batchID uuid.UUID) (int64, error) {
 	// First count passports
 	var passportCount int64
-	countQuery := `SELECT COUNT(*) FROM public.passports WHERE batch_id = $1`
+	countQuery := `SELECT COUNT(*) FROM public.passports WHERE batch_id = $1 AND deleted_at IS NULL`
 	err := r.db.Pool.QueryRow(ctx, countQuery, batchID).Scan(&passportCount)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count passports: %w", err)
 	}
 
 	// Delete passports (will happen via CASCADE, but let's be explicit)
-	deletePassportsQuery := `DELETE FROM public.passports WHERE batch_id = $1`
+	deletePassportsQuery := `UPDATE public.passports SET deleted_at = NOW() WHERE batch_id = $1 AND deleted_at IS NULL`
 	_, err = r.db.Pool.Exec(ctx, deletePassportsQuery, batchID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to delete passports: %w", err)
@@ -83,7 +83,7 @@ func (r *Repository) GetPassportsByIDs(ctx context.Context, passportIDs []uuid.U
 		return nil, nil
 	}
 
-	query := `SELECT uuid, batch_id FROM public.passports WHERE uuid = ANY($1)`
+	query := `SELECT uuid, batch_id FROM public.passports WHERE uuid = ANY($1) AND deleted_at IS NULL`
 
 	rows, err := r.db.Pool.Query(ctx, query, passportIDs)
 	if err != nil {

@@ -39,7 +39,7 @@ func (s *AuditExportService) getEventsByBatch(ctx context.Context, batchID uuid.
 		       e.metadata, e.created_at, e.hash, e.previous_hash,
 		       p.serial_number
 		  FROM public.passport_events e
-		  JOIN public.passports p ON p.uuid = e.passport_id
+		  JOIN public.passports p ON p.uuid = e.passport_id AND p.deleted_at IS NULL
 		 WHERE p.batch_id = $1
 		 ORDER BY e.created_at ASC`
 

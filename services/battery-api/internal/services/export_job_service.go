@@ -98,7 +98,7 @@ func (s *ExportJobService) CreateJob(ctx context.Context, tenantID, batchID, req
 // GetPassportCountByBatch returns the number of passports in a batch
 func (s *ExportJobService) GetPassportCountByBatch(ctx context.Context, batchID uuid.UUID) (int, error) {
 	var count int
-	err := s.db.QueryRow(ctx, "SELECT COUNT(*) FROM passports WHERE batch_id = $1", batchID).Scan(&count)
+	err := s.db.QueryRow(ctx, "SELECT COUNT(*) FROM passports WHERE batch_id = $1 AND deleted_at IS NULL", batchID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get passport count: %w", err)
 	}
@@ -111,7 +111,7 @@ func (s *ExportJobService) CountPassportsMissingShippedEvent(ctx context.Context
 	query := `
 		SELECT COUNT(*)
 		FROM passports p
-		WHERE p.batch_id = $1
+		WHERE p.batch_id = $1 AND p.deleted_at IS NULL
 		  AND NOT EXISTS (
 			  SELECT 1 FROM passport_events e
 			  WHERE e.passport_id = p.uuid AND e.event_type = 'SHIPPED'
@@ -383,7 +383,7 @@ func (s *ExportJobService) getBatchData(ctx context.Context, batchID, tenantID u
 	// Get batch with computed passport count
 	batchQuery := `
 		SELECT b.id, b.batch_name, b.tenant_id, b.product_type,
-		       COALESCE((SELECT COUNT(*)::int FROM passports WHERE batch_id = b.id), 0) as total_passports,
+		       COALESCE((SELECT COUNT(*)::int FROM passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_passports,
 		       b.status, b.created_at 
 		FROM batches b 
 		WHERE b.id = $1 AND b.tenant_id = $2`
@@ -396,7 +396,7 @@ func (s *ExportJobService) getBatchData(ctx context.Context, batchID, tenantID u
 	}
 
 	// Get passports
-	passportQuery := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at FROM passports WHERE batch_id = $1`
+	passportQuery := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at FROM passports WHERE batch_id = $1 AND deleted_at IS NULL`
 	rows, err := s.db.Query(ctx, passportQuery, batchID)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get passports: %w", err)
@@ -503,7 +503,9 @@ func (s *ExportJobService) loadFullBatchForDocument(ctx context.Context, batchID
 	fullBatchQuery := `
 		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
 		       b.product_type, b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
-		       b.carbon_footprint_result
+		       b.carbon_footprint_result,
+		       COALESCE(b.ce_marking, false), COALESCE(b.carbon_performance_class, ''),
+		       COALESCE(b.removable_and_replaceable, false), COALESCE(b.notified_body_number, ''), COALESCE(b.declaration_of_conformity_path, '')
 		FROM batches b
 		WHERE b.id = $1`
 	fullBatch := &models.Batch{}
@@ -512,6 +514,8 @@ func (s *ExportJobService) loadFullBatchForDocument(ctx context.Context, batchID
 		&fullBatch.Status, &fullBatch.CreatedAt,
 		&fullBatch.ProductType, &fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
 		&fullBatch.CarbonFootprintResult,
+		&fullBatch.CEMarking, &fullBatch.CarbonPerformanceClass,
+		&fullBatch.RemovableAndReplaceable, &fullBatch.NotifiedBodyNumber, &fullBatch.DeclarationOfConformityPath,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load full batch for document generation: %w", err)

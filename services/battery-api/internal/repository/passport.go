@@ -30,6 +30,12 @@ type copyFromer = bulkExecer
 // copyPassports bulk-inserts passports using standard parameterised INSERT statements.
 // This is compatible with PgBouncer transaction poolers (Supabase port 6543) unlike
 // pgx.CopyFrom which uses the binary COPY protocol that PgBouncer blocks.
+func ensureBatteryPassportID(p *models.Passport) {
+	if p.BatteryPassportID == "" {
+		p.BatteryPassportID = uuid.NewString()
+	}
+}
+
 func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Passport) (int, error) {
 	if len(passports) == 0 {
 		return 0, nil
@@ -38,9 +44,9 @@ func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Pas
 	const cols = `uuid, batch_id, serial_number, manufacture_date, status, created_at,
 	              batch_snapshot, current_owner_identifier, ownership_history,
 	              state_of_health, last_soh_update_timestamp,
-	              csv_source_filename, csv_row_index`
-	const numCols = 13
-	// 500 rows × 13 cols = 6 500 params — well under the 65 535 PG limit.
+	              csv_source_filename, csv_row_index, battery_passport_id`
+	const numCols = 14
+	// 500 rows × 14 cols = 7 000 params — well under the 65 535 PG limit.
 	const chunkSize = 500
 
 	total := 0
@@ -54,16 +60,17 @@ func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Pas
 		placeholders := make([]string, len(chunk))
 		args := make([]any, 0, len(chunk)*numCols)
 		for i, p := range chunk {
+			ensureBatteryPassportID(p)
 			b := i*numCols + 1
 			placeholders[i] = fmt.Sprintf(
-				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
-				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10, b+11, b+12,
+				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10, b+11, b+12, b+13,
 			)
 			args = append(args,
 				p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt,
 				jsonStringArg(p.BatchSnapshot), p.CurrentOwnerIdentifier, jsonStringArg(p.OwnershipHistory),
 				p.StateOfHealth, p.LastSOHUpdateTimestamp,
-				p.CSVSourceFilename, p.CSVRowIndex,
+				p.CSVSourceFilename, p.CSVRowIndex, p.BatteryPassportID,
 			)
 		}
 
@@ -161,8 +168,10 @@ func copyPassportEvents(ctx context.Context, exec bulkExecer, events []*models.P
 
 // CreatePassport creates a single passport
 func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passport) error {
-	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at, batch_snapshot, current_owner_identifier, ownership_history, state_of_health, last_soh_update_timestamp, csv_source_filename, csv_row_index) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	ensureBatteryPassportID(passport)
+
+	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at, batch_snapshot, current_owner_identifier, ownership_history, state_of_health, last_soh_update_timestamp, csv_source_filename, csv_row_index, battery_passport_id) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	_, err := r.db.Pool.Exec(ctx, query,
 		passport.UUID,
@@ -178,6 +187,7 @@ func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passpo
 		passport.LastSOHUpdateTimestamp,
 		passport.CSVSourceFilename,
 		passport.CSVRowIndex,
+		passport.BatteryPassportID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create passport: %w", err)
@@ -226,8 +236,8 @@ func (r *Repository) CreatePassportsWithEvents(ctx context.Context, passports []
 func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Passport, error) {
 	passport := &models.Passport{}
 
-	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at, product_type 
-	          FROM public.passports WHERE uuid = $1`
+	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at, product_type, battery_passport_id 
+	          FROM public.passports WHERE uuid = $1 AND deleted_at IS NULL`
 
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
 		&passport.UUID,
@@ -237,6 +247,7 @@ func (r *Repository) GetPassport(ctx context.Context, id uuid.UUID) (*models.Pas
 		&passport.Status,
 		&passport.CreatedAt,
 		&passport.ProductType,
+		&passport.BatteryPassportID,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -257,23 +268,23 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       p.state_of_health, p.last_soh_update_timestamp,
 		       p.ownership_history, p.repair_events, p.replacement_events,
 		       p.recycling_status, p.recycler_epr_id, p.recycling_date, p.owner_id,
+		       p.battery_passport_id,
 		       b.batch_name, COALESCE(b.model_name, ''), COALESCE(b.product_type, 'BATTERY'), b.specs, b.market_region,
        b.manufacturing_start_date, b.manufacturing_end_date,
        COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
        b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''), COALESCE(b.dva_source, ''),
+		       COALESCE(b.ce_marking, false), COALESCE(b.carbon_performance_class, ''), COALESCE(b.removable_and_replaceable, false), COALESCE(b.notified_body_number, ''), COALESCE(b.declaration_of_conformity_path, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
 		       COALESCE(bp.epr_registration_number, ''), COALESCE(bp.bis_r_number, ''),
 		       COALESCE(bp.epr_certificate_path, ''), COALESCE(bp.bis_certificate_path, ''), COALESCE(bp.pli_certificate_path, ''),
 		       COALESCE(bp.eu_authorized_representative_name, ''), COALESCE(bp.eu_authorized_representative_address, ''), COALESCE(bp.eu_contact_email, ''),
-		       COALESCE(tp.facility_type, ''), COALESCE(tp.supply_chain_tier, ''),
 		       t.id,
 		       b.carbon_footprint_result
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
 		LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
-		LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
-		WHERE p.uuid = $1
+		WHERE p.uuid = $1 AND p.deleted_at IS NULL
 	`
 
 	passport := &models.Passport{}
@@ -287,6 +298,11 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var domesticValueAdd float64
 	var pliCompliant bool
 	var customsDate *time.Time
+	var ceMarking bool
+	var carbonPerformanceClass string
+	var removableAndReplaceable bool
+	var notifiedBodyNumber string
+	var declarationOfConformityPath string
 	var batchSnapshotJSON []byte
 	var ownershipHistoryJSON []byte
 	var repairEventsJSON []byte
@@ -325,6 +341,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&recyclerEprID,
 		&passport.RecyclingDate,
 		&ownerID,
+		&passport.BatteryPassportID,
 		&batchName,
 		&modelName,
 		&productType,
@@ -340,6 +357,11 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&customsDate,
 		&hsnCode,
 		&dvaSource,
+		&ceMarking,
+		&carbonPerformanceClass,
+		&removableAndReplaceable,
+		&notifiedBodyNumber,
+		&declarationOfConformityPath,
 		&tenant.CompanyName,
 		&tenant.Address,
 		&tenant.LogoURL,
@@ -430,13 +452,20 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		CustomsDate:            customsDate,
 		HSNCode:                hsnCode,
 		DVASource:              dvaSource,
+		BatteryPassportID:           passport.BatteryPassportID,
+		CEMarking:                   ceMarking,
+		CarbonPerformanceClass:      carbonPerformanceClass,
+		RemovableAndReplaceable:     removableAndReplaceable,
+		NotifiedBodyNumber:          notifiedBodyNumber,
+		DeclarationOfConformityPath: declarationOfConformityPath,
 	}, nil
 }
 
 // GetPassportsByBatch retrieves passports for a batch with pagination
 func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID, limit, offset int) ([]*models.Passport, error) {
-	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at 
-	          FROM public.passports WHERE batch_id = $1 ORDER BY serial_number LIMIT $2 OFFSET $3`
+	query := `SELECT uuid, batch_id, serial_number, manufacture_date, status, created_at,
+	          current_owner_identifier, battery_passport_id
+	          FROM public.passports WHERE batch_id = $1 AND deleted_at IS NULL ORDER BY serial_number LIMIT $2 OFFSET $3`
 
 	rows, err := r.db.Pool.Query(ctx, query, batchID, limit, offset)
 	if err != nil {
@@ -454,6 +483,8 @@ func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID,
 			&passport.ManufactureDate,
 			&passport.Status,
 			&passport.CreatedAt,
+			&passport.CurrentOwnerIdentifier,
+			&passport.BatteryPassportID,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan passport: %w", err)
 		}
@@ -466,7 +497,7 @@ func (r *Repository) GetPassportsByBatch(ctx context.Context, batchID uuid.UUID,
 // CountPassportsByBatch returns the number of passports in a batch
 func (r *Repository) CountPassportsByBatch(ctx context.Context, batchID uuid.UUID) (int, error) {
 	var count int
-	query := `SELECT COUNT(*) FROM public.passports WHERE batch_id = $1`
+	query := `SELECT COUNT(*) FROM public.passports WHERE batch_id = $1 AND deleted_at IS NULL`
 	err := r.db.Pool.QueryRow(ctx, query, batchID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count passports: %w", err)
@@ -491,7 +522,7 @@ func (r *Repository) FindDuplicateSerials(ctx context.Context, serials []string)
 		SELECT p.serial_number, b.id, b.batch_name
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
-		WHERE p.serial_number = ANY($1)
+		WHERE p.serial_number = ANY($1) AND p.deleted_at IS NULL
 	`
 
 	rows, err := r.db.Pool.Query(ctx, query, serials)
@@ -523,7 +554,7 @@ func (r *Repository) GetPassportByUUID(ctx context.Context, id uuid.UUID) (*mode
 
 // UpdatePassportStatus updates a passport's status
 func (r *Repository) UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error {
-	query := `UPDATE public.passports SET status = $1 WHERE uuid = $2`
+	query := `UPDATE public.passports SET status = $1 WHERE uuid = $2 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, status, id)
 	if err != nil {
 		return fmt.Errorf("failed to update passport status: %w", err)
@@ -609,9 +640,11 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 	              recycled_at = COALESCE($4, recycled_at),
 	              recycling_status = COALESCE($5, recycling_status),
 	              recycler_epr_id = COALESCE($6, recycler_epr_id),
-	              recycling_date = COALESCE($7, recycling_date)
-	          WHERE uuid = $8
-	            AND status = $9`
+	              recycling_date = COALESCE($7, recycling_date),
+	              circularity_status = COALESCE($8, circularity_status)
+	          WHERE uuid = $9
+	            AND status = $10
+	            AND deleted_at IS NULL`
 	tag, err := tx.Exec(ctx, query,
 		params.NewStatus,
 		params.ShippedAt,
@@ -620,6 +653,7 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 		nullableString(params.RecyclingStatus),
 		nullableString(params.RecyclerEprID),
 		params.RecyclingDate,
+		params.CircularityStatus,
 		params.PassportID,
 		params.PreviousStatus,
 	)
@@ -668,7 +702,7 @@ func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *mode
 	query := `UPDATE public.passports 
 	          SET status = $1, shipped_at = $2, installed_at = $3, returned_at = $4, 
 	              state_of_health = $5, owner_id = $6
-	          WHERE uuid = $7`
+	          WHERE uuid = $7 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query,
 		passport.Status,
 		passport.ShippedAt,
@@ -754,7 +788,7 @@ func (r *Repository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([
 	                 p.serial_number
 	          FROM public.passport_events e
 	          JOIN public.passports p ON p.uuid = e.passport_id
-	          WHERE p.batch_id = $1
+	          WHERE p.batch_id = $1 AND p.deleted_at IS NULL
 	          ORDER BY e.created_at ASC, e.id ASC`
 
 	rows, err := r.db.Pool.Query(ctx, query, batchID)
@@ -812,7 +846,7 @@ func (r *Repository) CreatePassportEventBatch(ctx context.Context, events []*mod
 // UpdatePassportOwnerID updates the owner_id for a passport (used for ownership transfers)
 // Named differently from UpdatePassportOwner in magic_link.go which updates owner email
 func (r *Repository) UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error {
-	query := `UPDATE public.passports SET owner_id = $1 WHERE uuid = $2`
+	query := `UPDATE public.passports SET owner_id = $1 WHERE uuid = $2 AND deleted_at IS NULL`
 	result, err := r.db.Pool.Exec(ctx, query, newOwnerID, passportID)
 	if err != nil {
 		return fmt.Errorf("failed to update passport owner: %w", err)
@@ -829,7 +863,7 @@ func (r *Repository) CountPassportsMissingShippedEvent(ctx context.Context, batc
 	query := `
 		SELECT COUNT(*)
 		FROM public.passports p
-		WHERE p.batch_id = $1
+		WHERE p.batch_id = $1 AND p.deleted_at IS NULL
 		  AND NOT EXISTS (
 			  SELECT 1 FROM public.passport_events e
 			  WHERE e.passport_id = p.uuid AND e.event_type = 'SHIPPED'
@@ -846,7 +880,7 @@ func (r *Repository) AppendOwnershipHistory(ctx context.Context, passportID uuid
 	query := `
 		UPDATE public.passports
 		SET ownership_history = COALESCE(ownership_history, '[]'::jsonb) || $2::jsonb
-		WHERE uuid = $1`
+		WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, entryJSON)
 	if err != nil {
 		return fmt.Errorf("failed to append ownership history: %w", err)
@@ -859,7 +893,7 @@ func (r *Repository) AppendRepairEvent(ctx context.Context, passportID uuid.UUID
 	query := `
 		UPDATE public.passports
 		SET repair_events = COALESCE(repair_events, '[]'::jsonb) || $2::jsonb
-		WHERE uuid = $1`
+		WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, entryJSON)
 	if err != nil {
 		return fmt.Errorf("failed to append repair event: %w", err)
@@ -872,7 +906,7 @@ func (r *Repository) AppendReplacementEvent(ctx context.Context, passportID uuid
 	query := `
 		UPDATE public.passports
 		SET replacement_events = COALESCE(replacement_events, '[]'::jsonb) || $2::jsonb
-		WHERE uuid = $1`
+		WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, entryJSON)
 	if err != nil {
 		return fmt.Errorf("failed to append replacement event: %w", err)
@@ -882,7 +916,7 @@ func (r *Repository) AppendReplacementEvent(ctx context.Context, passportID uuid
 
 // UpdateStateOfHealth updates SoH and timestamp
 func (r *Repository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error {
-	query := `UPDATE public.passports SET state_of_health = $2, last_soh_update_timestamp = $3 WHERE uuid = $1`
+	query := `UPDATE public.passports SET state_of_health = $2, last_soh_update_timestamp = $3 WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, soh, ts)
 	if err != nil {
 		return fmt.Errorf("failed to update state of health: %w", err)
@@ -931,13 +965,14 @@ func (r *Repository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([
 
 // PassportListItem is a lightweight summary for the lifecycle list view.
 type PassportListItem struct {
-	UUID         string             `json:"uuid"`
-	SerialNumber string             `json:"serial_number"`
-	Status       string             `json:"status"`
-	StateOfHealth *float64           `json:"state_of_health"`
-	BatchName    string             `json:"batch_name"`
-	UpdatedAt    string             `json:"updated_at"`
-	ProductType  models.ProductType `json:"product_type"`
+	UUID              string             `json:"uuid"`
+	SerialNumber      string             `json:"serial_number"`
+	Status            string             `json:"status"`
+	StateOfHealth     *float64           `json:"state_of_health"`
+	CircularityStatus string             `json:"circularity_status"`
+	BatchName         string             `json:"batch_name"`
+	UpdatedAt         string             `json:"updated_at"`
+	ProductType       models.ProductType `json:"product_type"`
 }
 
 // ListPassportsByTenant returns a tenant-scoped paginated list of passports
@@ -947,7 +982,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 		SELECT COUNT(*)
 		FROM public.passports p
 		JOIN public.batches b ON b.id = p.batch_id
-		WHERE b.tenant_id = $1
+		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR b.id::text = $4)
@@ -959,14 +994,14 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 	}
 
 	query := `
-		SELECT p.uuid, p.serial_number, p.status, p.state_of_health, b.batch_name,
+		SELECT p.uuid, p.serial_number, p.status, p.state_of_health, p.circularity_status, b.batch_name,
 		       COALESCE(b.product_type, 'BATTERY') AS product_type,
 		       GREATEST(p.created_at,
 		                COALESCE(p.shipped_at, p.created_at),
 		                COALESCE(p.last_soh_update_timestamp, p.created_at)) AS updated_at
 		FROM public.passports p
 		JOIN public.batches b ON b.id = p.batch_id
-		WHERE b.tenant_id = $1
+		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL
 		  AND ($2 = '' OR p.status = $2)
 		  AND ($3 = '' OR p.serial_number ILIKE '%' || $3 || '%' OR p.uuid::text ILIKE '%' || $3 || '%')
 		  AND ($4 = '' OR b.id::text = $4)
@@ -989,6 +1024,7 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 			&item.SerialNumber,
 			&item.Status,
 			&item.StateOfHealth,
+			&item.CircularityStatus,
 			&item.BatchName,
 			&item.ProductType,
 			&updatedAt,
@@ -1008,7 +1044,7 @@ func (r *Repository) GetPassportStatusCounts(ctx context.Context, tenantID uuid.
 		SELECT p.status, COUNT(*)
 		FROM public.passports p
 		JOIN public.batches b ON b.id = p.batch_id
-		WHERE b.tenant_id = $1
+		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL
 		  AND ($2 = '' OR b.id::text = $2)
 		GROUP BY p.status`
 
@@ -1036,7 +1072,7 @@ func (r *Repository) AppendGeolocationHistory(ctx context.Context, passportID uu
 	query := `
 		UPDATE public.passports
 		SET geolocation_history = COALESCE(geolocation_history, '[]'::jsonb) || $2::jsonb
-		WHERE uuid = $1`
+		WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, entryJSON)
 	if err != nil {
 		return fmt.Errorf("failed to append geolocation history: %w", err)
@@ -1053,6 +1089,7 @@ func (r *Repository) GetPassportIDsByBatch(ctx context.Context, batchID, tenantI
 		JOIN public.batches b ON b.id = p.batch_id
 		WHERE p.batch_id = $1
 		  AND b.tenant_id = $2
+		  AND p.deleted_at IS NULL
 		  AND p.status NOT IN ('RECYCLED', 'RECALLED', 'CLOSED')`
 	rows, err := r.db.Pool.Query(ctx, query, batchID, tenantID)
 	if err != nil {
@@ -1081,7 +1118,7 @@ func (r *Repository) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID,
 		    recycler_epr_id = $3,
 		    recycling_date = $4,
 		    recycled_at = NOW()
-		WHERE uuid = $1`
+		WHERE uuid = $1 AND deleted_at IS NULL`
 	_, err := r.db.Pool.Exec(ctx, query, passportID, status, recyclerEprID, date)
 	if err != nil {
 		return fmt.Errorf("failed to update recycling info: %w", err)
