@@ -388,6 +388,16 @@ func main() {
 	mux.Handle("POST /api/v1/jobs/daily-alerts", authMiddleware.Protect(http.HandlerFunc(h.RunDailyAlerts)))
 
 	// ============================================
+	// MASS BALANCE (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/mass-balance/ledgers", authMiddleware.Protect(http.HandlerFunc(h.CreateMassBalanceLedger)))
+	mux.Handle("GET /api/v1/mass-balance/ledgers", authMiddleware.Protect(http.HandlerFunc(h.ListMassBalanceLedgers)))
+	mux.Handle("GET /api/v1/mass-balance/ledgers/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetMassBalanceLedger)))
+	mux.Handle("PATCH /api/v1/mass-balance/ledgers/{id}", authMiddleware.Protect(http.HandlerFunc(h.UpdateMassBalanceLedger)))
+	mux.Handle("POST /api/v1/mass-balance/allocations", authMiddleware.Protect(http.HandlerFunc(h.CreateMassBalanceAllocation)))
+	mux.Handle("GET /api/v1/mass-balance/allocations", authMiddleware.Protect(http.HandlerFunc(h.ListMassBalanceAllocations)))
+
+	// ============================================
 	// BULK OPERATIONS (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/bulk/status", authMiddleware.Protect(http.HandlerFunc(h.BulkUpdateStatus)))

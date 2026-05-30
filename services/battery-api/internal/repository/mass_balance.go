@@ -69,17 +69,22 @@ func (r *Repository) GetMassBalanceLedgerByID(ctx context.Context, id uuid.UUID)
 
 // UpdateMassBalanceLedger atomically adjusts incoming and allocated quantities,
 // recalculating the balance. Positive deltas increase, negative decrease.
+// Returns an error if the resulting balance would be negative.
 func (r *Repository) UpdateMassBalanceLedger(ctx context.Context, id uuid.UUID, incomingDelta, allocatedDelta float64) error {
 	query := `UPDATE mass_balance_ledgers
 			  SET incoming_kg = incoming_kg + $2,
 			      allocated_kg = allocated_kg + $3,
 			      balance_kg = incoming_kg + $2 - allocated_kg - $3,
 			      updated_at = $4
-			  WHERE id = $1`
+			  WHERE id = $1
+			    AND incoming_kg + $2 - allocated_kg - $3 >= 0`
 
-	_, err := r.db.Pool.Exec(ctx, query, id, incomingDelta, allocatedDelta, time.Now())
+	res, err := r.db.Pool.Exec(ctx, query, id, incomingDelta, allocatedDelta, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to update mass balance ledger: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("insufficient balance: allocation would exceed available mass balance")
 	}
 	return nil
 }
