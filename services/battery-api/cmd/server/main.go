@@ -99,6 +99,12 @@ func main() {
 	// Initialize registry verification service
 	registryVerificationService := services.NewRegistryVerificationService(repo)
 
+	// Initialize storage service (if Supabase credentials are available)
+	var storageService *services.StorageService
+	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
+		storageService = services.NewStorageService(logger.Logger)
+	}
+
 	h := handlers.New(
 		database, cfg.BaseURL, "assets/GeoLite2-City.mmdb",
 		cfg.RazorpayKeyID, cfg.RazorpayKeySecret,
@@ -109,6 +115,7 @@ func main() {
 		handlers.WithAuthService(authService),
 		handlers.WithAlertService(alertService),
 		handlers.WithRegistryVerificationService(registryVerificationService),
+		handlers.WithStorageService(storageService),
 	)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
@@ -143,9 +150,7 @@ func main() {
 	telemetryHandler := handlers.NewTelemetryHandler(telemetryService, deviceTokenService)
 	var exportJobHandler *handlers.ExportJobHandler
 	var exportJobService *services.ExportJobService
-	if os.Getenv("SUPABASE_URL") != "" && os.Getenv("SUPABASE_SERVICE_ROLE_KEY") != "" {
-		slogger := logger.Logger
-		storageService := services.NewStorageService(slogger)
+	if storageService != nil {
 		exportEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
 		qrService := services.NewQRService(cfg.BaseURL)
 		pdfService := services.NewPDFService(cfg.BaseURL)
@@ -159,9 +164,9 @@ func main() {
 			csvService,
 			exportEmailService,
 			auditExportService,
-			slogger,
+			logger.Logger,
 		)
-		exportJobHandler = handlers.NewExportJobHandler(exportJobService, slogger)
+		exportJobHandler = handlers.NewExportJobHandler(exportJobService, logger.Logger)
 		slog.Info("Export job handler initialized with embedded worker")
 	} else {
 		slog.Warn("Export job handler not initialized (missing SUPABASE config)")

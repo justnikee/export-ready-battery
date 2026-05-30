@@ -6,8 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -468,41 +466,39 @@ func (h *Handler) UploadDGFTClaimDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Save to uploads/dgft-claims/{tenant_id}/{claim_id}/
-	uploadDir := filepath.Join(".", "uploads", "dgft-claims", tenantID.String(), id.String())
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		slog.Error("Failed to create upload directory", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to process upload")
+	if h.storageService == nil {
+		storageUnavailable(w)
+		return
+	}
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		slog.Error("Failed to read uploaded file", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to read file")
 		return
 	}
 
 	safeDocType := strings.ReplaceAll(documentType, " ", "_")
 	filename := fmt.Sprintf("%s_%s.pdf", safeDocType, time.Now().Format("20060102_150405"))
-	filePath := filepath.Join(uploadDir, filename)
+	storagePath := fmt.Sprintf("%s/dgft-claims/%s/%s", tenantID.String(), id.String(), filename)
 
-	dst, err := os.Create(filePath)
-	if err != nil {
-		slog.Error("Failed to create file", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save file")
-		return
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		slog.Error("Failed to write file", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save file")
+	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, "application/pdf"); err != nil {
+		slog.Error("Failed to upload DGFT document to storage", "error", err, "claim_id", id, "tenant_id", tenantID)
+		respondError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
 		return
 	}
 
-	// Append to claim documents
+	publicURL := h.storageService.PublicURL(complianceDocsBucket, storagePath)
+
 	now := time.Now()
 	doc := models.DGFTClaimDocument{
 		DocType:    documentType,
-		FileURL:    filePath,
+		FileURL:    publicURL,
 		Status:     "UPLOADED",
 		UploadedAt: &now,
 	}
 	if err := h.repo.AddDGFTClaimDocument(r.Context(), id, tenantID, doc); err != nil {
+		_ = h.storageService.DeleteFileFromBucket(r.Context(), complianceDocsBucket, storagePath)
 		slog.Error("Failed to update claim documents", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update claim record")
 		return
@@ -511,7 +507,7 @@ func (h *Handler) UploadDGFTClaimDocument(w http.ResponseWriter, r *http.Request
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":       true,
 		"document_type": documentType,
-		"file_url":      filePath,
+		"file_url":      publicURL,
 		"message":       "Document uploaded successfully",
 	})
 }

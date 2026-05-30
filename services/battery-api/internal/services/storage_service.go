@@ -32,14 +32,18 @@ func NewStorageService(logger *slog.Logger) *StorageService {
 	}
 }
 
-// UploadFile uploads data to Supabase Storage and returns the file path
+// UploadFile uploads data to the default bucket in Supabase Storage.
 func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath string, contentType string) error {
-	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, s.bucketName, filePath)
+	return s.UploadFileToBucket(ctx, s.bucketName, filePath, data, contentType)
+}
 
-	// Debug logging
+// UploadFileToBucket uploads data to a specific bucket in Supabase Storage.
+func (s *StorageService) UploadFileToBucket(ctx context.Context, bucket, filePath string, data []byte, contentType string) error {
+	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
+
 	s.logger.Info("attempting upload",
 		"url", url,
-		"bucket", s.bucketName,
+		"bucket", bucket,
 		"supabaseURL", s.supabaseURL,
 	)
 
@@ -66,6 +70,7 @@ func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath s
 
 	s.logger.Info("file uploaded to storage",
 		"path", filePath,
+		"bucket", bucket,
 		"size", len(data),
 		"contentType", contentType,
 	)
@@ -73,9 +78,14 @@ func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath s
 	return nil
 }
 
-// UploadReader uploads from an io.Reader to Supabase Storage
+// UploadReader uploads from an io.Reader to the default bucket.
 func (s *StorageService) UploadReader(ctx context.Context, reader io.Reader, size int64, filePath string, contentType string) error {
-	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, s.bucketName, filePath)
+	return s.UploadReaderToBucket(ctx, s.bucketName, reader, size, filePath, contentType)
+}
+
+// UploadReaderToBucket uploads from an io.Reader to a specific bucket.
+func (s *StorageService) UploadReaderToBucket(ctx context.Context, bucket string, reader io.Reader, size int64, filePath string, contentType string) error {
+	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reader)
 	if err != nil {
@@ -101,6 +111,7 @@ func (s *StorageService) UploadReader(ctx context.Context, reader io.Reader, siz
 
 	s.logger.Info("file uploaded to storage",
 		"path", filePath,
+		"bucket", bucket,
 		"size", size,
 		"contentType", contentType,
 	)
@@ -108,34 +119,27 @@ func (s *StorageService) UploadReader(ctx context.Context, reader io.Reader, siz
 	return nil
 }
 
-// CreateSignedURL creates a presigned download URL that expires after the specified duration
+// CreateSignedURL creates a presigned download URL from the default bucket.
 func (s *StorageService) CreateSignedURL(ctx context.Context, filePath string, expiresIn time.Duration) (string, error) {
-	// Construct URL properly using net/url to handle special characters (spaces, etc.)
+	return s.CreateSignedURLForBucket(ctx, s.bucketName, filePath, expiresIn)
+}
+
+// CreateSignedURLForBucket creates a presigned download URL from a specific bucket.
+func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, filePath string, expiresIn time.Duration) (string, error) {
 	u, err := url.Parse(s.supabaseURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid supabase URL: %w", err)
 	}
 
-	// Join paths. Note: path.Join handles the slashes
-	// We manually append the path to the existing path in SupabaseURL (if any)
-	// But ensure accessing /storage/v1...
-	u.Path = path.Join(u.Path, "storage/v1/object/sign", s.bucketName, filePath)
-
-	// The path.Join might strip trailing slashes or clean path.
-	// Also if filePath has slashes, path.Join preserves them as separators.
-	// But wait, path.Join is for file paths, path.Join (path package) uses forward slashes.
-	// We should verify if filePath segments need individual escaping.
-	// net/url URL.String() will escape the path.
-
+	u.Path = path.Join(u.Path, "storage/v1/object/sign", bucket, filePath)
 	destURL := u.String()
 
 	s.logger.Info("creating signed URL request",
 		"url", destURL,
 		"filePath", filePath,
-		"bucket", s.bucketName,
+		"bucket", bucket,
 	)
 
-	// Request body for signed URL
 	expirySeconds := int(expiresIn.Seconds())
 	body := fmt.Sprintf(`{"expiresIn": %d}`, expirySeconds)
 
@@ -163,7 +167,6 @@ func (s *StorageService) CreateSignedURL(ctx context.Context, filePath string, e
 		return "", fmt.Errorf("signed URL creation failed with status %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	// Parse response using encoding/json
 	var response struct {
 		SignedURL string `json:"signedURL"`
 	}
@@ -175,25 +178,25 @@ func (s *StorageService) CreateSignedURL(ctx context.Context, filePath string, e
 		return "", fmt.Errorf("failed to parse signed URL response: %w", err)
 	}
 
-	// The signed URL returned by Supabase is a path relative to the domain
-	// e.g., /storage/v1/object/sign/bucket/path?token=...
-	signedPath := response.SignedURL
-
-	// Ensure we handle potential full URLs or relative paths correctly
-	fullURL := s.supabaseURL + signedPath
+	fullURL := s.supabaseURL + response.SignedURL
 
 	s.logger.Info("created signed URL successfully",
 		"path", filePath,
-		"signedPath", signedPath,
+		"bucket", bucket,
 		"fullURL", fullURL,
 	)
 
 	return fullURL, nil
 }
 
-// DeleteFile removes a file from Supabase Storage
+// DeleteFile removes a file from the default bucket.
 func (s *StorageService) DeleteFile(ctx context.Context, filePath string) error {
-	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, s.bucketName, filePath)
+	return s.DeleteFileFromBucket(ctx, s.bucketName, filePath)
+}
+
+// DeleteFileFromBucket removes a file from a specific bucket.
+func (s *StorageService) DeleteFileFromBucket(ctx context.Context, bucket, filePath string) error {
+	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
@@ -214,8 +217,14 @@ func (s *StorageService) DeleteFile(ctx context.Context, filePath string) error 
 		return fmt.Errorf("delete failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	s.logger.Info("file deleted from storage", "path", filePath)
+	s.logger.Info("file deleted from storage", "path", filePath, "bucket", bucket)
 	return nil
+}
+
+// PublicURL returns the public URL for an object in a bucket.
+// This works for buckets with public access enabled.
+func (s *StorageService) PublicURL(bucket, filePath string) string {
+	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", s.supabaseURL, bucket, filePath)
 }
 
 // extractSignedURL parses the signedURL from the JSON response

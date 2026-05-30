@@ -318,31 +318,34 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Save to uploads/supplier-docs/{tenant_id}/{supplier_id}/
-	uploadDir := filepath.Join(".", "uploads", "supplier-docs", tenantID.String(), supplierID.String())
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		slog.Error("Failed to create upload directory", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to process upload")
+	if h.storageService == nil {
+		storageUnavailable(w)
+		return
+	}
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		slog.Error("Failed to read uploaded file", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to read file")
 		return
 	}
 
 	filename := fmt.Sprintf("%s_%s_%s", docType, time.Now().Format("20060102_150405"), filepath.Base(header.Filename))
 	filename = strings.ReplaceAll(filename, " ", "_")
-	filePath := filepath.Join(uploadDir, filename)
+	storagePath := fmt.Sprintf("%s/supplier-docs/%s/%s", tenantID.String(), supplierID.String(), filename)
 
-	dst, err := os.Create(filePath)
-	if err != nil {
-		slog.Error("Failed to create file", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save file")
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, contentType); err != nil {
+		slog.Error("Failed to upload supplier document to storage", "error", err, "supplier_id", supplierIDStr, "tenant_id", tenantIDStr)
+		respondError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
 		return
 	}
-	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
-		slog.Error("Failed to write file", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to save file")
-		return
-	}
+	publicURL := h.storageService.PublicURL(complianceDocsBucket, storagePath)
 
 	var batchID, componentID *string
 	if b := r.FormValue("batch_id"); b != "" {
@@ -353,22 +356,23 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 	}
 
 	doc := &models.SupplierDocument{
-		ID:         uuid.New().String(),
-		SupplierID: supplierIDStr,
-		TenantID:   tenantIDStr,
-		BatchID:    batchID,
+		ID:          uuid.New().String(),
+		SupplierID:  supplierIDStr,
+		TenantID:    tenantIDStr,
+		BatchID:     batchID,
 		ComponentID: componentID,
-		DocType:    docType,
-		FileURL:    filePath,
-		FileName:   header.Filename,
-		FileSize:   int(header.Size),
-		Status:     "pending",
-		UploadedAt: time.Now(),
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		DocType:     docType,
+		FileURL:     publicURL,
+		FileName:    header.Filename,
+		FileSize:    int(header.Size),
+		Status:      "pending",
+		UploadedAt:  time.Now(),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	if err := h.repo.CreateSupplierDocument(r.Context(), doc); err != nil {
+		_ = h.storageService.DeleteFileFromBucket(r.Context(), complianceDocsBucket, storagePath)
 		slog.Error("Failed to create supplier document record", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save document record")
 		return

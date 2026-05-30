@@ -3,12 +3,14 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/services"
 	"github.com/google/uuid"
 )
 
@@ -186,6 +188,17 @@ func TestExportClaimPDF_ClaimNotFound(t *testing.T) {
 	}
 }
 
+// fakeStorageServer returns a StorageService backed by a fake HTTP server.
+func fakeStorageServer(t *testing.T) *services.StorageService {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(ts.Close)
+	t.Setenv("SUPABASE_URL", ts.URL)
+	t.Setenv("SUPABASE_SERVICE_ROLE_KEY", "fake-key")
+	return services.NewStorageService(slog.Default())
+}
+
 func TestUploadDGFTClaimDocument_Success(t *testing.T) {
 	repo := newFakeDGFTRepo()
 	tenantID := uuid.New()
@@ -204,6 +217,7 @@ func TestUploadDGFTClaimDocument_Success(t *testing.T) {
 	})
 
 	handler := newTeamHandler(repo)
+	handler.storageService = fakeStorageServer(t)
 
 	body := strings.NewReader("--boundary\r\nContent-Disposition: form-data; name=\"document_type\"\r\n\r\nshipping_bill\r\n--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.pdf\"\r\nContent-Type: application/pdf\r\n\r\n%PDF-1.4 test\r\n--boundary--\r\n")
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/dgft-claims/"+claimID.String()+"/documents", body)
@@ -227,6 +241,9 @@ func TestUploadDGFTClaimDocument_Success(t *testing.T) {
 	}
 	if updated.Documents[0].Status != "UPLOADED" {
 		t.Errorf("expected status UPLOADED, got %s", updated.Documents[0].Status)
+	}
+	if !strings.HasPrefix(updated.Documents[0].FileURL, "http") {
+		t.Errorf("expected FileURL to be a public URL, got %s", updated.Documents[0].FileURL)
 	}
 }
 

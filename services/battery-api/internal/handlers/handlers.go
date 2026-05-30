@@ -41,6 +41,9 @@ type Handler struct {
 
 	// Registry verification service for external compliance checks
 	registryVerificationService *services.RegistryVerificationService
+
+	// Storage service for cloud file uploads (Supabase Storage)
+	storageService *services.StorageService
 }
 
 // Option is a functional option for configuring a Handler.
@@ -74,6 +77,11 @@ func WithAlertService(svc *services.AlertService) Option {
 // WithRegistryVerificationService injects the RegistryVerificationService.
 func WithRegistryVerificationService(svc *services.RegistryVerificationService) Option {
 	return func(h *Handler) { h.registryVerificationService = svc }
+}
+
+// WithStorageService injects the StorageService for cloud uploads.
+func WithStorageService(svc *services.StorageService) Option {
+	return func(h *Handler) { h.storageService = svc }
 }
 
 // New creates a new Handler with the given database connection.
