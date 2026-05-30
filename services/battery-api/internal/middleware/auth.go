@@ -14,6 +14,8 @@ type ContextKey string
 const (
 	// TenantIDKey is the context key for tenant ID
 	TenantIDKey ContextKey = "tenant_id"
+	// SupplierIDKey is the context key for supplier ID
+	SupplierIDKey ContextKey = "supplier_id"
 	// EmailKey is the context key for email
 	EmailKey ContextKey = "email"
 	// RoleKey is the context key for RBAC role
@@ -72,6 +74,9 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, EmailKey, claims.Email)
 		ctx = context.WithValue(ctx, RoleKey, claims.Role)
 		ctx = context.WithValue(ctx, ProductTypeKey, string(claims.ProductType))
+		if claims.SupplierID != "" {
+			ctx = context.WithValue(ctx, SupplierIDKey, claims.SupplierID)
+		}
 
 		// Call next handler with enriched context
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -125,6 +130,15 @@ func GetRole(ctx context.Context) string {
 func GetProductType(ctx context.Context) string {
 	if productType, ok := ctx.Value(ProductTypeKey).(string); ok {
 		return productType
+	}
+	return ""
+}
+
+
+// GetSupplierID extracts supplier ID from context
+func GetSupplierID(ctx context.Context) string {
+	if id, ok := ctx.Value(SupplierIDKey).(string); ok {
+		return id
 	}
 	return ""
 }

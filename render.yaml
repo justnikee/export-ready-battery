@@ -1,0 +1,124 @@
+# Render Blueprint — ExportReady Multi-Service Deployment
+# https://dashboard.render.com/blueprints
+#
+# Usage:
+#   1. Push this file to your repo root
+#   2. Go to Render Dashboard → Blueprints → New Blueprint
+#   3. Connect your GitHub repo
+#   4. Set secret env vars (DATABASE_URL, SUPABASE_SERVICE_ROLE_KEY, etc.)
+#   5. Deploy
+#
+# Free subdomains (Render auto-assigns):
+#   platform-core → https://platform-core-[random].onrender.com
+#   battery-api   → https://battery-api-[random].onrender.com
+#   textile-api   → https://textile-api-[random].onrender.com
+
+services:
+  # ═══════════════════════════════════════════════════════════════════
+  # PLATFORM CORE — Auth, Teams, Billing, JWT (own Supabase DB)
+  # ═══════════════════════════════════════════════════════════════════
+  - type: web
+    name: platform-core
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/platform-core
+    buildCommand: go build -o platform-core ./cmd/server/main.go
+    startCommand: ./platform-core
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: JWT_EXPIRY
+        value: 15m
+      - key: REFRESH_EXPIRY
+        value: 168h
+      # Secrets — set manually in Render dashboard after blueprint creation:
+      # DATABASE_URL, JWT_SECRET, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
+      # RESEND_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME
+    healthCheckPath: /health
+
+  # ═══════════════════════════════════════════════════════════════════
+  # BATTERY API — Compliance, Batches, Passports, PDFs, QR Codes
+  # ═══════════════════════════════════════════════════════════════════
+  - type: web
+    name: battery-api
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/battery-api
+    buildCommand: go build -o battery-api ./cmd/server/main.go
+    startCommand: ./battery-api
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JWT_SECRET
+        fromService:
+          name: platform-core
+          type: web
+          envVarKey: JWT_SECRET
+      # Secrets — set manually in Render dashboard:
+      # DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+      # UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+    healthCheckPath: /health
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TEXTILE API — Compliance, Batches, Passports (mirrors battery-api)
+  # ═══════════════════════════════════════════════════════════════════
+  - type: web
+    name: textile-api
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/textile-api
+    buildCommand: go build -o textile-api ./cmd/server/main.go
+    startCommand: ./textile-api
+    envVars:
+      - key: PORT
+        value: 8082
+      - key: JWT_SECRET
+        fromService:
+          name: platform-core
+          type: web
+          envVarKey: JWT_SECRET
+      # Secrets — set manually in Render dashboard:
+      # DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+    healthCheckPath: /health
+
+  # ═══════════════════════════════════════════════════════════════════
+  # MIGRATION JOBS — Run on every deploy to apply DB migrations
+  # ═══════════════════════════════════════════════════════════════════
+  - type: job
+    name: platform-core-migrate
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/platform-core
+    buildCommand: go build -o migrate ./cmd/migration_runner/main.go
+    startCommand: ./migrate up
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
+  - type: job
+    name: battery-migrate
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/battery-api
+    buildCommand: go build -o migrate ./cmd/migration_runner/main.go
+    startCommand: ./migrate up
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
+  - type: job
+    name: textile-migrate
+    runtime: go
+    plan: starter
+    region: singapore
+    rootDir: services/textile-api
+    buildCommand: go build -o migrate ./cmd/migration_runner/main.go
+    startCommand: ./migrate up
+    envVars:
+      - key: DATABASE_URL
+        sync: false

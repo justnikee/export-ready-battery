@@ -37,10 +37,9 @@ func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Pas
 
 	const cols = `uuid, batch_id, serial_number, manufacture_date, status, created_at,
 	              batch_snapshot, current_owner_identifier, ownership_history,
-	              state_of_health, last_soh_update_timestamp,
 	              csv_source_filename, csv_row_index`
-	const numCols = 13
-	// 500 rows × 13 cols = 6 500 params — well under the 65 535 PG limit.
+	const numCols = 11
+	// 500 rows × 11 cols = 5 500 params — well under the 65 535 PG limit.
 	const chunkSize = 500
 
 	total := 0
@@ -56,13 +55,12 @@ func copyPassports(ctx context.Context, exec bulkExecer, passports []*models.Pas
 		for i, p := range chunk {
 			b := i*numCols + 1
 			placeholders[i] = fmt.Sprintf(
-				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
-				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10, b+11, b+12,
+				"($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+				b, b+1, b+2, b+3, b+4, b+5, b+6, b+7, b+8, b+9, b+10,
 			)
 			args = append(args,
 				p.UUID, p.BatchID, p.SerialNumber, p.ManufactureDate, p.Status, p.CreatedAt,
 				jsonStringArg(p.BatchSnapshot), p.CurrentOwnerIdentifier, jsonStringArg(p.OwnershipHistory),
-				p.StateOfHealth, p.LastSOHUpdateTimestamp,
 				p.CSVSourceFilename, p.CSVRowIndex,
 			)
 		}
@@ -161,8 +159,8 @@ func copyPassportEvents(ctx context.Context, exec bulkExecer, events []*models.P
 
 // CreatePassport creates a single passport
 func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passport) error {
-	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at, batch_snapshot, current_owner_identifier, ownership_history, state_of_health, last_soh_update_timestamp, csv_source_filename, csv_row_index) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	query := `INSERT INTO public.passports (uuid, batch_id, serial_number, manufacture_date, status, created_at, batch_snapshot, current_owner_identifier, ownership_history, csv_source_filename, csv_row_index) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := r.db.Pool.Exec(ctx, query,
 		passport.UUID,
@@ -174,8 +172,6 @@ func (r *Repository) CreatePassport(ctx context.Context, passport *models.Passpo
 		jsonStringArg(passport.BatchSnapshot),
 		passport.CurrentOwnerIdentifier,
 		jsonStringArg(passport.OwnershipHistory),
-		passport.StateOfHealth,
-		passport.LastSOHUpdateTimestamp,
 		passport.CSVSourceFilename,
 		passport.CSVRowIndex,
 	)
@@ -254,24 +250,18 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
 		       p.batch_snapshot, p.current_owner_identifier, p.current_owner_email,
 		       p.shipped_at, p.installed_at, p.returned_at, p.recycled_at,
-		       p.state_of_health, p.last_soh_update_timestamp,
 		       p.ownership_history, p.repair_events, p.replacement_events,
 		       p.recycling_status, p.recycler_epr_id, p.recycling_date, p.owner_id,
-		       b.batch_name, COALESCE(b.model_name, ''), COALESCE(b.product_type, 'BATTERY'), b.specs, b.market_region,
+		       b.batch_name, COALESCE(b.model_name, ''), COALESCE(b.product_type, 'TEXTILE'), b.specs, b.market_region,
        b.manufacturing_start_date, b.manufacturing_end_date,
        COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
        b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''), COALESCE(b.dva_source, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
-		       COALESCE(bp.epr_registration_number, ''), COALESCE(bp.bis_r_number, ''),
-		       COALESCE(bp.epr_certificate_path, ''), COALESCE(bp.bis_certificate_path, ''), COALESCE(bp.pli_certificate_path, ''),
-		       COALESCE(bp.eu_authorized_representative_name, ''), COALESCE(bp.eu_authorized_representative_address, ''), COALESCE(bp.eu_contact_email, ''),
 		       COALESCE(tp.facility_type, ''), COALESCE(tp.supply_chain_tier, ''),
-		       t.id,
-		       b.carbon_footprint_result
+		       t.id
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
-		LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
 		LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
 		WHERE p.uuid = $1
 	`
@@ -291,13 +281,11 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var ownershipHistoryJSON []byte
 	var repairEventsJSON []byte
 	var replacementEventsJSON []byte
-	var soh sql.NullFloat64
 	var currentOwnerIdentifier sql.NullString
 	var currentOwnerEmail sql.NullString
 	var recyclingStatus sql.NullString
 	var recyclerEprID sql.NullString
 	var ownerID *uuid.UUID
-	var carbonFootprintResultJSON []byte
 	tenant := &models.Tenant{
 		TextileProfile: &models.TextileTenantProfile{},
 	}
@@ -316,8 +304,6 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&passport.InstalledAt,
 		&passport.ReturnedAt,
 		&passport.RecycledAt,
-		&soh,
-		&passport.LastSOHUpdateTimestamp,
 		&ownershipHistoryJSON,
 		&repairEventsJSON,
 		&replacementEventsJSON,
@@ -348,7 +334,6 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&tenant.TextileProfile.FacilityType,
 		&tenant.TextileProfile.SupplyChainTier,
 		&tenant.ID,
-		&carbonFootprintResultJSON,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -372,9 +357,6 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 	if currentOwnerEmail.Valid {
 		passport.CurrentOwnerEmail = currentOwnerEmail.String
-	}
-	if soh.Valid {
-		passport.StateOfHealth = &soh.Float64
 	}
 	if len(ownershipHistoryJSON) > 0 {
 		passport.OwnershipHistory = ownershipHistoryJSON
@@ -648,14 +630,13 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error {
 	query := `UPDATE public.passports 
 	          SET status = $1, shipped_at = $2, installed_at = $3, returned_at = $4, 
-	              state_of_health = $5, owner_id = $6
-	          WHERE uuid = $7`
+	              owner_id = $5
+	          WHERE uuid = $6`
 	_, err := r.db.Pool.Exec(ctx, query,
 		passport.Status,
 		passport.ShippedAt,
 		passport.InstalledAt,
 		passport.ReturnedAt,
-		passport.StateOfHealth,
 		passport.OwnerID,
 		passport.UUID,
 	)
@@ -861,61 +842,11 @@ func (r *Repository) AppendReplacementEvent(ctx context.Context, passportID uuid
 	return nil
 }
 
-// UpdateStateOfHealth updates SoH and timestamp
-func (r *Repository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error {
-	query := `UPDATE public.passports SET state_of_health = $2, last_soh_update_timestamp = $3 WHERE uuid = $1`
-	_, err := r.db.Pool.Exec(ctx, query, passportID, soh, ts)
-	if err != nil {
-		return fmt.Errorf("failed to update state of health: %w", err)
-	}
-	return nil
-}
-
-// AppendSoHHistory inserts one SoH reading into the soh_history time-series table.
-func (r *Repository) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
-	query := `
-		INSERT INTO public.soh_history (id, passport_id, soh, recorded_at, actor, actor_type, source)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := r.db.Pool.Exec(ctx, query,
-		entry.ID, entry.PassportID, entry.SoH, entry.RecordedAt,
-		entry.Actor, entry.ActorType, entry.Source,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to append soh history: %w", err)
-	}
-	return nil
-}
-
-// GetSoHHistory returns all SoH readings for a passport ordered newest-first.
-func (r *Repository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
-	query := `
-		SELECT id, passport_id, soh, recorded_at, actor, actor_type, source
-		FROM public.soh_history
-		WHERE passport_id = $1
-		ORDER BY recorded_at DESC`
-	rows, err := r.db.Pool.Query(ctx, query, passportID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get soh history: %w", err)
-	}
-	defer rows.Close()
-
-	var entries []models.SoHHistoryEntry
-	for rows.Next() {
-		var e models.SoHHistoryEntry
-		if err := rows.Scan(&e.ID, &e.PassportID, &e.SoH, &e.RecordedAt, &e.Actor, &e.ActorType, &e.Source); err != nil {
-			return nil, fmt.Errorf("failed to scan soh history row: %w", err)
-		}
-		entries = append(entries, e)
-	}
-	return entries, rows.Err()
-}
-
 // PassportListItem is a lightweight summary for the lifecycle list view.
 type PassportListItem struct {
 	UUID         string             `json:"uuid"`
 	SerialNumber string             `json:"serial_number"`
 	Status       string             `json:"status"`
-	StateOfHealth *float64           `json:"state_of_health"`
 	BatchName    string             `json:"batch_name"`
 	UpdatedAt    string             `json:"updated_at"`
 	ProductType  models.ProductType `json:"product_type"`
@@ -940,11 +871,10 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 	}
 
 	query := `
-		SELECT p.uuid, p.serial_number, p.status, p.state_of_health, b.batch_name,
-		       COALESCE(b.product_type, 'BATTERY') AS product_type,
+		SELECT p.uuid, p.serial_number, p.status, b.batch_name,
+		       COALESCE(b.product_type, 'TEXTILE') AS product_type,
 		       GREATEST(p.created_at,
-		                COALESCE(p.shipped_at, p.created_at),
-		                COALESCE(p.last_soh_update_timestamp, p.created_at)) AS updated_at
+		                COALESCE(p.shipped_at, p.created_at)) AS updated_at
 		FROM public.passports p
 		JOIN public.batches b ON b.id = p.batch_id
 		WHERE b.tenant_id = $1
@@ -969,7 +899,6 @@ func (r *Repository) ListPassportsByTenant(ctx context.Context, tenantID uuid.UU
 			&item.UUID,
 			&item.SerialNumber,
 			&item.Status,
-			&item.StateOfHealth,
 			&item.BatchName,
 			&item.ProductType,
 			&updatedAt,

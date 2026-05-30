@@ -91,6 +91,12 @@ export default function PublicPassportPage() {
             customs_date: data.customs_date,
             product_type: data.product_type,
             template_variant: data.template_variant,
+            battery_passport_id: data.battery_passport_id,
+            ce_marking: data.ce_marking,
+            carbon_performance_class: data.carbon_performance_class,
+            removable_and_replaceable: data.removable_and_replaceable,
+            notified_body_number: data.notified_body_number,
+            declaration_of_conformity_path: data.declaration_of_conformity_path,
           };
           setPassport(reshaped);
         } else {
@@ -117,14 +123,7 @@ export default function PublicPassportPage() {
 
   const recordScan = async (passportId: string) => {
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/scans/record`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ passport_id: passportId }),
-        },
-      );
+      await api.post('/scans/record', { passport_id: passportId });
     } catch (e) {
       console.debug("Scan recording skipped", e);
     }
@@ -213,6 +212,9 @@ export default function PublicPassportPage() {
             {/* Language Selector */}
             <div className="relative">
               <button
+                aria-label="Select language"
+                aria-expanded={showLangMenu}
+                aria-haspopup="listbox"
                 onClick={() => setShowLangMenu(!showLangMenu)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-card hover:bg-background text-foreground font-medium text-sm rounded-lg border border-border transition-colors"
               >
@@ -249,6 +251,7 @@ export default function PublicPassportPage() {
 
             {/* Download PDF Button */}
             <button
+              aria-label={t("header_download")}
               onClick={() => window.print()}
               className="flex items-center gap-2 px-3 py-2 bg-card hover:bg-background text-foreground font-medium text-sm rounded-lg border border-border transition-colors"
             >

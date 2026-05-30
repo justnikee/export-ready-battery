@@ -99,7 +99,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "Invalid specs format")
 			return
 		}
-		// ProductType defaults to BATTERY if not set on the request
+		// ProductType defaults to TEXTILE via DefaultProductType() if not set on the request
 		pt := models.ProductType(req.ProductType)
 		if !pt.IsValid() {
 			pt = models.DefaultProductType()

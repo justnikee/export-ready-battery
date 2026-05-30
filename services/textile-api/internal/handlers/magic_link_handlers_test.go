@@ -210,18 +210,6 @@ func (f *fakeMagicRepo) CreatePassportEventBatch(ctx context.Context, events []*
 	return nil
 }
 
-func (f *fakeMagicRepo) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, updatedAt time.Time) error {
-	return nil
-}
-
-func (f *fakeMagicRepo) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
-	return nil
-}
-
-func (f *fakeMagicRepo) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
-	return nil, nil
-}
-
 func (f *fakeMagicRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
 }

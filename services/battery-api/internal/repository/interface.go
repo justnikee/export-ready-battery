@@ -48,6 +48,20 @@ type RepositoryInterface interface {
 	// compliance_rules.go
 	GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error)
 
+	// carbon_factors.go
+	GetAllFactors(ctx context.Context) ([]models.CarbonFactor, error)
+	GetFactorByCategoryAndSubcategory(ctx context.Context, category, subcategory string) (*models.CarbonFactor, error)
+	GetFactorsByCategory(ctx context.Context, category string) ([]models.CarbonFactor, error)
+
+	// outbound_webhook.go
+	CreateOutboundWebhook(ctx context.Context, wh *models.OutboundWebhook) error
+	ListOutboundWebhooks(ctx context.Context, tenantID uuid.UUID) ([]*models.OutboundWebhook, error)
+	GetOutboundWebhookByID(ctx context.Context, id, tenantID uuid.UUID) (*models.OutboundWebhook, error)
+	GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error)
+	IncrementWebhookFailure(ctx context.Context, id uuid.UUID) error
+	UpdateWebhookLastTriggered(ctx context.Context, id uuid.UUID, at time.Time) error
+	DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error
+
 	// signup_requests.go
 	CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error
 	GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error)
@@ -122,6 +136,9 @@ type RepositoryInterface interface {
 	GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error)
 	GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error)
 	GetRecentBatches(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchSummary, error)
+
+	// analytics.go
+	GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error)
 
 	// team_repository.go
 	CountTeamMembers(ctx context.Context, tenantID uuid.UUID) (int, error)
@@ -232,4 +249,74 @@ type RepositoryInterface interface {
 	MarkAlertRead(ctx context.Context, alertID uuid.UUID) error
 	MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error
 	HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error)
+
+	// mass_balance.go
+	CreateMassBalanceLedger(ctx context.Context, ledger *models.MassBalanceLedger) error
+	GetMassBalanceLedgersByTenant(ctx context.Context, tenantID uuid.UUID, materialType string) ([]*models.MassBalanceLedger, error)
+	GetMassBalanceLedgerByID(ctx context.Context, id uuid.UUID) (*models.MassBalanceLedger, error)
+	UpdateMassBalanceLedger(ctx context.Context, id uuid.UUID, incomingDelta, allocatedDelta float64) error
+	CreateMassBalanceAllocation(ctx context.Context, allocation *models.MassBalanceAllocation) error
+	GetMassBalanceAllocationsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.MassBalanceAllocation, error)
+
+	// vc_repository.go
+	CreatePassportVC(ctx context.Context, vc *models.PassportVC) error
+	GetPassportVCByPassportID(ctx context.Context, passportID uuid.UUID) (*models.PassportVC, error)
+
+	// tally_import.go
+	CreateTallyImportLog(ctx context.Context, log *TallyImportLog) error
+	GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*TallyImportLog, int, error)
+
+	// tally_sync.go
+	UpsertTallySyncConfig(ctx context.Context, cfg *TallySyncConfig) error
+	GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*TallySyncConfig, error)
+	ListEnabledTallySyncConfigs(ctx context.Context) ([]*TallySyncConfig, error)
+	UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error
+	CreateTallySyncStaging(ctx context.Context, item *TallySyncStaging) error
+	GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*TallySyncStaging, int, error)
+	GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*TallySyncStaging, error)
+	ApplyTallySyncStaging(ctx context.Context, id, tenantID, batchID uuid.UUID) error
+	DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error
+	CreateTallySyncRun(ctx context.Context, run *TallySyncRun) error
+	UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error
+
+	// component.go
+	CreateComponent(ctx context.Context, c *Component) error
+	GetComponent(ctx context.Context, id, tenantID uuid.UUID) (*Component, error)
+	UpdateComponent(ctx context.Context, c *Component) error
+	DeleteComponent(ctx context.Context, id, tenantID uuid.UUID) error
+	ListComponentsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*Component, error)
+	GetComponentTreeByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*ComponentTreeNode, error)
+
+	// DGFT Claims
+	ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error)
+	CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
+	GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error)
+	UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
+	DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error
+	ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error)
+	SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error
+	AddDGFTClaimDocument(ctx context.Context, id, tenantID uuid.UUID, doc models.DGFTClaimDocument) error
+
+	// registry_verifications.go
+	CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error
+	GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error)
+	GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error)
+	DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error)
+
+	// Suppliers
+	CreateSupplier(ctx context.Context, supplier *models.Supplier) error
+	GetSupplierByID(ctx context.Context, id uuid.UUID) (*models.Supplier, error)
+	GetSupplierByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.Supplier, error)
+	GetSupplierByInvitationToken(ctx context.Context, token string) (*models.Supplier, error)
+	ListSuppliersByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.Supplier, error)
+	UpdateSupplierStatus(ctx context.Context, id uuid.UUID, status string) error
+	UpdateSupplierAcceptance(ctx context.Context, id uuid.UUID, passwordHash string) error
+	UpdateSupplierLastLogin(ctx context.Context, id uuid.UUID) error
+
+	// Supplier Documents
+	CreateSupplierDocument(ctx context.Context, doc *models.SupplierDocument) error
+	GetSupplierDocumentByID(ctx context.Context, id uuid.UUID) (*models.SupplierDocument, error)
+	ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error)
+	ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error)
+	UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error
 }

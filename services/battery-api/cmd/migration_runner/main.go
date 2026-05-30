@@ -31,9 +31,12 @@ func main() {
 		action = strings.ToLower(flag.Arg(0))
 	}
 
-	if err := godotenv.Overload(); err != nil {
-		fmt.Fprintln(os.Stderr, "failed to load .env:", err)
-		os.Exit(1)
+	if err := godotenv.Load(); err != nil {
+		// Only fail on actual errors; missing .env is fine (env vars may be set externally)
+		if !os.IsNotExist(err) {
+			fmt.Fprintln(os.Stderr, "failed to load .env:", err)
+			os.Exit(1)
+		}
 	}
 
 	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))

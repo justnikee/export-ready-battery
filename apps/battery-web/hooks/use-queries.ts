@@ -56,9 +56,18 @@ export function useDashboardStats(tenantId: string | undefined) {
     })
 }
 
+export interface Template {
+    id: string;
+    name: string;
+    market_region: string;
+    product_type?: string;
+    specs: Record<string, unknown>;
+    created_at: string;
+}
+
 // Templates hooks
 export function useTemplates(tenantId: string | undefined, productType?: string) {
-    return useQuery({
+    return useQuery<Template[]>({
         queryKey: queryKeys.templates(tenantId || '', productType),
         queryFn: async () => {
             const params = new URLSearchParams({ tenant_id: tenantId || '' })

@@ -42,14 +42,6 @@ interface User {
   product_type?: string;
   // Data Visibility Preferences
   data_visibility?: Record<string, string>;
-  textile_facility_type?: string;
-  textile_supply_chain_tier?: string;
-  textile_primary_markets?: string[];
-  textile_default_fiber_types?: string[];
-  textile_certifications?: string[];
-  textile_compliance_defaults?: {
-    publish_scope?: string;
-  };
 }
 
 interface AuthContextType {
@@ -75,9 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      // Cookie may still exist from a previous session while localStorage was cleared.
-      // Clear it so the middleware doesn't redirect back to /dashboard in a loop.
-      document.cookie = "auth_token=; path=/; max-age=0";
+      // No token in localStorage — user is not authenticated.
+      // Auth cookie is HttpOnly (managed by backend); clear product cookies only.
       clearProductCookies();
       setLoading(false);
       return;
@@ -97,7 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ?.status;
       if (status === 401 || status === 403) {
         localStorage.removeItem("token");
-        document.cookie = "auth_token=; path=/; max-age=0";
+        // Auth cookie is HttpOnly — backend clears it on logout.
+        // Product cookies should still be cleared to avoid redirect loops.
         clearProductCookies();
       }
       // For non-auth errors (network timeout, 500, etc.) we
@@ -109,8 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (token: string, newUser: User, redirectTo?: string) => {
     localStorage.setItem("token", token);
-    // Set plain cookie for Next.js edge middleware auth check
-    document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    // Auth cookie is now HttpOnly (set by backend on login/refresh).
+    // localStorage token is used for API Authorization headers.
 
     // Fetch the full user profile before committing state and navigating.
     // The minimal payload from /auth/login lacks onboarding_completed, which

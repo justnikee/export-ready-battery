@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -321,7 +322,7 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 
 	switch job.JobType {
 	case models.ExportJobTypeQRZip:
-		data, contentType, err = s.generateQRZip(passports)
+		data, contentType, err = s.generateQRZip(batch, passports)
 	case models.ExportJobTypeLabelPDF:
 		data, contentType, err = s.generateLabelPDF(batch, passports, tenant)
 	case models.ExportJobTypeCSV:
@@ -380,19 +381,25 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 
 // getBatchData retrieves batch, passports, and tenant data for processing
 func (s *ExportJobService) getBatchData(ctx context.Context, batchID, tenantID uuid.UUID) (*models.Batch, []*models.Passport, *models.Tenant, error) {
-	// Get batch with computed passport count
+	// Get batch with computed passport count and specs (needed for GTIN in QR generation)
 	batchQuery := `
 		SELECT b.id, b.batch_name, b.tenant_id, b.product_type,
 		       COALESCE((SELECT COUNT(*)::int FROM passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_passports,
-		       b.status, b.created_at 
+		       b.status, b.created_at, b.specs, COALESCE(b.gtin, '') as gtin
 		FROM batches b 
 		WHERE b.id = $1 AND b.tenant_id = $2`
 	batch := &models.Batch{}
+	var specsJSON []byte
 	err := s.db.QueryRow(ctx, batchQuery, batchID, tenantID).Scan(
-		&batch.ID, &batch.BatchName, &batch.TenantID, &batch.ProductType, &batch.TotalPassports, &batch.Status, &batch.CreatedAt,
+		&batch.ID, &batch.BatchName, &batch.TenantID, &batch.ProductType, &batch.TotalPassports, &batch.Status, &batch.CreatedAt, &specsJSON, &batch.GTIN,
 	)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to get batch: %w", err)
+	}
+	if len(specsJSON) > 0 {
+		if err := json.Unmarshal(specsJSON, &batch.Specs); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to unmarshal batch specs: %w", err)
+		}
 	}
 
 	// Get passports
@@ -425,9 +432,12 @@ func (s *ExportJobService) getBatchData(ctx context.Context, batchID, tenantID u
 	return batch, passports, tenant, nil
 }
 
-// generateQRZip generates QR codes as a ZIP file
-func (s *ExportJobService) generateQRZip(passports []*models.Passport) ([]byte, string, error) {
-	zipReader, _, err := s.qrService.GenerateAndZip(passports)
+// generateQRZip generates QR codes as a ZIP file with GS1 Digital Link support
+func (s *ExportJobService) generateQRZip(batch *models.Batch, passports []*models.Passport) ([]byte, string, error) {
+	ctx := &QRLabelContext{
+		GTIN: batch.Specs.GTIN,
+	}
+	zipReader, _, err := s.qrService.GenerateAndZipEnriched(passports, ctx)
 	if err != nil {
 		return nil, "", err
 	}

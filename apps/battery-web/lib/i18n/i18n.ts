@@ -1,13 +1,21 @@
 import en from './en.json'
 import fr from './fr.json'
 import de from './de.json'
+import hi from './hi.json'
+import ta from './ta.json'
+import te from './te.json'
+import gu from './gu.json'
 
-export type Locale = 'en' | 'fr' | 'de'
+export type Locale = 'en' | 'fr' | 'de' | 'hi' | 'ta' | 'te' | 'gu'
 
-const translations: Record<Locale, Record<string, string>> = { en, fr, de }
+const translations: Record<Locale, Record<string, string>> = { en, fr, de, hi, ta, te, gu }
 
 export const SUPPORTED_LOCALES: { code: Locale; label: string; flag: string }[] = [
     { code: 'en', label: 'English', flag: '🇬🇧' },
+    { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'ta', label: 'தமிழ்', flag: '🇮🇳' },
+    { code: 'te', label: 'తెలుగు', flag: '🇮🇳' },
+    { code: 'gu', label: 'ગુજરાતી', flag: '🇮🇳' },
     { code: 'fr', label: 'Français', flag: '🇫🇷' },
     { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
 ]

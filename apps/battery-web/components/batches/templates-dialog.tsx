@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,24 +16,10 @@ import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { FileText, Trash2, Globe, Loader2 } from "lucide-react"
 import api from "@/lib/api"
+import { useTemplates, queryKeys, type Template } from "@/hooks/use-queries"
+import { useQueryClient } from "@tanstack/react-query"
 
 type MarketRegion = "INDIA" | "EU" | "GLOBAL"
-
-interface Template {
- id: string
- name: string
- market_region: MarketRegion
- created_at: string
- specs: {
- capacity?: string
- voltage?: string
- chemistry?: string
- manufacturer?: string
- hsn_code?: string
- bis_number?: string
- epr_number?: string
- }
-}
 
 interface TemplatesDialogProps {
  onTemplateDeleted?: () => void
@@ -42,32 +28,11 @@ interface TemplatesDialogProps {
 export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
  const { user } = useAuth()
  const [open, setOpen] = useState(false)
- const [templates, setTemplates] = useState<Template[]>([])
- const [loading, setLoading] = useState(false)
  const [deletingId, setDeletingId] = useState<string | null>(null)
  const [pendingDelete, setPendingDelete] = useState<{ id: string, name: string } | null>(null)
 
- const fetchTemplates = useCallback(async () => {
- if (!user) return
- setLoading(true)
- try {
- const response = await api.get(`/templates?tenant_id=${user.tenant_id}`)
- // Handle both response formats: { templates: [...] } or direct array [...]
- const data = response.data?.templates || response.data || []
- setTemplates(Array.isArray(data) ? data : [])
- } catch (error) {
- console.error("Failed to fetch templates:", error)
- toast.error("Failed to load templates")
- } finally {
- setLoading(false)
- }
- }, [user])
-
- useEffect(() => {
- if (open && user) {
- fetchTemplates()
- }
- }, [open, user, fetchTemplates])
+ const queryClient = useQueryClient();
+ const { data: templates = [], isLoading: loading } = useTemplates(user?.tenant_id, "BATTERY");
 
  const handleDelete = async (id: string, name: string) => {
  setPendingDelete(null)
@@ -76,10 +41,9 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
  try {
  await api.delete(`/templates/${id}`)
  toast.success(`Template "${name}" deleted`)
- setTemplates(prev => prev.filter(t => t.id !== id))
+ queryClient.invalidateQueries({ queryKey: queryKeys.templates(user?.tenant_id || '', 'BATTERY') });
  onTemplateDeleted?.()
  } catch (error) {
- console.error("Failed to delete template:", error)
  toast.error("Failed to delete template")
  } finally {
  setDeletingId(null)
@@ -158,44 +122,44 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
  <h3 className="font-medium text-foreground">{template.name}</h3>
  <Badge
  variant="outline"
- className={`text-xs flex items-center gap-1 ${getMarketColor(template.market_region || "GLOBAL")}`}
+ className={`text-xs flex items-center gap-1 ${getMarketColor((template.market_region || "GLOBAL") as MarketRegion)}`}
  >
- {getMarketIcon(template.market_region || "GLOBAL")}
+ {getMarketIcon((template.market_region || "GLOBAL") as MarketRegion)}
  {template.market_region || "GLOBAL"}
  </Badge>
  </div>
 
  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
- {template.specs.chemistry && (
- <span>Chemistry: <span className="text-foreground">{template.specs.chemistry}</span></span>
+ {(template.specs.chemistry as string) && (
+ <span>Chemistry: <span className="text-foreground">{template.specs.chemistry as string}</span></span>
  )}
- {template.specs.capacity && (
- <span>Capacity: <span className="text-foreground">{template.specs.capacity}</span></span>
+ {(template.specs.capacity as string) && (
+ <span>Capacity: <span className="text-foreground">{template.specs.capacity as string}</span></span>
  )}
- {template.specs.voltage && (
- <span>Voltage: <span className="text-foreground">{template.specs.voltage}</span></span>
+ {(template.specs.voltage as string) && (
+ <span>Voltage: <span className="text-foreground">{template.specs.voltage as string}</span></span>
  )}
- {template.specs.manufacturer && (
- <span>Mfr: <span className="text-foreground">{template.specs.manufacturer}</span></span>
+ {(template.specs.manufacturer as string) && (
+ <span>Mfr: <span className="text-foreground">{template.specs.manufacturer as string}</span></span>
  )}
  </div>
 
  {/* India compliance badges */}
  {template.market_region === "INDIA" && (
  <div className="flex gap-2 mt-2 flex-wrap">
- {template.specs.hsn_code && (
+ {(template.specs.hsn_code as string) && (
  <Badge variant="outline" className="text-xs bg-orange-500/10 border-orange-200 text-orange-700">
- HSN: {template.specs.hsn_code}
+ HSN: {template.specs.hsn_code as string}
  </Badge>
  )}
- {template.specs.bis_number && (
+ {(template.specs.bis_number as string) && (
  <Badge variant="outline" className="text-xs bg-orange-500/10 border-orange-200 text-orange-700">
- BIS: {template.specs.bis_number}
+ BIS: {template.specs.bis_number as string}
  </Badge>
  )}
- {template.specs.epr_number && (
+ {(template.specs.epr_number as string) && (
  <Badge variant="outline" className="text-xs bg-orange-500/10 border-orange-200 text-orange-700">
- EPR: {template.specs.epr_number}
+ EPR: {template.specs.epr_number as string}
  </Badge>
  )}
  </div>

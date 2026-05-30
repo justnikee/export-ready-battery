@@ -17,6 +17,7 @@ import {
   Radio,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import api from "@/lib/api";
 
 interface TrustedPartner {
   id: string;
@@ -107,66 +108,37 @@ export default function PartnersPage() {
     "passport.installed",
   ]);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem("token");
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  }, []);
-
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
-
   // Fetch trusted partners
   const fetchPartners = useCallback(async () => {
     try {
-      const response = await fetch(`${apiUrl}/partners/trusted`, {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPartners(data.partners || []);
-      }
+      const response = await api.get('/partners/trusted');
+      setPartners(response.data.partners || []);
     } catch (err) {
-      console.error("Failed to fetch partners", err);
     } finally {
       setLoadingPartners(false);
     }
-  }, [apiUrl, getAuthHeaders]);
+  }, []);
 
   // Fetch partner codes
   const fetchCodes = useCallback(async () => {
     try {
-      const response = await fetch(`${apiUrl}/partners/codes`, {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCodes(data.codes || []);
-      }
+      const response = await api.get('/partners/codes');
+      setCodes(response.data.codes || []);
     } catch (err) {
-      console.error("Failed to fetch codes", err);
     } finally {
       setLoadingCodes(false);
     }
-  }, [apiUrl, getAuthHeaders]);
+  }, []);
 
   const fetchWebhooks = useCallback(async () => {
     try {
-      const res = await fetch(`${apiUrl}/outbound-webhooks`, {
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setWebhooks(data.webhooks || []);
-      }
+      const res = await api.get('/outbound-webhooks');
+      setWebhooks(res.data.webhooks || []);
     } catch {
-      console.error("Failed to fetch webhooks");
     } finally {
       setLoadingWebhooks(false);
     }
-  }, [apiUrl, getAuthHeaders]);
+  }, []);
 
   useEffect(() => {
     fetchPartners();
@@ -180,18 +152,7 @@ export default function PartnersPage() {
     setError("");
 
     try {
-      const response = await fetch(`${apiUrl}/partners/trusted`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(newPartner),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to add partner");
-      }
-
+      await api.post('/partners/trusted', newPartner);
       setSuccess("Trusted partner added successfully!");
       setShowAddPartner(false);
       setNewPartner({
@@ -202,7 +163,8 @@ export default function PartnersPage() {
       });
       fetchPartners();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add partner");
+      const message = err instanceof Error ? err.message : "Failed to add partner";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -212,13 +174,9 @@ export default function PartnersPage() {
     setPendingDeletePartner(null);
 
     try {
-      await fetch(`${apiUrl}/partners/trusted/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      await api.delete(`/partners/trusted/${id}`);
       fetchPartners();
     } catch (err) {
-      console.error("Failed to delete partner", err);
     }
   };
 
@@ -241,18 +199,7 @@ export default function PartnersPage() {
         payload.expires_at = new Date(newCode.expires_at).toISOString();
       }
 
-      const response = await fetch(`${apiUrl}/partners/codes`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create code");
-      }
-
+      await api.post('/partners/codes', payload);
       setSuccess("Partner code created successfully!");
       setShowAddCode(false);
       setNewCode({
@@ -274,13 +221,9 @@ export default function PartnersPage() {
     setPendingDeactivateCode(null);
 
     try {
-      await fetch(`${apiUrl}/partners/codes/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      await api.delete(`/partners/codes/${id}`);
       fetchCodes();
     } catch (err) {
-      console.error("Failed to deactivate code", err);
     }
   };
 
@@ -301,29 +244,21 @@ export default function PartnersPage() {
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch(`${apiUrl}/outbound-webhooks`, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          url: newWebhookUrl,
-          secret: newWebhookSecret,
-          events: newWebhookEvents,
-        }),
+      await api.post('/outbound-webhooks', {
+        url: newWebhookUrl,
+        secret: newWebhookSecret,
+        events: newWebhookEvents,
       });
-      if (res.ok) {
-        setShowAddWebhook(false);
-        setNewWebhookUrl("");
-        setNewWebhookSecret("");
-        setNewWebhookEvents(["passport.shipped", "passport.installed"]);
-        fetchWebhooks();
-        setSuccess("Outbound webhook registered");
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        const data = await res.json();
-        setError(data.error || "Failed to register webhook");
-      }
-    } catch {
-      setError("Failed to register webhook");
+      setShowAddWebhook(false);
+      setNewWebhookUrl("");
+      setNewWebhookSecret("");
+      setNewWebhookEvents(["passport.shipped", "passport.installed"]);
+      fetchWebhooks();
+      setSuccess("Outbound webhook registered");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to register webhook";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -331,13 +266,9 @@ export default function PartnersPage() {
 
   const handleDeleteWebhook = async (id: string) => {
     try {
-      await fetch(`${apiUrl}/outbound-webhooks/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
+      await api.delete(`/outbound-webhooks/${id}`);
       fetchWebhooks();
     } catch {
-      console.error("Failed to delete webhook");
     }
   };
 

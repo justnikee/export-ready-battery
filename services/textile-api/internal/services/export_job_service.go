@@ -503,7 +503,6 @@ func (s *ExportJobService) loadFullBatchForDocument(ctx context.Context, batchID
 	fullBatchQuery := `
 		SELECT b.id, b.batch_name, b.model_name, b.specs, b.status, b.created_at,
 		       b.product_type, b.market_region, b.manufacturing_start_date, b.manufacturing_end_date,
-		       b.carbon_footprint_result
 		FROM batches b
 		WHERE b.id = $1`
 	fullBatch := &models.Batch{}
@@ -511,7 +510,6 @@ func (s *ExportJobService) loadFullBatchForDocument(ctx context.Context, batchID
 		&fullBatch.ID, &fullBatch.BatchName, &fullBatch.ModelName, &fullBatch.Specs,
 		&fullBatch.Status, &fullBatch.CreatedAt,
 		&fullBatch.ProductType, &fullBatch.MarketRegion, &fullBatch.ManufacturingStartDate, &fullBatch.ManufacturingEndDate,
-		&fullBatch.CarbonFootprintResult,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load full batch for document generation: %w", err)

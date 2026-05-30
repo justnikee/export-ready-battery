@@ -13,28 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// RazorpayHandler handles payment-related endpoints
-type RazorpayHandler struct {
-	razorpay *services.RazorpayService
-	repo     interface {
-		AddQuota(ctx interface{}, tenantID uuid.UUID, amount int) error
-		CreateTransaction(ctx interface{}, tx *models.Transaction) error
-		GetQuotaBalance(ctx interface{}, tenantID uuid.UUID) (int, error)
-	}
-}
-
-// NewRazorpayHandler creates a new Razorpay handler
-func NewRazorpayHandler(razorpayService *services.RazorpayService, repo interface {
-	AddQuota(ctx interface{}, tenantID uuid.UUID, amount int) error
-	CreateTransaction(ctx interface{}, tx *models.Transaction) error
-	GetQuotaBalance(ctx interface{}, tenantID uuid.UUID) (int, error)
-}) *RazorpayHandler {
-	return &RazorpayHandler{
-		razorpay: razorpayService,
-		repo:     repo,
-	}
-}
-
 // CreateRazorpayOrder handles POST /api/v1/billing/razorpay/order
 func (h *Handler) CreateRazorpayOrder(w http.ResponseWriter, r *http.Request) {
 	var req struct {

@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/anvayalabs/textile-api/internal/models"
 	"github.com/anvayalabs/textile-api/internal/repository"
@@ -45,52 +45,7 @@ type AwardPointsResult struct {
 
 // AwardPoints awards points for a specific action
 func (s *RewardService) AwardPoints(ctx context.Context, req AwardPointsRequest) (*AwardPointsResult, error) {
-	// Get points for this action type
-	points, exists := models.RewardPoints[req.ActionType]
-	if !exists {
-		return &AwardPointsResult{
-			Success: false,
-			Error:   "Invalid action type: " + req.ActionType,
-		}, nil
-	}
-
-	// Create ledger entry
-	entry := &models.RewardLedger{
-		ID:             uuid.New(),
-		TenantID:       req.TenantID,
-		RecipientEmail: req.RecipientEmail,
-		PassportUUID:   req.PassportUUID,
-		ActionType:     req.ActionType,
-		PointsEarned:   points,
-		Metadata:       req.Metadata,
-		CreatedAt:      time.Now(),
-	}
-
-	if err := s.repo.CreateRewardEntry(ctx, entry); err != nil {
-		return &AwardPointsResult{
-			Success: false,
-			Error:   "Failed to record points: " + err.Error(),
-		}, err
-	}
-
-	// Get updated balance
-	balance, err := s.repo.GetRewardBalance(ctx, req.TenantID, req.RecipientEmail)
-	if err != nil {
-		// Points were awarded, but couldn't get balance - still success
-		return &AwardPointsResult{
-			Success:      true,
-			PointsEarned: points,
-			TotalPoints:  points, // Assume this is their first
-			LoyaltyLevel: models.GetLoyaltyLevel(points),
-		}, nil
-	}
-
-	return &AwardPointsResult{
-		Success:      true,
-		PointsEarned: points,
-		TotalPoints:  balance.TotalPoints,
-		LoyaltyLevel: models.GetLoyaltyLevel(balance.TotalPoints),
-	}, nil
+	return nil, fmt.Errorf("rewards are not implemented for textile products")
 }
 
 // GetUserRewards gets reward balance and history for a user

@@ -253,7 +253,6 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		}
 
 		now := time.Now()
-		initialSoH := 100.0
 
 		passports[i] = &models.Passport{
 			UUID:                   uuid.New(),
@@ -262,8 +261,6 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 			ManufactureDate:        manufDate,
 			Status:                 models.PassportStatusCreated,
 			CreatedAt:              now,
-			StateOfHealth:          &initialSoH,
-			LastSOHUpdateTimestamp: &now,
 			BatchSnapshot:          snapshot,
 			CurrentOwnerIdentifier: ownerIdentifier,
 		}

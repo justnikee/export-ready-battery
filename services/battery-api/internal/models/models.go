@@ -172,13 +172,14 @@ type CreateTemplateRequest struct {
 
 // Batch represents a production batch uploaded by a tenant
 type Batch struct {
-	ID        uuid.UUID `json:"id"`
-	TenantID  uuid.UUID `json:"tenant_id"`
-	BatchName string    `json:"batch_name"`
-	ModelName string    `json:"model_name"`
-	Specs     BatchSpec `json:"specs"`
-	CreatedAt time.Time `json:"created_at"`
-	Status    string    `json:"status"` // DRAFT, ACTIVE, ARCHIVED
+	ID        uuid.UUID  `json:"id"`
+	TenantID  uuid.UUID  `json:"tenant_id"`
+	BatchName string     `json:"batch_name"`
+	ModelName string     `json:"model_name"`
+	Specs     BatchSpec  `json:"specs"`
+	CreatedAt time.Time  `json:"created_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"` // Soft-delete timestamp; nil = active
+	Status    string     `json:"status"`               // DRAFT, ACTIVE, ARCHIVED
 
 	// v2: Product-agnostic fields
 	ProductType     ProductType     `json:"product_type"`              // BATTERY or ELECTRONICS (default: BATTERY)
@@ -206,27 +207,30 @@ type Batch struct {
 	CarbonFootprintResult json.RawMessage `json:"carbon_footprint_result,omitempty"`
 
 	// ── EU Battery Regulation 2023/1542 compliance fields (migration 057) ──
-	CEMarking                  bool    `json:"ce_marking"`
-	NotifiedBodyNumber         string  `json:"notified_body_number,omitempty"`
-	CarbonPerformanceClass     string  `json:"carbon_performance_class,omitempty"` // A, B, C, D, E
-	RemovableAndReplaceable    bool    `json:"removable_and_replaceable"`
+	CEMarking                   bool   `json:"ce_marking"`
+	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class,omitempty"` // A, B, C, D, E
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable"`
 	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
+
+	// GS1 Digital Link GTIN for EU Battery Passport QR code compliance (migration 071)
+	GTIN string `json:"gtin,omitempty"`
 }
 
 // BatchSpec holds the common specifications stored as JSONB
 type BatchSpec struct {
-	Chemistry        string `json:"chemistry"`
-	NominalVoltage   string `json:"voltage"`  // String for flexibility (e.g., "3.7V")
-	Capacity         string `json:"capacity"` // String for flexibility (e.g., "5000mAh")
-	Manufacturer     string `json:"manufacturer"`
+	Chemistry         string `json:"chemistry"`
+	NominalVoltage    string `json:"voltage"`  // String for flexibility (e.g., "3.7V")
+	Capacity          string `json:"capacity"` // String for flexibility (e.g., "5000mAh")
+	Manufacturer      string `json:"manufacturer"`
 	ManufacturerEmail string `json:"manufacturer_email,omitempty"` // Compliance contact email
-	Weight           string `json:"weight"`           // String for flexibility (e.g., "500g")
-	Recyclable       bool   `json:"recyclable"`       // Is the battery recyclable?
-	CarbonFootprint  string `json:"carbon_footprint"` // e.g., "10 kg CO2e"
-	CountryOfOrigin  string `json:"country_of_origin"`
-	MaterialProfile  string `json:"material_profile,omitempty"`
-	LotSize          string `json:"lot_size,omitempty"`
-	ProductionStage  string `json:"production_stage,omitempty"`
+	Weight            string `json:"weight"`                       // String for flexibility (e.g., "500g")
+	Recyclable        bool   `json:"recyclable"`                   // Is the battery recyclable?
+	CarbonFootprint   string `json:"carbon_footprint"`             // e.g., "10 kg CO2e"
+	CountryOfOrigin   string `json:"country_of_origin"`
+	MaterialProfile   string `json:"material_profile,omitempty"`
+	LotSize           string `json:"lot_size,omitempty"`
+	ProductionStage   string `json:"production_stage,omitempty"`
 
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
@@ -247,20 +251,20 @@ type BatchSpec struct {
 	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // URL to CA certificate
 
 	// EU Battery Regulation 2023/1542 - MANDATORY FIELDS
-	MaterialComposition    *MaterialComposition `json:"material_composition,omitempty"`     // Critical raw materials %
-	Certifications         []string             `json:"certifications,omitempty"`           // CE, UL, IEC, etc.
-	BISCertificateIssueDate string              `json:"bis_certificate_issue_date,omitempty"` // YYYY-MM-DD
-	UN383TestDate          string              `json:"un38_3_test_date,omitempty"`           // YYYY-MM-DD
-	IEC62133TestDate       string              `json:"iec_62133_test_date,omitempty"`        // YYYY-MM-DD
-	MSDSIssueDate          string              `json:"msds_issue_date,omitempty"`            // YYYY-MM-DD
-	ManufacturerAddress    string               `json:"manufacturer_address,omitempty"`     // Physical address
-	EURepresentative       string               `json:"eu_representative,omitempty"`        // EU contact name/company
-	EURepresentativeEmail  string               `json:"eu_representative_email,omitempty"`  // EU contact email
-	EURepresentativeAddress string              `json:"eu_representative_address,omitempty"` // EU contact address
-	ExpectedLifetimeCycles *int                 `json:"expected_lifetime_cycles,omitempty"` // Expected charge cycles (e.g., 1000)
-	WarrantyMonths         *int                 `json:"warranty_months,omitempty"`          // Warranty period in months
-	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`     // % recycled content (stored as literal: 15.5 = 15.5%)
-	HazardousSubstances    *HazardousSubstances `json:"hazardous_substances,omitempty"`     // REACH/RoHS compliance
+	MaterialComposition     *MaterialComposition `json:"material_composition,omitempty"`       // Critical raw materials %
+	Certifications          []string             `json:"certifications,omitempty"`             // CE, UL, IEC, etc.
+	BISCertificateIssueDate string               `json:"bis_certificate_issue_date,omitempty"` // YYYY-MM-DD
+	UN383TestDate           string               `json:"un38_3_test_date,omitempty"`           // YYYY-MM-DD
+	IEC62133TestDate        string               `json:"iec_62133_test_date,omitempty"`        // YYYY-MM-DD
+	MSDSIssueDate           string               `json:"msds_issue_date,omitempty"`            // YYYY-MM-DD
+	ManufacturerAddress     string               `json:"manufacturer_address,omitempty"`       // Physical address
+	EURepresentative        string               `json:"eu_representative,omitempty"`          // EU contact name/company
+	EURepresentativeEmail   string               `json:"eu_representative_email,omitempty"`    // EU contact email
+	EURepresentativeAddress string               `json:"eu_representative_address,omitempty"`  // EU contact address
+	ExpectedLifetimeCycles  *int                 `json:"expected_lifetime_cycles,omitempty"`   // Expected charge cycles (e.g., 1000)
+	WarrantyMonths          *int                 `json:"warranty_months,omitempty"`            // Warranty period in months
+	RecycledContentPct      *float64             `json:"recycled_content_pct,omitempty"`       // % recycled content (stored as literal: 15.5 = 15.5%)
+	HazardousSubstances     *HazardousSubstances `json:"hazardous_substances,omitempty"`       // REACH/RoHS compliance
 
 	// EU Battery Regulation 2023/1542 - STRUCTURED DATA (Art 2, Art 7, Art 57, Art 39)
 	BatteryCategory       BatteryCategory        `json:"battery_category,omitempty"`        // EV, LMT, INDUSTRIAL, PORTABLE, SLI
@@ -271,6 +275,8 @@ type BatchSpec struct {
 	// Bill of Materials — nested component hierarchy (pack → module → cell)
 	Components []Component `json:"components,omitempty"`
 
+	// GS1 Digital Link GTIN for EU Battery Passport QR code compliance
+	GTIN string `json:"gtin,omitempty"`
 }
 
 // CertificateAnchor stores a blockchain timestamp proof for a certificate PDF.
@@ -280,22 +286,160 @@ type CertificateAnchor struct {
 	ID          string     `json:"id"`
 	BatchID     string     `json:"batch_id"`
 	TenantID    string     `json:"tenant_id"`
-	CertType    string     `json:"cert_type"`    // BIS, UN38.3, IEC_62133, MSDS, DOC, PLI
+	CertType    string     `json:"cert_type"` // BIS, UN38.3, IEC_62133, MSDS, DOC, PLI
 	FileURL     string     `json:"file_url"`
-	FileHash    string     `json:"file_hash"`    // SHA-256 hex
-	OTSProof    *string    `json:"ots_proof,omitempty"`    // base64 .ots proof
+	FileHash    string     `json:"file_hash"`           // SHA-256 hex
+	OTSProof    *string    `json:"ots_proof,omitempty"` // base64 .ots proof
 	BitcoinTxID *string    `json:"bitcoin_tx_id,omitempty"`
-	Status      string     `json:"status"`       // pending, anchored, confirmed, failed
+	Status      string     `json:"status"` // pending, anchored, confirmed, failed
 	AnchoredAt  *time.Time `json:"anchored_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
+}
+
+// ============================================================================
+// DGFT EXPORT INCENTIVE CLAIMS
+// ============================================================================
+
+// DGFTSchemeConfig holds static configuration for Indian export incentive schemes.
+type DGFTSchemeConfig struct {
+	SchemeType         string   `db:"scheme_type" json:"scheme_type"`
+	Name               string   `db:"name" json:"name"`
+	Description        string   `db:"description" json:"description,omitempty"`
+	RequiredDocuments  []string `db:"required_documents" json:"required_documents,omitempty"`
+	CalculationMethod  string   `db:"calculation_method" json:"calculation_method"`
+	DefaultRate        float64  `db:"default_rate" json:"default_rate"`
+	IsActive           bool     `db:"is_active" json:"is_active"`
+	HelpURL            string   `db:"help_url" json:"help_url,omitempty"`
+	CreatedAt          time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt          time.Time `db:"updated_at" json:"updated_at"`
+}
+
+// DGFTClaimDocument tracks a single supporting document inside a claim.
+type DGFTClaimDocument struct {
+	DocType    string     `json:"doc_type"`
+	FileURL    string     `json:"file_url,omitempty"`
+	Status     string     `json:"status"` // PENDING, UPLOADED, VERIFIED, REJECTED
+	UploadedAt *time.Time `json:"uploaded_at,omitempty"`
+}
+
+// DGFTClaim tracks an export incentive claim submission for a tenant.
+type DGFTClaim struct {
+	ID                   string              `db:"id" json:"id"`
+	TenantID             string              `db:"tenant_id" json:"tenant_id"`
+	BatchID              *string             `db:"batch_id" json:"batch_id,omitempty"`
+	SchemeType           string              `db:"scheme_type" json:"scheme_type"`
+	Status               string              `db:"status" json:"status"`
+	ClaimPeriodStart     string              `db:"claim_period_start" json:"claim_period_start"`
+	ClaimPeriodEnd       string              `db:"claim_period_end" json:"claim_period_end"`
+	HSNCode              string              `db:"hsn_code" json:"hsn_code,omitempty"`
+	DestinationCountry   string              `db:"destination_country" json:"destination_country,omitempty"`
+	ExportValueINR       float64             `db:"export_value_inr" json:"export_value_inr"`
+	ExportQuantity       float64             `db:"export_quantity" json:"export_quantity"`
+	EstimatedClaimAmount float64             `db:"estimated_claim_amount" json:"estimated_claim_amount"`
+	ApprovedClaimAmount  *float64            `db:"approved_claim_amount" json:"approved_claim_amount,omitempty"`
+	Documents            []DGFTClaimDocument `db:"documents" json:"documents,omitempty"`
+	GeneratedFiles       json.RawMessage     `db:"generated_files" json:"generated_files,omitempty"`
+	DGFTReferenceNo      string              `db:"dgft_reference_no" json:"dgft_reference_no,omitempty"`
+	Notes                string              `db:"notes" json:"notes,omitempty"`
+	CreatedAt            time.Time           `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time           `db:"updated_at" json:"updated_at"`
+}
+
+// DGFTClaimInput is used for creating or updating a claim draft.
+type DGFTClaimInput struct {
+	BatchID            *string `json:"batch_id,omitempty"`
+	SchemeType         string  `json:"scheme_type" validate:"required"`
+	ClaimPeriodStart   string  `json:"claim_period_start" validate:"required"`
+	ClaimPeriodEnd     string  `json:"claim_period_end" validate:"required"`
+	HSNCode            string  `json:"hsn_code,omitempty"`
+	DestinationCountry string  `json:"destination_country,omitempty"`
+	ExportValueINR     float64 `json:"export_value_inr"`
+	ExportQuantity     float64 `json:"export_quantity"`
+	Notes              string  `json:"notes,omitempty"`
+}
+
+// ============================================================================
+// SUPPLIER PORTAL
+// ============================================================================
+
+// Supplier represents an upstream vendor invited by a tenant.
+type Supplier struct {
+	ID              string     `db:"id" json:"id"`
+	TenantID        string     `db:"tenant_id" json:"tenant_id"`
+	Email           string     `db:"email" json:"email"`
+	CompanyName     string     `db:"company_name" json:"company_name"`
+	ContactPhone    string     `db:"contact_phone" json:"contact_phone,omitempty"`
+	Address         string     `db:"address" json:"address,omitempty"`
+	Country         string     `db:"country" json:"country,omitempty"`
+	Status          string     `db:"status" json:"status"` // invited, active, blocked
+	InvitationToken string     `db:"invitation_token" json:"invitation_token,omitempty"`
+	PasswordHash    string     `db:"password_hash" json:"-"`
+	InvitedAt       time.Time  `db:"invited_at" json:"invited_at"`
+	AcceptedAt      *time.Time `db:"accepted_at" json:"accepted_at,omitempty"`
+	LastLoginAt     *time.Time `db:"last_login_at" json:"last_login_at,omitempty"`
+	CreatedAt       time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// SupplierDocument is a CoC, audit report, or provenance file uploaded by a supplier.
+type SupplierDocument struct {
+	ID           string     `db:"id" json:"id"`
+	SupplierID   string     `db:"supplier_id" json:"supplier_id"`
+	TenantID     string     `db:"tenant_id" json:"tenant_id"`
+	BatchID      *string    `db:"batch_id" json:"batch_id,omitempty"`
+	ComponentID  *string    `db:"component_id" json:"component_id,omitempty"`
+	DocType      string     `db:"doc_type" json:"doc_type"` // coc, audit_report, provenance, msds, test_report, other
+	FileURL      string     `db:"file_url" json:"file_url"`
+	FileName     string     `db:"file_name" json:"file_name,omitempty"`
+	FileSize     int        `db:"file_size" json:"file_size,omitempty"`
+	Status       string     `db:"status" json:"status"` // pending, approved, rejected
+	ReviewerNotes string    `db:"reviewer_notes" json:"reviewer_notes,omitempty"`
+	ReviewedBy   *string    `db:"reviewed_by" json:"reviewed_by,omitempty"`
+	ReviewedAt   *time.Time `db:"reviewed_at" json:"reviewed_at,omitempty"`
+	UploadedAt   time.Time  `db:"uploaded_at" json:"uploaded_at"`
+	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// SupplierInvitationRequest is the body for POST /suppliers/invitations.
+type SupplierInvitationRequest struct {
+	Email        string `json:"email" validate:"required,email"`
+	CompanyName  string `json:"company_name" validate:"required"`
+	ContactPhone string `json:"contact_phone,omitempty"`
+	Address      string `json:"address,omitempty"`
+	Country      string `json:"country,omitempty"`
+}
+
+// SupplierAcceptRequest is the body for POST /suppliers/accept.
+type SupplierAcceptRequest struct {
+	Token        string `json:"token" validate:"required"`
+	Password     string `json:"password" validate:"required,min=8"`
+	CompanyName  string `json:"company_name,omitempty"`
+	ContactPhone string `json:"contact_phone,omitempty"`
+}
+
+// SupplierLoginRequest is the body for POST /supplier/login.
+type SupplierLoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+// SupplierLoginResponse returns the supplier JWT and profile.
+type SupplierLoginResponse struct {
+	Token       string    `json:"token"`
+	SupplierID  string    `json:"supplier_id"`
+	TenantID    string    `json:"tenant_id"`
+	Email       string    `json:"email"`
+	CompanyName string    `json:"company_name"`
+	ExpiresIn   int       `json:"expires_in"`
 }
 
 // TenantAlert stores proactive compliance and expiry notifications for a tenant.
 type TenantAlert struct {
 	ID           string     `json:"id"`
 	TenantID     string     `json:"tenant_id"`
-	AlertType    string     `json:"alert_type"`    // CERTIFICATE_EXPIRY, COMPLIANCE_DEGRADED, QUOTA_LOW
-	Severity     string     `json:"severity"`      // INFO, WARNING, CRITICAL
+	AlertType    string     `json:"alert_type"` // CERTIFICATE_EXPIRY, COMPLIANCE_DEGRADED, QUOTA_LOW
+	Severity     string     `json:"severity"`   // INFO, WARNING, CRITICAL
 	Title        string     `json:"title"`
 	Message      string     `json:"message"`
 	ResourceType string     `json:"resource_type,omitempty"` // BATCH, PASSPORT, TENANT
@@ -336,19 +480,37 @@ type HazardousSubstances struct {
 // Component represents a single item in a battery Bill of Materials (BOM).
 // The hierarchy is stored as a flat list with ParentID references.
 type Component struct {
-	ID              string  `json:"id"`                        // Client-generated UUID for the component
-	Name            string  `json:"name"`                      // e.g. "Cell Pack A"
-	ComponentType   string  `json:"component_type"`            // "cell", "module", "pack", "bms", "housing"
-	ParentID        *string `json:"parent_id,omitempty"`       // nil for top-level items
-	Chemistry       string  `json:"chemistry,omitempty"`       // e.g. "NMC811", "LFP"
-	RecycledCobalt  float64 `json:"recycled_cobalt_pct,omitempty"`
-	RecycledLithium float64 `json:"recycled_lithium_pct,omitempty"`
-	RecycledNickel  float64 `json:"recycled_nickel_pct,omitempty"`
-	RecycledLead    float64 `json:"recycled_lead_pct,omitempty"`
-	WeightKg        float64 `json:"weight_kg,omitempty"`
-	Quantity        int     `json:"quantity,omitempty"`
-	SupplierID      *string `json:"supplier_id,omitempty"`
-	CountryOfOrigin string  `json:"country_of_origin,omitempty"`
+	ID                   string      `json:"id"`
+	Name                 string      `json:"name"`
+	ComponentType        string      `json:"component_type"`      // "cell", "module", "pack", "subsystem"
+	ParentID             *string     `json:"parent_id,omitempty"` // nil for top-level items
+	ModelNumber          string      `json:"model_number,omitempty"`
+	SerialNumber         string      `json:"serial_number,omitempty"`
+	LotNumber            string      `json:"lot_number,omitempty"`
+	DateOfManufacture    string      `json:"date_of_manufacture,omitempty"`
+	Manufacturer         string      `json:"manufacturer,omitempty"`
+	ManufacturerAddress  string      `json:"manufacturer_address,omitempty"`
+	CountryOfOrigin      string      `json:"country_of_origin,omitempty"`
+	Chemistry            string      `json:"chemistry,omitempty"` // e.g. "NMC811", "LFP"
+	CobaltPct            float64     `json:"cobalt_pct,omitempty"`
+	LithiumPct           float64     `json:"lithium_pct,omitempty"`
+	NickelPct            float64     `json:"nickel_pct,omitempty"`
+	ManganesePct         float64     `json:"manganese_pct,omitempty"`
+	GraphitePct          float64     `json:"graphite_pct,omitempty"`
+	LeadPct              float64     `json:"lead_pct,omitempty"`
+	RecycledCobaltPct    float64     `json:"recycled_cobalt_pct,omitempty"`
+	RecycledLithiumPct   float64     `json:"recycled_lithium_pct,omitempty"`
+	RecycledNickelPct    float64     `json:"recycled_nickel_pct,omitempty"`
+	RecycledLeadPct      float64     `json:"recycled_lead_pct,omitempty"`
+	WeightKg             float64     `json:"weight_kg,omitempty"`
+	Quantity             int         `json:"quantity,omitempty"`
+	CEMarking            bool        `json:"ce_marking,omitempty"`
+	BISNumber            string      `json:"bis_number,omitempty"`
+	HazardousLead        bool        `json:"hazardous_lead,omitempty"`
+	HazardousMercury     bool        `json:"hazardous_mercury,omitempty"`
+	HazardousCadmium     bool        `json:"hazardous_cadmium,omitempty"`
+	SupplierID           *string     `json:"supplier_id,omitempty"`
+	Children             []Component `json:"children,omitempty"`
 }
 
 // ============================================================================
@@ -408,12 +570,13 @@ type SupplyChainTier struct {
 
 // Passport represents a single product's digital passport
 type Passport struct {
-	UUID            uuid.UUID `json:"uuid"`
-	BatchID         uuid.UUID `json:"batch_id"`
-	SerialNumber    string    `json:"serial_number"` // Supports BPAN: IN-NKY-LFP-2026-00001
-	ManufactureDate time.Time `json:"manufacture_date"`
-	Status          string    `json:"status"` // CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, END_OF_LIFE, RECALLED
-	CreatedAt       time.Time `json:"created_at"`
+	UUID            uuid.UUID  `json:"uuid"`
+	BatchID         uuid.UUID  `json:"batch_id"`
+	SerialNumber    string     `json:"serial_number"` // Supports BPAN: IN-NKY-LFP-2026-00001
+	ManufactureDate time.Time  `json:"manufacture_date"`
+	Status          string     `json:"status"` // CREATED, ACTIVE, SHIPPED, IN_SERVICE, RECYCLED, END_OF_LIFE, RECALLED
+	CreatedAt       time.Time  `json:"created_at"`
+	DeletedAt       *time.Time `json:"deleted_at,omitempty"` // Soft-delete timestamp; nil = active
 
 	// v2: Product-agnostic fields
 	ProductType ProductType     `json:"product_type"`        // BATTERY or ELECTRONICS (default: BATTERY)
@@ -461,18 +624,18 @@ type Passport struct {
 	CSVRowIndex       int    `json:"csv_row_index,omitempty"`
 
 	// ── EU Battery Passport ID & Circularity Status (migration 057) ──
-	BatteryPassportID  string `json:"battery_passport_id,omitempty"`  // EU Implementing Reg 2024/1715 format
-	CircularityStatus  string `json:"circularity_status,omitempty"`   // ORIGINAL, REPURPOSED, REUSED, REMANUFACTURED, WASTE
+	BatteryPassportID string `json:"battery_passport_id,omitempty"` // EU Implementing Reg 2024/1715 format
+	CircularityStatus string `json:"circularity_status,omitempty"`  // ORIGINAL, REPURPOSED, REUSED, REMANUFACTURED, WASTE
 }
 
 // PassportStatus constants - lifecycle states
 const (
-	PassportStatusCreated   = "CREATED"     // Passport record created
-	PassportStatusActive    = "ACTIVE"      // Manufactured and legally valid
-	PassportStatusShipped   = "SHIPPED"     // Battery left factory/warehouse
-	PassportStatusInService = "IN_SERVICE"  // Installed in device/vehicle
-	PassportStatusRecalled  = "RECALLED"    // Safety/compliance interruption
-	PassportStatusRecycled      = "RECYCLED"       // Processed by authorized recycler
+	PassportStatusCreated        = "CREATED"        // Passport record created
+	PassportStatusActive         = "ACTIVE"         // Manufactured and legally valid
+	PassportStatusShipped        = "SHIPPED"        // Battery left factory/warehouse
+	PassportStatusInService      = "IN_SERVICE"     // Installed in device/vehicle
+	PassportStatusRecalled       = "RECALLED"       // Safety/compliance interruption
+	PassportStatusRecycled       = "RECYCLED"       // Processed by authorized recycler
 	PassportStatusRemanufactured = "REMANUFACTURED" // Refurbished to like-new condition
 	PassportStatusReused         = "REUSED"         // Direct second-use without remanufacturing
 	PassportStatusRepurposed     = "REPURPOSED"     // Used for a different application
@@ -481,11 +644,11 @@ const (
 
 // CircularityStatus constants - EU Battery Regulation Art 14 / Annex XIII(4c)
 const (
-	CircularityStatusOriginal      = "ORIGINAL"
-	CircularityStatusRepurposed    = "REPURPOSED"
-	CircularityStatusReused        = "REUSED"
+	CircularityStatusOriginal       = "ORIGINAL"
+	CircularityStatusRepurposed     = "REPURPOSED"
+	CircularityStatusReused         = "REUSED"
 	CircularityStatusRemanufactured = "REMANUFACTURED"
-	CircularityStatusWaste         = "WASTE"
+	CircularityStatusWaste          = "WASTE"
 )
 
 // ActorType defines who performed a lifecycle action
@@ -599,10 +762,10 @@ type TransitionAction string
 
 const (
 	// Battery lifecycle actions
-	ActionActivate TransitionAction = "ACTIVATE"
-	ActionShip     TransitionAction = "SHIP"
-	ActionInstall  TransitionAction = "INSTALL"
-	ActionRecycle  TransitionAction = "RECYCLE"
+	ActionActivate      TransitionAction = "ACTIVATE"
+	ActionShip          TransitionAction = "SHIP"
+	ActionInstall       TransitionAction = "INSTALL"
+	ActionRecycle       TransitionAction = "RECYCLE"
 	ActionClose         TransitionAction = "CLOSE"
 	ActionRecall        TransitionAction = "RECALL"
 	ActionRemanufacture TransitionAction = "REMANUFACTURE"
@@ -696,10 +859,10 @@ var BatteryTransitionMap = map[TransitionAction]TransitionDefinition{
 
 // BatteryAllowedRolesByAction defines which roles can perform battery actions.
 var BatteryAllowedRolesByAction = map[TransitionAction][]ActorRole{
-	ActionActivate: {ActorRoleSystem},
-	ActionShip:     {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
-	ActionInstall:  {ActorRoleTechnician},
-	ActionRecycle:  {ActorRoleRecycler},
+	ActionActivate:      {ActorRoleSystem},
+	ActionShip:          {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
+	ActionInstall:       {ActorRoleTechnician},
+	ActionRecycle:       {ActorRoleRecycler},
 	ActionClose:         {ActorRoleSystem, ActorRoleRecycler},
 	ActionRecall:        {ActorRoleAdmin},
 	ActionRemanufacture: {ActorRoleRecycler, ActorRoleTechnician},
@@ -813,19 +976,27 @@ func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType 
 // ============================================================================
 
 // PassportEvent represents an immutable lifecycle event for a passport
+
+// LDProof represents a W3C Linked Data Proof (Ed25519Signature2020).
+type LDProof struct {
+	Type               string `json:"type"`
+	Created            string `json:"created"`
+	ProofPurpose       string `json:"proofPurpose"`
+	VerificationMethod string `json:"verificationMethod"`
+	ProofValue         string `json:"proofValue"`
+}
+
 // PassportVC stores a W3C Verifiable Credential payload for a passport.
-// This is a scaffold for future DID-based signing; proof field holds the
-// cryptographic proof once signing is implemented.
 type PassportVC struct {
-	ID                 uuid.UUID       `json:"id"`
-	PassportID         uuid.UUID       `json:"passport_id"`
-	VCType             string          `json:"vc_type"`
-	IssuerDID          string          `json:"issuer_did"`
-	CredentialSubject  json.RawMessage `json:"credential_subject"`
-	Proof              json.RawMessage `json:"proof"`
-	Status             string          `json:"status"`
-	CreatedAt          time.Time       `json:"created_at"`
-	UpdatedAt          time.Time       `json:"updated_at"`
+	ID                uuid.UUID       `json:"id"`
+	PassportID        uuid.UUID       `json:"passport_id"`
+	VCType            string          `json:"vc_type"`
+	IssuerDID         string          `json:"issuer_did"`
+	CredentialSubject json.RawMessage `json:"credential_subject"`
+	Proof             json.RawMessage `json:"proof"`
+	Status            string          `json:"status"`
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
 
 // SignupRequest stores a qualification form submission for gated signup review.
@@ -882,7 +1053,7 @@ type TransitionPersistence struct {
 	RecyclingStatus    string
 	RecyclerEprID      string
 	RecyclingDate      *time.Time
-	CircularityStatus  *string  // Maps lifecycle action to circularity status (ORIGINAL, WASTE, etc.)
+	CircularityStatus  *string // Maps lifecycle action to circularity status (ORIGINAL, WASTE, etc.)
 	Event              *PassportEvent
 	MagicLinkTokenHash string
 }
@@ -986,10 +1157,10 @@ type CreateBatchRequest struct {
 	EPRNumber string `json:"epr_number,omitempty"` // EPR Registration Number
 
 	// EU Battery Regulation 2023/1542 compliance fields
-	CEMarking                  bool    `json:"ce_marking,omitempty"`
-	CarbonPerformanceClass     string  `json:"carbon_performance_class,omitempty"` // A, B, C, D, E
-	RemovableAndReplaceable    bool    `json:"removable_and_replaceable,omitempty"`
-	NotifiedBodyNumber         string  `json:"notified_body_number,omitempty"`
+	CEMarking                   bool   `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class,omitempty"` // A, B, C, D, E
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
 	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
 }
 
@@ -1010,10 +1181,10 @@ type PatchBatchRequest struct {
 	CustomsDate            *time.Time `json:"customs_date,omitempty"`
 	DomesticValueAdd       *float64   `json:"domestic_value_add,omitempty"`
 	// EU Battery Regulation 2023/1542 compliance fields
-	CEMarking                  *bool    `json:"ce_marking,omitempty"`
-	CarbonPerformanceClass     *string  `json:"carbon_performance_class,omitempty"`
-	RemovableAndReplaceable    *bool    `json:"removable_and_replaceable,omitempty"`
-	NotifiedBodyNumber         *string  `json:"notified_body_number,omitempty"`
+	CEMarking                   *bool   `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      *string `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     *bool   `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          *string `json:"notified_body_number,omitempty"`
 	DeclarationOfConformityPath *string `json:"declaration_of_conformity_path,omitempty"`
 	// Specs is a partial spec update; keys are merged into the existing JSONB via ||
 	Specs map[string]interface{} `json:"specs,omitempty"`
@@ -1052,12 +1223,12 @@ type PassportWithSpecs struct {
 	// Materials composition is in specs.material_composition
 
 	// EU Battery Regulation 2023/1542 compliance fields
-	BatteryPassportID           string  `json:"battery_passport_id,omitempty"`
-	CEMarking                   bool    `json:"ce_marking,omitempty"`
-	CarbonPerformanceClass      string  `json:"carbon_performance_class,omitempty"`
-	RemovableAndReplaceable     bool    `json:"removable_and_replaceable,omitempty"`
-	NotifiedBodyNumber          string  `json:"notified_body_number,omitempty"`
-	DeclarationOfConformityPath string  `json:"declaration_of_conformity_path,omitempty"`
+	BatteryPassportID           string `json:"battery_passport_id,omitempty"`
+	CEMarking                   bool   `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
 }
 
 // ============================================================================
@@ -1103,8 +1274,116 @@ type DashboardStats struct {
 	CarbonCompliancePct  float64 `json:"carbon_compliance_percentage"`
 	PassportsThisWeek    int     `json:"passports_this_week"`
 	PendingExportBatches int     `json:"pending_export_batches"`
+}
 
+// AnalyticsOverview represents aggregated analytics data for the tenant dashboard.
+type AnalyticsOverview struct {
+	ComplianceTrend       []ComplianceTrendPoint `json:"compliance_trend"`
+	CertificateExpiry     []CertExpirySummary    `json:"certificate_expiry"`
+	CarbonDistribution    []CarbonClassCount     `json:"carbon_distribution"`
+	BatchStatusBreakdown  map[string]int         `json:"batch_status_breakdown"`
+	MarketRegionSplit     []RegionCount          `json:"market_region_split"`
+	SupplierDocStatus     map[string]int         `json:"supplier_document_status"`
+	DGFTClaimFunnel       []StatusCount          `json:"dgft_claim_funnel"`
+	AlertSeverityBreakdown map[string]int        `json:"alert_severity_breakdown"`
+}
 
+// ComplianceTrendPoint is a single data point in the compliance trend line.
+type ComplianceTrendPoint struct {
+	Period     string  `json:"period"`
+	AvgScore   float64 `json:"avg_score"`
+	BatchCount int     `json:"batch_count"`
+}
+
+// CertExpirySummary shows certificate expiry buckets by type.
+type CertExpirySummary struct {
+	CertType    string `json:"cert_type"`
+	Expiring30d int    `json:"expiring_30d"`
+	Expiring7d  int    `json:"expiring_7d"`
+	Expired     int    `json:"expired"`
+}
+
+// CarbonClassCount is a single carbon class bucket.
+type CarbonClassCount struct {
+	Class string `json:"class"`
+	Count int    `json:"count"`
+}
+
+// RegionCount is a single market region bucket.
+type RegionCount struct {
+	Region string `json:"region"`
+	Count  int    `json:"count"`
+}
+
+// StatusCount is a generic status bucket.
+type StatusCount struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
+}
+
+// ============================================================================
+// REGISTRY VERIFICATIONS (External API Integrations)
+// ============================================================================
+
+// RegistryType identifies the external registry being queried.
+type RegistryType string
+
+const (
+	RegistryTypeBIS      RegistryType = "bis"
+	RegistryTypeCPCB     RegistryType = "cpcb"
+	RegistryTypeEUNANDO  RegistryType = "eu_nando"
+	RegistryTypeUN38_3   RegistryType = "un38_3"
+	RegistryTypeCustom   RegistryType = "custom"
+)
+
+// RegistryVerificationStatus is the outcome of a registry check.
+type RegistryVerificationStatus string
+
+const (
+	RegistryStatusPending     RegistryVerificationStatus = "pending"
+	RegistryStatusVerified    RegistryVerificationStatus = "verified"
+	RegistryStatusFailed      RegistryVerificationStatus = "failed"
+	RegistryStatusError       RegistryVerificationStatus = "error"
+	RegistryStatusNotFound    RegistryVerificationStatus = "not_found"
+)
+
+// TrustTier indicates the confidence level of the verification.
+type TrustTier string
+
+const (
+	TrustTierSelfDeclared  TrustTier = "self_declared"
+	TrustTierRegistry      TrustTier = "registry_verified"
+	TrustTierOfficialAPI   TrustTier = "official_api"
+)
+
+// RegistryVerification is a cached verification result from an external registry.
+type RegistryVerification struct {
+	ID            string     `json:"id"`
+	TenantID      string     `json:"tenant_id"`
+	BatchID       string     `json:"batch_id"`
+	RegistryType  string     `json:"registry_type"`
+	CertificateNo string     `json:"certificate_no,omitempty"`
+	Status        string     `json:"status"`
+	TrustTier     string     `json:"trust_tier"`
+	VerifiedData  *map[string]interface{} `json:"verified_data,omitempty"`
+	ErrorMessage  string     `json:"error_message,omitempty"`
+	VerifiedAt    *time.Time `json:"verified_at,omitempty"`
+	ExpiresAt     *time.Time `json:"expires_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+// VerifyBatchRegistryRequest triggers a registry verification for a batch.
+type VerifyBatchRegistryRequest struct {
+	RegistryType  string `json:"registry_type"`
+	CertificateNo string `json:"certificate_no,omitempty"`
+}
+
+// BatchVerificationSummary is a lightweight view of all verifications for a batch.
+type BatchVerificationSummary struct {
+	BatchID       string                   `json:"batch_id"`
+	Verifications []RegistryVerification   `json:"verifications"`
+	OverallTrust  TrustTier                `json:"overall_trust"`
 }
 
 // BatchSummary represents a batch for the recent batches list
@@ -1231,24 +1510,24 @@ func GetLoyaltyLevel(totalPoints int) string {
 
 // EPRObligation tracks annual EPR obligation vs fulfillment per tenant/category
 type EPRObligation struct {
-	ID                       uuid.UUID `json:"id"`
-	TenantID                 uuid.UUID `json:"tenant_id"`
-	FinancialYear            string    `json:"financial_year"`             // e.g. "2025-26"
-	BatteryCategory          string    `json:"battery_category"`           // EV, PORTABLE, INDUSTRIAL, AUTOMOTIVE
-	ObligationKg             float64   `json:"obligation_kg"`              // Batteries placed on market (kg)
-	BatteriesPlacedCount     int       `json:"batteries_placed_count"`     // Unit count
-	FulfilledViaRecyclingKg  float64   `json:"fulfilled_via_recycling_kg"` // kg fulfilled via recycling
-	FulfilledViaRefurbishmentKg float64 `json:"fulfilled_via_refurbishment_kg"` // kg fulfilled via refurbishment
-	CarriedForwardKg         float64   `json:"carried_forward_kg"`         // Excess from prev year
-	NetObligationKg          float64   `json:"net_obligation_kg"`          // After carry-forward
-	ShortfallKg              float64   `json:"shortfall_kg"`               // Unfulfilled amount
-	ECCAmountINR             float64   `json:"ecc_amount_inr"`             // Environmental Compensation Charge
-	ECCStatus                string    `json:"ecc_status"`                 // NOT_APPLICABLE, PENDING, PAID, WAIVED
-	Status                   string    `json:"status"`                     // DRAFT, FILED, AUDITED, CLOSED
-	CPCBReturnReference      string    `json:"cpcb_return_reference,omitempty"`
-	CPCBFiledAt              *time.Time `json:"cpcb_filed_at,omitempty"`
-	CreatedAt                time.Time  `json:"created_at"`
-	UpdatedAt                time.Time  `json:"updated_at"`
+	ID                          uuid.UUID  `json:"id"`
+	TenantID                    uuid.UUID  `json:"tenant_id"`
+	FinancialYear               string     `json:"financial_year"`                 // e.g. "2025-26"
+	BatteryCategory             string     `json:"battery_category"`               // EV, PORTABLE, INDUSTRIAL, AUTOMOTIVE
+	ObligationKg                float64    `json:"obligation_kg"`                  // Batteries placed on market (kg)
+	BatteriesPlacedCount        int        `json:"batteries_placed_count"`         // Unit count
+	FulfilledViaRecyclingKg     float64    `json:"fulfilled_via_recycling_kg"`     // kg fulfilled via recycling
+	FulfilledViaRefurbishmentKg float64    `json:"fulfilled_via_refurbishment_kg"` // kg fulfilled via refurbishment
+	CarriedForwardKg            float64    `json:"carried_forward_kg"`             // Excess from prev year
+	NetObligationKg             float64    `json:"net_obligation_kg"`              // After carry-forward
+	ShortfallKg                 float64    `json:"shortfall_kg"`                   // Unfulfilled amount
+	ECCAmountINR                float64    `json:"ecc_amount_inr"`                 // Environmental Compensation Charge
+	ECCStatus                   string     `json:"ecc_status"`                     // NOT_APPLICABLE, PENDING, PAID, WAIVED
+	Status                      string     `json:"status"`                         // DRAFT, FILED, AUDITED, CLOSED
+	CPCBReturnReference         string     `json:"cpcb_return_reference,omitempty"`
+	CPCBFiledAt                 *time.Time `json:"cpcb_filed_at,omitempty"`
+	CreatedAt                   time.Time  `json:"created_at"`
+	UpdatedAt                   time.Time  `json:"updated_at"`
 }
 
 // ============================================================================
@@ -1460,16 +1739,47 @@ type ComplianceScoreResult struct {
 // ComplianceRule stores a single market-specific regulatory threshold or requirement.
 // Validators query active rules from the DB and fall back to hard-coded defaults.
 type ComplianceRule struct {
-	ID              uuid.UUID  `json:"id"`
-	ProductType     string     `json:"product_type"`
-	MarketRegion    string     `json:"market_region"`
-	RuleKey         string     `json:"rule_key"`
-	RuleType        string     `json:"rule_type"`        // "threshold", "required_field", "format_regex"
-	ThresholdValue  *float64   `json:"threshold_value,omitempty"`
-	ErrorMessage    string     `json:"error_message"`
-	Required        bool       `json:"required"`
-	EffectiveFrom   time.Time  `json:"effective_from"`
-	EffectiveUntil  *time.Time `json:"effective_until,omitempty"`
-	Version         int        `json:"version"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID             uuid.UUID  `json:"id"`
+	ProductType    string     `json:"product_type"`
+	MarketRegion   string     `json:"market_region"`
+	RuleKey        string     `json:"rule_key"`
+	RuleType       string     `json:"rule_type"` // "threshold", "required_field", "format_regex"
+	ThresholdValue *float64   `json:"threshold_value,omitempty"`
+	ErrorMessage   string     `json:"error_message"`
+	Required       bool       `json:"required"`
+	EffectiveFrom  time.Time  `json:"effective_from"`
+	EffectiveUntil *time.Time `json:"effective_until,omitempty"`
+	Version        int        `json:"version"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+// ============================================================================
+// MASS BALANCE LEDGER (EU Battery Regulation Annex VIII — book-and-claim)
+// ============================================================================
+
+// MassBalanceLedger tracks recycled material inflows and outflows per tenant.
+// Supports book-and-claim chain-of-custody without physical segregation.
+type MassBalanceLedger struct {
+	ID             uuid.UUID `json:"id"`
+	TenantID       uuid.UUID `json:"tenant_id"`
+	MaterialType   string    `json:"material_type"`   // cobalt, lithium, nickel, lead
+	IncomingKg     float64   `json:"incoming_kg"`     // recycled material received
+	IncomingSource string    `json:"incoming_source"` // recycler EPR ID or ISCC cert
+	AllocatedKg    float64   `json:"allocated_kg"`    // material allocated to products
+	BalanceKg      float64   `json:"balance_kg"`      // remaining unallocated
+	CertificateURL string    `json:"certificate_url,omitempty"`
+	Notes          string    `json:"notes,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// MassBalanceAllocation links a specific battery batch/passport to a ledger claim.
+type MassBalanceAllocation struct {
+	ID           uuid.UUID  `json:"id"`
+	LedgerID     uuid.UUID  `json:"ledger_id"`
+	BatchID      uuid.UUID  `json:"batch_id"`
+	PassportID   *uuid.UUID `json:"passport_id,omitempty"`
+	MaterialType string     `json:"material_type"` // cobalt, lithium, nickel, lead
+	AllocatedKg  float64    `json:"allocated_kg"`
+	CreatedAt    time.Time  `json:"created_at"`
 }

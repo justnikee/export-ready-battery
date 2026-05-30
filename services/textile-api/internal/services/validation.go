@@ -16,26 +16,15 @@ import (
 // Example: AAAPL1234C
 var IECCodeRegex = regexp.MustCompile(`^[A-Z]{5}[0-9]{4}[A-Z]$`)
 
-// HSN Code for Batteries (Chapter 85: Electrical machinery)
-// Format: 8507 + 4 digits = 8 digits total
-// 8507 = Electric accumulators (batteries)
-// Example: 85076000 (lithium-ion)
-var HSNBatteryRegex = regexp.MustCompile(`^8507[0-9]{4}$`)
+// Generic HSN Code (8 digits for export compliance)
+// Format: 8 digits covering all textile HS chapters (50–63)
+// Example: 52081110 (cotton fabric), 55151190 (polyester blend)
+var HSNGenericRegex = regexp.MustCompile(`^\d{8}$`)
 
-// EPR Registration Number (CPCB format)
-// Format varies but typically: B-XXXXX/YYYY-YY/CPCB
-// Example: B-29016/2024-25/CPCB
-var EPRNumberRegex = regexp.MustCompile(`^B-[0-9]{5}/[0-9]{4}-[0-9]{2}/CPCB$`)
-
-// BIS R-Number (Registration number)
+// BIS R-Number (Registration number for BIS certification)
 // Format: R-XXXXXXXX (R- prefix + 8 digits)
 // Example: R-41001234
 var BISRNumberRegex = regexp.MustCompile(`^R-[0-9]{8}$`)
-
-// Generic HSN Code (8 digits for export compliance)
-// Format: 8 digits (not limited to battery-specific codes)
-// Example: 85076000, 84159000, etc.
-var HSNGenericRegex = regexp.MustCompile(`^\d{8}$`)
 
 // ISO Alpha-2 Country Code
 // Format: 2 uppercase letters
@@ -92,20 +81,20 @@ func (v *ValidationService) ValidateIECCode(iec string) ValidationResult {
 	return ValidationResult{Valid: true, Field: "iec_code", Value: iec}
 }
 
-// ValidateHSNCode validates an HSN Code for batteries
+// ValidateHSNCode validates an HSN Code for textile export compliance
 func (v *ValidationService) ValidateHSNCode(hsn string) ValidationResult {
 	if hsn == "" {
 		return ValidationResult{
 			Valid:   false,
 			Field:   "hsn_code",
 			Value:   hsn,
-			Message: "HSN Code is required for battery products",
+			Message: "HSN Code is required for India market products",
 		}
 	}
 
 	hsn = strings.TrimSpace(hsn)
 
-	// Remove any dots or spaces (some people write 8507.60.00)
+	// Remove any dots or spaces (some people write 5208.11.10)
 	hsn = strings.ReplaceAll(hsn, ".", "")
 	hsn = strings.ReplaceAll(hsn, " ", "")
 
@@ -114,16 +103,16 @@ func (v *ValidationService) ValidateHSNCode(hsn string) ValidationResult {
 			Valid:   false,
 			Field:   "hsn_code",
 			Value:   hsn,
-			Message: "HSN Code must be exactly 8 digits (e.g., 85076000)",
+			Message: "HSN Code must be exactly 8 digits (e.g., 52081110)",
 		}
 	}
 
-	if !HSNBatteryRegex.MatchString(hsn) {
+	if !HSNGenericRegex.MatchString(hsn) {
 		return ValidationResult{
 			Valid:   false,
 			Field:   "hsn_code",
 			Value:   hsn,
-			Message: "HSN Code for batteries must start with 8507 (e.g., 85076000 for lithium-ion)",
+			Message: "HSN Code must be 8 numeric digits (e.g., 52081110 for cotton fabric)",
 		}
 	}
 
@@ -161,8 +150,7 @@ func (v *ValidationService) ValidateEPRNumber(epr string) ValidationResult {
 }
 
 // ValidateHSNCodeGeneric validates a generic HSN Code (exactly 8 digits for exports)
-// Unlike ValidateHSNCode which enforces battery-specific codes (8507XXXX),
-// this allows any 8-digit HSN code for general export compliance
+// Alias for ValidateHSNCode — both accept any 8-digit HSN for export compliance
 func (v *ValidationService) ValidateHSNCodeGeneric(hsn string) ValidationResult {
 	if hsn == "" {
 		return ValidationResult{
@@ -281,7 +269,7 @@ func (v *ValidationService) ValidateBatchCompliance(hsn, iec string, isImported 
 				Valid:   false,
 				Field:   "iec_code",
 				Value:   iec,
-				Message: "IEC Code is required for imported battery cells",
+				Message: "IEC Code is required for imported goods",
 			})
 			hasErrors = true
 		} else {
@@ -355,7 +343,7 @@ func formatFloat(f float64) string {
 }
 
 // ============================================================================
-// EU BATTERY REGULATION VALIDATION (EU 2023/1542)
+// EU ESPR REGULATION VALIDATION
 // ============================================================================
 
 // EU Carbon Footprint format: "[VALUE] kg CO2e" or "[VALUE] kg CO2e/kWh"
@@ -403,8 +391,8 @@ func (v *ValidationService) ValidateCarbonFootprintFormat(value string) Validati
 	}
 }
 
-// ValidateEUCompliance performs comprehensive EU Battery Regulation validation
-// Checks: carbon_footprint (required), recycled_content, per-material recycled content, supply_chain_due_diligence
+// ValidateEUCompliance performs comprehensive EU ESPR validation
+// Checks: carbon_footprint (required), recycled_content, supply_chain_due_diligence, carbon_declaration
 func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycledContent *float64, hasSupplyChainDD bool, hasCarbonDeclaration bool) EUComplianceResult {
 	var errs []string
 	var warnings []string
@@ -432,7 +420,7 @@ func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycle
 
 	// 4. Carbon Declaration - MANDATORY
 	if !hasCarbonDeclaration {
-		errs = append(errs, "Carbon footprint declaration is mandatory for EU battery passports")
+		errs = append(errs, "Carbon footprint declaration is mandatory for EU product passports")
 	}
 
 	result := EUComplianceResult{
@@ -447,49 +435,54 @@ func (v *ValidationService) ValidateEUCompliance(carbonFootprint string, recycle
 	} else if len(warnings) > 0 {
 		result.Message = fmt.Sprintf("EU compliant with %d warning(s)", len(warnings))
 	} else {
-		result.Message = "Fully EU Battery Regulation compliant"
+		result.Message = "Fully EU ESPR compliant"
 	}
 
 	return result
 }
 
-// ValidateBatteryChemistry validates that battery chemistry is correctly formatted
-func (v *ValidationService) ValidateBatteryChemistry(chemistry string) ValidationResult {
-	if chemistry == "" {
+// ValidateFiberType validates that a textile fiber type is correctly formatted
+func (v *ValidationService) ValidateFiberType(fiberType string) ValidationResult {
+	if fiberType == "" {
 		return ValidationResult{
 			Valid:   false,
-			Field:   "chemistry",
-			Value:   chemistry,
-			Message: "Battery chemistry is required",
+			Field:   "fiber_type",
+			Value:   fiberType,
+			Message: "Fiber type is required",
 		}
 	}
 
-	// Common accepted values
-	validChemistries := map[string]bool{
-		"LFP":  true, // Lithium Iron Phosphate
-		"NMC":  true, // Nickel Manganese Cobalt
-		"NCA":  true, // Nickel Cobalt Aluminum
-		"LCO":  true, // Lithium Cobalt Oxide
-		"LMO":  true, // Lithium Manganese Oxide
-		"LTO":  true, // Lithium Titanate
-		"NiMH": true, // Nickel Metal Hydride
+	// Common accepted fiber types (ESPR / ZDHC standard labels)
+	validFibers := map[string]bool{
+		"COTTON":    true,
+		"POLYESTER": true,
+		"NYLON":     true,
+		"WOOL":      true,
+		"SILK":      true,
+		"LINEN":     true,
+		"VISCOSE":   true,
+		"MODAL":     true,
+		"LYOCELL":   true,
+		"ACRYLIC":   true,
+		"HEMP":      true,
+		"BAMBOO":    true,
 	}
 
-	upper := strings.ToUpper(strings.TrimSpace(chemistry))
-	if !validChemistries[upper] {
+	upper := strings.ToUpper(strings.TrimSpace(fiberType))
+	if !validFibers[upper] {
 		return ValidationResult{
-			Valid:   true, // Still valid, just a warning
-			Field:   "chemistry",
-			Value:   chemistry,
-			Message: fmt.Sprintf("Non-standard chemistry value '%s'. Common values: LFP, NMC, NCA, LCO, LMO, LTO, NiMH", chemistry),
+			Valid:   true, // Still valid, just informational
+			Field:   "fiber_type",
+			Value:   fiberType,
+			Message: fmt.Sprintf("Non-standard fiber type '%s'. Common values: COTTON, POLYESTER, NYLON, WOOL, SILK, LINEN, VISCOSE, LYOCELL", fiberType),
 		}
 	}
 
 	return ValidationResult{
 		Valid:   true,
-		Field:   "chemistry",
-		Value:   chemistry,
-		Message: "Valid battery chemistry",
+		Field:   "fiber_type",
+		Value:   fiberType,
+		Message: "Valid fiber type",
 	}
 }
 
@@ -508,9 +501,9 @@ type IndiaComplianceResult struct {
 
 // ValidateIndiaCompliance performs comprehensive India regulatory validation
 // Requirements:
-// - BIS R-Number: MANDATORY for lithium-ion batteries (IS 16046)
-// - EPR Number: Required for e-waste compliance
-// - HSN Code: Required for exports (8507.60XX for lithium-ion)
+// - BIS R-Number: MANDATORY for textile products with BIS certification (IS 17243)
+// - EPR Number: Required for extended producer responsibility compliance
+// - HSN Code: Required for exports (e.g. 52081110 for cotton fabric)
 // - IEC Code: Required for importers
 func (v *ValidationService) ValidateIndiaCompliance(
 	bisNumber string,
@@ -524,9 +517,9 @@ func (v *ValidationService) ValidateIndiaCompliance(
 	var errs []string
 	var warnings []string
 
-	// 1. BIS R-Number - MANDATORY for lithium-ion batteries
+	// 1. BIS R-Number - MANDATORY for India-market textile products
 	if bisNumber == "" {
-		errs = append(errs, "BIS R-Number is mandatory for lithium-ion batteries in India (IS 16046/16047)")
+		errs = append(errs, "BIS R-Number is mandatory for India-market textile products (IS 17243)")
 	} else {
 		bisResult := v.ValidateBISRNumber(bisNumber)
 		if !bisResult.Valid {
@@ -534,9 +527,9 @@ func (v *ValidationService) ValidateIndiaCompliance(
 		}
 	}
 
-	// 2. EPR Registration - Required for e-waste compliance
+	// 2. EPR Registration - Required for extended producer responsibility
 	if eprNumber == "" {
-		warnings = append(warnings, "EPR Registration Number not provided. Required for e-waste compliance in India.")
+		warnings = append(warnings, "EPR Registration Number not provided. Required for extended producer responsibility compliance in India.")
 	} else {
 		eprResult := v.ValidateEPRNumber(eprNumber)
 		if !eprResult.Valid {

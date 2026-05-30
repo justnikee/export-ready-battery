@@ -62,11 +62,7 @@ export function OnboardingPage() {
       return;
     }
 
-    const actualProductSlug = pathname.startsWith("/textile")
-      ? "textile"
-      : pathname.startsWith("/battery")
-        ? "battery"
-        : null;
+    const actualProductSlug = null;
     const expectedProductSlug = productTypeToSlug(user.product_type);
 
     if (actualProductSlug && actualProductSlug !== expectedProductSlug) {
@@ -174,7 +170,6 @@ export function OnboardingPage() {
 
       router.push(productRoutes(user?.product_type).dashboard);
     } catch (err: unknown) {
-      console.error("Failed to complete onboarding:", err);
       const apiError = err as {
         response?: { data?: { error?: string } };
         message?: string;

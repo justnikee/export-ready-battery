@@ -1,6 +1,6 @@
 // Auto-generated types matching backend models
-// SYNC WITH: backend/internal/models/models.go
-// Last updated: 2026-02-07
+// SYNC WITH: services/battery-api/internal/models/models.go
+// Last updated: 2026-05-14
 
 // ============================================================================
 // PASSPORT LIFECYCLE
@@ -13,12 +13,7 @@ export type PassportStatus =
   | "IN_SERVICE"
   | "RECALLED"
   | "RECYCLED"
-  | "END_OF_LIFE"
-  // Textile statuses
-  | "RAW_MATERIAL"
-  | "IN_PRODUCTION"
-  | "FINISHED"
-  | "IN_USE";
+  | "END_OF_LIFE";
 
 export type TransitionAction =
   | "ACTIVATE"
@@ -26,13 +21,7 @@ export type TransitionAction =
   | "INSTALL"
   | "RECYCLE"
   | "CLOSE"
-  | "RECALL"
-  // Textile actions
-  | "PRODUCE"
-  | "DYE"
-  | "FINISH"
-  | "SELL"
-  | "COLLECT";
+  | "RECALL";
 
 export interface TransitionEvidence {
   shipment_reference?: string;
@@ -44,11 +33,6 @@ export interface TransitionEvidence {
   certificate_reference?: string;
   recall_reason?: string;
   recall_reference?: string;
-  // Textile evidence
-  dye_batch_reference?: string;
-  finish_date?: string;
-  sale_order_id?: string;
-  collection_reference?: string;
 }
 
 export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
@@ -59,10 +43,6 @@ export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
   RECALLED: "Recalled",
   RECYCLED: "Recycled",
   END_OF_LIFE: "End of Life",
-  RAW_MATERIAL: "Raw Material",
-  IN_PRODUCTION: "In Production",
-  FINISHED: "Finished",
-  IN_USE: "In Use",
 };
 
 export const TRANSITION_ACTION_LABELS: Record<TransitionAction, string> = {
@@ -72,11 +52,6 @@ export const TRANSITION_ACTION_LABELS: Record<TransitionAction, string> = {
   RECYCLE: "Recycle",
   CLOSE: "Close",
   RECALL: "Recall",
-  PRODUCE: "Produce",
-  DYE: "Dye",
-  FINISH: "Finish",
-  SELL: "Sell",
-  COLLECT: "Collect",
 };
 
 export interface Passport {
@@ -114,7 +89,18 @@ export interface Passport {
   recycler_epr_id?: string;
   recycling_date?: string;
 
-  // v2: Product-agnostic (Phase 3+)
+  // EU Battery Passport ID & Circularity Status
+  battery_passport_id?: string;
+  circularity_status?: "ORIGINAL" | "REPURPOSED" | "REUSED" | "REMANUFACTURED" | "WASTE";
+
+  // BMS Telemetry summary
+  cycle_count?: number;
+  last_temperature?: number;
+  last_voltage?: number;
+  thermal_event_count?: number;
+  last_telemetry_at?: string | null;
+
+  // v2: Product-agnostic
   product_type?: ProductType;
   telemetry?: Record<string, unknown>;
 }
@@ -184,50 +170,14 @@ export interface HazardousSubstances {
   exemptions?: string;
 }
 
-export interface FiberComposition {
-  cotton_pct?: number;
-  polyester_pct?: number;
-  wool_pct?: number;
-  silk_pct?: number;
-  linen_pct?: number;
-  viscose_pct?: number;
-  nylon_pct?: number;
-  acrylic_pct?: number;
-  hemp_pct?: number;
-  other_pct?: number;
-}
-
-export interface SupplierTier {
-  fiber_supplier?: string;
-  spinning_mill?: string;
-  weaving_knitting_mill?: string;
-  dye_house?: string;
-  finishing_facility?: string;
-  cut_sew_facility?: string;
-}
-
-export interface LaborCompliance {
-  sa8000_certified?: boolean;
-  bsci_audited?: boolean;
-  sedex_member?: boolean;
-  fair_trade_certified?: boolean;
-  audit_date?: string;
-  audit_score?: number;
-}
-
-export interface ChemicalComplianceZDHC {
-  zdhc_level?: "1" | "2" | "3" | "NA";
-  mrsl_tested?: boolean;
-  test_report_url?: string;
-  restricted_substances_found?: string[];
-}
-
 export interface BatchSpec {
   chemistry: string;
   voltage: string;
   capacity: string;
   manufacturer: string;
+  manufacturer_email?: string;
   weight: string;
+  recyclable: boolean;
   carbon_footprint: string;
   country_of_origin: string;
   material_profile?: string;
@@ -242,9 +192,14 @@ export interface BatchSpec {
   // EU Battery Regulation 2023/1542 - MANDATORY FIELDS
   material_composition?: MaterialComposition;
   certifications?: string[];
+  bis_certificate_issue_date?: string;
+  un38_3_test_date?: string;
+  iec_62133_test_date?: string;
+  msds_issue_date?: string;
   manufacturer_address?: string;
   eu_representative?: string;
   eu_representative_email?: string;
+  eu_representative_address?: string;
   expected_lifetime_cycles?: number | null;
   warranty_months?: number | null;
   recycled_content_pct?: number | null;
@@ -256,31 +211,15 @@ export interface BatchSpec {
 
   battery_category?: string;
 
-  // ── Textile-Specific Fields ──
-  gsm?: number;
-  water_usage_liters?: number;
-  energy_usage_kwh?: number;
-  dye_process?: "reactive" | "vat" | "disperse" | "acid" | "natural" | "pigment" | "none" | "undyed";
-  fiber_composition?: FiberComposition;
-  supplier_tier?: SupplierTier;
-  labor_compliance?: LaborCompliance;
-  chemical_compliance_zdhc?: ChemicalComplianceZDHC;
-  dye_chemicals?: string[];
-  finish_type?: string[];
-  color?: string;
-  dimensions?: string;
-  packaging_type?: string;
-  order_quantity?: number;
-  biodegradable_pct?: number;
-  expected_lifetime_washes?: number;
-  fiber_origin?: string;
-
   // v2: Fields migrated from top-level Batch columns
   bill_of_entry_no?: string;
   customs_date?: string;
   dva_source?: string;
   audited_domestic_value_add?: number;
   pli_certificate_url?: string;
+
+  // GS1 Digital Link GTIN for EU Battery Passport QR code compliance
+  gtin?: string;
 }
 
 export interface Batch {
@@ -301,6 +240,13 @@ export interface Batch {
   domestic_value_add: number;
   total_passports: number;
 
+  // EU Battery Regulation 2023/1542 compliance fields
+  ce_marking?: boolean;
+  notified_body_number?: string;
+  carbon_performance_class?: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  removable_and_replaceable?: boolean;
+  declaration_of_conformity_path?: string;
+
   // EU Carbon Calculator Result (Article 7)
   carbon_footprint_result?: Record<string, unknown> | null;
 
@@ -309,13 +255,16 @@ export interface Batch {
   schema_version?: number;
   compliance_score?: number;
   compliance_gaps?: ComplianceGap[];
+
+  // GS1 Digital Link GTIN for EU Battery Passport QR code compliance
+  gtin?: string;
 }
 
 // ============================================================================
 // PRODUCT SCHEMA & COMPLIANCE TYPES (v2 Dynamic Engine)
 // ============================================================================
 
-export type ProductType = "BATTERY" | "TEXTILE" | "ELECTRONICS";
+export type ProductType = "BATTERY" | "ELECTRONICS";
 
 export interface ComplianceGap {
   field: string;
@@ -331,6 +280,21 @@ export interface ComplianceCheckResult {
   passed: boolean;
   gaps: ComplianceGap[];
   checked_at: string;
+}
+
+export interface ComplianceRule {
+  id: string;
+  product_type: string;
+  market_region: string;
+  rule_key: string;
+  rule_type: "threshold" | "required_field" | "format_regex";
+  threshold_value?: number;
+  error_message: string;
+  required: boolean;
+  effective_from: string;
+  effective_until?: string;
+  version: number;
+  created_at: string;
 }
 
 export interface SchemaFieldConstraint {
@@ -448,6 +412,7 @@ export interface BlogFormData {
   seo_title?: string;
   seo_description?: string;
 }
+
 // ============================================================================
 // TEAM MANAGEMENT
 // ============================================================================
@@ -476,10 +441,90 @@ export interface TeamListResponse {
   seat_count: number;
   seat_limit: number;
   plan_type: string;
+  tier: "free" | "pro" | "enterprise";
 }
 
 export interface SeatLimitError {
   error: "seat_limit_reached";
   message: string;
   upgrade_url: string;
+}
+
+// ============================================================================
+// CERTIFICATE ANCHOR (Blockchain Timestamping)
+// ============================================================================
+
+export type AnchorStatus = "pending" | "anchored" | "confirmed" | "failed";
+
+export interface CertificateAnchor {
+  id: string;
+  batch_id: string;
+  tenant_id: string;
+  cert_type: string;
+  file_url: string;
+  file_hash: string;
+  ots_proof?: string;
+  bitcoin_tx_id?: string;
+  status: AnchorStatus;
+  anchored_at?: string;
+  created_at: string;
+}
+
+export type AlertSeverity = "INFO" | "WARNING" | "CRITICAL";
+export type AlertType = "CERTIFICATE_EXPIRY" | "COMPLIANCE_DEGRADED" | "QUOTA_LOW";
+
+// ============================================================================
+// REGISTRY VERIFICATION (External Registry Integrations)
+// ============================================================================
+
+export type RegistryType = "bis" | "cpcb" | "eu_nando" | "un38_3" | "custom";
+
+export type RegistryVerificationStatus =
+  | "pending"
+  | "verified"
+  | "failed"
+  | "error"
+  | "not_found";
+
+export type TrustTier = "self_declared" | "registry_verified" | "official_api";
+
+export interface RegistryVerification {
+  id: string;
+  tenant_id: string;
+  batch_id: string;
+  registry_type: RegistryType;
+  certificate_no?: string;
+  status: RegistryVerificationStatus;
+  trust_tier: TrustTier;
+  verified_data?: Record<string, unknown>;
+  error_message?: string;
+  verified_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BatchVerificationSummary {
+  batch_id: string;
+  verifications: RegistryVerification[];
+  overall_trust: TrustTier;
+}
+
+export interface VerifyBatchRegistryRequest {
+  registry_type: RegistryType;
+  certificate_no?: string;
+}
+
+export interface TenantAlert {
+  id: string;
+  tenant_id: string;
+  alert_type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  resource_type?: string;
+  resource_id?: string;
+  read_at?: string;
+  emailed_at?: string;
+  created_at: string;
 }

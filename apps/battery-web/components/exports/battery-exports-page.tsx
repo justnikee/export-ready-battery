@@ -35,7 +35,6 @@ export default function ExportsPage() {
  setExports(data.jobs || []);
  setTotal(data.total);
  } catch (error) {
- console.error('Failed to fetch exports:', error);
  } finally {
  setLoading(false);
  }
@@ -73,7 +72,6 @@ export default function ExportsPage() {
  window.open(job.download_url, '_blank');
  }
  } catch (error) {
- console.error('Download failed:', error);
  }
  };
 

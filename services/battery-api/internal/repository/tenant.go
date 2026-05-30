@@ -38,19 +38,12 @@ const tenantSelectColumns = `
 	COALESCE(t.manufacturer_code, ''),
 	COALESCE(bp.morth_manufacturer_code, ''),
 	COALESCE(bp.morth_factory_codes, ''),
-	COALESCE(t.data_visibility, '{}'::jsonb),
-	COALESCE(tp.facility_type, ''),
-	COALESCE(tp.supply_chain_tier, ''),
-	COALESCE(tp.primary_markets, '[]'::jsonb),
-	COALESCE(tp.default_fiber_types, '[]'::jsonb),
-	COALESCE(tp.certifications, '[]'::jsonb),
-	COALESCE(tp.compliance_defaults, '{}'::jsonb)
+	COALESCE(t.data_visibility, '{}'::jsonb)
 `
 
 const tenantProfileJoin = `
 	FROM public.tenants t
 	LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
-	LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
 `
 
 func scanTenant(row pgx.Row, tenant *models.Tenant) error {

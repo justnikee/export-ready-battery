@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -20,7 +20,6 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { getProductConfigByType } from "@/lib/products";
 import { productRoutes } from "@/lib/routes";
-import { productTypeToSlug } from "@/lib/products";
 import {
   mapPrimaryMarketToList,
   mapPrimaryMarketsToSelection,
@@ -64,8 +63,6 @@ type TextileOnboardingForm = {
 export function TextileOnboardingPage() {
   const { user, refreshUser, updateUser } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-
   const productConfig = getProductConfigByType(user?.product_type);
   const onboardingConfig = productConfig.onboarding;
   const steps = onboardingConfig.steps;
@@ -93,26 +90,10 @@ export function TextileOnboardingPage() {
       return;
     }
 
-    const actualProductSlug = pathname.startsWith("/textile")
-      ? "textile"
-      : pathname.startsWith("/battery")
-        ? "battery"
-        : null;
-    const expectedProductSlug = productTypeToSlug(user.product_type);
-
-    if (actualProductSlug && actualProductSlug !== expectedProductSlug) {
-      router.replace(
-        user.onboarding_completed
-          ? productRoutes(user.product_type).dashboard
-          : productRoutes(user.product_type).onboarding,
-      );
-      return;
-    }
-
     if (user.onboarding_completed) {
       router.push(productRoutes(user.product_type).dashboard);
     }
-  }, [pathname, router, user]);
+  }, [router, user]);
 
   useEffect(() => {
     if (!user) {

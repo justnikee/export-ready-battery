@@ -153,7 +153,7 @@ export function AuthLayout({
 
         {/* Footer */}
         <div className="p-6 text-center text-xs text-muted-foreground">
-          &copy; 2026 AnvayaLabs. All rights reserved.
+          &copy; {new Date().getFullYear()} AnvayaLabs. All rights reserved.
         </div>
       </div>
     </div>

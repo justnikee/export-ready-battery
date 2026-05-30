@@ -24,8 +24,7 @@ interface DownloadLabelsDialogProps {
  chemistry?: string
  /** Whether a carbon footprint has been calculated for this batch */
  hasCarbonFootprint?: boolean
- /** Product type (BATTERY or TEXTILE) */
- productType?: string
+ productType?: string;
 }
 
 export function DownloadLabelsDialog({
@@ -72,7 +71,7 @@ export function DownloadLabelsDialog({
  Download PDF Labels
  </DialogTitle>
  <DialogDescription className="text-muted-foreground">
- Generate printable label sheets for {productType === "TEXTILE" ? "lot" : "batch"} &quot;{batchName}&quot;
+ Generate printable label sheets for batch &quot;{batchName}&quot;
  </DialogDescription>
  </DialogHeader>
 
@@ -138,22 +137,6 @@ export function DownloadLabelsDialog({
  Each Label Contains
  </h4>
  <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
- {productType === "TEXTILE" ? (
- <>
- <li>QR Code (links to digital product passport)</li>
- <li>Batch / Lot identifier</li>
- <li>Material composition &amp; care instructions</li>
- <li>Manufacturer &amp; country of origin</li>
- <li className="flex items-center gap-1">
- <Globe className="h-3 w-3 text-muted-foreground" />
- Market region badge
- <span className={`text-[10px] font-medium ${region.color}`}>
- {region.label}
- </span>
- </li>
- <li>Compliance info (ZDHC, GOTS, OEKO-TEX where applicable)</li>
- </>
- ) : (
  <>
  <li>QR Code (links to digital passport with BPAN data)</li>
  <li className="flex items-center gap-1">
@@ -184,7 +167,6 @@ export function DownloadLabelsDialog({
  <li className="text-orange-400">AIS-156 compliance mark</li>
  )}
  </>
- )}
  </ul>
  </div>
 
@@ -195,7 +177,7 @@ export function DownloadLabelsDialog({
  BPAN Serial Format (21-char)
  </h4>
  <div className="font-mono text-sm text-white bg-background rounded px-3 py-2 tracking-wider text-center">
- IN-XXX-{chemistry || "LFP"}-2025-00001
+ IN-XXX-{chemistry || "LFP"}-{new Date().getFullYear()}-00001
  </div>
  <div className="flex justify-between mt-2 text-[10px] text-muted-foreground px-1">
  <span>Region</span>

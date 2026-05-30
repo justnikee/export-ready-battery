@@ -13,6 +13,8 @@ import {
   Users,
   Trophy,
   FileArchive,
+  Landmark,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dashboardPathFromPathname } from "@/lib/routes";
@@ -25,8 +27,10 @@ export function Sidebar() {
   const navItems = [
     { icon: Home, label: t("overview") },
     { icon: Box, label: t("batches"), subpath: "batches" },
+    { icon: BarChart3, label: t("analytics"), subpath: "analytics" },
     { icon: Users, label: t("partners"), subpath: "partners" },
     { icon: FileArchive, label: t("exports"), subpath: "exports" },
+    { icon: Landmark, label: t("dgft_claims"), subpath: "dgft-claims" },
     { icon: Trophy, label: t("rewards"), subpath: "rewards" },
     { icon: CreditCard, label: t("billing"), subpath: "billing" },
     { icon: Code, label: t("developer"), subpath: "developer" },

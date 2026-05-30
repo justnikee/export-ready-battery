@@ -1,60 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { TemplateCard } from "@/components/templates/TemplateCard";
-import { CreateTemplateDialog } from "@/components/templates/CreateTemplateDialog";
 import { DeleteTemplateDialog } from "@/components/templates/DeleteTemplateDialog";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useTemplates } from "@/hooks/use-queries";
+import Link from "next/link";
 
 interface Template {
   id: string;
   name: string;
-  specs: {
-    chemistry?: string;
-    voltage?: string;
-    capacity?: string;
-    manufacturer?: string;
-    weight?: string;
-    carbon_footprint?: string;
-    country_of_origin?: string;
-    recyclable?: boolean;
-  };
+  specs: Record<string, unknown>;
+  market_region: string;
   created_at: string;
 }
 
 export default function TemplatesPage() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(
-    null,
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+
+  const { data: templates = [], isLoading: loading } = useTemplates(
+    user?.tenant_id,
+    "BATTERY"
   );
-
-  const fetchTemplates = useCallback(async () => {
-    if (!user) return;
-    try {
-      const response = await api.get(`/templates?tenant_id=${user.tenant_id}`);
-      setTemplates(response.data.templates || []);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
-      toast.error("Failed to load templates");
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
 
   const handleDeleteClick = (template: Template) => {
     setTemplateToDelete(template);
@@ -64,27 +39,21 @@ export default function TemplatesPage() {
   const handleDeleteConfirm = async () => {
     if (!templateToDelete) return;
     try {
+      const api = (await import("@/lib/api")).default;
       await api.delete(`/templates/${templateToDelete.id}`);
       toast.success(`Template "${templateToDelete.name}" deleted`);
       setDeleteDialogOpen(false);
       setTemplateToDelete(null);
-      fetchTemplates();
-    } catch (error) {
-      console.error("Failed to delete template:", error);
+    } catch {
       toast.error("Failed to delete template");
     }
   };
 
-  const handleTemplateCreated = () => {
-    setCreateDialogOpen(false);
-    fetchTemplates();
-  };
-
   // Filter templates by search query
   const filteredTemplates = templates.filter(
-    (t) =>
+    (t: Template) =>
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.specs.chemistry?.toLowerCase().includes(searchQuery.toLowerCase()),
+      (t.specs.chemistry as string)?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (loading) {
@@ -110,16 +79,15 @@ export default function TemplatesPage() {
                 Batch Templates
               </h1>
               <p className="text-muted-foreground mt-1">
-                Save and reuse battery specifications for faster batch creation
+                Saved templates with market-specific compliance data. Use them when creating new batches.
               </p>
             </div>
-            <Button
-              onClick={() => setCreateDialogOpen(true)}
-              className="bg-background hover:bg-primary/90 text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Template
-            </Button>
+            <Link href="/dashboard/batches">
+              <Button className="bg-background hover:bg-primary/90 text-white">
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Create Batch
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -139,13 +107,13 @@ export default function TemplatesPage() {
         {/* Templates Grid */}
         {filteredTemplates.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTemplates.map((template) => (
+            {filteredTemplates.map((template: Template) => (
               <TemplateCard
                 key={template.id}
                 template={template}
                 onDelete={() => handleDeleteClick(template)}
                 onUse={() => {
-                  window.location.href = `/batches?template=${template.id}`;
+                  toast.info(`"${template.name}" — select this template from the dropdown when creating a batch`);
                 }}
               />
             ))}
@@ -159,16 +127,14 @@ export default function TemplatesPage() {
               </div>
               <h3 className="text-xl text-foreground mb-2">No templates yet</h3>
               <p className="text-muted-foreground text-center max-w-sm mb-6">
-                Create templates to save your common battery specifications and
-                speed up batch creation.
+                Create a batch and check &quot;Save as Template&quot; on the Review step to save your first template.
               </p>
-              <Button
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-background hover:bg-primary/90 text-white"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Template
-              </Button>
+              <Link href="/dashboard/batches">
+                <Button className="bg-background hover:bg-primary/90 text-white">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Go to Batches
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
@@ -179,13 +145,6 @@ export default function TemplatesPage() {
             </p>
           </div>
         )}
-
-        {/* Create Template Dialog */}
-        <CreateTemplateDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onTemplateCreated={handleTemplateCreated}
-        />
 
         {/* Delete Confirmation Dialog */}
         <DeleteTemplateDialog

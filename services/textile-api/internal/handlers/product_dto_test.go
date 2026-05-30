@@ -96,16 +96,14 @@ func TestCreateBatch_UnknownProductType(t *testing.T) {
 	}
 }
 
-// TestUpdateProfile_MixedFields verifies that the embedded struct design of
-// UpdateProfileRequest allows both battery and textile fields to coexist in
-// the same payload. The decoder populates both promoted structs independently.
-func TestUpdateProfile_MixedFields(t *testing.T) {
+// TestUpdateProfile_TextileFields verifies that the embedded struct design of
+// UpdateProfileRequest correctly decodes both base and textile-specific fields
+// from a flat JSON payload.
+func TestUpdateProfile_TextileFields(t *testing.T) {
 	payload := map[string]interface{}{
-		"company_name":    "Mixed Fields Corp",
-		"address":         "123 Hybrid Lane",
-		"bis_r_number":    "R-87654321",
-		"iec_code":        "IEC9876543",
-		"textile_facility_type": "dyeing_unit",
+		"company_name":              "Mixed Fields Corp",
+		"address":                   "123 Hybrid Lane",
+		"textile_facility_type":     "dyeing_unit",
 		"textile_supply_chain_tier": "tier_2",
 	}
 
@@ -125,17 +123,6 @@ func TestUpdateProfile_MixedFields(t *testing.T) {
 	}
 	if req.Address != "123 Hybrid Lane" {
 		t.Errorf("expected Address '123 Hybrid Lane', got %q", req.Address)
-	}
-
-	// Battery-specific fields (embedded via *BatteryProfileUpdate)
-	if req.BatteryProfileUpdate == nil {
-		t.Fatal("expected BatteryProfileUpdate to be populated")
-	}
-	if req.BatteryProfileUpdate.BISRNumber != "R-87654321" {
-		t.Errorf("expected BISRNumber 'R-87654321', got %q", req.BatteryProfileUpdate.BISRNumber)
-	}
-	if req.BatteryProfileUpdate.IECCode != "IEC9876543" {
-		t.Errorf("expected IECCode 'IEC9876543', got %q", req.BatteryProfileUpdate.IECCode)
 	}
 
 	// Textile-specific fields (embedded via *TextileProfileUpdate)

@@ -49,9 +49,10 @@ func NewAuthService(jwtSecret string, jwtExpiry, refreshExpiry time.Duration) *A
 
 // Claims represents JWT claims
 type Claims struct {
-	TenantID string `json:"tenant_id"`
-	Email    string `json:"email"`
-	Role     string `json:"role"` // RBAC: owner | operator | viewer
+	TenantID   string             `json:"tenant_id"`
+	SupplierID string             `json:"supplier_id,omitempty"`
+	Email      string             `json:"email"`
+	Role       string             `json:"role"` // RBAC: owner | operator | viewer | supplier
 	ProductType models.ProductType `json:"product_type,omitempty"`
 	jwt.RegisteredClaims
 }
@@ -96,6 +97,25 @@ func (s *AuthService) GenerateToken(tenantID, email, role string, productType mo
 	return token.SignedString(s.jwtSecret)
 }
 
+// GenerateSupplierToken generates a JWT for a supplier scoped to their tenant.
+func (s *AuthService) GenerateSupplierToken(tenantID, supplierID, email string) (string, error) {
+	claims := &Claims{
+		TenantID:   tenantID,
+		SupplierID: supplierID,
+		Email:      email,
+		Role:       "supplier",
+		ProductType: models.ProductTypeBattery, // Suppliers don't choose product type
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "anvayalabs-battery",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.jwtSecret)
+}
+
 // GenerateRefreshToken generates a refresh token with a unique JTI for revocation.
 // Returns (tokenString, jti, error). Callers MUST persist the jti in the DB.
 func (s *AuthService) GenerateRefreshToken(tenantID, email, role string, productType models.ProductType) (string, string, error) {
@@ -119,6 +139,11 @@ func (s *AuthService) GenerateRefreshToken(tenantID, email, role string, product
 		return "", "", err
 	}
 	return tokenStr, jti, nil
+}
+
+// GetTokenExpiry returns the duration of access token validity
+func (s *AuthService) GetTokenExpiry() time.Duration {
+	return s.jwtExpiry
 }
 
 // GetRefreshExpiry returns the duration of refresh token validity

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { CreateBatchDialog } from "./create-batch-dialog";
+import { CreateTextileLotDialog } from "../textile/create-textile-lot-dialog";
 import api from "@/lib/api";
 
 const pushMock = vi.fn();
@@ -51,7 +51,9 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 vi.mock("@/components/ui/sheet", () => ({
-  Sheet: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  Sheet: ({ children }: { children?: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   SheetTrigger: ({ children }: { children?: React.ReactNode }) => (
     <div>{children}</div>
   ),
@@ -72,37 +74,40 @@ vi.mock("@/components/ui/sheet", () => ({
   ),
 }));
 
-describe("CreateBatchDialog — textile lot creation", () => {
+describe("CreateTextileLotDialog — textile lot creation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("renders trigger button", () => {
-    render(<CreateBatchDialog onBatchCreated={vi.fn()} />);
+    render(
+      <CreateTextileLotDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        onLotCreated={vi.fn()}
+      />,
+    );
     expect(
-      screen.getByRole("button", { name: /create batch/i }),
+      screen.getByRole("button", { name: /create lot/i }),
     ).toBeInTheDocument();
   });
 
   it("submits textile lot with correct payload", async () => {
-    const onBatchCreated = vi.fn();
-    render(<CreateBatchDialog onBatchCreated={onBatchCreated} />);
+    const onLotCreated = vi.fn();
+    render(
+      <CreateTextileLotDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        onLotCreated={onLotCreated}
+      />,
+    );
 
     // Fill required fields
-    fireEvent.change(screen.getByLabelText(/batch name/i), {
+    fireEvent.change(screen.getByLabelText(/lot name/i), {
       target: { value: "Summer Cotton Lot" },
     });
-    fireEvent.change(screen.getByLabelText(/model name/i), {
+    fireEvent.change(screen.getByLabelText(/style \/ sku/i), {
       target: { value: "SC-2024-001" },
-    });
-    fireEvent.change(screen.getByLabelText(/manufacturing start date/i), {
-      target: { value: "2024-06-01" },
-    });
-    fireEvent.change(screen.getByLabelText(/manufacturing end date/i), {
-      target: { value: "2024-06-15" },
-    });
-    fireEvent.change(screen.getAllByLabelText(/manufacturer/i)[0], {
-      target: { value: "Textile Co" },
     });
 
     // Fill optional textile fields
@@ -123,29 +128,28 @@ describe("CreateBatchDialog — textile lot creation", () => {
     const payload = postMock.mock.calls[0][1];
     expect(payload).toMatchObject({
       tenant_id: "t1",
-      batch_name: "Summer Cotton Lot",
-      model_name: "SC-2024-001",
-      manufacturing_start_date: "2024-06-01",
-      manufacturing_end_date: "2024-06-15",
-      market_region: "INDIA",
       product_type: "TEXTILE",
       specs: expect.objectContaining({
-        manufacturer: "Textile Co",
         material_profile: "100% organic cotton",
-        gsm: 180,
       }),
     });
-    expect(onBatchCreated).toHaveBeenCalled();
+    expect(onLotCreated).toHaveBeenCalled();
   });
 
   it("shows validation errors for missing required fields", async () => {
-    render(<CreateBatchDialog onBatchCreated={vi.fn()} />);
+    render(
+      <CreateTextileLotDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        onLotCreated={vi.fn()}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /create lot/i }));
 
+    // Validation should block submission — API must not be called
     await waitFor(() => {
-      expect(screen.getByText(/lot name is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/model name is required/i)).toBeInTheDocument();
+      expect(postMock).not.toHaveBeenCalled();
     });
   });
 });

@@ -2,9 +2,11 @@
   "navigation": {
     "overview": "Übersicht",
     "batches": "Chargen",
+    "analytics": "Analytik",
     "partners": "Partner",
     "exports": "Exporte",
     "rewards": "Prämien",
+    "dgft_claims": "DGFT-Ansprüche",
     "billing": "Abrechnung",
     "developer": "Entwickler",
     "team": "Team",

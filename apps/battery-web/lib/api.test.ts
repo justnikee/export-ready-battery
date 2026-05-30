@@ -5,7 +5,7 @@ const locationSpy = vi.fn();
 Object.defineProperty(globalThis, "window", {
   value: {
     location: {
-      pathname: "/battery/dashboard",
+      pathname: "/dashboard",
       href: "",
       get hrefValue() {
         return this.href;
@@ -21,10 +21,10 @@ Object.defineProperty(globalThis, "window", {
 
 vi.mock("@/lib/routes", () => ({
   routesFromPathname: () => ({
-    login: "/battery/login",
-    register: "/battery/register",
-    forgotPassword: "/battery/forgot-password",
-    resetPassword: "/battery/reset-password",
+    login: "/login",
+    register: "/register",
+    forgotPassword: "/forgot-password",
+    resetPassword: "/reset-password",
   }),
 }));
 

@@ -80,7 +80,6 @@ export function DataAccessTokens({
       const response = await api.get("/data-access/tokens");
       setTokens(response.data || []);
     } catch (error) {
-      console.error("Failed to fetch data access tokens:", error);
       toast.error("Failed to load access tokens");
     } finally {
       setLoading(false);
@@ -119,7 +118,6 @@ export function DataAccessTokens({
       toast.success("Token generated successfully");
     } catch (error: unknown) {
       const apiError = error as ApiErrorResponse;
-      console.error("Failed to create token:", error);
       toast.error(apiError.response?.data?.error || "Failed to create token");
     } finally {
       setIsGenerating(false);
@@ -141,7 +139,6 @@ export function DataAccessTokens({
       fetchTokens();
     } catch (error: unknown) {
       const apiError = error as ApiErrorResponse;
-      console.error("Failed to revoke token:", error);
       toast.error(apiError.response?.data?.error || "Failed to revoke token");
     }
   };

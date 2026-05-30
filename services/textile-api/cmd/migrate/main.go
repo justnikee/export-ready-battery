@@ -14,7 +14,6 @@ import (
 // expectedTables lists every table the application requires.
 var expectedTables = []string{
 	"tenants",
-	"battery_tenant_profiles",
 	"textile_tenant_profiles",
 	"batches",
 	"passports",
@@ -46,13 +45,7 @@ var expectedColumns = []struct{ table, column string }{
 	// tenants
 	{"tenants", "company_name"},
 	{"tenants", "email"},
-	{"tenants", "epr_registration_number"},
-	{"tenants", "bis_r_number"},
-	{"tenants", "iec_code"},
-	{"tenants", "eu_authorized_representative_name"},
 	{"tenants", "manufacturer_code"},
-	{"tenants", "morth_manufacturer_code"},
-	{"tenants", "morth_factory_codes"},
 	{"tenants", "data_visibility"},
 	{"tenants", "oauth_provider"},
 	{"tenants", "oauth_provider_id"},
@@ -63,21 +56,6 @@ var expectedColumns = []struct{ table, column string }{
 	{"tenants", "product_type"},
 
 	// product profiles
-	{"battery_tenant_profiles", "tenant_id"},
-	{"battery_tenant_profiles", "epr_registration_number"},
-	{"battery_tenant_profiles", "bis_r_number"},
-	{"battery_tenant_profiles", "iec_code"},
-	{"battery_tenant_profiles", "eu_authorized_representative_name"},
-	{"battery_tenant_profiles", "eu_authorized_representative_address"},
-	{"battery_tenant_profiles", "eu_contact_email"},
-	{"battery_tenant_profiles", "morth_manufacturer_code"},
-	{"battery_tenant_profiles", "morth_factory_codes"},
-	{"battery_tenant_profiles", "epr_certificate_path"},
-	{"battery_tenant_profiles", "bis_certificate_path"},
-	{"battery_tenant_profiles", "pli_certificate_path"},
-	{"battery_tenant_profiles", "epr_status"},
-	{"battery_tenant_profiles", "bis_status"},
-	{"battery_tenant_profiles", "pli_status"},
 	{"textile_tenant_profiles", "tenant_id"},
 	{"textile_tenant_profiles", "facility_type"},
 	{"textile_tenant_profiles", "supply_chain_tier"},
@@ -109,11 +87,6 @@ var expectedColumns = []struct{ table, column string }{
 	{"passports", "serial_number"},
 	{"passports", "product_type"},
 	{"passports", "status"},
-	{"passports", "cycle_count"},
-	{"passports", "last_temperature"},
-	{"passports", "last_voltage"},
-	{"passports", "thermal_event_count"},
-	{"passports", "last_telemetry_at"},
 
 	// passport_events
 	{"passport_events", "passport_id"},

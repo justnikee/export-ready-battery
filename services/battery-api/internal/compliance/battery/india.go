@@ -4,11 +4,14 @@
 package battery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
 // Regulatory reference strings used in Gap objects for India market.
@@ -32,10 +35,59 @@ const indiaBaseCheckpoints = 8
 // and MoRTH manufacturer registration.
 //
 // Implements compliance.Validator and compliance.BatchValidator.
-type IndiaValidator struct{}
+type IndiaValidator struct {
+	repo repository.RepositoryInterface
+}
 
 // NewIndiaValidator returns a ready-to-use IndiaValidator.
 func NewIndiaValidator() *IndiaValidator { return &IndiaValidator{} }
+
+// WithRepository injects a repository so the validator can query active
+// compliance rules from the database. Falls back to hard-coded defaults
+// if the repository is nil or the rules table is empty.
+func (v *IndiaValidator) WithRepository(repo repository.RepositoryInterface) *IndiaValidator {
+	v.repo = repo
+	return v
+}
+
+// indiaThresholds holds India-specific regulatory thresholds.
+type indiaThresholds struct {
+	PLIDVAMin          float64
+	RecycledContentMin float64
+}
+
+// hardCodedIndiaThresholds returns default thresholds when DB rules are unavailable.
+func hardCodedIndiaThresholds() indiaThresholds {
+	return indiaThresholds{PLIDVAMin: 50.0, RecycledContentMin: 5.0}
+}
+
+// getIndiaThresholds queries the database for active India compliance rules.
+func (v *IndiaValidator) getIndiaThresholds(ctx context.Context) indiaThresholds {
+	if v.repo == nil {
+		return hardCodedIndiaThresholds()
+	}
+	rules, err := v.repo.GetActiveComplianceRules(ctx, "battery", "india")
+	if err != nil {
+		slog.Warn("compliance: failed to load India compliance rules, using defaults", "error", err)
+		return hardCodedIndiaThresholds()
+	}
+	if len(rules) == 0 {
+		return hardCodedIndiaThresholds()
+	}
+	t := hardCodedIndiaThresholds()
+	for _, r := range rules {
+		if r.ThresholdValue == nil {
+			continue
+		}
+		switch r.RuleKey {
+		case "pli_dva_min_pct":
+			t.PLIDVAMin = *r.ThresholdValue
+		case "recycled_content_min_pct":
+			t.RecycledContentMin = *r.ThresholdValue
+		}
+	}
+	return t
+}
 
 // Validate implements compliance.Validator.
 // It unmarshals specs into a Batch's Spec field and delegates to ValidateBatch
@@ -140,9 +192,11 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// PLI claim validation — DVA must be ≥50% to be eligible
 	// ----------------------------------------------------------------
 
-	if batch.PLICompliant && batch.DomesticValueAdd < 50 {
+	thresholds := v.getIndiaThresholds(context.Background())
+
+	if batch.PLICompliant && batch.DomesticValueAdd < thresholds.PLIDVAMin {
 		addError("batch.domestic_value_add",
-			fmt.Sprintf("PLI claim invalid: domestic_value_add %.1f%% is below the mandatory 50%% threshold", batch.DomesticValueAdd),
+			fmt.Sprintf("PLI claim invalid: domestic_value_add %.1f%% is below the mandatory %.0f%% threshold", batch.DomesticValueAdd, thresholds.PLIDVAMin),
 			indiaPLIRef)
 	}
 
@@ -199,6 +253,9 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	return compliance.Result{
 		Valid:    criticalFailures == 0,
 		Score:    score,
+		PerMarket: map[string]compliance.MarketScore{
+			indiaMarket: {Score: score, Valid: criticalFailures == 0, Gaps: gaps},
+		},
 		Missing:  missing,
 		Errors:   errors,
 		Warnings: warnings,

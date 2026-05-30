@@ -10,8 +10,10 @@ import { LoadingBar } from "@/components/ui/loading-bar";
 import { useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { productRoutes, stripProductPrefix } from "@/lib/routes";
-import { productTypeToSlug } from "@/lib/products";
+import { productRoutes } from "@/lib/routes";
+
+// Stable path constants — textile-only app uses flat routes
+const LOGIN_PATH = "/login";
 
 function LoadingBarWrapper() {
   return (
@@ -28,46 +30,23 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const sidebar = useSidebarState();
-  const actualProductSlug = pathname.startsWith("/textile")
-    ? "textile"
-    : pathname.startsWith("/battery")
-      ? "battery"
-      : null;
 
-  // Derive product prefix from URL so this layout works under both
-  // /battery/(dashboard)/* and /textile/(dashboard)/* without hardcoding.
-  const productPrefix = pathname.startsWith("/textile")
-    ? "/textile"
-    : "/battery";
-
-  // Protected route guard: authenticated users must stay inside their own
-  // product URL space even if a stale cookie points at the wrong prefix.
+  // Protected route guard: redirect to onboarding if profile is incomplete.
   useEffect(() => {
-    if (!loading && user) {
-      const expectedProductSlug = productTypeToSlug(user.product_type);
-
-      if (actualProductSlug && actualProductSlug !== expectedProductSlug) {
-        const correctedPath = `/${expectedProductSlug}${stripProductPrefix(pathname)}`;
-        const redirectTo = search ? `${correctedPath}?${search}` : correctedPath;
-        router.replace(redirectTo);
-        return;
-      }
-
-      if (!user.onboarding_completed) {
-        router.push(productRoutes(user.product_type).onboarding);
-      }
+    if (!loading && user && !user.onboarding_completed) {
+      router.push(productRoutes(user.product_type).onboarding);
     }
-  }, [actualProductSlug, loading, pathname, router, search, user]);
+  }, [loading, router, user]);
 
   // Redirect unauthenticated users to login with return path
   useEffect(() => {
     if (!loading && !user) {
       const redirectTo = search ? `${pathname}?${search}` : pathname;
       router.replace(
-        `${productPrefix}/login?redirect=${encodeURIComponent(redirectTo)}`,
+        `${LOGIN_PATH}?redirect=${encodeURIComponent(redirectTo)}`,
       );
     }
-  }, [loading, user, router, pathname, search, productPrefix]);
+  }, [loading, user, router, pathname, search]);
 
   if (loading) {
     return (

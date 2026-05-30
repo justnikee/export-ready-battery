@@ -18,11 +18,8 @@ import (
 )
 
 // ValidDocumentTypes for upload
-var ValidDocumentTypes = map[string]string{
-	"epr": "epr_certificate_path",
-	"bis": "bis_certificate_path",
-	"pli": "pli_certificate_path",
-}
+// Textile products do not use battery-specific certificates (EPR, BIS, PLI).
+var ValidDocumentTypes = map[string]string{}
 
 const (
 	MaxUploadSize = 5 << 20 // 5MB
@@ -53,7 +50,7 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	// Get document type
 	documentType := strings.ToLower(r.FormValue("document_type"))
 	if _, valid := ValidDocumentTypes[documentType]; !valid {
-		respondError(w, http.StatusBadRequest, "Invalid document_type. Must be 'epr', 'bis', or 'pli'")
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("document upload for type %s is not supported for textile products", documentType))
 		return
 	}
 
@@ -129,7 +126,7 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 	// Get document type from path
 	documentType := strings.ToLower(r.PathValue("type"))
 	if _, valid := ValidDocumentTypes[documentType]; !valid {
-		respondError(w, http.StatusBadRequest, "Invalid document type. Must be 'epr', 'bis', or 'pli'")
+		respondError(w, http.StatusBadRequest, fmt.Sprintf("document upload for type %s is not supported for textile products", documentType))
 		return
 	}
 

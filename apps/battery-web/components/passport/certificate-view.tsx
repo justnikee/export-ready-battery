@@ -17,9 +17,11 @@ import {
   Mail,
   Wrench,
   Replace,
+  ExternalLink,
 } from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n/i18n";
 import { resolvePassportTemplateConfig } from "@/lib/passport-template-config";
+import { TrustBadge, type TrustTier } from "./trust-badge";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -216,8 +218,6 @@ export interface PassportViewData {
     // Backend sends 'support_email', not 'manufacturer_email'
     support_email?: string;
     manufacturer_email?: string;
-    textile_facility_type?: string;
-    textile_supply_chain_tier?: string;
     epr_registration_number?: string;
     bis_r_number?: string;
     bis_certificate_path?: string;
@@ -247,11 +247,19 @@ export interface PassportViewData {
   customs_date?: string;
   product_type?: string;
   template_variant?: string;
+  // EU Battery Regulation 2023/1542 compliance fields
+  battery_passport_id?: string;
+  ce_marking?: boolean;
+  carbon_performance_class?: string;
+  removable_and_replaceable?: boolean;
+  notified_body_number?: string;
+  declaration_of_conformity_path?: string;
 }
 
 interface CertificateViewProps {
   passport: PassportViewData;
   locale?: Locale;
+  trustTier?: TrustTier;
 }
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -259,6 +267,7 @@ interface CertificateViewProps {
 export function CertificateView({
   passport: passportData,
   locale = "en",
+  trustTier = "SELF_DECLARED",
 }: CertificateViewProps) {
   const t = createTranslator(locale);
 
@@ -345,6 +354,20 @@ export function CertificateView({
   const showEURepresentative =
     euRepresentativeName || euRepresentativeAddress || euRepresentativeEmail;
 
+  // EU Battery Regulation compliance fields
+  const batteryPassportID = passportData.battery_passport_id || null;
+  const ceMarking = passportData.ce_marking ?? false;
+  const carbonPerformanceClass = passportData.carbon_performance_class || null;
+  const removableAndReplaceable = passportData.removable_and_replaceable ?? false;
+  const notifiedBodyNumber = passportData.notified_body_number || null;
+  const declarationOfConformityPath = passportData.declaration_of_conformity_path || null;
+  const hasEUCompliance =
+    ceMarking ||
+    carbonPerformanceClass ||
+    removableAndReplaceable ||
+    notifiedBodyNumber ||
+    declarationOfConformityPath;
+
   // Critical raw materials
   const crm = specs?.material_composition;
 
@@ -394,8 +417,7 @@ export function CertificateView({
   // Market
   const isIndia = marketRegion?.toUpperCase() === "INDIA";
   const isImported = cellSource?.toUpperCase() === "IMPORTED";
-  const productType = passportData.product_type ||
-    (passportData.template_variant?.toUpperCase().startsWith("TEXTILE") ? "TEXTILE" : "BATTERY");
+  const productType = passportData.product_type || "BATTERY";
   const templateConfig = resolvePassportTemplateConfig({
     templateVariant: passportData.template_variant,
     productType,
@@ -462,6 +484,7 @@ export function CertificateView({
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 text-emerald-400 text-xs font-medium">
             {productBadge} {productType}
           </span>
+          <TrustBadge tier={trustTier} size="sm" />
           <span className="flex items-center gap-1.5">
             <Barcode className="w-4 h-4" /> {model}
           </span>
@@ -500,6 +523,13 @@ export function CertificateView({
           <div className="space-y-0">
             <DataRow label={t("label_model")} value={model} />
             <DataRow label={t("label_serial")} value={serialNumber} mono />
+            {batteryPassportID && (
+              <DataRow
+                label={t("label_battery_passport_id")}
+                value={batteryPassportID}
+                mono
+              />
+            )}
             <DataRow
               label={t("label_manufactured")}
               value={
@@ -665,12 +695,6 @@ export function CertificateView({
                 value={carbonFootprint}
               />
             )}
-            {productType === "TEXTILE" && carbonFootprint && (
-              <DataRow
-                label="Carbon Footprint"
-                value={`${carbonFootprint} kgCO2e/kg`}
-              />
-            )}
             {isBatteryStandard && (
               <DataRow label={t("label_hazardous")} value={hazardousSubs} />
             )}
@@ -692,90 +716,46 @@ export function CertificateView({
                 }
               />
             )}
-            {templateConfig.showTextileCompliance && (
-              <>
-                {fiberComposition && (
-                  <div className="py-2 border-b border-border">
-                    <span className="text-muted-foreground text-sm block mb-2">
-                      Fiber Composition
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { label: "Cotton", pct: fiberComposition.cotton_pct },
-                        { label: "Polyester", pct: fiberComposition.polyester_pct },
-                        { label: "Wool", pct: fiberComposition.wool_pct },
-                        { label: "Silk", pct: fiberComposition.silk_pct },
-                        { label: "Linen", pct: fiberComposition.linen_pct },
-                        { label: "Viscose", pct: fiberComposition.viscose_pct },
-                        { label: "Nylon", pct: fiberComposition.nylon_pct },
-                        { label: "Acrylic", pct: fiberComposition.acrylic_pct },
-                        { label: "Hemp", pct: fiberComposition.hemp_pct },
-                        { label: "Other", pct: fiberComposition.other_pct },
-                      ]
-                        .filter((f) => f.pct != null && f.pct > 0)
-                        .map((f) => {
-                          const pct = f.pct ?? 0;
-                          return (
-                            <div key={f.label} className="flex items-center gap-2">
-                              <span className="text-foreground text-xs w-16 shrink-0">
-                                {f.label}
-                              </span>
-                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-cyan-500 rounded-full"
-                                  style={{ width: `${Math.min(100, pct)}%` }}
-                                />
-                              </div>
-                              <span className="text-foreground text-xs w-8 text-right">
-                                {pct}%
-                              </span>
-                            </div>
-                          );
-                        })}
+            {hasEUCompliance && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
+                  EU Battery Regulation
+                </p>
+                <div className="space-y-0">
+                  <DataRow
+                    label={t("label_ce_marking")}
+                    value={ceMarking ? "✅ Yes" : "No"}
+                  />
+                  <DataRow
+                    label={t("label_carbon_class")}
+                    value={carbonPerformanceClass}
+                  />
+                  <DataRow
+                    label={t("label_removable")}
+                    value={removableAndReplaceable ? "✅ Yes" : "No"}
+                  />
+                  <DataRow
+                    label={t("label_notified_body")}
+                    value={notifiedBodyNumber}
+                  />
+                  {declarationOfConformityPath && (
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="text-muted-foreground text-xs">
+                        {t("label_declaration")}
+                      </span>
+                      <a
+                        href={declarationOfConformityPath}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-500 hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View Document
+                      </a>
                     </div>
-                  </div>
-                )}
-                <DataRow label="GSM" value={gsm} />
-                <DataRow
-                  label="Dye Process & Finish"
-                  value={
-                    dyeProcess || finishType.length > 0
-                      ? [dyeProcess, finishType.join(", ")].filter(Boolean).join(" | ")
-                      : null
-                  }
-                />
-                <DataRow
-                  label="Water Usage"
-                  value={waterUsage != null ? `${waterUsage} L` : null}
-                />
-                <DataRow
-                  label="Energy Usage"
-                  value={energyUsage != null ? `${energyUsage} kWh` : null}
-                />
-                <DataRow
-                  label="Biodegradable"
-                  value={biodegradablePct != null ? `${biodegradablePct}%` : null}
-                />
-                <DataRow
-                  label="Expected Lifetime"
-                  value={
-                    expectedLifetimeWashes != null
-                      ? `${expectedLifetimeWashes} washes`
-                      : null
-                  }
-                />
-                <DataRow
-                  label="Recycled Content"
-                  value={recycledContentPct != null ? `${recycledContentPct}%` : null}
-                />
-                <DataRow label="Material Profile" value={materialProfile} />
-                <DataRow label="Country of Origin" value={countryOfOrigin} />
-                <DataRow label="Hazardous Substances" value={hazardousSubs} />
-                <DataRow
-                  label="Certifications"
-                  value={certifications.join(", ") || null}
-                />
-              </>
+                  )}
+                </div>
+              </div>
             )}
             {supplierTier && (
               <div className="pt-3 border-t border-border">
@@ -1054,23 +1034,7 @@ export function CertificateView({
               </div>
             )}
 
-            {templateConfig.showTextileProfile && (
-              <div className="pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
-                  Textile Profile
-                </p>
-                <div className="space-y-0">
-                  <DataRow
-                    label="Facility Type"
-                    value={tenant.textile_facility_type}
-                  />
-                  <DataRow
-                    label="Supply Chain Tier"
-                    value={tenant.textile_supply_chain_tier}
-                  />
-                </div>
-              </div>
-            )}
+
 
             {/* EU Representative */}
             {showEURepresentative && (

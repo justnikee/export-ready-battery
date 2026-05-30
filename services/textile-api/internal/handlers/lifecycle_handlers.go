@@ -634,12 +634,6 @@ type TransferPassportRequest struct {
 	NewOwnerID uuid.UUID `json:"new_owner_id"`
 }
 
-// SOHUpdateRequest represents a state-of-health update request
-type SOHUpdateRequest struct {
-	StateOfHealth float64 `json:"state_of_health"`
-	Actor         string  `json:"actor,omitempty"`
-}
-
 type RepairEventRequest struct {
 	RepairDate        string `json:"repair_date"`
 	TechnicianID      string `json:"technician_id"`
@@ -815,63 +809,6 @@ func (h *LifecycleHandler) VerifyAuditChain(w http.ResponseWriter, r *http.Reque
 			"message":         "CHAIN BROKEN - possible tampering detected",
 		})
 	}
-}
-
-// UpdateStateOfHealth handles POST /api/v1/passports/{uuid}/soh
-func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Request) {
-	passportID, ok := h.requireOwnedPassportID(w, r)
-	if !ok {
-		return
-	}
-
-	var req SOHUpdateRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	actor := req.Actor
-	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
-	}
-
-	if err := h.service.UpdateStateOfHealth(r.Context(), passportID, req.StateOfHealth, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {
-		respondError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"success":         true,
-		"passport_id":     passportID,
-		"state_of_health": req.StateOfHealth,
-	})
-}
-
-// GetSoHHistory handles GET /api/v1/passports/{uuid}/soh/history
-func (h *LifecycleHandler) GetSoHHistory(w http.ResponseWriter, r *http.Request) {
-	passportID, ok := h.requireOwnedPassportID(w, r)
-	if !ok {
-		return
-	}
-
-	entries, err := h.service.GetSoHHistory(r.Context(), passportID)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to retrieve SoH history")
-		return
-	}
-	if entries == nil {
-		entries = []models.SoHHistoryEntry{}
-	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"passport_id": passportID,
-		"history":     entries,
-		"count":       len(entries),
-	})
 }
 
 // ============================================================================

@@ -100,3 +100,8 @@ apps/marketing-web/ss.js
 
 # MaxMind GeoIP databases (large binaries)
 *.mmdb
+
+# Uploaded files
+services/battery-api/uploads/
+services/textile-api/uploads/
+services/battery-api/internal/handlers/uploads/

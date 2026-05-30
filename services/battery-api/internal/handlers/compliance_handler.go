@@ -24,6 +24,34 @@ type complianceCheckRequest struct {
 	Specs        json.RawMessage `json:"specs"`
 }
 
+// ListComplianceRules handles GET /api/v1/compliance/rules
+// Returns active compliance rules for a product type and market region.
+// Query params: product_type (default: battery), market_region (default: eu)
+func (h *Handler) ListComplianceRules(w http.ResponseWriter, r *http.Request) {
+	pt := r.URL.Query().Get("product_type")
+	if pt == "" {
+		pt = "battery"
+	}
+	mr := r.URL.Query().Get("market_region")
+	if mr == "" {
+		mr = "eu"
+	}
+
+	rules, err := h.repo.GetActiveComplianceRules(r.Context(), pt, mr)
+	if err != nil {
+		slog.Error("Failed to list compliance rules", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve compliance rules")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"product_type":  pt,
+		"market_region": mr,
+		"rules":         rules,
+		"count":         len(rules),
+	})
+}
+
 // ComplianceCheck handles POST /api/v1/compliance/check
 // Performs a dry-run compliance check without saving anything. The frontend
 // calls this in real-time as users fill in batch data to show a live compliance

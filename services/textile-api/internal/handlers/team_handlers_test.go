@@ -136,7 +136,6 @@ func (f *fakeTeamRepo) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenant
 func (f *fakeTeamRepo) SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error { return nil }
 func (f *fakeTeamRepo) GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error) { return "", nil }
 func (f *fakeTeamRepo) GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error) { return uuid.Nil, nil }
-func (f *fakeTeamRepo) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error { return nil }
 func (f *fakeTeamRepo) UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error { return nil }
 
 func (f *fakeTeamRepo) GetActiveSchema(ctx context.Context, productType models.ProductType) (*models.ProductSchema, error) { return nil, nil }
@@ -193,9 +192,6 @@ func (f *fakeTeamRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UU
 func (f *fakeTeamRepo) AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error { return nil }
 func (f *fakeTeamRepo) AppendGeolocationHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error { return nil }
 func (f *fakeTeamRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error) { return nil, nil }
-func (f *fakeTeamRepo) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error { return nil }
-func (f *fakeTeamRepo) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error { return nil }
-func (f *fakeTeamRepo) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) { return nil, nil }
 func (f *fakeTeamRepo) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error { return nil }
 
 func (f *fakeTeamRepo) CreateRewardEntry(ctx context.Context, entry *models.RewardLedger) error { return nil }
@@ -262,6 +258,19 @@ func (f *fakeTeamRepo) InsertPassportDocument(ctx context.Context, doc *reposito
 func (f *fakeTeamRepo) GetPassportDocument(ctx context.Context, id, tenantID uuid.UUID) (*repository.PassportDocument, error) { return nil, nil }
 func (f *fakeTeamRepo) LinkDocumentToEvent(ctx context.Context, docID, eventID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) ListPassportDocuments(ctx context.Context, passportID, tenantID uuid.UUID) ([]*repository.PassportDocument, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateTallyImportLog(ctx context.Context, log *repository.TallyImportLog) error { return nil }
+func (f *fakeTeamRepo) GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*repository.TallyImportLog, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) UpsertTallySyncConfig(ctx context.Context, cfg *repository.TallySyncConfig) error { return nil }
+func (f *fakeTeamRepo) GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*repository.TallySyncConfig, error) { return nil, nil }
+func (f *fakeTeamRepo) ListEnabledTallySyncConfigs(ctx context.Context) ([]*repository.TallySyncConfig, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error { return nil }
+func (f *fakeTeamRepo) CreateTallySyncStaging(ctx context.Context, item *repository.TallySyncStaging) error { return nil }
+func (f *fakeTeamRepo) GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*repository.TallySyncStaging, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*repository.TallySyncStaging, error) { return nil, nil }
+func (f *fakeTeamRepo) ApplyTallySyncStaging(ctx context.Context, id, tenantID, lotID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) CreateTallySyncRun(ctx context.Context, run *repository.TallySyncRun) error { return nil }
+func (f *fakeTeamRepo) UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error { return nil }
 
 // ============================================================================
 // TEST HELPERS

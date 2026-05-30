@@ -77,6 +77,10 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch component tree for BOM embedding in passport snapshot (EU Art 77)
+	componentTree, _ := h.repo.GetComponentTreeByBatch(r.Context(), batchID, tenantID)
+	batch.Specs.Components = convertComponentTree(componentTree)
+
 	// Embed batch snapshot into each passport for auditability
 	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
 	if err != nil {
@@ -340,6 +344,10 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		respondError(w, http.StatusBadRequest, "Invalid manufacture_date format (expected YYYY-MM-DD)")
 		return
 	}
+
+	// Fetch component tree for BOM embedding in passport snapshot (EU Art 77)
+	componentTree, _ := h.repo.GetComponentTreeByBatch(r.Context(), batchID, tenantID)
+	batch.Specs.Components = convertComponentTree(componentTree)
 
 	// Build batch snapshot for auditability
 	snapshot, err := services.BuildBatchSnapshot(batch, tenant)

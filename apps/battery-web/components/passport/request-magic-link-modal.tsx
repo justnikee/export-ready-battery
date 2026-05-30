@@ -131,7 +131,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  {step === "success" && t("modal_success_title")}
  {step === "error" && t("modal_error_title")}
  </h2>
- <button onClick={onClose} className="text-muted-foreground hover:text-white">
+ <button aria-label="Close modal" onClick={onClose} className="text-muted-foreground hover:text-white">
  <X className="h-5 w-5" />
  </button>
  </div>

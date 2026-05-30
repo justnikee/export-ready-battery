@@ -64,8 +64,6 @@ export default function PublicPassportPage() {
               manufacture_date: data.manufacture_date,
               created_at: data.created_at,
               status: data.status,
-              state_of_health: data.state_of_health,
-              last_soh_update_timestamp: data.last_soh_update_timestamp,
               // Partner-tier fields (only present with access_token)
               ownership_history: data.ownership_history,
               repair_events: data.repair_events,
@@ -82,9 +80,6 @@ export default function PublicPassportPage() {
             manufacturing_start_date: data.manufacturing_start_date,
             manufacturing_end_date: data.manufacturing_end_date,
             market_region: data.market_region,
-            domestic_value_add: data.domestic_value_add,
-            cell_source: data.cell_source,
-            pli_compliant: data.pli_compliant,
             hsn_code: data.hsn_code,
             bill_of_entry_no: data.bill_of_entry_no,
             country_of_origin: data.country_of_origin,

@@ -17,6 +17,7 @@ import (
 	battery "github.com/anvayalabs/battery-api/internal/compliance/battery"
 	"github.com/anvayalabs/battery-api/internal/events"
 	"github.com/anvayalabs/battery-api/internal/handlers"
+	"github.com/anvayalabs/battery-api/internal/integrations/tally"
 	"github.com/anvayalabs/battery-api/internal/jobs"
 	"github.com/anvayalabs/battery-api/internal/logger"
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -50,8 +51,14 @@ func main() {
 	// Start background anchor upgrade ticker (every 30 minutes)
 	jobs.StartAnchorUpgradeTicker(repo, 30*time.Minute)
 
+	// Start Tally ERP live sync ticker (every 5 minutes)
+	tally.StartSyncTicker(repo, 5*time.Minute)
+
+	// Initialize alert service (shared across handlers and background jobs)
+	alertService := services.NewAlertService(repo, authEmailService)
+
 	// Start background daily alert ticker (every 24 hours)
-	jobs.StartDailyAlertTicker(repo, authEmailService, 24*time.Hour)
+	jobs.StartDailyAlertTicker(alertService, 24*time.Hour)
 
 	// Initialize data access service
 	dataAccessService := services.NewDataAccessService(repo)
@@ -89,6 +96,9 @@ func main() {
 	// =========================================================================
 	// Initialize handlers
 	// =========================================================================
+	// Initialize registry verification service
+	registryVerificationService := services.NewRegistryVerificationService(repo)
+
 	h := handlers.New(
 		database, cfg.BaseURL, "assets/GeoLite2-City.mmdb",
 		cfg.RazorpayKeyID, cfg.RazorpayKeySecret,
@@ -96,6 +106,9 @@ func main() {
 		handlers.WithBatchService(batchService),
 		handlers.WithPassportService(passportService),
 		handlers.WithEventBus(eventBus),
+		handlers.WithAuthService(authService),
+		handlers.WithAlertService(alertService),
+		handlers.WithRegistryVerificationService(registryVerificationService),
 	)
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
 
@@ -168,7 +181,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Health check endpoint (public)
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -190,7 +203,9 @@ func main() {
 		}
 
 		_ = json.NewEncoder(w).Encode(response)
-	})
+	}
+	mux.HandleFunc("GET /health", healthHandler)
+	mux.HandleFunc("GET /api/v1/health", healthHandler)
 
 	// ============================================
 	// API DOCUMENTATION (Public)
@@ -275,6 +290,7 @@ func main() {
 	// COMPLIANCE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/compliance/check", authMiddleware.Protect(http.HandlerFunc(h.ComplianceCheck)))
+	mux.Handle("GET /api/v1/compliance/rules", authMiddleware.Protect(http.HandlerFunc(h.ListComplianceRules)))
 
 	// ============================================
 	// BATCH ROUTES (Protected)
@@ -303,6 +319,52 @@ func main() {
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(http.HandlerFunc(h.ArchiveBatch)))
 	mux.Handle("DELETE /api/v1/batches/{id}/draft", authMiddleware.Protect(http.HandlerFunc(h.DeleteDraftBatch)))
+
+	// ============================================
+	// COMPONENT / BOM ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/batches/{batch_id}/components", authMiddleware.Protect(http.HandlerFunc(h.ListComponentsByBatch)))
+	mux.Handle("GET /api/v1/batches/{batch_id}/components/tree", authMiddleware.Protect(http.HandlerFunc(h.GetComponentTreeByBatch)))
+	mux.Handle("POST /api/v1/batches/{batch_id}/components", authMiddleware.Protect(http.HandlerFunc(h.CreateComponent)))
+	mux.Handle("GET /api/v1/components/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetComponent)))
+	mux.Handle("PUT /api/v1/components/{id}", authMiddleware.Protect(http.HandlerFunc(h.UpdateComponent)))
+	mux.Handle("DELETE /api/v1/components/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteComponent)))
+
+	// ============================================
+	// DGFT EXPORT INCENTIVE CLAIM ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/dgft-claims/schemes", authMiddleware.Protect(http.HandlerFunc(h.ListDGFTSchemeConfigs)))
+	mux.Handle("POST /api/v1/dgft-claims", authMiddleware.Protect(http.HandlerFunc(h.CreateDGFTClaim)))
+	mux.Handle("GET /api/v1/dgft-claims", authMiddleware.Protect(http.HandlerFunc(h.ListDGFTClaims)))
+	mux.Handle("GET /api/v1/dgft-claims/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetDGFTClaim)))
+	mux.Handle("PUT /api/v1/dgft-claims/{id}", authMiddleware.Protect(http.HandlerFunc(h.UpdateDGFTClaim)))
+	mux.Handle("DELETE /api/v1/dgft-claims/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteDGFTClaim)))
+	mux.Handle("POST /api/v1/dgft-claims/{id}/submit", authMiddleware.Protect(http.HandlerFunc(h.SubmitDGFTClaim)))
+	mux.Handle("GET /api/v1/dgft-claims/{id}/export/pdf", authMiddleware.Protect(http.HandlerFunc(h.ExportClaimPDF)))
+	mux.Handle("GET /api/v1/dgft-claims/{id}/export/excel", authMiddleware.Protect(http.HandlerFunc(h.ExportClaimExcel)))
+	mux.Handle("POST /api/v1/dgft-claims/{id}/documents", authMiddleware.Protect(http.HandlerFunc(h.UploadDGFTClaimDocument)))
+
+	// SUPPLIER PORTAL ROUTES
+	// Tenant-scoped management
+	mux.Handle("POST /api/v1/suppliers/invitations", authMiddleware.Protect(http.HandlerFunc(h.InviteSupplier)))
+	mux.Handle("GET /api/v1/suppliers", authMiddleware.Protect(http.HandlerFunc(h.ListSuppliers)))
+	mux.Handle("PUT /api/v1/suppliers/{id}/status", authMiddleware.Protect(http.HandlerFunc(h.UpdateSupplierStatus)))
+	mux.Handle("GET /api/v1/supplier-documents", authMiddleware.Protect(http.HandlerFunc(h.ListTenantSupplierDocuments)))
+	mux.Handle("PUT /api/v1/supplier-documents/{id}/status", authMiddleware.Protect(http.HandlerFunc(h.ReviewSupplierDocument)))
+	// Supplier auth (no middleware)
+	mux.Handle("POST /api/v1/suppliers/accept", http.HandlerFunc(h.AcceptSupplierInvitation))
+	mux.Handle("POST /api/v1/supplier/login", http.HandlerFunc(h.SupplierLogin))
+	// Supplier-scoped actions (Protect validates any JWT; handler checks SupplierID)
+	mux.Handle("GET /api/v1/supplier/batches", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierBatches)))
+	mux.Handle("POST /api/v1/supplier/documents", authMiddleware.Protect(http.HandlerFunc(h.UploadSupplierDocument)))
+	mux.Handle("GET /api/v1/supplier/documents", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierDocuments)))
+
+	// ============================================
+	// REGISTRY VERIFICATION ROUTES (Protected)
+	// ============================================
+	mux.Handle("POST /api/v1/batches/{id}/verify-registry", authMiddleware.Protect(http.HandlerFunc(h.VerifyBatchRegistry)))
+	mux.Handle("GET /api/v1/batches/{id}/verifications", authMiddleware.Protect(http.HandlerFunc(h.GetBatchRegistryVerifications)))
+	mux.Handle("POST /api/v1/batches/{id}/auto-verify", authMiddleware.Protect(http.HandlerFunc(h.AutoVerifyBatchRegistry)))
 
 	// ============================================
 	// CERTIFICATE BLOCKCHAIN ANCHORS (Protected)
@@ -402,6 +464,11 @@ func main() {
 	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+
+	// ============================================
+	// ANALYTICS ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/analytics/overview", authMiddleware.Protect(http.HandlerFunc(h.GetAnalyticsOverview)))
 
 	// ============================================
 	// BILLING ROUTES (Protected)
@@ -516,6 +583,7 @@ func main() {
 	// ============================================
 	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
 	mux.Handle("POST /api/v1/passports/{uuid}/vc", authMiddleware.Protect(http.HandlerFunc(h.GenerateVCHandle)))
+	mux.Handle("GET /api/v1/did.json", http.HandlerFunc(h.GetDIDDocumentHandle))
 
 	// ============================================
 	// MAGIC LINK PASSPORT ROUTES (Token Authenticated)
@@ -582,13 +650,25 @@ func main() {
 	mux.Handle("GET /api/v1/external/batches/{id}/labels", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalDownloadLabels)))
 	mux.Handle("POST /api/v1/external/passports/{uuid}/transition", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalTransitionPassport)))
 
+	// Tally ERP integration
+	tallyHandler := tally.NewHandler(repo)
+	tallySyncHandler := tally.NewSyncHandler(repo)
+	mux.Handle("POST /api/v1/integrations/tally/import", authMiddleware.Protect(http.HandlerFunc(tallyHandler.Import)))
+	mux.Handle("GET /api/v1/integrations/tally/history", authMiddleware.Protect(http.HandlerFunc(tallyHandler.History)))
+	mux.Handle("GET /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetConfig)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.SaveConfig)))
+	mux.Handle("GET /api/v1/integrations/tally/staging", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/apply", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.ApplyStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/discard", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.DiscardStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-trigger", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.TriggerSync)))
+
 	// Build handler chain: SecurityHeaders → MaxBytesReader → RecoverPanic → RequestLogger → CORS → mux
 	// MaxBytesReader prevents trivial large-body DoS (10 MB limit)
 	const maxBodyBytes = 10 << 20 // 10 MB
-	handler := middleware.SecurityHeaders(middleware.RecoverPanic(middleware.RequestLogger(corsMiddleware(cfg.CORSOrigins)(mux))))
-	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	baseHandler := middleware.SecurityHeaders(middleware.RecoverPanic(middleware.RequestLogger(corsMiddleware(cfg.CORSOrigins)(mux))))
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-		handler.ServeHTTP(w, r)
+		baseHandler.ServeHTTP(w, r)
 	})
 
 	// Create HTTP server

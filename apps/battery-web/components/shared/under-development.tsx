@@ -30,12 +30,11 @@ export function UnderDevelopment({
         <div className="border border-border bg-card p-12 text-center">
           <Construction className="mx-auto mb-4 h-12 w-12 text-amber-500" />
           <h2 className="text-lg font-medium text-foreground">
-            Textile Integration In Progress
+            Under Development
           </h2>
           <p className="mt-2 text-sm text-muted-foreground max-w-lg mx-auto">
-            This section is being adapted for textile-specific workflows. Visit
-            the production lots or workspace settings while this area is under
-            development.
+            This section is currently under development. Return to the dashboard
+            or check back later for updates.
           </p>
           <div className="mt-6">
             <Link

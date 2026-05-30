@@ -34,6 +34,12 @@ type ExternalCreateBatchRequest struct {
 	CustomsDate            string           `json:"customs_date,omitempty"`
 	ManufacturingStartDate string           `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   string           `json:"manufacturing_end_date,omitempty"`
+	// EU Battery Regulation 2023/1542 compliance fields
+	CEMarking                   bool   `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
 }
 
 // ExternalCreatePassportsRequest is the request for adding passports via external API
@@ -129,16 +135,21 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 
 	// Create batch using repository request struct
 	createReq := repository.CreateBatchRequest{
-		TenantID:               tenantID,
-		BatchName:              req.BatchName,
-		ModelName:              req.ModelName,
-		Specs:                  req.Specs,
-		MarketRegion:           marketRegion,
-		ProductType:            models.ProductType(req.ProductType),
-		PLICompliant:           req.PLICompliant,
-		DomesticValueAdd:       req.DomesticValueAdd,
-		ManufacturingStartDate: manufacturingStart,
-		ManufacturingEndDate:   manufacturingEnd,
+		TenantID:                    tenantID,
+		BatchName:                   req.BatchName,
+		ModelName:                   req.ModelName,
+		Specs:                       req.Specs,
+		MarketRegion:                marketRegion,
+		ProductType:                 models.ProductType(req.ProductType),
+		PLICompliant:                req.PLICompliant,
+		DomesticValueAdd:            req.DomesticValueAdd,
+		ManufacturingStartDate:      manufacturingStart,
+		ManufacturingEndDate:        manufacturingEnd,
+		CEMarking:                   req.CEMarking,
+		CarbonPerformanceClass:      req.CarbonPerformanceClass,
+		RemovableAndReplaceable:     req.RemovableAndReplaceable,
+		NotifiedBodyNumber:          req.NotifiedBodyNumber,
+		DeclarationOfConformityPath: req.DeclarationOfConformityPath,
 	}
 
 	batch, err := h.repo.CreateBatch(r.Context(), createReq)
@@ -214,6 +225,10 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
+
+	// Fetch component tree for BOM embedding in passport snapshot (EU Art 77)
+	componentTree, _ := h.repo.GetComponentTreeByBatch(r.Context(), batchID, tenantID)
+	batch.Specs.Components = convertComponentTree(componentTree)
 
 	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
 	if err != nil {

@@ -12,7 +12,7 @@ const footerLinks = {
   ],
   company: [
     { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
+    { label: "Blog", href: "/" },
     { label: "Careers", href: "/careers" },
     { label: "Contact", href: "/contact" },
   ],
@@ -118,7 +118,7 @@ export function PublicFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
-            © 2026 AnvayaLabs. All rights reserved.
+            © {new Date().getFullYear()} AnvayaLabs. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">

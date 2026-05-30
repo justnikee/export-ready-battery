@@ -28,17 +28,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const sidebar = useSidebarState();
-  const actualProductSlug = pathname.startsWith("/textile")
-    ? "textile"
-    : pathname.startsWith("/battery")
-      ? "battery"
-      : null;
-
-  // Derive product prefix from URL so this layout works under both
-  // /battery/(dashboard)/* and /textile/(dashboard)/* without hardcoding.
-  const productPrefix = pathname.startsWith("/textile")
-    ? "/textile"
-    : "/battery";
+  const actualProductSlug = null;
+  const productPrefix = "";
 
   // Protected route guard: authenticated users must stay inside their own
   // product URL space even if a stale cookie points at the wrong prefix.
@@ -54,7 +45,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       }
 
       if (!user.onboarding_completed) {
-        router.push(productRoutes(user.product_type).onboarding);
+        router.push("/onboarding");
       }
     }
   }, [actualProductSlug, loading, pathname, router, search, user]);

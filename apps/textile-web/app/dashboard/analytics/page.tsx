@@ -1,8 +1,4 @@
-import { UnderDevelopment } from "@/components/shared/under-development";
-export default async function Page() {
-  return (<UnderDevelopment
-      pageTitle="Textile Analytics"
-      description="Traceability analytics for textile supply chains."
-    />
-  );
+import TextileAnalyticsPage from "@/components/analytics/textile-analytics-page";
+export default function Page() {
+  return <TextileAnalyticsPage />;
 }

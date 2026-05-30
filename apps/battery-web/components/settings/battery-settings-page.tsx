@@ -9,6 +9,7 @@ import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCh
 import { toast } from "sonner"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
+import SuppliersTab from "@/components/settings/suppliers-tab"
 
 // Document Upload Component with Verification Status
 function DocumentUpload({
@@ -56,7 +57,6 @@ function DocumentUpload({
  toast.success(`${label} certificate uploaded successfully`)
  onUploadSuccess()
  } catch (error: unknown) {
- console.error("Upload failed:", error)
  const apiError = error as { response?: { data?: { error?: string } } }
  toast.error(apiError.response?.data?.error || "Failed to upload certificate")
  } finally {
@@ -204,7 +204,6 @@ function LogoUpload({
  toast.success("Logo uploaded successfully")
  onUploadSuccess(response.data.logo_url)
  } catch (error: unknown) {
- console.error("Upload failed:", error)
  const apiError = error as { response?: { data?: { error?: string } } }
  toast.error(apiError.response?.data?.error || "Failed to upload logo")
  } finally {
@@ -253,7 +252,7 @@ export default function SettingsPage() {
  const [loading, setLoading] = useState(false)
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>(
+ const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers'>(
   (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens') || 'profile'
  )
 
@@ -331,7 +330,6 @@ export default function SettingsPage() {
  await refreshUser()
  setMessage({ type: 'success', text: "Organization profile updated successfully" })
  } catch (error) {
- console.error("Failed to update profile:", error)
  setMessage({ type: 'error', text: "Failed to update profile. Please try again." })
  } finally {
  setLoading(false)
@@ -359,6 +357,7 @@ export default function SettingsPage() {
  { id: 'compliance' as const, label: 'India Compliance' },
  { id: 'privacy' as const, label: 'Data Privacy' },
  { id: 'tokens' as const, label: 'API Tokens' },
+ { id: 'suppliers' as const, label: 'Suppliers' },
  ].map(tab => (
  <button
  key={tab.id}
@@ -791,6 +790,10 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'tokens' && (
  <DataAccessTokens />
+ )}
+
+ {activeSettingsTab === 'suppliers' && (
+ <SuppliersTab />
  )}
  </div>
  </div>

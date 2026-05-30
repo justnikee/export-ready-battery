@@ -47,15 +47,14 @@ func TestValidateHSNCode(t *testing.T) {
 		input     string
 		wantValid bool
 	}{
-		{"Valid battery HSN", "85076000", true},
-		{"Valid with dots (normalized)", "8507.60.00", true},
-		{"Valid with spaces (normalized)", "8507 6000", true},
+		{"Valid textile HSN (cotton fabric)", "52081110", true},
+		{"Valid battery HSN (still valid 8-digit)", "85076000", true},
+		{"Valid with dots (normalized)", "5208.11.10", true},
+		{"Valid with spaces (normalized)", "5208 1110", true},
 		{"Empty (required)", "", false},
-		{"Wrong prefix (not 8507)", "12340000", false},
-		{"Too short", "8507", false},
-		{"Too long", "850760001", false},
-		{"Non-numeric", "8507abcd", false},
-		{"Close but wrong: 8506 prefix", "85066000", false},
+		{"Too short", "5208", false},
+		{"Too long", "520811101", false},
+		{"Non-numeric", "5208abcd", false},
 	}
 
 	for _, tt := range tests {
@@ -230,7 +229,7 @@ func TestValidateDVASource(t *testing.T) {
 	}
 }
 
-func TestValidateBatteryChemistry(t *testing.T) {
+func TestValidateFiberType(t *testing.T) {
 	v := NewValidationService()
 
 	tests := []struct {
@@ -238,19 +237,19 @@ func TestValidateBatteryChemistry(t *testing.T) {
 		input     string
 		wantValid bool
 	}{
-		{"LFP", "LFP", true},
-		{"NMC", "NMC", true},
-		{"NCA", "NCA", true},
-		{"LTO", "LTO", true},
+		{"Cotton", "COTTON", true},
+		{"Polyester", "POLYESTER", true},
+		{"Nylon", "NYLON", true},
+		{"Wool", "WOOL", true},
 		{"Empty (required)", "", false},
-		{"Non-standard (still valid, just warning)", "CUSTOM", true},
+		{"Non-standard (still valid, just informational)", "HEMP_BLEND", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := v.ValidateBatteryChemistry(tt.input)
+			result := v.ValidateFiberType(tt.input)
 			if result.Valid != tt.wantValid {
-				t.Errorf("ValidateBatteryChemistry(%q) valid=%v, want %v (msg: %s)",
+				t.Errorf("ValidateFiberType(%q) valid=%v, want %v (msg: %s)",
 					tt.input, result.Valid, tt.wantValid, result.Message)
 			}
 		})
@@ -420,32 +419,32 @@ func TestValidateIndiaCompliance(t *testing.T) {
 	}{
 		{
 			"Fully compliant domestic",
-			"R-41001234", "B-29016/2024-25/CPCB", "85076000", "", "DOMESTIC", true, 65.0,
+			"R-41001234", "B-29016/2024-25/CPCB", "52081110", "", "DOMESTIC", true, 65.0,
 			true,
 		},
 		{
 			"Missing BIS (mandatory)",
-			"", "B-29016/2024-25/CPCB", "85076000", "", "DOMESTIC", false, 0,
+			"", "B-29016/2024-25/CPCB", "52081110", "", "DOMESTIC", false, 0,
 			false,
 		},
 		{
 			"Imported without IEC (mandatory)",
-			"R-41001234", "", "85076000", "", "IMPORTED", false, 0,
+			"R-41001234", "", "52081110", "", "IMPORTED", false, 0,
 			false,
 		},
 		{
 			"Imported with valid IEC",
-			"R-41001234", "", "85076000", "AAAPL1234C", "IMPORTED", false, 0,
+			"R-41001234", "", "52081110", "AAAPL1234C", "IMPORTED", false, 0,
 			true,
 		},
 		{
 			"Invalid HSN code",
-			"R-41001234", "", "12340000", "", "DOMESTIC", false, 0,
+			"R-41001234", "", "1234", "", "DOMESTIC", false, 0,
 			false,
 		},
 		{
 			"PLI with low DVA (warning only)",
-			"R-41001234", "", "85076000", "", "DOMESTIC", true, 30.0,
+			"R-41001234", "", "52081110", "", "DOMESTIC", true, 30.0,
 			true, // valid with warning
 		},
 	}
@@ -478,11 +477,11 @@ func TestValidateBatchCompliance(t *testing.T) {
 		isImported bool
 		wantErr    bool
 	}{
-		{"Valid HSN + not imported", "85076000", "", false, false},
-		{"Valid HSN + valid IEC imported", "85076000", "AAAPL1234C", true, false},
+		{"Valid HSN + not imported", "52081110", "", false, false},
+		{"Valid HSN + valid IEC imported", "52081110", "AAAPL1234C", true, false},
 		{"Missing HSN", "", "", false, true},
-		{"Imported without IEC", "85076000", "", true, true},
-		{"Imported with invalid IEC", "85076000", "INVALID", true, true},
+		{"Imported without IEC", "52081110", "", true, true},
+		{"Imported with invalid IEC", "52081110", "INVALID", true, true},
 	}
 
 	for _, tt := range tests {

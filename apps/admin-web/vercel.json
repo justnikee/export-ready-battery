@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@anvayalabs/admin-web...",
+  "outputDirectory": "out",
+  "framework": "nextjs",
+  "installCommand": "echo 'pnpm install handled in buildCommand'"
+}

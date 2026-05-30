@@ -1,4 +1,3 @@
-// TODO: big-bang split - textile branches were hardcoded to false; dead code should be removed in follow-up
 "use client";
 
 import {
@@ -33,12 +32,14 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { TelemetryChart } from "./telemetry-chart";
+import { TrustBadge, type TrustTier } from "./trust-badge";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type MarketRegion = "INDIA" | "EU" | "GLOBAL";
 
 interface PassportViewProps {
   passport: PassportViewData;
+  trustTier?: TrustTier;
 }
 
 interface PassportViewData {
@@ -629,11 +630,11 @@ function ProgressBar({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function PassportView({ passport }: PassportViewProps) {
+export function PassportView({ passport, trustTier = "SELF_DECLARED" }: PassportViewProps) {
   const specs = passport.specs || {};
   const passportData = passport.passport || {};
   const tenant = passport.tenant || {};
-  const isTextile = false;
+
   const batchName = passport.batch_name || ("Battery Passport");
   const modelName = passport.model_name || "";
   const status = passportData.status || "CREATED";
@@ -715,7 +716,7 @@ export function PassportView({ passport }: PassportViewProps) {
       icon: Factory,
     },
     {
-      label: isIndia && !isTextile ? "Aadhaar Issued" : "Passport Issued",
+      label: isIndia ? "Aadhaar Issued" : "Passport Issued",
       date: passportData.created_at
         ? new Date(passportData.created_at).toLocaleDateString(undefined, {
             month: "short",
@@ -771,9 +772,7 @@ export function PassportView({ passport }: PassportViewProps) {
           <div className="relative px-5 py-6 md:px-8 md:py-8">
             {/* Top row badges */}
             <div className="flex flex-wrap items-center gap-2 mb-5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30 text-emerald-400 text-xs ">
-                <BadgeCheck className="h-3.5 w-3.5" /> Verified
-              </span>
+              <TrustBadge tier={trustTier} />
               {marketRegion === "INDIA" && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/10 ring-1 ring-orange-500/30 text-orange-400 text-xs ">
                   {pliEligible ? "🇮🇳 PLI Eligible" : "🇮🇳 India"}
@@ -781,7 +780,7 @@ export function PassportView({ passport }: PassportViewProps) {
               )}
               {marketRegion === "EU" && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500/10 ring-1 ring-blue-500/30 text-blue-400 text-xs ">
-                  {isTextile ? "🇪🇺 EU Textile Passport" : "🇪🇺 EU Battery Passport"}
+                  {"🇪🇺 EU Battery Passport"}
                 </span>
               )}
               {isGlobal && (
@@ -831,7 +830,7 @@ export function PassportView({ passport }: PassportViewProps) {
               />
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground ">
-                  {isIndia && !isTextile ? "Battery Aadhaar (BPAN)" : "Passport Serial"}
+                  {isIndia ? "Battery Aadhaar (BPAN)" : "Passport Serial"}
                 </div>
                 <code
                   className={clsx(
@@ -867,60 +866,32 @@ export function PassportView({ passport }: PassportViewProps) {
         {/* Specs strip */}
         <Section>
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.04]">
-            {(isTextile
-              ? [
-                  {
-                    icon: Layers3,
-                    label: "Material",
-                    value: specs.material_profile || "—",
-                    accent: "text-cyan-400",
-                  },
-                  {
-                    icon: Weight,
-                    label: "GSM",
-                    value: specs.gsm ? `${specs.gsm}` : "—",
-                    accent: "text-emerald-400",
-                  },
-                  {
-                    icon: Palette,
-                    label: "Color",
-                    value: specs.color || "—",
-                    accent: "text-sky-400",
-                  },
-                  {
-                    icon: Weight,
-                    label: "Weight",
-                    value: specs.weight || "—",
-                    accent: "text-amber-400",
-                  },
-                ]
-              : [
-                  {
-                    icon: Atom,
-                    label: "Chemistry",
-                    value: specs.chemistry || "—",
-                    accent: "text-cyan-400",
-                  },
-                  {
-                    icon: Zap,
-                    label: "Capacity",
-                    value: specs.capacity || "—",
-                    accent: "text-emerald-400",
-                  },
-                  {
-                    icon: ThermometerSun,
-                    label: "Voltage",
-                    value: specs.voltage || "—",
-                    accent: "text-sky-400",
-                  },
-                  {
-                    icon: Weight,
-                    label: "Weight",
-                    value: specs.weight || "—",
-                    accent: "text-amber-400",
-                  },
-                ]
-            ).map((s, i) => (
+            {[
+              {
+                icon: Atom,
+                label: "Chemistry",
+                value: specs.chemistry || "—",
+                accent: "text-cyan-400",
+              },
+              {
+                icon: Zap,
+                label: "Capacity",
+                value: specs.capacity || "—",
+                accent: "text-emerald-400",
+              },
+              {
+                icon: ThermometerSun,
+                label: "Voltage",
+                value: specs.voltage || "—",
+                accent: "text-sky-400",
+              },
+              {
+                icon: Weight,
+                label: "Weight",
+                value: specs.weight || "—",
+                accent: "text-amber-400",
+              },
+            ].map((s, i) => (
               <div key={i} className="px-4 py-4 text-center">
                 <s.icon className={clsx("h-4 w-4 mx-auto mb-1.5", s.accent)} />
                 <div className={clsx("text-lg text-white")}>{s.value}</div>
@@ -1026,99 +997,8 @@ export function PassportView({ passport }: PassportViewProps) {
           </div>
         </div>
 
-        {/* Textile Compliance */}
-        {isTextile && (
-          <div className="px-5 pb-5 space-y-4">
-            {/* Certifications */}
-            {specs.certifications && specs.certifications.length > 0 && (
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">
-                  Certifications
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {specs.certifications.map((cert) => (
-                    <span
-                      key={cert}
-                      className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20"
-                    >
-                      {cert}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* ZDHC Compliance */}
-            {specs.chemical_compliance_zdhc && (
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-blue-400" />
-                  <div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                      ZDHC MRSL Compliance
-                    </div>
-                    <div className="text-white text-lg">
-                      Level {specs.chemical_compliance_zdhc.zdhc_level || "—"}
-                      {specs.chemical_compliance_zdhc.mrsl_tested && (
-                        <span className="text-emerald-400 text-sm ml-2">
-                          ✓ Tested
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Sustainability Metrics */}
-            <div className="grid grid-cols-2 gap-3">
-              {specs.water_usage_liters != null && (
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
-                    Water Usage
-                  </div>
-                  <div className="text-white font-medium">
-                    {specs.water_usage_liters} L/unit
-                  </div>
-                </div>
-              )}
-              {specs.energy_usage_kwh != null && (
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
-                    Energy Usage
-                  </div>
-                  <div className="text-white font-medium">
-                    {specs.energy_usage_kwh} kWh/unit
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Fiber Composition */}
-            {specs.fiber_composition && (
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">
-                  Fiber Composition
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(specs.fiber_composition).map(([fiber, pct]) => (
-                    pct != null && pct > 0 ? (
-                      <div
-                        key={fiber}
-                        className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] text-xs"
-                      >
-                        <span className="text-sky-400 capitalize">
-                          {fiber.replace("_pct", "")}
-                        </span>
-                        <span className="text-white">{pct}%</span>
-                      </div>
-                    ) : null
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* EU Compliance */}
-        {!isTextile && (complianceTab === "eu" || (!showBothTabs && isEU)) && (
+        {(complianceTab === "eu" || (!showBothTabs && isEU)) && (
           <div className="px-5 pb-5 space-y-4">
             {/* Carbon Footprint */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
@@ -1299,7 +1179,7 @@ export function PassportView({ passport }: PassportViewProps) {
         )}
 
         {/* India Compliance */}
-        {!isTextile && (complianceTab === "india" || (!showBothTabs && isIndia && !isEU)) && (
+        {(complianceTab === "india" || (!showBothTabs && isIndia && !isEU)) && (
           <div className="px-5 pb-5 space-y-4">
             {/* DVA Progress */}
             <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.05]">
@@ -1451,7 +1331,7 @@ export function PassportView({ passport }: PassportViewProps) {
       </Section>
 
       {/* ▓▓▓ INDIA RECYCLING INSTRUCTIONS ▓▓▓ */}
-      {isIndia && !isTextile && (
+      {isIndia && (
         <Section>
           <div className="px-5 py-5 flex flex-col md:flex-row items-center gap-5">
             <div className="shrink-0">
@@ -1586,23 +1466,17 @@ export function PassportView({ passport }: PassportViewProps) {
             </Link>
           </div>
           <div className="flex items-center gap-3">
-            {isEU && !isTextile && <CEMark className="h-5 text-foreground" />}
-            {isIndia && !isTextile && <BISMark />}
-            {!isTextile && (
-              <>
-                <span className="font-mono text-foreground">
-                  EPR: {eprNumber || "—"}
-                </span>
-                <span className="font-mono text-foreground">
-                  R-{bisNumber || "—"}
-                </span>
-              </>
-            )}
-            {isTextile && specs.certifications && specs.certifications.length > 0 && (
+            {isEU && <CEMark className="h-5 text-foreground" />}
+            {isIndia && <BISMark />}
+            <>
               <span className="font-mono text-foreground">
-                {specs.certifications.join(" • ")}
+                EPR: {eprNumber || "—"}
               </span>
-            )}
+              <span className="font-mono text-foreground">
+                R-{bisNumber || "—"}
+              </span>
+            </>
+
           </div>
         </div>
       </motion.div>

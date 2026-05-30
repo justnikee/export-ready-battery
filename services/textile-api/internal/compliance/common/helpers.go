@@ -12,21 +12,9 @@ import (
 // INDIA REGULATORY REGEX PATTERNS
 // ============================================================================
 
-// EPRNumberRegex matches CPCB EPR registration numbers.
-// Format: B-XXXXX/YYYY-YY/CPCB  e.g. B-29016/2024-25/CPCB
-var EPRNumberRegex = regexp.MustCompile(`^B-[0-9]{5}/[0-9]{4}-[0-9]{2}/CPCB$`)
-
-// BISRNumberRegex matches BIS R-Numbers (CRS IS 16046 certification).
-// Format: R-XXXXXXXX  e.g. R-41001234
-var BISRNumberRegex = regexp.MustCompile(`^R-[0-9]{8}$`)
-
 // IECCodeRegex matches Import-Exporter Codes (PAN-based format).
 // Format: 5 uppercase letters + 4 digits + 1 uppercase letter  e.g. AAAPL1234C
 var IECCodeRegex = regexp.MustCompile(`^[A-Z]{5}[0-9]{4}[A-Z]$`)
-
-// HSNBatteryRegex matches battery-specific HSN codes (Chapter 8507).
-// e.g. 85076000 (lithium-ion), 85077000 (lithium-metal)
-var HSNBatteryRegex = regexp.MustCompile(`^8507[0-9]{4}$`)
 
 // CountryCodeRegex matches ISO 3166-1 alpha-2 country codes.
 // e.g. IN, US, CN, DE
@@ -39,27 +27,9 @@ var MoRTHCodeRegex = regexp.MustCompile(`^[A-Z0-9]{4,10}$`)
 // VALIDATION HELPERS
 // ============================================================================
 
-// IsValidEPRNumber returns true if s matches the CPCB EPR registration format.
-func IsValidEPRNumber(s string) bool {
-	return EPRNumberRegex.MatchString(strings.ToUpper(strings.TrimSpace(s)))
-}
-
-// IsValidBISRNumber returns true if s matches the BIS R-Number format.
-func IsValidBISRNumber(s string) bool {
-	return BISRNumberRegex.MatchString(strings.ToUpper(strings.TrimSpace(s)))
-}
-
 // IsValidIECCode returns true if s matches the PAN-based IEC code format.
 func IsValidIECCode(s string) bool {
 	return IECCodeRegex.MatchString(strings.ToUpper(strings.TrimSpace(s)))
-}
-
-// IsValidHSNBattery returns true if s is a valid battery HSN code (8507XXXX).
-// Tolerates dots and spaces as separators (e.g. "8507.60.00").
-func IsValidHSNBattery(hsn string) bool {
-	hsn = strings.ReplaceAll(strings.TrimSpace(hsn), ".", "")
-	hsn = strings.ReplaceAll(hsn, " ", "")
-	return HSNBatteryRegex.MatchString(hsn)
 }
 
 // IsValidCountryCode returns true if s is a valid ISO alpha-2 country code.

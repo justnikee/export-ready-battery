@@ -19,25 +19,11 @@ const tenantSelectColumns = `
 	COALESCE(t.logo_url, ''),
 	COALESCE(t.support_email, ''),
 	COALESCE(t.website, ''),
-	COALESCE(t.product_type, 'BATTERY'),
+	COALESCE(t.product_type, 'TEXTILE'),
 	t.created_at,
 	COALESCE(t.quota_balance, 2),
-	COALESCE(bp.epr_registration_number, ''),
-	COALESCE(bp.bis_r_number, ''),
-	COALESCE(bp.iec_code, ''),
-	COALESCE(bp.eu_authorized_representative_name, ''),
-	COALESCE(bp.eu_authorized_representative_address, ''),
-	COALESCE(bp.eu_contact_email, ''),
-	COALESCE(bp.epr_certificate_path, ''),
-	COALESCE(bp.bis_certificate_path, ''),
-	COALESCE(bp.pli_certificate_path, ''),
-	COALESCE(bp.epr_status, 'NOT_UPLOADED'),
-	COALESCE(bp.bis_status, 'NOT_UPLOADED'),
-	COALESCE(bp.pli_status, 'NOT_UPLOADED'),
 	COALESCE(t.onboarding_completed, FALSE),
 	COALESCE(t.manufacturer_code, ''),
-	COALESCE(bp.morth_manufacturer_code, ''),
-	COALESCE(bp.morth_factory_codes, ''),
 	COALESCE(t.data_visibility, '{}'::jsonb),
 	COALESCE(tp.facility_type, ''),
 	COALESCE(tp.supply_chain_tier, ''),
@@ -49,7 +35,6 @@ const tenantSelectColumns = `
 
 const tenantProfileJoin = `
 	FROM public.tenants t
-	LEFT JOIN public.battery_tenant_profiles bp ON bp.tenant_id = t.id
 	LEFT JOIN public.textile_tenant_profiles tp ON tp.tenant_id = t.id
 `
 
@@ -152,7 +137,7 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 
 	var productType models.ProductType
 	err = tx.QueryRow(ctx,
-		`SELECT COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE id = $1 FOR UPDATE`,
+		`SELECT COALESCE(product_type, 'TEXTILE') FROM public.tenants WHERE id = $1 FOR UPDATE`,
 		id,
 	).Scan(&productType)
 	if err != nil {
@@ -281,41 +266,12 @@ func (r *Repository) GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (i
 
 // UpdateCertificatePath updates a specific certificate path for a tenant and sets status to PENDING
 func (r *Repository) UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error {
-	var query string
 	switch docType {
-	case "epr":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, epr_certificate_path, epr_status, updated_at)
-			VALUES ($1, $2, 'PENDING', NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				epr_certificate_path = EXCLUDED.epr_certificate_path,
-				epr_status = 'PENDING',
-				updated_at = NOW()`
-	case "bis":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, bis_certificate_path, bis_status, updated_at)
-			VALUES ($1, $2, 'PENDING', NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				bis_certificate_path = EXCLUDED.bis_certificate_path,
-				bis_status = 'PENDING',
-				updated_at = NOW()`
-	case "pli":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, pli_certificate_path, pli_status, updated_at)
-			VALUES ($1, $2, 'PENDING', NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				pli_certificate_path = EXCLUDED.pli_certificate_path,
-				pli_status = 'PENDING',
-				updated_at = NOW()`
+	case "epr", "bis", "pli":
+		return fmt.Errorf("document type %s is not supported for textile tenants", docType)
 	default:
 		return fmt.Errorf("invalid document type: %s", docType)
 	}
-
-	_, err := r.db.Pool.Exec(ctx, query, tenantID, path)
-	if err != nil {
-		return fmt.Errorf("failed to update certificate path: %w", err)
-	}
-	return nil
 }
 
 // UpdateDocumentStatus updates the verification status of a document (for admin use)
@@ -326,38 +282,12 @@ func (r *Repository) UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUI
 		return fmt.Errorf("invalid status: %s", status)
 	}
 
-	var query string
 	switch docType {
-	case "epr":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, epr_status, updated_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				epr_status = EXCLUDED.epr_status,
-				updated_at = NOW()`
-	case "bis":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, bis_status, updated_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				bis_status = EXCLUDED.bis_status,
-				updated_at = NOW()`
-	case "pli":
-		query = `
-			INSERT INTO public.battery_tenant_profiles (tenant_id, pli_status, updated_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (tenant_id) DO UPDATE SET
-				pli_status = EXCLUDED.pli_status,
-				updated_at = NOW()`
+	case "epr", "bis", "pli":
+		return fmt.Errorf("document type %s is not supported for textile tenants", docType)
 	default:
 		return fmt.Errorf("invalid document type: %s", docType)
 	}
-
-	_, err := r.db.Pool.Exec(ctx, query, tenantID, status)
-	if err != nil {
-		return fmt.Errorf("failed to update document status: %w", err)
-	}
-	return nil
 }
 
 // UpdateLogoURL updates the logo URL for a tenant

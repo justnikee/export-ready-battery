@@ -15,8 +15,6 @@ import {
   User,
   Building2,
   Trophy,
-  Factory,
-  Palette,
   type LucideIcon,
 } from "lucide-react";
 
@@ -76,42 +74,6 @@ const BATTERY_ACTION_CONFIG: Record<
   },
 };
 
-const TEXTILE_ACTION_CONFIG: Record<
-  string,
-  { label: string; icon: LucideIcon; color: string; description: string }
-> = {
-  PRODUCE: {
-    label: "Mark as Produced",
-    icon: Factory,
-    color: "emerald",
-    description: "Cut, sew, and assemble completed",
-  },
-  DYE: {
-    label: "Mark as Dyed",
-    icon: Palette,
-    color: "blue",
-    description: "Dyeing process completed",
-  },
-  FINISH: {
-    label: "Mark as Finished",
-    icon: CheckCircle,
-    color: "teal",
-    description: "Finishing treatments applied",
-  },
-  SELL: {
-    label: "Mark as Sold",
-    icon: Truck,
-    color: "indigo",
-    description: "Shipped to retailer or customer",
-  },
-  COLLECT: {
-    label: "Mark as Collected",
-    icon: Recycle,
-    color: "purple",
-    description: "Collected for recycling or reuse",
-  },
-};
-
 const BATTERY_EVIDENCE_FIELDS: Record<
   string,
   { key: string; label: string; placeholder?: string; type?: string }[]
@@ -166,52 +128,6 @@ const BATTERY_EVIDENCE_FIELDS: Record<
   ],
 };
 
-const TEXTILE_EVIDENCE_FIELDS: Record<
-  string,
-  { key: string; label: string; placeholder?: string; type?: string }[]
-> = {
-  PRODUCE: [
-    {
-      key: "facility_name",
-      label: "Production Facility",
-      placeholder: "Factory / CMT unit name",
-    },
-    { key: "production_date", label: "Production Date", type: "date" },
-  ],
-  DYE: [
-    {
-      key: "dye_house_name",
-      label: "Dye House",
-      placeholder: "Dye house facility name",
-    },
-    { key: "dye_date", label: "Dye Date", type: "date" },
-  ],
-  FINISH: [
-    {
-      key: "finish_type",
-      label: "Finish Type",
-      placeholder: "e.g. mercerized, brushed",
-    },
-    { key: "finish_date", label: "Finish Date", type: "date" },
-  ],
-  SELL: [
-    {
-      key: "shipment_reference",
-      label: "Shipment Reference",
-      placeholder: "Tracking number / AWB",
-    },
-    { key: "shipment_date", label: "Shipment Date", type: "date" },
-  ],
-  COLLECT: [
-    {
-      key: "collector_name",
-      label: "Collector Name",
-      placeholder: "Recycling partner or take-back program",
-    },
-    { key: "collection_date", label: "Collection Date", type: "date" },
-  ],
-};
-
 function PassportActionContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -238,9 +154,8 @@ function PassportActionContent() {
   const [otpError, setOtpError] = useState("");
   const [otpResendCooldown, setOtpResendCooldown] = useState(0);
 
-  const isTextile = info?.passport?.product_type === "TEXTILE";
-  const ACTION_CONFIG = isTextile ? TEXTILE_ACTION_CONFIG : BATTERY_ACTION_CONFIG;
-  const EVIDENCE_FIELDS = isTextile ? TEXTILE_EVIDENCE_FIELDS : BATTERY_EVIDENCE_FIELDS;
+  const ACTION_CONFIG = BATTERY_ACTION_CONFIG;
+  const EVIDENCE_FIELDS = BATTERY_EVIDENCE_FIELDS;
 
   useEffect(() => {
     if (!token) {
@@ -592,7 +507,7 @@ function PassportActionContent() {
                     Warranty Registered! +{pointsAwarded} Partner Points
                   </h3>
                   <p className="text-sm text-amber-500/80">
-                    {isTextile ? "Item tracked! Status updated." : "Battery Installed! Warranty Activated."}
+                    Battery Installed! Warranty Activated.
                   </p>
                 </div>
               </div>
@@ -632,7 +547,7 @@ function PassportActionContent() {
               Authenticated Action
             </span>
           </div>
-          <h1 className="text-2xl text-white mb-2">{isTextile ? "Update Supply Chain Status" : "Update Battery Status"}</h1>
+          <h1 className="text-2xl text-white mb-2">Update Battery Status</h1>
           <p className="text-muted-foreground">
             Serial:{" "}
             <code className="text-muted-foreground">

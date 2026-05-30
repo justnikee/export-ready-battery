@@ -17,6 +17,7 @@ import (
 	textileCompliance "github.com/anvayalabs/textile-api/internal/compliance/textile"
 	"github.com/anvayalabs/textile-api/internal/events"
 	"github.com/anvayalabs/textile-api/internal/handlers"
+	"github.com/anvayalabs/textile-api/internal/integrations/tally"
 	"github.com/anvayalabs/textile-api/internal/logger"
 	"github.com/anvayalabs/textile-api/internal/middleware"
 	"github.com/anvayalabs/textile-api/internal/models"
@@ -77,7 +78,7 @@ func main() {
 	// 4. BatchService — schema validation + async compliance runner.
 	batchService := services.NewBatchService(schemaRegistry, complianceRegistry, repo)
 
-	// 5. PassportService — BPAN-V2 serial generation.
+	// 5. PassportService — textile fiber-code serial generation.
 	passportService := services.NewPassportService()
 
 	// =========================================================================
@@ -300,8 +301,6 @@ func main() {
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransitionPassport)))
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
-	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth)))
-	mux.Handle("GET /api/v1/passports/{uuid}/soh/history", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetSoHHistory)))
 	mux.Handle("POST /api/v1/passports/{uuid}/repairs", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogRepairEvent)))
 	mux.Handle("POST /api/v1/passports/{uuid}/replacements", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.LogReplacementEvent)))
 	mux.Handle("POST /api/v1/passports/{uuid}/transfer", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.TransferPassport)))
@@ -482,6 +481,21 @@ func main() {
 	mux.Handle("POST /api/v1/external/batches/{id}/passports", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalCreatePassports)))
 	mux.Handle("GET /api/v1/external/batches/{id}/labels", apiKeyMiddleware.Authenticate(http.HandlerFunc(h.ExternalDownloadLabels)))
 	mux.Handle("POST /api/v1/external/passports/{uuid}/transition", apiKeyMiddleware.AuthenticateWrite(http.HandlerFunc(h.ExternalTransitionPassport)))
+
+	// Tally ERP integration
+	tallyHandler := tally.NewHandler(repo)
+	tallySyncHandler := tally.NewSyncHandler(repo)
+	mux.Handle("POST /api/v1/integrations/tally/import", authMiddleware.Protect(http.HandlerFunc(tallyHandler.Import)))
+	mux.Handle("GET /api/v1/integrations/tally/history", authMiddleware.Protect(http.HandlerFunc(tallyHandler.History)))
+	mux.Handle("GET /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetConfig)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.SaveConfig)))
+	mux.Handle("GET /api/v1/integrations/tally/staging", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/apply", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.ApplyStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/discard", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.DiscardStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-trigger", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.TriggerSync)))
+
+	// Start Tally ERP live sync ticker (every 5 minutes)
+	tally.StartSyncTicker(repo, 5*time.Minute)
 
 	// Create HTTP server
 	server := &http.Server{

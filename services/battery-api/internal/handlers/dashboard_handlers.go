@@ -70,6 +70,30 @@ func (h *Handler) GetRecentBatches(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAnalyticsOverview handles GET /api/v1/analytics/overview
+func (h *Handler) GetAnalyticsOverview(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	overview, err := h.repo.GetAnalyticsOverview(r.Context(), tenantID, models.ProductType(middleware.GetProductType(r.Context())))
+	if err != nil {
+		slog.Error("Failed to get analytics overview", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get analytics")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, overview)
+}
+
 // GetScanFeed handles GET /api/v1/scans/feed
 func (h *Handler) GetScanFeed(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())

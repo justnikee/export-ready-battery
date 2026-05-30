@@ -125,6 +125,16 @@ func (f *fakeTeamRepo) UpdateAPIKey(ctx context.Context, id uuid.UUID, name *str
 func (f *fakeTeamRepo) DeleteAPIKey(ctx context.Context, id uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) GetOrCreateUsageWindow(ctx context.Context, keyID uuid.UUID, endpoint string) (*models.APIKeyUsage, error) { return nil, nil }
 func (f *fakeTeamRepo) GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error) { return nil, nil }
+func (f *fakeTeamRepo) GetAllFactors(ctx context.Context) ([]models.CarbonFactor, error) { return nil, nil }
+func (f *fakeTeamRepo) GetFactorByCategoryAndSubcategory(ctx context.Context, category, subcategory string) (*models.CarbonFactor, error) { return nil, nil }
+func (f *fakeTeamRepo) GetFactorsByCategory(ctx context.Context, category string) ([]models.CarbonFactor, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateOutboundWebhook(ctx context.Context, wh *models.OutboundWebhook) error { return nil }
+func (f *fakeTeamRepo) ListOutboundWebhooks(ctx context.Context, tenantID uuid.UUID) ([]*models.OutboundWebhook, error) { return nil, nil }
+func (f *fakeTeamRepo) GetOutboundWebhookByID(ctx context.Context, id, tenantID uuid.UUID) (*models.OutboundWebhook, error) { return nil, nil }
+func (f *fakeTeamRepo) GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error) { return nil, nil }
+func (f *fakeTeamRepo) IncrementWebhookFailure(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) UpdateWebhookLastTriggered(ctx context.Context, id uuid.UUID, at time.Time) error { return nil }
+func (f *fakeTeamRepo) DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error { return nil }
 func (f *fakeTeamRepo) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) { return nil, nil }
 func (f *fakeTeamRepo) ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error) { return nil, 0, nil }
@@ -213,6 +223,17 @@ func (f *fakeTeamRepo) GetLastScanTime(ctx context.Context, passportID uuid.UUID
 func (f *fakeTeamRepo) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error) { return nil, nil }
 func (f *fakeTeamRepo) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) { return nil, nil }
 func (f *fakeTeamRepo) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchSummary, error) { return nil, nil }
+func (f *fakeTeamRepo) GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error) {
+	return &models.AnalyticsOverview{
+		BatchStatusBreakdown:   make(map[string]int),
+		SupplierDocStatus:      make(map[string]int),
+		AlertSeverityBreakdown: make(map[string]int),
+	}, nil
+}
+func (f *fakeTeamRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
+func (f *fakeTeamRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
+func (f *fakeTeamRepo) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) { return nil, nil }
+func (f *fakeTeamRepo) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) { return 0, nil }
 
 func (f *fakeTeamRepo) GetTeamMemberByToken(ctx context.Context, token string) (*models.TeamMember, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateTeamMemberStatus(ctx context.Context, id uuid.UUID, status string, userID *uuid.UUID) error { return nil }
@@ -288,6 +309,16 @@ func (f *fakeTeamRepo) CreateCertificateAnchor(ctx context.Context, anchor *mode
 func (f *fakeTeamRepo) GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error) { return nil, nil }
 func (f *fakeTeamRepo) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error { return nil }
+
+func (f *fakeTeamRepo) CreateMassBalanceLedger(ctx context.Context, ledger *models.MassBalanceLedger) error { return nil }
+func (f *fakeTeamRepo) GetMassBalanceLedgersByTenant(ctx context.Context, tenantID uuid.UUID, materialType string) ([]*models.MassBalanceLedger, error) { return nil, nil }
+func (f *fakeTeamRepo) GetMassBalanceLedgerByID(ctx context.Context, id uuid.UUID) (*models.MassBalanceLedger, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateMassBalanceLedger(ctx context.Context, id uuid.UUID, incomingDelta, allocatedDelta float64) error { return nil }
+func (f *fakeTeamRepo) CreateMassBalanceAllocation(ctx context.Context, allocation *models.MassBalanceAllocation) error { return nil }
+func (f *fakeTeamRepo) GetMassBalanceAllocationsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.MassBalanceAllocation, error) { return nil, nil }
+
+func (f *fakeTeamRepo) CreatePassportVC(ctx context.Context, vc *models.PassportVC) error { return nil }
+func (f *fakeTeamRepo) GetPassportVCByPassportID(ctx context.Context, passportID uuid.UUID) (*models.PassportVC, error) { return nil, nil }
 
 // ============================================================================
 // TEST HELPERS
@@ -688,3 +719,49 @@ func (f *fakeTeamRepo) GetUnreadAlertCount(ctx context.Context, tenantID uuid.UU
 func (f *fakeTeamRepo) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error) { return false, nil }
+func (f *fakeTeamRepo) CreateTallyImportLog(ctx context.Context, log *repository.TallyImportLog) error { return nil }
+func (f *fakeTeamRepo) GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*repository.TallyImportLog, int, error) { return nil, 0, nil }
+
+func (f *fakeTeamRepo) UpsertTallySyncConfig(ctx context.Context, cfg *repository.TallySyncConfig) error { return nil }
+func (f *fakeTeamRepo) GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*repository.TallySyncConfig, error) { return nil, nil }
+func (f *fakeTeamRepo) ListEnabledTallySyncConfigs(ctx context.Context) ([]*repository.TallySyncConfig, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error { return nil }
+func (f *fakeTeamRepo) CreateTallySyncStaging(ctx context.Context, item *repository.TallySyncStaging) error { return nil }
+func (f *fakeTeamRepo) GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*repository.TallySyncStaging, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*repository.TallySyncStaging, error) { return nil, nil }
+func (f *fakeTeamRepo) ApplyTallySyncStaging(ctx context.Context, id, tenantID, batchID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) CreateTallySyncRun(ctx context.Context, run *repository.TallySyncRun) error { return nil }
+func (f *fakeTeamRepo) UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error { return nil }
+
+func (f *fakeTeamRepo) CreateComponent(ctx context.Context, c *repository.Component) error { return nil }
+func (f *fakeTeamRepo) GetComponent(ctx context.Context, id, tenantID uuid.UUID) (*repository.Component, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateComponent(ctx context.Context, c *repository.Component) error { return nil }
+func (f *fakeTeamRepo) DeleteComponent(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) ListComponentsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*repository.Component, error) { return nil, nil }
+func (f *fakeTeamRepo) GetComponentTreeByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*repository.ComponentTreeNode, error) { return nil, nil }
+
+// DGFT Claims stubs
+func (f *fakeTeamRepo) ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
+func (f *fakeTeamRepo) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
+func (f *fakeTeamRepo) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) AddDGFTClaimDocument(ctx context.Context, id, tenantID uuid.UUID, doc models.DGFTClaimDocument) error { return nil }
+
+// Supplier stubs
+func (f *fakeTeamRepo) CreateSupplier(ctx context.Context, supplier *models.Supplier) error { return nil }
+func (f *fakeTeamRepo) GetSupplierByID(ctx context.Context, id uuid.UUID) (*models.Supplier, error) { return nil, nil }
+func (f *fakeTeamRepo) GetSupplierByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.Supplier, error) { return nil, nil }
+func (f *fakeTeamRepo) GetSupplierByInvitationToken(ctx context.Context, token string) (*models.Supplier, error) { return nil, nil }
+func (f *fakeTeamRepo) ListSuppliersByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.Supplier, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateSupplierStatus(ctx context.Context, id uuid.UUID, status string) error { return nil }
+func (f *fakeTeamRepo) UpdateSupplierAcceptance(ctx context.Context, id uuid.UUID, passwordHash string) error { return nil }
+func (f *fakeTeamRepo) UpdateSupplierLastLogin(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) CreateSupplierDocument(ctx context.Context, doc *models.SupplierDocument) error { return nil }
+func (f *fakeTeamRepo) GetSupplierDocumentByID(ctx context.Context, id uuid.UUID) (*models.SupplierDocument, error) { return nil, nil }
+func (f *fakeTeamRepo) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) { return nil, nil }
+func (f *fakeTeamRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error { return nil }

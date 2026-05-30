@@ -38,6 +38,9 @@ type Config struct {
 
 	// Art 78 Regulator Access (EU Battery Regulation)
 	RegulatorAPIKey string
+
+	// AI / LLM Configuration
+	GroqAPIKey string // Free tier LLM for datasheet parsing & NL batch creation
 }
 
 // Load reads configuration from environment variables.
@@ -127,6 +130,7 @@ func Load() (*Config, error) {
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
 		RegulatorAPIKey:       getEnv("REGULATOR_API_KEY", ""),
+		GroqAPIKey:            getEnv("GROQ_API_KEY", ""),
 	}, nil
 }
 

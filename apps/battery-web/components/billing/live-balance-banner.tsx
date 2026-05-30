@@ -27,11 +27,9 @@ export function LiveBalanceBanner() {
         setBalance(response.data.quota_balance);
         setError(null);
       } else {
-        console.error("Invalid balance data:", response.data);
         setError("Invalid data received");
       }
     } catch (error: unknown) {
-      console.error("Failed to fetch balance:", error);
       const apiError = error as { message?: string };
       setError(apiError.message || "Failed to load balance");
     } finally {

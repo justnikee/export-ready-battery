@@ -36,7 +36,7 @@ type Config struct {
 	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
 
-	// Art 78 Regulator Access (EU Battery Regulation)
+	// ESPR Art. 7 Regulator Access
 	RegulatorAPIKey string
 }
 

@@ -67,6 +67,11 @@ func (e *EmailService) IsEnabled() bool {
 	return e.enabled
 }
 
+// BaseURL returns the configured frontend base URL.
+func (e *EmailService) BaseURL() string {
+	return e.baseURL
+}
+
 // PasswordResetData contains data for the password reset email template
 type PasswordResetData struct {
 	ResetLink string
@@ -436,6 +441,175 @@ func (e *EmailService) sendEmail(to, subject, html, plainText string) error {
 
 	slog.Info("Email sent", "to", to, "resend_id", result.ID)
 	return nil
+}
+
+// AlertEmailData contains data for alert notification emails.
+type AlertEmailData struct {
+	CompanyName string
+	AlertTitle  string
+	AlertType   string
+	Severity    string
+	Message     string
+	DashboardURL string
+}
+
+// SupplierInvitationData contains data for the supplier invitation email template.
+type SupplierInvitationData struct {
+	CompanyName   string
+	TenantName    string
+	AcceptLink    string
+	PortalLoginLink string
+}
+
+// SendSupplierInvitationEmail sends a supplier portal invitation email.
+func (e *EmailService) SendSupplierInvitationEmail(toEmail, tenantName, companyName, token string) error {
+	acceptLink := fmt.Sprintf("%s/supplier/accept?token=%s", e.baseURL, token)
+	portalLink := fmt.Sprintf("%s/supplier/login", e.baseURL)
+
+	if !e.enabled {
+		slog.Info("Supplier invitation email (mock)", "to", toEmail, "tenant", tenantName, "link", acceptLink)
+		return nil
+	}
+
+	subject := fmt.Sprintf("You're invited to join %s's supplier portal on AnvayaLabs", tenantName)
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+<div style="text-align:center;margin-bottom:24px;">
+<h2 style="margin:0 0 8px 0;color:#059669;">AnvayaLabs Supplier Portal</h2>
+</div>
+<p>Hello,</p>
+<p><strong>%s</strong> has invited you to join their supplier portal on AnvayaLabs.</p>
+<div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0;">
+<p style="margin:0 0 4px 0;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Company</p>
+<p style="margin:0;font-weight:600;">%s</p>
+</div>
+<p>As a supplier, you'll be able to:</p>
+<ul style="line-height:1.6;">
+<li>Upload certificates of conformance (CoC)</li>
+<li>Submit audit reports and test data</li>
+<li>Track document review status in real-time</li>
+</ul>
+<div style="margin:24px 0;text-align:center;">
+<a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px;font-weight:500;">Accept Invitation</a>
+</div>
+<p style="font-size:13px;color:#64748b;">Or copy this link: %s</p>
+<p style="font-size:13px;color:#64748b;">This invitation expires in 30 days. If you already have an account, you can <a href="%s">log in here</a>.</p>
+<p style="font-size:12px;color:#94a3b8;margin-top:32px;">© 2026 AnvayaLabs</p>
+</body></html>`, tenantName, companyName, acceptLink, acceptLink, portalLink)
+
+	plainText := fmt.Sprintf(`You've been invited to join %s's supplier portal on AnvayaLabs.
+
+Company: %s
+
+Accept your invitation:
+%s
+
+This invitation expires in 30 days. If you already have an account, log in at:
+%s
+
+© 2026 AnvayaLabs`, tenantName, companyName, acceptLink, portalLink)
+
+	return e.sendEmail(toEmail, subject, html, plainText)
+}
+
+// DocumentReviewData contains data for the document review notification email.
+type DocumentReviewData struct {
+	DocType       string
+	Status        string
+	ReviewerNotes string
+	DashboardURL  string
+}
+
+// SendSupplierDocumentReviewEmail notifies a supplier when their document is reviewed.
+func (e *EmailService) SendSupplierDocumentReviewEmail(toEmail string, data DocumentReviewData) error {
+	if !e.enabled {
+		slog.Info("Supplier document review email (mock)", "to", toEmail, "status", data.Status, "doc_type", data.DocType)
+		return nil
+	}
+
+	statusColor := "#ef4444" // red for rejected
+	statusLabel := "Rejected"
+	if data.Status == "approved" {
+		statusColor = "#059669" // green
+		statusLabel = "Approved"
+	}
+
+	subject := fmt.Sprintf("Your %s has been %s — AnvayaLabs Supplier Portal", data.DocType, statusLabel)
+
+	notesBlock := ""
+	if data.ReviewerNotes != "" {
+		notesBlock = fmt.Sprintf(`<div style="background:#fef2f2;border-radius:6px;padding:12px;margin:16px 0;border-left:3px solid #ef4444;">
+<p style="margin:0 0 4px 0;font-size:12px;color:#ef4444;font-weight:600;">Reviewer Notes</p>
+<p style="margin:0;font-size:13px;color:#7f1d1d;">%s</p>
+</div>`, data.ReviewerNotes)
+	}
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+<div style="border-left:4px solid %s;padding-left:16px;margin-bottom:24px;">
+<h2 style="margin:0 0 8px 0;">Document %s</h2>
+<p style="margin:0;color:%s;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:0.05em;">%s · %s</p>
+</div>
+<p>Your uploaded document has been reviewed by the buyer.</p>
+%s
+<div style="margin:24px 0;">
+<a href="%s" style="display:inline-block;padding:12px 24px;background:#37322F;color:#fff;text-decoration:none;border-radius:6px;font-weight:500;">View in Supplier Portal</a>
+</div>
+<p style="font-size:12px;color:#64748b;margin-top:24px;">© 2026 AnvayaLabs</p>
+</body></html>`, statusColor, statusLabel, statusColor, data.DocType, statusLabel, notesBlock, data.DashboardURL)
+
+	plainText := fmt.Sprintf(`Document %s
+
+Your %s has been %s.
+%s
+
+View in portal: %s
+
+© 2026 AnvayaLabs`, statusLabel, data.DocType, statusLabel, data.ReviewerNotes, data.DashboardURL)
+
+	return e.sendEmail(toEmail, subject, html, plainText)
+}
+
+// SendAlertEmail sends a compliance alert notification email.
+func (e *EmailService) SendAlertEmail(toEmail string, data AlertEmailData) error {
+	if !e.enabled {
+		slog.Info("Alert email (mock)", "to", toEmail, "title", data.AlertTitle, "severity", data.Severity)
+		return nil
+	}
+
+	severityColor := "#f59e0b" // amber for WARNING
+	if data.Severity == "CRITICAL" {
+		severityColor = "#ef4444" // red
+	}
+
+	subject := fmt.Sprintf("[%s] %s — ExportReady Alert", data.Severity, data.AlertTitle)
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
+<div style="border-left:4px solid %s;padding-left:16px;margin-bottom:24px;">
+<h2 style="margin:0 0 8px 0;">%s</h2>
+<p style="margin:0;color:%s;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:0.05em;">%s · %s</p>
+</div>
+<p style="line-height:1.6;">%s</p>
+<div style="margin:24px 0;">
+<a href="%s" style="display:inline-block;padding:12px 24px;background:#37322F;color:#fff;text-decoration:none;border-radius:6px;font-weight:500;">View in Dashboard</a>
+</div>
+<p style="font-size:12px;color:#64748b;margin-top:24px;">You are receiving this because you have compliance alerts enabled for your organization. <a href="%s">Manage alert preferences</a>.</p>
+<p style="font-size:12px;color:#64748b;">© 2026 AnvayaLabs</p>
+</body></html>`, severityColor, data.AlertTitle, severityColor, data.AlertType, data.Severity, data.Message, data.DashboardURL, data.DashboardURL)
+
+	plainText := fmt.Sprintf(`%s
+[%s] %s
+
+%s
+
+View in dashboard: %s
+
+© 2026 AnvayaLabs
+`, data.AlertTitle, data.Severity, data.AlertType, data.Message, data.DashboardURL)
+
+	return e.sendEmail(toEmail, subject, html, plainText)
 }
 
 // GetEmailServiceFromEnv creates an email service from environment variables

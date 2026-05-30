@@ -70,6 +70,14 @@ type PublicPassportView struct {
 	CountryOfOrigin  string     `json:"country_of_origin,omitempty"`
 	CustomsDate      *time.Time `json:"customs_date,omitempty"`
 
+	// EU Battery Regulation 2023/1542 compliance fields (public)
+	BatteryPassportID           string  `json:"battery_passport_id,omitempty"`
+	CEMarking                   bool    `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string  `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool    `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string  `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string  `json:"declaration_of_conformity_path,omitempty"`
+
 	// Access tier metadata
 	AccessTier AccessTier `json:"access_tier"`
 }
@@ -99,6 +107,9 @@ type PublicSpecsView struct {
 	// India compliance identifiers (from batch specs)
 	BISNumber              string               `json:"bis_number,omitempty"`
 	EPRNumber              string               `json:"epr_number,omitempty"`
+
+	// Bill of Materials — nested component hierarchy (EU 2023/1542 Art 77)
+	Components             []Component          `json:"components,omitempty"`
 }
 
 // PublicTenantView is the consumer-safe subset of Tenant
@@ -134,7 +145,13 @@ type publicViewBatchSnapshot struct {
 	BillOfEntryNo          string              `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin        string              `json:"country_of_origin,omitempty"`
 	CustomsDate            *time.Time          `json:"customs_date,omitempty"`
-	Tenant                 *publicTenantSnapshot `json:"tenant,omitempty"`
+	// EU Battery Regulation 2023/1542 compliance fields
+	CEMarking                   bool    `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string  `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool    `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string  `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string  `json:"declaration_of_conformity_path,omitempty"`
+	Tenant                      *publicTenantSnapshot `json:"tenant,omitempty"`
 }
 
 type publicTenantSnapshot struct {
@@ -240,6 +257,13 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		CountryOfOrigin:  full.CountryOfOrigin,
 		CustomsDate:      full.CustomsDate,
 
+		BatteryPassportID:           full.BatteryPassportID,
+		CEMarking:                   full.CEMarking,
+		CarbonPerformanceClass:      full.CarbonPerformanceClass,
+		RemovableAndReplaceable:     full.RemovableAndReplaceable,
+		NotifiedBodyNumber:          full.NotifiedBodyNumber,
+		DeclarationOfConformityPath: full.DeclarationOfConformityPath,
+
 		AccessTier: AccessTierPublic,
 	}
 
@@ -280,6 +304,7 @@ func buildPublicSpecsView(specs *BatchSpec) *PublicSpecsView {
 		PerformanceSpec:        specs.PerformanceSpec,
 		BISNumber:              specs.BISNumber,
 		EPRNumber:              specs.EPRNumber,
+		Components:             specs.Components,
 	}
 }
 
@@ -387,6 +412,21 @@ func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
 	}
 	if snapshot.CustomsDate != nil {
 		view.CustomsDate = snapshot.CustomsDate
+	}
+	if snapshot.CEMarking {
+		view.CEMarking = true
+	}
+	if snapshot.CarbonPerformanceClass != "" {
+		view.CarbonPerformanceClass = snapshot.CarbonPerformanceClass
+	}
+	if snapshot.RemovableAndReplaceable {
+		view.RemovableAndReplaceable = true
+	}
+	if snapshot.NotifiedBodyNumber != "" {
+		view.NotifiedBodyNumber = snapshot.NotifiedBodyNumber
+	}
+	if snapshot.DeclarationOfConformityPath != "" {
+		view.DeclarationOfConformityPath = snapshot.DeclarationOfConformityPath
 	}
 	if snapshot.Specs != nil {
 		view.Specs = buildPublicSpecsView(snapshot.Specs)

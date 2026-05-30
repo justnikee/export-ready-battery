@@ -215,7 +215,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  const resetAutoGen = () => {
  setGenerateResult(null)
  setQuantity("100")
- setPrefix("BAT-2026-")
+ setPrefix(`BAT-${new Date().getFullYear()}-`)
  setStartNumber("1")
  }
 
@@ -419,7 +419,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  id="prefix"
  value={prefix}
  onChange={(e) => setPrefix(e.target.value)}
- placeholder="e.g. BAT-2026-"
+ placeholder={`e.g. BAT-${new Date().getFullYear()}-`}
  />
  </div>
 

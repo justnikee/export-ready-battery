@@ -26,5 +26,5 @@ ALTER TABLE public.passport_events
 
 ALTER TABLE public.passport_events
     ADD CONSTRAINT passport_events_passport_id_fkey
-    FOREIGN KEY (passport_id) REFERENCES public.passports(id)
+    FOREIGN KEY (passport_id) REFERENCES public.passports(uuid)
     ON DELETE SET NULL;

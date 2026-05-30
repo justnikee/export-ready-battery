@@ -46,11 +46,10 @@ type Options struct {
 // BPANGenerator implements Generator for structured product serial formats.
 //
 // The generator is product-type-aware: battery products use chemistry codes
-// in the 3rd segment, while textile products use fiber/material codes.
+// in the 3rd segment.
 //
 //	Format:  {REGION}-{MFR3}-{CODE3}-{YYYY}-{NNNNN}
 //	Example: IN-TEN-LFP-2026-00042  (battery, 21 chars)
-//	Example: IN-TEN-COT-2026-00001  (textile, 21 chars)
 //
 // BPANGenerator is safe for concurrent use.
 type BPANGenerator struct{}
@@ -229,54 +228,8 @@ func MapChemistryCode(chemistry string) string {
 	}
 }
 
-// MapFiberCode normalises a textile fiber string to a 2–3 char segment.
-func MapFiberCode(fiber string) string {
-	upper := strings.ToUpper(strings.TrimSpace(fiber))
-	switch upper {
-	case "COTTON", "COT", "ORGANIC COTTON", "ORGANICCOTTON":
-		return "COT"
-	case "POLYESTER", "POL", "PET", "RECYCLED POLYESTER":
-		return "POL"
-	case "WOOL", "WOL", "MERINO", "LAMBSWOOL":
-		return "WOL"
-	case "SILK", "SIL":
-		return "SIL"
-	case "LINEN", "LIN", "FLAX":
-		return "LIN"
-	case "VISCOSE", "VIS", "RAYON", "MODAL", "LYOCELL":
-		return "VIS"
-	case "NYLON", "NYL", "POLYAMIDE":
-		return "NYL"
-	case "ACRYLIC", "ACR":
-		return "ACR"
-	case "HEMP", "HEM":
-		return "HEM"
-	case "JUTE", "JUT":
-		return "JUT"
-	case "CASHMERE", "CAS":
-		return "CAS"
-	case "ALPACA", "ALP":
-		return "ALP"
-	case "MOHAIR", "MOH":
-		return "MOH"
-	case "BAMBOO", "BAM":
-		return "BAM"
-	case "TENCEL", "TEN":
-		return "TEN"
-	case "RECYCLED COTTON", "RECYCLED-COTTON", "RCOT":
-		return "RCO"
-	case "RECYCLED WOOL", "RECYCLED-WOOL", "RWOL":
-		return "RWO"
-	default:
-		if len(upper) >= 3 {
-			return upper[:3]
-		}
-		return upper
-	}
-}
-
 // MapProductCode dispatches to the appropriate normaliser based on product type.
-// Battery products use chemistry codes; textile products use fiber codes.
+// Battery products use chemistry codes.
 // Unknown product types fall back to the first 3 characters of the input.
 func MapProductCode(pt models.ProductType, code string) string {
 	switch pt {

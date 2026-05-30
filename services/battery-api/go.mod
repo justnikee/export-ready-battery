@@ -8,7 +8,9 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/joho/godotenv v1.5.1
 	github.com/jung-kurt/gofpdf v1.16.2
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	github.com/mssola/user_agent v0.6.0
+	github.com/multiformats/go-multibase v0.2.0
 	github.com/oschwald/geoip2-golang v1.13.0
 	github.com/razorpay/razorpay-go v1.4.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -25,6 +27,9 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/mr-tron/base58 v1.3.0 // indirect
+	github.com/multiformats/go-base32 v0.1.0 // indirect
+	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect

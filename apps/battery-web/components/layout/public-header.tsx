@@ -8,7 +8,7 @@ import { useState } from "react";
 
 export function PublicHeader() {
   const pathname = usePathname();
-  const isProductAppPage = /^\/(battery|textile)(\/|$)/.test(pathname);
+  const isProductAppPage = /^\/battery(\/|$)/.test(pathname);
   const isHomePage = pathname === "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -47,7 +47,7 @@ export function PublicHeader() {
             Documentation
           </Link>
           <div className="h-4 w-px bg-gray-200" />
-          <Link href="/battery/login" className={`${linkClass} text-gray-600`}>
+          <Link href="/login" className={`${linkClass} text-gray-600`}>
             Login
           </Link>
           <Link
@@ -94,7 +94,7 @@ export function PublicHeader() {
               Documentation
             </Link>
             <Link
-              href="/battery/login"
+              href="/login"
               className="block py-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
               Login

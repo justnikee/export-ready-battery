@@ -23,7 +23,8 @@ import type { Batch } from "@/lib/types";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import { getProductConfigByType } from "@/lib/products";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { CreateBatchDialog } from "@/components/batches/create-batch-dialog";
+import { RegulatoryRoadmap } from "@/components/dashboard/RegulatoryRoadmap";
+import { CreateTextileLotDialog } from "@/components/textile/create-textile-lot-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export default function TextileDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createLotOpen, setCreateLotOpen] = useState(false);
 
   const batchesHref = dashboardPathFromPathname(pathname, "batches");
   const settingsHref = dashboardPathFromPathname(pathname, "settings");
@@ -174,7 +176,10 @@ export default function TextileDashboardPage() {
     return s >= 50 && s <= 75;
   }).length;
   const redLots = batches.filter(
-    (b) => (b.compliance_score ?? 0) < 50 && b.compliance_score !== undefined && b.compliance_score !== null,
+    (b) =>
+      (b.compliance_score ?? 0) < 50 &&
+      b.compliance_score !== undefined &&
+      b.compliance_score !== null,
   ).length;
   const unscoredLots = batches.filter(
     (b) => b.compliance_score === undefined || b.compliance_score === null,
@@ -198,7 +203,18 @@ export default function TextileDashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <CreateBatchDialog onBatchCreated={fetchDashboardData} />
+            <Button
+              onClick={() => setCreateLotOpen(true)}
+              variant="outline"
+              size="sm"
+            >
+              New lot
+            </Button>
+            <CreateTextileLotDialog
+              open={createLotOpen}
+              onOpenChange={setCreateLotOpen}
+              onLotCreated={fetchDashboardData}
+            />
             <Link
               href={batchesHref}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -274,7 +290,8 @@ export default function TextileDashboardPage() {
             className="inline-flex items-center gap-2 px-3 py-2 border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             <FileCheck className="h-4 w-4" />
-            {dashboardConfig.uploadComplianceLabel || "Upload Compliance Certificates"}
+            {dashboardConfig.uploadComplianceLabel ||
+              "Upload Compliance Certificates"}
           </Link>
         </div>
 
@@ -386,6 +403,9 @@ export default function TextileDashboardPage() {
           </div>
         </div>
 
+        {/* Regulatory Roadmap — Coming Soon */}
+        <RegulatoryRoadmap />
+
         {/* Textile-specific Widgets */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Sustainability Overview */}
@@ -407,13 +427,17 @@ export default function TextileDashboardPage() {
                 <div className="w-full bg-muted h-1.5">
                   <div
                     className="h-1.5 bg-cyan-500"
-                    style={{ width: `${Math.min((avgWater / 100) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((avgWater / 100) * 100, 100)}%`,
+                    }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Avg Energy Usage</span>
+                  <span className="text-muted-foreground">
+                    Avg Energy Usage
+                  </span>
                   <span className="text-foreground font-medium">
                     {avgEnergy.toFixed(1)} kWh
                   </span>
@@ -421,13 +445,17 @@ export default function TextileDashboardPage() {
                 <div className="w-full bg-muted h-1.5">
                   <div
                     className="h-1.5 bg-emerald-500"
-                    style={{ width: `${Math.min((avgEnergy / 50) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((avgEnergy / 50) * 100, 100)}%`,
+                    }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Recycled Content</span>
+                  <span className="text-muted-foreground">
+                    Recycled Content
+                  </span>
                   <span className="text-foreground font-medium">
                     {avgRecycled.toFixed(1)}%
                   </span>
@@ -520,7 +548,9 @@ export default function TextileDashboardPage() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between p-2 bg-red-500/5 border border-red-500/10">
-                <span className="text-xs text-muted-foreground">Red (&lt;50)</span>
+                <span className="text-xs text-muted-foreground">
+                  Red (&lt;50)
+                </span>
                 <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
                   {redLots} lots
                 </Badge>
@@ -592,7 +622,10 @@ export default function TextileDashboardPage() {
                   className="border-b border-border hover:bg-accent cursor-pointer"
                   onClick={() =>
                     router.push(
-                      dashboardPathFromPathname(pathname, `batches/${batch.id}`),
+                      dashboardPathFromPathname(
+                        pathname,
+                        `batches/${batch.id}`,
+                      ),
                     )
                   }
                 >

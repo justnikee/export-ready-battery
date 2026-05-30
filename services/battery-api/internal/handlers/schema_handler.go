@@ -55,7 +55,7 @@ func (h *Handler) GetSchema(w http.ResponseWriter, r *http.Request) {
 	ptStr := strings.ToUpper(r.PathValue("product_type"))
 	pt := models.ProductType(ptStr)
 	if !pt.IsValid() {
-		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY, TEXTILE, or ELECTRONICS")
+		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or ELECTRONICS")
 		return
 	}
 

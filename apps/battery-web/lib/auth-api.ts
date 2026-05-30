@@ -123,7 +123,7 @@ export const authApi = {
       // Silently ignore — still clear local state
     } finally {
       localStorage.removeItem("token");
-      document.cookie = "auth_token=; path=/; max-age=0";
+      // Auth cookie is HttpOnly — backend clears it on logout.
       clearProductCookies();
       // The HttpOnly refresh_token cookie is cleared by the backend Set-Cookie header
     }

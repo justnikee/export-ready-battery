@@ -48,6 +48,7 @@ interface PassportSummary {
   serial_number: string;
   status: string;
   state_of_health: number | null;
+  circularity_status?: string;
   batch_name: string;
   updated_at: string;
 }
@@ -69,6 +70,9 @@ const STATUS_COLORS: Record<string, string> = {
   IN_SERVICE: "bg-emerald-500/15 text-emerald-500",
   RECALLED: "bg-red-500/15 text-red-500",
   RECYCLED: "bg-purple-100 text-purple-700",
+  REMANUFACTURED: "bg-teal-100 text-teal-700",
+  REUSED: "bg-cyan-100 text-cyan-700",
+  REPURPOSED: "bg-orange-100 text-orange-700",
   END_OF_LIFE: "bg-muted text-muted-foreground",
 };
 
@@ -79,6 +83,9 @@ const STATUS_ICONS: Record<string, typeof Package> = {
   IN_SERVICE: Wrench,
   RECALLED: AlertTriangle,
   RECYCLED: Recycle,
+  REMANUFACTURED: Wrench,
+  REUSED: Package,
+  REPURPOSED: Package,
   END_OF_LIFE: Recycle,
 };
 
@@ -90,6 +97,9 @@ const LIFECYCLE_STATES = [
   "IN_SERVICE",
   "RECALLED",
   "RECYCLED",
+  "REMANUFACTURED",
+  "REUSED",
+  "REPURPOSED",
   "END_OF_LIFE",
 ];
 
@@ -112,6 +122,30 @@ const EVIDENCE_FIELDS: Record<
   RECYCLE: [
     { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
     { key: "recycling_date", label: "Recycling Date", type: "date" },
+    {
+      key: "certificate_reference",
+      label: "Certificate Reference",
+      type: "text",
+    },
+  ],
+  REMANUFACTURE: [
+    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
+    {
+      key: "certificate_reference",
+      label: "Certificate Reference",
+      type: "text",
+    },
+  ],
+  REUSE: [
+    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
+    {
+      key: "certificate_reference",
+      label: "Certificate Reference",
+      type: "text",
+    },
+  ],
+  REPURPOSE: [
+    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
     {
       key: "certificate_reference",
       label: "Certificate Reference",
@@ -1101,6 +1135,9 @@ export default function LifecyclePage() {
                         Status
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Circularity
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         SoH
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1153,6 +1190,17 @@ export default function LifecyclePage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
+                            {p.circularity_status ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                                {p.circularity_status.replace(/_/g, " ")}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                â€”
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             {p.state_of_health != null ? (
                               <SoHBar value={p.state_of_health} />
                             ) : (
@@ -1169,7 +1217,7 @@ export default function LifecyclePage() {
                           <td className="px-4 py-3">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button className="p-1.5 rounded hover:bg-muted text-muted-foreground transition-colors">
+                                <button aria-label="Passport actions" className="p-1.5 rounded hover:bg-muted text-muted-foreground transition-colors">
                                   <MoreHorizontal className="h-4 w-4" />
                                 </button>
                               </DropdownMenuTrigger>
@@ -1547,7 +1595,7 @@ export default function LifecyclePage() {
                 </p>
               )}
             {/* Document attachment (optional) for evidence-bearing actions */}
-            {["SHIP", "INSTALL", "RECYCLE", "RECALL"].includes(
+            {["SHIP", "INSTALL", "RECYCLE", "RECALL", "REMANUFACTURE", "REUSE", "REPURPOSE"].includes(
               rowAction?.action ?? "",
             ) && (
               <div className="space-y-1 border-t border-border pt-3">

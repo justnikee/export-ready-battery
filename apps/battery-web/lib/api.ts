@@ -53,8 +53,7 @@ api.interceptors.response.use(
         if (response.data.token) {
           // Store the new access token
           localStorage.setItem("token", response.data.token);
-          // Sync cookie so Next.js middleware sees the fresh token
-          document.cookie = `auth_token=${response.data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+          // Auth cookie is now HttpOnly (set by backend) — no JS access needed
           // Update defaults and original request
           api.defaults.headers.common["Authorization"] =
             `Bearer ${response.data.token}`;
@@ -69,7 +68,7 @@ api.interceptors.response.use(
 
       // Refresh failed — clear access token and redirect to the current product login.
       localStorage.removeItem("token");
-      document.cookie = "auth_token=; path=/; max-age=0";
+      // Auth cookie is HttpOnly — backend clears it on logout
       clearProductCookies();
       if (typeof window !== "undefined") {
         const { pathname } = window.location;

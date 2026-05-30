@@ -68,9 +68,8 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	query := `INSERT INTO public.batches
 		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add,
 		 manufacturing_start_date, manufacturing_end_date,
-		 carbon_footprint_result,
 		 product_type, schema_version)
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15)`
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	_, err = r.db.Pool.Exec(ctx, query,
 		batch.ID,
@@ -85,7 +84,6 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.DomesticValueAdd,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
-		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
 		string(productType),
 		batch.SchemaVersion,
 	)
@@ -111,8 +109,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	          COALESCE(domestic_value_add, 0),
 	          manufacturing_start_date,
 	          manufacturing_end_date,
-	          carbon_footprint_result,
-	          COALESCE(product_type, 'BATTERY') as product_type,
+	          COALESCE(product_type, 'TEXTILE') as product_type,
 	          COALESCE(schema_version, 1) as schema_version,
 	          COALESCE(compliance_score, 0) as compliance_score,
 	          compliance_gaps
@@ -132,7 +129,6 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&batch.DomesticValueAdd,
 		&manufacturingStart,
 		&manufacturingEnd,
-		&batch.CarbonFootprintResult,
 		&productType,
 		&batch.SchemaVersion,
 		&batch.ComplianceScore,
@@ -181,8 +177,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          COALESCE(b.domestic_value_add, 0),
 	          b.manufacturing_start_date,
 	          b.manufacturing_end_date,
-	          b.carbon_footprint_result,
-	          COALESCE(b.product_type, 'BATTERY') as product_type,
+	          COALESCE(b.product_type, 'TEXTILE') as product_type,
 	          COALESCE(b.schema_version, 1) as schema_version,
 	          COALESCE(b.compliance_score, 0) as compliance_score,
 	          b.compliance_gaps,
@@ -193,7 +188,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status,
 	                   b.market_region, b.pli_compliant, b.domestic_value_add,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
-	                   b.carbon_footprint_result, b.product_type, b.schema_version, b.compliance_score, b.compliance_gaps
+	                   b.product_type, b.schema_version, b.compliance_score, b.compliance_gaps
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
@@ -224,7 +219,6 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 			&batch.DomesticValueAdd,
 			&manufacturingStart,
 			&manufacturingEnd,
-			&batch.CarbonFootprintResult,
 			&productType,
 			&batch.SchemaVersion,
 			&batch.ComplianceScore,
@@ -363,15 +357,4 @@ func (r *Repository) UpdateBatchComplianceResult(ctx context.Context, batchID uu
 	return nil
 }
 
-// SaveCarbonFootprintResult stores the carbon calculator result on a batch
-func (r *Repository) SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error {
-	query := `UPDATE public.batches SET carbon_footprint_result = $3::jsonb WHERE id = $1 AND tenant_id = $2`
-	tag, err := r.db.Pool.Exec(ctx, query, batchID, tenantID, string(resultJSON))
-	if err != nil {
-		return fmt.Errorf("failed to save carbon footprint result: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("batch not found")
-	}
-	return nil
-}
+

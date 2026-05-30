@@ -71,7 +71,7 @@ func GenerateMagicToken(passportID, email, role, action, secret string, ttl time
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "anvayalabs-battery",
+			Issuer:    "anvayalabs-textile",
 			Subject:   email,
 			ID:        tokenID,
 		},

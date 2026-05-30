@@ -221,6 +221,12 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		recyclingStatus = "RECYCLED"
 	}
 
+	// Map lifecycle action to circularity status
+	var circularityStatus *string
+	if cs := mapActionToCircularityStatus(action); cs != "" {
+		circularityStatus = &cs
+	}
+
 	// Log the event
 	eventType := s.getEventTypeForStatus(toStatus)
 	metadata := make(map[string]interface{})
@@ -314,6 +320,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		RecyclingStatus:    recyclingStatus,
 		RecyclerEprID:      recyclerEprID,
 		RecyclingDate:      recyclingDate,
+		CircularityStatus:  circularityStatus,
 		Event:              event,
 		MagicLinkTokenHash: req.MagicLinkTokenHash,
 	}); err != nil {
@@ -351,6 +358,9 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 	}
 	if recyclingDate != nil {
 		passport.RecyclingDate = recyclingDate
+	}
+	if circularityStatus != nil {
+		passport.CircularityStatus = *circularityStatus
 	}
 
 	// Update current owner identifier if provided
@@ -1064,6 +1074,23 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 	}
 
 	return s.repo.CreatePassportEvent(ctx, event)
+}
+
+// mapActionToCircularityStatus returns the EU Battery Regulation circularity status
+// that corresponds to a lifecycle transition action. Empty string means no change.
+func mapActionToCircularityStatus(action models.TransitionAction) string {
+	switch action {
+	case models.ActionRecycle:
+		return models.CircularityStatusWaste
+	case models.ActionRemanufacture:
+		return models.CircularityStatusRemanufactured
+	case models.ActionReuse:
+		return models.CircularityStatusReused
+	case models.ActionRepurpose:
+		return models.CircularityStatusRepurposed
+	default:
+		return ""
+	}
 }
 
 // GetSoHHistory returns the full SoH time-series for a passport, newest first.

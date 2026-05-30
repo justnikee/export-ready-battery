@@ -88,7 +88,7 @@ func (h *AuthHandler) saveRefreshJTI(ctx context.Context, tenantID uuid.UUID, jt
 func (h *AuthHandler) getTenantProductType(ctx context.Context, tenantID uuid.UUID) (models.ProductType, error) {
 	var productType models.ProductType
 	err := h.db.Pool.QueryRow(ctx,
-		"SELECT COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE id = $1",
+		"SELECT COALESCE(product_type, 'TEXTILE') FROM public.tenants WHERE id = $1",
 		tenantID,
 	).Scan(&productType)
 	if err != nil {
@@ -173,7 +173,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	productType := models.ProductType(req.ProductType)
 	if !productType.IsValid() || productType == models.ProductTypeElectronics {
-		respondError(w, http.StatusBadRequest, "product_type must be BATTERY or TEXTILE")
+		respondError(w, http.StatusBadRequest, "product_type must be TEXTILE or ELECTRONICS")
 		return
 	}
 
@@ -328,7 +328,7 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	var emailVerified bool
 	var productType models.ProductType
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id, email_verified, COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE email = $1", req.Email).
+		"SELECT id, email_verified, COALESCE(product_type, 'TEXTILE') FROM public.tenants WHERE email = $1", req.Email).
 		Scan(&tenantID, &emailVerified, &productType)
 	if err != nil {
 		// Silently succeed to prevent email enumeration
@@ -398,7 +398,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var oauthProvider *string
 	var emailVerified bool
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, company_name, COALESCE(product_type, 'BATTERY'), password_hash, oauth_provider, COALESCE(email_verified, true)
+		`SELECT id, company_name, COALESCE(product_type, 'TEXTILE'), password_hash, oauth_provider, COALESCE(email_verified, true)
 		 FROM public.tenants WHERE email = $1`,
 		req.Email).Scan(&tenantID, &companyName, &productType, &passwordHash, &oauthProvider, &emailVerified)
 	if err != nil {
@@ -610,7 +610,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var tenantID uuid.UUID
 	var productType models.ProductType
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id, COALESCE(product_type, 'BATTERY') FROM public.tenants WHERE email = $1", req.Email).Scan(&tenantID, &productType)
+		"SELECT id, COALESCE(product_type, 'TEXTILE') FROM public.tenants WHERE email = $1", req.Email).Scan(&tenantID, &productType)
 	if err != nil {
 		// Don't reveal if email exists or not
 		respondJSON(w, http.StatusOK, map[string]string{

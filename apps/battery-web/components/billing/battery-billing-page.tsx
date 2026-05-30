@@ -236,7 +236,6 @@ export default function BillingPage() {
       );
       setTransactions(response.data.transactions || []);
     } catch (error: unknown) {
-      console.error("Failed to fetch transactions:", error);
     } finally {
       setLoadingTransactions(false);
     }
@@ -291,7 +290,6 @@ export default function BillingPage() {
               fetchTransactions();
             }
           } catch (error: unknown) {
-            console.error("Payment verification failed:", error);
             toast.error("Payment verification failed. Please contact support.");
           }
         },
@@ -312,7 +310,6 @@ export default function BillingPage() {
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error: unknown) {
-      console.error("Failed to create order:", error);
       toast.error("Failed to initiate payment. Please try again.");
     } finally {
       setPurchasing(null);

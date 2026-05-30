@@ -77,7 +77,7 @@ export default function NotFound() {
               Dashboard
             </Link>
             <Link
-              href="/blog"
+              href="/"
               className="text-sm px-4 py-2 rounded-lg bg-card dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:shadow-none transition-shadow border border-gray-200 dark:border-gray-700"
             >
               Blog

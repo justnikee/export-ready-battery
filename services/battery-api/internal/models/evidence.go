@@ -35,26 +35,23 @@ const (
 	EvidenceCertificateReference = "certificate_reference"
 	EvidenceRecallReason         = "recall_reason"
 	EvidenceRecallReference      = "recall_reference"
-	// Textile evidence fields
-	EvidenceDyeBatchReference   = "dye_batch_reference"
-	EvidenceFinishDate          = "finish_date"
-	EvidenceSaleOrderID         = "sale_order_id"
-	EvidenceCollectionReference = "collection_reference"
 )
 
 var evidenceRequirementsByAction = map[TransitionAction][]string{
-	ActionShip:    {EvidenceShipmentReference, EvidenceShipmentDate},
-	ActionInstall: {EvidenceInstallationDate, EvidenceInstallerID},
-	ActionRecycle: {EvidenceRecyclerEprID, EvidenceRecyclingDate, EvidenceCertificateReference},
-	ActionRecall:  {EvidenceRecallReason, EvidenceRecallReference},
-	ActionClose:   {EvidenceCertificateReference},
+	ActionShip:          {EvidenceShipmentReference, EvidenceShipmentDate},
+	ActionInstall:       {EvidenceInstallationDate, EvidenceInstallerID},
+	ActionRecycle:       {EvidenceRecyclerEprID, EvidenceRecyclingDate, EvidenceCertificateReference},
+	ActionRecall:        {EvidenceRecallReason, EvidenceRecallReference},
+	ActionClose:         {EvidenceCertificateReference},
+	ActionRemanufacture: {EvidenceRecyclerEprID, EvidenceCertificateReference},
+	ActionReuse:         {EvidenceRecyclerEprID, EvidenceCertificateReference},
+	ActionRepurpose:     {EvidenceRecyclerEprID, EvidenceCertificateReference},
 }
 
 var evidenceDateFields = map[string]bool{
 	EvidenceShipmentDate:     true,
 	EvidenceInstallationDate: true,
 	EvidenceRecyclingDate:    true,
-	EvidenceFinishDate:       true,
 }
 
 type EvidenceValidationResult struct {

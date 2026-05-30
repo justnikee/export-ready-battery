@@ -18,7 +18,6 @@ export default function TeamPage() {
       const response = await api.get("/team");
       setData(response.data);
     } catch (error) {
-      console.error("Failed to fetch team:", error);
     } finally {
       setLoading(false);
     }

@@ -9,14 +9,13 @@ import {
   AlertCircle,
   ArrowRight,
   Truck,
-  Wrench,
   Recycle,
-  Shield,
   User,
   Building2,
   Trophy,
   Factory,
   Palette,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,48 +32,6 @@ interface PassportInfo {
   };
   allowed_actions: string[];
 }
-
-const BATTERY_ACTION_CONFIG: Record<
-  string,
-  { label: string; icon: LucideIcon; color: string; description: string }
-> = {
-  ACTIVATE: {
-    label: "Activate Passport",
-    icon: Shield,
-    color: "emerald",
-    description: "Manufacturing completed and legally valid",
-  },
-  SHIP: {
-    label: "Mark as Shipped",
-    icon: Truck,
-    color: "blue",
-    description: "Battery has left the factory and is in transit",
-  },
-  INSTALL: {
-    label: "Mark as In Service",
-    icon: Wrench,
-    color: "emerald",
-    description: "Battery has been installed in a device or vehicle",
-  },
-  RECYCLE: {
-    label: "Mark as Recycled",
-    icon: Recycle,
-    color: "purple",
-    description: "Battery has been processed by a certified recycler",
-  },
-  RECALL: {
-    label: "Recall Battery",
-    icon: AlertCircle,
-    color: "red",
-    description: "Safety or compliance recall",
-  },
-  CLOSE: {
-    label: "Close as End of Life",
-    icon: CheckCircle,
-    color: "slate",
-    description: "Lifecycle permanently closed after recycling",
-  },
-};
 
 const TEXTILE_ACTION_CONFIG: Record<
   string,
@@ -110,60 +67,6 @@ const TEXTILE_ACTION_CONFIG: Record<
     color: "purple",
     description: "Collected for recycling or reuse",
   },
-};
-
-const BATTERY_EVIDENCE_FIELDS: Record<
-  string,
-  { key: string; label: string; placeholder?: string; type?: string }[]
-> = {
-  SHIP: [
-    {
-      key: "shipment_reference",
-      label: "Shipment Reference",
-      placeholder: "Tracking number / AWB",
-    },
-    { key: "shipment_date", label: "Shipment Date", type: "date" },
-  ],
-  INSTALL: [
-    { key: "installation_date", label: "Installation Date", type: "date" },
-    {
-      key: "installer_id",
-      label: "Installer ID",
-      placeholder: "Technician ID or badge",
-    },
-  ],
-  RECYCLE: [
-    {
-      key: "recycler_epr_id",
-      label: "Recycler EPR ID",
-      placeholder: "EPR-XXXX",
-    },
-    { key: "recycling_date", label: "Recycling Date", type: "date" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      placeholder: "Certificate number",
-    },
-  ],
-  RECALL: [
-    {
-      key: "recall_reason",
-      label: "Recall Reason",
-      placeholder: "Recall reason",
-    },
-    {
-      key: "recall_reference",
-      label: "Recall Reference",
-      placeholder: "Incident / reference ID",
-    },
-  ],
-  CLOSE: [
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      placeholder: "Certificate number from recycling",
-    },
-  ],
 };
 
 const TEXTILE_EVIDENCE_FIELDS: Record<
@@ -238,9 +141,8 @@ function PassportActionContent() {
   const [otpError, setOtpError] = useState("");
   const [otpResendCooldown, setOtpResendCooldown] = useState(0);
 
-  const isTextile = info?.passport?.product_type === "TEXTILE";
-  const ACTION_CONFIG = isTextile ? TEXTILE_ACTION_CONFIG : BATTERY_ACTION_CONFIG;
-  const EVIDENCE_FIELDS = isTextile ? TEXTILE_EVIDENCE_FIELDS : BATTERY_EVIDENCE_FIELDS;
+  const ACTION_CONFIG = TEXTILE_ACTION_CONFIG;
+  const EVIDENCE_FIELDS = TEXTILE_EVIDENCE_FIELDS;
 
   useEffect(() => {
     if (!token) {
@@ -592,7 +494,7 @@ function PassportActionContent() {
                     Warranty Registered! +{pointsAwarded} Partner Points
                   </h3>
                   <p className="text-sm text-amber-500/80">
-                    {isTextile ? "Item tracked! Status updated." : "Battery Installed! Warranty Activated."}
+                    Item tracked! Status updated.
                   </p>
                 </div>
               </div>
@@ -632,7 +534,9 @@ function PassportActionContent() {
               Authenticated Action
             </span>
           </div>
-          <h1 className="text-2xl text-white mb-2">{isTextile ? "Update Supply Chain Status" : "Update Battery Status"}</h1>
+          <h1 className="text-2xl text-white mb-2">
+            Update Supply Chain Status
+          </h1>
           <p className="text-muted-foreground">
             Serial:{" "}
             <code className="text-muted-foreground">

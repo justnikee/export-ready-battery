@@ -47,7 +47,7 @@ function TestConsumer() {
             tenant_id: "t1",
             email: "test@example.com",
             company_name: "Acme",
-            product_type: "BATTERY",
+            product_type: "TEXTILE",
             onboarding_completed: true,
           })
         }
@@ -114,7 +114,7 @@ describe("AuthProvider", () => {
         tenant_id: "t1",
         email: "test@example.com",
         company_name: "Acme",
-        product_type: "BATTERY",
+        product_type: "TEXTILE",
         onboarding_completed: true,
       },
     });
@@ -136,7 +136,7 @@ describe("AuthProvider", () => {
     });
 
     expect(localStorage.getItem("token")).toBe("token123");
-    expect(pushMock).toHaveBeenCalledWith("/battery/dashboard");
+    expect(pushMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("logs out and clears state", async () => {
@@ -147,7 +147,7 @@ describe("AuthProvider", () => {
         tenant_id: "t1",
         email: "logged@example.com",
         company_name: "Acme",
-        product_type: "BATTERY",
+        product_type: "TEXTILE",
         onboarding_completed: true,
       },
     });
@@ -172,6 +172,6 @@ describe("AuthProvider", () => {
 
     expect(mockedAuthApiLogout).toHaveBeenCalled();
     expect(localStorage.getItem("token")).toBeNull();
-    expect(pushMock).toHaveBeenCalledWith("/battery/login");
+    expect(pushMock).toHaveBeenCalledWith("/login");
   });
 });

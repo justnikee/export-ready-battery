@@ -126,3 +126,55 @@ func TestGenerateQRCode_BackwardCompatible(t *testing.T) {
 		t.Error("expected non-empty PNG data")
 	}
 }
+
+func TestBuildQRPayload_GS1DigitalLink_WithGTIN(t *testing.T) {
+	svc := NewQRService("https://app.anvayalabs.in")
+	id := uuid.MustParse("77777777-7777-7777-7777-777777777777")
+	serial := "EU-TEN-LFP-2026-00042"
+	ctx := &QRLabelContext{GTIN: "12345678901234"}
+
+	url := svc.BuildQRPayload(id, serial, ctx)
+
+	expectedBase := "https://app.anvayalabs.in/01/12345678901234/21/EU-TEN-LFP-2026-00042"
+	if !strings.HasPrefix(url, expectedBase) {
+		t.Errorf("GS1 Digital Link URL must start with base path\ngot:  %s\nwant prefix: %s", url, expectedBase)
+	}
+
+	// Must NOT contain legacy /p/{uuid} format
+	if strings.Contains(url, "/p/77777777-7777-7777-7777-777777777777") {
+		t.Error("GS1 Digital Link URL should not contain legacy /p/{uuid} format")
+	}
+
+	// Must contain decoded BPAN params
+	for _, param := range []string{"bpan=EU-TEN-LFP-2026-00042", "chem=LFP", "yr=2026", "mfr=TEN", "rgn=EU"} {
+		if !strings.Contains(url, param) {
+			t.Errorf("URL missing expected param %q\ngot: %s", param, url)
+		}
+	}
+}
+
+func TestBuildQRPayload_GS1DigitalLink_LegacySerial(t *testing.T) {
+	svc := NewQRService("https://app.anvayalabs.in")
+	id := uuid.MustParse("88888888-8888-8888-8888-888888888888")
+	ctx := &QRLabelContext{GTIN: "12345678901234"}
+
+	url := svc.BuildQRPayload(id, "LEGACY-SERIAL-456", ctx)
+
+	expected := "https://app.anvayalabs.in/01/12345678901234/21/LEGACY-SERIAL-456"
+	if url != expected {
+		t.Errorf("GS1 Digital Link with legacy serial should produce plain URL\ngot:  %s\nwant: %s", url, expected)
+	}
+}
+
+func TestBuildQRPayload_GS1DigitalLink_NoGTIN_FallsBack(t *testing.T) {
+	svc := NewQRService("https://app.anvayalabs.in")
+	id := uuid.MustParse("99999999-9999-9999-9999-999999999999")
+	serial := "IN-TEN-LFP-2026-00099"
+
+	url := svc.BuildQRPayload(id, serial, nil)
+
+	expectedBase := "https://app.anvayalabs.in/p/99999999-9999-9999-9999-999999999999"
+	if !strings.HasPrefix(url, expectedBase) {
+		t.Errorf("Must fall back to legacy format\ngot:  %s\nwant prefix: %s", url, expectedBase)
+	}
+}

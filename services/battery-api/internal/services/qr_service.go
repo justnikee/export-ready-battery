@@ -46,6 +46,9 @@ type QRLabelContext struct {
 	EPRNumber string
 	// ProductType drives QR parameter naming (chem for battery, fiber for textile).
 	ProductType models.ProductType
+	// GTIN is the GS1 Global Trade Item Number for GS1 Digital Link QR codes.
+	// When set, the QR payload uses the GS1 Digital Link format instead of the legacy /p/{uuid} format.
+	GTIN string
 }
 
 // GenerateQRCode generates a single QR code PNG.
@@ -80,6 +83,37 @@ func (s *QRService) GenerateQRCodeEnriched(passportUUID uuid.UUID, serialNumber 
 // BPAN V2 serial:       https://app.anvayalabs.in/p/{uuid}?bpan=IN-TEN-LFP-2026-00001&chem=LFP&yr=2026&mfr=TEN&rgn=IN
 // EU with carbon:       ...&co2=65.00
 func (s *QRService) BuildQRPayload(passportUUID uuid.UUID, serialNumber string, ctx *QRLabelContext) string {
+	// GS1 Digital Link format when GTIN is available
+	if ctx != nil && ctx.GTIN != "" {
+		base := fmt.Sprintf("%s/01/%s/21/%s", s.baseURL, ctx.GTIN, serialNumber)
+
+		// Try parsing the serial as BPAN for query param enrichment
+		comp := ParseBPAN(serialNumber)
+		if comp == nil {
+			return base // No BPAN metadata to enrich
+		}
+
+		params := url.Values{}
+		params.Set("bpan", serialNumber)
+		params.Set("chem", comp.Chemistry)
+		params.Set("yr", fmt.Sprintf("%d", comp.Year))
+		params.Set("mfr", comp.Manufacturer)
+		params.Set("rgn", comp.Region)
+
+		// Add carbon footprint if available (EU/Global)
+		if ctx.CarbonPerKWh > 0 {
+			params.Set("co2", fmt.Sprintf("%.2f", ctx.CarbonPerKWh))
+		}
+
+		// Add EPR registration number for Indian-market batteries (BWMR compliance)
+		if ctx.EPRNumber != "" && comp.Region == "IN" {
+			params.Set("epr", ctx.EPRNumber)
+		}
+
+		return fmt.Sprintf("%s?%s", base, params.Encode())
+	}
+
+	// Legacy format: fall back to /p/{uuid}
 	base := fmt.Sprintf("%s/p/%s", s.baseURL, passportUUID.String())
 
 	// Try parsing the serial as BPAN

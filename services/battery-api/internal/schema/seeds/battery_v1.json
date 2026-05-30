@@ -154,6 +154,46 @@
       "description": "Expected number of charge–discharge cycles at rated capacity (e.g. 1000, 3000)",
       "examples": [1000, 3000, 5000]
     },
+    "expected_lifetime_years": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Expected service life in years (EU Battery Regulation Annex IV)",
+      "examples": [5, 8, 10, 15]
+    },
+    "ce_marking": {
+      "type": "boolean",
+      "description": "Whether the battery bears CE marking per EU Battery Regulation Art 16"
+    },
+    "notified_body_number": {
+      "type": "string",
+      "description": "EU Notified Body identification number for conformity assessment (e.g. '0123') per Art 18",
+      "examples": ["0123", "0477", "0598"]
+    },
+    "carbon_performance_class": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D", "E"],
+      "description": "Carbon footprint performance class per EU Battery Regulation Art 7(4); mandatory labelling from Aug 2025 (EV) / Feb 2026 (industrial)"
+    },
+    "removable_and_replaceable": {
+      "type": "boolean",
+      "description": "Whether the battery is removable and replaceable by end-users per EU Art 11"
+    },
+    "declaration_of_conformity_path": {
+      "type": "string",
+      "description": "URL or file path to the signed EU Declaration of Conformity per Art 18"
+    },
+    "spare_parts_info": {
+      "type": "object",
+      "description": "Spare parts availability per EU Battery Regulation Art 11",
+      "properties": {
+        "parts_available": { "type": "boolean" },
+        "supplier_contact": { "type": "string" },
+        "part_numbers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
     "warranty_months": {
       "type": "integer",
       "minimum": 0,

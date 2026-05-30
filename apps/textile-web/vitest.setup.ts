@@ -7,6 +7,14 @@ afterEach(() => {
   cleanup();
 });
 
+// ResizeObserver polyfill — Radix UI uses it in SelectContent, Checkbox, etc.
+// JSDOM does not implement it, so tests fail without this stub.
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // Provide a minimal localStorage mock for tests that don't need the full storage API
 Object.defineProperty(globalThis, "localStorage", {
   value: (() => {

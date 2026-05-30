@@ -136,6 +136,41 @@ func clearRefreshCookie(w http.ResponseWriter) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Helper: set / clear the HttpOnly auth-token cookie
+// ─────────────────────────────────────────────────────────────────────────────
+
+func setAuthCookie(w http.ResponseWriter, token string, expiry time.Duration) {
+	maxAge := int(expiry.Seconds())
+	secure := os.Getenv("APP_ENV") == "production"
+	sameSite := http.SameSiteStrictMode
+	if !secure {
+		// SameSite=Strict blocks the cookie during top-level navigations in dev
+		// (e.g. after Google OAuth redirect), so use Lax in local dev.
+		sameSite = http.SameSiteLaxMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    token,
+		Path:     "/", // Sent to all endpoints (needed by proxy middleware)
+		MaxAge:   maxAge,
+		HttpOnly: true,  // Not accessible via document.cookie
+		Secure:   secure, // HTTPS only in production
+		SameSite: sameSite,
+	})
+}
+
+func clearAuthCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1, // Immediate deletion
+		HttpOnly: true,
+		Secure:   os.Getenv("APP_ENV") == "production",
+	})
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Register
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -172,8 +207,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		req.ProductType = string(models.DefaultProductType())
 	}
 	productType := models.ProductType(req.ProductType)
-	if !productType.IsValid() || productType == models.ProductTypeElectronics {
-		respondError(w, http.StatusBadRequest, "product_type must be BATTERY or TEXTILE")
+	if !productType.IsValid() {
+		respondError(w, http.StatusBadRequest, "product_type must be BATTERY or ELECTRONICS")
 		return
 	}
 
@@ -464,6 +499,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Set refresh token as HttpOnly cookie (not accessible to JS)
 	setRefreshCookie(w, refreshToken, h.authService.GetRefreshExpiry())
+	// Set auth token as HttpOnly cookie for proxy middleware
+	setAuthCookie(w, token, h.authService.GetTokenExpiry())
 
 	respondJSON(w, http.StatusOK, AuthResponse{
 		Token:       token,
@@ -546,6 +583,8 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	// Rotate the cookie with the new refresh token
 	setRefreshCookie(w, newRefreshToken, h.authService.GetRefreshExpiry())
+	// Rotate auth token cookie
+	setAuthCookie(w, token, h.authService.GetTokenExpiry())
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"token":      token,
@@ -583,6 +622,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	// Clear the HttpOnly refresh cookie on the client
 	clearRefreshCookie(w)
+	// Clear auth token cookie
+	clearAuthCookie(w)
 
 	respondJSON(w, http.StatusOK, map[string]string{
 		"message": "Logged out successfully",

@@ -470,24 +470,6 @@ func (m *MockRepository) GetPassportIDsByBatch(ctx context.Context, batchID, ten
 	return nil, args.Error(1)
 }
 
-func (m *MockRepository) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error {
-	args := m.Called(ctx, passportID, soh, ts)
-	return args.Error(0)
-}
-
-func (m *MockRepository) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
-	args := m.Called(ctx, entry)
-	return args.Error(0)
-}
-
-func (m *MockRepository) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
-	args := m.Called(ctx, passportID)
-	if v := args.Get(0); v != nil {
-		return v.([]models.SoHHistoryEntry), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
 func (m *MockRepository) SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error {
 	args := m.Called(ctx, passportID, status, recyclerEprID, date)
 	return args.Error(0)
@@ -945,4 +927,83 @@ func (m *MockRepository) ListPassportDocuments(ctx context.Context, passportID, 
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*PassportDocument), args.Error(1)
+}
+
+func (m *MockRepository) CreateTallyImportLog(ctx context.Context, log *TallyImportLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*TallyImportLog, int, error) {
+	args := m.Called(ctx, tenantID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*TallyImportLog), args.Int(1), args.Error(2)
+}
+func (m *MockRepository) UpsertTallySyncConfig(ctx context.Context, cfg *TallySyncConfig) error {
+	args := m.Called(ctx, cfg)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*TallySyncConfig, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*TallySyncConfig), args.Error(1)
+}
+
+func (m *MockRepository) ListEnabledTallySyncConfigs(ctx context.Context) ([]*TallySyncConfig, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*TallySyncConfig), args.Error(1)
+}
+
+func (m *MockRepository) UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error {
+	args := m.Called(ctx, tenantID, t)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateTallySyncStaging(ctx context.Context, item *TallySyncStaging) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*TallySyncStaging, int, error) {
+	args := m.Called(ctx, tenantID, status, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*TallySyncStaging), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*TallySyncStaging, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*TallySyncStaging), args.Error(1)
+}
+
+func (m *MockRepository) ApplyTallySyncStaging(ctx context.Context, id, tenantID, lotID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID, lotID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateTallySyncRun(ctx context.Context, run *TallySyncRun) error {
+	args := m.Called(ctx, run)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error {
+	args := m.Called(ctx, id, status, errorMsg, fetched, staged)
+	return args.Error(0)
 }

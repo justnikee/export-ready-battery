@@ -46,7 +46,7 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  <Dialog open={open} onOpenChange={setOpen}>
  <DialogTrigger asChild>
  {trigger || (
- <button type="button" className="p-2 text-muted-foreground hover:text-white transition-colors">
+ <button aria-label="Open DVA calculator" type="button" className="p-2 text-muted-foreground hover:text-white transition-colors">
  <Calculator className="h-4 w-4" />
  </button>
  )}

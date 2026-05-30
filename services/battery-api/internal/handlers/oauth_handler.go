@@ -54,15 +54,15 @@ func parseOAuthProductType(raw string) (models.ProductType, error) {
 	}
 
 	pt := models.ProductType(raw)
-	if !pt.IsValid() || pt == models.ProductTypeElectronics {
+	if !pt.IsValid() {
 		return "", fmt.Errorf("invalid product type")
 	}
 
 	return pt, nil
 }
 
-func productLoginPath(pt models.ProductType) string {
-	return "/battery/login"
+func productLoginPath(_ models.ProductType) string {
+	return "/login"
 }
 
 // GoogleRedirect handles GET /api/v1/auth/google
@@ -74,7 +74,7 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 
 	productType, err := parseOAuthProductType(r.URL.Query().Get("product_type"))
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or TEXTILE")
+		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or ELECTRONICS")
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 
 	productType, err := parseOAuthProductType(r.URL.Query().Get("product_type"))
 	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or TEXTILE")
+		respondError(w, http.StatusBadRequest, "Invalid product_type. Must be BATTERY or ELECTRONICS")
 		return
 	}
 
@@ -276,6 +276,7 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 	// with this response. Passing tokens in URLs leaks them to browser history
 	// and server access logs.
 	setRefreshCookie(w, refreshToken, h.authService.GetRefreshExpiry())
+	setAuthCookie(w, token, h.authService.GetTokenExpiry())
 
 	// Redirect to frontend callback page — no refresh_token in URL
 	callbackURL := fmt.Sprintf("%s/auth/callback?token=%s&tenant_id=%s&email=%s&company_name=%s&product_type=%s",

@@ -269,6 +269,57 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	}
 
 	// ----------------------------------------------------------------
+	// Component-level disclosure (EU 2023/1542 Art. 77 — cell chemistry)
+	// ----------------------------------------------------------------
+
+	if len(batch.Specs.Components) > 0 {
+		cellCount := 0
+		cellWithChemistry := 0
+		for _, comp := range batch.Specs.Components {
+			if comp.ComponentType == "cell" {
+				cellCount++
+				if comp.Chemistry != "" {
+					cellWithChemistry++
+				}
+			}
+		}
+		if cellCount > 0 && cellWithChemistry < cellCount {
+			addError("batch.specs.components",
+				fmt.Sprintf("All cell-level components must declare chemistry (%d/%d cells have chemistry)", cellWithChemistry, cellCount),
+				euBatRegRef)
+		}
+		// Aggregate component recycled content and validate against thresholds
+		agg := aggregateComponentRecycledContent(batch.Specs.Components)
+		thresholds := v.getRecycledThresholds(context.Background())
+		if agg.CobaltTotal > 0 && agg.RecycledCobalt < thresholds.Cobalt {
+			addWarning("batch.specs.components.recycled_cobalt_pct",
+				fmt.Sprintf("Component-level aggregated recycled cobalt %.1f%% is below EU minimum %.1f%%", agg.RecycledCobalt, thresholds.Cobalt),
+				euArt8Ref)
+		}
+		if agg.LithiumTotal > 0 && agg.RecycledLithium < thresholds.Lithium {
+			addWarning("batch.specs.components.recycled_lithium_pct",
+				fmt.Sprintf("Component-level aggregated recycled lithium %.1f%% is below EU minimum %.1f%%", agg.RecycledLithium, thresholds.Lithium),
+				euArt8Ref)
+		}
+		if agg.NickelTotal > 0 && agg.RecycledNickel < thresholds.Nickel {
+			addWarning("batch.specs.components.recycled_nickel_pct",
+				fmt.Sprintf("Component-level aggregated recycled nickel %.1f%% is below EU minimum %.1f%%", agg.RecycledNickel, thresholds.Nickel),
+				euArt8Ref)
+		}
+		if agg.LeadTotal > 0 && agg.RecycledLead < thresholds.Lead {
+			addWarning("batch.specs.components.recycled_lead_pct",
+				fmt.Sprintf("Component-level aggregated recycled lead %.1f%% is below EU minimum %.1f%%", agg.RecycledLead, thresholds.Lead),
+				euArt8Ref)
+		}
+	} else if batch.Specs.BatteryCategory == models.BatteryCategoryEV || batch.Specs.BatteryCategory == models.BatteryCategoryLMT || batch.Specs.BatteryCategory == models.BatteryCategoryIndustrial {
+		// EV, LMT, and Industrial batteries typically have sub-assemblies;
+		// warn if no component breakdown is provided.
+		addWarning("batch.specs.components",
+			"No component breakdown provided. EU Battery Regulation Art. 77 requires cell-level disclosure for batteries with sub-assemblies.",
+			euBatRegRef)
+	}
+
+	// ----------------------------------------------------------------
 	// Overall recycled content percentage — soft warning
 	// ----------------------------------------------------------------
 
@@ -291,4 +342,45 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 		Warnings: warnings,
 		Gaps:     gaps,
 	}, nil
+}
+
+// aggregatedRecycledContent holds weighted recycled content across all components.
+type aggregatedRecycledContent struct {
+	CobaltTotal    float64
+	RecycledCobalt float64
+	LithiumTotal   float64
+	RecycledLithium float64
+	NickelTotal    float64
+	RecycledNickel float64
+	LeadTotal      float64
+	RecycledLead   float64
+}
+
+// aggregateComponentRecycledContent computes weighted-average recycled content
+// across all components, weighted by component weight.
+func aggregateComponentRecycledContent(components []models.Component) aggregatedRecycledContent {
+	var totalWeight float64
+	var agg aggregatedRecycledContent
+	for _, c := range components {
+		w := c.WeightKg * float64(c.Quantity)
+		if w <= 0 {
+			w = 1 // fallback for unweighted components
+		}
+		totalWeight += w
+		agg.CobaltTotal += w
+		agg.RecycledCobalt += w * c.RecycledCobaltPct / 100
+		agg.LithiumTotal += w
+		agg.RecycledLithium += w * c.RecycledLithiumPct / 100
+		agg.NickelTotal += w
+		agg.RecycledNickel += w * c.RecycledNickelPct / 100
+		agg.LeadTotal += w
+		agg.RecycledLead += w * c.RecycledLeadPct / 100
+	}
+	if totalWeight > 0 {
+		agg.RecycledCobalt = (agg.RecycledCobalt / totalWeight) * 100
+		agg.RecycledLithium = (agg.RecycledLithium / totalWeight) * 100
+		agg.RecycledNickel = (agg.RecycledNickel / totalWeight) * 100
+		agg.RecycledLead = (agg.RecycledLead / totalWeight) * 100
+	}
+	return agg
 }

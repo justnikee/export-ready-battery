@@ -18,8 +18,8 @@ import (
 type MarketRegion string
 
 const (
-	MarketRegionIndia  MarketRegion = "INDIA"  // Battery Aadhaar (domestic)
-	MarketRegionEU     MarketRegion = "EU"     // Battery Passport (export)
+	MarketRegionIndia  MarketRegion = "INDIA"  // India domestic market
+	MarketRegionEU     MarketRegion = "EU"     // EU export market
 	MarketRegionGlobal MarketRegion = "GLOBAL" // Both markets (default)
 )
 
@@ -78,18 +78,6 @@ type BaseProfileRequest struct {
 	DataVisibility json.RawMessage `json:"data_visibility"`
 }
 
-// BatteryProfileUpdate holds battery-specific profile update fields.
-type BatteryProfileUpdate struct {
-	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name"`
-	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address"`
-	EUContactEmail                    string `json:"eu_contact_email"`
-	EPRRegistrationNumber             string `json:"epr_registration_number"`
-	BISRNumber                        string `json:"bis_r_number"`
-	IECCode                           string `json:"iec_code"`
-	MorthManufacturerCode             string `json:"morth_manufacturer_code"`
-	MorthFactoryCodes                 string `json:"morth_factory_codes"`
-}
-
 // TextileProfileUpdate holds textile-specific profile update fields.
 type TextileProfileUpdate struct {
 	TextileFacilityType       string          `json:"textile_facility_type"`
@@ -104,7 +92,6 @@ type TextileProfileUpdate struct {
 // It preserves the flat JSON API contract via promoted fields.
 type UpdateProfileRequest struct {
 	BaseProfileRequest
-	*BatteryProfileUpdate
 	*TextileProfileUpdate
 }
 
@@ -197,6 +184,11 @@ type BatchSpec struct {
 	BiodegradablePct       *float64                `json:"biodegradable_pct,omitempty"`        // % biodegradable fibers
 	ExpectedLifetimeWashes *int                    `json:"expected_lifetime_washes,omitempty"` // Expected wash cycles
 	FiberOrigin            string                  `json:"fiber_origin,omitempty"`             // Raw fiber sourcing region/country
+	RecycledContentPct     *float64                `json:"recycled_content_pct,omitempty"`     // % recycled fiber content (EU ESPR / GRS)
+	Certifications         []string                `json:"certifications,omitempty"`           // e.g. GOTS, OEKO-TEX, GRS, FAIRTRADE
+	Weight                 string                  `json:"weight,omitempty"`                   // Product weight (e.g. "250g")
+	CarbonFootprint        string                  `json:"carbon_footprint,omitempty"`         // kgCO2e/kg or per unit
+	HazardousSubstances    *HazardousSubstances    `json:"hazardous_substances,omitempty"`     // REACH/SVHC hazardous substance declaration
 }
 
 // ============================================================================
@@ -244,6 +236,15 @@ type ChemicalComplianceZDHC struct {
 	MRSLTested                bool     `json:"mrsl_tested,omitempty"`
 	TestReportURL             string   `json:"test_report_url,omitempty"`
 	RestrictedSubstancesFound []string `json:"restricted_substances_found,omitempty"`
+}
+
+// HazardousSubstances holds REACH/SVHC hazardous substance declarations per EU ESPR.
+type HazardousSubstances struct {
+	Declaration    string `json:"declaration,omitempty"`    // e.g. "No hazardous substances above 0.1% w/w"
+	LeadPresent    bool   `json:"lead_present,omitempty"`
+	MercuryPresent bool   `json:"mercury_present,omitempty"`
+	CadmiumPresent bool   `json:"cadmium_present,omitempty"`
+	Exemptions     string `json:"exemptions,omitempty"` // REACH Annex XVII exemption reference
 }
 
 // ============================================================================

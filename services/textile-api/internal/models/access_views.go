@@ -39,10 +39,6 @@ type PublicPassportView struct {
 	Status          string    `json:"status"`
 	CreatedAt       time.Time `json:"created_at"`
 
-	// Dynamic compliance (public per Art 78)
-	StateOfHealth          *float64   `json:"state_of_health,omitempty"`
-	LastSOHUpdateTimestamp *time.Time `json:"last_soh_update_timestamp,omitempty"`
-
 	// Specs (product identity — public)
 	Specs *PublicSpecsView `json:"specs"`
 
@@ -50,25 +46,21 @@ type PublicPassportView struct {
 	Tenant *PublicTenantView `json:"tenant"`
 
 	// Batch context
-	BatchName    string       `json:"batch_name"`
-	ModelName    string       `json:"model_name,omitempty"`
-	ProductType  ProductType  `json:"product_type"`
-	TemplateVariant string    `json:"template_variant,omitempty"`
-	MarketRegion MarketRegion `json:"market_region"`
+	BatchName       string       `json:"batch_name"`
+	ModelName       string       `json:"model_name,omitempty"`
+	ProductType     ProductType  `json:"product_type"`
+	TemplateVariant string       `json:"template_variant,omitempty"`
+	MarketRegion    MarketRegion `json:"market_region"`
 
 	// Manufacturing window
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 
-	// India compliance (public)
-	CellSource       string     `json:"cell_source,omitempty"`
-	DomesticValueAdd float64    `json:"domestic_value_add,omitempty"`
-	PLICompliant     bool       `json:"pli_compliant,omitempty"`
-	HSNCode          string     `json:"hsn_code,omitempty"`
-	DVASource        string     `json:"dva_source,omitempty"`
-	BillOfEntryNo    string     `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin  string     `json:"country_of_origin,omitempty"`
-	CustomsDate      *time.Time `json:"customs_date,omitempty"`
+	// Import / customs traceability (public — India + global)
+	HSNCode         string     `json:"hsn_code,omitempty"`
+	BillOfEntryNo   string     `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin string     `json:"country_of_origin,omitempty"`
+	CustomsDate     *time.Time `json:"customs_date,omitempty"`
 
 	// Access tier metadata
 	AccessTier AccessTier `json:"access_tier"`
@@ -76,10 +68,33 @@ type PublicPassportView struct {
 
 // PublicSpecsView is the consumer-safe subset of BatchSpec
 type PublicSpecsView struct {
-	MaterialProfile        string               `json:"material_profile,omitempty"`
-	LotSize                string               `json:"lot_size,omitempty"`
-	ProductionStage        string               `json:"production_stage,omitempty"`
-	ManufacturerAddress    string               `json:"manufacturer_address,omitempty"`
+	// Common
+	MaterialProfile     string `json:"material_profile,omitempty"`
+	LotSize             string `json:"lot_size,omitempty"`
+	ProductionStage     string `json:"production_stage,omitempty"`
+	ManufacturerAddress string `json:"manufacturer_address,omitempty"`
+	Color               string `json:"color,omitempty"`
+	Dimensions          string `json:"dimensions,omitempty"`
+	Weight              string `json:"weight,omitempty"`
+
+	// Textile fabric identity (public per EU ESPR Art 7)
+	GSM                    float64          `json:"gsm,omitempty"`
+	FiberComposition       *FiberComposition `json:"fiber_composition,omitempty"`
+	FiberOrigin            string            `json:"fiber_origin,omitempty"`
+	DyeProcess             string            `json:"dye_process,omitempty"`
+	FinishType             []string          `json:"finish_type,omitempty"`
+
+	// Sustainability metrics (public)
+	WaterUsageLiters       float64  `json:"water_usage_liters,omitempty"`
+	EnergyUsageKWh         float64  `json:"energy_usage_kwh,omitempty"`
+	BiodegradablePct       *float64 `json:"biodegradable_pct,omitempty"`
+	RecycledContentPct     *float64 `json:"recycled_content_pct,omitempty"`
+	ExpectedLifetimeWashes *int     `json:"expected_lifetime_washes,omitempty"`
+	CarbonFootprint        string   `json:"carbon_footprint,omitempty"`
+
+	// Compliance signals (public)
+	Certifications      []string             `json:"certifications,omitempty"`
+	HazardousSubstances *HazardousSubstances `json:"hazardous_substances,omitempty"`
 }
 
 // PublicTenantView is the consumer-safe subset of Tenant
@@ -91,10 +106,7 @@ type PublicTenantView struct {
 	TextileFacilityType               string    `json:"textile_facility_type,omitempty"`
 	TextileSupplyChainTier            string    `json:"textile_supply_chain_tier,omitempty"`
 	EPRRegistrationNumber             string    `json:"epr_registration_number,omitempty"`
-	BISRNumber                        string    `json:"bis_r_number,omitempty"`
-	BISCertificatePath                string    `json:"bis_certificate_path,omitempty"`
 	EPRCertificatePath                string    `json:"epr_certificate_path,omitempty"`
-	PLICertificatePath                string    `json:"pli_certificate_path,omitempty"`
 	EUAuthorizedRepresentativeName    string    `json:"eu_authorized_representative_name,omitempty"`
 	EUAuthorizedRepresentativeAddress string    `json:"eu_authorized_representative_address,omitempty"`
 	EUContactEmail                    string    `json:"eu_contact_email,omitempty"`
@@ -109,11 +121,7 @@ type publicViewBatchSnapshot struct {
 	Specs                  *BatchSpec          `json:"specs,omitempty"`
 	ManufacturingStartDate *time.Time          `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time          `json:"manufacturing_end_date,omitempty"`
-	CellSource             string              `json:"cell_source,omitempty"`
-	DomesticValueAdd       float64             `json:"domestic_value_add,omitempty"`
-	PLICompliant           bool                `json:"pli_compliant,omitempty"`
 	HSNCode                string              `json:"hsn_code,omitempty"`
-	DVASource              string              `json:"dva_source,omitempty"`
 	BillOfEntryNo          string              `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin        string              `json:"country_of_origin,omitempty"`
 	CustomsDate            *time.Time          `json:"customs_date,omitempty"`
@@ -127,7 +135,6 @@ type publicTenantSnapshot struct {
 	TextileFacilityType               string `json:"textile_facility_type,omitempty"`
 	TextileSupplyChainTier            string `json:"textile_supply_chain_tier,omitempty"`
 	EPRRegistrationNumber             string `json:"epr_registration_number,omitempty"`
-	BISRNumber                        string `json:"bis_r_number,omitempty"`
 	EUAuthorizedRepresentativeName    string `json:"eu_authorized_representative_name,omitempty"`
 	EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address,omitempty"`
 	EUContactEmail                    string `json:"eu_contact_email,omitempty"`
@@ -194,26 +201,19 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		Status:          p.Status,
 		CreatedAt:       p.CreatedAt,
 
-		StateOfHealth:          p.StateOfHealth,
-		LastSOHUpdateTimestamp: p.LastSOHUpdateTimestamp,
-
-		BatchName:    full.BatchName,
-		ModelName:    full.ModelName,
-		ProductType:  full.ProductType,
+		BatchName:       full.BatchName,
+		ModelName:       full.ModelName,
+		ProductType:     full.ProductType,
 		TemplateVariant: resolveVariantForPassportWithSpecs(full),
-		MarketRegion: full.MarketRegion,
+		MarketRegion:    full.MarketRegion,
 
 		ManufacturingStartDate: full.ManufacturingStartDate,
 		ManufacturingEndDate:   full.ManufacturingEndDate,
 
-		CellSource:       full.CellSource,
-		DomesticValueAdd: full.DomesticValueAdd,
-		PLICompliant:     full.PLICompliant,
-		HSNCode:          full.HSNCode,
-		DVASource:        full.DVASource,
-		BillOfEntryNo:    full.BillOfEntryNo,
-		CountryOfOrigin:  full.CountryOfOrigin,
-		CustomsDate:      full.CustomsDate,
+		HSNCode:         full.HSNCode,
+		BillOfEntryNo:   full.BillOfEntryNo,
+		CountryOfOrigin: full.CountryOfOrigin,
+		CustomsDate:     full.CustomsDate,
 
 		AccessTier: AccessTierPublic,
 	}
@@ -238,6 +238,22 @@ func buildPublicSpecsView(specs *BatchSpec) *PublicSpecsView {
 		LotSize:                specs.LotSize,
 		ProductionStage:        specs.ProductionStage,
 		ManufacturerAddress:    specs.ManufacturerAddress,
+		Color:                  specs.Color,
+		Dimensions:             specs.Dimensions,
+		Weight:                 specs.Weight,
+		GSM:                    specs.GSM,
+		FiberComposition:       specs.FiberComposition,
+		FiberOrigin:            specs.FiberOrigin,
+		DyeProcess:             specs.DyeProcess,
+		FinishType:             specs.FinishType,
+		WaterUsageLiters:       specs.WaterUsageLiters,
+		EnergyUsageKWh:         specs.EnergyUsageKWh,
+		BiodegradablePct:       specs.BiodegradablePct,
+		RecycledContentPct:     specs.RecycledContentPct,
+		ExpectedLifetimeWashes: specs.ExpectedLifetimeWashes,
+		CarbonFootprint:        specs.CarbonFootprint,
+		Certifications:         specs.Certifications,
+		HazardousSubstances:    specs.HazardousSubstances,
 	}
 }
 
@@ -269,7 +285,6 @@ func buildPublicTenantViewFromSnapshot(snapshot *publicTenantSnapshot) *PublicTe
 		TextileFacilityType:               snapshot.TextileFacilityType,
 		TextileSupplyChainTier:            snapshot.TextileSupplyChainTier,
 		EPRRegistrationNumber:             snapshot.EPRRegistrationNumber,
-		BISRNumber:                        snapshot.BISRNumber,
 		EUAuthorizedRepresentativeName:    snapshot.EUAuthorizedRepresentativeName,
 		EUAuthorizedRepresentativeAddress: snapshot.EUAuthorizedRepresentativeAddress,
 		EUContactEmail:                    snapshot.EUContactEmail,
@@ -318,20 +333,8 @@ func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
 	if snapshot.ManufacturingEndDate != nil {
 		view.ManufacturingEndDate = snapshot.ManufacturingEndDate
 	}
-	if snapshot.CellSource != "" {
-		view.CellSource = snapshot.CellSource
-	}
-	if snapshot.DomesticValueAdd != 0 {
-		view.DomesticValueAdd = snapshot.DomesticValueAdd
-	}
-	if snapshot.PLICompliant {
-		view.PLICompliant = true
-	}
 	if snapshot.HSNCode != "" {
 		view.HSNCode = snapshot.HSNCode
-	}
-	if snapshot.DVASource != "" {
-		view.DVASource = snapshot.DVASource
 	}
 	if snapshot.BillOfEntryNo != "" {
 		view.BillOfEntryNo = snapshot.BillOfEntryNo

@@ -134,7 +134,7 @@ export function DocsSidebar() {
  <div className="mt-8 pt-6 border-t border-white/10">
  <div className="px-3 py-3 rounded-lg bg-linear-to-r from-blue-500/10 to-teal-500/10 border border-blue-500/20">
  <p className="text-xs text-gray-400">
- <span className="text-blue-400 ">v2.0</span> · Last updated January 2026
+ <span className="text-blue-400 ">v2.0</span> · Last updated {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
  </p>
  </div>
  </div>

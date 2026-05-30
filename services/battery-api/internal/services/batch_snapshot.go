@@ -47,8 +47,6 @@ type TenantSnapshot struct {
 	TenantID                          string `json:"tenant_id"`
 	CompanyName                       string `json:"company_name"`
 	Address                           string `json:"address,omitempty"`
-	TextileFacilityType               string `json:"textile_facility_type,omitempty"`
-	TextileSupplyChainTier            string `json:"textile_supply_chain_tier,omitempty"`
 	EPRRegistrationNumber             string `json:"epr_registration_number,omitempty"`
 	BISRNumber                        string `json:"bis_r_number,omitempty"`
 	IECCode                           string `json:"iec_code,omitempty"`

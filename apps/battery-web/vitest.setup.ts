@@ -32,3 +32,14 @@ Object.defineProperty(globalThis.document, "cookie", {
   value: "",
   writable: true,
 });
+
+// ResizeObserver mock for Radix UI components in tests
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(globalThis, "ResizeObserver", {
+  value: ResizeObserverMock,
+  writable: true,
+});

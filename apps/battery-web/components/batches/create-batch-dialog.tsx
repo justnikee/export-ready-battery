@@ -1,4 +1,3 @@
-// TODO: big-bang split - textile branches were hardcoded to false; dead code should be removed in follow-up
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -38,10 +37,12 @@ import {
   Activity,
   Users,
   FileCheck,
+  Factory,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { usePathname } from "next/navigation";
 import { dashboardPathFromPathname } from "@/lib/routes";
+import TallyImportDialog from "@/components/integrations/tally-import-dialog";
 
 // Market region type
 type MarketRegion = "INDIA" | "EU" | "GLOBAL";
@@ -89,6 +90,11 @@ type BatchPayload = {
   customs_date?: string;
   bis_number?: string;
   epr_number?: string;
+  ce_marking?: boolean;
+  carbon_performance_class?: string;
+  removable_and_replaceable?: boolean;
+  notified_body_number?: string;
+  declaration_of_conformity_path?: string;
 };
 
 interface Template {
@@ -133,6 +139,7 @@ interface Template {
     manufacturer_address?: string;
     eu_representative?: string;
     eu_representative_email?: string;
+    eu_representative_address?: string;
     expected_lifetime_cycles?: number;
     warranty_months?: number;
     recycled_content_pct?: number;
@@ -151,8 +158,9 @@ interface CreateBatchDialogProps {
 export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
   const { user } = useAuth();
   const pathname = usePathname();
-  const isTextile = false;
+
   const [open, setOpen] = useState(false);
+  const [tallyImportOpen, setTallyImportOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Templates state
@@ -208,8 +216,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
   const [hazardousDeclaration, setHazardousDeclaration] = useState("");
   const [euRepresentative, setEuRepresentative] = useState("");
   const [euRepresentativeEmail, setEuRepresentativeEmail] = useState("");
+  const [euRepresentativeAddress, setEuRepresentativeAddress] = useState("");
   const [expectedLifetime, setExpectedLifetime] = useState("");
   const [warrantyMonths, setWarrantyMonths] = useState("");
+  // EU Battery Regulation 2023/1542 Art. 7+ fields
+  const [ceMarking, setCeMarking] = useState(false);
+  const [carbonPerformanceClass, setCarbonPerformanceClass] = useState("");
+  const [removableAndReplaceable, setRemovableAndReplaceable] = useState(false);
+  const [notifiedBodyNumber, setNotifiedBodyNumber] = useState("");
+  const [docUploadUrl, setDocUploadUrl] = useState<string | null>(null);
 
   // Form states - India Specific
   const [pliCompliant, setPliCompliant] = useState(false);
@@ -236,15 +251,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
   // IEC Validation State
   const [iecError, setIecError] = useState(false);
 
-  // Form states - Textile Specific
-  const [materialProfile, setMaterialProfile] = useState("");
-  const [gsm, setGsm] = useState("");
-  const [dyeProcess, setDyeProcess] = useState("");
-  const [color, setColor] = useState("");
-    const [waterUsage, setWaterUsage] = useState("");
-  const [energyUsage, setEnergyUsage] = useState("");
-  const [biodegradableContent, setBiodegradableContent] = useState("");
-
   // Inline field errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -259,7 +265,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       const response = await api.get(`/templates?tenant_id=${user.tenant_id}`);
       setTemplates(response.data.templates || []);
     } catch (error) {
-      console.error("Failed to fetch templates:", error);
     }
   }, [user]);
 
@@ -272,12 +277,46 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     });
   };
 
+  const handleTallyApply = (draft: {
+    batch_name: string;
+    material_composition: Array<{
+      name: string;
+      category: string;
+      chemistry?: string;
+      qty: number;
+    }>;
+    supplier_name: string;
+    supplier_state: string;
+    total_gst: number;
+    hsn_code: string;
+  }) => {
+    setBatchName(draft.batch_name);
+    setHsnCode(draft.hsn_code);
+    setManufacturer(draft.supplier_name);
+    if (draft.material_composition.length > 0) {
+      const first = draft.material_composition[0];
+      setChemistry(first.chemistry || "LFP");
+      setModelName(first.name);
+    }
+    toast.success('Batch form pre-filled from Tally ERP');
+  };
+
   // Fetch templates when dialog opens
   useEffect(() => {
     if (open) {
       fetchTemplates();
+      // Pre-fill EU rep from tenant profile so user doesn't retype it every batch
+      if (user?.eu_authorized_representative_name) {
+        setEuRepresentative(user.eu_authorized_representative_name);
+      }
+      if (user?.eu_contact_email) {
+        setEuRepresentativeEmail(user.eu_contact_email);
+      }
+      if (user?.eu_authorized_representative_address) {
+        setEuRepresentativeAddress(user.eu_authorized_representative_address);
+      }
     }
-  }, [open, fetchTemplates]);
+  }, [open, fetchTemplates, user?.eu_authorized_representative_name, user?.eu_contact_email, user?.eu_authorized_representative_address]);
 
   // Set default certifications when market region changes
   useEffect(() => {
@@ -397,6 +436,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       if (template.specs.eu_representative_email) {
         setEuRepresentativeEmail(template.specs.eu_representative_email);
       }
+      if (template.specs.eu_representative_address) {
+        setEuRepresentativeAddress(template.specs.eu_representative_address);
+      }
       if (template.specs.expected_lifetime_cycles) {
         setExpectedLifetime(template.specs.expected_lifetime_cycles.toString());
       }
@@ -459,7 +501,47 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       clearFieldError("certificate");
       toast.success("Certificate uploaded successfully");
     } catch (error: unknown) {
-      console.error("Upload error:", error);
+      const uploadError = error as { message?: string };
+      toast.error(uploadError.message || "Upload failed");
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
+  };
+
+  const handleDocUpload = async (file: File) => {
+    if (!user) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const timestamp = Date.now();
+      const sanitizedBatchName =
+        batchName.replace(/[^a-zA-Z0-9-]/g, "_") || "unnamed";
+      const filePath = `declarations/${user.tenant_id}/${sanitizedBatchName}_${timestamp}.pdf`;
+
+      setUploadProgress(30);
+
+      const { error } = await supabase.storage
+        .from("compliance-docs")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      setUploadProgress(70);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
+
+      setUploadProgress(100);
+      setDocUploadUrl(publicUrl);
+      toast.success("Declaration of Conformity uploaded");
+    } catch (error: unknown) {
       const uploadError = error as { message?: string };
       toast.error(uploadError.message || "Upload failed");
     } finally {
@@ -471,7 +553,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
   const validateForm = (): Record<string, string> => {
     const errors: Record<string, string> = {};
 
-    if (!batchName.trim()) errors.name = isTextile ? "Lot name is required" : "Batch name is required";
+    if (!batchName.trim()) errors.name = "Batch name is required";
     if (!modelName.trim()) errors.modelName = "Model name is required";
     if (!manufacturingStartDate)
       errors.mfgStart = "Manufacturing start date is required";
@@ -486,17 +568,32 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     }
     if (!manufacturer.trim()) errors.manufacturer = "Manufacturer is required";
 
-    if (!isTextile) {
-      if (!capacity.trim()) errors.capacity = "Capacity is required";
-      if (!voltage.trim()) errors.voltage = "Voltage is required";
+    if (!capacity.trim()) errors.capacity = "Capacity is required";
+    if (!voltage.trim()) errors.voltage = "Voltage is required";
 
-      if (marketRegion === "EU" || marketRegion === "GLOBAL") {
-        if (!batteryCategory)
-          errors.batteryCategory =
-            "Battery category is required for EU compliance (Art. 3)";
+    if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+      if (!batteryCategory)
+        errors.batteryCategory =
+          "Battery category is required for EU compliance (Art. 3)";
+      if (carbonPerformanceClass && !/[A-G]/.test(carbonPerformanceClass)) {
+        errors.carbonPerformanceClass =
+          "Carbon performance class must be A–G";
       }
+      if (expectedLifetime !== "") {
+        const cycles = parseInt(expectedLifetime);
+        if (isNaN(cycles) || cycles <= 0) {
+          errors.expectedLifetime = "Expected lifetime must be a positive number";
+        }
+      }
+      if (warrantyMonths !== "") {
+        const months = parseInt(warrantyMonths);
+        if (isNaN(months) || months <= 0) {
+          errors.warrantyMonths = "Warranty must be a positive number of months";
+        }
+      }
+    }
 
-      if (marketRegion === "INDIA") {
+    if (marketRegion === "INDIA") {
         if (!cellSource)
           errors.cellSource = "Cell source is required for India compliance";
         if (!hsnCode.trim()) {
@@ -533,7 +630,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         }
       }
 
-      const matTotal = (
+    const matTotal = (
         ["cobalt", "lithium", "nickel", "manganese", "graphite", "lead"] as const
       ).reduce(
         (sum, key) => sum + (parseFloat(materialComposition[key]) || 0),
@@ -542,7 +639,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       if (matTotal > 100) {
         errors.materialTotal = `Material composition total is ${matTotal.toFixed(1)}% — cannot exceed 100%`;
       }
-    }
 
     return errors;
   };
@@ -570,6 +666,9 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         cellCountryOfOrigin: "cellCountryOfOrigin",
         customsDate: "customsDate",
         auditedDva: "auditedDva",
+        carbonPerformanceClass: "carbonPerformanceClass",
+        expectedLifetime: "lifecycle",
+        warrantyMonths: "warranty",
       };
       const firstKey = Object.keys(errors)[0];
       const elementId = idMap[firstKey];
@@ -595,7 +694,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         manufacturing_start_date: manufacturingStartDate || undefined,
         manufacturing_end_date: manufacturingEndDate || undefined,
         market_region: marketRegion,
-        product_type: user?.product_type || "TEXTILE",
+        product_type: "BATTERY",
         specs: {
           manufacturer,
           manufacturer_address: manufacturerAddress,
@@ -606,16 +705,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
         },
       };
 
-      if (!isTextile) {
-        payload.specs.capacity = capacity;
-        payload.specs.voltage = voltage;
-        payload.specs.chemistry = chemistry;
-        payload.specs.battery_category = batteryCategory || undefined;
+      payload.specs.capacity = capacity;
+      payload.specs.voltage = voltage;
+      payload.specs.chemistry = chemistry;
+      payload.specs.battery_category = batteryCategory || undefined;
 
-        // Add EU specific fields
-        if (marketRegion === "EU" || marketRegion === "GLOBAL") {
-          payload.specs.carbon_footprint = carbonFootprint;
-          payload.specs.certifications = certifications;
+      // Add EU specific fields
+      if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+        payload.specs.carbon_footprint = carbonFootprint;
+        payload.specs.certifications = certifications;
 
           // Add new EU fields
           const materialPayload: {
@@ -681,9 +779,15 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
 
           payload.specs.eu_representative = euRepresentative;
           payload.specs.eu_representative_email = euRepresentativeEmail;
+          payload.specs.eu_representative_address = euRepresentativeAddress;
           if (expectedLifetime !== "") {
             payload.specs.expected_lifetime_cycles = parseInt(expectedLifetime);
           }
+          payload.ce_marking = ceMarking;
+          payload.carbon_performance_class = carbonPerformanceClass || undefined;
+          payload.removable_and_replaceable = removableAndReplaceable;
+          payload.notified_body_number = notifiedBodyNumber || undefined;
+          payload.declaration_of_conformity_path = docUploadUrl ?? undefined;
           if (warrantyMonths !== "") {
             payload.specs.warranty_months = parseInt(warrantyMonths);
           }
@@ -719,27 +823,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
           if (bisNumber) payload.bis_number = bisNumber;
           if (eprNumber) payload.epr_number = eprNumber;
         }
-      } else {
-        // Textile-specific payload
-        payload.specs.material_profile = materialProfile || undefined;
-        payload.specs.gsm = gsm ? parseFloat(gsm) : undefined;
-        payload.specs.dye_process = dyeProcess || undefined;
-        payload.specs.color = color || undefined;
-        payload.specs.certifications = [];
-        if (waterUsage !== "") {
-          payload.specs.water_usage_liters = parseFloat(waterUsage);
-        }
-        if (energyUsage !== "") {
-          payload.specs.energy_usage_kwh = parseFloat(energyUsage);
-        }
-        if (recycledContent !== "") {
-          payload.specs.recycled_content_pct = parseFloat(recycledContent);
-        }
-        if (biodegradableContent !== "") {
-          payload.specs.biodegradable_pct = parseFloat(biodegradableContent);
-        }
-      }
-
       await api.post("/batches", payload);
 
       // Save as template if checkbox is checked (Product SKU feature)
@@ -768,7 +851,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
             `Template "${templateName}" saved for ${marketRegion} market`,
           );
         } catch (error) {
-          console.error("Failed to save template:", error);
         }
       }
 
@@ -840,6 +922,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
     setDvaSource("ESTIMATED");
     setAuditedDva("");
     setUploadedFileUrl(null);
+    setDocUploadUrl(null);
     setUploadProgress(0);
     setIsUploading(false);
   };
@@ -875,10 +958,24 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-160 w-full h-full overflow-y-auto bg-background border-border text-foreground p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle>Create New Batch</DialogTitle>
-          <DialogDescription>
-            Enter the specifications for this batch of batteries.
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogTitle>Create New Batch</DialogTitle>
+              <DialogDescription>
+                Enter the specifications for this batch of batteries.
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setTallyImportOpen(true)}
+              className="shrink-0"
+            >
+              <Factory className="mr-2 h-4 w-4" />
+              Import from Tally
+            </Button>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="grid gap-6 px-6 py-4 overflow-y-auto flex-1">
@@ -902,9 +999,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                   <div className=" text-sm">India</div>
                   <div className="text-xs opacity-70">{"Battery Aadhaar"}</div>
                   <div className="text-[10px] opacity-50 mt-0.5">
-                    {isTextile
-                      ? "India BIS textile standards (IS 17243, IS 16322)"
-                      : "Includes BIS IS 16046, EPR, and PLI compliance tracking"}
+                    {"Includes BIS IS 16046, EPR, and PLI compliance tracking"}
                   </div>
                 </button>
                 <button
@@ -920,9 +1015,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                   <div className=" text-sm">EU Export</div>
                   <div className="text-xs opacity-70">{"Battery Passport"}</div>
                   <div className="text-[10px] opacity-50 mt-0.5">
-                    {isTextile
-                      ? "EU ESPR (Ecodesign for Sustainable Products) compliance"
-                      : "EU Battery Regulation 2023/1542 compliance"}
+                    {"EU Battery Regulation 2023/1542 compliance"}
                   </div>
                 </button>
                 <button
@@ -1114,58 +1207,44 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     </p>
                   )}
                 </div>
-                {!isTextile ? (
-                  <div className="grid gap-2">
-                    <Label htmlFor="chemistry">
-                      Chemistry <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={chemistry} onValueChange={setChemistry}>
-                      <SelectTrigger id="chemistry">
-                        <SelectValue placeholder="Select chemistry" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="LFP">
-                          LFP — Lithium Iron Phosphate
-                        </SelectItem>
-                        <SelectItem value="NMC">
-                          NMC — Nickel Manganese Cobalt
-                        </SelectItem>
-                        <SelectItem value="NMC811">NMC811</SelectItem>
-                        <SelectItem value="NMC622">NMC622</SelectItem>
-                        <SelectItem value="NCA">
-                          NCA — Nickel Cobalt Aluminium
-                        </SelectItem>
-                        <SelectItem value="LCO">
-                          LCO — Lithium Cobalt Oxide
-                        </SelectItem>
-                        <SelectItem value="LTO">
-                          LTO — Lithium Titanate
-                        </SelectItem>
-                        <SelectItem value="LMO">
-                          LMO — Lithium Manganese Oxide
-                        </SelectItem>
-                        <SelectItem value="Sodium-ion">Sodium-ion</SelectItem>
-                        <SelectItem value="Li-ion">Li-ion (generic)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="grid gap-2">
-                    <Label htmlFor="materialProfile">
-                      Material Profile <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="materialProfile"
-                      value={materialProfile}
-                      onChange={(e) => setMaterialProfile(e.target.value)}
-                      placeholder="e.g. 100% organic cotton"
-                    />
-                  </div>
-                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="chemistry">
+                    Chemistry <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={chemistry} onValueChange={setChemistry}>
+                    <SelectTrigger id="chemistry">
+                      <SelectValue placeholder="Select chemistry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LFP">
+                        LFP — Lithium Iron Phosphate
+                      </SelectItem>
+                      <SelectItem value="NMC">
+                        NMC — Nickel Manganese Cobalt
+                      </SelectItem>
+                      <SelectItem value="NMC811">NMC811</SelectItem>
+                      <SelectItem value="NMC622">NMC622</SelectItem>
+                      <SelectItem value="NCA">
+                        NCA — Nickel Cobalt Aluminium
+                      </SelectItem>
+                      <SelectItem value="LCO">
+                        LCO — Lithium Cobalt Oxide
+                      </SelectItem>
+                      <SelectItem value="LTO">
+                        LTO — Lithium Titanate
+                      </SelectItem>
+                      <SelectItem value="LMO">
+                        LMO — Lithium Manganese Oxide
+                      </SelectItem>
+                      <SelectItem value="Sodium-ion">Sodium-ion</SelectItem>
+                      <SelectItem value="Li-ion">Li-ion (generic)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Row 3a: Battery Category (EU required) */}
-              {!isTextile && (marketRegion === "EU" || marketRegion === "GLOBAL") && (
+              {(marketRegion === "EU" || marketRegion === "GLOBAL") && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="batteryCategory">
@@ -1242,121 +1321,57 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 </div>
               </div>
 
-              {!isTextile && (
-                <>
-                  {/* Row 4: Capacity & Voltage */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="capacity">
-                        Rated Capacity <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="capacity"
-                        value={capacity}
-                        onChange={(e) => {
-                          setCapacity(e.target.value);
-                          clearFieldError("capacity");
-                        }}
-                        placeholder="e.g. 5000mAh"
-                        className={
-                          fieldErrors.capacity
-                            ? "border-red-500 focus-visible:ring-red-500"
-                            : ""
-                        }
-                      />
-                      {fieldErrors.capacity && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {fieldErrors.capacity}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="voltage">
-                        Voltage <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="voltage"
-                        value={voltage}
-                        onChange={(e) => {
-                          setVoltage(e.target.value);
-                          clearFieldError("voltage");
-                        }}
-                        placeholder="e.g. 3.7V"
-                        className={
-                          fieldErrors.voltage
-                            ? "border-red-500 focus-visible:ring-red-500"
-                            : ""
-                        }
-                      />
-                      {fieldErrors.voltage && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {fieldErrors.voltage}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {isTextile && (
-                <>
-                  {/* Row 4t: GSM & Dye Process */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="gsm">GSM (grams per m²)</Label>
-                      <Input
-                        id="gsm"
-                        value={gsm}
-                        onChange={(e) => setGsm(e.target.value)}
-                        placeholder="e.g. 180"
-                        type="number"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="dyeProcess">Dye Process</Label>
-                      <Select value={dyeProcess} onValueChange={setDyeProcess}>
-                        <SelectTrigger id="dyeProcess">
-                          <SelectValue placeholder="Select dye process" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="reactive">Reactive</SelectItem>
-                          <SelectItem value="vat">Vat</SelectItem>
-                          <SelectItem value="disperse">Disperse</SelectItem>
-                          <SelectItem value="acid">Acid</SelectItem>
-                          <SelectItem value="natural">Natural</SelectItem>
-                          <SelectItem value="pigment">Pigment</SelectItem>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="undyed">Undyed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  {/* Row 4t-b: Color & Country of Origin */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="color">Color</Label>
-                      <Input
-                        id="color"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        placeholder="e.g. navy heather"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="countryOfOrigin">
-                        Country of Origin <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="countryOfOrigin"
-                        value={countryOfOrigin}
-                        onChange={(e) => setCountryOfOrigin(e.target.value)}
-                        placeholder="e.g. IN"
-                        maxLength={2}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* Row 4: Capacity & Voltage */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="capacity">
+                    Rated Capacity <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="capacity"
+                    value={capacity}
+                    onChange={(e) => {
+                      setCapacity(e.target.value);
+                      clearFieldError("capacity");
+                    }}
+                    placeholder="e.g. 5000mAh"
+                    className={
+                      fieldErrors.capacity
+                        ? "border-red-500 focus-visible:ring-red-500"
+                        : ""
+                    }
+                  />
+                  {fieldErrors.capacity && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors.capacity}
+                    </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="voltage">
+                    Voltage <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="voltage"
+                    value={voltage}
+                    onChange={(e) => {
+                      setVoltage(e.target.value);
+                      clearFieldError("voltage");
+                    }}
+                    placeholder="e.g. 3.7V"
+                    className={
+                      fieldErrors.voltage
+                        ? "border-red-500 focus-visible:ring-red-500"
+                        : ""
+                    }
+                  />
+                  {fieldErrors.voltage && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors.voltage}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               {/* Row 5: Weight & Country */}
               <div className="grid grid-cols-2 gap-4">
@@ -1399,7 +1414,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
               </div>
 
               {/* ===== EU-SPECIFIC FIELDS ===== */}
-              {!isTextile && (isEUMode || marketRegion === "GLOBAL") && (
+              {(isEUMode || marketRegion === "GLOBAL") && (
                 <div className="p-4 border border-blue-500/30 bg-blue-500/10 space-y-4">
                   <div className="flex items-center gap-2 text-blue-400 text-sm">
                     <Leaf className="h-4 w-4" />
@@ -1581,6 +1596,23 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                           className="h-8 text-xs bg-transparent border-border"
                         />
                       </div>
+                      <div className="grid gap-1 col-span-2">
+                        <Label
+                          htmlFor="euRepAddress"
+                          className="text-xs text-muted-foreground"
+                        >
+                          EU Representative Address
+                        </Label>
+                        <Input
+                          id="euRepAddress"
+                          value={euRepresentativeAddress}
+                          onChange={(e) =>
+                            setEuRepresentativeAddress(e.target.value)
+                          }
+                          placeholder="Street, City, Postal Code, Country"
+                          className="h-8 text-xs bg-transparent border-border"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1604,8 +1636,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                           value={expectedLifetime}
                           onChange={(e) => setExpectedLifetime(e.target.value)}
                           placeholder="e.g. 1000"
-                          className="h-8 text-xs bg-transparent border-border"
+                          className={`h-8 text-xs bg-transparent ${fieldErrors.expectedLifetime ? "border-red-500" : "border-border"}`}
                         />
+                        {fieldErrors.expectedLifetime && (
+                          <p className="text-xs text-red-500 mt-0.5">{fieldErrors.expectedLifetime}</p>
+                        )}
                       </div>
                       <div className="grid gap-1">
                         <Label
@@ -1620,8 +1655,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                           value={warrantyMonths}
                           onChange={(e) => setWarrantyMonths(e.target.value)}
                           placeholder="e.g. 24"
-                          className="h-8 text-xs bg-transparent border-border"
+                          className={`h-8 text-xs bg-transparent ${fieldErrors.warrantyMonths ? "border-red-500" : "border-border"}`}
                         />
+                        {fieldErrors.warrantyMonths && (
+                          <p className="text-xs text-red-500 mt-0.5">{fieldErrors.warrantyMonths}</p>
+                        )}
                       </div>
                     </div>
 
@@ -1679,6 +1717,148 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                     </div>
                   </div>
 
+                  {/* EU Battery Regulation 2023/1542 Art. 7+ Fields */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 text-blue-400 text-xs border-b border-blue-500/20 pb-1">
+                      <Shield className="h-3.5 w-3.5" />
+                      EU Battery Regulation Art. 7+
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="grid gap-1">
+                        <Label
+                          htmlFor="carbonPerformanceClass"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Carbon Performance Class
+                        </Label>
+                        <Select
+                          value={carbonPerformanceClass}
+                          onValueChange={setCarbonPerformanceClass}
+                        >
+                          <SelectTrigger
+                            id="carbonPerformanceClass"
+                            className={`h-8 text-xs bg-transparent ${fieldErrors.carbonPerformanceClass ? "border-red-500" : "border-border"}`}
+                          >
+                            <SelectValue placeholder="Select class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A">A — Best</SelectItem>
+                            <SelectItem value="B">B</SelectItem>
+                            <SelectItem value="C">C</SelectItem>
+                            <SelectItem value="D">D</SelectItem>
+                            <SelectItem value="E">E</SelectItem>
+                            <SelectItem value="F">F</SelectItem>
+                            <SelectItem value="G">G — Worst</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {fieldErrors.carbonPerformanceClass && (
+                          <p className="text-xs text-red-500 mt-0.5">{fieldErrors.carbonPerformanceClass}</p>
+                        )}
+                      </div>
+                      <div className="grid gap-1">
+                        <Label
+                          htmlFor="notifiedBodyNumber"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Notified Body No.
+                        </Label>
+                        <Input
+                          id="notifiedBodyNumber"
+                          value={notifiedBodyNumber}
+                          onChange={(e) =>
+                            setNotifiedBodyNumber(e.target.value)
+                          }
+                          placeholder="e.g. 0123"
+                          className="h-8 text-xs bg-transparent border-border"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="ceMarking"
+                          checked={ceMarking}
+                          onChange={(e) => setCeMarking(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-border bg-transparent text-blue-500 focus:ring-blue-500"
+                        />
+                        <Label
+                          htmlFor="ceMarking"
+                          className="text-xs font-normal cursor-pointer text-foreground"
+                        >
+                          CE Marking
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="removableReplaceable"
+                          checked={removableAndReplaceable}
+                          onChange={(e) =>
+                            setRemovableAndReplaceable(e.target.checked)
+                          }
+                          className="h-3.5 w-3.5 rounded border-border bg-transparent text-blue-500 focus:ring-blue-500"
+                        />
+                        <Label
+                          htmlFor="removableReplaceable"
+                          className="text-xs font-normal cursor-pointer text-foreground"
+                        >
+                          Removable & Replaceable
+                        </Label>
+                      </div>
+                    </div>
+                    <div className="grid gap-1 pt-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Declaration of Conformity (PDF)
+                      </Label>
+                      {!docUploadUrl ? (
+                        <label className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed cursor-pointer transition-colors ${isUploading ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:bg-accent"}`}>
+                          <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                            {isUploading ? (
+                              <>
+                                <div className="w-full px-8 mb-2">
+                                  <div className="w-full bg-muted rounded-full h-2">
+                                    <div className="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                  </div>
+                                </div>
+                                <p className="text-xs text-emerald-400">Uploading... ({uploadProgress}%)</p>
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="w-6 h-6 mb-1 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground"><span className="">Click to upload</span> or drag and drop</p>
+                                <p className="text-[10px] text-muted-foreground">PDF only (MAX. 5MB)</p>
+                              </>
+                            )}
+                          </div>
+                          <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 5242880) { toast.error("File size must be less than 5MB"); return; }
+                              if (file.type !== "application/pdf") { toast.error("Only PDF files are allowed"); return; }
+                              handleDocUpload(file);
+                            }
+                          }} />
+                        </label>
+                      ) : (
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileCheck className="h-4 w-4 text-emerald-500" />
+                              <div>
+                                <p className="text-xs font-medium text-emerald-500">DoC Uploaded</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-500 rounded hover:bg-emerald-200 transition-colors">View</a>
+                              <button type="button" onClick={() => setDocUploadUrl(null)} className="text-[10px] px-2 py-0.5 bg-muted text-foreground rounded hover:bg-muted transition-colors">Replace</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex items-center space-x-2 pt-2 border-t border-blue-500/20">
                     <input
                       type="checkbox"
@@ -1698,7 +1878,7 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
               )}
 
               {/* ===== INDIA-SPECIFIC FIELDS ===== */}
-              {!isTextile && isIndiaMode && (
+              {isIndiaMode && (
                 <div className="p-4 border border-orange-500/30 bg-orange-500/10 space-y-4">
                   <div className="flex items-center gap-2 text-orange-400 text-sm">
                     <Flag className="h-4 w-4" />
@@ -2338,79 +2518,6 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
                 </div>
               )}
 
-              {/* ===== CHEMISTRY BREAKDOWN (Global) ===== */}
-              <div className="p-4 border border-teal-200 bg-teal-50 space-y-4">
-                <div className="flex items-center justify-between border-b border-teal-200 pb-2">
-                  <div className="flex items-center gap-2 text-teal-700 text-sm">
-                    <Activity className="h-4 w-4" />
-                    🧪 Material Composition (Chemistry Breakdown)
-                  </div>
-                  <div
-                    className={`text-xs font-mono ${
-                      Object.values(materialComposition).reduce(
-                        (a, b) => a + (parseFloat(b) || 0),
-                        0,
-                      ) > 100
-                        ? "text-red-500"
-                        : "text-teal-600"
-                    }`}
-                  >
-                    Total:{" "}
-                    {Object.values(materialComposition)
-                      .reduce((a, b) => a + (parseFloat(b) || 0), 0)
-                      .toFixed(1)}
-                    %
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                  {materialKeyLabels.map(({ key, label }) => (
-                    <div key={key} className="grid gap-1">
-                      <Label
-                        htmlFor={key}
-                        className="text-[10px] uppercase text-muted-foreground truncate"
-                        title={label}
-                      >
-                        {label} %
-                      </Label>
-                      <Input
-                        id={key}
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={materialComposition[key]}
-                        onChange={(e) => {
-                          setMaterialComposition((prev) => ({
-                            ...prev,
-                            [key]: e.target.value,
-                          }));
-                          clearFieldError("materialTotal");
-                        }}
-                        placeholder="0.0"
-                        className="h-8 text-xs bg-transparent border-border px-2"
-                      />
-                    </div>
-                  ))}
-                </div>
-                {Object.values(materialComposition).reduce(
-                  (a, b) => a + (parseFloat(b) || 0),
-                  0,
-                ) > 100 && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    ⚠️ Total percentage cannot exceed 100%. Please adjust
-                    values.
-                  </p>
-                )}
-                {fieldErrors.materialTotal && (
-                  <p
-                    id="materialTotal"
-                    className="text-[10px] text-red-500 mt-1"
-                  >
-                    {fieldErrors.materialTotal}
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* Save as Template Section */}
@@ -2450,6 +2557,11 @@ export function CreateBatchDialog({ onBatchCreated }: CreateBatchDialogProps) {
           </DialogFooter>
         </form>
       </DialogContent>
+      <TallyImportDialog
+        open={tallyImportOpen}
+        onOpenChange={setTallyImportOpen}
+        onApply={handleTallyApply}
+      />
     </Dialog>
   );
 }

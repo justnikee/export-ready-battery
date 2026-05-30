@@ -601,7 +601,10 @@ export default function BatchDetailsPage() {
     } catch (error: unknown) {
       const apiError = toApiError(error);
       const noun = true ? "Lot" : "Batch";
-      toast.error(apiError.response?.data?.error || `Failed to update ${noun.toLowerCase()}`);
+      toast.error(
+        apiError.response?.data?.error ||
+          `Failed to update ${noun.toLowerCase()}`,
+      );
     } finally {
       setPatchingKey(null);
     }
@@ -714,7 +717,8 @@ export default function BatchDetailsPage() {
         blocking.push("specs.country_of_origin");
     } else {
       // Battery-specific requirements
-      if (!batchRecord.specs?.chemistry?.trim()) blocking.push("specs.chemistry");
+      if (!batchRecord.specs?.chemistry?.trim())
+        blocking.push("specs.chemistry");
       if (!batchRecord.specs?.capacity?.trim()) blocking.push("specs.capacity");
 
       if (region === "INDIA" || region === "GLOBAL") {
@@ -760,14 +764,6 @@ export default function BatchDetailsPage() {
       }
 
       if (region === "EU" || region === "GLOBAL") {
-        const validCategories = ["EV", "LMT", "INDUSTRIAL", "PORTABLE", "SLI"];
-        if (
-          !batchRecord.specs?.battery_category ||
-          !validCategories.includes(batchRecord.specs.battery_category)
-        ) {
-          blocking.push("specs.battery_category");
-        }
-
         if (!currentUser?.company_name?.trim())
           blocking.push("tenant.company_name");
         if (!currentUser?.address?.trim()) blocking.push("tenant.address");
@@ -792,7 +788,9 @@ export default function BatchDetailsPage() {
         if (
           !materialComposition ||
           !Object.values(materialComposition).some((value) =>
-            typeof value === "number" ? value > 0 : parseFloat(String(value)) > 0,
+            typeof value === "number"
+              ? value > 0
+              : parseFloat(String(value)) > 0,
           )
         ) {
           blocking.push("specs.material_composition");
@@ -834,7 +832,9 @@ export default function BatchDetailsPage() {
           ) {
             const baseVal =
               parseFloat(
-                String((materialComposition as Record<string, unknown>)[baseKey]),
+                String(
+                  (materialComposition as Record<string, unknown>)[baseKey],
+                ),
               ) || 0;
             const recycledVal =
               parseFloat(
@@ -935,7 +935,8 @@ export default function BatchDetailsPage() {
       } else {
         const noun = true ? "Lot" : "Batch";
         toast.error(
-          apiError.response?.data?.error || `Failed to activate ${noun.toLowerCase()}`,
+          apiError.response?.data?.error ||
+            `Failed to activate ${noun.toLowerCase()}`,
         );
       }
     } finally {
@@ -977,7 +978,8 @@ export default function BatchDetailsPage() {
       console.error("Failed to delete draft batch:", error);
       const noun = true ? "Lot" : "Batch";
       toast.error(
-        apiError.response?.data?.error || `Failed to delete draft ${noun.toLowerCase()}`,
+        apiError.response?.data?.error ||
+          `Failed to delete draft ${noun.toLowerCase()}`,
       );
     } finally {
       setDeletingDraft(false);
@@ -992,7 +994,11 @@ export default function BatchDetailsPage() {
 
   if (loading) return <BatchDetailSkeleton />;
   if (!batch) {
-    return <div className="p-8 text-muted-foreground">{pathname?.includes("/textile/") ? "Lot not found" : "Batch not found"}</div>;
+    return (
+      <div className="p-8 text-muted-foreground">
+        {pathname?.includes("/textile/") ? "Lot not found" : "Batch not found"}
+      </div>
+    );
   }
 
   const region = batch.market_region as MarketRegion;
@@ -1279,14 +1285,18 @@ export default function BatchDetailsPage() {
                             </dt>
                             <dd className="space-y-2">
                               {Object.entries(batch.specs.fiber_composition)
-                                .filter(([, v]) => typeof v === "number" && v > 0)
+                                .filter(
+                                  ([, v]) => typeof v === "number" && v > 0,
+                                )
                                 .map(([key, value]) => (
                                   <div key={key}>
                                     <div className="flex justify-between text-xs mb-0.5">
                                       <span className="text-muted-foreground">
                                         {key
                                           .replace("_pct", "")
-                                          .replace(/^\w/, (c) => c.toUpperCase())}
+                                          .replace(/^\w/, (c) =>
+                                            c.toUpperCase(),
+                                          )}
                                       </span>
                                       <span className="text-foreground font-medium">
                                         {value}%
@@ -1295,7 +1305,9 @@ export default function BatchDetailsPage() {
                                     <div className="w-full bg-muted h-1.5">
                                       <div
                                         className="h-1.5 bg-cyan-500"
-                                        style={{ width: `${Math.min(Number(value), 100)}%` }}
+                                        style={{
+                                          width: `${Math.min(Number(value), 100)}%`,
+                                        }}
                                       />
                                     </div>
                                   </div>
@@ -1380,7 +1392,9 @@ export default function BatchDetailsPage() {
                             </dt>
                             <dd className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                               {Object.entries(batch.specs.supplier_tier)
-                                .filter(([, v]) => typeof v === "string" && v.trim())
+                                .filter(
+                                  ([, v]) => typeof v === "string" && v.trim(),
+                                )
                                 .map(([key, value]) => (
                                   <div
                                     key={key}
@@ -1389,9 +1403,13 @@ export default function BatchDetailsPage() {
                                     <span className="text-muted-foreground">
                                       {key
                                         .replace(/_/g, " ")
-                                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                                        .replace(/\b\w/g, (l) =>
+                                          l.toUpperCase(),
+                                        )}
                                     </span>
-                                    <span className="text-foreground">{value}</span>
+                                    <span className="text-foreground">
+                                      {value}
+                                    </span>
                                   </div>
                                 ))}
                             </dd>
@@ -1405,7 +1423,8 @@ export default function BatchDetailsPage() {
                               Labor Compliance
                             </dt>
                             <dd className="flex flex-wrap gap-2">
-                              {batch.specs.labor_compliance.sa8000_certified && (
+                              {batch.specs.labor_compliance
+                                .sa8000_certified && (
                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
                                   SA8000
                                 </Badge>
@@ -1420,7 +1439,8 @@ export default function BatchDetailsPage() {
                                   SEDEX
                                 </Badge>
                               )}
-                              {batch.specs.labor_compliance.fair_trade_certified && (
+                              {batch.specs.labor_compliance
+                                .fair_trade_certified && (
                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
                                   Fair Trade
                                 </Badge>
@@ -1428,7 +1448,8 @@ export default function BatchDetailsPage() {
                               {!batch.specs.labor_compliance.sa8000_certified &&
                                 !batch.specs.labor_compliance.bsci_audited &&
                                 !batch.specs.labor_compliance.sedex_member &&
-                                !batch.specs.labor_compliance.fair_trade_certified && (
+                                !batch.specs.labor_compliance
+                                  .fair_trade_certified && (
                                   <span className="text-xs text-muted-foreground">
                                     No certifications declared
                                   </span>
@@ -1445,9 +1466,12 @@ export default function BatchDetailsPage() {
                             </dt>
                             <dd className="flex flex-wrap gap-2 items-center">
                               <Badge className="bg-cyan-500/10 text-cyan-500 border-cyan-500/20">
-                                ZDHC Level {batch.specs.chemical_compliance_zdhc.zdhc_level || "N/A"}
+                                ZDHC Level{" "}
+                                {batch.specs.chemical_compliance_zdhc
+                                  .zdhc_level || "N/A"}
                               </Badge>
-                              {batch.specs.chemical_compliance_zdhc.mrsl_tested && (
+                              {batch.specs.chemical_compliance_zdhc
+                                .mrsl_tested && (
                                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
                                   MRSL Tested
                                 </Badge>
@@ -1463,13 +1487,17 @@ export default function BatchDetailsPage() {
                           </dt>
                           <dd className="grid grid-cols-3 gap-3 text-xs">
                             <div className="flex justify-between items-center p-2 bg-muted rounded">
-                              <span className="text-muted-foreground">Biodegradable</span>
+                              <span className="text-muted-foreground">
+                                Biodegradable
+                              </span>
                               <span className="text-foreground">
                                 {batch.specs.biodegradable_pct ?? "N/A"}%
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-muted rounded">
-                              <span className="text-muted-foreground">Expected Lifetime</span>
+                              <span className="text-muted-foreground">
+                                Expected Lifetime
+                              </span>
                               <span className="text-foreground">
                                 {batch.specs.expected_lifetime_washes
                                   ? `${batch.specs.expected_lifetime_washes} washes`
@@ -1477,7 +1505,9 @@ export default function BatchDetailsPage() {
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-muted rounded">
-                              <span className="text-muted-foreground">Recycled Content</span>
+                              <span className="text-muted-foreground">
+                                Recycled Content
+                              </span>
                               <span className="text-foreground">
                                 {batch.specs.recycled_content_pct ?? "N/A"}%
                               </span>
@@ -1489,78 +1519,78 @@ export default function BatchDetailsPage() {
                   </Card>
                 )}
                 {!isTextile && (
-                <Card className="bg-transparent border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-foreground">
-                      <div className="p-2 bg-blue-500/10">
-                        <Battery className="h-5 w-5 text-blue-500" />
-                      </div>
-                      Core Specifications
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Manufacturer
-                        </dt>
-                        <dd className="text-foreground">
-                          {batch.specs.manufacturer || "N/A"}
-                        </dd>
-                      </div>
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Chemistry
-                        </dt>
-                        <dd className="text-foreground">
-                          {batch.specs.chemistry || "N/A"}
-                        </dd>
-                      </div>
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Capacity
-                        </dt>
-                        <dd className="text-emerald-400">
-                          {batch.specs.capacity || "N/A"}
-                        </dd>
-                      </div>
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Voltage
-                        </dt>
-                        <dd className="text-foreground">
-                          {batch.specs.voltage || "N/A"}
-                        </dd>
-                      </div>
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Weight
-                        </dt>
-                        <dd className="text-foreground">
-                          {batch.specs.weight || "N/A"}
-                        </dd>
-                      </div>
-                      <div className="p-3 bg-background border border-border">
-                        <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                          Country of Origin
-                        </dt>
-                        <dd className="text-foreground">
-                          {batch.specs.country_of_origin || "N/A"}
-                        </dd>
-                      </div>
-                      {batch.specs.manufacturer_address && (
-                        <div className="p-3 bg-background border border-border col-span-2">
+                  <Card className="bg-transparent border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <div className="p-2 bg-blue-500/10">
+                          <Battery className="h-5 w-5 text-blue-500" />
+                        </div>
+                        Core Specifications
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
+                        <div className="p-3 bg-background border border-border">
                           <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
-                            Manufacturer Address
+                            Manufacturer
                           </dt>
-                          <dd className="text-foreground text-sm">
-                            {batch.specs.manufacturer_address}
+                          <dd className="text-foreground">
+                            {batch.specs.manufacturer || "N/A"}
                           </dd>
                         </div>
-                      )}
-                    </dl>
-                  </CardContent>
-                </Card>
+                        <div className="p-3 bg-background border border-border">
+                          <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                            Chemistry
+                          </dt>
+                          <dd className="text-foreground">
+                            {batch.specs.chemistry || "N/A"}
+                          </dd>
+                        </div>
+                        <div className="p-3 bg-background border border-border">
+                          <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                            Capacity
+                          </dt>
+                          <dd className="text-emerald-400">
+                            {batch.specs.capacity || "N/A"}
+                          </dd>
+                        </div>
+                        <div className="p-3 bg-background border border-border">
+                          <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                            Voltage
+                          </dt>
+                          <dd className="text-foreground">
+                            {batch.specs.voltage || "N/A"}
+                          </dd>
+                        </div>
+                        <div className="p-3 bg-background border border-border">
+                          <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                            Weight
+                          </dt>
+                          <dd className="text-foreground">
+                            {batch.specs.weight || "N/A"}
+                          </dd>
+                        </div>
+                        <div className="p-3 bg-background border border-border">
+                          <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                            Country of Origin
+                          </dt>
+                          <dd className="text-foreground">
+                            {batch.specs.country_of_origin || "N/A"}
+                          </dd>
+                        </div>
+                        {batch.specs.manufacturer_address && (
+                          <div className="p-3 bg-background border border-border col-span-2">
+                            <dt className="text-muted-foreground mb-1 text-xs uppercase tracking-wider">
+                              Manufacturer Address
+                            </dt>
+                            <dd className="text-foreground text-sm">
+                              {batch.specs.manufacturer_address}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {!isTextile && isIndia && (
@@ -1813,13 +1843,13 @@ export default function BatchDetailsPage() {
                             )}
                           </dd>
                         </div>
-                        {batch.specs.battery_category && (
+                        {batch.specs.chemistry && (
                           <div className="p-4 bg-background border border-border">
                             <dt className="text-muted-foreground mb-2 text-xs uppercase tracking-wider">
-                              Battery Category
+                              Fiber Type
                             </dt>
                             <dd className="text-foreground">
-                              {batch.specs.battery_category}
+                              {batch.specs.chemistry}
                             </dd>
                           </div>
                         )}
@@ -2189,7 +2219,8 @@ export default function BatchDetailsPage() {
                       Upload Data
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      Upload a CSV file containing passport data for this {"lot"}.
+                      Upload a CSV file containing passport data for this{" "}
+                      {"lot"}.
                       {isIndia && (
                         <span className="block mt-2 text-orange-400 font-medium">
                           Auto-generates BPAN format: IN-
@@ -2207,7 +2238,7 @@ export default function BatchDetailsPage() {
                     <UploadCSV
                       batchId={batch.id}
                       marketRegion={region}
-                      chemistry={batch.specs?.chemistry}
+                      fiber_type={batch.specs?.chemistry}
                       morthCode={user?.morth_manufacturer_code}
                       isDraft={isDraft}
                       onUploadComplete={handleUploadComplete}
@@ -2393,8 +2424,8 @@ export default function BatchDetailsPage() {
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Compliance score will be calculated when the {"lot"} is
-                          activated.
+                          Compliance score will be calculated when the {"lot"}{" "}
+                          is activated.
                         </p>
                       )}
                     </CardContent>
@@ -2430,7 +2461,8 @@ export default function BatchDetailsPage() {
                       )}
                     </Button>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Generate printable labels for all passports in this {"lot"}.
+                      Generate printable labels for all passports in this{" "}
+                      {"lot"}.
                     </p>
                   </CardContent>
                 </Card>
@@ -2563,7 +2595,6 @@ export default function BatchDetailsPage() {
           batchName={batch?.batch_name || ""}
           passportCount={passportCount}
           onDownload={handleDownloadLabels}
-          productType={batch?.product_type}
         />
 
         <ConfirmDialog

@@ -131,7 +131,6 @@ export default function DispatchPage() {
           );
         }
       } catch (e) {
-        console.error("Failed to restore pending items:", e);
         localStorage.removeItem(STORAGE_KEY);
       }
     }
@@ -284,7 +283,6 @@ export default function DispatchPage() {
       inputRef.current?.focus();
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { error?: string } } };
-      console.error("Dispatch failed:", error);
       toast.error(
         apiError.response?.data?.error || "Failed to process dispatch",
       );

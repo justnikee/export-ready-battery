@@ -35,7 +35,6 @@ type RepositoryInterface interface {
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
 	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
-	SaveCarbonFootprintResult(ctx context.Context, batchID, tenantID uuid.UUID, resultJSON []byte) error
 	UpdateBatchComplianceResult(ctx context.Context, batchID uuid.UUID, score float64, gapsJSON []byte) error
 
 	// schema_repository.go
@@ -95,9 +94,6 @@ type RepositoryInterface interface {
 	AppendOwnershipHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
 	AppendReplacementEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
-	UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, ts time.Time) error
-	AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error
-	GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error)
 	SetRecyclingInfo(ctx context.Context, passportID uuid.UUID, status, recyclerEprID string, date time.Time) error
 
 	// reward.go
@@ -188,4 +184,21 @@ type RepositoryInterface interface {
 
 	// passport.go — batch bulk action
 	GetPassportIDsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]uuid.UUID, error)
+
+	// tally_import.go
+	CreateTallyImportLog(ctx context.Context, log *TallyImportLog) error
+	GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*TallyImportLog, int, error)
+
+	// tally_sync.go
+	UpsertTallySyncConfig(ctx context.Context, cfg *TallySyncConfig) error
+	GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*TallySyncConfig, error)
+	ListEnabledTallySyncConfigs(ctx context.Context) ([]*TallySyncConfig, error)
+	UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error
+	CreateTallySyncStaging(ctx context.Context, item *TallySyncStaging) error
+	GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*TallySyncStaging, int, error)
+	GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*TallySyncStaging, error)
+	ApplyTallySyncStaging(ctx context.Context, id, tenantID, lotID uuid.UUID) error
+	DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error
+	CreateTallySyncRun(ctx context.Context, run *TallySyncRun) error
+	UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error
 }

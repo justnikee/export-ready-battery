@@ -363,6 +363,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		RemovableAndReplaceable:     req.RemovableAndReplaceable,
 		NotifiedBodyNumber:          req.NotifiedBodyNumber,
 		DeclarationOfConformityPath: req.DeclarationOfConformityPath,
+		GTIN:                        req.Specs.GTIN,
 	})
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
@@ -519,8 +520,11 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("Generating QR codes", "count", len(passports), "batch_name", batch.BatchName)
 
-	// Generate QR codes and create ZIP
-	zipReader, zipSize, err := h.qrService.GenerateAndZip(passports)
+	// Generate QR codes with GS1 Digital Link support when GTIN is available
+	qrCtx := &services.QRLabelContext{
+		GTIN: batch.Specs.GTIN,
+	}
+	zipReader, zipSize, err := h.qrService.GenerateAndZipEnriched(passports, qrCtx)
 	if err != nil {
 		slog.Error("Failed to generate QR codes", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate QR codes")
@@ -973,6 +977,7 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 		RemovableAndReplaceable:     originalBatch.RemovableAndReplaceable,
 		NotifiedBodyNumber:          originalBatch.NotifiedBodyNumber,
 		DeclarationOfConformityPath: originalBatch.DeclarationOfConformityPath,
+		GTIN:                        originalBatch.GTIN,
 	})
 
 	if err != nil {
@@ -1081,7 +1086,7 @@ func (h *Handler) SaveCarbonFootprint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
+		"success":                  true,
 		"carbon_performance_class": payload.CarbonClass,
 	})
 }

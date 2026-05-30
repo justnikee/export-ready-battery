@@ -239,7 +239,7 @@ export interface BatchSpec {
   bis_number?: string;
   epr_number?: string;
 
-  // EU Battery Regulation 2023/1542 - MANDATORY FIELDS
+  // EU ESPR Regulation - MANDATORY FIELDS
   material_composition?: MaterialComposition;
   certifications?: string[];
   manufacturer_address?: string;
@@ -254,13 +254,19 @@ export interface BatchSpec {
   sale_price_inr?: number;
   import_cost_inr?: number;
 
-  battery_category?: string;
-
   // ── Textile-Specific Fields ──
   gsm?: number;
   water_usage_liters?: number;
   energy_usage_kwh?: number;
-  dye_process?: "reactive" | "vat" | "disperse" | "acid" | "natural" | "pigment" | "none" | "undyed";
+  dye_process?:
+    | "reactive"
+    | "vat"
+    | "disperse"
+    | "acid"
+    | "natural"
+    | "pigment"
+    | "none"
+    | "undyed";
   fiber_composition?: FiberComposition;
   supplier_tier?: SupplierTier;
   labor_compliance?: LaborCompliance;

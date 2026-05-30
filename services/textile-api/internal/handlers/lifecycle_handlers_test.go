@@ -143,24 +143,6 @@ func (f *fakeLifecycleRepo) CreatePassportEventBatch(ctx context.Context, events
 	return nil
 }
 
-func (f *fakeLifecycleRepo) UpdateStateOfHealth(ctx context.Context, passportID uuid.UUID, soh float64, updatedAt time.Time) error {
-	passport, ok := f.passports[passportID]
-	if !ok {
-		return errors.New("passport not found")
-	}
-	passport.StateOfHealth = &soh
-	passport.LastSOHUpdateTimestamp = &updatedAt
-	return nil
-}
-
-func (f *fakeLifecycleRepo) AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error {
-	return nil
-}
-
-func (f *fakeLifecycleRepo) GetSoHHistory(ctx context.Context, passportID uuid.UUID) ([]models.SoHHistoryEntry, error) {
-	return nil, nil
-}
-
 func (f *fakeLifecycleRepo) AppendRepairEvent(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error {
 	return nil
 }
@@ -370,22 +352,6 @@ func TestGetPassportEvents_ForeignTenant(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	handler.GetPassportEvents(rr, req)
-
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("expected status 404, got %d", rr.Code)
-	}
-}
-
-func TestUpdateStateOfHealth_ForeignTenant(t *testing.T) {
-	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
-
-	body := `{"state_of_health":94}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/soh", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = req.WithContext(contextWithAuthAndEmail("22222222-2222-2222-2222-222222222222", "operator@example.com"))
-	rr := httptest.NewRecorder()
-
-	handler.UpdateStateOfHealth(rr, req)
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected status 404, got %d", rr.Code)

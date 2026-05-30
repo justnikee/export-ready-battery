@@ -1,7 +1,7 @@
 import api from '../api';
 
 // ============================================================================
-// TYPES
+// TYPES — synced with services/battery-api/internal/models/models.go
 // ============================================================================
 
 export interface EPRCertificate {
@@ -47,19 +47,24 @@ export interface EPRLedgerSummary {
 }
 
 export interface EPRObligation {
+    id: string;
+    tenant_id: string;
     financial_year: string;
-    year: number;
-    epr_registered: boolean;
-    epr_number: string;
-    total_batches: number;
-    total_passports: number;
-    total_weight_kg: number;
-    collection_target_pct: number;
-    required_collection_kg: number;
-    collected_kg: number;
-    deficit_kg: number;
-    surplus_kg: number;
-    status: string;
+    battery_category: string;           // EV, PORTABLE, INDUSTRIAL, AUTOMOTIVE
+    obligation_kg: number;              // Batteries placed on market (kg)
+    batteries_placed_count: number;     // Unit count
+    fulfilled_via_recycling_kg: number;
+    fulfilled_via_refurbishment_kg: number;
+    carried_forward_kg: number;         // Excess from prev year
+    net_obligation_kg: number;          // After carry-forward
+    shortfall_kg: number;               // Unfulfilled amount
+    ecc_amount_inr: number;             // Environmental Compensation Charge
+    ecc_status: 'NOT_APPLICABLE' | 'PENDING' | 'PAID' | 'WAIVED';
+    status: 'DRAFT' | 'FILED' | 'AUDITED' | 'CLOSED';
+    cpcb_return_reference?: string;
+    cpcb_filed_at?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 // ============================================================================

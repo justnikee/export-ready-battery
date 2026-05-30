@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Battery,
+  Layers3,
   Zap,
   FlaskConical,
   Calendar,
@@ -112,8 +112,6 @@ export interface PassportViewData {
     manufacture_date?: string;
     created_at?: string;
     status?: string;
-    state_of_health?: number | null;
-    last_soh_update_timestamp?: string | null;
     ownership_history?: Array<{
       timestamp: string;
       from_owner: string;
@@ -130,38 +128,18 @@ export interface PassportViewData {
     current_owner_identifier?: string | null;
   };
   specs: {
-    chemistry?: string;
     // Field names match backend PublicSpecsView JSON keys exactly
-    battery_category?: string;
-    capacity?: string;
-    voltage?: string;
     weight?: string;
     carbon_footprint?: string;
     material_profile?: string;
     lot_size?: string;
     production_stage?: string;
-    expected_lifetime_cycles?: number | null;
-    warranty_months?: number | null;
-    bis_number?: string;
-    epr_number?: string;
     hazardous_substances?: {
       declaration?: string;
       lead_present?: boolean;
       mercury_present?: boolean;
       cadmium_present?: boolean;
       exemptions?: string;
-    } | null;
-    material_composition?: {
-      cobalt_pct?: number;
-      lithium_pct?: number;
-      nickel_pct?: number;
-      graphite_pct?: number;
-      manganese_pct?: number;
-      lead_pct?: number;
-      recycled_cobalt_pct?: number;
-      recycled_lithium_pct?: number;
-      recycled_nickel_pct?: number;
-      recycled_lead_pct?: number;
     } | null;
     certifications?: string[];
     gsm?: number;
@@ -218,11 +196,8 @@ export interface PassportViewData {
     manufacturer_email?: string;
     textile_facility_type?: string;
     textile_supply_chain_tier?: string;
-    epr_registration_number?: string;
-    bis_r_number?: string;
     bis_certificate_path?: string;
     epr_certificate_path?: string;
-    pli_certificate_path?: string;
     certifications?: string[];
     // Backend sends these names
     eu_authorized_representative_name?: string;
@@ -238,9 +213,6 @@ export interface PassportViewData {
   manufacturing_start_date?: string;
   manufacturing_end_date?: string;
   market_region?: string;
-  domestic_value_add?: number | null;
-  cell_source?: string;
-  pli_compliant?: boolean;
   hsn_code?: string;
   bill_of_entry_no?: string;
   country_of_origin?: string;
@@ -272,25 +244,14 @@ export function CertificateView({
   const model =
     passportData.model_name || tenant.company_name || t("label_missing");
   const serialNumber = passport.serial_number || t("label_missing");
-  const chemistry = specs?.chemistry || null;
-  const batteryCategory = specs?.battery_category || null;
-  const capacityAh = specs?.capacity || null;
-  const voltage = specs?.voltage || null;
   const weightKg = specs?.weight || null;
   const materialProfile = specs?.material_profile || null;
   const lotSize = specs?.lot_size || null;
   const productionStage = specs?.production_stage || null;
-  const cycleLife = specs?.expected_lifetime_cycles || null;
-  const warrantyMonths = specs?.warranty_months || null;
   const hazardousSubs = specs?.hazardous_substances?.declaration || null;
   const carbonFootprint = specs?.carbon_footprint || null;
-  const eprNumber = specs?.epr_number || tenant.epr_registration_number || null;
-  const bisRNumber = specs?.bis_number || tenant.bis_r_number || null;
   const certifications = tenant.certifications || specs?.certifications || [];
-  const cellSource = passportData.cell_source || null;
   const marketRegion = passportData.market_region || null;
-  const dvaPercent = passportData.domestic_value_add;
-  const pliCompliant = passportData.pli_compliant;
   const hsnCode = passportData.hsn_code || null;
   const billOfEntryNo = passportData.bill_of_entry_no || null;
   const countryOfOrigin = passportData.country_of_origin || null;
@@ -345,9 +306,6 @@ export function CertificateView({
   const showEURepresentative =
     euRepresentativeName || euRepresentativeAddress || euRepresentativeEmail;
 
-  // Critical raw materials
-  const crm = specs?.material_composition;
-
   // Status with static Tailwind class mappings.
   // The API sends uppercase lifecycle states such as SHIPPED and IN_SERVICE.
   const normalizedStatus = (passport.status || "CREATED").trim().toLowerCase();
@@ -392,45 +350,20 @@ export function CertificateView({
     statusStyleMap[currentStatus.color] || statusStyleMap.slate;
 
   // Market
-  const isIndia = marketRegion?.toUpperCase() === "INDIA";
-  const isImported = cellSource?.toUpperCase() === "IMPORTED";
-  const productType = passportData.product_type ||
-    (passportData.template_variant?.toUpperCase().startsWith("TEXTILE") ? "TEXTILE" : "BATTERY");
+  const productType = passportData.product_type || "TEXTILE";
   const templateConfig = resolvePassportTemplateConfig({
     templateVariant: passportData.template_variant,
     productType,
     marketRegion,
     t,
   });
-  const templateVariant = templateConfig.variant;
-  const isBattery = templateConfig.family === "battery";
   const productBadge = templateConfig.badge;
-  const primaryDescriptor = isBattery ? chemistry : materialProfile;
-  const isBatteryIndia = templateConfig.complianceMode === "battery_india";
-  const isBatteryStandard =
-    templateConfig.complianceMode === "battery_standard";
+  const primaryDescriptor = materialProfile;
 
-  // SoH
-  const soh = passport.state_of_health;
-  const stateOfHealthLabel = soh != null ? `${soh}%` : null;
-  const lastSohUpdate = passport.last_soh_update_timestamp
-    ? new Date(passport.last_soh_update_timestamp)
-    : null;
-  const lastSohUpdateLabel = lastSohUpdate
-    ? lastSohUpdate.toLocaleDateString("en-GB")
-    : null;
-
-  // Ownership counts
+  // Lifecycle counts
   const ownershipCount = passport.ownership_history?.length ?? 0;
   const repairCount = passport.repair_events?.length ?? 0;
   const replacementCount = passport.replacement_events?.length ?? 0;
-
-  // Cell-source label
-  const cellSourceLabel = cellSource
-    ? cellSource.toUpperCase() === "IMPORTED"
-      ? t("cell_source_imported")
-      : t("cell_source_domestic")
-    : null;
 
   return (
     <div className="divide-y divide-border">
@@ -441,7 +374,7 @@ export function CertificateView({
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-emerald-400 text-xs tracking-wider uppercase mb-1">
-              {isBattery ? t("bpan_label") : t("label_serial")}
+              {t("label_serial")}
             </p>
             <h1 className="text-2xl md:text-3xl font-mono tracking-tight">
               {bpan}
@@ -470,14 +403,9 @@ export function CertificateView({
               <FlaskConical className="w-4 h-4" /> {primaryDescriptor}
             </span>
           )}
-          {templateConfig.showCapacityBadge && capacityAh && (
-            <span className="flex items-center gap-1.5">
-              <Battery className="w-4 h-4" /> {capacityAh}
-            </span>
-          )}
           {templateConfig.showLotBadge && lotSize && (
             <span className="flex items-center gap-1.5">
-              <Battery className="w-4 h-4" /> {lotSize}
+              <Layers3 className="w-4 h-4" /> {lotSize}
             </span>
           )}
         </div>
@@ -508,15 +436,9 @@ export function CertificateView({
                   : null
               }
             />
-            {isBattery ? (
-              <DataRow label={t("label_cell_source")} value={cellSourceLabel} />
-            ) : (
-              <DataRow label="Production Stage" value={productionStage} />
-            )}
+            <DataRow label="Production Stage" value={productionStage} />
             <DataRow label={t("label_market")} value={marketRegion || null} />
-            {!isBattery && (
-              <DataRow label="Country of Origin" value={countryOfOrigin} />
-            )}
+            <DataRow label="Country of Origin" value={countryOfOrigin} />
           </div>
 
           {/* Batch Window */}
@@ -549,86 +471,13 @@ export function CertificateView({
           </h3>
 
           <div className="space-y-0">
-            {isBattery ? (
-              <>
-                <DataRow label={t("label_chemistry")} value={chemistry} />
-                {batteryCategory && (
-                  <DataRow
-                    label={t("label_battery_category")}
-                    value={batteryCategory}
-                  />
-                )}
-                <DataRow label={t("label_capacity")} value={capacityAh} />
-                <DataRow label={t("label_voltage")} value={voltage} />
-                <DataRow label={t("label_weight")} value={weightKg} />
-              </>
-            ) : (
-              <>
-                <DataRow label="Material Profile" value={materialProfile} />
-                <DataRow label="Lot Size" value={lotSize} />
-                <DataRow label="Production Stage" value={productionStage} />
-                <DataRow label={t("label_weight")} value={weightKg} />
-              </>
-            )}
+            <DataRow label="Material Profile" value={materialProfile} />
+            <DataRow label="Lot Size" value={lotSize} />
+            <DataRow label="Production Stage" value={productionStage} />
+            <DataRow label={t("label_weight")} value={weightKg} />
           </div>
         </div>
       </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════
- CRITICAL RAW MATERIALS
- ═══════════════════════════════════════════════════════════════════ */}
-      {templateConfig.showCrm && crm && (
-        <div className="p-6 md:p-8">
-          <h3 className="text-foreground mb-4 flex items-center gap-2">
-            <FlaskConical className="w-4 h-4 text-muted-foreground" />
-            {t("section_materials")}
-          </h3>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[
-              {
-                key: "label_cobalt",
-                pct: crm.cobalt_pct,
-                recycled: crm.recycled_cobalt_pct,
-              },
-              {
-                key: "label_lithium",
-                pct: crm.lithium_pct,
-                recycled: crm.recycled_lithium_pct,
-              },
-              {
-                key: "label_nickel",
-                pct: crm.nickel_pct,
-                recycled: crm.recycled_nickel_pct,
-              },
-              { key: "label_graphite", pct: crm.graphite_pct },
-              { key: "label_manganese", pct: crm.manganese_pct },
-              {
-                key: "label_lead",
-                pct: crm.lead_pct,
-                recycled: crm.recycled_lead_pct,
-              },
-            ]
-              .filter((m) => m.pct != null && m.pct > 0)
-              .map((m) => (
-                <div
-                  key={m.key}
-                  className="bg-background rounded-lg p-3 border border-border"
-                >
-                  <p className="text-muted-foreground text-xs mb-1">
-                    {t(m.key)}
-                  </p>
-                  <p className="text-foreground ">{m.pct}%</p>
-                  {m.recycled != null && m.recycled > 0 && (
-                    <p className="text-emerald-500 text-xs mt-0.5">
-                      ♻ {m.recycled}% {t("label_recycled_content")}
-                    </p>
-                  )}
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
  REGULATORY COMPLIANCE
@@ -641,55 +490,10 @@ export function CertificateView({
           </h3>
 
           <div className="space-y-0">
-            {isBatteryIndia && (
-              <DataRow label={t("label_epr")} value={eprNumber} mono />
-            )}
-            {isBatteryIndia && dvaPercent != null && (
-              <DataRow
-                label={t("label_dva")}
-                value={`${(dvaPercent as number).toFixed(1)}%`}
-              />
-            )}
-            {isBatteryIndia && (
-              <DataRow
-                label={t("label_pli")}
-                value={pliCompliant ? "✅ Yes" : "No"}
-              />
-            )}
-            {isBatteryIndia && (
-              <DataRow label={t("label_bis")} value={bisRNumber} mono />
-            )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_carbon_footprint")}
-                value={carbonFootprint}
-              />
-            )}
-            {productType === "TEXTILE" && carbonFootprint && (
+            {carbonFootprint && (
               <DataRow
                 label="Carbon Footprint"
                 value={`${carbonFootprint} kgCO2e/kg`}
-              />
-            )}
-            {isBatteryStandard && (
-              <DataRow label={t("label_hazardous")} value={hazardousSubs} />
-            )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_warranty")}
-                value={
-                  warrantyMonths
-                    ? t("label_months", { count: warrantyMonths })
-                    : null
-                }
-              />
-            )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_lifetime")}
-                value={
-                  cycleLife ? t("label_cycles", { count: cycleLife }) : null
-                }
               />
             )}
             {templateConfig.showTextileCompliance && (
@@ -702,7 +506,10 @@ export function CertificateView({
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { label: "Cotton", pct: fiberComposition.cotton_pct },
-                        { label: "Polyester", pct: fiberComposition.polyester_pct },
+                        {
+                          label: "Polyester",
+                          pct: fiberComposition.polyester_pct,
+                        },
                         { label: "Wool", pct: fiberComposition.wool_pct },
                         { label: "Silk", pct: fiberComposition.silk_pct },
                         { label: "Linen", pct: fiberComposition.linen_pct },
@@ -716,7 +523,10 @@ export function CertificateView({
                         .map((f) => {
                           const pct = f.pct ?? 0;
                           return (
-                            <div key={f.label} className="flex items-center gap-2">
+                            <div
+                              key={f.label}
+                              className="flex items-center gap-2"
+                            >
                               <span className="text-foreground text-xs w-16 shrink-0">
                                 {f.label}
                               </span>
@@ -740,7 +550,9 @@ export function CertificateView({
                   label="Dye Process & Finish"
                   value={
                     dyeProcess || finishType.length > 0
-                      ? [dyeProcess, finishType.join(", ")].filter(Boolean).join(" | ")
+                      ? [dyeProcess, finishType.join(", ")]
+                          .filter(Boolean)
+                          .join(" | ")
                       : null
                   }
                 />
@@ -754,7 +566,9 @@ export function CertificateView({
                 />
                 <DataRow
                   label="Biodegradable"
-                  value={biodegradablePct != null ? `${biodegradablePct}%` : null}
+                  value={
+                    biodegradablePct != null ? `${biodegradablePct}%` : null
+                  }
                 />
                 <DataRow
                   label="Expected Lifetime"
@@ -766,7 +580,9 @@ export function CertificateView({
                 />
                 <DataRow
                   label="Recycled Content"
-                  value={recycledContentPct != null ? `${recycledContentPct}%` : null}
+                  value={
+                    recycledContentPct != null ? `${recycledContentPct}%` : null
+                  }
                 />
                 <DataRow label="Material Profile" value={materialProfile} />
                 <DataRow label="Country of Origin" value={countryOfOrigin} />
@@ -783,8 +599,14 @@ export function CertificateView({
                   Supplier Tier
                 </p>
                 <div className="space-y-0">
-                  <DataRow label="Fiber Supplier" value={supplierTier.fiber_supplier} />
-                  <DataRow label="Spinning Mill" value={supplierTier.spinning_mill} />
+                  <DataRow
+                    label="Fiber Supplier"
+                    value={supplierTier.fiber_supplier}
+                  />
+                  <DataRow
+                    label="Spinning Mill"
+                    value={supplierTier.spinning_mill}
+                  />
                   <DataRow
                     label="Weaving / Knitting Mill"
                     value={supplierTier.weaving_knitting_mill}
@@ -808,10 +630,16 @@ export function CertificateView({
                 </p>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {[
-                    { label: "SA8000", active: laborCompliance.sa8000_certified },
+                    {
+                      label: "SA8000",
+                      active: laborCompliance.sa8000_certified,
+                    },
                     { label: "BSCI", active: laborCompliance.bsci_audited },
                     { label: "SEDEX", active: laborCompliance.sedex_member },
-                    { label: "Fair Trade", active: laborCompliance.fair_trade_certified },
+                    {
+                      label: "Fair Trade",
+                      active: laborCompliance.fair_trade_certified,
+                    },
                   ].map((cert) => (
                     <span
                       key={cert.label}
@@ -830,7 +658,10 @@ export function CertificateView({
                     label="Audit Score"
                     value={laborCompliance.audit_score ?? null}
                   />
-                  <DataRow label="Audit Date" value={laborCompliance.audit_date || null} />
+                  <DataRow
+                    label="Audit Date"
+                    value={laborCompliance.audit_date || null}
+                  />
                 </div>
               </div>
             )}
@@ -930,50 +761,40 @@ export function CertificateView({
                     {t("doc_epr_missing")}
                   </div>
                 )}
-                {pliCompliant &&
-                  tenant.pli_certificate_path &&
-                  tenant.pli_certificate_path.trim() && (
-                    <a
-                      href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
-                    >
-                      <Download className="w-4 h-4 text-amber-500" />
-                      {t("doc_pli")}
-                    </a>
-                  )}
               </div>
             </div>
           )}
 
           {/* Import details */}
-          {templateConfig.showImportDetails && isImported && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
-                <Truck className="w-3.5 h-3.5 text-muted-foreground" />{" "}
-                {t("section_import")}
-              </p>
-              <div className="space-y-0">
-                <DataRow
-                  label={t("label_bill_of_entry")}
-                  value={billOfEntryNo}
-                  mono
-                />
-                <DataRow
-                  label={t("label_country_origin")}
-                  value={countryOfOrigin}
-                />
-                <DataRow label={t("label_hsn")} value={hsnCode} mono />
-                <DataRow
-                  label={t("label_customs_date")}
-                  value={
-                    customsDate ? customsDate.toLocaleDateString("en-GB") : null
-                  }
-                />
+          {templateConfig.showImportDetails &&
+            (billOfEntryNo || countryOfOrigin) && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5 text-muted-foreground" />{" "}
+                  {t("section_import")}
+                </p>
+                <div className="space-y-0">
+                  <DataRow
+                    label={t("label_bill_of_entry")}
+                    value={billOfEntryNo}
+                    mono
+                  />
+                  <DataRow
+                    label={t("label_country_origin")}
+                    value={countryOfOrigin}
+                  />
+                  <DataRow label={t("label_hsn")} value={hsnCode} mono />
+                  <DataRow
+                    label={t("label_customs_date")}
+                    value={
+                      customsDate
+                        ? customsDate.toLocaleDateString("en-GB")
+                        : null
+                    }
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* Manufacturer */}
@@ -1105,8 +926,7 @@ export function CertificateView({
           {t("section_lifecycle")}
         </h3>
 
-        {/* SoH Gauge */}
-        {templateConfig.showSoh && soh != null && <SoHGauge soh={soh} />}
+        {/* Ownership & lifecycle counts */}
 
         <div className="space-y-0 mt-3">
           <DataRow
@@ -1114,12 +934,6 @@ export function CertificateView({
             value={passport.current_owner_identifier}
             mono
           />
-          {templateConfig.showSoh && soh == null && (
-            <DataRow label={t("label_soh")} value={stateOfHealthLabel} />
-          )}
-          {templateConfig.showSoh && (
-            <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />
-          )}
           <DataRow
             label={t("label_ownership_records")}
             value={ownershipCount}

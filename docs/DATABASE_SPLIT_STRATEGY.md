@@ -1,125 +1,166 @@
-# Database Split Strategy
+# Database Split Strategy — DB-per-Service
 
-## Current State
+## Current State (Post Big-Bang Split)
 
-All three services (`platform-core`, `battery-api`, `textile-api`) currently connect to the **same Supabase PostgreSQL database** (`postgres` on Supabase). They share:
+All three services currently connect to the **same Supabase PostgreSQL database** with a heavily polluted schema:
 
-- A single migration history (managed by `battery-api/cmd/migration_runner`)
-- The same 54 migration files (copied to both `battery-api` and `textile-api`)
-- Cross-service table visibility (no row-level security or schema isolation)
+- **55 migrations** copied to both `battery-api` and `textile-api`
+- `tenants` table has **flat battery fields** (epr_registration_number, bis_r_number, etc.) that were supposed to be dropped after migration 054 created `battery_tenant_profiles`
+- `textile_tenant_profiles` table exists in the **battery-api database** (pollutant)
+- `batches` and `passports` reuse the same tables with `product_type` columns, but carry battery-specific columns (cell_source, hsn_code, state_of_health, cycle_count, etc.)
+- Battery-specific tables (`epr_certificates`, `soh_history`, `passport_telemetry`, `device_tokens`, `carbon_factors`, `reward_ledger`) exist in the textile-api schema even though textile doesn't use them
 
-This was the correct choice for the **big-bang split** because it allowed immediate service separation without a data migration.
-
-## Problem
-
-As the product lines diverge, sharing one database creates:
-
-1. **Tight coupling** — A migration in battery-api that alters `batches` could break textile-api if it also queries that table
-2. **Schema bloat** — Textile tables (`textile_lots`, `dye_batches`) live next to battery tables (`batches`, `passports`)
-3. **Deployment risk** — Rolling back a battery migration affects textile data
-4. **Scaling asymmetry** — Battery may need read replicas sooner than textile; shared DB makes this hard
-
-## Recommended Approach: Schema-per-Service
-
-Rather than splitting into three **physical databases** immediately, use PostgreSQL **schemas** as a migration path:
+## Target Architecture: DB-per-Service
 
 ```
-anvayalabs (database)
-├── public        — shared extensions, enums
-├── platform      — tenants, users, team_members, billing_transactions, api_keys
-├── battery       — batches, passports, scan_events, epr_certificates
-├── textile       — lots, supply_chain_events, dye_batches
+┌─────────────────────────────────────────────────────────────┐
+│                    Supabase Project 1                        │
+│                      (Existing)                              │
+│                     BATTERY API                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │   platform   │  │   battery    │  │     neutral      │  │
+│  │  tenants     │  │  batches     │  │  blog_posts      │  │
+│  │  team_members│  │  passports   │  │  product_schemas │  │
+│  │  api_keys    │  │  scan_events │  │  export_jobs     │  │
+│  │  transactions│  │  epr_certs   │  │  passport_docs   │  │
+│  │  ...         │  │  soh_history │  │  ...             │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│                                                              │
+│  NO textile_tenant_profiles                                  │
+│  NO flat battery columns on tenants                          │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                    Supabase Project 2                        │
+│                      (NEW — you set up)                      │
+│                     TEXTILE API                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │   platform   │  │   textile    │  │     neutral      │  │
+│  │  tenants     │  │  batches     │  │  blog_posts      │  │
+│  │  team_members│  │  passports   │  │  product_schemas │  │
+│  │  api_keys    │  │  scan_events │  │  export_jobs     │  │
+│  │  transactions│  │  lot_events  │  │  passport_docs   │  │
+│  │  ...         │  │  dye_batches │  │  ...             │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│                                                              │
+│  NO epr_certificates                                         │
+│  NO soh_history                                              │
+│  NO passport_telemetry                                       │
+│  NO device_tokens                                            │
+│  NO carbon_factors                                           │
+│  NO reward_ledger                                            │
+│  NO battery_tenant_profiles                                  │
+│  NO flat battery columns on tenants                          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Why schemas first?
+## Migration Plan
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Single DB, shared tables** (today) | Simple, one connection string, one backup | Coupled, risky |
-| **Schema-per-service** (recommended) | Logical isolation, one backup, cross-schema joins possible, easy rollback | Still one physical DB |
-| **DB-per-service** (future) | True isolation, independent scaling, different instance sizes | Connection pooling complexity, distributed transactions, backup orchestration |
+### Phase 0: Clean Existing Battery DB (Do Now)
 
-### Schema Assignment
+**File:** `services/battery-api/internal/db/migrations/000056_remove_textile_pollutants.up.sql`
 
-| Table | Current | Target Schema | Owner Service |
-|-------|---------|---------------|---------------|
-| `tenants` | public | `platform` | platform-core |
-| `users` | public | `platform` | platform-core |
-| `team_members` | public | `platform` | platform-core |
-| `billing_transactions` | public | `platform` | platform-core |
-| `api_keys` | public | `platform` | platform-core |
-| `batches` | public | `battery` | battery-api |
-| `passports` | public | `battery` | battery-api |
-| `passport_events` | public | `battery` | battery-api |
-| `scan_events` | public | `battery` | battery-api |
-| `epr_certificates` | public | `battery` | battery-api |
-| `textile_lots` | public | `textile` | textile-api |
-| `supply_chain_events` | public | `textile` | textile-api |
-| `dye_batches` | public | `textile` | textile-api |
+1. **Drop `textile_tenant_profiles`** — this table does not belong in the battery DB
+2. **Drop flat battery columns from `tenants`** — these were copied to `battery_tenant_profiles` in migration 054 and are no longer read by application code:
+   - `epr_registration_number`, `bis_r_number`, `iec_code`
+   - `epr_certificate_path`, `bis_certificate_path`, `pli_certificate_path`
+   - `epr_status`, `bis_status`, `pli_status`
+   - `eu_authorized_representative_name`, `eu_authorized_representative_address`, `eu_contact_email`
+   - `morth_manufacturer_code`, `morth_factory_codes`
 
-### Cross-Schema Queries
+**Run:**
+```bash
+cd services/battery-api
+go run ./cmd/migration_runner up
+```
 
-Services should query their own schema by default. Platform-core owns `tenants` and `users`, so battery-api and textile-api will need **read access** to `platform.users` for JWT validation.
+**Risk:** Low. The application uses `tenant.BatteryProfile.*` (from `battery_tenant_profiles`), not the flat columns.
 
-Use PostgreSQL `GRANT`:
+### Phase 1: Create Clean Textile DB (Do When New Supabase Ready)
+
+**File:** `services/textile-api/internal/db/schema_clean.sql`
+
+Run this in your new Supabase project's SQL Editor. It creates:
+- Platform tables (`tenants`, `team_members`, `api_keys`, etc.) with **only shared columns**
+- Textile profile table (`textile_tenant_profiles`)
+- Neutral tables (`batches`, `passports`, `passport_events`, `scan_events`, etc.) **without battery-specific columns**
+- No battery tables (`epr_certificates`, `soh_history`, `passport_telemetry`, `device_tokens`, `carbon_factors`, `reward_ledger`, `battery_tenant_profiles`)
+
+**Key differences from battery schema:**
+
+| Table | Battery has | Textile has |
+|-------|-------------|-------------|
+| `tenants` | Flat battery columns (pre-054) | **Only shared columns** |
+| `batches` | `cell_source`, `hsn_code`, `bis_number`, `epr_number`, `dva_source`, `pli_compliant`, `domestic_value_add`, `carbon_footprint_result`, `materials` | **None of these** |
+| `passports` | `installed_at`, `returned_at`, `state_of_health`, `last_soh_update_timestamp`, `repair_events`, `replacement_events`, `recycling_status`, `recycler_epr_id`, `recycling_date`, `cycle_count`, `last_temperature`, `last_voltage`, `thermal_event_count`, `last_telemetry_at` | **None of these** |
+| Extra tables | `epr_certificates`, `soh_history`, `passport_telemetry`, `device_tokens`, `carbon_factors`, `reward_ledger`, `battery_tenant_profiles` | **`textile_tenant_profiles`** |
+
+### Phase 2: Data Migration (Manual)
+
+Since textile data is currently mixed in the battery DB, you need to extract it:
 
 ```sql
-GRANT USAGE ON SCHEMA platform TO battery_api_user;
-GRANT SELECT ON platform.tenants, platform.users TO battery_api_user;
+-- Run against battery DB (existing Supabase)
+-- Export textile tenants + their data for import into new textile DB
+
+COPY (
+  SELECT * FROM tenants WHERE product_type = 'TEXTILE'
+) TO '/tmp/textile_tenants.csv' WITH CSV HEADER;
+
+COPY (
+  SELECT * FROM batches WHERE product_type = 'TEXTILE'
+) TO '/tmp/textile_batches.csv' WITH CSV HEADER;
+
+COPY (
+  SELECT p.* FROM passports p
+  JOIN batches b ON p.batch_id = b.id
+  WHERE b.product_type = 'TEXTILE'
+) TO '/tmp/textile_passports.csv' WITH CSV HEADER;
+
+-- Then import into new textile Supabase via dashboard or psql
 ```
 
-## Migration Path
+**Alternative:** Use Supabase's built-in backup/restore for the initial seed, then delete battery rows.
 
-### Phase 1: Schema Separation (P0 — Do Next)
+### Phase 3: Application Configuration
 
-1. Add `search_path` to each service's database connection:
-   - `platform-core`: `SET search_path TO platform, public`
-   - `battery-api`: `SET search_path TO battery, platform, public`
-   - `textile-api`: `SET search_path TO textile, platform, public`
+Update each service's `.env` to point to its own database:
 
-2. Create new migrations that move tables into schemas:
-   ```sql
-   CREATE SCHEMA IF NOT EXISTS platform;
-   CREATE SCHEMA IF NOT EXISTS battery;
-   CREATE SCHEMA IF NOT EXISTS textile;
+```bash
+# battery-api .env
+DATABASE_URL=postgresql://postgres.[BATTERY_REF]:[PWD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
-   ALTER TABLE tenants SET SCHEMA platform;
-   ALTER TABLE batches SET SCHEMA battery;
-   -- etc.
-   ```
+# textile-api .env (new project)
+DATABASE_URL=postgresql://postgres.[TEXTILE_REF]:[PWD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
-3. Update each service's repository layer to use explicit schema prefixes or rely on `search_path`.
-
-4. Run migrations from a **dedicated migration service** (not battery-api) to avoid ownership confusion.
-
-### Phase 2: Row-Level Security (P1)
-
-Add RLS policies so that even within a schema, services can only see their own rows:
-
-```sql
-ALTER TABLE platform.tenants ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_isolation ON platform.tenants
-  USING (product_type = current_setting('app.current_product', true));
+# platform-core .env (shares battery DB for now, or get own project later)
+DATABASE_URL=postgresql://postgres.[BATTERY_REF]:[PWD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 ```
 
-### Phase 3: Physical Database Split (P2 — Post-PMF)
+### Phase 4: Platform-Core Extraction (Future)
 
-When battery and textile have different scaling needs:
+When ready, platform-core gets its own Supabase project:
 
-1. Create separate RDS/Supabase instances for `platform`, `battery`, `textile`
-2. Use **logical replication** or **pg_dump/pg_restore** to migrate schemas
-3. Update connection strings per service
-4. Replace cross-schema joins with **service-to-service API calls** or a **read replica** of platform data
+1. Create new Supabase project for `platform-core`
+2. Migrate `tenants`, `team_members`, `api_keys`, `transactions`, `outbound_webhooks` to it
+3. Update `battery-api` and `textile-api` to call platform-core via REST API for auth/team/billing
+4. Each product DB keeps a minimal `tenants` read replica or uses JWT claims only
 
-## Immediate Action Items
+## Schema Files Delivered
 
-1. **Create a `migrations` package** at the monorepo root that all services depend on, instead of copying migrations into each service
-2. **Add `search_path` support** to `internal/db/postgres.go` in each service
-3. **Write migration `000055_schema_per_service.up.sql`** that creates schemas and moves tables
-4. **Update repository queries** to be schema-aware (explicit schema or search_path)
+| File | Purpose |
+|------|---------|
+| `services/battery-api/internal/db/migrations/000056_remove_textile_pollutants.up.sql` | Cleans existing battery DB |
+| `services/battery-api/internal/db/migrations/000056_remove_textile_pollutants.down.sql` | Rollback |
+| `services/textile-api/internal/db/schema_clean.sql` | Full clean schema for new textile Supabase |
+| `services/battery-api/internal/db/schema_clean.sql` | Reference doc for clean battery schema |
 
-## Risks
+## Immediate Next Steps
 
-- **Downtime**: Moving tables between schemas requires brief locks. Plan for maintenance window.
-- **Code drift**: Until all repos are updated, some queries may fail if they assume `public` schema.
-- **Backup**: `pg_dump` captures all schemas; no change needed for backups.
+1. **Review migration 056** — confirm `battery_tenant_profiles` is populated for all tenants
+2. **Run migration 056** on existing Supabase: `cd services/battery-api && go run ./cmd/migration_runner up`
+3. **Create new Supabase project** for textile-api
+4. **Run `schema_clean.sql`** in new Supabase SQL Editor
+5. **Migrate textile data** from battery DB to new textile DB
+6. **Update `services/textile-api/.env`** with new DATABASE_URL
+7. **Test textile-api** against clean DB

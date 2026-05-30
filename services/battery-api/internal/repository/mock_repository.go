@@ -201,6 +201,74 @@ func (m *MockRepository) GetActiveComplianceRules(ctx context.Context, productTy
 	return args.Get(0).([]*models.ComplianceRule), args.Error(1)
 }
 
+func (m *MockRepository) GetAllFactors(ctx context.Context) ([]models.CarbonFactor, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.CarbonFactor), args.Error(1)
+}
+
+func (m *MockRepository) GetFactorByCategoryAndSubcategory(ctx context.Context, category, subcategory string) (*models.CarbonFactor, error) {
+	args := m.Called(ctx, category, subcategory)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+}
+	return args.Get(0).(*models.CarbonFactor), args.Error(1)
+}
+
+func (m *MockRepository) GetFactorsByCategory(ctx context.Context, category string) ([]models.CarbonFactor, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.CarbonFactor), args.Error(1)
+}
+
+func (m *MockRepository) CreateOutboundWebhook(ctx context.Context, wh *models.OutboundWebhook) error {
+	args := m.Called(ctx, wh)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListOutboundWebhooks(ctx context.Context, tenantID uuid.UUID) ([]*models.OutboundWebhook, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.OutboundWebhook), args.Error(1)
+}
+
+func (m *MockRepository) GetOutboundWebhookByID(ctx context.Context, id, tenantID uuid.UUID) (*models.OutboundWebhook, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.OutboundWebhook), args.Error(1)
+}
+
+func (m *MockRepository) GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error) {
+	args := m.Called(ctx, tenantID, eventType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.OutboundWebhook), args.Error(1)
+}
+
+func (m *MockRepository) IncrementWebhookFailure(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateWebhookLastTriggered(ctx context.Context, id uuid.UUID, at time.Time) error {
+	args := m.Called(ctx, id, at)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
 func (m *MockRepository) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error {
 	args := m.Called(ctx, req)
 	return args.Error(0)
@@ -599,6 +667,14 @@ func (m *MockRepository) GetRecentBatches(ctx context.Context, tenantID uuid.UUI
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*models.BatchSummary), args.Error(1)
+}
+
+func (m *MockRepository) GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error) {
+	args := m.Called(ctx, tenantID, productType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.AnalyticsOverview), args.Error(1)
 }
 
 // ============================================================================
@@ -1143,4 +1219,344 @@ func (m *MockRepository) MarkAlertEmailed(ctx context.Context, alertID uuid.UUID
 func (m *MockRepository) HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error) {
 	args := m.Called(ctx, tenantID, alertType, resourceID, within)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockRepository) CreatePassportVC(ctx context.Context, vc *models.PassportVC) error {
+	args := m.Called(ctx, vc)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetPassportVCByPassportID(ctx context.Context, passportID uuid.UUID) (*models.PassportVC, error) {
+	args := m.Called(ctx, passportID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.PassportVC), args.Error(1)
+}
+
+// ============================================================================
+// mass_balance.go
+// ============================================================================
+
+func (m *MockRepository) CreateMassBalanceLedger(ctx context.Context, ledger *models.MassBalanceLedger) error {
+	args := m.Called(ctx, ledger)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetMassBalanceLedgersByTenant(ctx context.Context, tenantID uuid.UUID, materialType string) ([]*models.MassBalanceLedger, error) {
+	args := m.Called(ctx, tenantID, materialType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.MassBalanceLedger), args.Error(1)
+}
+
+func (m *MockRepository) GetMassBalanceLedgerByID(ctx context.Context, id uuid.UUID) (*models.MassBalanceLedger, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.MassBalanceLedger), args.Error(1)
+}
+
+func (m *MockRepository) UpdateMassBalanceLedger(ctx context.Context, id uuid.UUID, incomingDelta, allocatedDelta float64) error {
+	args := m.Called(ctx, id, incomingDelta, allocatedDelta)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateMassBalanceAllocation(ctx context.Context, allocation *models.MassBalanceAllocation) error {
+	args := m.Called(ctx, allocation)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetMassBalanceAllocationsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.MassBalanceAllocation, error) {
+	args := m.Called(ctx, batchID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.MassBalanceAllocation), args.Error(1)
+}
+
+func (m *MockRepository) CreateTallyImportLog(ctx context.Context, log *TallyImportLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallyImportLogsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*TallyImportLog, int, error) {
+	args := m.Called(ctx, tenantID, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*TallyImportLog), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) UpsertTallySyncConfig(ctx context.Context, cfg *TallySyncConfig) error {
+	args := m.Called(ctx, cfg)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallySyncConfig(ctx context.Context, tenantID uuid.UUID) (*TallySyncConfig, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*TallySyncConfig), args.Error(1)
+}
+
+func (m *MockRepository) ListEnabledTallySyncConfigs(ctx context.Context) ([]*TallySyncConfig, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*TallySyncConfig), args.Error(1)
+}
+
+func (m *MockRepository) UpdateTallySyncLastSync(ctx context.Context, tenantID uuid.UUID, t time.Time) error {
+	args := m.Called(ctx, tenantID, t)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateTallySyncStaging(ctx context.Context, item *TallySyncStaging) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTallySyncStagingByTenant(ctx context.Context, tenantID uuid.UUID, status string, limit, offset int) ([]*TallySyncStaging, int, error) {
+	args := m.Called(ctx, tenantID, status, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]*TallySyncStaging), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetTallySyncStagingByID(ctx context.Context, id, tenantID uuid.UUID) (*TallySyncStaging, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*TallySyncStaging), args.Error(1)
+}
+
+func (m *MockRepository) ApplyTallySyncStaging(ctx context.Context, id, tenantID, batchID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID, batchID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateTallySyncRun(ctx context.Context, run *TallySyncRun) error {
+	args := m.Called(ctx, run)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error {
+	args := m.Called(ctx, id, status, errorMsg, fetched, staged)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateComponent(ctx context.Context, c *Component) error {
+	args := m.Called(ctx, c)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetComponent(ctx context.Context, id, tenantID uuid.UUID) (*Component, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*Component), args.Error(1)
+}
+
+func (m *MockRepository) UpdateComponent(ctx context.Context, c *Component) error {
+	args := m.Called(ctx, c)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DeleteComponent(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListComponentsByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*Component, error) {
+	args := m.Called(ctx, batchID, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*Component), args.Error(1)
+}
+
+func (m *MockRepository) GetComponentTreeByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*ComponentTreeNode, error) {
+	args := m.Called(ctx, batchID, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*ComponentTreeNode), args.Error(1)
+}
+
+// ============================================================================
+// dgft_claims.go
+// ============================================================================
+
+func (m *MockRepository) ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.DGFTSchemeConfig), args.Error(1)
+}
+
+func (m *MockRepository) CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error {
+	args := m.Called(ctx, claim)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error) {
+	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DGFTClaim), args.Error(1)
+}
+
+func (m *MockRepository) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error {
+	args := m.Called(ctx, claim)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+	args := m.Called(ctx, tenantID, schemeType, status, page, pageSize)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]models.DGFTClaim), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error {
+	args := m.Called(ctx, id, tenantID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) AddDGFTClaimDocument(ctx context.Context, id, tenantID uuid.UUID, doc models.DGFTClaimDocument) error {
+	args := m.Called(ctx, id, tenantID, doc)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error {
+	args := m.Called(ctx, v)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) {
+	args := m.Called(ctx, batchID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegistryVerification), args.Error(1)
+}
+
+func (m *MockRepository) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) {
+	args := m.Called(ctx, batchID, registryType, certificateNo)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RegistryVerification), args.Error(1)
+}
+
+func (m *MockRepository) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) {
+	args := m.Called(ctx)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockRepository) CreateSupplier(ctx context.Context, supplier *models.Supplier) error {
+	args := m.Called(ctx, supplier)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSupplierByID(ctx context.Context, id uuid.UUID) (*models.Supplier, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Supplier), args.Error(1)
+}
+
+func (m *MockRepository) GetSupplierByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.Supplier, error) {
+	args := m.Called(ctx, tenantID, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Supplier), args.Error(1)
+}
+
+func (m *MockRepository) GetSupplierByInvitationToken(ctx context.Context, token string) (*models.Supplier, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Supplier), args.Error(1)
+}
+
+func (m *MockRepository) ListSuppliersByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.Supplier, error) {
+	args := m.Called(ctx, tenantID, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Supplier), args.Error(1)
+}
+
+func (m *MockRepository) UpdateSupplierStatus(ctx context.Context, id uuid.UUID, status string) error {
+	args := m.Called(ctx, id, status)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateSupplierAcceptance(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	args := m.Called(ctx, id, passwordHash)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateSupplierLastLogin(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateSupplierDocument(ctx context.Context, doc *models.SupplierDocument) error {
+	args := m.Called(ctx, doc)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSupplierDocumentByID(ctx context.Context, id uuid.UUID) (*models.SupplierDocument, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SupplierDocument), args.Error(1)
+}
+
+func (m *MockRepository) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) {
+	args := m.Called(ctx, supplierID, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SupplierDocument), args.Error(1)
+}
+
+func (m *MockRepository) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) {
+	args := m.Called(ctx, tenantID, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SupplierDocument), args.Error(1)
+}
+
+func (m *MockRepository) UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error {
+	args := m.Called(ctx, id, status, reviewerNotes, reviewedBy)
+	return args.Error(0)
 }

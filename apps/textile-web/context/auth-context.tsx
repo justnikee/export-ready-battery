@@ -38,7 +38,7 @@ interface User {
   pli_status?: string;
   // Onboarding status from DB
   onboarding_completed?: boolean;
-  // Product type — set after Phase 1 backend lands; defaults to BATTERY
+  // Product type — always TEXTILE for this app
   product_type?: string;
   // Data Visibility Preferences
   data_visibility?: Record<string, string>;

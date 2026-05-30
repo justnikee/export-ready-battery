@@ -41,6 +41,7 @@ interface FactorUsed {
 interface CarbonResult {
  total_kg_co2e: number
  per_kwh_kg_co2e: number
+ carbon_class: string
  breakdown: CarbonBreakdown
  methodology: string
  calculation_date: string
@@ -139,7 +140,6 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  description: `${response.data.total_kg_co2e.toFixed(1)} kg CO₂e total (${response.data.per_kwh_kg_co2e.toFixed(1)} kg/kWh)`,
  })
  } catch (error: unknown) {
- console.error("Carbon calculation failed", error)
  const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Calculation failed"
  toast.error(msg)
  } finally {
@@ -151,15 +151,12 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  if (!result) return
  setSaving(true)
  try {
- await api.patch(`/batches/${batchId}`, {
- carbon_footprint_result: result,
- })
+ await api.post(`/batches/${batchId}/carbon`, result)
  toast.success("Carbon footprint saved to batch", {
- description: "This result will be used for EU compliance declarations.",
+ description: `Class ${result.carbon_class} · This result will be used for EU compliance declarations.`,
  })
  onResultSaved?.()
  } catch (error: unknown) {
- console.error("Failed to save carbon result", error)
  const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to save"
  toast.error(msg)
  } finally {
@@ -345,7 +342,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  {result && (
  <div className="space-y-4 pt-2">
  {/* Summary Row */}
- <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-3 gap-4">
  <div className="p-4 bg-emerald-500/10 border border-emerald-200">
  <div className="text-xs text-emerald-500 uppercase tracking-wider mb-1">Total Carbon Footprint</div>
  <div className="text-2xl text-emerald-500">{result.total_kg_co2e.toFixed(1)} <span className="text-sm font-normal">kg CO₂e</span></div>
@@ -353,6 +350,10 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  <div className="p-4 bg-blue-500/10 border border-blue-200">
  <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">Per kWh</div>
  <div className="text-2xl text-blue-500">{result.per_kwh_kg_co2e.toFixed(2)} <span className="text-sm font-normal">kg CO₂e / kWh</span></div>
+ </div>
+ <div className="p-4 bg-amber-500/10 border border-amber-200">
+ <div className="text-xs text-amber-600 uppercase tracking-wider mb-1">Performance Class</div>
+ <div className="text-2xl text-amber-600">{result.carbon_class} <span className="text-sm font-normal">/ G</span></div>
  </div>
  </div>
 

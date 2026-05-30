@@ -122,7 +122,6 @@ export default function DeveloperPage() {
       const response = await api.get("/api-keys");
       setApiKeys(response.data.api_keys || []);
     } catch (error) {
-      console.error("Failed to fetch API keys:", error);
       toast.error("Failed to load API keys");
     } finally {
       setLoading(false);
@@ -194,7 +193,6 @@ export default function DeveloperPage() {
       const response = await api.get("/device-tokens");
       setDeviceTokens(response.data.tokens || []);
     } catch (error) {
-      console.error("Failed to fetch device tokens:", error);
     } finally {
       setLoadingTokens(false);
     }

@@ -148,8 +148,8 @@ function ChartCard({
                 color: "#E4E4E7",
               }}
               labelStyle={{ color: "#A1A1AA" }}
-              formatter={(value: number | undefined) => [
-                `${value?.toFixed(2) ?? "—"} ${unit}`,
+              formatter={(value: any) => [
+                `${typeof value === "number" ? value.toFixed(2) : "—"} ${unit}`,
                 title,
               ]}
               labelFormatter={(label) => `${label}`}

@@ -195,10 +195,10 @@ The backend implements standard JWT authentication with HS256, refresh-token rot
 | Tenant-scoped queries | ✅ | `backend/internal/middleware/auth.go` | `tenant_id` injected into context; repository methods filter by it |
 | Rate limiting (auth routes) | ✅ | `backend/internal/middleware/ratelimit.go` | `AuthRateLimiter` per IP + route |
 | Rate limiting (general API) | ✅ | `backend/internal/middleware/ratelimit.go` | `APIRateLimiter` per tenant |
-| CSRF-safe cookie (`HttpOnly`, `Secure`, `SameSite=Strict`) | ❌ | `backend/internal/handlers/auth_handlers.go` | `auth_token` cookie is **non-HttpOnly**, **non-Secure**, and `SameSite=Lax`. XSS can steal token; transmission over HTTP possible in misconfigured environments. |
-| Security headers (CSP, HSTS, etc.) | ❌ | `backend/cmd/server/main.go` | No `middleware.SecurityHeaders`; `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `Content-Security-Policy` all absent |
-| Rate limit header correctness | 🔴 | `backend/internal/middleware/ratelimit.go` | `w.Header().Set("X-RateLimit-Limit", string(rune(limit)))` emits a Unicode rune (e.g., U+00FA for 250) instead of `"250"`. Client libraries cannot parse this. |
-| Request body size limit | ❌ | `backend/cmd/server/main.go` | No `http.MaxBytesReader` on JSON endpoints; vulnerable to large-body DoS |
+| CSRF-safe cookie (`HttpOnly`, `Secure`, `SameSite=Strict`) | ✅ | `backend/internal/handlers/auth_handlers.go` | `auth_token` cookie now uses `HttpOnly`, `Secure`, and `SameSite=Strict`. `refresh_token` already had correct flags. |
+| Security headers (CSP, HSTS, etc.) | ✅ | `backend/internal/middleware/security.go` | `SecurityHeaders` middleware sets `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `Strict-Transport-Security` (production), and route-aware `Content-Security-Policy` (restrictive for API, permissive for `/docs`). |
+| Rate limit header correctness | ✅ | `backend/internal/middleware/apikey_auth.go` | `X-RateLimit-Limit` and `X-RateLimit-Remaining` headers correctly use `strconv.Itoa()`. |
+| Request body size limit | ✅ | `backend/cmd/server/main.go` | `http.MaxBytesReader` set to 10 MB on all endpoints via handler chain. |
 | Horizontally scalable rate limiter | ❌ | `backend/internal/middleware/ratelimit.go` | In-memory `rate.Limiter` per process. With 2+ replicas, a client gets `2×` the allowed rate by round-robining requests. |
 | Data residency framework | ❌ | N/A | Single PostgreSQL database; no geo-sharding, no EU-region DB replica, no data-classification tags |
 | GDPR / DPDP right-to-erasure | ❌ | N/A | No `DELETE /me` or data-export endpoint for data-subject rights |
@@ -212,11 +212,11 @@ The backend implements standard JWT authentication with HS256, refresh-token rot
 
 | ID | Severity | Finding | Impact |
 |----|----------|---------|--------|
-| SEC-P0 | 🔴 **P0** | `auth_token` cookie is not `HttpOnly` or `Secure` | An XSS vulnerability (or even a malicious browser extension) can read `document.cookie` and exfiltrate the JWT. In non-HTTPS deployments, the token is sent in plaintext. `SameSite=Lax` does not protect against CSRF from same-site subdomains. |
-| SEC-P0 | 🔴 **P0** | Rate-limit header bug | `string(rune(limit))` is a categorical bug. For a limit of 250, the header value is `ú` (U+00FA). Any client relying on this header for backoff logic will fail. It also leaks that the codebase was not tested against real client integrations. |
-| SEC-P1 | 🟡 **P1** | No security headers | Absence of CSP, HSTS, X-Frame-Options, and X-Content-Type-Options leaves the application vulnerable to clickjacking, MIME-sniffing attacks, and downgrade attacks. These are OWASP Top 10 baseline requirements. |
+| SEC-P0 | ✅ **Fixed** | `auth_token` cookie is not `HttpOnly` or `Secure` | **Resolved:** Backend `setAuthCookie()`/`clearAuthCookie()` now set `HttpOnly`, `Secure`, and `SameSite=Strict`. Frontend removed all JS cookie manipulation for `auth_token`. |
+| SEC-P0 | ✅ **Fixed** | Rate-limit header bug | **Resolved:** `apikey_auth.go` correctly uses `strconv.Itoa(limit)` for `X-RateLimit-Limit` and `X-RateLimit-Remaining`. |
+| SEC-P1 | ✅ **Fixed** | No security headers | **Resolved:** `SecurityHeaders` middleware adds OWASP baseline headers: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`, `Strict-Transport-Security` (production), and route-aware CSP. |
 | SEC-P1 | 🟡 **P1** | In-memory rate limiter | When the application scales horizontally (multiple pods/replicas), the per-process rate limiter becomes ineffective. A distributed rate-limit store (Redis) is required for production SaaS. |
-| SEC-P1 | 🟡 **P1** | No request body limit | Without `http.MaxBytesReader`, an attacker can send a multi-gigabyte JSON body to any endpoint, causing OOM or disk exhaustion. This is a trivial DoS vector. |
+| SEC-P1 | ✅ **Fixed** | No request body limit | **Resolved:** `http.MaxBytesReader` set to 10 MB in the handler chain for all endpoints. |
 | SEC-P1 | 🟡 **P1** | Export worker in HTTP process | Running background exports in the web server process violates separation of concerns. A large export can degrade API latency or cause the server to be killed by an orchestrator for exceeding memory limits. |
 | SEC-P2 | 🟢 **P2** | No observability stack | No Prometheus metrics, no structured request logging with trace IDs, no distributed tracing. Debugging production incidents will be slow and reactive. |
 | SEC-P2 | 🟢 **P2** | No data residency / GDPR tooling | For EU customers, data residency in the EU is often a contractual requirement. The absence of geo-sharding or even data-classification metadata makes enterprise sales difficult. No GDPR/DPDP erasure endpoint is a legal gap. |
@@ -238,8 +238,8 @@ The following roadmap is prioritized by regulatory risk, customer blocking poten
 | Priority | Item | Owner | Rationale |
 |----------|------|-------|-----------|
 | P0 | Fix `ON DELETE CASCADE` on `passport_events` | Backend | Remove cascade; make `passport_id` nullable or add soft-delete on passports. Audit trails must survive record deletion. |
-| P0 | Add `HttpOnly`, `Secure`, `SameSite=Strict` to `auth_token` cookie | Backend | Eliminates XSS token theft and CSRF via same-site subdomains. |
-| P0 | Fix rate-limit header bug (`string(rune(limit))` → `strconv.Itoa(limit)`) | Backend | One-line fix; unblocks any client relying on rate-limit headers. |
+| P0 | ~~Add `HttpOnly`, `Secure`, `SameSite=Strict` to `auth_token` cookie~~ ✅ | Backend | Eliminates XSS token theft and CSRF via same-site subdomains. |
+| P0 | ~~Fix rate-limit header bug (`string(rune(limit))` → `strconv.Itoa(limit)`)~~ ✅ | Backend | One-line fix; unblocks any client relying on rate-limit headers. |
 | P0 | Design nested component/BOM schema | Backend/Data | EU Art 77 cell-level disclosure is impossible without a `components` table or JSON BOM. Blocker for all pack-assembled batteries. |
 | P0 | Add W3C Verifiable Credentials data model | Backend | EU CIRPASS/ACRAA interoperability requires VCs. Without them, passports are not machine-verifiable by regulators. |
 | P0 | Implement i18n infrastructure (`next-intl`) | Frontend | EU market access requires non-English language support. Blocker for DE, FR, ES, IT, PL, etc. |
@@ -253,8 +253,8 @@ The following roadmap is prioritized by regulatory risk, customer blocking poten
 |----------|------|-------|-----------|
 | P1 | Add asymmetric digital signatures to audit trail | Backend | RSA/ECDSA signing of each event with an HSM-stored private key makes the chain tamper-proof, not just tamper-evident. |
 | P1 | Replace in-memory event bus with persistent queue | Backend | Redis Streams, PostgreSQL `LISTEN/NOTIFY` queue table, or NATS. Required for reliable webhook delivery and export processing. |
-| P1 | Add security headers middleware | Backend | CSP, HSTS, X-Frame-Options, X-Content-Type-Options. OWASP baseline. |
-| P1 | Add `http.MaxBytesReader` to all JSON endpoints | Backend | Prevents trivial large-body DoS. |
+| P1 | ~~Add security headers middleware~~ ✅ | Backend | CSP, HSTS, X-Frame-Options, X-Content-Type-Options. OWASP baseline. |
+| P1 | ~~Add `http.MaxBytesReader` to all JSON endpoints~~ ✅ | Backend | Prevents trivial large-body DoS. |
 | P1 | Implement per-market scorecard in compliance engine | Backend | Replace `Aggregate()` arithmetic mean with a structured scorecard: `{"eu": {"score": 0.6, "gaps": [...]}, "india": {...}}`. |
 | P1 | Add GS1 Digital Link to QR codes | Frontend/Backend | EU DPP interoperability requires GS1-compliant QR encoding. |
 | P1 | Build gap-analysis dashboard | Frontend | "You need X to sell in EU" — essential UX for a compliance product. |

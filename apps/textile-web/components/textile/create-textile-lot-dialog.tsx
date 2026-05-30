@@ -48,6 +48,7 @@ import {
   type TextileProductionStage,
 } from "@/lib/textile-profile";
 import type { MarketRegion } from "@/lib/types";
+import TallyImportDialog from "@/components/integrations/tally-import-dialog";
 
 interface CreateTextileLotDialogProps {
   open: boolean;
@@ -138,6 +139,7 @@ export function CreateTextileLotDialog({
 }: CreateTextileLotDialogProps) {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [tallyImportOpen, setTallyImportOpen] = useState(false);
 
   // Market region
   const [marketRegion, setMarketRegion] = useState<MarketRegion>("GLOBAL");
@@ -499,17 +501,55 @@ export function CreateTextileLotDialog({
   const isIndia = marketRegion === "INDIA";
   const isEU = marketRegion === "EU";
 
+  const handleTallyApply = (draft: {
+    lot_name: string;
+    fiber_composition: Array<{
+      name: string;
+      category: string;
+      fiber_type?: string;
+      qty: number;
+    }>;
+    supplier_name: string;
+    supplier_state: string;
+    total_gst: number;
+    hsn_code: string;
+  }) => {
+    setLotName(draft.lot_name);
+    if (draft.fiber_composition.length > 0) {
+      const first = draft.fiber_composition[0];
+      setMaterialProfile(first.name);
+      if (first.fiber_type) {
+        setFiberComp({ [first.fiber_type]: String(first.qty) });
+      }
+    }
+    toast.success('Lot form pre-filled from Tally ERP');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Layers3 className="h-5 w-5 text-cyan-600" />
-            Create textile lot
-          </DialogTitle>
-          <DialogDescription>
-            Record a textile production lot with full schema compliance.
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <Layers3 className="h-5 w-5 text-cyan-600" />
+                Create textile lot
+              </DialogTitle>
+              <DialogDescription>
+                Record a textile production lot with full schema compliance.
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setTallyImportOpen(true)}
+              className="shrink-0"
+            >
+              <Factory className="mr-2 h-4 w-4" />
+              Import from Tally
+            </Button>
+          </div>
         </DialogHeader>
 
         {template ? (
@@ -1096,6 +1136,11 @@ export function CreateTextileLotDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      <TallyImportDialog
+        open={tallyImportOpen}
+        onOpenChange={setTallyImportOpen}
+        onApply={handleTallyApply}
+      />
     </Dialog>
   );
 }

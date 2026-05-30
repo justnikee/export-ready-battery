@@ -224,19 +224,16 @@ func (s *CSVService) parseRow(rowNum int, record []string, serialIdx, dateIdx in
 	}
 
 	now := time.Now()
-	initialSoH := 100.0
 
 	return &models.Passport{
-		UUID:                  uuid.New(),
-		BatchID:               batchID,
-		SerialNumber:          serialNumber,
-		ManufactureDate:       manufactureDate,
-		Status:                models.PassportStatusCreated,
-		CreatedAt:             now,
-		StateOfHealth:         &initialSoH,
-		LastSOHUpdateTimestamp: &now,
-		CSVSourceFilename:     filename,
-		CSVRowIndex:           rowNum,
+		UUID:               uuid.New(),
+		BatchID:            batchID,
+		SerialNumber:       serialNumber,
+		ManufactureDate:    manufactureDate,
+		Status:             models.PassportStatusCreated,
+		CreatedAt:          now,
+		CSVSourceFilename:  filename,
+		CSVRowIndex:        rowNum,
 	}, nil
 }
 

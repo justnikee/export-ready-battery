@@ -1,8 +1,4 @@
-import { UnderDevelopment } from "@/components/shared/under-development";
-export default async function Page() {
-  return (<UnderDevelopment
-      pageTitle="Textile Partners"
-      description="Supply-chain partner management for textile traceability."
-    />
-  );
+import TextilePartnersPage from "@/components/partners/textile-partners-page";
+export default function Page() {
+  return <TextilePartnersPage />;
 }

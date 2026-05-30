@@ -144,6 +144,6 @@ describe("TextileOnboardingPage flow", () => {
         }),
       );
     });
-    expect(pushMock).toHaveBeenCalledWith("/textile/dashboard");
+    expect(pushMock).toHaveBeenCalledWith("/dashboard");
   });
 });

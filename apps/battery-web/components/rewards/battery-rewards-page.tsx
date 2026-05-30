@@ -6,6 +6,7 @@ import {
  Trophy, Users, Zap, Star, Loader2,
  Medal, Award, TrendingUp, Crown
 } from "lucide-react"
+import api from "@/lib/api"
 
 interface LeaderboardEntry {
  rank: number
@@ -39,35 +40,16 @@ export default function RewardsPage() {
  const [data, setData] = useState<LeaderboardData | null>(null)
  const [error, setError] = useState("")
 
- const getAuthHeaders = useCallback(() => {
- const token = localStorage.getItem("token")
- return {
- "Content-Type": "application/json",
- "Authorization": `Bearer ${token}`
- }
- }, [])
-
- const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
-
  const fetchLeaderboard = useCallback(async () => {
  try {
- const response = await fetch(`${apiUrl}/rewards/leaderboard?limit=20`, {
- headers: getAuthHeaders()
- })
-
- if (response.ok) {
- const result = await response.json()
- setData(result)
- } else {
- throw new Error("Failed to fetch leaderboard")
- }
+ const response = await api.get('/rewards/leaderboard', { params: { limit: 20 } })
+ setData(response.data)
  } catch (err: unknown) {
- console.error("Failed to fetch leaderboard:", err)
  setError(err instanceof Error ? err.message : "Failed to load rewards data")
  } finally {
  setLoading(false)
  }
- }, [apiUrl, getAuthHeaders])
+ }, [])
 
  useEffect(() => {
  fetchLeaderboard()

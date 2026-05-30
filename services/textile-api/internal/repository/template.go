@@ -48,7 +48,7 @@ func (r *Repository) CreateTemplate(ctx context.Context, tenantID uuid.UUID, nam
 
 // ListTemplates retrieves all templates for a tenant
 func (r *Repository) ListTemplates(ctx context.Context, tenantID uuid.UUID) ([]*models.Template, error) {
-	query := `SELECT id, tenant_id, name, COALESCE(product_type, 'BATTERY'), market_region, specs, created_at FROM public.batch_templates WHERE tenant_id = $1 ORDER BY name`
+	query := `SELECT id, tenant_id, name, COALESCE(product_type, 'TEXTILE'), market_region, specs, created_at FROM public.batch_templates WHERE tenant_id = $1 ORDER BY name`
 	rows, err := r.db.Pool.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list templates: %w", err)
@@ -79,7 +79,7 @@ func (r *Repository) GetTemplate(ctx context.Context, id uuid.UUID) (*models.Tem
 	template := &models.Template{}
 	var specsJSON []byte
 
-	query := `SELECT id, tenant_id, name, COALESCE(product_type, 'BATTERY'), market_region, specs, created_at FROM public.batch_templates WHERE id = $1`
+	query := `SELECT id, tenant_id, name, COALESCE(product_type, 'TEXTILE'), market_region, specs, created_at FROM public.batch_templates WHERE id = $1`
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(&template.ID, &template.TenantID, &template.Name, &template.ProductType, &template.MarketRegion, &specsJSON, &template.CreatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {

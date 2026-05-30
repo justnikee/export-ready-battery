@@ -241,7 +241,7 @@ function OverviewTab() {
     <div className="space-y-4">
       {obligations.map((ob) => (
         <div
-          key={ob.year}
+          key={ob.id}
           className="relative bg-transparent border border-border p-6"
         >
           <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
@@ -255,20 +255,18 @@ function OverviewTab() {
               </h3>
               <StatusBadge status={ob.status} />
             </div>
-            {ob.epr_registered && (
-              <span className="text-xs text-muted-foreground font-mono">
-                {ob.epr_number}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground font-mono">
+              {ob.battery_category}
+            </span>
           </div>
 
           {/* Stats Grid */}
           {(() => {
-            const weightKg = ob.total_weight_kg ?? 0;
-            const requiredKg = ob.required_collection_kg ?? 0;
-            const collectedKg = ob.collected_kg ?? 0;
-            const deficitKg = ob.deficit_kg ?? 0;
-            const surplusKg = ob.surplus_kg ?? 0;
+            const weightKg = ob.obligation_kg ?? 0;
+            const requiredKg = ob.net_obligation_kg ?? 0;
+            const collectedKg = (ob.fulfilled_via_recycling_kg ?? 0) + (ob.fulfilled_via_refurbishment_kg ?? 0);
+            const deficitKg = ob.shortfall_kg ?? 0;
+            const surplusKg = ob.carried_forward_kg ?? 0;
             const progressPct =
               requiredKg > 0
                 ? Math.min(100, (collectedKg / requiredKg) * 100)
@@ -276,22 +274,22 @@ function OverviewTab() {
             return (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <StatCard label="Batches" value={ob.total_batches ?? 0} />
+                  <StatCard label="Batteries Placed" value={ob.batteries_placed_count ?? 0} />
                   <StatCard
-                    label="Production Weight"
+                    label="Obligation"
                     value={`${weightKg.toFixed(1)} kg`}
                   />
                   <StatCard
-                    label={`Target (${ob.collection_target_pct ?? 0}%)`}
+                    label="Net Target"
                     value={`${requiredKg.toFixed(1)} kg`}
                   />
                   <StatCard
-                    label="Collected (Certs)"
+                    label="Fulfilled"
                     value={`${collectedKg.toFixed(1)} kg`}
                     highlight={collectedKg >= requiredKg ? "green" : undefined}
                   />
                   <StatCard
-                    label={deficitKg > 0 ? "Deficit" : "Surplus"}
+                    label={deficitKg > 0 ? "Shortfall" : "Carried Forward"}
                     value={`${(deficitKg > 0 ? deficitKg : surplusKg).toFixed(1)} kg`}
                     highlight={deficitKg > 0 ? "red" : "green"}
                   />

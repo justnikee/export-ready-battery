@@ -1,9 +1,32 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 
+  --color-background: #F7F5F3;
+  --color-foreground: #37322F;
+  --color-card: #ffffff;
+  --color-card-foreground: #37322F;
+  --color-primary: #37322F;
+  --color-primary-foreground: #FBFAF9;
+  --color-secondary: #F7F5F3;
+  --color-secondary-foreground: #37322F;
+  --color-muted: #F7F5F3;
+  --color-muted-foreground: #605A57;
+  --color-accent: #F7F5F3;
+  --color-accent-foreground: #37322F;
+  --color-border: rgba(55,50,47,0.12);
+  --color-input: #E0DEDB;
+  --color-ring: rgba(55,50,47,0.20);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Legacy colors for sub-pages */
   --color-navy-50: #f8fafc;
   --color-navy-100: #f1f5f9;
   --color-navy-200: #e2e8f0;
@@ -21,11 +44,6 @@
   --color-emerald-400: #34d399;
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
 }
 
 @layer base {
@@ -37,13 +55,13 @@
 
   body {
     font-family: var(--font-sans);
-    background: #ffffff;
-    color: #0f172a;
+    background: #F7F5F3;
+    color: #37322F;
   }
 
   ::selection {
-    background: rgba(16, 185, 129, 0.15);
-    color: #0f172a;
+    background: rgba(55, 50, 47, 0.12);
+    color: #37322F;
   }
 }
 
@@ -52,11 +70,16 @@
     text-wrap: balance;
   }
 
-  .text-gradient-emerald {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .font-instrument-serif {
+    font-family: var(--font-instrument-serif);
+  }
+
+  .mix-blend-multiply {
+    mix-blend-mode: multiply;
   }
 
   .dot-grid {

@@ -23,65 +23,32 @@ describe("resolvePassportTemplateConfig", () => {
     expect(config.complianceMode).toBe("battery_india");
   });
 
-  it("returns textile config for TEXTILE_STANDARD variant", () => {
-    const config = resolvePassportTemplateConfig({
-      templateVariant: "TEXTILE_STANDARD",
-      t: mockT,
-    });
-    expect(config.variant).toBe("TEXTILE_STANDARD");
-    expect(config.family).toBe("textile");
-    expect(config.showLotBadge).toBe(true);
-    expect(config.showTextileProfile).toBe(true);
-  });
-
-  it("returns textile india config for TEXTILE_INDIA variant", () => {
-    const config = resolvePassportTemplateConfig({
-      templateVariant: "TEXTILE_INDIA",
-      t: mockT,
-    });
-    expect(config.variant).toBe("TEXTILE_INDIA");
-    expect(config.family).toBe("textile");
-    expect(config.showLotBadge).toBe(true);
-    expect(config.showDocuments).toBe(true);
-    expect(config.showIndiaRecycling).toBe(true);
-    expect(config.complianceMode).toBe("textile_india");
-  });
-
-  it("falls back to textile standard when productType is TEXTILE and no market", () => {
-    const config = resolvePassportTemplateConfig({
-      productType: "TEXTILE",
-      t: mockT,
-    });
-    expect(config.family).toBe("textile");
-    expect(config.variant).toBe("TEXTILE_STANDARD");
-  });
-
-  it("falls back to textile india when productType is TEXTILE and marketRegion is INDIA", () => {
-    const config = resolvePassportTemplateConfig({
-      productType: "TEXTILE",
-      marketRegion: "INDIA",
-      t: mockT,
-    });
-    expect(config.variant).toBe("TEXTILE_INDIA");
-    expect(config.family).toBe("textile");
-  });
-
-  it("falls back to battery india when marketRegion is INDIA and productType unknown", () => {
+  it("falls back to battery india when marketRegion is INDIA", () => {
     const config = resolvePassportTemplateConfig({
       marketRegion: "INDIA",
       t: mockT,
     });
     expect(config.variant).toBe("BATTERY_INDIA");
+    expect(config.family).toBe("battery");
   });
 
-  it("prefers explicit variant over productType/marketRegion", () => {
+  it("falls back to battery standard for unknown productType", () => {
     const config = resolvePassportTemplateConfig({
-      templateVariant: "TEXTILE_STANDARD",
-      productType: "BATTERY",
+      productType: "TEXTILE",
+      t: mockT,
+    });
+    expect(config.variant).toBe("BATTERY_STANDARD");
+    expect(config.family).toBe("battery");
+  });
+
+  it("prefers explicit variant over marketRegion", () => {
+    const config = resolvePassportTemplateConfig({
+      templateVariant: "BATTERY_STANDARD",
       marketRegion: "INDIA",
       t: mockT,
     });
-    expect(config.family).toBe("textile");
+    expect(config.variant).toBe("BATTERY_STANDARD");
+    expect(config.family).toBe("battery");
   });
 
   it("calls translator for battery standard safety and circularity text", () => {

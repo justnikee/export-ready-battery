@@ -4,6 +4,7 @@ import type {
     MarketRegion,
     ComplianceCheckResult,
     ComplianceGap,
+    ComplianceRule,
     ProductSchemaDefinition,
     ProductSchemaListItem,
 } from '../types';
@@ -38,6 +39,16 @@ export const complianceCheck = async (
     req: ComplianceCheckRequest
 ): Promise<ComplianceCheckResult> => {
     const response = await api.post('/compliance/check', req);
+    return response.data;
+};
+
+export const listComplianceRules = async (
+    productType: string = 'battery',
+    marketRegion: string = 'eu'
+): Promise<{ rules: ComplianceRule[]; count: number }> => {
+    const response = await api.get('/compliance/rules', {
+        params: { product_type: productType, market_region: marketRegion },
+    });
     return response.data;
 };
 
