@@ -428,8 +428,93 @@ File uploads (certificates, logos, DoC) use frontend `@supabase/supabase-js` cli
 
 ---
 
+## ✅ Session Update: 2026-05-30 (Textile Foundation)
+
+### Registry Verification UI
+
+**Frontend:**
+- `components/registry/verification-tab.tsx` — Full registry verification tab with 4 registry cards:
+  - BIS (India) — IS 16046 certification lookup
+  - CPCB (India) — EPR / E-waste authorization lookup
+  - EU NANDO — Notified Body registry lookup
+  - UN38.3 Test Labs — IATA-recognized test lab lookup
+- **Auto-Verify flow:** Bulk async verification of all active batch certificates via simulated registry checks ("verified", "failed", "unavailable")
+- **Trust tiers:** Self-declared (gray) / Registry-matched (blue) / Verified with documentation (emerald)
+- Batch detail view shows verification status badges per certificate
+- i18n strings added to `messages/en.json` + `messages/de.json`
+
+**Tests:**
+- `components/registry/verification-tab.test.tsx` — 5 tests: renders cards, auto-verify flow, status update, trust tier display, retry on unavailable
+- All 198 frontend tests pass
+
+---
+
+### Supabase Storage Migration
+
+**Problem:** All file uploads were stored on local disk (`./uploads/`), breaking in serverless deployments and multi-instance setups.
+
+**Solution:** Migrated all upload/download handlers to Supabase Storage (`compliance-docs` bucket).
+
+**Backend (`internal/services/storage_service.go`):**
+- Added bucket-parameterized methods: `UploadFileToBucket`, `UploadReaderToBucket`, `CreateSignedURLForBucket`, `DeleteFileFromBucket`, `PublicURL`
+- Legacy methods delegate to these with default bucket `"Exports"`
+- Required env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+
+**Affected handlers:**
+- `internal/handlers/document_handlers.go` — Certificates → `compliance-docs/{tenant_id}/certificates/{type}.pdf`
+- `internal/handlers/document_handlers.go` — Logos → `compliance-docs/{tenant_id}/logo.{ext}`
+- `internal/handlers/document_handlers.go` — Passport docs → `compliance-docs/{tenant_id}/passport-docs/{doc_id}`
+- `internal/handlers/dgft_claim_handlers.go` — DGFT docs → `compliance-docs/{tenant_id}/dgft-claims/{claim_id}/{type}_{timestamp}.pdf`
+- `internal/handlers/supplier_handlers.go` — Supplier docs → `compliance-docs/{tenant_id}/supplier-docs/{supplier_id}/{type}_{timestamp}_{filename}`
+
+**Download behavior:** `ViewDocument` / `GetPassportDocument` redirect to public/signed URLs. Backward-compatible local path fallback still present.
+
+---
+
+### Mass Balance HTTP Handlers (EU Art 8 — Book & Claim)
+
+**Migrations:**
+- `000084_create_mass_balance_ledgers.up.sql` — Ledgers table: `incoming_kg`, `allocated_kg`, `balance_kg`, `material_type` (cobalt/lithium/nickel/lead), `source_document`, tenant-scoped
+- `000085_create_mass_balance_allocations.up.sql` — Allocations table: links ledger → batch, kg amount, audit trail
+
+**Backend:**
+- `internal/models/models.go` — `MassBalanceLedger`, `MassBalanceAllocation`, `CreateMassBalanceLedgerInput`, `UpdateMassBalanceLedgerInput`, `CreateMassBalanceAllocationInput`
+- `internal/repository/mass_balance.go` — CRUD for ledgers + allocations
+  - `UpdateMassBalanceLedger` uses atomic SQL delta update with guard: `WHERE ... AND (incoming_kg + $2 - allocated_kg - $3) >= 0` to prevent negative balances
+- `internal/handlers/mass_balance_handlers.go` — 6 endpoints:
+  - `POST /api/v1/mass-balance/ledgers` — Create ledger
+  - `GET /api/v1/mass-balance/ledgers` — List ledgers (optional `?material_type=` filter)
+  - `GET /api/v1/mass-balance/ledgers/{id}` — Get single ledger
+  - `PATCH /api/v1/mass-balance/ledgers/{id}` — Update ledger (delta, atomic)
+  - `POST /api/v1/mass-balance/allocations` — Allocate from ledger to batch (checks balance first)
+  - `GET /api/v1/mass-balance/allocations` — List allocations (optional `?batch_id=` filter)
+- `cmd/server/main.go` — All routes wired with auth middleware
+
+**Tests:**
+- `internal/handlers/mass_balance_handlers_test.go` — 9 tests covering create, list, get, update, allocation, insufficient balance (409), unauthorized
+
+---
+
+### Alert Email Verification (Confirmed Complete)
+
+**Previously listed as TODO — now fully verified and operational:**
+- `internal/services/email.go` — `SendAlertEmail()` with professional HTML template (severity-colored border, type badge, CTA button, plaintext fallback)
+- `internal/services/alerts.go` — `sendAlertEmail()` delegates to `EmailService.SendAlertEmail()` with tenant `support_email` lookup
+- **Trigger points confirmed:**
+  - Daily certificate expiry check (`CheckCertificateExpiries`)
+  - Daily compliance degradation check (`CheckComplianceScores`)
+  - DGFT claim submit (`CreateAndSendDGFTClaimAlert`)
+  - Supplier document upload (`CreateSupplierDocumentAlert`)
+  - Supplier invitation accepted (`CreateSupplierInvitationAlert`)
+- **Requirements:** `RESEND_API_KEY` env var + `tenant.SupportEmail` populated
+- Dev mode logs to console when `RESEND_API_KEY` absent
+
+---
+
 ## 🔧 Suggested Next Sprint Order (Updated)
 
-1. **External registry integrations** — Paid API partnerships for real BIS/CPCB/EU NANDO/UN38.3 lab verification (replaces self-declared trust tier)
-2. **Mobile app** — React Native or PWA for field technicians to scan passports and submit lifecycle transitions
-3. **AI enhancement** — Fine-tuned model for PDF parsing (currently regex + Groq generic LLM)
+1. **Mass Balance Frontend UI** — React components for ledger CRUD, allocation form, balance visualization
+2. **External registry integrations** — Paid API partnerships for real BIS/CPCB/EU NANDO/UN38.3 lab verification
+3. **Textile module foundation** — Schema migration, models, basic CRUD for textile DPP (parallel to battery module)
+4. **Mobile app** — React Native or PWA for field technicians to scan passports and submit lifecycle transitions
+5. **AI enhancement** — Fine-tuned model for PDF parsing (currently regex + Groq generic LLM)

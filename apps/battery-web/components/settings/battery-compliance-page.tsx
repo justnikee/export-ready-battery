@@ -32,6 +32,10 @@ import {
   type CreateEPRCertificateRequest,
   type EPRObligation,
 } from "@/lib/api/epr";
+import {
+  getComplianceDeadlines,
+  type ComplianceDeadline,
+} from "@/lib/api/compliance";
 import { useAuth } from "@/context/auth-context";
 import { dashboardPathFromPathname } from "@/lib/routes";
 
@@ -995,13 +999,17 @@ function EURegulationTab() {
   >([]);
   const [selectedBatch, setSelectedBatch] = useState("");
   const [scoreResult, setScoreResult] = useState<EUScoreResult | null>(null);
+  const [deadlines, setDeadlines] = useState<ComplianceDeadline[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBatches = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/batches");
-        const allBatches = res.data.batches || [];
+        const [batchesRes, deadlinesRes] = await Promise.all([
+          api.get("/batches").catch(() => ({ data: { batches: [] } })),
+          getComplianceDeadlines("battery", "eu").catch(() => ({ deadlines: [], count: 0 })),
+        ]);
+        const allBatches = batchesRes.data.batches || [];
         const euBatches = allBatches.filter(
           (b: { market_region: string; status: string }) =>
             (b.market_region === "EU" || b.market_region === "GLOBAL") &&
@@ -1009,13 +1017,14 @@ function EURegulationTab() {
         );
         setBatches(euBatches);
         if (euBatches.length > 0) setSelectedBatch(euBatches[0].id);
+        setDeadlines(deadlinesRes.deadlines || []);
       } catch {
-        console.warn("Failed to fetch batches");
+        console.warn("Failed to fetch EU regulation data");
       } finally {
         setLoading(false);
       }
     };
-    fetchBatches();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -1037,20 +1046,14 @@ function EURegulationTab() {
     ? Array.from(new Set(scoreResult.attributes.map((a) => a.category)))
     : [];
 
-  const deadlines = [
-    {
-      date: "Feb 18, 2027",
-      desc: "Digital Battery Passport mandatory for EV & industrial >2kWh",
-    },
-    {
-      date: "Aug 18, 2027",
-      desc: "Carbon footprint performance class (A-G) on label",
-    },
-    {
-      date: "Aug 18, 2028",
-      desc: "Recycled content minimum thresholds enforced",
-    },
-  ];
+  const formatDeadlineDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
 
   if (loading) {
     return (
@@ -1202,14 +1205,21 @@ function EURegulationTab() {
           EU Battery Regulation Deadlines
         </h3>
         <div className="space-y-3">
-          {deadlines.map((d, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span className="text-xs text-foreground bg-muted px-2 py-1 rounded whitespace-nowrap">
-                {d.date}
-              </span>
-              <span className="text-sm text-muted-foreground">{d.desc}</span>
-            </div>
-          ))}
+          {deadlines.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Loading regulatory deadlines...</p>
+          ) : (
+            deadlines.map((d) => (
+              <div key={d.id} className="flex items-start gap-3">
+                <span className="text-xs text-foreground bg-muted px-2 py-1 rounded whitespace-nowrap">
+                  {formatDeadlineDate(d.deadline_date)}
+                </span>
+                <div>
+                  <span className="text-sm text-foreground font-medium">{d.label}</span>
+                  <p className="text-xs text-muted-foreground">{d.description}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

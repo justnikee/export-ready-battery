@@ -57,6 +57,7 @@ interface DashboardStats {
   quota_used: number;
   quota_limit: number;
   passports_this_week: number;
+  batches_by_status?: Record<string, number>;
 }
 
 interface ScanFeedItem {
@@ -101,6 +102,17 @@ interface RecentBatch {
 
 interface BatchesResponse {
   batches?: Batch[];
+}
+
+interface RecentBatchesResponse {
+  batches?: Array<{
+    id: string;
+    name: string;
+    created_at: string;
+    total_units: number;
+    status: string;
+    market_region: string;
+  }>;
 }
 
 interface ScansResponse {
@@ -203,10 +215,11 @@ export default function DashboardPage() {
     if (!user) return;
 
     try {
-      // Fetch stats and batches together (critical)
-      const [statsRes, batchesRes] = await Promise.all([
+      // Fetch stats, full batches (for chart + compliance), and recent batches
+      const [statsRes, batchesRes, recentRes] = await Promise.all([
         api.get<DashboardStats>(`/dashboard/stats?tenant_id=${user.tenant_id}`),
-        api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}`),
+        api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}&limit=200`),
+        api.get<RecentBatchesResponse>(`/batches/recent?limit=5`),
       ]);
 
       // Fetch scans separately — non-critical, shouldn't break dashboard
@@ -265,12 +278,13 @@ export default function DashboardPage() {
         setChartData([{ name: "Today", value: 0 }]);
       }
 
-      // Recent Batches
+      // Recent Batches — from dedicated lightweight endpoint
+      const recent = recentRes.data.batches || [];
       setRecentBatches(
-        sortedByDateDesc.slice(0, 5).map((b) => ({
+        recent.map((b) => ({
           id: b.id,
-          name: b.batch_name || "Batch",
-          units: b.total_passports || 0,
+          name: b.name || "Batch",
+          units: b.total_units || 0,
           status: b.status || "DRAFT",
           market_region: b.market_region,
           created_at: formatDistanceToNow(new Date(b.created_at), {
@@ -323,20 +337,15 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Calculate Status Counts
-  let readyCount = 0,
-    processingCount = 0,
-    completedCount = 0;
-  batches.forEach((b) => {
-    const s = b.status?.toUpperCase() || "DRAFT";
-    if (s === "DRAFT") readyCount++;
-    else if (s === "ACTIVE") processingCount++;
-    else if (s === "COMPLETED" || s === "ARCHIVED") completedCount++;
-    else readyCount++;
-  });
+  // Calculate Status Counts from stats (server-side) or fallback to client-side
+  const statusMap = stats?.batches_by_status || {};
+  const readyCount = statusMap["DRAFT"] || 0;
+  const processingCount = statusMap["ACTIVE"] || 0;
+  const completedCount =
+    (statusMap["COMPLETED"] || 0) + (statusMap["ARCHIVED"] || 0);
 
   const quotaUsed = stats?.quota_used || 0;
-  const quotaLimit = stats?.quota_limit || 5000;
+  const quotaLimit = stats?.quota_limit ?? 0;
   const quotaPercent = Math.round((quotaUsed / quotaLimit) * 100);
   const isOverLimit = quotaUsed > quotaLimit;
 

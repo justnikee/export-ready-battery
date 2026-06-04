@@ -5,102 +5,133 @@ import { ArrowRight } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="self-stretch pt-16 sm:pt-20 md:pt-24 lg:pt-[216px] pb-8 sm:pb-12 md:pb-16 flex flex-col justify-start items-center px-2 sm:px-4 md:px-8 lg:px-0 w-full relative z-10">
-      <div className="w-full max-w-[1273px] lg:w-[1273px] flex flex-col justify-center items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="self-stretch rounded-[3px] flex flex-col justify-center items-center gap-4 sm:gap-5 md:gap-6 lg:gap-8"
-        >
-          <h1 className="w-full max-w-[1016px] text-center flex justify-center flex-col text-[#37322F] text-[28px] sm:text-[40px] md:text-[52px] lg:text-[72px] font-normal leading-[1.1] sm:leading-[1.15] md:leading-[1.2] lg:leading-[1.1] font-serif px-2 sm:px-4 md:px-0 text-balance">
-            The EU doesn&apos;t care how good your product is
-            <br className="hidden sm:block" />
-            if your paperwork is wrong.
-          </h1>
-          <p className="w-full max-w-[687px] text-center flex justify-center flex-col text-[rgba(55,50,47,0.80)] text-sm sm:text-base lg:text-lg leading-[1.4] sm:leading-[1.45] lg:leading-7 font-sans px-2 sm:px-4 md:px-0 font-medium">
-            ExportReady generates compliant digital passports for Indian battery and textile manufacturers. One platform. Every regulation. Zero consultants.
-          </p>
-        </motion.div>
+    <section className="relative min-h-[620px] pt-[150px] pb-10 overflow-hidden">
+      {/* Mesh gradient background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-[120px] -right-[160px] w-[610px] h-[690px] opacity-[0.98]"
+          style={{
+            background: `
+              radial-gradient(circle at 34% 18%, #ffb13b 0 13%, transparent 33%),
+              radial-gradient(circle at 63% 26%, #ff6b2e 0 16%, transparent 36%),
+              radial-gradient(circle at 44% 54%, #f96bee 0 21%, transparent 46%),
+              radial-gradient(circle at 76% 68%, #533afd 0 22%, transparent 44%),
+              linear-gradient(145deg, #f5e9d4 0%, #ff8b2f 22%, #f96bee 56%, #533afd 100%)
+            `,
+            clipPath: "polygon(24% 0, 100% 0, 78% 100%, 0 100%)",
+            transform: "rotate(18deg) skewY(-8deg)",
+          }}
+        />
+        {/* White fade overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.78) 78%, #f6f9fc 100%)",
+          }}
+        />
       </div>
 
-      {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="mt-6 sm:mt-8 lg:mt-12 relative z-10"
-      >
-        <a
-          href="/request-access"
-          className="h-10 sm:h-11 lg:h-12 px-8 sm:px-10 lg:px-12 py-2 sm:py-[6px] relative bg-[#37322F] shadow-[0px_0px_0px_2.5px_rgba(255,255,255,0.08)_inset] overflow-hidden rounded-full flex justify-center items-center gap-2 hover:bg-[#2A2520] transition-colors group"
-        >
-          <div className="w-20 sm:w-28 lg:w-44 h-[41px] absolute left-0 top-[-0.5px] bg-gradient-to-b from-[rgba(255,255,255,0)] to-[rgba(0,0,0,0.10)] mix-blend-multiply" />
-          <span className="flex flex-col justify-center text-white text-sm sm:text-base font-medium leading-5 font-sans relative z-10">
-            See if you qualify
-          </span>
-          <ArrowRight className="w-4 h-4 text-white relative z-10 group-hover:translate-x-0.5 transition-transform" />
-        </a>
-      </motion.div>
+      <div className="relative z-[2] max-w-[1080px] mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[455px_1fr] gap-10 lg:gap-16 items-start">
+          {/* Copy */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="pt-4"
+          >
+            <div className="text-[#533afd] text-[13px] font-medium mb-3.5">
+              Digital product passport infrastructure
+            </div>
+            <h1 className="max-w-[455px] text-[#0d253d] text-[34px] sm:text-[43px] font-light leading-[1.05] tracking-normal">
+              Compliance infrastructure to grow your{" "}
+              <span className="text-[#533afd]">export revenue</span>.
+            </h1>
+            <p className="max-w-[430px] mt-4 text-[16px] leading-[1.55] text-[#64748d]">
+              Create verifiable digital passports, supplier records, and audit evidence
+              for Indian battery and textile manufacturers selling into Europe.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 mt-5">
+              <a
+                href="/demo"
+                className="inline-flex items-center justify-center gap-1.5 h-[34px] px-4 rounded-full text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                style={{ background: "#533afd" }}
+              >
+                Request access
+              </a>
+              <a
+                href="#product"
+                className="inline-flex items-center gap-1 text-sm font-medium text-[#533afd] hover:underline"
+              >
+                Explore platform <ArrowRight size={14} />
+              </a>
+            </div>
+          </motion.div>
 
-      {/* Trust bar */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="mt-8 sm:mt-10 lg:mt-14 text-center relative z-10"
-      >
-        <p className="text-[11px] font-medium text-[#605A57] uppercase tracking-[0.15em] mb-2">
-          Serving manufacturers exporting to the European Union
-        </p>
-        <p className="text-sm text-[#847971]">
-          Battery makers in Gujarat &middot; Textile exporters in Tiruppur
-        </p>
-      </motion.div>
-
-      {/* Dashboard Preview */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className="w-full max-w-[1304px] lg:w-[1304px] pt-6 sm:pt-8 lg:pt-10 pb-6 sm:pb-8 lg:pb-10 px-2 sm:px-4 lg:px-11 flex flex-col justify-center items-center gap-2 relative z-5 mt-8 sm:mt-12 lg:mt-16"
-      >
-        <div className="w-full max-w-[1304px] lg:w-[1304px] h-[200px] sm:h-[300px] md:h-[450px] lg:h-[560px] bg-white shadow-[0px_0px_0px_0.9px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9px] flex flex-col justify-start items-start">
-          <div className="self-stretch flex-1 flex justify-start items-start">
-            <div className="w-full h-full flex items-center justify-center bg-[#FAFAF8]">
-              <div className="flex flex-col items-center gap-4 p-8">
-                <div className="flex gap-3">
-                  <div className="w-32 h-40 sm:w-40 sm:h-52 lg:w-48 lg:h-60 bg-white rounded-lg border border-[rgba(55,50,47,0.08)] shadow-sm p-4 flex flex-col gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#F7F5F3] flex items-center justify-center">
-                      <div className="w-4 h-4 rounded-sm bg-[#37322F]/10" />
-                    </div>
-                    <div className="h-2 w-20 bg-[#E0DEDB] rounded-full" />
-                    <div className="h-2 w-14 bg-[#E0DEDB]/60 rounded-full" />
-                    <div className="mt-auto h-16 w-full bg-[#F7F5F3] rounded-md" />
-                  </div>
-                  <div className="w-32 h-40 sm:w-40 sm:h-52 lg:w-48 lg:h-60 bg-white rounded-lg border border-[rgba(55,50,47,0.08)] shadow-sm p-4 flex flex-col gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#F7F5F3] flex items-center justify-center">
-                      <div className="w-4 h-4 rounded-sm bg-[#37322F]/10" />
-                    </div>
-                    <div className="h-2 w-20 bg-[#E0DEDB] rounded-full" />
-                    <div className="h-2 w-14 bg-[#E0DEDB]/60 rounded-full" />
-                    <div className="mt-auto h-16 w-full bg-[#F7F5F3] rounded-md" />
-                  </div>
-                  <div className="hidden sm:flex w-32 h-40 sm:w-40 sm:h-52 lg:w-48 lg:h-60 bg-white rounded-lg border border-[rgba(55,50,47,0.08)] shadow-sm p-4 flex-col gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#F7F5F3] flex items-center justify-center">
-                      <div className="w-4 h-4 rounded-sm bg-[#37322F]/10" />
-                    </div>
-                    <div className="h-2 w-20 bg-[#E0DEDB] rounded-full" />
-                    <div className="h-2 w-14 bg-[#E0DEDB]/60 rounded-full" />
-                    <div className="mt-auto h-16 w-full bg-[#F7F5F3] rounded-md" />
-                  </div>
+          {/* Stage — phone + panel mockup */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="relative hidden lg:block min-h-[438px]"
+          >
+            {/* Phone */}
+            <div
+              className="absolute left-[42px] top-[102px] w-[145px] h-[292px] p-[9px] rounded-[28px]"
+              style={{
+                background: "#0f1b4f",
+                transform: "rotate(-6deg)",
+                boxShadow: "rgba(0,55,112,.24) 0 24px 50px",
+              }}
+            >
+              <div className="h-full rounded-[20px] bg-white px-3 py-4">
+                <div className="w-10 h-[5px] mx-auto mb-6 rounded-full bg-[#e3e8ee]" />
+                <div className="text-[#0d253d] text-[21px] leading-[1.08] font-light">
+                  Passport<br />LFP-B4471
                 </div>
-                <p className="text-[#828387] text-xs sm:text-sm font-medium">Compliance Dashboard Preview</p>
+                <div className="mt-4 text-[11px] leading-[1.35] text-[#64748d]">
+                  Verified for EU buyer review
+                </div>
+                <div className="grid gap-2 mt-7">
+                  <div className="h-[9px] rounded-full bg-[#f6f9fc]" />
+                  <div className="h-[9px] w-[72%] rounded-full bg-[rgba(83,58,253,.16)]" />
+                  <div className="h-[9px] w-[55%] rounded-full bg-[#f6f9fc]" />
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Panel */}
+            <div
+              className="absolute left-[190px] top-[180px] w-[320px] p-5 rounded-xl"
+              style={{
+                background: "rgba(255,255,255,.94)",
+                border: "1px solid rgba(227,232,238,.86)",
+                boxShadow: "rgba(0,55,112,.16) 0 24px 58px",
+              }}
+            >
+              <div className="flex items-center justify-between mb-4 text-[#273951] text-[13px] font-medium">
+                <span>Anviora Control</span>
+                <strong className="text-[#533afd] text-[29px] font-light" style={{ fontFeatureSettings: '"tnum"' }}>
+                  84%
+                </strong>
+              </div>
+              <div className="flex justify-between gap-3.5 py-2.5 border-t border-[#e3e8ee] text-[12px] text-[#64748d]">
+                <span>Traceability</span>
+                <b className="text-[#0d253d] font-medium whitespace-nowrap">Complete</b>
+              </div>
+              <div className="flex justify-between gap-3.5 py-2.5 border-t border-[#e3e8ee] text-[12px] text-[#64748d]">
+                <span>Certificates</span>
+                <b className="text-[#0d253d] font-medium whitespace-nowrap">312 linked</b>
+              </div>
+              <div className="flex justify-between gap-3.5 py-2.5 border-t border-[#e3e8ee] text-[12px] text-[#64748d]">
+                <span>Supplier gaps</span>
+                <b className="text-[#0d253d] font-medium whitespace-nowrap">17 open</b>
+              </div>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

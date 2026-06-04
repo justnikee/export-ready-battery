@@ -179,7 +179,7 @@ func main() {
 	trustedPartnerHandler := handlers.NewTrustedPartnerHandler(repo)
 
 	// Initialize reward handler
-	rewardHandler := handlers.NewRewardHandler(rewardService, cfg.JWTSecret)
+	rewardHandler := handlers.NewRewardHandler(rewardService, authService, cfg.JWTSecret)
 
 	// Initialize additional middleware
 	deviceAuth := middleware.NewDeviceAuth(deviceTokenService)
@@ -296,6 +296,7 @@ func main() {
 	// ============================================
 	mux.Handle("POST /api/v1/compliance/check", authMiddleware.Protect(http.HandlerFunc(h.ComplianceCheck)))
 	mux.Handle("GET /api/v1/compliance/rules", authMiddleware.Protect(http.HandlerFunc(h.ListComplianceRules)))
+	mux.Handle("GET /api/v1/compliance/deadlines", authMiddleware.Protect(http.HandlerFunc(h.GetComplianceDeadlines)))
 
 	// ============================================
 	// BATCH ROUTES (Protected)
@@ -644,6 +645,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/rewards/balance", rewardHandler.GetBalance)
 	mux.HandleFunc("GET /api/v1/rewards/leaderboard", rewardHandler.GetLeaderboard)
 	mux.HandleFunc("GET /api/v1/rewards/history", rewardHandler.GetHistory)
+	mux.HandleFunc("GET /api/v1/rewards/config", rewardHandler.GetConfig)
 
 	// ============================================
 	// EXPORT JOBS ROUTES (Protected - Async Exports)

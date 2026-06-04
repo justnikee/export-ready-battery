@@ -52,6 +52,28 @@ export const listComplianceRules = async (
     return response.data;
 };
 
+export interface ComplianceDeadline {
+    id: string;
+    product_type: string;
+    market_region: string;
+    milestone_key: string;
+    label: string;
+    deadline_date: string;
+    description: string;
+    url?: string;
+    version: number;
+}
+
+export const getComplianceDeadlines = async (
+    productType: string = 'battery',
+    marketRegion: string = 'eu'
+): Promise<{ deadlines: ComplianceDeadline[]; count: number }> => {
+    const response = await api.get('/compliance/deadlines', {
+        params: { product_type: productType, market_region: marketRegion },
+    });
+    return response.data;
+};
+
 export const getBatchCompliance = async (
     batchId: string
 ): Promise<{

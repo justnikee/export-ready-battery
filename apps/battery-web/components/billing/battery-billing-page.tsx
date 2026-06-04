@@ -236,6 +236,8 @@ export default function BillingPage() {
       );
       setTransactions(response.data.transactions || []);
     } catch (error: unknown) {
+      console.error("Failed to load transactions:", error);
+      toast.error("Failed to load billing transactions");
     } finally {
       setLoadingTransactions(false);
     }

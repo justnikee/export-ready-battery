@@ -1267,13 +1267,14 @@ type ScanFeedItem struct {
 
 // DashboardStats represents the overview statistics
 type DashboardStats struct {
-	TotalPassports       int     `json:"total_passports"`
-	TotalBatches         int     `json:"total_batches"`
-	QuotaUsed            int     `json:"quota_used"`
-	QuotaLimit           int     `json:"quota_limit"`
-	CarbonCompliancePct  float64 `json:"carbon_compliance_percentage"`
-	PassportsThisWeek    int     `json:"passports_this_week"`
-	PendingExportBatches int     `json:"pending_export_batches"`
+	TotalPassports       int            `json:"total_passports"`
+	TotalBatches         int            `json:"total_batches"`
+	QuotaUsed            int            `json:"quota_used"`
+	QuotaLimit           int            `json:"quota_limit"`
+	CarbonCompliancePct  float64        `json:"carbon_compliance_percentage"`
+	PassportsThisWeek    int            `json:"passports_this_week"`
+	PendingExportBatches int            `json:"pending_export_batches"`
+	BatchesByStatus      map[string]int `json:"batches_by_status,omitempty"`
 }
 
 // AnalyticsOverview represents aggregated analytics data for the tenant dashboard.
@@ -1751,6 +1752,21 @@ type ComplianceRule struct {
 	EffectiveUntil *time.Time `json:"effective_until,omitempty"`
 	Version        int        `json:"version"`
 	CreatedAt      time.Time  `json:"created_at"`
+}
+
+// ComplianceDeadline stores a regulatory milestone date (e.g. "Digital Passport mandatory from 2027-02-18").
+// Unlike ComplianceRule (which validates thresholds), this is purely informational for dashboard display.
+type ComplianceDeadline struct {
+	ID           uuid.UUID `json:"id"`
+	ProductType  string    `json:"product_type"`
+	MarketRegion string    `json:"market_region"`
+	MilestoneKey string    `json:"milestone_key"`
+	Label        string    `json:"label"`
+	DeadlineDate time.Time `json:"deadline_date"`
+	Description  string    `json:"description"`
+	URL          string    `json:"url,omitempty"`
+	Version      int       `json:"version"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ============================================================================

@@ -68,10 +68,19 @@ function DocumentUpload({
  }
  }
 
- const handleViewDocument = () => {
- // Open in new tab
- const token = localStorage.getItem("token")
- window.open(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"}/settings/documents/${documentType}?token=${token}`, "_blank")
+ const handleViewDocument = async () => {
+   try {
+     const response = await api.get(`/settings/documents/${documentType}`, {
+       responseType: "blob",
+     });
+     const blob = new Blob([response.data], { type: "application/pdf" });
+     const url = window.URL.createObjectURL(blob);
+     window.open(url, "_blank");
+     setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+   } catch (error: unknown) {
+     const apiError = error as { response?: { data?: { error?: string } } };
+     toast.error(apiError.response?.data?.error || "Failed to load document");
+   }
  }
 
  // Render status badge based on verification state
@@ -253,7 +262,7 @@ export default function SettingsPage() {
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
  const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers'>(
-  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens') || 'profile'
+  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers') || 'profile'
  )
 
  const [formData, setFormData] = useState({

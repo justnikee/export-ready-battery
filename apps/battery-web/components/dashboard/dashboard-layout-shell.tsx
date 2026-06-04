@@ -10,8 +10,7 @@ import { LoadingBar } from "@/components/ui/loading-bar";
 import { useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { productRoutes, stripProductPrefix } from "@/lib/routes";
-import { productTypeToSlug } from "@/lib/products";
+import { productRoutes } from "@/lib/routes";
 
 function LoadingBarWrapper() {
   return (
@@ -28,37 +27,22 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const sidebar = useSidebarState();
-  const actualProductSlug = null;
-  const productPrefix = "";
-
-  // Protected route guard: authenticated users must stay inside their own
-  // product URL space even if a stale cookie points at the wrong prefix.
+  // Redirect users who haven't completed onboarding
   useEffect(() => {
-    if (!loading && user) {
-      const expectedProductSlug = productTypeToSlug(user.product_type);
-
-      if (actualProductSlug && actualProductSlug !== expectedProductSlug) {
-        const correctedPath = `/${expectedProductSlug}${stripProductPrefix(pathname)}`;
-        const redirectTo = search ? `${correctedPath}?${search}` : correctedPath;
-        router.replace(redirectTo);
-        return;
-      }
-
-      if (!user.onboarding_completed) {
-        router.push("/onboarding");
-      }
+    if (!loading && user && !user.onboarding_completed) {
+      router.push("/onboarding");
     }
-  }, [actualProductSlug, loading, pathname, router, search, user]);
+  }, [loading, router, user]);
 
   // Redirect unauthenticated users to login with return path
   useEffect(() => {
     if (!loading && !user) {
       const redirectTo = search ? `${pathname}?${search}` : pathname;
       router.replace(
-        `${productPrefix}/login?redirect=${encodeURIComponent(redirectTo)}`,
+        `/login?redirect=${encodeURIComponent(redirectTo)}`,
       );
     }
-  }, [loading, user, router, pathname, search, productPrefix]);
+  }, [loading, user, router, pathname, search]);
 
   if (loading) {
     return (

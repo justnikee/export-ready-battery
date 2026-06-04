@@ -1,9 +1,9 @@
 "use client";
 
+import { createExportJob } from "@/lib/api/exports";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { createExportJob } from "@/lib/api/exports";
 import {
   createCertificateAnchor,
   getCertificateAnchors,
@@ -104,7 +104,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
       setBatch(response.data.batch);
       setPassportCount(response.data.passport_count || 0);
     } catch {
-      // silently fail - handled by loading state
+      toast.error("Failed to load batch details");
     } finally {
       setLoading(false);
     }
@@ -125,7 +125,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
           hasMore: response.data.has_more || false,
         });
       } catch {
-        // silently fail
+        toast.error("Failed to load passports");
       }
     },
     [batchId],
@@ -138,7 +138,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
       const data = await getCertificateAnchors(batchId);
       setAnchors(data);
     } catch {
-      // Anchors may not exist yet — silently fail
+      toast.error("Failed to load certificate anchors");
     } finally {
       setAnchorsLoading(false);
     }
@@ -151,7 +151,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
       setComplianceScore(res.data.compliance_score ?? null);
       setComplianceGaps(res.data.compliance_gaps ?? []);
     } catch {
-      // Compliance data may not exist for draft batches.
+      toast.error("Failed to load compliance data");
     } finally {
       setComplianceLoading(false);
     }
@@ -169,13 +169,14 @@ export function useBatchDetail(batchId: string, pathname: string) {
     }
   }, [batchId]);
 
+  // Eager-load data needed by Overview + header on mount.
+  // Registry verifications are lazy-loaded by the Registry tab.
   useEffect(() => {
     fetchBatch();
     fetchPassports(1, 50);
     fetchAnchors();
     fetchCompliance();
-    fetchVerifications();
-  }, [fetchBatch, fetchPassports, fetchAnchors, fetchCompliance, fetchVerifications]);
+  }, [fetchBatch, fetchPassports, fetchAnchors, fetchCompliance]);
 
   // Scroll to target after render
   useEffect(() => {
@@ -358,21 +359,29 @@ export function useBatchDetail(batchId: string, pathname: string) {
   }, [batch, batchId]);
 
   const handleExportAuditCSV = useCallback(async () => {
+    if (!batch) return;
     try {
-      toast.loading("Queuing audit log export...");
-      const job = await createExportJob({
-        batch_id: batchId,
-        job_type: "AUDIT_CSV",
+      toast.loading("Generating audit export...", { id: "audit-export" });
+      const response = await api.get(`/batches/${batchId}/audit-export`, {
+        responseType: "blob",
       });
-      toast.dismiss();
-      toast.success("Audit export queued! Check the Export Jobs page.", {
-        description: `Job ID: ${job.id}`,
-      });
-    } catch {
-      toast.dismiss();
-      toast.error("Failed to queue audit export");
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${batch.batch_name}_audit_export.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Audit export downloaded", { id: "audit-export" });
+    } catch (error: unknown) {
+      const apiError = toApiError(error);
+      toast.error(
+        apiError.response?.data?.error || "Failed to download audit export",
+        { id: "audit-export" },
+      );
     }
-  }, [batchId]);
+  }, [batch, batchId]);
 
   const handleExportDueDiligence = useCallback(async () => {
     if (!batch) return;

@@ -47,6 +47,7 @@ type RepositoryInterface interface {
 
 	// compliance_rules.go
 	GetActiveComplianceRules(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceRule, error)
+	GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error)
 
 	// carbon_factors.go
 	GetAllFactors(ctx context.Context) ([]models.CarbonFactor, error)

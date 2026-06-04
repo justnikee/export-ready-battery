@@ -88,4 +88,26 @@ api.interceptors.response.use(
   },
 );
 
+// Public-safe API instance — same auth headers, but NO 401 redirect interceptor.
+// Use this for endpoints that may be called from public/unauthenticated views
+// or where the caller wants to handle 401 gracefully instead of being redirected.
+export const apiPublic = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 30000,
+});
+
+apiPublic.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
 export default api;

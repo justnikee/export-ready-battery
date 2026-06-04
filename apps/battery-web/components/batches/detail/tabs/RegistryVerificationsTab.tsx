@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +15,7 @@ import {
   Clock,
   Search,
   Zap,
+  Info,
 } from "lucide-react";
 import { verifyBatchRegistry, autoVerifyBatch } from "@/lib/api/registry";
 import { toast } from "sonner";
@@ -195,6 +196,13 @@ export function RegistryVerificationsTab({
   verificationsLoading,
   onRefresh,
 }: RegistryVerificationsTabProps) {
+  // Lazy-load verifications when this tab is first mounted and data is empty
+  useEffect(() => {
+    if (verifications.length === 0 && !verificationsLoading) {
+      onRefresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [autoVerifying, setAutoVerifying] = useState(false);
 
   const handleAutoVerify = async () => {
@@ -254,10 +262,19 @@ export function RegistryVerificationsTab({
         </div>
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Verify batch certificates against official registries. API-validated
-            trust replaces self-declared compliance for BIS, CPCB EPR, EU NANDO,
-            and UN38.3.
+            Verify batch certificates against official registries. When registry
+            API integrations are configured, API-validated trust replaces
+            self-declared compliance for BIS, CPCB EPR, EU NANDO, and UN38.3.
           </p>
+          <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-500/5 border border-amber-500/20 p-2.5">
+            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              No live registry connection is currently configured. Checks below
+              validate only that certificate numbers were provided by the
+              manufacturer (self-declared). Real registry lookups require paid API
+              partnerships with BIS, CPCB, EU NANDO, and UN38.3 test labs.
+            </span>
+          </div>
           <Button
             size="sm"
             className="h-8 text-xs gap-1.5"

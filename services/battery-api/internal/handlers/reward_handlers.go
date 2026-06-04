@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/anvayalabs/battery-api/internal/auth"
+	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
 
 	"github.com/google/uuid"
@@ -15,41 +17,56 @@ import (
 // RewardHandler handles reward/gamification endpoints
 type RewardHandler struct {
 	rewardService *services.RewardService
+	authService   *services.AuthService
 	jwtSecret     string
 }
 
 // NewRewardHandler creates a new reward handler
-func NewRewardHandler(rewardService *services.RewardService, jwtSecret string) *RewardHandler {
+func NewRewardHandler(rewardService *services.RewardService, authService *services.AuthService, jwtSecret string) *RewardHandler {
 	return &RewardHandler{
 		rewardService: rewardService,
+		authService:   authService,
 		jwtSecret:     jwtSecret,
 	}
+}
+
+// getEmailFromToken tries magic link token first, then JWT fallback
+func (h *RewardHandler) getEmailFromToken(r *http.Request) (string, error) {
+	tokenString := extractToken(r)
+	if tokenString == "" {
+		return "", fmt.Errorf("no token provided")
+	}
+
+	// Try magic link token first
+	magicClaims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret)
+	if err == nil {
+		return magicClaims.Email, nil
+	}
+
+	// Fallback to JWT token (dashboard users)
+	if h.authService != nil {
+		jwtClaims, err := h.authService.ValidateToken(tokenString)
+		if err == nil {
+			return jwtClaims.Email, nil
+		}
+	}
+
+	return "", fmt.Errorf("invalid token")
 }
 
 // GetBalance handles GET /api/v1/rewards/balance
 // Returns the authenticated user's reward balance and loyalty level
 func (h *RewardHandler) GetBalance(w http.ResponseWriter, r *http.Request) {
-	// Extract token from Authorization header or query param
-	tokenString := extractToken(r)
-	if tokenString == "" {
-		respondError(w, http.StatusUnauthorized, "Authentication required. Use magic link token.")
-		return
-	}
-
-	// Validate magic link token
-	claims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret)
+	email, err := h.getEmailFromToken(r)
 	if err != nil {
-		slog.Warn("Token validation failed", "error", err)
-		respondError(w, http.StatusUnauthorized, "Invalid or expired token")
+		respondError(w, http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
-	// Get tenant ID from passport (if needed) - for now use email only
-	// In production, you might want to scope rewards by tenant
-	tenantID := uuid.Nil // Placeholder - rewards are cross-tenant for mechanics
+	tenantID := uuid.Nil // Cross-tenant for mechanics
 
 	// Get reward balance
-	balance, err := h.rewardService.GetUserRewards(r.Context(), tenantID, claims.Email)
+	balance, err := h.rewardService.GetUserRewards(r.Context(), tenantID, email)
 	if err != nil {
 		slog.Error("Failed to get reward balance", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve rewards")
@@ -122,16 +139,9 @@ func (h *RewardHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 // GetHistory handles GET /api/v1/rewards/history
 // Returns transaction history for authenticated user
 func (h *RewardHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
-	// Extract token from Authorization header
-	tokenString := extractToken(r)
-	if tokenString == "" {
-		respondError(w, http.StatusUnauthorized, "Authentication required")
-		return
-	}
-
-	claims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret)
+	email, err := h.getEmailFromToken(r)
 	if err != nil {
-		respondError(w, http.StatusUnauthorized, "Invalid or expired token")
+		respondError(w, http.StatusUnauthorized, "Authentication required")
 		return
 	}
 
@@ -146,7 +156,7 @@ func (h *RewardHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 
 	tenantID := uuid.Nil // Cross-tenant for now
 
-	history, err := h.rewardService.GetRewardHistory(r.Context(), tenantID, claims.Email, limit)
+	history, err := h.rewardService.GetRewardHistory(r.Context(), tenantID, email, limit)
 	if err != nil {
 		slog.Error("Failed to get reward history", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve history")
@@ -154,9 +164,25 @@ func (h *RewardHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"email":   claims.Email,
+		"email":   email,
 		"history": history,
 		"count":   len(history),
+	})
+}
+
+// GetConfig returns the reward point configuration (public, no auth required)
+func (h *RewardHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"points": map[string]int{
+			models.RewardActionScanInstall: models.RewardPoints[models.RewardActionScanInstall],
+			models.RewardActionScanRecycle: models.RewardPoints[models.RewardActionScanRecycle],
+			models.RewardActionScanReturn:  models.RewardPoints[models.RewardActionScanReturn],
+		},
+		"actions": []map[string]string{
+			{"key": models.RewardActionScanInstall, "label": "Installation"},
+			{"key": models.RewardActionScanRecycle, "label": "Recycling"},
+			{"key": models.RewardActionScanReturn, "label": "Return"},
+		},
 	})
 }
 

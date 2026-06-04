@@ -8,12 +8,16 @@ import {
   Globe,
   Home,
   Key,
+  Landmark,
   LayoutTemplate,
+  Scale,
+  Send,
   Settings,
   Shield,
   Sparkles,
   Target,
   TrendingUp,
+  Trophy,
   Upload,
   Users,
   Zap,
@@ -30,11 +34,21 @@ type AuthFeature = {
 };
 
 type DashboardRouteKey =
+  | "analytics"
   | "batches"
   | "billing"
   | "compliance"
+  | "developer"
+  | "dgft-claims"
+  | "dispatch"
+  | "exports"
+  | "lifecycle"
+  | "mass-balance"
+  | "partners"
+  | "rewards"
   | "settings"
-  | "team";
+  | "team"
+  | "templates";
 
 type DashboardActionTone = "emerald" | "blue" | "amber" | "indigo";
 
@@ -188,6 +202,7 @@ const BATTERY_CONFIG: ProductConfig = {
         { name: "Batches", dashboardSubpath: "batches", icon: Box },
         { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },
         { name: "Templates", dashboardSubpath: "templates", icon: LayoutTemplate },
+        { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
       ],
     },
     {
@@ -195,6 +210,8 @@ const BATTERY_CONFIG: ProductConfig = {
       items: [
         { name: "Compliance", dashboardSubpath: "compliance", icon: Shield },
         { name: "Exports", dashboardSubpath: "exports", icon: FileDown },
+        { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale },
+        { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark },
       ],
     },
     {
@@ -203,6 +220,7 @@ const BATTERY_CONFIG: ProductConfig = {
         { name: "Team", dashboardSubpath: "team", icon: Users },
         { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
         { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
+        { name: "Rewards", dashboardSubpath: "rewards", icon: Trophy },
         { name: "Settings", dashboardSubpath: "settings", icon: Settings },
       ],
     },
@@ -212,6 +230,13 @@ const BATTERY_CONFIG: ProductConfig = {
       items: [
         { name: "API Keys", dashboardSubpath: "developer", icon: Key },
         { name: "Docs", href: "/docs", icon: BookOpen },
+      ],
+    },
+    {
+      label: "Admin",
+      collapsible: true,
+      items: [
+        { name: "Admin Panel", dashboardSubpath: "admin", icon: Shield },
       ],
     },
   ],

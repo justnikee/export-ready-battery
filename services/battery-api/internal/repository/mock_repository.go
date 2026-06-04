@@ -201,6 +201,14 @@ func (m *MockRepository) GetActiveComplianceRules(ctx context.Context, productTy
 	return args.Get(0).([]*models.ComplianceRule), args.Error(1)
 }
 
+func (m *MockRepository) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) {
+	args := m.Called(ctx, productType, marketRegion)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.ComplianceDeadline), args.Error(1)
+}
+
 func (m *MockRepository) GetAllFactors(ctx context.Context) ([]models.CarbonFactor, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {

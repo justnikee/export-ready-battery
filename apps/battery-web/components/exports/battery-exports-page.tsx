@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from "sonner";
 import {
  Download,
  RefreshCw,
@@ -34,7 +35,9 @@ export default function ExportsPage() {
  const data = await listExportJobs(limit, page * limit);
  setExports(data.jobs || []);
  setTotal(data.total);
- } catch (error) {
+ } catch (error: unknown) {
+ const apiError = error as { response?: { data?: { error?: string } } };
+ toast.error(apiError.response?.data?.error || "Failed to load exports");
  } finally {
  setLoading(false);
  }
@@ -71,7 +74,9 @@ export default function ExportsPage() {
  } else {
  window.open(job.download_url, '_blank');
  }
- } catch (error) {
+ } catch (error: unknown) {
+ const apiError = error as { response?: { data?: { error?: string } } };
+ toast.error(apiError.response?.data?.error || "Failed to download export");
  }
  };
 

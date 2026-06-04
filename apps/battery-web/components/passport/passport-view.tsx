@@ -33,6 +33,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { TelemetryChart } from "./telemetry-chart";
 import { TrustBadge, type TrustTier } from "./trust-badge";
+import { SoHHistory } from "./soh-history";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type MarketRegion = "INDIA" | "EU" | "GLOBAL";
@@ -911,6 +912,11 @@ export function PassportView({ passport, trustTier = "SELF_DECLARED" }: Passport
           />
         </Section>
       </div>
+
+      {/* ▓▓▓ SOH HISTORY ▓▓▓ */}
+      <Section>
+        <SoHHistory passportUuid={passportData.uuid} />
+      </Section>
 
       {/* ▓▓▓ ORIGIN & MANUFACTURING ▓▓▓ */}
       <Section>

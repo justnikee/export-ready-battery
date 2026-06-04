@@ -144,6 +144,27 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 		stats.PassportsThisWeek = 0
 	}
 
+	// Batch status breakdown
+	rows, err := r.db.Pool.Query(ctx, `
+		SELECT COALESCE(status, 'DRAFT'), COUNT(*) FROM public.batches
+		WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)
+		GROUP BY status
+	`, tenantID, productType)
+	if err != nil {
+		// Non-critical
+		stats.BatchesByStatus = map[string]int{}
+	} else {
+		defer rows.Close()
+		stats.BatchesByStatus = make(map[string]int)
+		for rows.Next() {
+			var status string
+			var count int
+			if err := rows.Scan(&status, &count); err == nil {
+				stats.BatchesByStatus[status] = count
+			}
+		}
+	}
+
 	return stats, nil
 }
 
@@ -154,9 +175,11 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 			b.id,
 			b.batch_name,
 			b.created_at,
+			COALESCE(b.status, 'DRAFT') as status,
+			COALESCE(b.market_region::text, 'GLOBAL') as market_region,
 			COALESCE((SELECT COUNT(*) FROM public.passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_units
 		FROM public.batches b
-		WHERE b.tenant_id = $1
+		WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
 		ORDER BY b.created_at DESC
 		LIMIT $2
 	`
@@ -170,31 +193,25 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 	var batches []*models.BatchSummary
 	for rows.Next() {
 		var (
-			id        uuid.UUID
-			name      string
-			createdAt time.Time
-			units     int
+			id           uuid.UUID
+			name         string
+			createdAt    time.Time
+			status       string
+			marketRegion string
+			units        int
 		)
-		if err := rows.Scan(&id, &name, &createdAt, &units); err != nil {
+		if err := rows.Scan(&id, &name, &createdAt, &status, &marketRegion, &units); err != nil {
 			return nil, fmt.Errorf("failed to scan batch: %w", err)
 		}
 
-		// Determine status based on passport count
-		status := "READY"
-		if units == 0 {
-			status = "PENDING"
-		}
-
-		// Format relative time
-		relativeTime := formatRelativeTime(createdAt)
-
 		batches = append(batches, &models.BatchSummary{
-			ID:          id.String(),
-			Name:        name,
-			CreatedAt:   relativeTime,
-			TotalUnits:  units,
-			Status:      status,
-			DownloadURL: fmt.Sprintf("/api/v1/batches/%s/download", id.String()),
+			ID:           id.String(),
+			Name:         name,
+			CreatedAt:    createdAt.Format(time.RFC3339),
+			TotalUnits:   units,
+			Status:       status,
+			MarketRegion: models.MarketRegion(marketRegion),
+			DownloadURL:  fmt.Sprintf("/api/v1/batches/%s/download", id.String()),
 		})
 	}
 

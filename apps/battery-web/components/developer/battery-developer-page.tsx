@@ -192,7 +192,9 @@ export default function DeveloperPage() {
     try {
       const response = await api.get("/device-tokens");
       setDeviceTokens(response.data.tokens || []);
-    } catch (error) {
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      toast.error(apiError.response?.data?.error || "Failed to load device tokens");
     } finally {
       setLoadingTokens(false);
     }

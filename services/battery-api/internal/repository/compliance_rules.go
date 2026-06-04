@@ -57,3 +57,47 @@ func (r *Repository) GetActiveComplianceRules(ctx context.Context, productType, 
 
 	return rules, nil
 }
+
+// GetComplianceDeadlines returns all regulatory milestone deadlines for a product type and market region.
+func (r *Repository) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) {
+	query := `
+		SELECT id, product_type, market_region, milestone_key, label,
+		       deadline_date, description, url, version, created_at
+		FROM compliance_deadlines
+		WHERE product_type = $1
+		  AND market_region = $2
+		ORDER BY deadline_date ASC
+	`
+
+	rows, err := r.db.Pool.Query(ctx, query, productType, marketRegion)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query compliance deadlines: %w", err)
+	}
+	defer rows.Close()
+
+	var deadlines []*models.ComplianceDeadline
+	for rows.Next() {
+		d := &models.ComplianceDeadline{}
+		if err := rows.Scan(
+			&d.ID,
+			&d.ProductType,
+			&d.MarketRegion,
+			&d.MilestoneKey,
+			&d.Label,
+			&d.DeadlineDate,
+			&d.Description,
+			&d.URL,
+			&d.Version,
+			&d.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan compliance deadline: %w", err)
+		}
+		deadlines = append(deadlines, d)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating compliance deadlines: %w", err)
+	}
+
+	return deadlines, nil
+}

@@ -129,7 +129,7 @@ export default function DGFTClaimsPage() {
             <SelectValue placeholder="All Schemes" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value=" ">All Schemes</SelectItem>
+            <SelectItem value="">All Schemes</SelectItem>
             <SelectItem value="RODTEP">RoDTEP</SelectItem>
             <SelectItem value="INTEREST_EQUALIZATION">Interest Equalization</SelectItem>
             <SelectItem value="DUTY_DRAWBACK">Duty Drawback</SelectItem>
@@ -140,7 +140,7 @@ export default function DGFTClaimsPage() {
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value=" ">All Statuses</SelectItem>
+            <SelectItem value="">All Statuses</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
             <SelectItem value="SUBMITTED">Submitted</SelectItem>
             <SelectItem value="APPROVED">Approved</SelectItem>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Instrument_Serif } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -7,42 +7,41 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-  preload: true,
+  weight: ["300", "400", "500", "600"],
 });
 
-const instrumentSerif = Instrument_Serif({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
-  weight: ["400"],
+  variable: "--font-geist-mono",
   display: "swap",
-  preload: true,
 });
 
 export const metadata: Metadata = {
-  title: "ExportReady | AI-Powered Compliance for Indian Battery & Textile Exporters",
+  title: "Anviora — Digital Product Passport Infrastructure",
   description:
-    "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
+    "Create verifiable digital passports, supplier records, and audit evidence for Indian battery and textile manufacturers selling into Europe.",
   keywords: [
+    "digital product passport",
     "battery passport",
     "EU Battery Regulation",
     "export compliance",
-    "Indian exporters",
+    "Indian manufacturers",
     "BIS certification",
-    "EPR registration",
+    "traceability",
     "textile compliance",
   ],
   openGraph: {
-    title: "ExportReady — Ship to Europe Without the Compliance Nightmare",
+    title: "Anviora — Compliance Infrastructure to Grow Your Exports",
     description:
-      "AI-powered Battery Passports, QR-code verification, and automated compliance tracking.",
+      "Create verifiable digital passports, supplier records, and audit evidence for Indian manufacturers.",
     type: "website",
     locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ExportReady — Ship to Europe Without the Compliance Nightmare",
+    title: "Anviora — Compliance Infrastructure to Grow Your Exports",
     description:
-      "AI-powered Battery Passports, QR-code verification, and automated compliance tracking.",
+      "Create verifiable digital passports, supplier records, and audit evidence for Indian manufacturers.",
   },
   robots: {
     index: true,
@@ -56,12 +55,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className="font-sans antialiased bg-[#F7F5F3] text-[#37322F]">
+    <html lang="en" className={`${inter.variable} ${geistMono.variable} antialiased`}>
+      <body className="font-sans antialiased bg-white text-[#0d253d]">
         {children}
         <Toaster position="top-right" richColors />
       </body>

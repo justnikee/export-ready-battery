@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import api from "@/lib/api";
+import { toast } from "sonner";
 
 interface TrustedPartner {
   id: string;
@@ -113,7 +114,8 @@ export default function PartnersPage() {
     try {
       const response = await api.get('/partners/trusted');
       setPartners(response.data.partners || []);
-    } catch (err) {
+    } catch (err: unknown) {
+      toast.error("Failed to load partners");
     } finally {
       setLoadingPartners(false);
     }
@@ -124,7 +126,8 @@ export default function PartnersPage() {
     try {
       const response = await api.get('/partners/codes');
       setCodes(response.data.codes || []);
-    } catch (err) {
+    } catch (err: unknown) {
+      toast.error("Failed to load partner codes");
     } finally {
       setLoadingCodes(false);
     }
@@ -135,6 +138,7 @@ export default function PartnersPage() {
       const res = await api.get('/outbound-webhooks');
       setWebhooks(res.data.webhooks || []);
     } catch {
+      toast.error("Failed to load webhooks");
     } finally {
       setLoadingWebhooks(false);
     }
@@ -176,7 +180,8 @@ export default function PartnersPage() {
     try {
       await api.delete(`/partners/trusted/${id}`);
       fetchPartners();
-    } catch (err) {
+    } catch (err: unknown) {
+      toast.error("Failed to delete partner");
     }
   };
 
@@ -223,7 +228,8 @@ export default function PartnersPage() {
     try {
       await api.delete(`/partners/codes/${id}`);
       fetchCodes();
-    } catch (err) {
+    } catch (err: unknown) {
+      toast.error("Failed to deactivate code");
     }
   };
 
@@ -269,6 +275,7 @@ export default function PartnersPage() {
       await api.delete(`/outbound-webhooks/${id}`);
       fetchWebhooks();
     } catch {
+      toast.error("Failed to delete webhook");
     }
   };
 

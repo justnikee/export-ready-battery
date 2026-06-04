@@ -52,6 +52,34 @@ func (h *Handler) ListComplianceRules(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetComplianceDeadlines handles GET /api/v1/compliance/deadlines
+// Returns regulatory milestone dates for a product type and market region.
+// Query params: product_type (default: battery), market_region (default: eu)
+func (h *Handler) GetComplianceDeadlines(w http.ResponseWriter, r *http.Request) {
+	pt := r.URL.Query().Get("product_type")
+	if pt == "" {
+		pt = "battery"
+	}
+	mr := r.URL.Query().Get("market_region")
+	if mr == "" {
+		mr = "eu"
+	}
+
+	deadlines, err := h.repo.GetComplianceDeadlines(r.Context(), pt, mr)
+	if err != nil {
+		slog.Error("Failed to get compliance deadlines", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve compliance deadlines")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"product_type":  pt,
+		"market_region": mr,
+		"deadlines":     deadlines,
+		"count":         len(deadlines),
+	})
+}
+
 // ComplianceCheck handles POST /api/v1/compliance/check
 // Performs a dry-run compliance check without saving anything. The frontend
 // calls this in real-time as users fill in batch data to show a live compliance

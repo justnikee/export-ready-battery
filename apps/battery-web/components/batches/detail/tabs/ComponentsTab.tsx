@@ -91,7 +91,7 @@ export function ComponentsTab({ batchId, isDraft }: ComponentsTabProps) {
 
   const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/api/v1/components/${id}`);
+      await api.delete(`/components/${id}`);
       toast.success("Component deleted");
       setConfirmDelete(null);
       setSelectedId(undefined);

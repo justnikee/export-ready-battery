@@ -84,7 +84,7 @@ export default function SuppliersTab() {
       const res = await api.get("/supplier-documents");
       setDocuments(res.data.documents || []);
     } catch {
-      // silent
+      toast.error("Failed to load supplier documents");
     }
   };
 

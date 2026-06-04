@@ -123,10 +123,10 @@ export default function ComponentFormDialog({
     try {
       const payload = { ...form, parent_id: parentId };
       if (isEditing) {
-        await api.put(`/api/v1/components/${editComponent!.id}`, payload);
+        await api.put(`/components/${editComponent!.id}`, payload);
         toast.success("Component updated");
       } else {
-        await api.post(`/api/v1/batches/${batchId}/components`, payload);
+        await api.post(`/batches/${batchId}/components`, payload);
         toast.success("Component added");
       }
       onSaved();

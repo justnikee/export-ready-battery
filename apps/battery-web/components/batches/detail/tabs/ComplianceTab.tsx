@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -272,6 +272,19 @@ function GapSection({
   );
 }
 
+interface EUAttributeScore {
+  score: number;
+  filled: number;
+  total: number;
+  attributes: Array<{
+    key: string;
+    label: string;
+    category: string;
+    filled: boolean;
+    value?: string | number | boolean;
+  }>;
+}
+
 export function ComplianceTab({
   batch,
   user,
@@ -289,6 +302,19 @@ export function ComplianceTab({
 }: ComplianceTabProps) {
   const errors = complianceGaps.filter((g) => g.severity === "ERROR");
   const warnings = complianceGaps.filter((g) => g.severity === "WARNING");
+  const [euScore, setEuScore] = useState<EUAttributeScore | null>(null);
+  const [euScoreLoading, setEuScoreLoading] = useState(false);
+
+  useEffect(() => {
+    if (!batch?.id || (!isEU && !isGlobal)) return;
+    setEuScoreLoading(true);
+    api.get<EUAttributeScore>(`/batches/${batch.id}/eu-attribute-score`)
+      .then((res) => setEuScore(res.data))
+      .catch(() => {
+        /* EU score is optional — silently fail */
+      })
+      .finally(() => setEuScoreLoading(false));
+  }, [batch?.id, isEU, isGlobal]);
 
   return (
     <div className="space-y-6">
@@ -385,6 +411,79 @@ export function ComplianceTab({
           )}
         </div>
       </div>
+
+      {/* EU Attribute Score */}
+      {(isEU || isGlobal) && (
+        <div className="border border-border bg-transparent relative">
+          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <FileCheck className="h-4 w-4 text-blue-500" />
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              EU Battery Passport Attribute Coverage
+            </h3>
+            {euScore !== null && (
+              <Badge
+                className={`ml-auto text-xs ${
+                  euScore.score >= 80
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                    : euScore.score >= 50
+                      ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                      : "bg-red-500/10 text-red-500 border-red-500/30"
+                }`}
+              >
+                {euScore.score}%
+              </Badge>
+            )}
+          </div>
+          <div className="p-4 space-y-4">
+            {euScoreLoading ? (
+              <p className="text-sm text-muted-foreground">Calculating attribute coverage...</p>
+            ) : euScore ? (
+              <>
+                <div className="flex items-center gap-4">
+                  <ComplianceScoreRing score={euScore.score} />
+                  <div>
+                    <p className="text-sm text-foreground">
+                      {euScore.filled} of {euScore.total} attributes filled
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      EU Battery Regulation 2023/1542 Art. 56 data requirements
+                    </p>
+                  </div>
+                </div>
+                {euScore.attributes && euScore.attributes.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {euScore.attributes.slice(0, 8).map((attr) => (
+                      <div
+                        key={attr.key}
+                        className={`flex items-center gap-1.5 text-xs px-2 py-1 border ${
+                          attr.filled
+                            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600"
+                            : "bg-muted border-border text-muted-foreground"
+                        }`}
+                      >
+                        {attr.filled ? (
+                          <CheckCircle className="h-3 w-3 shrink-0" />
+                        ) : (
+                          <Clock className="h-3 w-3 shrink-0" />
+                        )}
+                        <span className="truncate">{attr.label || attr.key}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                EU attribute score unavailable for this batch.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Certificates */}
       <CertificateStatus batch={batch} user={user} getCertificateExpiry={getCertificateExpiry} />

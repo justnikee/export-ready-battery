@@ -1,5 +1,7 @@
 "use client";
 
+import axios from "axios";
+import { apiPublic } from "@/lib/api";
 import { useEffect, useState, useMemo } from "react";
 import {
   LineChart,
@@ -212,8 +214,6 @@ export function TelemetryChart({
       setError(null);
 
       try {
-        const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
         const params = new URLSearchParams({ limit: "500" });
 
         if (range.days > 0) {
@@ -222,41 +222,29 @@ export function TelemetryChart({
           params.set("from", from.toISOString());
         }
 
-        const token =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-
-        const res = await fetch(
-          `${baseUrl}/passports/${passportUuid}/telemetry?${params}`,
-          { headers },
+        const res = await apiPublic.get<TelemetryResponse>(
+          `/passports/${passportUuid}/telemetry?${params}`,
         );
 
-        if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
-            // Unauthenticated — no telemetry available
-            if (!cancelled) {
-              setReadings([]);
-              setTotal(0);
-            }
-            return;
-          }
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const data: TelemetryResponse = await res.json();
         if (!cancelled) {
-          setReadings(data.readings || []);
-          setTotal(data.total || 0);
+          setReadings(res.data.readings || []);
+          setTotal(res.data.total || 0);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load telemetry",
-          );
-          setReadings([]);
+          // Gracefully handle 401/403 — no telemetry available for public/unauthenticated views
+          if (
+            axios.isAxiosError(err) &&
+            (err.response?.status === 401 || err.response?.status === 403)
+          ) {
+            setReadings([]);
+            setTotal(0);
+          } else {
+            setError(
+              err instanceof Error ? err.message : "Failed to load telemetry",
+            );
+            setReadings([]);
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);
