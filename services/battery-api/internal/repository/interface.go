@@ -332,4 +332,28 @@ type RepositoryInterface interface {
 	ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error)
 	ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error)
 	UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error
+
+	// supplier_risk_profiles.go
+	CreateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error
+	GetSupplierRiskProfileBySupplier(ctx context.Context, supplierID uuid.UUID) (*models.SupplierRiskProfile, error)
+	UpdateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error
+	ListSupplierRiskProfilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]models.SupplierRiskProfile, error)
+
+	// due_diligence_assessments.go
+	CreateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error
+	GetDueDiligenceAssessmentsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.DueDiligenceAssessment, error)
+	GetDueDiligenceAssessmentByID(ctx context.Context, id uuid.UUID) (*models.DueDiligenceAssessment, error)
+	UpdateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error
+
+	// supplier_cmrt_reports.go
+	CreateSupplierCMRTReport(ctx context.Context, rep *models.SupplierCMRTReport) error
+	GetSupplierCMRTReports(ctx context.Context, supplierID uuid.UUID) ([]models.SupplierCMRTReport, error)
+	GetLatestSupplierCMRTReport(ctx context.Context, supplierID uuid.UUID) (*models.SupplierCMRTReport, error)
+
+	// corrective_actions.go
+	CreateCorrectiveAction(ctx context.Context, ca *models.CorrectiveAction) error
+	GetCorrectiveActionByID(ctx context.Context, id uuid.UUID) (*models.CorrectiveAction, error)
+	ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error)
+	ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error)
+	UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error
 }

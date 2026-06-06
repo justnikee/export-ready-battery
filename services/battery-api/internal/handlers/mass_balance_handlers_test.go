@@ -98,6 +98,22 @@ func (f *fakeMassBalanceRepo) CreateRegistryAuditLog(ctx context.Context, a *mod
 func (f *fakeMassBalanceRepo) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) { return nil, nil }
 func (f *fakeMassBalanceRepo) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) { return nil, nil }
 func (f *fakeMassBalanceRepo) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) CreateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error { return nil }
+func (f *fakeMassBalanceRepo) GetSupplierRiskProfileBySupplier(ctx context.Context, supplierID uuid.UUID) (*models.SupplierRiskProfile, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) UpdateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error { return nil }
+func (f *fakeMassBalanceRepo) ListSupplierRiskProfilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) CreateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error { return nil }
+func (f *fakeMassBalanceRepo) GetDueDiligenceAssessmentsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.DueDiligenceAssessment, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetDueDiligenceAssessmentByID(ctx context.Context, id uuid.UUID) (*models.DueDiligenceAssessment, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) UpdateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error { return nil }
+func (f *fakeMassBalanceRepo) CreateSupplierCMRTReport(ctx context.Context, rep *models.SupplierCMRTReport) error { return nil }
+func (f *fakeMassBalanceRepo) GetSupplierCMRTReports(ctx context.Context, supplierID uuid.UUID) ([]models.SupplierCMRTReport, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetLatestSupplierCMRTReport(ctx context.Context, supplierID uuid.UUID) (*models.SupplierCMRTReport, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) CreateCorrectiveAction(ctx context.Context, ca *models.CorrectiveAction) error { return nil }
+func (f *fakeMassBalanceRepo) GetCorrectiveActionByID(ctx context.Context, id uuid.UUID) (*models.CorrectiveAction, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error { return nil }
 
 // ============================================================================
 // TESTS

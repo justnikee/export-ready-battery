@@ -1623,3 +1623,115 @@ func (m *MockRepository) UpdateSupplierDocumentStatus(ctx context.Context, id uu
 	args := m.Called(ctx, id, status, reviewerNotes, reviewedBy)
 	return args.Error(0)
 }
+
+
+// ============================================================================
+// Due Diligence Engine Mocks (Phase B)
+// ============================================================================
+
+func (m *MockRepository) CreateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error {
+	args := m.Called(ctx, p)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSupplierRiskProfileBySupplier(ctx context.Context, supplierID uuid.UUID) (*models.SupplierRiskProfile, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SupplierRiskProfile), args.Error(1)
+}
+
+func (m *MockRepository) UpdateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error {
+	args := m.Called(ctx, p)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListSupplierRiskProfilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]models.SupplierRiskProfile, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SupplierRiskProfile), args.Error(1)
+}
+
+func (m *MockRepository) CreateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error {
+	args := m.Called(ctx, a)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetDueDiligenceAssessmentsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.DueDiligenceAssessment, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.DueDiligenceAssessment), args.Error(1)
+}
+
+func (m *MockRepository) GetDueDiligenceAssessmentByID(ctx context.Context, id uuid.UUID) (*models.DueDiligenceAssessment, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DueDiligenceAssessment), args.Error(1)
+}
+
+func (m *MockRepository) UpdateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error {
+	args := m.Called(ctx, a)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateSupplierCMRTReport(ctx context.Context, rep *models.SupplierCMRTReport) error {
+	args := m.Called(ctx, rep)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetSupplierCMRTReports(ctx context.Context, supplierID uuid.UUID) ([]models.SupplierCMRTReport, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SupplierCMRTReport), args.Error(1)
+}
+
+func (m *MockRepository) GetLatestSupplierCMRTReport(ctx context.Context, supplierID uuid.UUID) (*models.SupplierCMRTReport, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SupplierCMRTReport), args.Error(1)
+}
+
+func (m *MockRepository) CreateCorrectiveAction(ctx context.Context, ca *models.CorrectiveAction) error {
+	args := m.Called(ctx, ca)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetCorrectiveActionByID(ctx context.Context, id uuid.UUID) (*models.CorrectiveAction, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CorrectiveAction), args.Error(1)
+}
+
+func (m *MockRepository) ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error) {
+	args := m.Called(ctx, tenantID, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.CorrectiveAction), args.Error(1)
+}
+
+func (m *MockRepository) ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error) {
+	args := m.Called(ctx, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.CorrectiveAction), args.Error(1)
+}
+
+func (m *MockRepository) UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error {
+	args := m.Called(ctx, id, status, remediatedAt, verifiedBy)
+	return args.Error(0)
+}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	supplierpkg "github.com/anvayalabs/battery-api/internal/compliance/supplier"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
@@ -77,6 +79,16 @@ func (h *Handler) InviteSupplier(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "failed to invite supplier")
 		return
 	}
+
+	// Auto-compute initial risk profile
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		calc := supplierpkg.NewRiskCalculator(h.repo)
+		if _, calcErr := calc.ComputeProfile(ctx, uuid.MustParse(supplier.ID), tenantID); calcErr != nil {
+			slog.Error("failed to compute initial risk profile", "error", calcErr, "supplier_id", supplier.ID)
+		}
+	}()
 
 	// Send invitation email
 	if h.emailService != nil {

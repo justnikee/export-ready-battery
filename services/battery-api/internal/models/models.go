@@ -403,6 +403,102 @@ type SupplierDocument struct {
 	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`
 }
 
+// ============================================================================
+// Due Diligence Engine Models (Phase B)
+// ============================================================================
+
+// SupplierRiskProfile stores auto-computed + manual-override risk scores.
+type SupplierRiskProfile struct {
+	ID              string     `db:"id" json:"id"`
+	SupplierID      string     `db:"supplier_id" json:"supplier_id"`
+	TenantID        string     `db:"tenant_id" json:"tenant_id"`
+	OverallScore    int        `db:"overall_score" json:"overall_score"`
+	CountryRiskTier int        `db:"country_risk_tier" json:"country_risk_tier"`
+	MineralRiskFlags []string  `db:"mineral_risk_flags" json:"mineral_risk_flags"`
+	RMAPValid       *bool      `db:"rmap_valid" json:"rmap_valid,omitempty"`
+	LastAuditDate   *time.Time `db:"last_audit_date" json:"last_audit_date,omitempty"`
+	NextAuditDue    *time.Time `db:"next_audit_due" json:"next_audit_due,omitempty"`
+	ComputedAt      time.Time  `db:"computed_at" json:"computed_at"`
+	CreatedAt       time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt       time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// DueDiligenceAssessment tracks OECD 5-step progress per supplier.
+type DueDiligenceAssessment struct {
+	ID           string     `db:"id" json:"id"`
+	SupplierID   string     `db:"supplier_id" json:"supplier_id"`
+	TenantID     string     `db:"tenant_id" json:"tenant_id"`
+	BatchID      *string    `db:"batch_id" json:"batch_id,omitempty"`
+	Step         string     `db:"step" json:"step"` // policy, identify, assess, respond, audit
+	Status       string     `db:"status" json:"status"` // not_started, in_progress, complete, failed
+	EvidenceDocs []string   `db:"evidence_docs" json:"evidence_docs"`
+	CompletedBy  *string    `db:"completed_by" json:"completed_by,omitempty"`
+	CompletedAt  *time.Time `db:"completed_at" json:"completed_at,omitempty"`
+	Notes        string     `db:"notes" json:"notes,omitempty"`
+	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`
+}
+
+// DDAssessmentTransitionRequest is the body for advancing an OECD step.
+type DDAssessmentTransitionRequest struct {
+	Status string `json:"status" validate:"required,oneof=in_progress complete failed"`
+	Notes  string `json:"notes,omitempty"`
+}
+
+// SupplierCMRTReport stores parsed CMRT/CRT Excel uploads.
+type SupplierCMRTReport struct {
+	ID               string                   `db:"id" json:"id"`
+	SupplierID       string                   `db:"supplier_id" json:"supplier_id"`
+	TenantID         string                   `db:"tenant_id" json:"tenant_id"`
+	ReportingYear    int                      `db:"reporting_year" json:"reporting_year"`
+	FileURL          string                   `db:"file_url" json:"file_url"`
+	Smelters         []map[string]interface{} `db:"smelters" json:"smelters"`
+	UnknownSmelters  int                      `db:"unknown_smelters" json:"unknown_smelters"`
+	RMIConformantPct *int                     `db:"rmi_conformant_pct" json:"rmi_conformant_pct,omitempty"`
+	ParsedAt         *time.Time               `db:"parsed_at" json:"parsed_at,omitempty"`
+	CreatedAt        time.Time                `db:"created_at" json:"created_at"`
+}
+
+// CMRTSmelter is a single smelter entry parsed from a CMRT report.
+type CMRTSmelter struct {
+	Name     string `json:"name"`
+	Country  string `json:"country"`
+	Mineral  string `json:"mineral"`
+	SmelterRef string `json:"smelter_ref,omitempty"`
+	RMIStatus string `json:"rmi_status,omitempty"` // conformant, active, no_longer_conformant, unknown
+}
+
+// CorrectiveAction tracks non-conformance remediation tickets.
+type CorrectiveAction struct {
+	ID            string     `db:"id" json:"id"`
+	SupplierID    string     `db:"supplier_id" json:"supplier_id"`
+	TenantID      string     `db:"tenant_id" json:"tenant_id"`
+	AssessmentID  *string    `db:"assessment_id" json:"assessment_id,omitempty"`
+	Title         string     `db:"title" json:"title"`
+	Description   string     `db:"description" json:"description"`
+	Severity      string     `db:"severity" json:"severity"` // low, medium, high, critical
+	Status        string     `db:"status" json:"status"` // open, remediated, verified, escalated, closed
+	DueDate       string     `db:"due_date" json:"due_date"` // YYYY-MM-DD
+	RemediatedAt  *time.Time `db:"remediated_at" json:"remediated_at,omitempty"`
+	VerifiedBy    *string    `db:"verified_by" json:"verified_by,omitempty"`
+	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
+}
+
+// CreateCorrectiveActionRequest is the body for POST /corrective-actions.
+type CreateCorrectiveActionRequest struct {
+	SupplierID   string `json:"supplier_id" validate:"required,uuid"`
+	AssessmentID string `json:"assessment_id,omitempty"`
+	Title        string `json:"title" validate:"required"`
+	Description  string `json:"description" validate:"required"`
+	Severity     string `json:"severity" validate:"required,oneof=low medium high critical"`
+	DueDate      string `json:"due_date" validate:"required"` // YYYY-MM-DD
+}
+
+// UpdateCorrectiveActionStatusRequest is the body for PUT /corrective-actions/{id}/status.
+type UpdateCorrectiveActionStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=open remediated verified escalated closed"`
+}
+
 // SupplierInvitationRequest is the body for POST /suppliers/invitations.
 type SupplierInvitationRequest struct {
 	Email        string `json:"email" validate:"required,email"`

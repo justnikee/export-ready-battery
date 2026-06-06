@@ -372,6 +372,17 @@ func main() {
 	mux.Handle("GET /api/v1/supplier/documents", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierDocuments)))
 
 	// ============================================
+	// DUE DILIGENCE ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/suppliers/{id}/risk-profile", authMiddleware.Protect(http.HandlerFunc(h.GetSupplierRiskProfile)))
+	mux.Handle("POST /api/v1/suppliers/{id}/dd-assessments", authMiddleware.Protect(http.HandlerFunc(h.CreateDueDiligenceAssessment)))
+	mux.Handle("GET /api/v1/suppliers/{id}/dd-assessments", authMiddleware.Protect(http.HandlerFunc(h.ListDueDiligenceAssessments)))
+	mux.Handle("POST /api/v1/dd-assessments/{id}/transition", authMiddleware.Protect(http.HandlerFunc(h.TransitionDueDiligenceAssessment)))
+	mux.Handle("GET /api/v1/corrective-actions", authMiddleware.Protect(http.HandlerFunc(h.ListCorrectiveActions)))
+	mux.Handle("POST /api/v1/corrective-actions", authMiddleware.Protect(http.HandlerFunc(h.CreateCorrectiveAction)))
+	mux.Handle("PUT /api/v1/corrective-actions/{id}/status", authMiddleware.Protect(http.HandlerFunc(h.UpdateCorrectiveActionStatus)))
+
+	// ============================================
 	// REGISTRY VERIFICATION ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/batches/{id}/verify-registry", authMiddleware.Protect(http.HandlerFunc(h.VerifyBatchRegistry)))
