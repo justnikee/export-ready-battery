@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -281,4 +282,70 @@ func (h *Handler) UpdateCorrectiveActionStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": req.Status})
+}
+
+// UploadEvidence handles POST /api/v1/dd-assessments/{id}/evidence
+func (h *Handler) UploadEvidence(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+
+	assessmentID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid assessment id")
+		return
+	}
+
+	// Verify assessment exists and belongs to tenant
+	assessment, err := h.repo.GetDueDiligenceAssessmentByID(r.Context(), assessmentID)
+	if err != nil || assessment == nil {
+		respondError(w, http.StatusNotFound, "assessment not found")
+		return
+	}
+	if assessment.TenantID != tenantIDStr {
+		respondError(w, http.StatusForbidden, "assessment does not belong to tenant")
+		return
+	}
+
+	// Parse multipart form (max 32MB)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		respondError(w, http.StatusBadRequest, "failed to parse form data")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "no file uploaded. Use 'file' field in multipart form")
+		return
+	}
+	defer file.Close()
+
+	// Upload to Supabase Storage
+	timestamp := time.Now().Unix()
+	filePath := fmt.Sprintf("evidence/%s/%s/%d_%s", assessment.TenantID, assessment.ID, timestamp, header.Filename)
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	if err := h.storageService.UploadReaderToBucket(r.Context(), "Exports", file, header.Size, filePath, contentType); err != nil {
+		slog.Error("failed to upload evidence", "error", err, "assessment_id", assessmentID)
+		respondError(w, http.StatusInternalServerError, "failed to upload file")
+		return
+	}
+
+	publicURL := h.storageService.PublicURL("Exports", filePath)
+
+	// Append to evidence_docs
+	assessment.EvidenceDocs = append(assessment.EvidenceDocs, publicURL)
+	assessment.UpdatedAt = time.Now()
+
+	if err := h.repo.UpdateDueDiligenceAssessment(r.Context(), assessment); err != nil {
+		slog.Error("failed to update assessment evidence", "error", err)
+		respondError(w, http.StatusInternalServerError, "failed to save evidence reference")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"url":          publicURL,
+		"evidence_docs": assessment.EvidenceDocs,
+	})
 }

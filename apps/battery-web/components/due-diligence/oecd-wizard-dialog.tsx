@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -30,6 +30,7 @@ import {
   useCreateDDAssessment,
   useTransitionDDAssessment,
   useSupplierRisk,
+  useUploadEvidence,
 } from "@/hooks/use-queries";
 
 const OECD_STEPS = [
@@ -49,10 +50,13 @@ interface OECDWizardDialogProps {
 
 export function OECDWizardDialog({ supplierId, supplierName, open, onOpenChange }: OECDWizardDialogProps) {
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [uploadingStep, setUploadingStep] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: assessments = [], isLoading: assessmentsLoading } = useDueDiligenceAssessments(supplierId);
   const { data: riskProfile } = useSupplierRisk(supplierId);
   const createAssessment = useCreateDDAssessment();
   const transitionAssessment = useTransitionDDAssessment();
+  const uploadEvidence = useUploadEvidence();
 
   const stepMap = useMemo(() => {
     const map: Record<string, typeof assessments[0]> = {};
@@ -280,10 +284,39 @@ export function OECDWizardDialog({ supplierId, supplierName, open, onOpenChange 
                         </Button>
                       )}
                       {assessment && (
-                        <Button size="sm" variant="ghost" className="text-muted-foreground" disabled title="Evidence upload coming soon">
-                          <Upload className="w-3.5 h-3.5 mr-1" />
-                          Upload Evidence
-                        </Button>
+                        <>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file || !assessment) return;
+                              setUploadingStep(step.key);
+                              try {
+                                await uploadEvidence.mutateAsync({ id: assessment.id, file });
+                                toast.success("Evidence uploaded");
+                              } catch {
+                                toast.error("Failed to upload evidence");
+                              } finally {
+                                setUploadingStep(null);
+                                if (fileInputRef.current) fileInputRef.current.value = "";
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-muted-foreground"
+                            disabled={uploadEvidence.isPending && uploadingStep === step.key}
+                            onClick={() => {
+                              if (fileInputRef.current) fileInputRef.current.click();
+                            }}
+                          >
+                            <Upload className="w-3.5 h-3.5 mr-1" />
+                            {uploadEvidence.isPending && uploadingStep === step.key ? "Uploading..." : "Upload Evidence"}
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
