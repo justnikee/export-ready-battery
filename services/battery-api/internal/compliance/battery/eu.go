@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
+	"github.com/google/uuid"
 )
 
 // Regulatory reference strings used in Gap objects for EU market.
@@ -23,7 +25,7 @@ const (
 
 // euTotalCheckpoints is the number of discrete hard rules evaluated
 // by the EU validator. Used as the denominator for the compliance score.
-const euTotalCheckpoints = 13
+const euTotalCheckpoints = 15
 
 // EUValidator validates battery batch and tenant data against the EU Battery
 // Regulation 2023/1542, covering carbon footprint disclosure (Art. 7),
@@ -317,6 +319,68 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 		addWarning("batch.specs.components",
 			"No component breakdown provided. EU Battery Regulation Art. 77 requires cell-level disclosure for batteries with sub-assemblies.",
 			euBatRegRef)
+	}
+
+	// ----------------------------------------------------------------
+	// Supplier risk profiling (EU 2023/1542 Art. 11 — Supply chain due diligence)
+	// ----------------------------------------------------------------
+
+	if v.repo != nil {
+		var supplierUUIDs []uuid.UUID
+		seen := map[string]struct{}{}
+		for _, comp := range batch.Specs.Components {
+			if comp.SupplierID != nil && *comp.SupplierID != "" {
+				if _, ok := seen[*comp.SupplierID]; !ok {
+					seen[*comp.SupplierID] = struct{}{}
+					if suid, err := uuid.Parse(*comp.SupplierID); err == nil {
+						supplierUUIDs = append(supplierUUIDs, suid)
+					}
+				}
+			}
+		}
+		if len(supplierUUIDs) > 0 {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			profiles, err := v.repo.GetSupplierRiskProfilesBySuppliers(ctx, batch.TenantID, supplierUUIDs)
+			if err != nil {
+				slog.Warn("eu validator: failed to load supplier risk profiles", "error", err, "batch_id", batch.ID)
+			} else {
+				profileMap := make(map[string]models.SupplierRiskProfile, len(profiles))
+				for _, p := range profiles {
+					profileMap[p.SupplierID] = p
+				}
+				for _, suid := range supplierUUIDs {
+					key := suid.String()
+					if prof, ok := profileMap[key]; ok {
+						if prof.OverallScore > 70 {
+							addError("batch.specs.components.supplier_risk",
+								fmt.Sprintf("Supplier %s has extreme risk score (%d/100). Country tier %d. Minerals: %v.",
+									key, prof.OverallScore, prof.CountryRiskTier, prof.MineralRiskFlags),
+								euArt11Ref)
+						} else if prof.OverallScore > 40 {
+							addWarning("batch.specs.components.supplier_risk",
+								fmt.Sprintf("Supplier %s has elevated risk score (%d/100). Country tier %d.",
+									key, prof.OverallScore, prof.CountryRiskTier),
+								euArt11Ref)
+						}
+						if prof.RMAPValid != nil && !*prof.RMAPValid {
+							addError("batch.specs.components.supplier_rmap",
+								fmt.Sprintf("Supplier %s does not have a valid RMAP audit.", key),
+								euArt11Ref)
+						}
+						if prof.NextAuditDue != nil && time.Now().After(*prof.NextAuditDue) {
+							addError("batch.specs.components.supplier_audit_overdue",
+								fmt.Sprintf("Supplier %s audit is overdue (due %s).", key, prof.NextAuditDue.Format("2006-01-02")),
+								euArt11Ref)
+						}
+					} else {
+						addError("batch.specs.components.supplier_risk",
+							fmt.Sprintf("Supplier %s has no risk profile. Run due diligence assessment.", key),
+							euArt11Ref)
+					}
+				}
+			}
+		}
 	}
 
 	// ----------------------------------------------------------------

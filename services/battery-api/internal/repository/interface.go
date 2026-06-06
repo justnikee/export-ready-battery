@@ -338,6 +338,7 @@ type RepositoryInterface interface {
 	GetSupplierRiskProfileBySupplier(ctx context.Context, supplierID uuid.UUID) (*models.SupplierRiskProfile, error)
 	UpdateSupplierRiskProfile(ctx context.Context, p *models.SupplierRiskProfile) error
 	ListSupplierRiskProfilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]models.SupplierRiskProfile, error)
+	GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error)
 
 	// due_diligence_assessments.go
 	CreateDueDiligenceAssessment(ctx context.Context, a *models.DueDiligenceAssessment) error

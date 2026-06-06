@@ -162,11 +162,11 @@ func (d *ddPDF) statusBadge(x, y float64, label string, status string) {
 // GenerateDueDiligenceReport generates the battery due diligence PDF.
 func GenerateDueDiligenceReport(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
 	tenant.EnsureBatteryProfile()
-	return generateBatteryDueDiligenceReport(batch, tenant)
+	return generateBatteryDueDiligenceReport(batch, tenant, nil)
 }
 
 // generateBatteryDueDiligenceReport creates the full battery due diligence PDF.
-func generateBatteryDueDiligenceReport(batch *models.Batch, tenant *models.Tenant) ([]byte, error) {
+func generateBatteryDueDiligenceReport(batch *models.Batch, tenant *models.Tenant, riskProfiles []models.SupplierRiskProfile) ([]byte, error) {
 	d := newDDPDF()
 
 	d.drawHeader(batch, tenant)
@@ -174,6 +174,7 @@ func generateBatteryDueDiligenceReport(batch *models.Batch, tenant *models.Tenan
 	d.drawMaterialComposition(batch.Specs)
 	d.drawCarbonFootprint(batch)
 	d.drawHazardousSubstances(batch.Specs)
+	d.drawSupplierRiskSummary(riskProfiles)
 	d.drawSupplyChain(batch, tenant)
 	d.drawCertifications(batch.Specs)
 	d.drawFooter(batch)
@@ -405,8 +406,64 @@ func (d *ddPDF) drawHazardousSubstances(specs models.BatchSpec) {
 	d.gap(4)
 }
 
+func (d *ddPDF) drawSupplierRiskSummary(profiles []models.SupplierRiskProfile) {
+	d.sectionTitle(5, "Supplier Risk Summary (OECD Due Diligence)")
+
+	if len(profiles) == 0 {
+		d.pdf.SetFont("Arial", "I", 9)
+		d.colSecondary()
+		d.pdf.SetXY(d.marginL+2, d.cursorY)
+		d.pdf.CellFormat(d.contentW, 6, "No supplier risk profiles available for this batch. Run risk assessment via the supplier portal.", "", 0, "L", false, 0, "")
+		d.cursorY += 8
+		d.colBlack()
+		return
+	}
+
+	// Table: Supplier | Country Tier | Risk Score | RMAP | Audit Status
+	colWidths := []float64{d.contentW * 0.35, d.contentW * 0.20, d.contentW * 0.20, d.contentW * 0.25}
+	d.tableRow([]string{"Supplier ID", "Country Tier", "Risk Score", "Audit Status"}, colWidths, true, true)
+
+	for i, p := range profiles {
+		tierLabel := fmt.Sprintf("Tier %d (low)", p.CountryRiskTier)
+		if p.CountryRiskTier == 2 {
+			tierLabel = "Tier 2 (medium)"
+		} else if p.CountryRiskTier == 3 {
+			tierLabel = "Tier 3 (high)"
+		} else if p.CountryRiskTier >= 4 {
+			tierLabel = "Tier 4 (extreme)"
+		}
+
+		scoreLabel := fmt.Sprintf("%d/100", p.OverallScore)
+		if p.OverallScore > 70 {
+			scoreLabel += " — HIGH RISK"
+		} else if p.OverallScore > 40 {
+			scoreLabel += " — ELEVATED"
+		} else {
+			scoreLabel += " — LOW"
+		}
+
+		auditStatus := "No audit data"
+		if p.RMAPValid != nil && *p.RMAPValid {
+			auditStatus = "RMAP Valid"
+		} else if p.RMAPValid != nil && !*p.RMAPValid {
+			auditStatus = "RMAP Missing"
+		}
+		if p.NextAuditDue != nil {
+			if time.Now().After(*p.NextAuditDue) {
+				auditStatus += " | OVERDUE"
+			} else {
+				auditStatus += fmt.Sprintf(" | Due %s", p.NextAuditDue.Format("2006-01-02"))
+			}
+		}
+
+		d.tableRow([]string{p.SupplierID, tierLabel, scoreLabel, auditStatus}, colWidths, false, i%2 == 0)
+	}
+
+	d.gap(4)
+}
+
 func (d *ddPDF) drawSupplyChain(batch *models.Batch, tenant *models.Tenant) {
-	d.sectionTitle(5, "Supply Chain & Responsible Sourcing")
+	d.sectionTitle(6, "Supply Chain & Responsible Sourcing")
 
 	// Manufacturer info
 	d.keyValue("Manufacturer", batch.Specs.Manufacturer)
@@ -478,7 +535,7 @@ func (d *ddPDF) drawSupplyChain(batch *models.Batch, tenant *models.Tenant) {
 }
 
 func (d *ddPDF) drawCertifications(specs models.BatchSpec) {
-	d.sectionTitle(6, "Certifications & Warranty")
+	d.sectionTitle(7, "Certifications & Warranty")
 
 	if len(specs.Certifications) == 0 && specs.WarrantyMonths == nil && specs.ExpectedLifetimeCycles == nil {
 		d.pdf.SetFont("Arial", "I", 9)

@@ -247,6 +247,7 @@ func (f *fakeLifecycleRepo) GetCorrectiveActionByID(ctx context.Context, id uuid
 func (f *fakeLifecycleRepo) ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeLifecycleRepo) ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeLifecycleRepo) UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error { return nil }
+func (f *fakeLifecycleRepo) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }
 
 func newLifecycleHandlerWithStatus(status string, teamRole string) (*LifecycleHandler, uuid.UUID) {
 	repo := newFakeLifecycleRepo()

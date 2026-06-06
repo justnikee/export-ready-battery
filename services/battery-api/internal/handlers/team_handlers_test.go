@@ -790,3 +790,4 @@ func (f *fakeTeamRepo) GetSupplierDocumentByID(ctx context.Context, id uuid.UUID
 func (f *fakeTeamRepo) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) { return nil, nil }
 func (f *fakeTeamRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }

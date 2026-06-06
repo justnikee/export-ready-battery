@@ -92,6 +92,7 @@ func (f *fakeDGFTRepo) GetCorrectiveActionByID(ctx context.Context, id uuid.UUID
 func (f *fakeDGFTRepo) ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeDGFTRepo) ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeDGFTRepo) UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error { return nil }
+func (f *fakeDGFTRepo) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }
 
 // ============================================================================
 // TESTS

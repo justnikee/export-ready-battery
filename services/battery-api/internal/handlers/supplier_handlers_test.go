@@ -198,6 +198,7 @@ func (f *fakeSupplierRepo) GetCorrectiveActionByID(ctx context.Context, id uuid.
 func (f *fakeSupplierRepo) ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeSupplierRepo) ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error) { return nil, nil }
 func (f *fakeSupplierRepo) UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error { return nil }
+func (f *fakeSupplierRepo) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }
 
 // ============================================================================
 // TEST HELPERS

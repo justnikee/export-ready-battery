@@ -1735,3 +1735,11 @@ func (m *MockRepository) UpdateCorrectiveActionStatus(ctx context.Context, id uu
 	args := m.Called(ctx, id, status, remediatedAt, verifiedBy)
 	return args.Error(0)
 }
+
+func (m *MockRepository) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) {
+	args := m.Called(ctx, tenantID, supplierIDs)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.SupplierRiskProfile), args.Error(1)
+}

@@ -97,6 +97,26 @@ func scanSupplierRiskProfiles(rows pgx.Rows) ([]models.SupplierRiskProfile, erro
 	return out, nil
 }
 
+// GetSupplierRiskProfilesBySuppliers returns risk profiles for multiple suppliers.
+func (r *Repository) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) {
+	if len(supplierIDs) == 0 {
+		return nil, nil
+	}
+	query := `
+		SELECT id, supplier_id, tenant_id, overall_score, country_risk_tier,
+			mineral_risk_flags, rmap_valid, last_audit_date, next_audit_due,
+			computed_at, created_at, updated_at
+		FROM supplier_risk_profiles
+		WHERE tenant_id = $1 AND supplier_id = ANY($2)
+	`
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, supplierIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query supplier risk profiles: %w", err)
+	}
+	defer rows.Close()
+	return scanSupplierRiskProfiles(rows)
+}
+
 func scanSupplierRiskProfileRow(row pgx.Row) (*models.SupplierRiskProfile, error) {
 	var p models.SupplierRiskProfile
 	err := row.Scan(

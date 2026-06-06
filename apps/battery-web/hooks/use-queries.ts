@@ -12,6 +12,9 @@ export const queryKeys = {
     billingBalance: () => ['billingBalance'] as const,
     billingPackages: () => ['billingPackages'] as const,
     apiKeys: () => ['apiKeys'] as const,
+    supplierRisk: (id: string) => ['supplierRisk', id] as const,
+    ddAssessments: (id: string) => ['ddAssessments', id] as const,
+    correctiveActions: () => ['correctiveActions'] as const,
 }
 
 // Batches hooks
@@ -166,6 +169,139 @@ export function useDeleteApiKey() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys() })
+        },
+    })
+}
+
+
+// ============================================================================
+// Due Diligence Engine hooks (Phase B)
+// ============================================================================
+
+export interface SupplierRiskProfile {
+    id: string;
+    supplier_id: string;
+    tenant_id: string;
+    overall_score: number;
+    country_risk_tier: number;
+    mineral_risk_flags: string[];
+    rmap_valid?: boolean;
+    last_audit_date?: string;
+    next_audit_due?: string;
+    computed_at: string;
+}
+
+export interface DueDiligenceAssessment {
+    id: string;
+    supplier_id: string;
+    tenant_id: string;
+    batch_id?: string;
+    step: string;
+    status: string;
+    evidence_docs: string[];
+    completed_by?: string;
+    completed_at?: string;
+    notes: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CorrectiveAction {
+    id: string;
+    supplier_id: string;
+    tenant_id: string;
+    assessment_id?: string;
+    title: string;
+    description: string;
+    severity: string;
+    status: string;
+    due_date: string;
+    remediated_at?: string;
+    verified_by?: string;
+    created_at: string;
+}
+
+export function useSupplierRisk(supplierId: string | undefined) {
+    return useQuery({
+        queryKey: queryKeys.supplierRisk(supplierId || ''),
+        queryFn: async () => {
+            const response = await api.get(`/suppliers/${supplierId}/risk-profile`)
+            return response.data as SupplierRiskProfile
+        },
+        enabled: !!supplierId,
+    })
+}
+
+export function useDueDiligenceAssessments(supplierId: string | undefined) {
+    return useQuery({
+        queryKey: queryKeys.ddAssessments(supplierId || ''),
+        queryFn: async () => {
+            const response = await api.get(`/suppliers/${supplierId}/dd-assessments`)
+            return (response.data || []) as DueDiligenceAssessment[]
+        },
+        enabled: !!supplierId,
+    })
+}
+
+export function useCorrectiveActions(status?: string) {
+    return useQuery({
+        queryKey: queryKeys.correctiveActions(),
+        queryFn: async () => {
+            const params = status ? `?status=${status}` : ''
+            const response = await api.get(`/corrective-actions${params}`)
+            return (response.data || []) as CorrectiveAction[]
+        },
+    })
+}
+
+export function useCreateDDAssessment() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async ({ supplierId, data }: { supplierId: string; data: { step: string; notes?: string } }) => {
+            const response = await api.post(`/suppliers/${supplierId}/dd-assessments`, data)
+            return response.data
+        },
+        onSuccess: (_, vars) => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.ddAssessments(vars.supplierId) })
+        },
+    })
+}
+
+export function useTransitionDDAssessment() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: { status: string; notes?: string } }) => {
+            const response = await api.post(`/dd-assessments/${id}/transition`, data)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ddAssessments'] })
+        },
+    })
+}
+
+export function useCreateCorrectiveAction() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (data: { supplier_id: string; title: string; description: string; severity: string; due_date: string; assessment_id?: string }) => {
+            const response = await api.post('/corrective-actions', data)
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.correctiveActions() })
+        },
+    })
+}
+
+export function useUpdateCAStatus() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async ({ id, status }: { id: string; status: string }) => {
+            const response = await api.put(`/corrective-actions/${id}/status`, { status })
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.correctiveActions() })
         },
     })
 }
