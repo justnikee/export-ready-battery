@@ -16,6 +16,7 @@ import {
   Shield,
   Activity,
   Building2,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { clsx } from "clsx";
@@ -45,6 +46,7 @@ const navGroups: NavGroup[] = [
     label: "Production",
     items: [
       { name: "Batches", href: "/dashboard/batches", icon: Box },
+      { name: "Print Station", href: "/dashboard/print-station", icon: Printer },
       { name: "Lifecycle", href: "/dashboard/lifecycle", icon: Activity },
       { name: "Templates", href: "/dashboard/templates", icon: LayoutTemplate },
     ],

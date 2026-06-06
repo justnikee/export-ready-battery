@@ -5,6 +5,14 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read",
+    "fs:allow-write",
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-appdata-read",
+    "fs:allow-appdata-write"
   ]
 }

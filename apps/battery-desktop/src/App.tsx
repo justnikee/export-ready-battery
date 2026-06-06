@@ -3,6 +3,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 
+// Phase D — Desktop Print Station
+import PrintStation from "@/pages/PrintStation";
+import CsvImport from "@/pages/CsvImport";
+
 // Placeholder pages — Phase 4 ports
 import Analytics from "@/pages/Analytics";
 import Batches from "@/pages/Batches";
@@ -41,6 +45,8 @@ function App() {
         <Route path="/dashboard/settings" element={<Settings />} />
         <Route path="/dashboard/developer" element={<Developer />} />
         <Route path="/dashboard/rewards" element={<Rewards />} />
+        <Route path="/dashboard/print-station" element={<PrintStation />} />
+        <Route path="/dashboard/print-station/csv-import" element={<CsvImport />} />
       </Route>
     </Routes>
   );
