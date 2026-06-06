@@ -34,6 +34,9 @@ export function StepIdentity() {
   const [isNlProcessing, setIsNlProcessing] = useState(false);
   const [cachedFiles, setCachedFiles] = useState(getCacheEntries());
 
+  // Track which fields were populated by AI so we can highlight them
+  const [aiPopulatedFields, setAiPopulatedFields] = useState<string[]>([]);
+
   // AbortControllers for cancellation
   const pdfAbortRef = useRef<AbortController | null>(null);
   const nlAbortRef = useRef<AbortController | null>(null);
@@ -167,32 +170,32 @@ export function StepIdentity() {
 
   const applyPdfResult = (result: DatasheetParseResult) => {
     // === Identity & Electrical ===
-    if (result.model_name) setValue("modelName", result.model_name);
-    if (result.chemistry) setValue("chemistry", result.chemistry as BatchFormData["chemistry"]);
-    if (result.capacity) setValue("capacity", result.capacity);
-    if (result.voltage) setValue("voltage", result.voltage);
-    if (result.weight) setValue("weight", result.weight);
-    if (result.manufacturer) setValue("manufacturer", result.manufacturer);
-    if (result.manufacturer_address) setValue("manufacturerAddress", result.manufacturer_address);
-    if (result.manufacturer_email) setValue("manufacturerEmail", result.manufacturer_email);
-    if (result.country_of_origin) setValue("countryOfOrigin", result.country_of_origin);
+    if (result.model_name) setValue("modelName", result.model_name, { shouldDirty: true });
+    if (result.chemistry) setValue("chemistry", result.chemistry as BatchFormData["chemistry"], { shouldDirty: true });
+    if (result.capacity) setValue("capacity", result.capacity, { shouldDirty: true });
+    if (result.voltage) setValue("voltage", result.voltage, { shouldDirty: true });
+    if (result.weight) setValue("weight", result.weight, { shouldDirty: true });
+    if (result.manufacturer) setValue("manufacturer", result.manufacturer, { shouldDirty: true });
+    if (result.manufacturer_address) setValue("manufacturerAddress", result.manufacturer_address, { shouldDirty: true });
+    if (result.manufacturer_email) setValue("manufacturerEmail", result.manufacturer_email, { shouldDirty: true });
+    if (result.country_of_origin) setValue("countryOfOrigin", result.country_of_origin, { shouldDirty: true });
 
     // === EU Compliance ===
-    if (result.ce_marking) setValue("ceMarking", true);
-    if (result.carbon_footprint) setValue("carbonFootprint", result.carbon_footprint);
-    if (result.carbon_performance_class) setValue("carbonPerformanceClass", result.carbon_performance_class);
-    if (result.notified_body_number) setValue("notifiedBodyNumber", result.notified_body_number);
-    if (result.eu_representative) setValue("euRepresentative", result.eu_representative);
-    if (result.eu_representative_email) setValue("euRepresentativeEmail", result.eu_representative_email);
-    if (result.eu_representative_address) setValue("euRepresentativeAddress", result.eu_representative_address);
-    if (result.removable_and_replaceable) setValue("removableAndReplaceable", true);
-    if (result.expected_lifetime_cycles) setValue("expectedLifetime", result.expected_lifetime_cycles);
-    if (result.warranty_months) setValue("warrantyMonths", result.warranty_months);
+    if (result.ce_marking) setValue("ceMarking", true, { shouldDirty: true });
+    if (result.carbon_footprint) setValue("carbonFootprint", result.carbon_footprint, { shouldDirty: true });
+    if (result.carbon_performance_class) setValue("carbonPerformanceClass", result.carbon_performance_class, { shouldDirty: true });
+    if (result.notified_body_number) setValue("notifiedBodyNumber", result.notified_body_number, { shouldDirty: true });
+    if (result.eu_representative) setValue("euRepresentative", result.eu_representative, { shouldDirty: true });
+    if (result.eu_representative_email) setValue("euRepresentativeEmail", result.eu_representative_email, { shouldDirty: true });
+    if (result.eu_representative_address) setValue("euRepresentativeAddress", result.eu_representative_address, { shouldDirty: true });
+    if (result.removable_and_replaceable) setValue("removableAndReplaceable", true, { shouldDirty: true });
+    if (result.expected_lifetime_cycles) setValue("expectedLifetime", result.expected_lifetime_cycles, { shouldDirty: true });
+    if (result.warranty_months) setValue("warrantyMonths", result.warranty_months, { shouldDirty: true });
 
     // === India Compliance ===
-    if (result.bis_number) setValue("bisNumber", result.bis_number);
-    if (result.epr_number) setValue("eprNumber", result.epr_number);
-    if (result.hsn_code) setValue("hsnCode", result.hsn_code);
+    if (result.bis_number) setValue("bisNumber", result.bis_number, { shouldDirty: true });
+    if (result.epr_number) setValue("eprNumber", result.epr_number, { shouldDirty: true });
+    if (result.hsn_code) setValue("hsnCode", result.hsn_code, { shouldDirty: true });
 
     // === Hazardous Substances ===
     const currentHS = watch("hazardousSubstances");
@@ -200,8 +203,8 @@ export function StepIdentity() {
       lead: result.hazardous_lead_present ?? currentHS.lead,
       mercury: result.hazardous_mercury_present ?? currentHS.mercury,
       cadmium: result.hazardous_cadmium_present ?? currentHS.cadmium,
-    });
-    if (result.hazardous_declaration) setValue("hazardousDeclaration", result.hazardous_declaration);
+    }, { shouldDirty: true });
+    if (result.hazardous_declaration) setValue("hazardousDeclaration", result.hazardous_declaration, { shouldDirty: true });
 
     // === Material Composition ===
     if (result.material_composition) {
@@ -219,14 +222,14 @@ export function StepIdentity() {
         recycled_lithium: result.recycled_lithium || current.recycled_lithium,
         recycled_nickel: result.recycled_nickel || current.recycled_nickel,
         recycled_lead: result.recycled_lead || current.recycled_lead,
-      });
+      }, { shouldDirty: true });
     }
-    if (result.recycled_content_pct) setValue("recycledContent", result.recycled_content_pct);
+    if (result.recycled_content_pct) setValue("recycledContent", result.recycled_content_pct, { shouldDirty: true });
 
     // === Certifications ===
     if (result.certifications?.length > 0) {
       const certs = result.certifications.map((c: string) => c.toUpperCase());
-      setValue("certifications", certs);
+      setValue("certifications", certs, { shouldDirty: true });
     }
 
     const r = result as unknown as Record<string, unknown>;
@@ -240,43 +243,68 @@ export function StepIdentity() {
   };
 
   const applyNlResult = (result: NLCreateResult) => {
-    if (result.batch_name) setValue("batchName", result.batch_name);
-    if (result.model_name) setValue("modelName", result.model_name);
-    if (result.chemistry) setValue("chemistry", result.chemistry as BatchFormData["chemistry"]);
-    if (result.capacity) setValue("capacity", result.capacity);
-    if (result.voltage) setValue("voltage", result.voltage);
-    if (result.weight) setValue("weight", result.weight);
+    const populated: string[] = [];
+
+    if (result.batch_name) {
+      setValue("batchName", result.batch_name, { shouldDirty: true });
+      populated.push("Batch Name");
+    }
+    if (result.model_name) {
+      setValue("modelName", result.model_name, { shouldDirty: true });
+      populated.push("Model Name");
+    }
+    if (result.chemistry) {
+      setValue("chemistry", result.chemistry as BatchFormData["chemistry"], { shouldDirty: true });
+      populated.push("Chemistry");
+    }
+    if (result.capacity) {
+      setValue("capacity", result.capacity, { shouldDirty: true });
+      populated.push("Capacity");
+    }
+    if (result.voltage) {
+      setValue("voltage", result.voltage, { shouldDirty: true });
+      populated.push("Voltage");
+    }
+    if (result.weight) {
+      setValue("weight", result.weight, { shouldDirty: true });
+      populated.push("Weight");
+    }
     if (result.market_region) {
-      setValue("marketRegion", result.market_region as BatchFormData["marketRegion"]);
+      setValue("marketRegion", result.market_region as BatchFormData["marketRegion"], { shouldDirty: true, shouldValidate: true });
+      populated.push("Market Region");
       // Update certifications based on market
       if (result.market_region === "INDIA") {
-        setValue("certifications", ["AIS-156", "AIS-038"]);
+        setValue("certifications", ["AIS-156", "AIS-038"], { shouldDirty: true });
       } else if (result.market_region === "EU") {
-        setValue("certifications", ["CE"]);
+        setValue("certifications", ["CE"], { shouldDirty: true });
       } else {
-        setValue("certifications", []);
+        setValue("certifications", [], { shouldDirty: true });
       }
     }
-    if (result.battery_category) setValue("batteryCategory", result.battery_category);
+    if (result.battery_category) {
+      setValue("batteryCategory", result.battery_category, { shouldDirty: true });
+      populated.push("Battery Category");
+    }
 
-    toast.success("Draft applied — review and adjust as needed");
+    setAiPopulatedFields(populated);
+    toast.success(`AI populated ${populated.length} field${populated.length > 1 ? "s" : ""}: ${populated.join(", ")}`);
     setAiMode("none");
     setNlResult(null);
     setNlText("");
   };
 
   const confidenceColor = (c: number) => {
-    if (c >= 0.8) return "text-emerald-500";
-    if (c >= 0.5) return "text-amber-500";
+    if (c >= 0.8) return "text-foreground";
+    if (c >= 0.5) return "text-muted-foreground";
     return "text-red-500";
   };
 
   return (
     <div className="space-y-6">
       {/* ===== AI ASSISTANT ===== */}
-      <div className="border border-purple-500/30 bg-purple-500/5 rounded-lg p-4 space-y-3">
-        <div className="flex items-center gap-2 text-purple-400 text-sm">
-          <Sparkles className="h-4 w-4" />
+      <div className="border border-border bg-muted/30 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2 text-foreground text-sm">
+          <Sparkles className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">AI Assistant</span>
           <span className="text-xs text-muted-foreground">Upload a datasheet or describe what you need</span>
         </div>
@@ -327,14 +355,14 @@ export function StepIdentity() {
                   </div>
                 )}
 
-                <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded cursor-pointer transition-colors ${isParsing ? "border-purple-500 bg-purple-500/10" : "border-border bg-background hover:bg-accent"}`}>
+                <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded cursor-pointer transition-colors ${isParsing ? "border-foreground bg-muted/50" : "border-border bg-background hover:bg-accent"}`}>
                   <div className="flex flex-col items-center justify-center py-4 w-full px-4">
                     {isParsing ? (
                       <div className="w-full space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                            <span className="text-xs text-purple-400">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
                               {parseStage === "hashing" && "Checking cache..."}
                               {parseStage === "extracting" && `Extracting page ${parseProgress?.currentPage ?? 0} of ${parseProgress?.totalPages ?? "?"}...`}
                               {parseStage === "parsing" && "Analyzing with AI..."}
@@ -347,15 +375,15 @@ export function StepIdentity() {
                               e.stopPropagation();
                               handleCancelParse();
                             }}
-                            className="p-1 hover:bg-purple-500/20 rounded transition-colors"
+                            className="p-1 hover:bg-muted rounded transition-colors"
                           >
-                            <X className="h-3 w-3 text-purple-400" />
+                            <X className="h-3 w-3 text-muted-foreground" />
                           </button>
                         </div>
                         {/* Progress bar */}
-                        <div className="w-full h-1.5 bg-purple-500/20 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-purple-400 rounded-full transition-all duration-300"
+                            className="h-full bg-foreground rounded-full transition-all duration-300"
                             style={{ width: `${parseProgress?.percent ?? (parseStage === "hashing" ? 5 : parseStage === "parsing" ? 90 : 50)}%` }}
                           />
                         </div>
@@ -393,7 +421,7 @@ export function StepIdentity() {
                   <span className="text-xs font-medium text-foreground">Parsed Results</span>
                   <div className="flex items-center gap-2">
                     {isFromCache && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground border border-border rounded">
                         Cached
                       </span>
                     )}
@@ -458,7 +486,7 @@ export function StepIdentity() {
                   {/* EU Compliance */}
                   {(parsedResult.ce_marking || parsedResult.carbon_footprint || parsedResult.eu_representative || parsedResult.removable_and_replaceable) && (
                     <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-blue-400 font-medium">EU Compliance</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">EU Compliance</div>
                       <div className="grid grid-cols-2 gap-1 text-xs">
                         {parsedResult.ce_marking !== undefined && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">CE Marking:</span> {parsedResult.ce_marking ? "Yes" : "No"}</div>}
                         {parsedResult.carbon_footprint && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Carbon:</span> {parsedResult.carbon_footprint}</div>}
@@ -472,7 +500,7 @@ export function StepIdentity() {
                   {/* India Compliance */}
                   {(parsedResult.bis_number || parsedResult.epr_number || parsedResult.hsn_code) && (
                     <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-orange-400 font-medium">India Compliance</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">India Compliance</div>
                       <div className="grid grid-cols-2 gap-1 text-xs">
                         {parsedResult.bis_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">BIS:</span> {parsedResult.bis_number}</div>}
                         {parsedResult.epr_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">EPR:</span> {parsedResult.epr_number}</div>}
@@ -487,7 +515,7 @@ export function StepIdentity() {
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Certifications</div>
                       <div className="flex flex-wrap gap-1">
                         {parsedResult.certifications.map((cert: string) => (
-                          <span key={cert} className="px-2 py-0.5 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
+                          <span key={cert} className="px-2 py-0.5 text-xs bg-muted text-muted-foreground border border-border rounded">
                             {cert}
                           </span>
                         ))}
@@ -532,7 +560,7 @@ export function StepIdentity() {
                   )}
                 </div>
                 {parsedResult.confidence < 0.5 && (
-                  <div className="flex items-center gap-2 text-[10px] text-amber-500">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                     <AlertTriangle className="h-3 w-3" />
                     Low confidence — please verify all fields before applying
                   </div>
@@ -598,57 +626,75 @@ export function StepIdentity() {
                 </Button>
               </>
             ) : (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-foreground">Draft Batch</div>
+              <div className="space-y-3 border border-border bg-muted/30 rounded-lg p-4 animate-in fade-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">AI Draft Preview</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground border border-border rounded">
+                    {Object.values(nlResult).filter(v => v !== null && v !== "" && v !== 0).length} fields detected
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {nlResult.batch_name && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Name:</span> {nlResult.batch_name}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Batch Name</span>
+                      <span className="text-foreground font-medium">{nlResult.batch_name}</span>
                     </div>
                   )}
                   {nlResult.model_name && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Model:</span> {nlResult.model_name}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Model</span>
+                      <span className="text-foreground font-medium">{nlResult.model_name}</span>
                     </div>
                   )}
                   {nlResult.chemistry && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Chemistry:</span> {nlResult.chemistry}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Chemistry</span>
+                      <span className="text-foreground font-medium">{nlResult.chemistry}</span>
                     </div>
                   )}
                   {nlResult.capacity && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Capacity:</span> {nlResult.capacity}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Capacity</span>
+                      <span className="text-foreground font-medium">{nlResult.capacity}</span>
                     </div>
                   )}
                   {nlResult.voltage && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Voltage:</span> {nlResult.voltage}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Voltage</span>
+                      <span className="text-foreground font-medium">{nlResult.voltage}</span>
                     </div>
                   )}
                   {nlResult.quantity && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Qty:</span> {nlResult.quantity}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Quantity</span>
+                      <span className="text-foreground font-medium">{nlResult.quantity}</span>
                     </div>
                   )}
                   {nlResult.market_region && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Market:</span> {nlResult.market_region}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Market</span>
+                      <span className="text-foreground font-medium">{nlResult.market_region}</span>
                     </div>
                   )}
                   {nlResult.battery_category && (
-                    <div className="p-2 bg-background border border-border rounded">
-                      <span className="text-muted-foreground">Category:</span> {nlResult.battery_category}
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Category</span>
+                      <span className="text-foreground font-medium">{nlResult.battery_category}</span>
                     </div>
                   )}
                 </div>
+
                 <div className="flex gap-2">
                   <Button type="button" size="sm" onClick={() => applyNlResult(nlResult)} className="flex-1">
-                    <Check className="mr-1 h-3 w-3" />
-                    Apply Draft
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Fill Form with These Values
                   </Button>
                   <Button type="button" variant="outline" size="sm" onClick={() => setNlResult(null)}>
-                    Try Again
+                    Try Different Description
                   </Button>
                 </div>
               </div>
@@ -656,6 +702,31 @@ export function StepIdentity() {
           </div>
         )}
       </div>
+
+      {/* ===== AI POPULATED BANNER ===== */}
+      {aiPopulatedFields.length > 0 && (
+        <div className="p-3 bg-muted/50 border border-border rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">AI populated {aiPopulatedFields.length} field{aiPopulatedFields.length > 1 ? "s" : ""}:</span>{" "}
+                <span className="opacity-80">{aiPopulatedFields.join(", ")}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAiPopulatedFields([])}
+              className="p-1 hover:bg-muted rounded transition-colors shrink-0"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground/70 mt-1 ml-6">
+            Review and adjust the highlighted fields below before proceeding.
+          </p>
+        </div>
+      )}
 
       {/* ===== MANUAL FORM ===== */}
       <div className="relative">
@@ -670,14 +741,14 @@ export function StepIdentity() {
       {/* Market Region */}
       <div className="grid gap-3">
         <Label className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-blue-500" />
+          <Globe className="h-4 w-4 text-muted-foreground" />
           Target Market <span className="text-red-500">*</span>
         </Label>
         <div className="grid grid-cols-3 gap-2">
           {([
-            { value: "INDIA" as const, label: "India", sub: "Battery Aadhaar", icon: Flag, color: "orange" },
-            { value: "EU" as const, label: "EU Export", sub: "Battery Passport", icon: Leaf, color: "blue" },
-            { value: "GLOBAL" as const, label: "Global", sub: "Both Markets", icon: Globe, color: "teal" },
+            { value: "INDIA" as const, label: "India", sub: "Battery Aadhaar", icon: Flag },
+            { value: "EU" as const, label: "EU Export", sub: "Battery Passport", icon: Leaf },
+            { value: "GLOBAL" as const, label: "Global", sub: "Both Markets", icon: Globe },
           ] as const).map((opt) => (
             <button
               key={opt.value}
@@ -694,7 +765,7 @@ export function StepIdentity() {
               }}
               className={`p-3 border-2 text-center transition-all ${
                 marketRegion === opt.value
-                  ? `border-${opt.color}-500 bg-${opt.color}-500/10 text-${opt.color}-400`
+                  ? "border-foreground bg-accent text-foreground"
                   : "border-border hover:border-border text-muted-foreground"
               }`}
             >
@@ -817,7 +888,7 @@ export function StepIdentity() {
       <div className="grid gap-2">
         <Label htmlFor="gtin" className="flex items-center gap-2">
           <span>GTIN (Global Trade Item Number)</span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded">GS1 Digital Link</span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground border border-border rounded">GS1 Digital Link</span>
         </Label>
         <Input
           id="gtin"

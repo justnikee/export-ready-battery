@@ -7,7 +7,7 @@ import { TemplatesDialog } from "@/components/batches/templates-dialog";
 import { BulkImportDialog } from "@/components/batches/bulk-import-dialog";
 import api from "@/lib/api";
 import { duplicateBatch } from "@/lib/api/batches";
-import { toApiError } from "@/lib/utils";
+import { toApiError, getApiErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -652,15 +652,26 @@ export default function BatchesPage() {
 
                           {batch.status === "ACTIVE" && (
                             <DropdownMenuItem
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
-                                const apiUrl =
-                                  process.env.NEXT_PUBLIC_API_URL ||
-                                  "http://localhost:8080/api/v1";
-                                window.open(
-                                  `${apiUrl}/batches/${batch.id}/labels?tenant_id=${user?.tenant_id}`,
-                                  "_blank",
-                                );
+                                try {
+                                  toast.loading("Generating labels...", { id: `labels-${batch.id}` });
+                                  const response = await api.get(`/batches/${batch.id}/labels`, {
+                                    responseType: "blob",
+                                  });
+                                  const url = window.URL.createObjectURL(new Blob([response.data]));
+                                  const link = document.createElement("a");
+                                  link.href = url;
+                                  link.setAttribute("download", `${batch.batch_name}_labels.pdf`);
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  link.remove();
+                                  window.URL.revokeObjectURL(url);
+                                  toast.success("Labels downloaded!", { id: `labels-${batch.id}` });
+                                } catch (error: unknown) {
+                                  const msg = await getApiErrorMessage(error, "Failed to download labels");
+                                  toast.error(msg, { id: `labels-${batch.id}` });
+                                }
                               }}
                               className="cursor-pointer text-foreground hover:bg-muted focus:bg-muted focus:text-foreground"
                             >

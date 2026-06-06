@@ -23,6 +23,7 @@ export default function PublicPassportPage() {
   const [errorKey, setErrorKey] = useState<
     "error_not_found" | "error_generic" | null
   >(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [locale, setLocale] = useState<Locale>("en");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -106,12 +107,23 @@ export default function PublicPassportPage() {
         recordScan(params.uuid as string);
       } catch (err: unknown) {
         console.error("Failed to fetch passport", err);
-        const apiError = err as { response?: { status?: number } };
-        setErrorKey(
-          apiError.response?.status === 404
-            ? "error_not_found"
-            : "error_generic",
-        );
+        const apiError = err as {
+          message?: string;
+          response?: {
+            status?: number;
+            statusText?: string;
+            data?: { error?: string };
+          };
+        };
+        const status = apiError.response?.status;
+        const backendMsg = apiError.response?.data?.error;
+        const detail = backendMsg
+          ? backendMsg
+          : apiError.response?.statusText
+            ? `${status} ${apiError.response.statusText}`
+            : apiError.message || "";
+        setErrorDetail(detail);
+        setErrorKey(status === 404 ? "error_not_found" : "error_generic");
       } finally {
         setLoading(false);
       }
@@ -153,7 +165,12 @@ export default function PublicPassportPage() {
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
           <h2 className="text-xl text-foreground mb-2">{t("error_title")}</h2>
-          <p className="text-muted-foreground mb-6">{t(errorKey)}</p>
+          <p className="text-muted-foreground mb-2">{t(errorKey)}</p>
+          {errorDetail && (
+            <p className="text-xs text-red-500 mb-6 font-mono break-all px-2 py-1 bg-red-500/10 rounded">
+              {errorDetail}
+            </p>
+          )}
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-background hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"

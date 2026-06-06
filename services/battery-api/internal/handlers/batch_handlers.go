@@ -367,7 +367,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to create batch")
+		respondError(w, http.StatusInternalServerError, "Failed to create batch: "+sanitizeDBError(err))
 		return
 	}
 

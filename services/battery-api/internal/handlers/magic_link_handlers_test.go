@@ -239,6 +239,19 @@ func (f *fakeMagicRepo) GetPassportIDsByBatch(ctx context.Context, batchID, tena
 	}
 	return passportIDs, nil
 }
+func (f *fakeMagicRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
+func (f *fakeMagicRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
+func (f *fakeMagicRepo) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) { return nil, nil }
+func (f *fakeMagicRepo) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) { return 0, nil }
+func (f *fakeMagicRepo) CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error { return nil }
+func (f *fakeMagicRepo) GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeMagicRepo) GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error) { return nil, nil }
+func (f *fakeMagicRepo) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeMagicRepo) UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error { return nil }
+func (f *fakeMagicRepo) CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error { return nil }
+func (f *fakeMagicRepo) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeMagicRepo) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeMagicRepo) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) { return nil, nil }
 
 func setupMagicLinkHandler(t *testing.T, status string, action string, role string) (*MagicLinkHandler, *fakeMagicRepo, *auth.MagicLinkToken, uuid.UUID) {
 	t.Helper()

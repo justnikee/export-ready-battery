@@ -7,7 +7,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { createExportJob } from "@/lib/api/exports";
 import { useAuth } from "@/context/auth-context";
-import { toApiError } from "@/lib/utils";
+import { toApiError, getApiErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -234,16 +234,14 @@ export default function BatchDetailsPage() {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
         toast.success("QR codes downloaded successfully!", {
           id: "qr-download",
         });
       } catch (error: unknown) {
-        const apiError = toApiError(error);
         console.error("Failed to download QR codes", error);
-        toast.error(
-          apiError.response?.data?.error || "Failed to download QR codes",
-          { id: "qr-download" },
-        );
+        const msg = await getApiErrorMessage(error, "Failed to download QR codes");
+        toast.error(msg, { id: "qr-download" });
       }
     }
   };
@@ -296,12 +294,13 @@ export default function BatchDetailsPage() {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
         toast.success("Labels downloaded successfully!", {
           id: "labels-download",
         });
       } catch (error: unknown) {
-        const apiError = toApiError(error);
         console.error("Failed to download labels", error);
+        const apiError = error as { response?: { status?: number; data?: unknown } };
         if (apiError.response?.status === 403) {
           const noun = true ? "Lot" : "Batch";
           toast.error(
@@ -313,10 +312,8 @@ export default function BatchDetailsPage() {
             },
           );
         } else {
-          toast.error(
-            apiError.response?.data?.error || "Failed to download labels",
-            { id: "labels-download" },
-          );
+          const msg = await getApiErrorMessage(error, "Failed to download labels");
+          toast.error(msg, { id: "labels-download" });
         }
       }
     }
@@ -325,6 +322,7 @@ export default function BatchDetailsPage() {
   const handleExportCSV = async () => {
     if (!batch) return;
     try {
+      toast.loading("Generating CSV export...", { id: "csv-export" });
       const response = await api.get(`/batches/${params.id}/export`, {
         responseType: "blob",
       });
@@ -336,9 +334,12 @@ export default function BatchDetailsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV export downloaded successfully!", { id: "csv-export" });
+    } catch (error: unknown) {
       console.error("Failed to export CSV", error);
-      alert("Failed to export CSV");
+      const msg = await getApiErrorMessage(error, "Failed to export CSV");
+      toast.error(msg, { id: "csv-export" });
     }
   };
 
@@ -394,8 +395,8 @@ export default function BatchDetailsPage() {
         { id: "dd-download" },
       );
     } catch (error: unknown) {
-      const apiError = toApiError(error);
       console.error("Failed to download due diligence report", error);
+      const apiError = error as { response?: { status?: number; data?: unknown } };
       if (apiError.response?.status === 403) {
         toast.error(
           isTextile
@@ -404,13 +405,13 @@ export default function BatchDetailsPage() {
           { id: "dd-download" },
         );
       } else {
-        toast.error(
-          apiError.response?.data?.error ||
-            (isTextile
-              ? "Failed to download textile due diligence report"
-              : "Failed to download Due Diligence Report"),
-          { id: "dd-download" },
+        const msg = await getApiErrorMessage(
+          error,
+          isTextile
+            ? "Failed to download textile due diligence report"
+            : "Failed to download Due Diligence Report",
         );
+        toast.error(msg, { id: "dd-download" });
       }
     }
   };
@@ -443,18 +444,15 @@ export default function BatchDetailsPage() {
         id: "cd-download",
       });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
       console.error("Failed to download compliance declaration", error);
+      const apiError = error as { response?: { status?: number; data?: unknown } };
       if (apiError.response?.status === 400) {
         toast.error(complianceDeclarationMissingDataMessage, {
           id: "cd-download",
         });
       } else {
-        toast.error(
-          apiError.response?.data?.error ||
-            "Failed to download Compliance Declaration",
-          { id: "cd-download" },
-        );
+        const msg = await getApiErrorMessage(error, "Failed to download Compliance Declaration");
+        toast.error(msg, { id: "cd-download" });
       }
     }
   };
@@ -482,12 +480,8 @@ export default function BatchDetailsPage() {
       window.URL.revokeObjectURL(url);
       toast.success("Compliance Report downloaded!", { id: "cr-download" });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
-      toast.error(
-        apiError.response?.data?.error ||
-          "Failed to download Compliance Report",
-        { id: "cr-download" },
-      );
+      const msg = await getApiErrorMessage(error, "Failed to download Compliance Report");
+      toast.error(msg, { id: "cr-download" });
     }
   };
 

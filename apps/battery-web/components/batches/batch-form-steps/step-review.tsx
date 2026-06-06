@@ -21,7 +21,7 @@ function Row({ label, value, warning }: { label: string; value: React.ReactNode;
       <span className="text-muted-foreground">{label}</span>
       <div className="text-right">
         <span className="font-medium">{value || <span className="text-muted-foreground italic">—</span>}</span>
-        {warning && <p className="text-[10px] text-amber-500 flex items-center gap-1 justify-end"><AlertTriangle className="h-3 w-3" />{warning}</p>}
+        {warning && <p className="text-[10px] text-muted-foreground flex items-center gap-1 justify-end"><AlertTriangle className="h-3 w-3" />{warning}</p>}
       </div>
     </div>
   );
@@ -84,7 +84,7 @@ export function StepReview() {
           <Row label="EU Representative" value={values.euRepresentative} />
           <Row label="Lifetime" value={values.expectedLifetime ? `${values.expectedLifetime} cycles` : ""} />
           <Row label="Warranty" value={values.warrantyMonths ? `${values.warrantyMonths} months` : ""} />
-          <Row label="DoC Upload" value={values.docUploadUrl ? <span className="text-emerald-500 flex items-center gap-1"><FileCheck className="h-3 w-3" /> Uploaded</span> : "Not uploaded"} />
+          <Row label="DoC Upload" value={values.docUploadUrl ? <span className="text-foreground flex items-center gap-1"><FileCheck className="h-3 w-3" /> Uploaded</span> : "Not uploaded"} />
         </Section>
       )}
 
@@ -117,7 +117,7 @@ export function StepReview() {
             type="checkbox"
             id="saveAsTemplate"
             {...register("saveAsTemplate")}
-            className="h-4 w-4 rounded border-border bg-transparent text-teal-500 focus:ring-teal-500"
+            className="h-4 w-4 rounded border-border bg-transparent text-foreground focus:ring-foreground"
           />
           <Label htmlFor="saveAsTemplate" className="font-normal cursor-pointer flex items-center gap-2 text-foreground">
             <Save className="h-4 w-4 text-muted-foreground" />

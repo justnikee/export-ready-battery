@@ -65,25 +65,29 @@ export function StepCompliance({
     if (!file) return;
     if (file.size > 5242880) {
       toast.error("File size must be less than 5MB");
+      e.target.value = "";
       return;
     }
     if (file.type !== "application/pdf") {
       toast.error("Only PDF files are allowed");
+      e.target.value = "";
       return;
     }
-    uploadFn(file);
+    uploadFn(file).finally(() => {
+      e.target.value = "";
+    });
   };
 
   return (
     <div className="space-y-6">
       {/* ===== EU COMPLIANCE ===== */}
       {(isEUMode || marketRegion === "GLOBAL") && (
-        <div className="p-4 border border-blue-500/30 bg-blue-500/10 space-y-4">
-          <div className="flex items-center gap-2 text-blue-400 text-sm">
-            <Leaf className="h-4 w-4" />
+        <div className="p-4 border border-border bg-muted/30 space-y-4">
+          <div className="flex items-center gap-2 text-foreground text-sm">
+            <Leaf className="h-4 w-4 text-muted-foreground" />
             EU Compliance Fields
             {isEUMode && (
-              <span className="text-xs bg-blue-500/20 px-2 py-0.5 rounded">Required</span>
+              <span className="text-xs bg-muted px-2 py-0.5 rounded border border-border">Required</span>
             )}
           </div>
 
@@ -103,10 +107,10 @@ export function StepCompliance({
 
           {/* Recycled Content per Material */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-emerald-500 text-xs border-b border-emerald-500/20 pb-1">
-              <Leaf className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+              <Leaf className="h-3.5 w-3.5 text-muted-foreground" />
               Recycled Content per Material (%)
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded">EU Art. 8</span>
+              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded border border-border">EU Art. 8</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {([
@@ -117,7 +121,7 @@ export function StepCompliance({
               ]).map(({ key, label, target }) => (
                 <div key={key} className="grid gap-1">
                   <Label htmlFor={key} className="text-xs text-muted-foreground">
-                    {label} <span className="text-[10px] text-emerald-500">({target})</span>
+                    {label} <span className="text-[10px] text-muted-foreground">({target})</span>
                   </Label>
                   <Input
                     id={key}
@@ -136,8 +140,8 @@ export function StepCompliance({
 
           {/* EU Representative */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-blue-400 text-xs border-b border-blue-500/20 pb-1">
-              <Users className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
               Responsible Supply Chain
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -158,8 +162,8 @@ export function StepCompliance({
 
           {/* Sustainability & Safety */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-blue-400 text-xs border-b border-blue-500/20 pb-1">
-              <Shield className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+              <Shield className="h-3.5 w-3.5 text-muted-foreground" />
               Sustainability & Safety
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -184,7 +188,7 @@ export function StepCompliance({
                       type="checkbox"
                       id={`haz-${key}`}
                       {...register(`hazardousSubstances.${key}`)}
-                      className="h-3.5 w-3.5 rounded border-border bg-transparent text-blue-500 focus:ring-blue-500"
+                      className="h-3.5 w-3.5 rounded border-border bg-transparent text-foreground focus:ring-foreground"
                     />
                     <Label htmlFor={`haz-${key}`} className="text-xs capitalize font-normal cursor-pointer text-foreground">
                       {key}
@@ -202,20 +206,20 @@ export function StepCompliance({
 
           {/* EU Battery Regulation Art. 7+ */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-blue-400 text-xs border-b border-blue-500/20 pb-1">
-              <Shield className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+              <Shield className="h-3.5 w-3.5 text-muted-foreground" />
               EU Battery Regulation Art. 7+
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1">
                 <Label htmlFor="carbonPerformanceClass" className="text-xs text-muted-foreground">Carbon Performance Class</Label>
-                <Select value={watch("carbonPerformanceClass")} onValueChange={(v) => setValue("carbonPerformanceClass", v)}>
+                <Select value={watch("carbonPerformanceClass")} onValueChange={(v) => setValue("carbonPerformanceClass", v, { shouldValidate: true, shouldDirty: true })}>
                   <SelectTrigger id="carbonPerformanceClass" className={`h-8 text-xs bg-transparent ${errors.carbonPerformanceClass ? "border-red-500" : "border-border"}`}>
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {["A","B","C","D","E","F","G"].map((c) => (
-                      <SelectItem key={c} value={c}>{c} {c === "A" ? "— Best" : c === "G" ? "— Worst" : ""}</SelectItem>
+                    {["A","B","C","D","E"].map((c) => (
+                      <SelectItem key={c} value={c}>{c} {c === "A" ? "— Best" : c === "E" ? "— Worst" : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -229,19 +233,19 @@ export function StepCompliance({
 
             <div className="flex gap-4">
               <div className="flex items-center space-x-2">
-                <input type="checkbox" id="ceMarking" {...register("ceMarking")} className="h-3.5 w-3.5 rounded border-border bg-transparent text-blue-500 focus:ring-blue-500" />
+                <input type="checkbox" id="ceMarking" {...register("ceMarking")} className="h-3.5 w-3.5 rounded border-border bg-transparent text-foreground focus:ring-foreground" />
                 <Label htmlFor="ceMarking" className="text-xs font-normal cursor-pointer text-foreground">CE Marking</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <input type="checkbox" id="removableReplaceable" {...register("removableAndReplaceable")} className="h-3.5 w-3.5 rounded border-border bg-transparent text-blue-500 focus:ring-blue-500" />
+                <input type="checkbox" id="removableReplaceable" {...register("removableAndReplaceable")} className="h-3.5 w-3.5 rounded border-border bg-transparent text-foreground focus:ring-foreground" />
                 <Label htmlFor="removableReplaceable" className="text-xs font-normal cursor-pointer text-foreground">Removable & Replaceable</Label>
               </div>
             </div>
 
             {/* Certification Dates */}
             <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-2 text-blue-400 text-xs border-b border-blue-500/20 pb-1">
-                <Calendar className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 Certificate Dates
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -260,16 +264,16 @@ export function StepCompliance({
             <div className="grid gap-1 pt-1">
               <Label className="text-xs text-muted-foreground">Declaration of Conformity (PDF)</Label>
               {!docUploadUrl ? (
-                <label className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed cursor-pointer transition-colors ${isUploading ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:bg-accent"}`}>
+                <label className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed cursor-pointer transition-colors ${isUploading ? "border-foreground bg-muted/50" : "border-border bg-background hover:bg-accent"}`}>
                   <div className="flex flex-col items-center justify-center pt-4 pb-4">
                     {isUploading ? (
                       <>
                         <div className="w-full px-8 mb-2">
                           <div className="w-full bg-muted rounded-full h-2">
-                            <div className="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                            <div className="bg-foreground h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                           </div>
                         </div>
-                        <p className="text-xs text-emerald-400">Uploading... ({uploadProgress}%)</p>
+                        <p className="text-xs text-muted-foreground">Uploading... ({uploadProgress}%)</p>
                       </>
                     ) : (
                       <>
@@ -282,12 +286,12 @@ export function StepCompliance({
                   <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => handleFileChange(e, onDocUpload)} />
                 </label>
               ) : (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-200 rounded">
+                <div className="p-3 bg-muted/50 border border-border rounded">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-emerald-500">DoC uploaded</span>
+                    <span className="text-sm text-foreground flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> DoC uploaded</span>
                     <div className="flex gap-2">
-                      <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-emerald-100 text-emerald-500 rounded hover:bg-emerald-200 transition-colors">View</a>
-                      <button type="button" onClick={() => setValue("docUploadUrl", null)} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Remove</button>
+                      <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-accent transition-colors border border-border">View</a>
+                      <button type="button" onClick={() => setValue("docUploadUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Remove</button>
                     </div>
                   </div>
                 </div>
@@ -298,12 +302,12 @@ export function StepCompliance({
       )}
 
       {/* ===== INDIA COMPLIANCE ===== */}
-      {isIndiaMode && (
-        <div className="p-4 border border-orange-500/30 bg-orange-500/10 space-y-4">
-          <div className="flex items-center gap-2 text-orange-400 text-sm">
-            <Shield className="h-4 w-4" />
+      {(isIndiaMode || marketRegion === "GLOBAL") && (
+        <div className="p-4 border border-border bg-muted/30 space-y-4">
+          <div className="flex items-center gap-2 text-foreground text-sm">
+            <Shield className="h-4 w-4 text-muted-foreground" />
             India Compliance Fields
-            <span className="text-xs bg-orange-500/20 px-2 py-0.5 rounded">Required</span>
+            <span className="text-xs bg-muted px-2 py-0.5 rounded border border-border">Required</span>
           </div>
 
           {/* HSN Code */}
@@ -334,8 +338,8 @@ export function StepCompliance({
 
           {/* Certification Dates */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-2 text-orange-400 text-xs border-b border-orange-500/20 pb-1">
-              <Calendar className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2 text-foreground text-xs border-b border-border pb-1">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               Certificate Dates
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -367,10 +371,10 @@ export function StepCompliance({
                     <button
                       key={mode}
                       type="button"
-                      onClick={() => setValue("dvaSource", mode)}
+                      onClick={() => setValue("dvaSource", mode, { shouldValidate: true, shouldDirty: true })}
                       className={`flex-1 p-2 text-xs border transition-colors ${
                         dvaSource === mode
-                          ? "border-indigo-500 bg-indigo-500/10 text-indigo-400"
+                          ? "border-foreground bg-accent text-foreground"
                           : "border-border text-muted-foreground hover:bg-accent"
                       }`}
                     >
@@ -404,16 +408,16 @@ export function StepCompliance({
                       CA Certificate (PDF) <span className="text-red-500">*</span>
                     </Label>
                     {!uploadedFileUrl ? (
-                      <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed cursor-pointer transition-colors ${errors.uploadedFileUrl ? "border-red-500 bg-red-500/10" : isUploading ? "border-emerald-500 bg-emerald-500/10" : "border-border bg-background hover:bg-accent"}`}>
+                      <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed cursor-pointer transition-colors ${errors.uploadedFileUrl ? "border-red-500 bg-red-500/10" : isUploading ? "border-foreground bg-muted/50" : "border-border bg-background hover:bg-accent"}`}>
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           {isUploading ? (
                             <>
                               <div className="w-full px-8 mb-3">
                                 <div className="w-full bg-muted rounded-full h-2">
-                                  <div className="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                  <div className="bg-foreground h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                                 </div>
                               </div>
-                              <p className="text-sm text-emerald-400">Uploading... ({uploadProgress}%)</p>
+                              <p className="text-sm text-muted-foreground">Uploading... ({uploadProgress}%)</p>
                             </>
                           ) : (
                             <>
@@ -426,18 +430,18 @@ export function StepCompliance({
                         <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => handleFileChange(e, onCertificateUpload)} />
                       </label>
                     ) : (
-                      <div className="p-4 bg-emerald-500/10 border border-emerald-200">
+                      <div className="p-4 bg-muted/50 border border-border">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-emerald-500" />
+                            <FileText className="h-5 w-5 text-muted-foreground" />
                             <div>
-                              <p className="text-sm font-medium text-emerald-500">Certificate Uploaded</p>
-                              <p className="text-xs text-emerald-500">Ready for submission</p>
+                              <p className="text-sm font-medium text-foreground">Certificate Uploaded</p>
+                              <p className="text-xs text-muted-foreground">Ready for submission</p>
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-emerald-100 text-emerald-500 rounded hover:bg-emerald-200 transition-colors">View File</a>
-                            <button type="button" onClick={() => setValue("uploadedFileUrl", null)} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Replace</button>
+                            <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-accent transition-colors border border-border">View File</a>
+                            <button type="button" onClick={() => setValue("uploadedFileUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Replace</button>
                           </div>
                         </div>
                       </div>
@@ -448,7 +452,7 @@ export function StepCompliance({
               ) : (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center gap-2 text-sm text-foreground">
-                    <Calculator className="h-4 w-4 text-indigo-400" />
+                    <Calculator className="h-4 w-4 text-muted-foreground" />
                     Indicative DVA Estimator
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -465,7 +469,7 @@ export function StepCompliance({
                     <div className="space-y-2">
                       <div className={`p-3 rounded border text-center text-sm ${
                         ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100 >= 50
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                          ? "bg-muted/50 border-foreground/30 text-foreground"
                           : "bg-red-500/10 border-red-500/30 text-red-400"
                       }`}>
                         Estimated DVA: {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100).toFixed(1)}%
@@ -473,9 +477,9 @@ export function StepCompliance({
                           {((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100 >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
                         </span>
                       </div>
-                      <div className="p-3 bg-amber-500/10 border border-amber-200 text-amber-800 text-xs flex gap-2 items-start">
-                        <Activity className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                        <span><strong>Note:</strong> This is an estimated value based on raw material costs. Final PLI eligibility requires certification by a Chartered Accountant.</span>
+                      <div className="p-3 bg-muted/30 border border-border text-muted-foreground text-xs flex gap-2 items-start">
+                        <Activity className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <span><strong className="text-foreground">Note:</strong> This is an estimated value based on raw material costs. Final PLI eligibility requires certification by a Chartered Accountant.</span>
                       </div>
                     </div>
                   )}
@@ -489,23 +493,34 @@ export function StepCompliance({
             <Label htmlFor="cellSource" className="text-foreground">
               Cell Source <span className="text-red-500">*</span>
             </Label>
-            <select
-              id="cellSource"
-              value={cellSource}
-              onChange={(e) => {
-                setValue("cellSource", e.target.value as "IMPORTED" | "DOMESTIC" | "");
-                if (e.target.value === "IMPORTED") {
-                  setValue("pliCompliant", false);
+            <Select
+              value={cellSource || undefined}
+              onValueChange={(v) => {
+                setValue("cellSource", v as "IMPORTED" | "DOMESTIC", {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+                if (v === "IMPORTED") {
+                  setValue("pliCompliant", false, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
                 }
               }}
-              className={`flex h-10 w-full border px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 ${
-                errors.cellSource ? "border-red-500 bg-transparent" : "border-border bg-transparent"
-              }`}
             >
-              <option value="">-- Select Cell Source --</option>
-              <option value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</option>
-              <option value="IMPORTED">📦 Imported (Requires IEC Code)</option>
-            </select>
+              <SelectTrigger
+                id="cellSource"
+                className={`h-10 text-sm bg-transparent ${
+                  errors.cellSource ? "border-red-500" : "border-border"
+                }`}
+              >
+                <SelectValue placeholder="-- Select Cell Source --" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DOMESTIC">🏭 Domestic (Enables DVA Calculator)</SelectItem>
+                <SelectItem value="IMPORTED">📦 Imported (Requires IEC Code)</SelectItem>
+              </SelectContent>
+            </Select>
             {errors.cellSource ? (
               <p className="text-[10px] text-red-500">{errors.cellSource.message}</p>
             ) : (
@@ -521,15 +536,15 @@ export function StepCompliance({
                 id="pliCompliant"
                 {...register("pliCompliant")}
                 disabled={cellSource === "IMPORTED"}
-                className={`h-4 w-4 rounded border-border bg-transparent text-orange-500 focus:ring-orange-500 ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`h-4 w-4 rounded border-border bg-transparent text-foreground focus:ring-foreground ${cellSource === "IMPORTED" ? "opacity-50 cursor-not-allowed" : ""}`}
               />
               <Label htmlFor="pliCompliant" className={`font-normal cursor-pointer text-foreground ${cellSource === "IMPORTED" ? "opacity-50" : ""}`}>
                 PLI Subsidy Eligible
               </Label>
             </div>
             {cellSource === "IMPORTED" && (
-              <div className="p-2 bg-amber-500/10 border border-amber-200 rounded text-amber-800 text-xs flex gap-2 items-start">
-                <Activity className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+              <div className="p-2 bg-muted/30 border border-border rounded text-muted-foreground text-xs flex gap-2 items-start">
+                <Activity className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <span>⚠️ Imported cells typically constitute &gt;60% of cost, making the batch ineligible for PLI (Requires ≥50% Local Value Add).</span>
               </div>
             )}
@@ -537,11 +552,11 @@ export function StepCompliance({
 
           {/* Customs Declaration for Imported */}
           {cellSource === "IMPORTED" && (
-            <div className="mt-4 p-4 border border-amber-200 bg-amber-500/10 space-y-4">
-              <div className="flex items-center gap-2 text-amber-500 text-sm">
-                <FileText className="h-4 w-4" />
+            <div className="mt-4 p-4 border border-border bg-muted/30 space-y-4">
+              <div className="flex items-center gap-2 text-foreground text-sm">
+                <FileText className="h-4 w-4 text-muted-foreground" />
                 Customs Declaration
-                <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded">Required</span>
+                <span className="text-xs bg-muted text-foreground px-2 py-0.5 rounded border border-border">Required</span>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -563,7 +578,7 @@ export function StepCompliance({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="customsDate" className="flex items-center gap-2 text-foreground">
-                  <Calendar className="h-4 w-4 text-amber-400" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   Import Date <span className="text-red-500">*</span>
                 </Label>
                 <Input id="customsDate" type="date" {...register("customsDate")} className={`max-w-50 bg-transparent text-foreground ${errors.customsDate ? "border-red-500" : "border-border"}`} />

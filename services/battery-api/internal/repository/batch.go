@@ -111,7 +111,7 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		string(productType),
 		batch.SchemaVersion,
 		batch.CEMarking,
-		batch.CarbonPerformanceClass,
+		nullIfEmpty(batch.CarbonPerformanceClass),
 		batch.RemovableAndReplaceable,
 		batch.NotifiedBodyNumber,
 		batch.DeclarationOfConformityPath,

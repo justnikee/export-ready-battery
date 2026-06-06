@@ -48,6 +48,9 @@ func main() {
 	// Initialize repository
 	repo := repository.New(database)
 
+	// Initialize registry worker pool (async verification jobs)
+	registryWorkerPool := jobs.NewRegistryWorkerPool(repo, cfg)
+
 	// Start background anchor upgrade ticker (every 30 minutes)
 	jobs.StartAnchorUpgradeTicker(repo, 30*time.Minute)
 
@@ -59,6 +62,9 @@ func main() {
 
 	// Start background daily alert ticker (every 24 hours)
 	jobs.StartDailyAlertTicker(alertService, 24*time.Hour)
+
+	// Start registry worker pool (async registry verification)
+	registryWorkerPool.Start()
 
 	// Initialize data access service
 	dataAccessService := services.NewDataAccessService(repo)
@@ -97,7 +103,7 @@ func main() {
 	// Initialize handlers
 	// =========================================================================
 	// Initialize registry verification service
-	registryVerificationService := services.NewRegistryVerificationService(repo)
+	registryVerificationService := services.NewRegistryVerificationService(repo, cfg)
 
 	// Initialize storage service (if Supabase credentials are available)
 	var storageService *services.StorageService
@@ -759,6 +765,9 @@ func main() {
 	// Wait for shutdown signal
 	<-done
 	slog.Info("Shutting down server...")
+
+	// Stop registry worker pool gracefully
+	registryWorkerPool.Stop()
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

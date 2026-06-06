@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/config"
 	"github.com/anvayalabs/battery-api/internal/integrations/registry"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
@@ -14,22 +15,35 @@ import (
 
 // RegistryVerificationService orchestrates external registry checks.
 type RegistryVerificationService struct {
-	repo      repository.RepositoryInterface
-	adapters  *registry.AdapterRegistry
-	cacheTTL  time.Duration
+	repo     repository.RepositoryInterface
+	adapters *registry.AdapterRegistry
+	cfg      *config.Config
+	cacheTTL time.Duration
 }
 
 // NewRegistryVerificationService creates the service.
-func NewRegistryVerificationService(repo repository.RepositoryInterface) *RegistryVerificationService {
+func NewRegistryVerificationService(repo repository.RepositoryInterface, cfg *config.Config) *RegistryVerificationService {
+	regCfg := registry.RegistryConfig{}
+	if cfg != nil {
+		regCfg = registry.RegistryConfig{
+			BISBaseURL:     cfg.BISBaseURL,
+			CPCBBaseURL:    cfg.CPCBBaseURL,
+			EUNANDOBaseURL: cfg.EUNANDOBaseURL,
+			UN38BaseURL:    cfg.UN38BaseURL,
+			HTTPTimeout:    cfg.RegistryHTTPTimeout,
+		}
+	}
 	return &RegistryVerificationService{
 		repo:     repo,
-		adapters: registry.NewAdapterRegistry(),
+		adapters: registry.NewAdapterRegistry(regCfg, repo),
+		cfg:      cfg,
 		cacheTTL: registry.DefaultCacheTTL,
 	}
 }
 
 // VerifyBatch checks a batch against a specific registry.
-// It first checks the cache, then calls the adapter if stale/missing.
+// If async mode is enabled, it enqueues a job and returns a pending result.
+// Otherwise, it performs synchronous verification (backward compatible).
 func (s *RegistryVerificationService) VerifyBatch(ctx context.Context, tenantID, batchID uuid.UUID, registryTypeStr, certificateNo string) (*models.RegistryVerification, error) {
 	// Validate registry type
 	regType, err := registry.NormalizeRegistryType(registryTypeStr)
@@ -37,6 +51,63 @@ func (s *RegistryVerificationService) VerifyBatch(ctx context.Context, tenantID,
 		return nil, err
 	}
 
+	// If async is enabled and this is not a cache hit, enqueue a job
+	if s.cfg != nil && s.cfg.RegistryAsyncEnabled {
+		cached, err := s.repo.GetRegistryVerificationByBatchAndType(ctx, batchID, string(regType), certificateNo)
+		if err == nil && cached != nil && cached.ExpiresAt != nil && cached.ExpiresAt.After(time.Now()) {
+			slog.Info("registry verification cache hit", "batch_id", batchID, "registry", regType)
+			return cached, nil
+		}
+
+		// Enqueue async job
+		job := &models.RegistryJob{
+			ID:            uuid.New().String(),
+			RegistryType:  string(regType),
+			CertificateNo: certificateNo,
+			BatchID:       batchID.String(),
+			TenantID:      tenantID.String(),
+			Status:        "pending",
+			AttemptCount:  0,
+			MaxAttempts:   5,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}
+		if err := s.repo.CreateRegistryJob(ctx, job); err != nil {
+			return nil, fmt.Errorf("failed to enqueue registry job: %w", err)
+		}
+
+		now := time.Now()
+		expires := now.Add(s.cacheTTL)
+		pending := &models.RegistryVerification{
+			ID:            uuid.New().String(),
+			TenantID:      tenantID.String(),
+			BatchID:       batchID.String(),
+			RegistryType:  string(regType),
+			CertificateNo: certificateNo,
+			Status:        string(models.RegistryStatusPending),
+			TrustTier:     string(models.TrustTierSelfDeclared),
+			VerifiedData: &map[string]interface{}{
+				"message":   "Verification queued for async processing.",
+				"job_id":    job.ID,
+				"queued_at": now.Format(time.RFC3339),
+			},
+			VerifiedAt: &now,
+			ExpiresAt:  &expires,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+		}
+		if err := s.repo.CreateRegistryVerification(ctx, pending); err != nil {
+			slog.Error("failed to cache pending registry verification", "error", err)
+		}
+		return pending, nil
+	}
+
+	// Synchronous path (backward compatible)
+	return s.verifyBatchSync(ctx, tenantID, batchID, regType, certificateNo)
+}
+
+// verifyBatchSync performs the actual inline verification.
+func (s *RegistryVerificationService) verifyBatchSync(ctx context.Context, tenantID, batchID uuid.UUID, regType models.RegistryType, certificateNo string) (*models.RegistryVerification, error) {
 	// Check cache
 	cached, err := s.repo.GetRegistryVerificationByBatchAndType(ctx, batchID, string(regType), certificateNo)
 	if err == nil && cached != nil && cached.ExpiresAt != nil && cached.ExpiresAt.After(time.Now()) {
@@ -157,13 +228,18 @@ func (s *RegistryVerificationService) AutoVerifyBatch(ctx context.Context, tenan
 	return results, nil
 }
 
+// GetRegistryJobsByBatch returns async jobs for a batch.
+func (s *RegistryVerificationService) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) {
+	return s.repo.GetRegistryJobsByBatch(ctx, batchID)
+}
+
 func extractBatchMetadata(batch *models.Batch) map[string]string {
 	m := map[string]string{
-		"batch_name":       batch.BatchName,
-		"model_name":       batch.ModelName,
-		"product_type":     string(batch.ProductType),
-		"market_region":    string(batch.MarketRegion),
-		"status":           batch.Status,
+		"batch_name":    batch.BatchName,
+		"model_name":    batch.ModelName,
+		"product_type":  string(batch.ProductType),
+		"market_region": string(batch.MarketRegion),
+		"status":        batch.Status,
 	}
 	// Add spec fields if available
 	if batch.Specs.BISNumber != "" {
@@ -178,8 +254,14 @@ func extractBatchMetadata(batch *models.Batch) map[string]string {
 	if batch.Specs.UN383TestDate != "" {
 		m["un38_test_date"] = batch.Specs.UN383TestDate
 	}
+	if batch.Specs.UN383LabName != "" {
+		m["un38_lab_name"] = batch.Specs.UN383LabName
+	}
 	if batch.Specs.IEC62133TestDate != "" {
 		m["iec62133_test_date"] = batch.Specs.IEC62133TestDate
+	}
+	if batch.Specs.CENotifiedBodyNumber != "" {
+		m["ce_notified_body_number"] = batch.Specs.CENotifiedBodyNumber
 	}
 	return m
 }
@@ -191,10 +273,9 @@ func resolveCertificateNo(t models.RegistryType, metadata map[string]string) str
 	case models.RegistryTypeCPCB:
 		return metadata["epr_number"]
 	case models.RegistryTypeUN38_3:
-		return metadata["un38_certificate"]
+		return metadata["un38_test_date"]
 	case models.RegistryTypeEUNANDO:
-		// EU NANDO doesn't use a cert number directly; adapter handles lookup
-		return ""
+		return metadata["ce_notified_body_number"]
 	default:
 		return ""
 	}

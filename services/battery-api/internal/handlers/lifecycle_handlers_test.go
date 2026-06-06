@@ -218,6 +218,19 @@ func (f *fakeLifecycleRepo) ListPassportsByTenant(ctx context.Context, tenantID 
 	}
 	return items[offset:end], total, nil
 }
+func (f *fakeLifecycleRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
+func (f *fakeLifecycleRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) { return nil, nil }
+func (f *fakeLifecycleRepo) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) { return 0, nil }
+func (f *fakeLifecycleRepo) CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error { return nil }
+func (f *fakeLifecycleRepo) GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeLifecycleRepo) UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error { return nil }
+func (f *fakeLifecycleRepo) CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error { return nil }
+func (f *fakeLifecycleRepo) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) { return nil, nil }
 
 func newLifecycleHandlerWithStatus(status string, teamRole string) (*LifecycleHandler, uuid.UUID) {
 	repo := newFakeLifecycleRepo()

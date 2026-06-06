@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/anvayalabs/battery-api/internal/db"
 	"github.com/anvayalabs/battery-api/internal/events"
@@ -132,6 +133,45 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 // respondError sends an error response
 func respondError(w http.ResponseWriter, status int, message string) {
 	respondJSON(w, status, map[string]string{"error": message})
+}
+
+// sanitizeDBError converts raw database/driver errors into safe, user-facing
+// messages without leaking connection details. It keeps PostgreSQL constraint
+// and syntax errors intact because they tell the caller exactly what field
+// violated a rule.
+func sanitizeDBError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	lower := strings.ToLower(msg)
+
+	// Hide internal connection or auth failures
+	if strings.Contains(lower, "connection refused") ||
+		strings.Contains(lower, "dial tcp") ||
+		strings.Contains(lower, "no such host") ||
+		strings.Contains(lower, "authentication failed") ||
+		strings.Contains(lower, "password authentication") {
+		return "database connection failed — please try again in a moment"
+	}
+
+	// Surface known PostgreSQL constraint / syntax / type errors
+	if strings.Contains(lower, "pq:") ||
+		strings.Contains(lower, "violates") ||
+		strings.Contains(lower, "constraint") ||
+		strings.Contains(lower, "invalid input syntax") ||
+		strings.Contains(lower, "cannot cast") ||
+		strings.Contains(lower, "value too long") {
+		// Strip the wrapped "failed to create batch: " prefix if present
+		idx := strings.Index(msg, "pq: ")
+		if idx >= 0 {
+			return msg[idx+4:]
+		}
+		return msg
+	}
+
+	// Default: keep the original message (safe for application-level errors)
+	return msg
 }
 
 // RazorpayService returns the Razorpay service for webhook handler initialization

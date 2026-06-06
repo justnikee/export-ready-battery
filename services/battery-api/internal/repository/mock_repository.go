@@ -1483,6 +1483,61 @@ func (m *MockRepository) DeleteExpiredRegistryVerifications(ctx context.Context)
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *MockRepository) CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error {
+	args := m.Called(ctx, j)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error) {
+	args := m.Called(ctx, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegistryJob), args.Error(1)
+}
+
+func (m *MockRepository) GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RegistryJob), args.Error(1)
+}
+
+func (m *MockRepository) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) {
+	args := m.Called(ctx, batchID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegistryJob), args.Error(1)
+}
+
+func (m *MockRepository) UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error {
+	args := m.Called(ctx, id, status, attemptCount, nextAttemptAt, resultStatus, resultTrustTier, resultID, errorMessage)
+	return args.Error(0)
+}
+
+func (m *MockRepository) CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error {
+	args := m.Called(ctx, a)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) {
+	args := m.Called(ctx, registryType, certificateNo)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegistryAuditLog), args.Error(1)
+}
+
+func (m *MockRepository) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) {
+	args := m.Called(ctx, jobID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegistryAuditLog), args.Error(1)
+}
+
 func (m *MockRepository) CreateSupplier(ctx context.Context, supplier *models.Supplier) error {
 	args := m.Called(ctx, supplier)
 	return args.Error(0)

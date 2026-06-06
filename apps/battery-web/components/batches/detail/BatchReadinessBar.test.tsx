@@ -23,6 +23,18 @@ describe("BatchReadinessBar", () => {
         passportCount={42}
         complianceScore={85}
         region="INDIA"
+        verifications={[
+          {
+            id: "v1",
+            tenant_id: "t1",
+            batch_id: "batch-123",
+            registry_type: "bis",
+            status: "verified",
+            trust_tier: "registry_verified",
+            created_at: "",
+            updated_at: "",
+          },
+        ]}
       />,
     );
     expect(screen.getByText("100%")).toBeInTheDocument();
@@ -56,6 +68,7 @@ describe("BatchReadinessBar", () => {
     expect(screen.getByText("Activated")).toBeInTheDocument();
     expect(screen.getByText("Passports")).toBeInTheDocument();
     expect(screen.getByText("Certificates")).toBeInTheDocument();
+    expect(screen.getByText("Registry")).toBeInTheDocument();
   });
 
   it("renders Carbon check for EU region", () => {

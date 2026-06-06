@@ -1,10 +1,16 @@
 // Package registry provides adapters for verifying certificates and
 // registrations against external regulatory databases.
 //
-// Each adapter implements the RegistryAdapter interface. In production,
-// adapters call real REST/SOAP APIs. In development or when no API key is
-// configured, adapters return placeholder responses with trust_tier
-// "self_declared" so the UI flow continues uninterrupted.
+// Each adapter implements the RegistryAdapter interface. The verification
+// strategy varies by registry:
+//   - BIS: HTTP scraper of the public BIS CRS portal
+//   - CPCB: Internal EPR ledger cross-check (no public API exists)
+//   - EU NANDO: HTTP scraper of the public NANDO database
+//   - UN38.3: Lab accreditation validation against known lab list
+//
+// Adapters are designed to degrade gracefully: if the external source is
+// unreachable or its structure changes, the adapter returns a self_declared
+// result with a descriptive message.
 package registry
 
 import (
@@ -15,6 +21,7 @@ import (
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
 // VerifyResult is the normalized output of every adapter.
@@ -33,7 +40,7 @@ type RegistryAdapter interface {
 	// Type returns the registry type constant.
 	Type() models.RegistryType
 
-	// IsConfigured returns true when the adapter has valid credentials.
+	// IsConfigured returns true when the adapter has valid credentials/config.
 	IsConfigured() bool
 
 	// Verify checks a certificate/registration number against the registry.
@@ -48,17 +55,27 @@ type AdapterRegistry struct {
 }
 
 // NewAdapterRegistry creates a registry with all built-in adapters.
-// Adapters that lack credentials are still registered but return
+// Adapters that lack configuration are still registered but return
 // self_declared results.
-func NewAdapterRegistry() *AdapterRegistry {
+func NewAdapterRegistry(cfg RegistryConfig, repo repository.RepositoryInterface) *AdapterRegistry {
+	client := newRegistryHTTPClient(cfg.HTTPTimeout)
 	return &AdapterRegistry{
 		adapters: map[models.RegistryType]RegistryAdapter{
-			models.RegistryTypeBIS:     newBISAdapter(),
-			models.RegistryTypeCPCB:    newCPCBAdapter(),
-			models.RegistryTypeEUNANDO: newEUNANDOAdapter(),
-			models.RegistryTypeUN38_3:  newUN38Adapter(),
+			models.RegistryTypeBIS:     newBISAdapter(cfg.BISBaseURL, client),
+			models.RegistryTypeCPCB:    newCPCBAdapter(cfg.CPCBBaseURL, repo),
+			models.RegistryTypeEUNANDO: newEUNANDOAdapter(cfg.EUNANDOBaseURL, client),
+			models.RegistryTypeUN38_3:  newUN38Adapter(cfg.UN38BaseURL),
 		},
 	}
+}
+
+// RegistryConfig holds external registry configuration.
+type RegistryConfig struct {
+	BISBaseURL     string
+	CPCBBaseURL    string
+	EUNANDOBaseURL string
+	UN38BaseURL    string
+	HTTPTimeout    time.Duration
 }
 
 // Get returns the adapter for a given type, or nil if not found.
@@ -76,165 +93,22 @@ func (r *AdapterRegistry) All() []RegistryAdapter {
 }
 
 // ============================================================================
-// BIS Adapter (Bureau of Indian Standards)
-// ============================================================================
-
-type bisAdapter struct {
-	apiKey string
-}
-
-func newBISAdapter() *bisAdapter {
-	return &bisAdapter{apiKey: ""} // TODO: load from env
-}
-
-func (a *bisAdapter) Name() string { return "BIS CRS" }
-func (a *bisAdapter) Type() models.RegistryType { return models.RegistryTypeBIS }
-func (a *bisAdapter) IsConfigured() bool { return a.apiKey != "" }
-
-func (a *bisAdapter) Verify(ctx context.Context, certificateNo string, batchMetadata map[string]string) (*VerifyResult, error) {
-	if !a.IsConfigured() {
-		slog.Info("BIS adapter not configured, returning self_declared", "certificate", certificateNo)
-		return &VerifyResult{
-			Status:    models.RegistryStatusNotFound,
-			TrustTier: models.TrustTierSelfDeclared,
-			VerifiedData: map[string]interface{}{
-				"message": "BIS API not configured. Result is self-declared.",
-				"certificate_no": certificateNo,
-			},
-		}, nil
-	}
-
-	// TODO: implement real BIS CRS API call
-	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierOfficialAPI,
-		VerifiedData: map[string]interface{}{
-			"message":       "BIS verification placeholder",
-			"certificate_no": certificateNo,
-		},
-	}, nil
-}
-
-// ============================================================================
-// CPCB Adapter (Central Pollution Control Board)
-// ============================================================================
-
-type cpcbAdapter struct {
-	apiKey string
-}
-
-func newCPCBAdapter() *cpcbAdapter {
-	return &cpcbAdapter{apiKey: ""} // TODO: load from env
-}
-
-func (a *cpcbAdapter) Name() string { return "CPCB EPR" }
-func (a *cpcbAdapter) Type() models.RegistryType { return models.RegistryTypeCPCB }
-func (a *cpcbAdapter) IsConfigured() bool { return a.apiKey != "" }
-
-func (a *cpcbAdapter) Verify(ctx context.Context, certificateNo string, batchMetadata map[string]string) (*VerifyResult, error) {
-	if !a.IsConfigured() {
-		slog.Info("CPCB adapter not configured, returning self_declared", "certificate", certificateNo)
-		return &VerifyResult{
-			Status:    models.RegistryStatusNotFound,
-			TrustTier: models.TrustTierSelfDeclared,
-			VerifiedData: map[string]interface{}{
-				"message": "CPCB API not configured. Result is self-declared.",
-				"epr_number": certificateNo,
-			},
-		}, nil
-	}
-
-	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierOfficialAPI,
-		VerifiedData: map[string]interface{}{
-			"message":    "CPCB verification placeholder",
-			"epr_number": certificateNo,
-		},
-	}, nil
-}
-
-// ============================================================================
-// EU NANDO Adapter (Notified Bodies Database)
-// ============================================================================
-
-type euNandoAdapter struct {
-	apiKey string
-}
-
-func newEUNANDOAdapter() *euNandoAdapter {
-	return &euNandoAdapter{apiKey: ""} // TODO: load from env
-}
-
-func (a *euNandoAdapter) Name() string { return "EU NANDO" }
-func (a *euNandoAdapter) Type() models.RegistryType { return models.RegistryTypeEUNANDO }
-func (a *euNandoAdapter) IsConfigured() bool { return a.apiKey != "" }
-
-func (a *euNandoAdapter) Verify(ctx context.Context, certificateNo string, batchMetadata map[string]string) (*VerifyResult, error) {
-	if !a.IsConfigured() {
-		slog.Info("EU NANDO adapter not configured, returning self_declared", "certificate", certificateNo)
-		return &VerifyResult{
-			Status:    models.RegistryStatusNotFound,
-			TrustTier: models.TrustTierSelfDeclared,
-			VerifiedData: map[string]interface{}{
-				"message": "EU NANDO API not configured. Result is self-declared.",
-				"notified_body": certificateNo,
-			},
-		}, nil
-	}
-
-	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierOfficialAPI,
-		VerifiedData: map[string]interface{}{
-			"message":       "EU NANDO verification placeholder",
-			"notified_body": certificateNo,
-		},
-	}, nil
-}
-
-// ============================================================================
-// UN38.3 Lab Adapter
-// ============================================================================
-
-type un38Adapter struct {
-	apiKey string
-}
-
-func newUN38Adapter() *un38Adapter {
-	return &un38Adapter{apiKey: ""} // TODO: load from env
-}
-
-func (a *un38Adapter) Name() string { return "UN38.3 Test Lab" }
-func (a *un38Adapter) Type() models.RegistryType { return models.RegistryTypeUN38_3 }
-func (a *un38Adapter) IsConfigured() bool { return a.apiKey != "" }
-
-func (a *un38Adapter) Verify(ctx context.Context, certificateNo string, batchMetadata map[string]string) (*VerifyResult, error) {
-	if !a.IsConfigured() {
-		slog.Info("UN38.3 adapter not configured, returning self_declared", "certificate", certificateNo)
-		return &VerifyResult{
-			Status:    models.RegistryStatusNotFound,
-			TrustTier: models.TrustTierSelfDeclared,
-			VerifiedData: map[string]interface{}{
-				"message": "UN38.3 lab API not configured. Result is self-declared.",
-				"test_report": certificateNo,
-			},
-		}, nil
-	}
-
-	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierOfficialAPI,
-		VerifiedData: map[string]interface{}{
-			"message":     "UN38.3 verification placeholder",
-			"test_report": certificateNo,
-		},
-	}, nil
-}
-
-// ============================================================================
 // Helpers
 // ============================================================================
+
+// selfDeclared returns a standard self-declared result used when an adapter
+// is not configured or cannot reach the external registry.
+func selfDeclared(registryName string, certificateNo string) *VerifyResult {
+	slog.Info("registry adapter not configured, returning self_declared", "registry", registryName, "certificate", certificateNo)
+	return &VerifyResult{
+		Status:    models.RegistryStatusNotFound,
+		TrustTier: models.TrustTierSelfDeclared,
+		VerifiedData: map[string]interface{}{
+			"message":         fmt.Sprintf("%s adapter not configured or external registry unreachable. Result is self-declared.", registryName),
+			"certificate_no":  certificateNo,
+		},
+	}
+}
 
 // NormalizeRegistryType converts a string to the canonical RegistryType.
 func NormalizeRegistryType(s string) (models.RegistryType, error) {

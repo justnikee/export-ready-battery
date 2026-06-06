@@ -46,6 +46,13 @@ const STEPS = [
   { id: 1, label: "Specifications", description: "Chemistry & materials" },
   { id: 2, label: "Compliance", description: "Market-specific rules" },
   { id: 3, label: "Review", description: "Verify & submit" },
+] as const;
+
+const stepFieldCounts = [
+  { total: 6, label: "6 required fields" },
+  { total: 5, label: "5 required fields" },
+  { total: 8, label: "8–11 fields depending on market" },
+  { total: 0, label: "Review & submit" },
 ];
 
 export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
@@ -133,9 +140,28 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
           action: {
             label: "Resume",
             onClick: () => {
-              reset(draft.data);
-              setStep(draft.step);
-              toast.success("Draft resumed");
+              try {
+                // Merge draft with current defaults to handle schema drift
+                reset({
+                  ...defaultBatchFormValues,
+                  ...draft.data,
+                  // Ensure nested objects are preserved
+                  materialComposition: {
+                    ...defaultBatchFormValues.materialComposition,
+                    ...(draft.data.materialComposition || {}),
+                  },
+                  hazardousSubstances: {
+                    ...defaultBatchFormValues.hazardousSubstances,
+                    ...(draft.data.hazardousSubstances || {}),
+                  },
+                });
+                setStep(Math.min(draft.step, STEPS.length - 1));
+                clearDraft(user.tenant_id);
+                toast.success("Draft resumed");
+              } catch {
+                toast.error("Draft is corrupted or outdated. Starting fresh.");
+                clearDraft(user.tenant_id);
+              }
             },
           },
           duration: 10000,
@@ -252,7 +278,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       setUploadProgress(70);
       const { data: { publicUrl } } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
       setUploadProgress(100);
-      setValue("uploadedFileUrl", publicUrl);
+      setValue("uploadedFileUrl", publicUrl, { shouldValidate: true, shouldDirty: true });
       toast.success("Certificate uploaded successfully");
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -462,8 +488,27 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       clearDraft(user.tenant_id);
       setRetryPayload(null);
     } catch (error: unknown) {
-      const apiError = error as { response?: { data?: { error?: string } } };
-      const errMsg = apiError.response?.data?.error || "Failed to create batch";
+      const apiError = error as {
+        message?: string;
+        response?: {
+          status?: number;
+          statusText?: string;
+          data?: { error?: string; fields?: Array<{ field: string; message: string }> };
+        };
+      };
+
+      let errMsg = "Failed to create batch";
+      if (apiError.response?.data?.error) {
+        errMsg = apiError.response.data.error;
+      } else if (apiError.response?.data?.fields && apiError.response.data.fields.length > 0) {
+        const fieldNames = apiError.response.data.fields.map((f) => f.field).join(", ");
+        errMsg = `Validation failed: ${fieldNames}`;
+      } else if (apiError.response?.statusText) {
+        errMsg = `Server error (${apiError.response.status}): ${apiError.response.statusText}`;
+      } else if (apiError.message && apiError.message !== "Failed to create batch") {
+        errMsg = apiError.message;
+      }
+
       setRetryPayload(data);
       toast.error(errMsg, {
         action: {
@@ -506,9 +551,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
                       idx < step
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-foreground text-background"
                         : idx === step
-                          ? "bg-blue-500 text-white"
+                          ? "bg-muted text-foreground ring-2 ring-foreground ring-offset-2 ring-offset-background"
                           : "bg-muted text-muted-foreground"
                     }`}
                   >
@@ -519,7 +564,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-2 ${idx < step ? "bg-emerald-500" : "bg-muted"}`} />
+                  <div className={`flex-1 h-0.5 mx-2 ${idx < step ? "bg-foreground" : "bg-muted"}`} />
                 )}
               </div>
             ))}
@@ -533,14 +578,14 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
               {templates.length > 0 && step === 0 && (
                 <div className="grid gap-2 pb-2 border-b border-border">
                   <Label htmlFor="template" className="flex items-center gap-2 text-foreground">
-                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    <Sparkles className="h-4 w-4 text-muted-foreground" />
                     Load Template
                   </Label>
                   <select
                     id="template"
                     value={selectedTemplate}
                     onChange={(e) => handleTemplateSelect(e.target.value)}
-                    className="flex h-10 w-full border border-border bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="flex h-10 w-full border border-border bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
                   >
                     <option value="">-- Select a template --</option>
                     {templates.map((t) => (
@@ -567,19 +612,24 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
             </div>
 
             <DialogFooter className="border-t border-border px-6 py-4 flex justify-between items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={goBack}
-                disabled={step === 0 || isLoading}
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goBack}
+                  disabled={step === 0 || isLoading}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {stepFieldCounts[step].label}
+                </span>
+              </div>
 
               {step < STEPS.length - 1 ? (
                 <Button type="button" onClick={goNext} disabled={isLoading}>
-                  Next
+                  Next: {STEPS[step + 1].label}
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -41,6 +42,16 @@ type Config struct {
 
 	// AI / LLM Configuration
 	GroqAPIKey string // Free tier LLM for datasheet parsing & NL batch creation
+
+	// Registry Integration Configuration
+	BISBaseURL             string
+	CPCBBaseURL            string
+	EUNANDOBaseURL         string
+	UN38BaseURL            string
+	RegistryHTTPTimeout    time.Duration
+	RegistryWorkerCount    int
+	RegistryWorkerInterval time.Duration
+	RegistryAsyncEnabled   bool
 }
 
 // Load reads configuration from environment variables.
@@ -129,8 +140,16 @@ func Load() (*Config, error) {
 		MicrosoftClientSecret: getEnv("MICROSOFT_CLIENT_SECRET", ""),
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
-		RegulatorAPIKey:       getEnv("REGULATOR_API_KEY", ""),
-		GroqAPIKey:            getEnv("GROQ_API_KEY", ""),
+		RegulatorAPIKey:        getEnv("REGULATOR_API_KEY", ""),
+		GroqAPIKey:             getEnv("GROQ_API_KEY", ""),
+		BISBaseURL:             getEnv("BIS_BASE_URL", "https://www.bis.gov.in"),
+		CPCBBaseURL:            getEnv("CPCB_BASE_URL", "https://eprbatterycpcb.in"),
+		EUNANDOBaseURL:         getEnv("EU_NANDO_BASE_URL", "https://webgate.ec.europa.eu/single-market-compliance-space/notified-bodies"),
+		UN38BaseURL:            getEnv("UN38_BASE_URL", ""),
+		RegistryHTTPTimeout:    parseDuration(getEnv("REGISTRY_HTTP_TIMEOUT", "15s")),
+		RegistryWorkerCount:    parseInt(getEnv("REGISTRY_WORKER_COUNT", "3")),
+		RegistryWorkerInterval: parseDuration(getEnv("REGISTRY_WORKER_INTERVAL", "30s")),
+		RegistryAsyncEnabled:   getEnv("REGISTRY_ASYNC_ENABLED", "true") == "true",
 	}, nil
 }
 
@@ -149,6 +168,15 @@ func parseDuration(s string) time.Duration {
 		return 15 * time.Minute // default
 	}
 	return d
+}
+
+// parseInt parses an int string, returns default on error
+func parseInt(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return i
 }
 
 // parseOrigins splits comma-separated CORS origins into a slice

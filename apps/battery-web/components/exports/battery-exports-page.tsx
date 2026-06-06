@@ -21,6 +21,7 @@ import {
  formatJobType,
  type ExportJob
 } from '@/lib/api/exports';
+import { getApiErrorMessage } from '@/lib/utils';
 
 export default function ExportsPage() {
  const [exports, setExports] = useState<ExportJob[]>([]);
@@ -63,20 +64,31 @@ export default function ExportsPage() {
  }, [fetchExports, hasPendingJobs]);
 
  const handleDownload = async (job: ExportJob) => {
- if (!job.download_url) return;
+ if (!job.download_url) {
+ toast.error("Download link is not available for this export");
+ return;
+ }
 
  try {
+ let url = job.download_url;
+
  // Check if URL might be expired
  if (job.expires_at && new Date(job.expires_at) < new Date()) {
- // Refresh the URL first
  const result = await refreshExportDownload(job.id);
- window.open(result.download_url, '_blank');
- } else {
- window.open(job.download_url, '_blank');
+ url = result.download_url;
  }
+
+ // Use anchor click instead of window.open to avoid popup blockers
+ const link = document.createElement("a");
+ link.href = url;
+ link.target = "_blank";
+ link.rel = "noopener noreferrer";
+ document.body.appendChild(link);
+ link.click();
+ link.remove();
  } catch (error: unknown) {
- const apiError = error as { response?: { data?: { error?: string } } };
- toast.error(apiError.response?.data?.error || "Failed to download export");
+ const msg = await getApiErrorMessage(error, "Failed to download export");
+ toast.error(msg);
  }
  };
 

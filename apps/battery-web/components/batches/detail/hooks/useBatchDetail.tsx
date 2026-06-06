@@ -15,7 +15,7 @@ import {
   autoVerifyBatch,
 } from "@/lib/api/registry";
 import { useAuth } from "@/context/auth-context";
-import { toApiError } from "@/lib/utils";
+import { getApiErrorMessage, toApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import type {
@@ -257,15 +257,13 @@ export function useBatchDetail(batchId: string, pathname: string) {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
         toast.success("QR codes downloaded successfully!", {
           id: "qr-download",
         });
       } catch (error: unknown) {
-        const apiError = toApiError(error);
-        toast.error(
-          apiError.response?.data?.error || "Failed to download QR codes",
-          { id: "qr-download" },
-        );
+        const msg = await getApiErrorMessage(error, "Failed to download QR codes");
+        toast.error(msg, { id: "qr-download" });
       }
     }
   }, [batch, batchId, passportCount, router, exportsHref]);
@@ -316,11 +314,12 @@ export function useBatchDetail(batchId: string, pathname: string) {
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
         toast.success("Labels downloaded successfully!", {
           id: "labels-download",
         });
       } catch (error: unknown) {
-        const apiError = toApiError(error);
+        const apiError = error as { response?: { status?: number; data?: unknown } };
         if (apiError.response?.status === 403) {
           toast.error(
             "You must activate this batch before downloading labels.",
@@ -331,10 +330,8 @@ export function useBatchDetail(batchId: string, pathname: string) {
             },
           );
         } else {
-          toast.error(
-            apiError.response?.data?.error || "Failed to download labels",
-            { id: "labels-download" },
-          );
+          const msg = await getApiErrorMessage(error, "Failed to download labels");
+          toast.error(msg, { id: "labels-download" });
         }
       }
     }
@@ -343,6 +340,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
   const handleExportCSV = useCallback(async () => {
     if (!batch) return;
     try {
+      toast.loading("Generating CSV export...", { id: "csv-export" });
       const response = await api.get(`/batches/${batchId}/export`, {
         responseType: "blob",
       });
@@ -353,8 +351,11 @@ export function useBatchDetail(batchId: string, pathname: string) {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch {
-      alert("Failed to export CSV");
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV export downloaded successfully!", { id: "csv-export" });
+    } catch (error: unknown) {
+      const msg = await getApiErrorMessage(error, "Failed to export CSV");
+      toast.error(msg, { id: "csv-export" });
     }
   }, [batch, batchId]);
 
@@ -375,11 +376,8 @@ export function useBatchDetail(batchId: string, pathname: string) {
       window.URL.revokeObjectURL(url);
       toast.success("Audit export downloaded", { id: "audit-export" });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
-      toast.error(
-        apiError.response?.data?.error || "Failed to download audit export",
-        { id: "audit-export" },
-      );
+      const msg = await getApiErrorMessage(error, "Failed to download audit export");
+      toast.error(msg, { id: "audit-export" });
     }
   }, [batch, batchId]);
 
@@ -406,18 +404,15 @@ export function useBatchDetail(batchId: string, pathname: string) {
       window.URL.revokeObjectURL(url);
       toast.success("Due Diligence Report downloaded!", { id: "dd-download" });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
+      const apiError = error as { response?: { status?: number; data?: unknown } };
       if (apiError.response?.status === 403) {
         toast.error(
           "Batch must be activated before generating the Due Diligence Report.",
           { id: "dd-download" },
         );
       } else {
-        toast.error(
-          apiError.response?.data?.error ||
-            "Failed to download Due Diligence Report",
-          { id: "dd-download" },
-        );
+        const msg = await getApiErrorMessage(error, "Failed to download Due Diligence Report");
+        toast.error(msg, { id: "dd-download" });
       }
     }
   }, [batch, batchId]);
@@ -445,18 +440,15 @@ export function useBatchDetail(batchId: string, pathname: string) {
       window.URL.revokeObjectURL(url);
       toast.success("Carbon Declaration downloaded!", { id: "cd-download" });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
+      const apiError = error as { response?: { status?: number; data?: unknown } };
       if (apiError.response?.status === 400) {
         toast.error(
           "No carbon footprint data available. Run the Carbon Calculator first.",
           { id: "cd-download" },
         );
       } else {
-        toast.error(
-          apiError.response?.data?.error ||
-            "Failed to download Compliance Declaration",
-          { id: "cd-download" },
-        );
+        const msg = await getApiErrorMessage(error, "Failed to download Compliance Declaration");
+        toast.error(msg, { id: "cd-download" });
       }
     }
   }, [batch, batchId]);
@@ -481,11 +473,8 @@ export function useBatchDetail(batchId: string, pathname: string) {
       window.URL.revokeObjectURL(url);
       toast.success("Compliance Report downloaded!", { id: "cr-download" });
     } catch (error: unknown) {
-      const apiError = toApiError(error);
-      toast.error(
-        apiError.response?.data?.error || "Failed to download Compliance Report",
-        { id: "cr-download" },
-      );
+      const msg = await getApiErrorMessage(error, "Failed to download Compliance Report");
+      toast.error(msg, { id: "cr-download" });
     }
   }, [batch, batchId]);
 

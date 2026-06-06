@@ -147,13 +147,13 @@ export function StepSpecs() {
       </div>
 
       {/* Material Composition */}
-      <div className="p-4 border border-teal-200 bg-teal-50 space-y-4">
-        <div className="flex items-center justify-between border-b border-teal-200 pb-2">
-          <div className="flex items-center gap-2 text-teal-700 text-sm">
-            <Activity className="h-4 w-4" />
-            🧪 Material Composition (Chemistry Breakdown)
+      <div className="p-4 border border-border bg-muted/30 space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-2">
+          <div className="flex items-center gap-2 text-foreground text-sm">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            Material Composition (Chemistry Breakdown)
           </div>
-          <div className={`text-xs font-mono ${matTotal > 100 ? "text-red-500" : "text-teal-600"}`}>
+          <div className={`text-xs font-mono ${matTotal > 100 ? "text-red-500" : "text-muted-foreground"}`}>
             Total: {matTotal.toFixed(1)}%
           </div>
         </div>
@@ -206,7 +206,7 @@ export function StepSpecs() {
           type="checkbox"
           id="recyclable"
           {...register("recyclable")}
-          className="h-4 w-4 rounded border-border bg-transparent text-teal-500 focus:ring-teal-500"
+          className="h-4 w-4 rounded border-border bg-transparent text-foreground focus:ring-foreground"
         />
         <Label htmlFor="recyclable" className="font-normal cursor-pointer text-foreground">
           Recyclable

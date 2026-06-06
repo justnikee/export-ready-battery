@@ -169,6 +169,19 @@ func (f *fakeSupplierRepo) UpdateSupplierDocumentStatus(ctx context.Context, id 
 	}
 	return errors.New("not found")
 }
+func (f *fakeSupplierRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
+func (f *fakeSupplierRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
+func (f *fakeSupplierRepo) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) { return nil, nil }
+func (f *fakeSupplierRepo) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) { return 0, nil }
+func (f *fakeSupplierRepo) CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error { return nil }
+func (f *fakeSupplierRepo) GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeSupplierRepo) GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error) { return nil, nil }
+func (f *fakeSupplierRepo) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeSupplierRepo) UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error { return nil }
+func (f *fakeSupplierRepo) CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error { return nil }
+func (f *fakeSupplierRepo) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeSupplierRepo) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeSupplierRepo) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) { return nil, nil }
 
 // ============================================================================
 // TEST HELPERS

@@ -255,7 +255,9 @@ type BatchSpec struct {
 	Certifications          []string             `json:"certifications,omitempty"`             // CE, UL, IEC, etc.
 	BISCertificateIssueDate string               `json:"bis_certificate_issue_date,omitempty"` // YYYY-MM-DD
 	UN383TestDate           string               `json:"un38_3_test_date,omitempty"`           // YYYY-MM-DD
+	UN383LabName            string               `json:"un38_3_lab_name,omitempty"`            // Test lab name (e.g., "TUV SUD")
 	IEC62133TestDate        string               `json:"iec_62133_test_date,omitempty"`        // YYYY-MM-DD
+	CENotifiedBodyNumber    string               `json:"ce_notified_body_number,omitempty"`    // EU NANDO notified body number (e.g., "NB1234")
 	MSDSIssueDate           string               `json:"msds_issue_date,omitempty"`            // YYYY-MM-DD
 	ManufacturerAddress     string               `json:"manufacturer_address,omitempty"`       // Physical address
 	EURepresentative        string               `json:"eu_representative,omitempty"`          // EU contact name/company
@@ -1385,6 +1387,41 @@ type BatchVerificationSummary struct {
 	BatchID       string                   `json:"batch_id"`
 	Verifications []RegistryVerification   `json:"verifications"`
 	OverallTrust  TrustTier                `json:"overall_trust"`
+}
+
+// RegistryJob tracks an async registry verification task.
+type RegistryJob struct {
+	ID             string     `json:"id"`
+	RegistryType   string     `json:"registry_type"`
+	CertificateNo  string     `json:"certificate_no"`
+	BatchID        string     `json:"batch_id"`
+	TenantID       string     `json:"tenant_id"`
+	Status         string     `json:"status"`
+	AttemptCount   int        `json:"attempt_count"`
+	MaxAttempts    int        `json:"max_attempts"`
+	NextAttemptAt  *time.Time `json:"next_attempt_at,omitempty"`
+	ResultStatus   string     `json:"result_status,omitempty"`
+	ResultTrustTier string    `json:"result_trust_tier,omitempty"`
+	ResultID       string     `json:"result_id,omitempty"`
+	ErrorMessage   string     `json:"error_message,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// RegistryAuditLog records every external registry call for compliance.
+type RegistryAuditLog struct {
+	ID               string     `json:"id"`
+	JobID            string     `json:"job_id,omitempty"`
+	RegistryType     string     `json:"registry_type"`
+	CertificateNo    string     `json:"certificate_no"`
+	RequestMethod    string     `json:"request_method,omitempty"`
+	RequestURL       string     `json:"request_url,omitempty"`
+	RequestPayload   *map[string]interface{} `json:"request_payload,omitempty"`
+	ResponseStatus   int        `json:"response_status,omitempty"`
+	ResponsePayload  *map[string]interface{} `json:"response_payload,omitempty"`
+	LatencyMs        int        `json:"latency_ms"`
+	ErrorMessage     string     `json:"error_message,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 // BatchSummary represents a batch for the recent batches list

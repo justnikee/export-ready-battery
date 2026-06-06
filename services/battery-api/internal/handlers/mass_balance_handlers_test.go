@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/google/uuid"
@@ -84,6 +85,19 @@ func (f *fakeMassBalanceRepo) GetMassBalanceAllocationsByBatch(ctx context.Conte
 	}
 	return result, nil
 }
+func (f *fakeMassBalanceRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
+func (f *fakeMassBalanceRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error) { return 0, nil }
+func (f *fakeMassBalanceRepo) CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error { return nil }
+func (f *fakeMassBalanceRepo) GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error { return nil }
+func (f *fakeMassBalanceRepo) CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error { return nil }
+func (f *fakeMassBalanceRepo) GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetComplianceDeadlines(ctx context.Context, productType, marketRegion string) ([]*models.ComplianceDeadline, error) { return nil, nil }
 
 // ============================================================================
 // TESTS

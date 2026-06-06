@@ -34,7 +34,7 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.Error("Failed to get passport", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to get passport")
+		respondError(w, http.StatusInternalServerError, "Failed to get passport: "+sanitizeDBError(err))
 		return
 	}
 

@@ -40,7 +40,7 @@ func (h *Handler) VerifyBatchRegistry(w http.ResponseWriter, r *http.Request) {
 	// Initialize service on-demand if not injected
 	svc := h.registryVerificationService
 	if svc == nil {
-		svc = services.NewRegistryVerificationService(h.repo)
+		svc = services.NewRegistryVerificationService(h.repo, nil)
 	}
 
 	verification, err := svc.VerifyBatch(r.Context(), tenantID, batchID, req.RegistryType, req.CertificateNo)
@@ -75,7 +75,7 @@ func (h *Handler) GetBatchRegistryVerifications(w http.ResponseWriter, r *http.R
 
 	svc := h.registryVerificationService
 	if svc == nil {
-		svc = services.NewRegistryVerificationService(h.repo)
+		svc = services.NewRegistryVerificationService(h.repo, nil)
 	}
 
 	summary, err := svc.GetBatchVerificationSummary(r.Context(), batchID)
@@ -106,7 +106,7 @@ func (h *Handler) AutoVerifyBatchRegistry(w http.ResponseWriter, r *http.Request
 
 	svc := h.registryVerificationService
 	if svc == nil {
-		svc = services.NewRegistryVerificationService(h.repo)
+		svc = services.NewRegistryVerificationService(h.repo, nil)
 	}
 
 	results, err := svc.AutoVerifyBatch(r.Context(), tenantID, batchID)

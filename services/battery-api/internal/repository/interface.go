@@ -304,6 +304,18 @@ type RepositoryInterface interface {
 	GetRegistryVerificationByBatchAndType(ctx context.Context, batchID uuid.UUID, registryType string, certificateNo string) (*models.RegistryVerification, error)
 	DeleteExpiredRegistryVerifications(ctx context.Context) (int64, error)
 
+	// registry_jobs.go
+	CreateRegistryJob(ctx context.Context, j *models.RegistryJob) error
+	GetPendingRegistryJobs(ctx context.Context, limit int) ([]models.RegistryJob, error)
+	GetRegistryJobByID(ctx context.Context, id uuid.UUID) (*models.RegistryJob, error)
+	GetRegistryJobsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryJob, error)
+	UpdateRegistryJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, resultID, errorMessage string) error
+
+	// registry_audit_log.go
+	CreateRegistryAuditLog(ctx context.Context, a *models.RegistryAuditLog) error
+	GetRegistryAuditLogsByCertificate(ctx context.Context, registryType, certificateNo string) ([]models.RegistryAuditLog, error)
+	GetRegistryAuditLogsByJob(ctx context.Context, jobID uuid.UUID) ([]models.RegistryAuditLog, error)
+
 	// Suppliers
 	CreateSupplier(ctx context.Context, supplier *models.Supplier) error
 	GetSupplierByID(ctx context.Context, id uuid.UUID) (*models.Supplier, error)

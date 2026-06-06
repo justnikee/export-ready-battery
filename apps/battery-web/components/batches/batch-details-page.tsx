@@ -183,6 +183,7 @@ export default function BatchDetailsPage() {
           passportCount={passportCount}
           complianceScore={complianceScore}
           region={region}
+          verifications={verifications}
           user={user}
         />
 

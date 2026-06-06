@@ -269,10 +269,11 @@ export function RegistryVerificationsTab({
           <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-500/5 border border-amber-500/20 p-2.5">
             <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <span>
-              No live registry connection is currently configured. Checks below
-              validate only that certificate numbers were provided by the
-              manufacturer (self-declared). Real registry lookups require paid API
-              partnerships with BIS, CPCB, EU NANDO, and UN38.3 test labs.
+              Registry verification runs against live databases via scraping
+              (BIS portal, EU NANDO, CPCB internal ledger) and lab
+              accreditation validation (UN38.3). Results are cached for 7 days.
+              If a registry portal is down, the check falls back to
+              self-declared status.
             </span>
           </div>
           <Button

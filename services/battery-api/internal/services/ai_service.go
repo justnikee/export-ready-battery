@@ -18,7 +18,7 @@ import (
 
 // Groq API Configuration
 const groqAPIURL = "https://api.groq.com/openai/v1/chat/completions"
-const groqModel = "llama-3.1-70b-versatile"
+const groqModel = "llama-3.3-70b-versatile"
 
 // DatasheetParseResult is the structured output from parsing a battery datasheet.
 // It covers all fields that can realistically appear on a manufacturer spec sheet.

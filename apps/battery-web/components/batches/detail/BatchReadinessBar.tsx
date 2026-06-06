@@ -10,7 +10,7 @@ import {
   Leaf,
 } from "lucide-react";
 import { clsx } from "clsx";
-import type { Batch } from "@/lib/types";
+import type { Batch, RegistryVerification } from "@/lib/types";
 import type { MarketRegion } from "./types";
 
 interface CheckItem {
@@ -25,6 +25,7 @@ interface BatchReadinessBarProps {
   passportCount: number;
   complianceScore: number | null;
   region: MarketRegion;
+  verifications?: RegistryVerification[];
   user?: {
     bis_r_number?: string;
     epr_registration_number?: string;
@@ -37,6 +38,7 @@ export function BatchReadinessBar({
   passportCount,
   complianceScore,
   region,
+  verifications,
   user,
 }: BatchReadinessBarProps) {
   const s = batch.specs;
@@ -53,6 +55,9 @@ export function BatchReadinessBar({
     user?.bis_r_number ||
     user?.epr_registration_number ||
     user?.iec_code
+  );
+  const hasVerifiedRegistry = (verifications || []).some(
+    (v) => v.status === "verified",
   );
 
   const items: CheckItem[] = [
@@ -87,6 +92,15 @@ export function BatchReadinessBar({
       icon: <FileCheck className="h-3 w-3" />,
     },
   ];
+
+  if (hasBatchCert) {
+    items.push({
+      id: "registry",
+      label: "Registry",
+      done: hasVerifiedRegistry,
+      icon: <Shield className="h-3 w-3" />,
+    });
+  }
 
   if (isEU || isGlobal) {
     items.push({
