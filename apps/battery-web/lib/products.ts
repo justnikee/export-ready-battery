@@ -212,6 +212,7 @@ const BATTERY_CONFIG: ProductConfig = {
       items: [
         { name: "Compliance", dashboardSubpath: "compliance", icon: Shield },
         { name: "Due Diligence", dashboardSubpath: "due-diligence", icon: ClipboardCheck },
+        { name: "Regulatory", dashboardSubpath: "regulatory", icon: Globe },
         { name: "Exports", dashboardSubpath: "exports", icon: FileDown },
         { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale },
         { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark },

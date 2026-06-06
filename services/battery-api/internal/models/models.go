@@ -1932,3 +1932,72 @@ type MassBalanceAllocation struct {
 	AllocatedKg  float64    `json:"allocated_kg"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
+
+
+// ============================================================================
+// REGULATORY INTELLIGENCE (Phase E)
+// ============================================================================
+
+// RegulatorySourceType defines how the source is fetched
+type RegulatorySourceType string
+
+const (
+	RegulatorySourceTypeRSS     RegulatorySourceType = "rss"
+	RegulatorySourceTypeAPI     RegulatorySourceType = "api"
+	RegulatorySourceTypeScraper RegulatorySourceType = "scraper"
+)
+
+// RegulatorySource configures an external feed or page to monitor.
+type RegulatorySource struct {
+	ID            uuid.UUID            `json:"id"`
+	Name          string               `json:"name"`
+	SourceType    RegulatorySourceType `json:"source_type"`              // rss, api, scraper
+	URL           string               `json:"url"`                      // RSS feed URL or page URL
+	Config        map[string]string    `json:"config,omitempty"`         // scraper selectors, api headers
+	FetchInterval string               `json:"fetch_interval"`           // cron-like, e.g. "6h"
+	IsActive      bool                 `json:"is_active"`                // paused sources are skipped
+	LastFetchedAt *time.Time           `json:"last_fetched_at,omitempty"`
+	LastETag      string               `json:"last_etag,omitempty"`      // HTTP conditional fetch
+	CreatedAt     time.Time            `json:"created_at"`
+	UpdatedAt     time.Time            `json:"updated_at"`
+}
+
+// RegulatoryItem is a single fetched document after classification.
+type RegulatoryItem struct {
+	ID           uuid.UUID  `json:"id"`
+	SourceID     uuid.UUID  `json:"source_id"`
+	ExternalID   string     `json:"external_id"`   // guid, link, or hash from source
+	Title        string     `json:"title"`
+	Summary      string     `json:"summary,omitempty"`
+	URL          string     `json:"url,omitempty"`
+	PublishedAt  *time.Time `json:"published_at,omitempty"`
+	ProductType  string     `json:"product_type,omitempty"`  // BATTERY, TEXTILE, GENERAL
+	MarketRegion string     `json:"market_region,omitempty"` // EU, INDIA, GLOBAL
+	Urgency      string     `json:"urgency"`                 // low, normal, high, critical
+	Tags         []string   `json:"tags,omitempty"`
+	Deadline     *time.Time `json:"deadline,omitempty"`
+	RawContent   string     `json:"raw_content,omitempty"`
+	ClassifiedAt *time.Time `json:"classified_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+// TenantRegulatoryAlert is the per-tenant unread/dismissed state for an item.
+type TenantRegulatoryAlert struct {
+	ID               uuid.UUID  `json:"id"`
+	TenantID         uuid.UUID  `json:"tenant_id"`
+	RegulatoryItemID uuid.UUID  `json:"regulatory_item_id"`
+	IsRead           bool       `json:"is_read"`
+	IsDismissed      bool       `json:"is_dismissed"`
+	ReadAt           *time.Time `json:"read_at,omitempty"`
+	DismissedAt      *time.Time `json:"dismissed_at,omitempty"`
+	EmailedAt        *time.Time `json:"emailed_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	// Join fields (populated by query)
+	Title        string    `json:"title,omitempty"`
+	Summary      string    `json:"summary,omitempty"`
+	Urgency      string    `json:"urgency,omitempty"`
+	Deadline     *time.Time `json:"deadline,omitempty"`
+	MarketRegion string    `json:"market_region,omitempty"`
+	ProductType  string    `json:"product_type,omitempty"`
+}

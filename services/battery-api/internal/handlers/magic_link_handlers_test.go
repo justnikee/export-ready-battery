@@ -479,3 +479,21 @@ func TestMagicLinkTransition_ActiveOTPIsReused(t *testing.T) {
 		t.Fatalf("expected resend count to remain 0, got %d", secondOTP.ResendCount)
 	}
 }
+
+// Regulatory stubs
+func (f *fakeMagicRepo) CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeMagicRepo) ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeMagicRepo) GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeMagicRepo) UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeMagicRepo) UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error { return nil }
+func (f *fakeMagicRepo) DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeMagicRepo) UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error { return nil }
+func (f *fakeMagicRepo) GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeMagicRepo) ListRegulatoryItems(ctx context.Context, f2 repository.ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error) { return nil, 0, nil }
+func (f *fakeMagicRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeMagicRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
+func (f *fakeMagicRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
+func (f *fakeMagicRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeMagicRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMagicRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMagicRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }

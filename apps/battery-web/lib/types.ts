@@ -575,3 +575,62 @@ export interface CorrectiveAction {
   verified_by?: string;
   created_at: string;
 }
+
+
+// ============================================================================
+// REGULATORY INTELLIGENCE (Phase E)
+// ============================================================================
+
+export type RegulatorySourceType = "rss" | "api" | "scraper";
+
+export interface RegulatorySource {
+  id: string;
+  name: string;
+  source_type: RegulatorySourceType;
+  url: string;
+  config?: Record<string, string>;
+  fetch_interval: string;
+  is_active: boolean;
+  last_fetched_at?: string;
+  last_etag?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegulatoryItem {
+  id: string;
+  source_id: string;
+  external_id: string;
+  title: string;
+  summary?: string;
+  url?: string;
+  published_at?: string;
+  product_type?: "BATTERY" | "TEXTILE" | "GENERAL";
+  market_region?: "EU" | "INDIA" | "GLOBAL";
+  urgency: "low" | "normal" | "high" | "critical";
+  tags?: string[];
+  deadline?: string;
+  raw_content?: string;
+  classified_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantRegulatoryAlert {
+  id: string;
+  tenant_id: string;
+  regulatory_item_id: string;
+  is_read: boolean;
+  is_dismissed: boolean;
+  read_at?: string;
+  dismissed_at?: string;
+  emailed_at?: string;
+  created_at: string;
+  // Join fields
+  title?: string;
+  summary?: string;
+  urgency?: string;
+  deadline?: string;
+  market_region?: string;
+  product_type?: string;
+}

@@ -574,3 +574,21 @@ func TestLogReplacementEvent_RequiresInServiceStatus(t *testing.T) {
 		t.Fatalf("expected status 409, got %d", rr.Code)
 	}
 }
+
+// Regulatory stubs
+func (f *fakeLifecycleRepo) CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeLifecycleRepo) ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeLifecycleRepo) GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeLifecycleRepo) UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeLifecycleRepo) UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error { return nil }
+func (f *fakeLifecycleRepo) DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeLifecycleRepo) UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error { return nil }
+func (f *fakeLifecycleRepo) GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeLifecycleRepo) ListRegulatoryItems(ctx context.Context, f2 repository.ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error) { return nil, 0, nil }
+func (f *fakeLifecycleRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeLifecycleRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
+func (f *fakeLifecycleRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
+func (f *fakeLifecycleRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeLifecycleRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeLifecycleRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeLifecycleRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }

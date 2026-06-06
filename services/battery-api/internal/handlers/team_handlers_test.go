@@ -791,3 +791,21 @@ func (f *fakeTeamRepo) ListSupplierDocuments(ctx context.Context, supplierID uui
 func (f *fakeTeamRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) GetSupplierRiskProfilesBySuppliers(ctx context.Context, tenantID uuid.UUID, supplierIDs []uuid.UUID) ([]models.SupplierRiskProfile, error) { return nil, nil }
+
+// Regulatory stubs
+func (f *fakeTeamRepo) CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeTeamRepo) ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeTeamRepo) GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeTeamRepo) UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeTeamRepo) UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error { return nil }
+func (f *fakeTeamRepo) DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error { return nil }
+func (f *fakeTeamRepo) GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeTeamRepo) ListRegulatoryItems(ctx context.Context, f2 repository.ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeTeamRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
+func (f *fakeTeamRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeTeamRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }

@@ -1743,3 +1743,111 @@ func (m *MockRepository) GetSupplierRiskProfilesBySuppliers(ctx context.Context,
 	}
 	return args.Get(0).([]models.SupplierRiskProfile), args.Error(1)
 }
+
+
+// Regulatory sources mock methods
+
+func (m *MockRepository) CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error {
+	args := m.Called(ctx, s)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error) {
+	args := m.Called(ctx, activeOnly)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.RegulatorySource), args.Error(1)
+}
+
+func (m *MockRepository) GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RegulatorySource), args.Error(1)
+}
+
+func (m *MockRepository) UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error {
+	args := m.Called(ctx, s)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error {
+	args := m.Called(ctx, id, fetchedAt, etag)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+// Regulatory items mock methods
+
+func (m *MockRepository) UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error {
+	args := m.Called(ctx, item)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error) {
+	args := m.Called(ctx, sourceID, externalID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RegulatoryItem), args.Error(1)
+}
+
+func (m *MockRepository) ListRegulatoryItems(ctx context.Context, f ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error) {
+	args := m.Called(ctx, f)
+	if args.Get(0) == nil {
+		return nil, 0, args.Error(2)
+	}
+	return args.Get(0).([]*models.RegulatoryItem), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RegulatoryItem), args.Error(1)
+}
+
+// Tenant regulatory alerts mock methods
+
+func (m *MockRepository) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error {
+	args := m.Called(ctx, alert)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) {
+	args := m.Called(ctx, tenantID, unreadOnly, limit, offset)
+	if args.Get(0) == nil {
+		return nil, 0, args.Error(2)
+	}
+	return args.Get(0).([]*models.TenantRegulatoryAlert), args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) {
+	args := m.Called(ctx, tenantID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockRepository) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error {
+	args := m.Called(ctx, alertID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error {
+	args := m.Called(ctx, alertID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) {
+	args := m.Called(ctx, item)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}

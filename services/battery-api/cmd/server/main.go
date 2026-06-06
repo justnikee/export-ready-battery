@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ import (
 	"github.com/anvayalabs/battery-api/internal/schema"
 	schemaSeeds "github.com/anvayalabs/battery-api/internal/schema/seeds"
 	"github.com/anvayalabs/battery-api/internal/services"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -65,6 +67,15 @@ func main() {
 
 	// Start registry worker pool (async registry verification)
 	registryWorkerPool.Start()
+
+	// Start regulatory intelligence worker (every 6 hours)
+	regulatoryWorker := jobs.NewRegulatoryWorker(repo, 6*time.Hour)
+	regulatoryWorker.Start()
+
+	// Seed default regulatory sources if none exist
+	if err := seedRegulatorySources(context.Background(), repo); err != nil {
+		slog.Warn("failed to seed regulatory sources", "error", err)
+	}
 
 	// Initialize data access service
 	dataAccessService := services.NewDataAccessService(repo)
@@ -697,6 +708,19 @@ func main() {
 	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/discard", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.DiscardStaging)))
 	mux.Handle("POST /api/v1/integrations/tally/sync-trigger", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.TriggerSync)))
 
+	// ============================================
+	// REGULATORY INTELLIGENCE (Phase E)
+	// ============================================
+	mux.Handle("GET /api/v1/regulatory/sources", authMiddleware.Protect(http.HandlerFunc(h.ListRegulatorySources)))
+	mux.Handle("POST /api/v1/regulatory/sources", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.CreateRegulatorySource))))
+	mux.Handle("PUT /api/v1/regulatory/sources/{id}", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.UpdateRegulatorySource))))
+	mux.Handle("POST /api/v1/regulatory/sources/{id}/fetch", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ForceFetchRegulatorySource))))
+	mux.Handle("GET /api/v1/regulatory/items", authMiddleware.Protect(http.HandlerFunc(h.ListRegulatoryItems)))
+	mux.Handle("GET /api/v1/regulatory/alerts", authMiddleware.Protect(http.HandlerFunc(h.GetRegulatoryAlerts)))
+	mux.Handle("GET /api/v1/regulatory/alerts/unread-count", authMiddleware.Protect(http.HandlerFunc(h.GetRegulatoryAlertUnreadCount)))
+	mux.Handle("POST /api/v1/regulatory/alerts/{id}/read", authMiddleware.Protect(http.HandlerFunc(h.MarkRegulatoryAlertRead)))
+	mux.Handle("POST /api/v1/regulatory/alerts/{id}/dismiss", authMiddleware.Protect(http.HandlerFunc(h.DismissRegulatoryAlert)))
+
 	// Build handler chain: SecurityHeaders → MaxBytesReader → RecoverPanic → RequestLogger → CORS → mux
 	// MaxBytesReader prevents trivial large-body DoS (10 MB limit)
 	const maxBodyBytes = 10 << 20 // 10 MB
@@ -778,7 +802,8 @@ func main() {
 	<-done
 	slog.Info("Shutting down server...")
 
-	// Stop registry worker pool gracefully
+	// Stop background workers gracefully
+	regulatoryWorker.Stop()
 	registryWorkerPool.Stop()
 
 	// Graceful shutdown with timeout
@@ -797,6 +822,60 @@ func main() {
 
 // corsMiddleware adds CORS headers for Next.js frontend
 // SECURITY: Uses whitelist instead of wildcard
+// seedRegulatorySources inserts default regulatory feeds if the table is empty.
+func seedRegulatorySources(ctx context.Context, repo repository.RepositoryInterface) error {
+	sources, err := repo.ListRegulatorySources(ctx, false)
+	if err != nil {
+		return err
+	}
+	if len(sources) > 0 {
+		return nil
+	}
+
+	defaults := []models.RegulatorySource{
+		{
+			ID:            uuid.New(),
+			Name:          "EU Official Journal — Battery Regulation",
+			SourceType:    models.RegulatorySourceTypeRSS,
+			URL:           "https://eur-lex.europa.eu/oj/direct-access.html?locale=en",
+			FetchInterval: "6h",
+			IsActive:      true,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			ID:            uuid.New(),
+			Name:          "ECHA SVHC Candidate List",
+			SourceType:    models.RegulatorySourceTypeScraper,
+			URL:           "https://echa.europa.eu/candidate-list-table",
+			Config:        map[string]string{"item_regex": `(?i)<tr[^>]*>.*?<td[^>]*>(?P<title>.*?)</td>.*?<a[^>]*href="(?P<url>.*?)"`, "base_url": "https://echa.europa.eu"},
+			FetchInterval: "24h",
+			IsActive:      true,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			ID:            uuid.New(),
+			Name:          "MoEF&CC Notifications",
+			SourceType:    models.RegulatorySourceTypeScraper,
+			URL:           "https://moef.gov.in/notifications",
+			Config:        map[string]string{"item_regex": `(?i)<a[^>]*href="(?P<url>.*?)"[^>]*>(?P<title>.*?)</a>`},
+			FetchInterval: "12h",
+			IsActive:      true,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+	}
+
+	for _, s := range defaults {
+		if err := repo.CreateRegulatorySource(ctx, &s); err != nil {
+			return fmt.Errorf("failed to seed source %s: %w", s.Name, err)
+		}
+	}
+	slog.Info("seeded default regulatory sources", "count", len(defaults))
+	return nil
+}
+
 func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	// Build origin lookup map for O(1) checks
 	originMap := make(map[string]bool)

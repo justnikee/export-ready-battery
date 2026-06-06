@@ -357,4 +357,26 @@ type RepositoryInterface interface {
 	ListCorrectiveActionsByTenant(ctx context.Context, tenantID uuid.UUID, status string) ([]models.CorrectiveAction, error)
 	ListCorrectiveActionsBySupplier(ctx context.Context, supplierID uuid.UUID) ([]models.CorrectiveAction, error)
 	UpdateCorrectiveActionStatus(ctx context.Context, id uuid.UUID, status string, remediatedAt interface{}, verifiedBy interface{}) error
+
+	// regulatory_sources.go
+	CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error
+	ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error)
+	GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error)
+	UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error
+	UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error
+	DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error
+
+	// regulatory_items.go
+	UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error
+	GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error)
+	ListRegulatoryItems(ctx context.Context, f ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error)
+	GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error)
+
+	// tenant_regulatory_alerts.go
+	CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error
+	GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error)
+	GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error)
+	MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error
+	MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error
+	ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error)
 }

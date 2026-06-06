@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/google/uuid"
 )
 
@@ -430,3 +431,21 @@ func TestListMassBalanceAllocations_Success(t *testing.T) {
 		t.Errorf("expected 2 allocations, got %v", resp["count"])
 	}
 }
+
+// Regulatory stubs
+func (f *fakeMassBalanceRepo) CreateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeMassBalanceRepo) ListRegulatorySources(ctx context.Context, activeOnly bool) ([]*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) GetRegulatorySourceByID(ctx context.Context, id uuid.UUID) (*models.RegulatorySource, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) UpdateRegulatorySource(ctx context.Context, s *models.RegulatorySource) error { return nil }
+func (f *fakeMassBalanceRepo) UpdateRegulatorySourceFetchMeta(ctx context.Context, id uuid.UUID, fetchedAt time.Time, etag string) error { return nil }
+func (f *fakeMassBalanceRepo) DeleteRegulatorySource(ctx context.Context, id uuid.UUID) error { return nil }
+func (f *fakeMassBalanceRepo) UpsertRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) error { return nil }
+func (f *fakeMassBalanceRepo) GetRegulatoryItemBySourceAndExternalID(ctx context.Context, sourceID uuid.UUID, externalID string) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) ListRegulatoryItems(ctx context.Context, f2 repository.ListRegulatoryItemsFilter) ([]*models.RegulatoryItem, int, error) { return nil, 0, nil }
+func (f *fakeMassBalanceRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) (*models.RegulatoryItem, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
+func (f *fakeMassBalanceRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
+func (f *fakeMassBalanceRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
+func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMassBalanceRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
