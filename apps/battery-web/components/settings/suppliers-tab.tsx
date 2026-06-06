@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { OECDWizardDialog } from "@/components/due-diligence/oecd-wizard-dialog";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import {
@@ -25,12 +25,8 @@ import {
   Clock,
   Copy,
   FileText,
-  ShieldAlert,
   ShieldCheck,
-  AlertTriangle,
-  ArrowRight,
   Flag,
-  FlaskConical,
   Search,
   FileSpreadsheet,
   Wrench,
@@ -88,13 +84,7 @@ interface CorrectiveAction {
   due_date: string;
 }
 
-const OECD_STEPS = [
-  { key: "policy", label: "Policy", desc: "Establish due diligence policy" },
-  { key: "identify", label: "Identify", desc: "Identify risks in supply chain" },
-  { key: "assess", label: "Assess", desc: "Assess supplier risk profiles" },
-  { key: "respond", label: "Respond", desc: "Design & implement response strategy" },
-  { key: "audit", label: "Audit", desc: "Independent third-party audit" },
-];
+
 
 export default function SuppliersTab() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -106,12 +96,8 @@ export default function SuppliersTab() {
 
   // Risk & DD state
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [riskProfile, setRiskProfile] = useState<RiskProfile | null>(null);
-  const [ddAssessments, setDDAssessments] = useState<DDAssessment[]>([]);
   const [correctiveActions, setCorrectiveActions] = useState<CorrectiveAction[]>([]);
   const [ddOpen, setDDOpen] = useState(false);
-  const [caOpen, setCaOpen] = useState(false);
-  const [ddLoading, setDDLoading] = useState(false);
   const [caLoading, setCaLoading] = useState(false);
 
   const [inviteForm, setInviteForm] = useState({
@@ -159,21 +145,9 @@ export default function SuppliersTab() {
     }
   };
 
-  const fetchSupplierRisk = async (supplier: Supplier) => {
-    setDDLoading(true);
+  const openWizard = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
-    try {
-      const [riskRes, ddRes] = await Promise.all([
-        api.get(`/suppliers/${supplier.id}/risk-profile`),
-        api.get(`/suppliers/${supplier.id}/dd-assessments`),
-      ]);
-      setRiskProfile(riskRes.data);
-      setDDAssessments(ddRes.data || []);
-    } catch {
-      toast.error("Failed to load supplier risk data");
-    } finally {
-      setDDLoading(false);
-    }
+    setDDOpen(true);
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -223,15 +197,7 @@ export default function SuppliersTab() {
     }
   };
 
-  const transitionStep = async (assessmentId: string, status: string) => {
-    try {
-      await api.post(`/dd-assessments/${assessmentId}/transition`, { status });
-      toast.success(`Step marked as ${status}`);
-      if (selectedSupplier) fetchSupplierRisk(selectedSupplier);
-    } catch {
-      toast.error("Failed to transition step");
-    }
-  };
+
 
   const createCorrectiveAction = async (data: Partial<CorrectiveAction>) => {
     try {
@@ -324,16 +290,6 @@ export default function SuppliersTab() {
     );
   };
 
-  const getStepStatus = (stepKey: string) => {
-    const found = ddAssessments.find((a) => a.step === stepKey);
-    return found ? found.status : "not_started";
-  };
-
-  const getStepProgress = () => {
-    const completed = ddAssessments.filter((a) => a.status === "complete").length;
-    return (completed / 5) * 100;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -401,7 +357,7 @@ export default function SuppliersTab() {
                     Invited {new Date(s.invited_at).toLocaleDateString()}
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => { fetchSupplierRisk(s); setDDOpen(true); }}>
+                    <Button size="sm" variant="outline" onClick={() => openWizard(s)}>
                       <ShieldCheck className="w-3.5 h-3.5 mr-1" />
                       Due Diligence
                     </Button>
@@ -554,149 +510,15 @@ export default function SuppliersTab() {
         </DialogContent>
       </Dialog>
 
-      {/* DUE DILIGENCE WIZARD DIALOG */}
-      <Dialog open={ddOpen} onOpenChange={setDDOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Due Diligence — {selectedSupplier?.company_name}</DialogTitle>
-            <DialogDescription>OECD 5-Step Due Diligence Assessment</DialogDescription>
-          </DialogHeader>
-
-          {ddLoading ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">Loading...</div>
-          ) : (
-            <div className="space-y-6">
-              {/* Risk Profile Card */}
-              {riskProfile ? (
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Risk Profile</span>
-                    {riskScoreBadge(riskProfile.overall_score)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Country Tier:</span>
-                    {countryTierBadge(riskProfile.country_risk_tier)}
-                  </div>
-                  {riskProfile.mineral_risk_flags.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-muted-foreground">Mineral Flags:</span>
-                      {riskProfile.mineral_risk_flags.map((f) => (
-                        <Badge key={f} variant="outline" className="text-xs capitalize">{f}</Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">RMAP:</span>
-                    {riskProfile.rmap_valid ? (
-                      <Badge className="bg-green-500 text-white text-xs"><ShieldCheck className="w-3 h-3 mr-1" />Valid</Badge>
-                    ) : (
-                      <Badge className="bg-red-500 text-white text-xs"><ShieldAlert className="w-3 h-3 mr-1" />Missing</Badge>
-                    )}
-                  </div>
-                  {riskProfile.next_audit_due && (
-                    <div className="text-xs text-muted-foreground">
-                      Next audit due: {new Date(riskProfile.next_audit_due).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="border rounded-lg p-4 text-sm text-muted-foreground text-center">
-                  No risk profile computed yet. Risk is calculated automatically when a supplier is invited.
-                </div>
-              )}
-
-              {/* OECD Step Progress */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">OECD Progress</span>
-                  <span className="text-xs text-muted-foreground">{Math.round(getStepProgress())}%</span>
-                </div>
-                <Progress value={getStepProgress()} className="h-2" />
-              </div>
-
-              {/* Step List */}
-              <div className="space-y-2">
-                {OECD_STEPS.map((step, idx) => {
-                  const status = getStepStatus(step.key);
-                  const assessment = ddAssessments.find((a) => a.step === step.key);
-                  const isComplete = status === "complete";
-                  const isFailed = status === "failed";
-                  const isInProgress = status === "in_progress";
-                  const canStart = idx === 0 || getStepStatus(OECD_STEPS[idx - 1].key) === "complete";
-
-                  return (
-                    <div key={step.key} className={`border rounded-lg p-3 space-y-2 ${isFailed ? "border-red-300 bg-red-50" : isComplete ? "border-green-300 bg-green-50" : ""}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {isComplete ? <CheckCircle2 className="w-4 h-4 text-green-600" /> :
-                           isFailed ? <AlertTriangle className="w-4 h-4 text-red-600" /> :
-                           isInProgress ? <ArrowRight className="w-4 h-4 text-amber-600" /> :
-                           <CircleIcon className="w-4 h-4 text-muted-foreground" />}
-                          <span className="text-sm font-medium">{idx + 1}. {step.label}</span>
-                        </div>
-                        <Badge variant="outline" className="text-xs capitalize">{status.replace(/_/g, " ")}</Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{step.desc}</div>
-                      {assessment?.notes && <div className="text-xs text-muted-foreground italic">{assessment.notes}</div>}
-                      <div className="flex gap-2">
-                        {status === "not_started" && canStart && (
-                          <Button size="sm" variant="outline" onClick={() => transitionStep(assessment?.id || "", "in_progress")}>
-                            <ArrowRight className="w-3.5 h-3.5 mr-1" />
-                            Start
-                          </Button>
-                        )}
-                        {status === "in_progress" && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => transitionStep(assessment?.id || "", "complete")}>
-                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                              Complete
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => transitionStep(assessment?.id || "", "failed")}>
-                              <XCircle className="w-3.5 h-3.5 mr-1" />
-                              Fail
-                            </Button>
-                          </>
-                        )}
-                        {status === "failed" && (
-                          <Button size="sm" variant="outline" onClick={() => transitionStep(assessment?.id || "", "in_progress")}>
-                            <ArrowRight className="w-3.5 h-3.5 mr-1" />
-                            Retry
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Create Assessment Button */}
-              {ddAssessments.length === 0 && (
-                <Button size="sm" onClick={async () => {
-                  if (!selectedSupplier) return;
-                  try {
-                    await api.post(`/suppliers/${selectedSupplier.id}/dd-assessments`, { step: "policy" });
-                    toast.success("Assessment created");
-                    fetchSupplierRisk(selectedSupplier);
-                  } catch {
-                    toast.error("Failed to create assessment");
-                  }
-                }}>
-                  <FlaskConical className="w-3.5 h-3.5 mr-1" />
-                  Create Assessment
-                </Button>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* OECD Due Diligence Wizard */}
+      <OECDWizardDialog
+        supplierId={selectedSupplier?.id || ""}
+        supplierName={selectedSupplier?.company_name || ""}
+        open={ddOpen}
+        onOpenChange={setDDOpen}
+      />
     </div>
   );
 }
 
-function CircleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
-}
+

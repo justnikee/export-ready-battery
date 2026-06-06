@@ -3,6 +3,7 @@ import {
   BookOpen,
   Box,
   Building2,
+  ClipboardCheck,
   CreditCard,
   FileDown,
   Globe,
@@ -41,6 +42,7 @@ type DashboardRouteKey =
   | "developer"
   | "dgft-claims"
   | "dispatch"
+  | "due-diligence"
   | "exports"
   | "lifecycle"
   | "mass-balance"
@@ -209,6 +211,7 @@ const BATTERY_CONFIG: ProductConfig = {
       label: "Compliance",
       items: [
         { name: "Compliance", dashboardSubpath: "compliance", icon: Shield },
+        { name: "Due Diligence", dashboardSubpath: "due-diligence", icon: ClipboardCheck },
         { name: "Exports", dashboardSubpath: "exports", icon: FileDown },
         { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale },
         { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark },

@@ -528,3 +528,50 @@ export interface TenantAlert {
   emailed_at?: string;
   created_at: string;
 }
+
+// ============================================================================
+// DUE DILIGENCE ENGINE (Phase B)
+// ============================================================================
+
+export interface SupplierRiskProfile {
+  id: string;
+  supplier_id: string;
+  tenant_id: string;
+  overall_score: number;
+  country_risk_tier: number;
+  mineral_risk_flags: string[];
+  rmap_valid?: boolean;
+  last_audit_date?: string;
+  next_audit_due?: string;
+  computed_at: string;
+}
+
+export interface DueDiligenceAssessment {
+  id: string;
+  supplier_id: string;
+  tenant_id: string;
+  batch_id?: string;
+  step: string;
+  status: string;
+  evidence_docs: string[];
+  completed_by?: string;
+  completed_at?: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CorrectiveAction {
+  id: string;
+  supplier_id: string;
+  tenant_id: string;
+  assessment_id?: string;
+  title: string;
+  description: string;
+  severity: string;
+  status: string;
+  due_date: string;
+  remediated_at?: string;
+  verified_by?: string;
+  created_at: string;
+}
