@@ -3,7 +3,9 @@
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, FileCheck, AlertTriangle } from "lucide-react";
+import { Save, FileCheck, AlertTriangle, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import Link from "next/link";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -34,11 +36,29 @@ export function StepReview() {
     watch,
     setValue,
   } = useFormContext<BatchFormData>();
+  const { user } = useAuth();
 
   const values = watch();
   const isEUMode = values.marketRegion === "EU";
   const isIndiaMode = values.marketRegion === "INDIA";
   const hasErrors = Object.keys(errors).length > 0;
+
+  // Profile readiness for selected market
+  const profileReadiness = () => {
+    if (!user) return null
+    const items: { label: string; ready: boolean }[] = []
+    if (isIndiaMode || values.marketRegion === "GLOBAL") {
+      items.push({ label: "EPR Registration", ready: !!user.epr_registration_number?.trim() && (user.epr_status === "PENDING" || user.epr_status === "VERIFIED") })
+      items.push({ label: "BIS Certification", ready: !!user.bis_r_number?.trim() && (user.bis_status === "PENDING" || user.bis_status === "VERIFIED") })
+      items.push({ label: "IEC Code", ready: !!user.iec_code?.trim() })
+    }
+    if (isEUMode || values.marketRegion === "GLOBAL") {
+      items.push({ label: "EU Representative", ready: !!user.eu_authorized_representative_name?.trim() && !!user.eu_contact_email?.trim() })
+    }
+    const readyCount = items.filter((i) => i.ready).length
+    return { items, readyCount, total: items.length }
+  }
+  const readiness = profileReadiness()
 
   const matTotal = (
     ["cobalt", "lithium", "nickel", "manganese", "graphite", "lead"] as const
@@ -53,7 +73,36 @@ export function StepReview() {
         </div>
       )}
 
-      {/* Identity Summary */}
+      {/* Profile Readiness for Selected Market */}
+      {readiness && readiness.total > 0 && (
+        <div className={`p-3 border rounded text-sm ${readiness.readyCount === readiness.total ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-amber-500/10 border-amber-500/20 text-amber-300'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Profile Readiness ({readiness.readyCount}/{readiness.total})</span>
+            <Link href="/dashboard/settings?tab=compliance" className="text-xs underline hover:text-foreground ml-auto">
+              Update in Settings
+            </Link>
+          </div>
+          <div className="w-full bg-muted rounded-full h-1.5 mb-2">
+            <div
+              className={`h-1.5 rounded-full transition-all ${readiness.readyCount === readiness.total ? 'bg-emerald-500' : 'bg-amber-400'}`}
+              style={{ width: `${(readiness.readyCount / readiness.total) * 100}%` }}
+            />
+          </div>
+          {readiness.items.some((i) => !i.ready) && (
+            <ul className="text-xs space-y-0.5">
+              {readiness.items.filter((i) => !i.ready).map((item) => (
+                <li key={item.label} className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {item.label} — required for activation
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Identity Summary -->
       <Section title="Identity">
         <Row label="Batch Name" value={values.batchName} />
         <Row label="Model Name" value={values.modelName} />

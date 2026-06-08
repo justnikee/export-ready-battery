@@ -163,6 +163,11 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SECURITY: Enforce onboarding completion before batch activation
+	if !h.checkIfOnboardingCompleted(w, r) {
+		return
+	}
+
 	// Get batch to verify ownership and status
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {

@@ -31,6 +31,7 @@ interface BatchReadinessBarProps {
     epr_registration_number?: string;
     iec_code?: string;
   } | null;
+  dueDiligenceComplete?: boolean;
 }
 
 export function BatchReadinessBar({
@@ -40,6 +41,7 @@ export function BatchReadinessBar({
   region,
   verifications,
   user,
+  dueDiligenceComplete,
 }: BatchReadinessBarProps) {
   const s = batch.specs;
   const isEU = region === "EU";
@@ -113,6 +115,13 @@ export function BatchReadinessBar({
       icon: <Leaf className="h-3 w-3" />,
     });
   }
+
+  items.push({
+    id: "due_diligence",
+    label: "Due Diligence",
+    done: dueDiligenceComplete ?? (complianceScore !== null && complianceScore >= 80),
+    icon: <Shield className="h-3 w-3" />,
+  });
 
   const doneCount = items.filter((i) => i.done).length;
   const pct = Math.round((doneCount / items.length) * 100);

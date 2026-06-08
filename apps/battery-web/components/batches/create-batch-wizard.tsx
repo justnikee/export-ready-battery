@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/auth-context";
@@ -20,11 +20,14 @@ import { PlusCircle, Sparkles, ChevronLeft, ChevronRight, Check } from "lucide-r
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useTemplates, type Template } from "@/hooks/use-queries";
+import { useBatchValidation } from "@/hooks/use-batch-validation";
+import { mapBackendFieldToFormPath } from "@/lib/batch-error-mapper";
 import {
   batchFormSchema,
   defaultBatchFormValues,
   type BatchFormData,
   type MarketRegion,
+  type CellSource,
 } from "@/components/batches/batch-form-schema";
 import {
   scheduleDraftSave,
@@ -75,11 +78,26 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   // Retry state
   const [retryPayload, setRetryPayload] = useState<BatchFormData | null>(null);
 
+  // Real-time backend validation
+  const batchValidation = useBatchValidation();
+  const [backendValidationErrors, setBackendValidationErrors] = useState<Record<string, string>>({});
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Map user's onboarding primary_market to batch marketRegion default
+  const getDefaultMarketRegion = (): MarketRegion => {
+    const pm = user?.data_visibility?.primary_market
+    if (pm === "eu") return "EU"
+    if (pm === "india") return "INDIA"
+    if (pm === "both") return "INDIA" // Default to India for "both" — user can switch per batch
+    return "INDIA"
+  }
+
   const methods = useForm<BatchFormData>({
     resolver: zodResolver(batchFormSchema),
     defaultValues: {
       ...defaultBatchFormValues,
       manufacturer: user?.company_name || "",
+      marketRegion: getDefaultMarketRegion(),
     },
     mode: "onBlur",
   });
@@ -90,11 +108,30 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     reset,
     handleSubmit,
     trigger,
+    setError,
     formState: { errors, isDirty },
   } = methods;
 
   const marketRegion = watch("marketRegion");
   const cellSource = watch("cellSource");
+
+  // Default certifications based on market region
+  useEffect(() => {
+    if (!open) return
+    const currentCerts = watch("certifications")
+    const isDefault =
+      JSON.stringify(currentCerts) === JSON.stringify(["AIS-156", "AIS-038"]) ||
+      JSON.stringify(currentCerts) === JSON.stringify(["CE"]) ||
+      currentCerts.length === 0
+    if (!isDefault) return
+
+    if (marketRegion === "INDIA") {
+      setValue("certifications", ["AIS-156", "AIS-038"], { shouldValidate: false })
+    } else if (marketRegion === "EU" || marketRegion === "GLOBAL") {
+      setValue("certifications", ["CE"], { shouldValidate: false })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marketRegion, open])
 
   // Fetch templates via React Query (cached, deduped)
   const { data: templatesData } = useTemplates(user?.tenant_id, "BATTERY");
@@ -105,6 +142,72 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       setTemplates(templatesData);
     }
   }, [templatesData]);
+
+  // Build API payload from form data (shared by submit and validation)
+  const buildValidationPayload = useCallback((data: BatchFormData, userCtx: typeof user): Record<string, unknown> => {
+    if (!userCtx) return {};
+    const payload: Record<string, unknown> = {
+      tenant_id: userCtx.tenant_id,
+      batch_name: data.batchName,
+      model_name: data.modelName,
+      manufacturing_start_date: data.manufacturingStartDate || undefined,
+      manufacturing_end_date: data.manufacturingEndDate || undefined,
+      market_region: data.marketRegion,
+      product_type: "BATTERY",
+      specs: {
+        manufacturer: data.manufacturer,
+        manufacturer_address: data.manufacturerAddress,
+        manufacturer_email: data.manufacturerEmail,
+        weight: data.weight,
+        country_of_origin: data.countryOfOrigin,
+        recyclable: data.recyclable,
+        capacity: data.capacity,
+        voltage: data.voltage,
+        chemistry: data.chemistry,
+        battery_category: data.batteryCategory || undefined,
+      },
+    };
+
+    if (data.marketRegion === "EU" || data.marketRegion === "GLOBAL") {
+      (payload.specs as Record<string, unknown>).carbon_footprint = data.carbonFootprint;
+      (payload.specs as Record<string, unknown>).certifications = data.certifications;
+      (payload.specs as Record<string, unknown>).eu_representative = data.euRepresentative;
+      (payload.specs as Record<string, unknown>).eu_representative_email = data.euRepresentativeEmail;
+      (payload.specs as Record<string, unknown>).eu_representative_address = data.euRepresentativeAddress;
+      if (data.expectedLifetime !== "") {
+        (payload.specs as Record<string, unknown>).expected_lifetime_cycles = parseInt(data.expectedLifetime);
+      }
+      payload.ce_marking = data.ceMarking;
+      payload.carbon_performance_class = data.carbonPerformanceClass || undefined;
+      payload.removable_and_replaceable = data.removableAndReplaceable;
+      payload.notified_body_number = data.notifiedBodyNumber || undefined;
+      if (data.warrantyMonths !== "") {
+        (payload.specs as Record<string, unknown>).warranty_months = parseInt(data.warrantyMonths);
+      }
+    }
+
+    if (data.marketRegion === "INDIA") {
+      (payload.specs as Record<string, unknown>).certifications = data.certifications;
+      payload.pli_compliant = data.pliCompliant;
+      payload.hsn_code = data.hsnCode;
+      payload.dva_source = data.dvaSource;
+      if (data.dvaSource === "AUDITED") {
+        payload.audited_domestic_value_add = parseFloat(data.auditedDva) || 0;
+      } else {
+        (payload.specs as Record<string, unknown>).sale_price_inr = parseFloat(data.salePrice) || 0;
+        (payload.specs as Record<string, unknown>).import_cost_inr = parseFloat(data.importCost) || 0;
+        payload.domestic_value_add = 0;
+      }
+      payload.cell_source = data.cellSource || undefined;
+      if (data.cellSource === "IMPORTED") {
+        payload.bill_of_entry_no = data.billOfEntryNo;
+        payload.country_of_origin = data.cellCountryOfOrigin;
+        payload.customs_date = data.customsDate;
+      }
+    }
+
+    return payload;
+  }, []);
 
   // Auto-save draft on form changes (debounced)
   useEffect(() => {
@@ -117,17 +220,44 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     return () => subscription.unsubscribe();
   }, [watch, isDirty, user, open, step]);
 
-  // Pre-fill EU rep from user profile when dialog opens + offer draft resume
+  // Pre-fill static fields from user profile when dialog opens + offer draft resume
   useEffect(() => {
     if (open && user) {
-      if (user?.eu_authorized_representative_name) {
+      // Core company info (only if field is currently empty)
+      if (user.company_name && !watch("manufacturer")) {
+        setValue("manufacturer", user.company_name);
+      }
+      if (user.address && !watch("manufacturerAddress")) {
+        setValue("manufacturerAddress", user.address);
+      }
+      if (user.support_email && !watch("manufacturerEmail")) {
+        setValue("manufacturerEmail", user.support_email);
+      }
+
+      // EU representative (only if field is currently empty)
+      if (user.eu_authorized_representative_name && !watch("euRepresentative")) {
         setValue("euRepresentative", user.eu_authorized_representative_name);
       }
-      if (user?.eu_contact_email) {
+      if (user.eu_contact_email && !watch("euRepresentativeEmail")) {
         setValue("euRepresentativeEmail", user.eu_contact_email);
       }
-      if (user?.eu_authorized_representative_address) {
+      if (user.eu_authorized_representative_address && !watch("euRepresentativeAddress")) {
         setValue("euRepresentativeAddress", user.eu_authorized_representative_address);
+      }
+
+      // India regulatory numbers (only if field is currently empty)
+      if (user.epr_registration_number && !watch("eprNumber")) {
+        setValue("eprNumber", user.epr_registration_number);
+      }
+      if (user.bis_r_number && !watch("bisNumber")) {
+        setValue("bisNumber", user.bis_r_number);
+      }
+
+      // Default country of origin based on tenant profile signals
+      if (!watch("countryOfOrigin")) {
+        if (user.epr_registration_number || user.bis_r_number || user.iec_code) {
+          setValue("countryOfOrigin", "IN");
+        }
       }
 
       // Offer to resume draft
@@ -179,6 +309,45 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       setIecError(false);
     }
   }, [cellSource, setValue, user?.iec_code]);
+
+  // Real-time backend validation (debounced 500ms)
+  const formValues = watch();
+  useEffect(() => {
+    if (!open || !user) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      // Only validate if we have minimum required fields
+      if (!formValues.batchName || !formValues.marketRegion) return;
+      try {
+        const payload = buildValidationPayload(formValues, user);
+        const result = await batchValidation.mutateAsync(payload);
+        if (result.errors && result.errors.length > 0) {
+          const mapped: Record<string, string> = {};
+          result.errors.forEach((err) => {
+            const formPath = mapBackendFieldToFormPath(err.field);
+            mapped[formPath] = err.message;
+          });
+          setBackendValidationErrors(mapped);
+        } else {
+          setBackendValidationErrors({});
+        }
+      } catch {
+        // Silently fail — backend validation is best-effort
+      }
+    }, 500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formValues.batchName, formValues.marketRegion, formValues.cellSource, formValues.hsnCode, formValues.billOfEntryNo, formValues.cellCountryOfOrigin, formValues.customsDate, formValues.salePrice, formValues.importCost, formValues.dvaSource, formValues.auditedDva, formValues.pliCompliant, formValues.batteryCategory, formValues.carbonFootprint, formValues.expectedLifetime, formValues.warrantyMonths, formValues.manufacturingStartDate, formValues.manufacturingEndDate, open, user]);
+
+  // Apply backend validation errors to react-hook-form
+  useEffect(() => {
+    Object.entries(backendValidationErrors).forEach(([path, message]) => {
+      methods.setError(path as keyof BatchFormData, { type: "backend", message });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendValidationErrors]);
 
   // Template selection
   const handleTemplateSelect = (templateId: string) => {
@@ -314,15 +483,38 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     }
   };
 
-  // Step navigation
-  const canGoNext = async () => {
-    const fieldsByStep: (keyof BatchFormData)[][] = [
+  // Market-aware required fields per step
+  const getRequiredFieldsForStep = useCallback((stepIdx: number, market: MarketRegion, source: CellSource): (keyof BatchFormData)[] => {
+    const base: (keyof BatchFormData)[][] = [
       ["batchName", "modelName", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer"],
-      ["chemistry", "batteryCategory", "capacity", "voltage", "materialComposition"],
-      ["carbonFootprint", "carbonPerformanceClass", "expectedLifetime", "warrantyMonths", "hsnCode", "cellSource", "billOfEntryNo", "cellCountryOfOrigin", "customsDate", "auditedDva", "uploadedFileUrl"],
+      ["chemistry", "capacity", "voltage"],
+      [], // Step 3 varies by market
       ["templateName"],
     ];
-    const valid = await trigger(fieldsByStep[step]);
+    const fields = [...base[stepIdx]];
+
+    if (stepIdx === 2) {
+      if (market === "INDIA") {
+        fields.push("hsnCode", "cellSource");
+        if (source === "IMPORTED") {
+          fields.push("billOfEntryNo", "cellCountryOfOrigin", "customsDate");
+        }
+        if (source === "DOMESTIC") {
+          fields.push("salePrice", "importCost");
+        }
+      }
+      if (market === "EU") {
+        fields.push("batteryCategory");
+      }
+    }
+
+    return fields;
+  }, []);
+
+  // Step navigation
+  const canGoNext = async () => {
+    const fields = getRequiredFieldsForStep(step, marketRegion, cellSource);
+    const valid = await trigger(fields);
     return valid;
   };
 
@@ -342,109 +534,52 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     if (!user) return;
     setIsLoading(true);
     try {
-      const payload: Record<string, unknown> = {
-        tenant_id: user.tenant_id,
-        batch_name: data.batchName,
-        model_name: data.modelName,
-        manufacturing_start_date: data.manufacturingStartDate || undefined,
-        manufacturing_end_date: data.manufacturingEndDate || undefined,
-        market_region: data.marketRegion,
-        product_type: "BATTERY",
-        specs: {
-          manufacturer: data.manufacturer,
-          manufacturer_address: data.manufacturerAddress,
-          manufacturer_email: data.manufacturerEmail,
-          weight: data.weight,
-          country_of_origin: data.countryOfOrigin,
-          recyclable: data.recyclable,
-          capacity: data.capacity,
-          voltage: data.voltage,
-          chemistry: data.chemistry,
-          battery_category: data.batteryCategory || undefined,
-        },
+      const payload = buildValidationPayload(data, user);
+
+      // Add material composition
+      const materialPayload: Record<string, number | undefined> = {
+        cobalt_pct: data.materialComposition.cobalt ? parseFloat(data.materialComposition.cobalt) : undefined,
+        lithium_pct: data.materialComposition.lithium ? parseFloat(data.materialComposition.lithium) : undefined,
+        nickel_pct: data.materialComposition.nickel ? parseFloat(data.materialComposition.nickel) : undefined,
+        manganese_pct: data.materialComposition.manganese ? parseFloat(data.materialComposition.manganese) : undefined,
+        graphite_pct: data.materialComposition.graphite ? parseFloat(data.materialComposition.graphite) : undefined,
+        lead_pct: data.materialComposition.lead ? parseFloat(data.materialComposition.lead) : undefined,
+        recycled_cobalt_pct: data.materialComposition.recycled_cobalt ? parseFloat(data.materialComposition.recycled_cobalt) : undefined,
+        recycled_lithium_pct: data.materialComposition.recycled_lithium ? parseFloat(data.materialComposition.recycled_lithium) : undefined,
+        recycled_nickel_pct: data.materialComposition.recycled_nickel ? parseFloat(data.materialComposition.recycled_nickel) : undefined,
+        recycled_lead_pct: data.materialComposition.recycled_lead ? parseFloat(data.materialComposition.recycled_lead) : undefined,
       };
-
-      // EU / GLOBAL
-      if (data.marketRegion === "EU" || data.marketRegion === "GLOBAL") {
-        (payload.specs as Record<string, unknown>).carbon_footprint = data.carbonFootprint;
-        (payload.specs as Record<string, unknown>).certifications = data.certifications;
-
-        const materialPayload: Record<string, number | undefined> = {
-          cobalt_pct: data.materialComposition.cobalt ? parseFloat(data.materialComposition.cobalt) : undefined,
-          lithium_pct: data.materialComposition.lithium ? parseFloat(data.materialComposition.lithium) : undefined,
-          nickel_pct: data.materialComposition.nickel ? parseFloat(data.materialComposition.nickel) : undefined,
-          manganese_pct: data.materialComposition.manganese ? parseFloat(data.materialComposition.manganese) : undefined,
-          graphite_pct: data.materialComposition.graphite ? parseFloat(data.materialComposition.graphite) : undefined,
-          lead_pct: data.materialComposition.lead ? parseFloat(data.materialComposition.lead) : undefined,
-          recycled_cobalt_pct: data.materialComposition.recycled_cobalt ? parseFloat(data.materialComposition.recycled_cobalt) : undefined,
-          recycled_lithium_pct: data.materialComposition.recycled_lithium ? parseFloat(data.materialComposition.recycled_lithium) : undefined,
-          recycled_nickel_pct: data.materialComposition.recycled_nickel ? parseFloat(data.materialComposition.recycled_nickel) : undefined,
-          recycled_lead_pct: data.materialComposition.recycled_lead ? parseFloat(data.materialComposition.recycled_lead) : undefined,
-        };
-        const hasMaterial = Object.values(materialPayload).some((v) => typeof v === "number" && v > 0);
-        if (hasMaterial) {
-          (payload.specs as Record<string, unknown>).material_composition = materialPayload;
-        }
-
-        if (data.recycledContent !== "") {
-          (payload.specs as Record<string, unknown>).recycled_content_pct = parseFloat(data.recycledContent);
-        }
-
-        (payload.specs as Record<string, unknown>).hazardous_substances = {
-          lead_present: data.hazardousSubstances.lead,
-          mercury_present: data.hazardousSubstances.mercury,
-          cadmium_present: data.hazardousSubstances.cadmium,
-          declaration: data.hazardousDeclaration,
-        };
-
-        (payload.specs as Record<string, unknown>).eu_representative = data.euRepresentative;
-        (payload.specs as Record<string, unknown>).eu_representative_email = data.euRepresentativeEmail;
-        (payload.specs as Record<string, unknown>).eu_representative_address = data.euRepresentativeAddress;
-        if (data.expectedLifetime !== "") {
-          (payload.specs as Record<string, unknown>).expected_lifetime_cycles = parseInt(data.expectedLifetime);
-        }
-        payload.ce_marking = data.ceMarking;
-        payload.carbon_performance_class = data.carbonPerformanceClass || undefined;
-        payload.removable_and_replaceable = data.removableAndReplaceable;
-        payload.notified_body_number = data.notifiedBodyNumber || undefined;
-        payload.declaration_of_conformity_path = data.docUploadUrl ?? undefined;
-        (payload.specs as Record<string, unknown>).iec_62133_test_date = data.iec62133TestDate || undefined;
-        (payload.specs as Record<string, unknown>).msds_issue_date = data.msdsIssueDate || undefined;
-        if (data.warrantyMonths !== "") {
-          (payload.specs as Record<string, unknown>).warranty_months = parseInt(data.warrantyMonths);
-        }
-        (payload.specs as Record<string, unknown>).gtin = data.gtin || undefined;
+      const hasMaterial = Object.values(materialPayload).some((v) => typeof v === "number" && v > 0);
+      if (hasMaterial) {
+        (payload.specs as Record<string, unknown>).material_composition = materialPayload;
       }
 
-      // India
+      // Add hazardous substances
+      (payload.specs as Record<string, unknown>).hazardous_substances = {
+        lead_present: data.hazardousSubstances.lead,
+        mercury_present: data.hazardousSubstances.mercury,
+        cadmium_present: data.hazardousSubstances.cadmium,
+        declaration: data.hazardousDeclaration,
+      };
+
+      // Add certificate dates
+      (payload.specs as Record<string, unknown>).bis_certificate_issue_date = data.bisCertificateIssueDate || undefined;
+      (payload.specs as Record<string, unknown>).un38_3_test_date = data.un383TestDate || undefined;
+      (payload.specs as Record<string, unknown>).iec_62133_test_date = data.iec62133TestDate || undefined;
+      (payload.specs as Record<string, unknown>).msds_issue_date = data.msdsIssueDate || undefined;
+      (payload.specs as Record<string, unknown>).gtin = data.gtin || undefined;
+
+      // Add India-specific extras
       if (data.marketRegion === "INDIA") {
-        (payload.specs as Record<string, unknown>).certifications = data.certifications;
-        (payload.specs as Record<string, unknown>).bis_certificate_issue_date = data.bisCertificateIssueDate || undefined;
-        (payload.specs as Record<string, unknown>).un38_3_test_date = data.un383TestDate || undefined;
-        payload.pli_compliant = data.pliCompliant;
-        payload.hsn_code = data.hsnCode;
-        payload.dva_source = data.dvaSource;
-
-        if (data.dvaSource === "AUDITED") {
-          payload.audited_domestic_value_add = parseFloat(data.auditedDva) || 0;
-          payload.pli_certificate_url = data.uploadedFileUrl ?? undefined;
-        } else {
-          const sale = parseFloat(data.salePrice) || 0;
-          const cost = parseFloat(data.importCost) || 0;
-          (payload.specs as Record<string, unknown>).sale_price_inr = sale;
-          (payload.specs as Record<string, unknown>).import_cost_inr = cost;
-          payload.domestic_value_add = sale > 0 ? ((sale - cost) / sale) * 100 : 0;
-        }
-
-        payload.cell_source = data.cellSource || undefined;
-        if (data.cellSource === "IMPORTED") {
-          payload.bill_of_entry_no = data.billOfEntryNo;
-          payload.country_of_origin = data.cellCountryOfOrigin;
-          payload.customs_date = data.customsDate;
-        }
         if (data.bisNumber) payload.bis_number = data.bisNumber;
         if (data.eprNumber) payload.epr_number = data.eprNumber;
-        (payload.specs as Record<string, unknown>).gtin = data.gtin || undefined;
+        // CA Certificate for audited DVA mode
+        if (data.uploadedFileUrl) payload.pli_certificate_url = data.uploadedFileUrl;
+      }
+
+      // Declaration of Conformity (EU/Global)
+      if ((data.marketRegion === "EU" || data.marketRegion === "GLOBAL") && data.docUploadUrl) {
+        payload.declaration_of_conformity_path = data.docUploadUrl;
       }
 
       await api.post("/batches", payload);
@@ -501,8 +636,30 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       if (apiError.response?.data?.error) {
         errMsg = apiError.response.data.error;
       } else if (apiError.response?.data?.fields && apiError.response.data.fields.length > 0) {
-        const fieldNames = apiError.response.data.fields.map((f) => f.field).join(", ");
-        errMsg = `Validation failed: ${fieldNames}`;
+        // Map backend validation errors to form fields
+        const backendFields = apiError.response.data.fields;
+        const formPathErrors: Array<{ field: string; message: string }> = [];
+        backendFields.forEach((bf) => {
+          const formPath = mapBackendFieldToFormPath(bf.field);
+          if (formPath) {
+            setError(formPath as keyof BatchFormData, { type: "manual", message: bf.message });
+            formPathErrors.push({ field: formPath, message: bf.message });
+          }
+        });
+        // Auto-navigate to first error's step
+        if (formPathErrors.length > 0) {
+          const firstErrField = formPathErrors[0].field;
+          const identityFields = ["batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate", "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry"];
+          const specsFields = ["weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable"];
+          let targetStep = 2;
+          if (identityFields.includes(firstErrField)) {
+            targetStep = 0;
+          } else if (specsFields.includes(firstErrField)) {
+            targetStep = 1;
+          }
+          setStep(targetStep);
+        }
+        errMsg = `Please fix the highlighted ${formPathErrors.length} field(s) before submitting.`;
       } else if (apiError.response?.statusText) {
         errMsg = `Server error (${apiError.response.status}): ${apiError.response.statusText}`;
       } else if (apiError.message && apiError.message !== "Failed to create batch") {

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { OECDWizardDialog } from "@/components/due-diligence/oecd-wizard-dialog";
+import { CMRTUploadDialog } from "@/components/due-diligence/cmrt-upload-dialog";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import {
@@ -98,6 +99,7 @@ export default function SuppliersTab() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [correctiveActions, setCorrectiveActions] = useState<CorrectiveAction[]>([]);
   const [ddOpen, setDDOpen] = useState(false);
+  const [cmrtOpen, setCmrtOpen] = useState(false);
   const [caLoading, setCaLoading] = useState(false);
 
   const [inviteForm, setInviteForm] = useState({
@@ -148,6 +150,11 @@ export default function SuppliersTab() {
   const openWizard = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
     setDDOpen(true);
+  };
+
+  const openCMRT = (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setCmrtOpen(true);
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -361,6 +368,10 @@ export default function SuppliersTab() {
                       <ShieldCheck className="w-3.5 h-3.5 mr-1" />
                       Due Diligence
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => openCMRT(s)}>
+                      <FileSpreadsheet className="w-3.5 h-3.5 mr-1" />
+                      Upload CMRT
+                    </Button>
                     {s.status === "invited" && (
                       <Button size="sm" variant="outline" onClick={() => copyInviteLink(s.id)}>
                         <Copy className="w-3.5 h-3.5 mr-1" />
@@ -516,6 +527,12 @@ export default function SuppliersTab() {
         supplierName={selectedSupplier?.company_name || ""}
         open={ddOpen}
         onOpenChange={setDDOpen}
+      />
+      <CMRTUploadDialog
+        supplierId={selectedSupplier?.id || ""}
+        supplierName={selectedSupplier?.company_name || ""}
+        open={cmrtOpen}
+        onOpenChange={setCmrtOpen}
       />
     </div>
   );

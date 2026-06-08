@@ -872,6 +872,164 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetReadiness handles GET /api/v1/auth/readiness
+// Returns tenant-level compliance readiness per selected market.
+// Safe to call during onboarding — does not require a batch.
+func (h *AuthHandler) GetReadiness(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	if tenantID == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	id, err := uuid.Parse(tenantID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), id)
+	if err != nil {
+		if err.Error() == "tenant not found" {
+			respondError(w, http.StatusNotFound, "Tenant not found")
+			return
+		}
+		slog.Error("Failed to get tenant for readiness check", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get tenant info")
+		return
+	}
+
+	// Determine which markets to check from the tenant's data_visibility
+	var markets []models.MarketRegion
+	if len(tenant.DataVisibility) > 0 {
+		var dv struct {
+			PrimaryMarket string `json:"primary_market"`
+		}
+		if err := json.Unmarshal(tenant.DataVisibility, &dv); err == nil && dv.PrimaryMarket != "" {
+			switch dv.PrimaryMarket {
+			case "india":
+				markets = append(markets, models.MarketRegionIndia)
+			case "eu":
+				markets = append(markets, models.MarketRegionEU)
+			case "both":
+				markets = append(markets, models.MarketRegionIndia, models.MarketRegionEU)
+			}
+		}
+	}
+	// Default to India if no primary_market is set
+	if len(markets) == 0 {
+		markets = append(markets, models.MarketRegionIndia)
+	}
+
+	svc := services.NewOnboardingReadinessService(h.repo)
+	result := svc.CheckReadiness(r.Context(), tenant, markets)
+
+	respondJSON(w, http.StatusOK, result)
+}
+
+// PostReadiness handles POST /api/v1/auth/readiness
+// Accepts draft profile data in the body, overlays it onto the tenant profile,
+// and returns readiness scores without persisting anything to the database.
+// This powers the real-time compliance preview during onboarding.
+func (h *AuthHandler) PostReadiness(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.GetTenantID(r.Context())
+	if tenantID == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	id, err := uuid.Parse(tenantID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), id)
+	if err != nil {
+		if err.Error() == "tenant not found" {
+			respondError(w, http.StatusNotFound, "Tenant not found")
+			return
+		}
+		slog.Error("Failed to get tenant for readiness check", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get tenant info")
+		return
+	}
+
+	// Decode draft profile data from request body
+	var draft struct {
+		PrimaryMarket                    string `json:"primary_market"`
+		EPRRegistrationNumber            string `json:"epr_registration_number"`
+		BISRNumber                       string `json:"bis_r_number"`
+		IECCode                          string `json:"iec_code"`
+		EUAuthorizedRepresentativeName   string `json:"eu_authorized_representative_name"`
+		EUAuthorizedRepresentativeAddress string `json:"eu_authorized_representative_address"`
+		EUContactEmail                   string `json:"eu_contact_email"`
+		MorthManufacturerCode            string `json:"morth_manufacturer_code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&draft); err != nil {
+		// Partial decode is fine — we overlay whatever fields were sent
+		// Continue with defaults
+	}
+
+	// Overlay draft values onto the tenant profile (in-memory only)
+	if draft.EPRRegistrationNumber != "" {
+		tenant.BatteryProfile.EPRRegistrationNumber = draft.EPRRegistrationNumber
+	}
+	if draft.BISRNumber != "" {
+		tenant.BatteryProfile.BISRNumber = draft.BISRNumber
+	}
+	if draft.IECCode != "" {
+		tenant.BatteryProfile.IECCode = draft.IECCode
+	}
+	if draft.EUAuthorizedRepresentativeName != "" {
+		tenant.BatteryProfile.EUAuthorizedRepresentativeName = draft.EUAuthorizedRepresentativeName
+	}
+	if draft.EUAuthorizedRepresentativeAddress != "" {
+		tenant.BatteryProfile.EUAuthorizedRepresentativeAddress = draft.EUAuthorizedRepresentativeAddress
+	}
+	if draft.EUContactEmail != "" {
+		tenant.BatteryProfile.EUContactEmail = draft.EUContactEmail
+	}
+	if draft.MorthManufacturerCode != "" {
+		tenant.BatteryProfile.MorthManufacturerCode = draft.MorthManufacturerCode
+	}
+
+	// Determine markets from draft or fallback to tenant data_visibility
+	var markets []models.MarketRegion
+	switch draft.PrimaryMarket {
+	case "india":
+		markets = append(markets, models.MarketRegionIndia)
+	case "eu":
+		markets = append(markets, models.MarketRegionEU)
+	case "both":
+		markets = append(markets, models.MarketRegionIndia, models.MarketRegionEU)
+	default:
+		if len(tenant.DataVisibility) > 0 {
+			var dv struct {
+				PrimaryMarket string `json:"primary_market"`
+			}
+			if err := json.Unmarshal(tenant.DataVisibility, &dv); err == nil && dv.PrimaryMarket != "" {
+				switch dv.PrimaryMarket {
+				case "india":
+					markets = append(markets, models.MarketRegionIndia)
+				case "eu":
+					markets = append(markets, models.MarketRegionEU)
+				case "both":
+					markets = append(markets, models.MarketRegionIndia, models.MarketRegionEU)
+				}
+			}
+		}
+		if len(markets) == 0 {
+			markets = append(markets, models.MarketRegionIndia)
+		}
+	}
+
+	svc := services.NewOnboardingReadinessService(h.repo)
+	result := svc.CheckReadiness(r.Context(), tenant, markets)
+
+	respondJSON(w, http.StatusOK, result)
+}
+
 // helper to extract and validate tenant ID from context for protected routes
 func (h *AuthHandler) validateTenantAccess(ctx context.Context, resourceTenantID uuid.UUID) error {
 	authTenantID := middleware.GetTenantID(ctx)

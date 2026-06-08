@@ -6,6 +6,7 @@ import {
   useSidebarState,
 } from "@/components/dashboard/DashboardSidebar";
 import { DashboardTopBar } from "@/components/dashboard/DashboardTopBar";
+import { ProfileCompletenessBanner } from "@/components/dashboard/profile-completeness-banner";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -30,7 +31,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   // Redirect users who haven't completed onboarding
   useEffect(() => {
     if (!loading && user && !user.onboarding_completed) {
-      router.push("/onboarding");
+      router.push(productRoutes(user.product_type).onboarding);
     }
   }, [loading, router, user]);
 
@@ -83,6 +84,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       >
         {/* Top Bar */}
         <DashboardTopBar onMenuClick={sidebar.toggleOpen} />
+
+        {/* Profile Completeness Banner */}
+        <ProfileCompletenessBanner />
 
         {/* Page Content */}
         <main className="flex-1 w-full">{children}</main>

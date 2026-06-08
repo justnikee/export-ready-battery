@@ -576,6 +576,27 @@ export interface CorrectiveAction {
   created_at: string;
 }
 
+export interface CMRTSmelter {
+  name: string;
+  country: string;
+  mineral: string;
+  smelter_ref?: string;
+  rmi_status?: string;
+}
+
+export interface SupplierCMRTReport {
+  id: string;
+  supplier_id: string;
+  tenant_id: string;
+  reporting_year: number;
+  file_url: string;
+  smelters: CMRTSmelter[];
+  unknown_smelters: number;
+  rmi_conformant_pct?: number;
+  parsed_at?: string;
+  created_at: string;
+}
+
 
 // ============================================================================
 // REGULATORY INTELLIGENCE (Phase E)

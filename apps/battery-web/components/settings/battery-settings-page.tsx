@@ -3,173 +3,15 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
 import SuppliersTab from "@/components/settings/suppliers-tab"
-
-// Document Upload Component with Verification Status
-function DocumentUpload({
- label,
- documentType,
- currentStatus = "NOT_UPLOADED",
- onUploadSuccess
-}: {
- label: string
- documentType: "epr" | "bis" | "pli"
- currentStatus?: string // NOT_UPLOADED, PENDING, VERIFIED, REJECTED
- onUploadSuccess: () => void
-}) {
- const [uploading, setUploading] = useState(false)
- const fileInputRef = useRef<HTMLInputElement>(null)
-
- const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
- const file = e.target.files?.[0]
- if (!file) return
-
- // Validate file type
- if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
- toast.error("Only PDF files are allowed")
- return
- }
-
- // Validate file size (5MB)
- if (file.size > 5 * 1024 * 1024) {
- toast.error("File size must be less than 5MB")
- return
- }
-
- setUploading(true)
- try {
- const formData = new FormData()
- formData.append("file", file)
- formData.append("document_type", documentType)
-
- await api.post("/settings/upload-document", formData, {
- headers: {
- "Content-Type": "multipart/form-data"
- }
- })
-
- toast.success(`${label} certificate uploaded successfully`)
- onUploadSuccess()
- } catch (error: unknown) {
- const apiError = error as { response?: { data?: { error?: string } } }
- toast.error(apiError.response?.data?.error || "Failed to upload certificate")
- } finally {
- setUploading(false)
- // Reset file input
- if (fileInputRef.current) {
- fileInputRef.current.value = ""
- }
- }
- }
-
- const handleViewDocument = async () => {
-   try {
-     const response = await api.get(`/settings/documents/${documentType}`, {
-       responseType: "blob",
-     });
-     const blob = new Blob([response.data], { type: "application/pdf" });
-     const url = window.URL.createObjectURL(blob);
-     window.open(url, "_blank");
-     setTimeout(() => window.URL.revokeObjectURL(url), 10000);
-   } catch (error: unknown) {
-     const apiError = error as { response?: { data?: { error?: string } } };
-     toast.error(apiError.response?.data?.error || "Failed to load document");
-   }
- }
-
- // Render status badge based on verification state
- const renderStatusBadge = () => {
- switch (currentStatus) {
- case "VERIFIED":
- return (
- <span className="flex items-center gap-1.5 text-emerald-500 text-xs font-medium" title="Document verified by compliance team">
- <CheckCircle className="h-3.5 w-3.5" />
- ✅ Verified
- </span>
- )
- case "PENDING":
- return (
- <span className="flex items-center gap-1.5 text-amber-500 text-xs font-medium" title="Our compliance team is reviewing your document">
- ⏳ Verification Pending
- </span>
- )
- case "REJECTED":
- return (
- <span className="flex items-center gap-1.5 text-red-500 text-xs font-medium" title="Document rejected. Please upload a valid document.">
- âŒ Rejected
- </span>
- )
- default:
- return null
- }
- }
-
- const hasDocument = currentStatus !== "NOT_UPLOADED" && currentStatus !== ""
-
- return (
- <div className="flex items-center gap-2 mt-2">
- <input
- ref={fileInputRef}
- type="file"
- accept=".pdf,application/pdf"
- onChange={handleUpload}
- className="hidden"
- disabled={uploading}
- />
-
- {hasDocument ? (
- <div className="flex items-center gap-2">
- {renderStatusBadge()}
- <button
- type="button"
- onClick={handleViewDocument}
- className="text-xs text-blue-500 hover:text-blue-500 flex items-center gap-1"
- >
- <ExternalLink className="h-3 w-3" />
- View
- </button>
- <button
- type="button"
- onClick={() => fileInputRef.current?.click()}
- disabled={uploading}
- className="text-xs text-muted-foreground hover:text-foreground"
- >
- {uploading ? (
- <Loader2 className="h-3 w-3 animate-spin" />
- ) : (
- "Replace"
- )}
- </button>
- </div>
- ) : (
- <button
- type="button"
- onClick={() => fileInputRef.current?.click()}
- disabled={uploading}
- className="flex items-center gap-1.5 text-xs px-2.5 py-1 border border-border bg-transparent text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
- >
- {uploading ? (
- <>
- <Loader2 className="h-3 w-3 animate-spin" />
- Uploading...
- </>
- ) : (
- <>
- <Upload className="h-3 w-3" />
- Upload Certificate
- </>
- )}
- </button>
- )}
- </div>
- )
-}
+import { DocumentUpload } from "@/components/shared/document-upload"
 
 // Logo Upload Component
 function LogoUpload({
@@ -253,6 +95,80 @@ function LogoUpload({
  </button>
  </div>
  )
+}
+
+// Certificate readiness helpers
+function isCertValid(status?: string) {
+  return status === "PENDING" || status === "VERIFIED"
+}
+
+interface ComplianceCheck {
+  label: string
+  done: boolean
+  required: boolean
+  warning?: string
+}
+
+function getIndiaComplianceChecks(
+  formData: Record<string, unknown>,
+  certs: Record<string, string>
+): ComplianceCheck[] {
+  const eprNumber = String(formData.epr_registration_number || "").trim()
+  const bisNumber = String(formData.bis_r_number || "").trim()
+  const iecCode = String(formData.iec_code || "").trim()
+  const morthCode = String(formData.morth_manufacturer_code || "").trim()
+
+  return [
+    {
+      label: "EPR Number",
+      done: !!eprNumber && isCertValid(certs.epr_status),
+      required: !!eprNumber,
+      warning: eprNumber && !isCertValid(certs.epr_status)
+        ? "Upload EPR certificate to activate batches"
+        : undefined,
+    },
+    {
+      label: "BIS Number",
+      done: !!bisNumber && isCertValid(certs.bis_status),
+      required: !!bisNumber,
+      warning: bisNumber && !isCertValid(certs.bis_status)
+        ? "Upload BIS certificate to activate batches"
+        : undefined,
+    },
+    {
+      label: "IEC Code",
+      done: !!iecCode,
+      required: true,
+    },
+    {
+      label: "PLI Certificate",
+      done: isCertValid(certs.pli_status),
+      required: false,
+      warning: undefined,
+    },
+    {
+      label: "MoRTH Code",
+      done: !!morthCode && morthCode !== "TBC",
+      required: true,
+    },
+  ]
+}
+
+function getActivationBlockers(
+  formData: Record<string, unknown>,
+  certs: Record<string, string>
+): string[] {
+  const blockers: string[] = []
+  const eprNumber = String(formData.epr_registration_number || "").trim()
+  const bisNumber = String(formData.bis_r_number || "").trim()
+
+  if (eprNumber && !isCertValid(certs.epr_status)) {
+    blockers.push("EPR certificate upload required")
+  }
+  if (bisNumber && !isCertValid(certs.bis_status)) {
+    blockers.push("BIS certificate upload required")
+  }
+  return blockers
 }
 
 export default function SettingsPage() {
@@ -475,6 +391,26 @@ export default function SettingsPage() {
  </div>
  </div>
 
+ {/* Target Market */}
+ <div className="space-y-2">
+ <label className="text-sm font-medium leading-none text-foreground">
+ Target Markets
+ </label>
+ <select
+ className="flex h-9 w-full border border-border bg-transparent px-3 py-1 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+ value={formData.data_visibility?.primary_market || "india"}
+ onChange={(e) => setFormData({
+ ...formData,
+ data_visibility: { ...formData.data_visibility, primary_market: e.target.value }
+ })}
+ >
+ <option value="india">India Only</option>
+ <option value="eu">EU Only</option>
+ <option value="both">India & EU</option>
+ </select>
+ <p className="text-xs text-muted-foreground">This drives default market selection when creating new batches.</p>
+ </div>
+
  {/* Logo Upload */}
  <div className="space-y-2">
  <label className="text-sm font-medium leading-none text-foreground">
@@ -534,42 +470,68 @@ export default function SettingsPage() {
  </div>
  {/* Compliance Readiness Indicator */}
  {(() => {
- const checks = [
- { label: 'EPR', done: !!formData.epr_registration_number },
- { label: 'BIS', done: !!formData.bis_r_number },
- { label: 'IEC', done: !!formData.iec_code },
- { label: 'PLI', done: certificatePaths.pli_status === 'VERIFIED' || certificatePaths.pli_status === 'PENDING' },
- { label: 'MoRTH', done: !!formData.morth_manufacturer_code && formData.morth_manufacturer_code !== 'TBC' },
- ];
- const completed = checks.filter(c => c.done).length;
+ const checks = getIndiaComplianceChecks(formData, certificatePaths)
+ const completed = checks.filter(c => c.done).length
+ const requiredIncomplete = checks.filter(c => c.required && !c.done).length
+ const blockers = getActivationBlockers(formData, certificatePaths)
  return (
  <div className="mt-3">
  <div className="flex items-center justify-between mb-1.5">
- <span className="text-xs text-muted-foreground">{completed} of {checks.length} configured</span>
+ <span className="text-xs text-muted-foreground">{completed} of {checks.length} ready for activation</span>
  <span className="text-xs font-medium text-foreground">{Math.round((completed / checks.length) * 100)}%</span>
  </div>
  <div className="w-full bg-muted rounded-full h-1.5">
  <div
- className={`h-1.5 rounded-full transition-all ${completed === checks.length ? 'bg-emerald-500/100' : 'bg-amber-400'}`}
+ className={`h-1.5 rounded-full transition-all ${completed === checks.length ? 'bg-emerald-500' : requiredIncomplete > 0 ? 'bg-red-400' : 'bg-amber-400'}`}
  style={{ width: `${(completed / checks.length) * 100}%` }}
  />
  </div>
+ {blockers.length > 0 && (
+ <div className="mt-2 flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/20 rounded">
+ <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+ <div className="text-xs text-red-300">
+ <p className="font-medium">Activation blocked — missing certificates:</p>
+ <ul className="list-disc list-inside mt-0.5">
+ {blockers.map((b, i) => <li key={i}>{b}</li>)}
+ </ul>
+ <Link
+ href="/onboarding?step=3"
+ className="inline-flex items-center gap-1 mt-1.5 text-teal-400 hover:text-teal-300"
+ >
+ Resume Onboarding
+ <ArrowRight className="h-3 w-3" />
+ </Link>
  </div>
- );
+ </div>
+ )}
+ </div>
+ )
  })()}
  </div>
 
  <div className="p-6 grid gap-6 md:grid-cols-2">
  {/* EPR Registration Number */}
- <div className="space-y-2">
- <label className="text-sm font-medium leading-none text-foreground">
+ <div className={`space-y-2 p-3 rounded border ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  EPR Registration Number
+ {formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) && (
+ <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
+ <AlertTriangle className="h-3 w-3" />
+ Certificate required
+ </span>
+ )}
+ {formData.epr_registration_number?.trim() && isCertValid(certificatePaths.epr_status) && (
+ <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-normal">
+ <CheckCircle className="h-3 w-3" />
+ Ready
+ </span>
+ )}
  </label>
  <div className="relative">
  <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
  <input
  type="text"
- className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-emerald-500'}`}
  placeholder="EPR/B/2024/XXXX"
  value={formData.epr_registration_number}
  onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
@@ -585,15 +547,27 @@ export default function SettingsPage() {
  </div>
 
  {/* BIS R-Number */}
- <div className="space-y-2">
- <label className="text-sm font-medium leading-none text-foreground">
+ <div className={`space-y-2 p-3 rounded border ${formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  BIS R-Number (IS 16046)
+ {formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) && (
+ <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
+ <AlertTriangle className="h-3 w-3" />
+ Certificate required
+ </span>
+ )}
+ {formData.bis_r_number?.trim() && isCertValid(certificatePaths.bis_status) && (
+ <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-normal">
+ <CheckCircle className="h-3 w-3" />
+ Ready
+ </span>
+ )}
  </label>
  <div className="relative">
  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
  <input
  type="text"
- className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-blue-500'}`}
  placeholder="R-12345678"
  value={formData.bis_r_number}
  onChange={(e) => setFormData({ ...formData, bis_r_number: e.target.value })}
@@ -769,9 +743,54 @@ export default function SettingsPage() {
  </div>
  )}
 
+ {/* Compliance Activation Summary */}
+ {activeSettingsTab === 'compliance' && (
+ <div className="px-6 py-4 border-t border-border">
+ {(() => {
+ const blockers = getActivationBlockers(formData, certificatePaths)
+ const checks = getIndiaComplianceChecks(formData, certificatePaths)
+ const allReady = checks.every(c => c.done)
+ if (allReady) {
+ return (
+ <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded">
+ <CheckCircle className="h-4 w-4 text-emerald-400" />
+ <p className="text-sm text-emerald-300">All compliance items ready. You can activate India batches.</p>
+ </div>
+ )
+ }
+ if (blockers.length > 0) {
+ return (
+ <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded">
+ <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+ <div className="text-sm text-red-300">
+ <p className="font-medium">Batch activation will be blocked until these are resolved:</p>
+ <ul className="list-disc list-inside mt-1">
+ {blockers.map((b, i) => <li key={i}>{b}</li>)}
+ </ul>
+ <Link
+ href="/onboarding?step=3"
+ className="inline-flex items-center gap-1 mt-1.5 text-teal-400 hover:text-teal-300"
+ >
+ Resume Onboarding
+ <ArrowRight className="h-3 w-3" />
+ </Link>
+ </div>
+ </div>
+ )
+ }
+ return (
+ <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
+ <AlertTriangle className="h-4 w-4 text-amber-400" />
+ <p className="text-sm text-amber-300">Complete all compliance items to enable batch activation for India market.</p>
+ </div>
+ )
+ })()}
+ </div>
+ )}
+
  {/* Save All Settings */}
  {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
- <div className="sticky bottom-0 bg-background border-t border-border -mx-6 px-6 py-4 mt-6 flex items-center justify-between">
+ <div className="sticky bottom-0 bg-background border-t border-border -mx-6 px-6 py-4 mt-0 flex items-center justify-between">
  {message && (
  <p className={`text-sm ${message.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
  {message.text}

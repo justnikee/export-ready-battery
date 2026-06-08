@@ -322,3 +322,33 @@ export function useUploadEvidence() {
         },
     })
 }
+
+
+export function useSupplierCMRTReports(supplierId: string | undefined) {
+    return useQuery({
+        queryKey: ['cmrtReports', supplierId],
+        queryFn: async () => {
+            const response = await api.get(`/suppliers/${supplierId}/cmrt-reports`)
+            return response.data
+        },
+        enabled: !!supplierId,
+    })
+}
+
+export function useUploadCMRT() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async ({ supplierId, file, reportingYear }: { supplierId: string; file: File; reportingYear: number }) => {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('reporting_year', reportingYear.toString())
+            const response = await api.post(`/suppliers/${supplierId}/cmrt-upload`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            return response.data
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['cmrtReports', variables.supplierId] })
+        },
+    })
+}

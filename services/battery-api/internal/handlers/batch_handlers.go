@@ -73,8 +73,8 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		req.ProductType = jwtProductType
 	}
 
-	if req.BatchName == "" {
-		respondError(w, http.StatusBadRequest, "batch_name is required")
+	// SECURITY: Enforce onboarding completion before batch creation
+	if !h.checkIfOnboardingCompleted(w, r) {
 		return
 	}
 
@@ -83,250 +83,90 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		req.MarketRegion = models.MarketRegionGlobal
 	}
 
-	// Validate market region
-	if !req.MarketRegion.IsValid() {
-		respondError(w, http.StatusBadRequest, "Invalid market_region. Must be INDIA, EU, or GLOBAL")
+	// ===== BATCH CREATION VALIDATION =====
+	// Run all business-rule validations through the shared validator.
+	// This ensures CreateBatch and ValidateBatchCreation are always in sync.
+	tenant, err := h.repo.GetTenant(r.Context(), req.TenantID)
+	if err != nil {
+		slog.Error("Failed to retrieve tenant details", "tenant_id", req.TenantID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
 		return
 	}
 
-	// ===== PHASE 3: SCHEMA VALIDATION =====
-	// Validate specs JSON against the active product schema before any further processing.
-	// Returns HTTP 422 with structured field errors when required spec fields are missing.
-	if h.batchService != nil {
-		specsJSON, marshalErr := json.Marshal(req.Specs)
-		if marshalErr != nil {
-			slog.Error("Failed to marshal specs for schema validation", "error", marshalErr)
-			respondError(w, http.StatusBadRequest, "Invalid specs format")
-			return
-		}
-		// ProductType defaults to BATTERY if not set on the request
-		pt := models.ProductType(req.ProductType)
-		if !pt.IsValid() {
-			pt = models.DefaultProductType()
-		}
-		validationResult, validationErr := h.batchService.ValidateSpecs(r.Context(), pt, specsJSON)
-		if validationErr != nil {
-			// Infrastructure failure (schema unreachable) — log and continue.
-			slog.Warn("Schema validation unavailable, skipping", "error", validationErr)
-		} else if !validationResult.Valid {
-			respondJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
-				"error":  "Spec validation failed: required fields are missing or invalid",
-				"fields": validationResult.Errors,
-			})
-			return
-		}
+	validator := h.batchCreationValidator
+	if validator == nil {
+		validator = services.NewBatchCreationValidator(h.batchService, h.validationService, h.repo)
+	}
+	validationResult := validator.Validate(r.Context(), req, tenant)
+	if !validationResult.Valid {
+		respondJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
+			"error":  "Validation failed",
+			"fields": validationResult.Errors,
+		})
+		return
 	}
 
-	// ===== BOM VALIDATION =====
-	if len(req.Specs.Components) > 0 {
-		bomResult := services.ValidateBOM(req.Specs.Components)
-		if !bomResult.Valid {
-			respondJSON(w, http.StatusUnprocessableEntity, map[string]interface{}{
-				"error":  "BOM validation failed",
-				"fields": bomResult.Errors,
-			})
-			return
-		}
-	}
-
-	// ===== DUAL-MODE VALIDATION =====
-
-	// EU Mode: allow draft creation without full compliance (hard-block at activation)
-	if req.MarketRegion == models.MarketRegionEU {
-		// EU Mode: Certifications should include CE (soft warning only)
-		hasCE := false
-		for _, cert := range req.Specs.Certifications {
-			if cert == "CE" {
-				hasCE = true
-				break
-			}
-		}
-		if !hasCE {
-			slog.Warn("EU batch created without CE certification")
-		}
-	}
-
-	// India Mode + Battery: PLI/DVA/HSN/customs logic is battery-specific.
-	// Textile and other products skip this block entirely.
+	// ===== SECURITY OVERRIDES =====
+	// These are server-side enforcement measures, not validation failures.
 	if req.MarketRegion == models.MarketRegionIndia && req.ProductType == models.ProductTypeBattery {
-		if req.CellSource != "" && req.CellSource != "IMPORTED" && req.CellSource != "DOMESTIC" {
-			respondError(w, http.StatusBadRequest, "cell_source must be IMPORTED or DOMESTIC")
-			return
-		}
-
-		// ===== SECURITY: FORCE OVERRIDES FOR IMPORTED CELLS =====
-		// Prevent API manipulation of PLI flags for imported battery cells
 		if req.CellSource == "IMPORTED" {
-			// Force all imported cells to be PLI ineligible
 			if req.PLICompliant {
 				slog.Warn("SECURITY OVERRIDE: Forced PLICompliant=false for IMPORTED cells", "tenant_id", req.TenantID, "batch_name", req.BatchName)
 				req.PLICompliant = false
 			}
-
-			// Force DVA to zero for imports (no domestic value addition)
 			if req.DomesticValueAdd > 0 {
 				slog.Warn("SECURITY OVERRIDE: Forced DomesticValueAdd=0 for IMPORTED cells", "was", req.DomesticValueAdd, "tenant_id", req.TenantID)
 				req.DomesticValueAdd = 0
 			}
-
-			// Block audited DVA certificates for imported cells
 			if req.AuditedDomesticValueAdd != nil {
 				slog.Warn("SECURITY OVERRIDE: Blocked AuditedDVA upload for IMPORTED cells", "tenant_id", req.TenantID)
 				req.AuditedDomesticValueAdd = nil
 			}
-
-			// Force DVA source to ESTIMATED (no CA audits for imports)
 			if req.DVASource != "" && req.DVASource != services.DVASourceEstimated {
 				slog.Warn("SECURITY OVERRIDE: Forced DVASource=ESTIMATED for IMPORTED cells", "was", req.DVASource, "tenant_id", req.TenantID)
 			}
 			req.DVASource = services.DVASourceEstimated
 		}
 
-		// Validate DVA source
-		dvaSourceResult := h.validationService.ValidateDVASource(req.DVASource)
-		if !dvaSourceResult.Valid {
-			respondError(w, http.StatusBadRequest, dvaSourceResult.Message)
-			return
-		}
-
-		// Default to ESTIMATED if not provided
-		if req.DVASource == "" {
-			req.DVASource = services.DVASourceEstimated
-		}
-
-		// Calculate DVA based on source
+		// DVA calculation
 		var calculatedDVA float64
 		if req.DVASource == services.DVASourceAudited {
-			// AUDITED: Use provided audited value, skip calculation
 			if req.AuditedDomesticValueAdd != nil {
 				calculatedDVA = *req.AuditedDomesticValueAdd
 				req.DomesticValueAdd = calculatedDVA
-			} else {
-				respondError(w, http.StatusBadRequest, "Audited DVA mode requires audited_domestic_value_add value")
-				return
 			}
-			slog.Info("DVA AUDITED Mode", "audited_dva", calculatedDVA)
 		} else {
-			// ESTIMATED: Calculate DVA server-side from specs financial fields
-			// Never trust client-provided domestic_value_add to prevent PLI fraud
 			if req.Specs.SalePriceINR > 0 {
 				calculatedDVA = ((req.Specs.SalePriceINR - req.Specs.ImportCostINR) / req.Specs.SalePriceINR) * 100
 				if calculatedDVA < 0 {
 					calculatedDVA = 0
 				}
 			}
-			// Override any client-provided DVA with server-calculated value
 			req.DomesticValueAdd = calculatedDVA
-			slog.Info("DVA ESTIMATED Mode", "sale_price", req.Specs.SalePriceINR, "import_cost", req.Specs.ImportCostINR, "calculated_dva", calculatedDVA)
 		}
 
-		// India Mode + IMPORTED: Require customs declaration fields
-		if req.CellSource == "IMPORTED" {
-			if req.BillOfEntryNo == "" || req.CountryOfOrigin == "" {
-				respondError(w, http.StatusBadRequest,
-					"Imported batches must include Bill of Entry and Country of Origin per Customs regulations")
-				return
-			}
-			// For pure imports with no local value add (ESTIMATED mode only)
-			if req.DVASource == services.DVASourceEstimated {
-				if req.Specs.SalePriceINR == 0 || req.Specs.ImportCostINR >= req.Specs.SalePriceINR {
-					req.DomesticValueAdd = 0
-				}
-			}
-		} else if req.CellSource == "DOMESTIC" {
-			// India Mode + DOMESTIC: Require value add > 0
-			if req.DomesticValueAdd <= 0 {
-				respondError(w, http.StatusBadRequest, "Domestic batches must have Domestic Value Add > 0%. Please enter Sale Price and Import Cost.")
-				return
-			}
-
-			// ===== SECURITY: STRICT PLI VALIDATION FOR DOMESTIC CELLS =====
-			// Enforce PLI scheme minimum DVA requirement (checked AFTER calculation)
-			if req.PLICompliant {
-				// PLI Scheme requires minimum 50% DVA
-				if req.DomesticValueAdd < 50.0 {
-					respondError(w, http.StatusBadRequest,
-						fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Calculated DVA: %.2f%%. Minimum 50%% required for PLI Benefits.", req.DomesticValueAdd))
-					return
-				}
-				slog.Info("PLI Eligibility Check Passed", "dva", req.DomesticValueAdd, "tenant_id", req.TenantID)
+		if req.CellSource == "IMPORTED" && req.DVASource == services.DVASourceEstimated {
+			if req.Specs.SalePriceINR == 0 || req.Specs.ImportCostINR >= req.Specs.SalePriceINR {
+				req.DomesticValueAdd = 0
 			}
 		}
-
-		// PLI Compliance Validation using validation service
-		if err := h.validationService.ValidatePLICompliance(req.DVASource, req.AuditedDomesticValueAdd, req.DomesticValueAdd, req.PLICompliant); err != nil {
-			respondError(w, http.StatusBadRequest, err.Error())
-			return
-		}
 	}
 
-	// Fetch tenant details for validation
-	tenantID := req.TenantID
-	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
-	if err != nil {
-		slog.Error("Failed to retrieve tenant details", "tenant_id", tenantID, "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
-		return
-	}
-
-	// Validate IEC Code format if provided (India: 10 digits)
-	if tenant.BatteryProfile.IECCode != "" {
-		iecResult := h.validationService.ValidateIECCode(tenant.BatteryProfile.IECCode)
-		if !iecResult.Valid {
-			slog.Warn("Invalid IEC Code format", "company", tenant.CompanyName, "iec_code", tenant.BatteryProfile.IECCode, "message", iecResult.Message)
-		}
-	}
-
-	// For IMPORTED cells, ensure tenant has valid IEC
-	if req.MarketRegion == models.MarketRegionIndia && req.CellSource == "IMPORTED" {
-		if tenant.BatteryProfile.IECCode == "" {
-			respondError(w, http.StatusBadRequest, "IEC Code is required in Organization Settings for importing battery cells")
-			return
-		}
-	}
-
-	// Validate HSN Code for India market (battery-specific; textiles use different HS codes)
-	if req.MarketRegion == models.MarketRegionIndia && req.ProductType == models.ProductTypeBattery {
-		hsnResult := h.validationService.ValidateHSNCode(req.HSNCode)
-		if !hsnResult.Valid {
-			respondError(w, http.StatusBadRequest, hsnResult.Message)
-			return
-		}
-	}
-
-	// Parse customs date if provided
+	// Parse dates
 	var customsDate *time.Time
 	if req.CustomsDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", req.CustomsDate)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid customs_date format. Use YYYY-MM-DD")
-			return
-		}
+		parsedDate, _ := time.Parse("2006-01-02", req.CustomsDate)
 		customsDate = &parsedDate
 	}
-
-	// Parse manufacturing window if provided
 	var manufacturingStart *time.Time
 	var manufacturingEnd *time.Time
 	if req.ManufacturingStartDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", req.ManufacturingStartDate)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid manufacturing_start_date format. Use YYYY-MM-DD")
-			return
-		}
+		parsedDate, _ := time.Parse("2006-01-02", req.ManufacturingStartDate)
 		manufacturingStart = &parsedDate
 	}
 	if req.ManufacturingEndDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", req.ManufacturingEndDate)
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Invalid manufacturing_end_date format. Use YYYY-MM-DD")
-			return
-		}
+		parsedDate, _ := time.Parse("2006-01-02", req.ManufacturingEndDate)
 		manufacturingEnd = &parsedDate
-	}
-	if manufacturingStart != nil && manufacturingEnd != nil && manufacturingEnd.Before(*manufacturingStart) {
-		respondError(w, http.StatusBadRequest, "manufacturing_end_date must be on or after manufacturing_start_date")
-		return
 	}
 
 	// v2: Copy battery-specific top-level fields into Specs JSONB so the
@@ -372,6 +212,62 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, models.CreateBatchResponse{Batch: batch})
+}
+
+// ValidateBatchCreation handles POST /api/v1/batches/validate
+// Runs all creation validations without touching the database.
+func (h *Handler) ValidateBatchCreation(w http.ResponseWriter, r *http.Request) {
+	var req models.CreateBatchRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// SECURITY: Enforce JWT tenant_id matches request body tenant_id
+	jwtTenantIDStr := middleware.GetTenantID(r.Context())
+	jwtTenantID, err := uuid.Parse(jwtTenantIDStr)
+	if err != nil || jwtTenantID != req.TenantID {
+		respondError(w, http.StatusForbidden, "tenant_id mismatch")
+		return
+	}
+
+	// SECURITY: Enforce JWT product_type matches request body product_type
+	jwtProductType := models.ProductType(middleware.GetProductType(r.Context()))
+	if req.ProductType != "" && models.ProductType(req.ProductType).IsValid() {
+		if models.ProductType(req.ProductType) != jwtProductType {
+			respondError(w, http.StatusForbidden, "product_type mismatch")
+			return
+		}
+	} else {
+		req.ProductType = jwtProductType
+	}
+
+	// SECURITY: Enforce onboarding completion before batch validation
+	if !h.checkIfOnboardingCompleted(w, r) {
+		return
+	}
+
+	// Fetch tenant for validation
+	tenant, err := h.repo.GetTenant(r.Context(), req.TenantID)
+	if err != nil {
+		slog.Error("Failed to retrieve tenant details", "tenant_id", req.TenantID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+
+	// Run validation
+	validator := h.batchCreationValidator
+	if validator == nil {
+		validator = services.NewBatchCreationValidator(h.batchService, h.validationService, h.repo)
+	}
+	result := validator.Validate(r.Context(), req, tenant)
+
+	if !result.Valid {
+		respondJSON(w, http.StatusUnprocessableEntity, result)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, result)
 }
 
 // ListBatches handles GET /api/v1/batches?tenant_id=xxx&page=1&limit=50

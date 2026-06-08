@@ -3,8 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/compliance/supplier"
@@ -347,5 +350,184 @@ func (h *Handler) UploadEvidence(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"url":          publicURL,
 		"evidence_docs": assessment.EvidenceDocs,
+	})
+}
+
+// ============================================================================
+// CMRT UPLOAD & REPORT HANDLERS
+// ============================================================================
+
+// UploadCMRT handles POST /api/v1/suppliers/{id}/cmrt-upload
+// Accepts a Standard CMRT Excel file, parses smelters, validates against RMI list.
+func (h *Handler) UploadCMRT(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	_, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "invalid tenant")
+		return
+	}
+
+	supplierID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid supplier id")
+		return
+	}
+
+	// Verify supplier belongs to tenant
+	s, err := h.repo.GetSupplierByID(r.Context(), supplierID)
+	if err != nil || s == nil || s.TenantID != tenantIDStr {
+		respondError(w, http.StatusNotFound, "supplier not found")
+		return
+	}
+
+	// Parse multipart form (max 10MB for Excel)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 10MB")
+		return
+	}
+
+	reportingYearStr := r.FormValue("reporting_year")
+	if reportingYearStr == "" {
+		respondError(w, http.StatusBadRequest, "reporting_year is required")
+		return
+	}
+	var reportingYear int
+	if _, err := fmt.Sscanf(reportingYearStr, "%d", &reportingYear); err != nil || reportingYear < 2000 || reportingYear > 2100 {
+		respondError(w, http.StatusBadRequest, "invalid reporting_year")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "No file uploaded. Use 'file' field in multipart form")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > 10<<20 {
+		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 10MB")
+		return
+	}
+
+	// Parse CMRT Excel
+	importer := supplier.NewCMRTImporter()
+	parseResult, err := importer.Parse(file, reportingYear)
+	if err != nil {
+		slog.Error("failed to parse CMRT file", "error", err, "supplier_id", supplierID, "filename", header.Filename)
+		respondError(w, http.StatusBadRequest, "Failed to parse CMRT file: "+err.Error())
+		return
+	}
+
+	// Upload original file to storage
+	var fileURL string
+	if h.storageService != nil {
+		fileBytes, err := io.ReadAll(file)
+		if err == nil {
+			filename := fmt.Sprintf("cmrt_%s_%d_%s", supplierID.String(), reportingYear, strings.ReplaceAll(filepath.Base(header.Filename), " ", "_"))
+			storagePath := fmt.Sprintf("%s/supplier-docs/%s/%s", tenantIDStr, supplierID.String(), filename)
+			contentType := header.Header.Get("Content-Type")
+			if contentType == "" {
+				contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+			}
+			if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, contentType); err == nil {
+				fileURL = h.storageService.PublicURL(complianceDocsBucket, storagePath)
+			}
+		}
+	}
+	if fileURL == "" {
+		fileURL = header.Filename // fallback
+	}
+
+	// Convert typed smelters to []map[string]interface{} for DB JSONB
+	smeltersMap := make([]map[string]interface{}, len(parseResult.Smelters))
+	for i, sm := range parseResult.Smelters {
+		smeltersMap[i] = map[string]interface{}{
+			"name":        sm.Name,
+			"country":     sm.Country,
+			"mineral":     sm.Mineral,
+			"smelter_ref": sm.SmelterRef,
+			"rmi_status":  sm.RMIStatus,
+		}
+	}
+
+	report := &models.SupplierCMRTReport{
+		ID:               uuid.New().String(),
+		SupplierID:       supplierID.String(),
+		TenantID:         tenantIDStr,
+		ReportingYear:    parseResult.ReportingYear,
+		FileURL:          fileURL,
+		Smelters:         smeltersMap,
+		UnknownSmelters:  parseResult.UnknownSmelters,
+		RMIConformantPct: &parseResult.RMIConformantPct,
+		ParsedAt:         &parseResult.ParsedAt,
+		CreatedAt:        time.Now(),
+	}
+
+	if err := h.repo.CreateSupplierCMRTReport(r.Context(), report); err != nil {
+		slog.Error("failed to save CMRT report", "error", err, "supplier_id", supplierID)
+		respondError(w, http.StatusInternalServerError, "failed to save CMRT report")
+		return
+	}
+
+	// Auto-create corrective action if unknown smelters found
+	if parseResult.UnknownSmelters > 0 {
+		ca := &models.CorrectiveAction{
+			ID:          uuid.New().String(),
+			SupplierID:  supplierID.String(),
+			TenantID:    tenantIDStr,
+			Title:       fmt.Sprintf("CMRT Unknown Smelters (%d)", parseResult.UnknownSmelters),
+			Description: fmt.Sprintf("CMRT upload for %d contains %d unknown/unverified smelters out of %d total. RMI conformant rate: %d%%.", reportingYear, parseResult.UnknownSmelters, len(parseResult.Smelters), parseResult.RMIConformantPct),
+			Severity:    "medium",
+			Status:      "open",
+			DueDate:     time.Now().AddDate(0, 1, 0).Format("2006-01-02"),
+			CreatedAt:   time.Now(),
+		}
+		if err := h.repo.CreateCorrectiveAction(r.Context(), ca); err != nil {
+			slog.Error("failed to auto-create corrective action for unknown smelters", "error", err)
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"report":            report,
+		"smelter_count":     len(parseResult.Smelters),
+		"unknown_smelters":  parseResult.UnknownSmelters,
+		"rmi_conformant_pct": parseResult.RMIConformantPct,
+	})
+}
+
+// ListCMRTReports handles GET /api/v1/suppliers/{id}/cmrt-reports
+func (h *Handler) ListCMRTReports(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	_, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "invalid tenant")
+		return
+	}
+
+	supplierID, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid supplier id")
+		return
+	}
+
+	// Verify supplier belongs to tenant
+	s, err := h.repo.GetSupplierByID(r.Context(), supplierID)
+	if err != nil || s == nil || s.TenantID != tenantIDStr {
+		respondError(w, http.StatusNotFound, "supplier not found")
+		return
+	}
+
+	reports, err := h.repo.GetSupplierCMRTReports(r.Context(), supplierID)
+	if err != nil {
+		slog.Error("failed to list CMRT reports", "error", err, "supplier_id", supplierID)
+		respondError(w, http.StatusInternalServerError, "failed to list CMRT reports")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"supplier_id": supplierID,
+		"tenant_id":   tenantIDStr,
+		"reports":     reports,
+		"count":       len(reports),
 	})
 }

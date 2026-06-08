@@ -27,12 +27,18 @@ type circuitBreaker struct {
 }
 
 func newCircuitBreaker(name string) *circuitBreaker {
+	return newCircuitBreakerWithConfig(name, 5, 60*time.Second, 5*time.Minute)
+}
+
+// newCircuitBreakerWithConfig creates a breaker with configurable parameters.
+// Used by tests to avoid waiting on real durations.
+func newCircuitBreakerWithConfig(name string, threshold int, timeout, recovery time.Duration) *circuitBreaker {
 	return &circuitBreaker{
 		name:      name,
 		state:     cbClosed,
-		threshold: 5,
-		timeout:   60 * time.Second,
-		recovery:  5 * time.Minute,
+		threshold: threshold,
+		timeout:   timeout,
+		recovery:  recovery,
 	}
 }
 

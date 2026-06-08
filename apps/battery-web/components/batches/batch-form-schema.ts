@@ -120,17 +120,66 @@ export const batchFormSchema = z
       });
     }
 
-    // EU/GLOBAL: battery category required
-    if (
-      (data.marketRegion === "EU" || data.marketRegion === "GLOBAL") &&
-      !data.batteryCategory
-    ) {
+    // Numeric validation for capacity, voltage, weight
+    const numericWithUnitRegex = /^\d+(\.\d+)?\s*(mAh|V|g|kg|Wh)?$/i;
+    if (data.capacity && !numericWithUnitRegex.test(data.capacity)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Capacity must be a number with optional unit (e.g., 2500mAh)",
+        path: ["capacity"],
+      });
+    }
+    if (data.voltage && !numericWithUnitRegex.test(data.voltage)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Voltage must be a number with optional unit (e.g., 3.7V)",
+        path: ["voltage"],
+      });
+    }
+    if (data.weight && data.weight.trim() !== "" && !numericWithUnitRegex.test(data.weight)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Weight must be a number with optional unit (e.g., 500g)",
+        path: ["weight"],
+      });
+    }
+
+    // Numeric validation for salePrice, importCost
+    const plainNumberRegex = /^\d+(\.\d+)?$/;
+    if (data.salePrice && data.salePrice.trim() !== "" && !plainNumberRegex.test(data.salePrice)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sale price must be a valid number",
+        path: ["salePrice"],
+      });
+    }
+    if (data.importCost && data.importCost.trim() !== "" && !plainNumberRegex.test(data.importCost)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Import cost must be a valid number",
+        path: ["importCost"],
+      });
+    }
+
+    // Carbon footprint numeric if provided
+    if (data.carbonFootprint && data.carbonFootprint.trim() !== "" && !plainNumberRegex.test(data.carbonFootprint)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Carbon footprint must be a valid number",
+        path: ["carbonFootprint"],
+      });
+    }
+
+    // EU: battery category required
+    if (data.marketRegion === "EU" && !data.batteryCategory) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Battery category is required for EU compliance (Art. 3)",
         path: ["batteryCategory"],
       });
     }
+
+    // GLOBAL: battery category recommended but not required (soft validation skipped)
 
     // Carbon performance class validation
     if (
@@ -216,6 +265,38 @@ export const batchFormSchema = z
           message: "Import date is required for imported cells",
           path: ["customsDate"],
         });
+      }
+    }
+
+    // India domestic: DVA must be > 0 if salePrice is provided
+    if (data.marketRegion === "INDIA" && data.cellSource === "DOMESTIC") {
+      const salePrice = parseFloat(data.salePrice) || 0;
+      const importCost = parseFloat(data.importCost) || 0;
+      if (salePrice > 0) {
+        const dva = ((salePrice - importCost) / salePrice) * 100;
+        if (dva <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Domestic batches must have Domestic Value Add > 0%. Please check sale price and import cost.",
+            path: ["salePrice"],
+          });
+        }
+      }
+    }
+
+    // India PLI: DVA must be >= 50%
+    if (data.marketRegion === "INDIA" && data.pliCompliant && data.cellSource === "DOMESTIC") {
+      const salePrice = parseFloat(data.salePrice) || 0;
+      const importCost = parseFloat(data.importCost) || 0;
+      if (salePrice > 0) {
+        const dva = ((salePrice - importCost) / salePrice) * 100;
+        if (dva < 50) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `PLI Scheme requires minimum 50% Domestic Value Add. Calculated DVA: ${dva.toFixed(2)}%`,
+            path: ["pliCompliant"],
+          });
+        }
       }
     }
 
@@ -328,7 +409,7 @@ export const defaultBatchFormValues: BatchFormData = {
   hsnCode: "",
   salePrice: "",
   importCost: "",
-  cellSource: "",
+  cellSource: "DOMESTIC",
   billOfEntryNo: "",
   cellCountryOfOrigin: "",
   customsDate: "",

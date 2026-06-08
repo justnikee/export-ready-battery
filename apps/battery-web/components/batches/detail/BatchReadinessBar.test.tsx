@@ -69,9 +69,10 @@ describe("BatchReadinessBar", () => {
     expect(screen.getByText("Passports")).toBeInTheDocument();
     expect(screen.getByText("Certificates")).toBeInTheDocument();
     expect(screen.getByText("Registry")).toBeInTheDocument();
+    expect(screen.getByText("Due Diligence")).toBeInTheDocument();
   });
 
-  it("renders Carbon check for EU region", () => {
+  it("renders Carbon and Due Diligence checks for EU region", () => {
     render(
       <BatchReadinessBar
         batch={createMockBatch()}
@@ -81,9 +82,10 @@ describe("BatchReadinessBar", () => {
       />,
     );
     expect(screen.getByText("Carbon")).toBeInTheDocument();
+    expect(screen.getByText("Due Diligence")).toBeInTheDocument();
   });
 
-  it("renders Carbon check for GLOBAL region", () => {
+  it("renders Carbon and Due Diligence checks for GLOBAL region", () => {
     render(
       <BatchReadinessBar
         batch={createMockBatch()}
@@ -93,6 +95,7 @@ describe("BatchReadinessBar", () => {
       />,
     );
     expect(screen.getByText("Carbon")).toBeInTheDocument();
+    expect(screen.getByText("Due Diligence")).toBeInTheDocument();
   });
 
   it("does not render Carbon check for India region", () => {

@@ -414,7 +414,7 @@ export default function DashboardPage() {
                   </span>
                 ) : (
                   <Link
-                    href={settingsHref}
+                    href={`${settingsHref}?tab=compliance`}
                     className="text-sm text-blue-500 hover:text-blue-500 font-medium hover:underline"
                   >
                     {dashboardConfig.compliance.ctaLabel} →

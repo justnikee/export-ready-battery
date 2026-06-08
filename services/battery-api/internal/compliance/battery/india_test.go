@@ -18,6 +18,7 @@ import (
 func validIndiaBatch() *models.Batch {
 	now := time.Now()
 	cycles := 3000
+	pastDate := now.AddDate(0, -3, 0).Format("2006-01-02")
 	return &models.Batch{
 		ModelName:              "EV-Pack-3K",
 		MarketRegion:           models.MarketRegionIndia,
@@ -30,9 +31,13 @@ func validIndiaBatch() *models.Batch {
 			Capacity:  "100Ah",
 			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
 			ExpectedLifetimeCycles: &cycles,
-			CellSource:       "DOMESTIC",
-			BISNumber:        "R-41001234",
-			EPRNumber:        "EPR/E-Waste/2024/00001",
+			CellSource:              "DOMESTIC",
+			BISNumber:               "R-41001234",
+			EPRNumber:               "EPR/E-Waste/2024/00001",
+			BISCertificateIssueDate: pastDate,
+			UN383TestDate:           pastDate,
+			IEC62133TestDate:        pastDate,
+			MSDSIssueDate:           pastDate,
 		},
 	}
 }
@@ -46,6 +51,13 @@ func validIndiaTenant() *models.Tenant {
 	t.BatteryProfile.BISRNumber = "R-41001234"
 	t.BatteryProfile.IECCode = "TATPL1234C"
 	t.BatteryProfile.MorthManufacturerCode = "MFGR01"
+	// Certificate uploads are required when registration numbers are provided
+	t.BatteryProfile.EPRCertificatePath = "https://storage.example.com/epr.pdf"
+	t.BatteryProfile.EPRStatus = "VERIFIED"
+	t.BatteryProfile.BISCertificatePath = "https://storage.example.com/bis.pdf"
+	t.BatteryProfile.BISStatus = "VERIFIED"
+	t.BatteryProfile.PLICertificatePath = "https://storage.example.com/pli.pdf"
+	t.BatteryProfile.PLIStatus = "VERIFIED"
 	return t
 }
 
@@ -214,6 +226,131 @@ func TestIndiaValidator_Warnings_DoNotBlockActivation(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.Valid, "warnings only should not block activation, errors=%v missing=%v", result.Errors, result.Missing)
 	assert.NotEmpty(t, result.Warnings)
+}
+
+func TestIndiaValidator_MissingEPRCertificate_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.PLICompliant = false // avoid PLI cert check
+
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.EPRCertificatePath = "" // uploaded PDF missing
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "tenant.epr_certificate")
+}
+
+func TestIndiaValidator_MissingBISCertificate_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.PLICompliant = false // avoid PLI cert check
+
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.BISCertificatePath = "" // uploaded PDF missing
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "tenant.bis_certificate")
+}
+
+func TestIndiaValidator_PLICompliant_MissingPLICertificate_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.PLICompliant = true
+	batch.DomesticValueAdd = 55.0 // sufficient DVA
+
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.PLICertificatePath = "" // PLI cert missing
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "tenant.pli_certificate")
+}
+
+func TestIndiaValidator_RejectedCertificate_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.PLICompliant = false
+
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.EPRStatus = "REJECTED"
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "tenant.epr_certificate")
+}
+
+func TestIndiaValidator_NoRegistrationNumber_NoCertificateRequired(t *testing.T) {
+	// If EPR registration number is empty, certificate is not required
+	batch := validIndiaBatch()
+	batch.PLICompliant = false
+
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.EPRRegistrationNumber = ""
+	tenant.BatteryProfile.EPRCertificatePath = ""
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	// Should still be valid (only BIS cert check might fail)
+	assert.NotContains(t, result.Missing, "tenant.epr_certificate")
+}
+
+func TestIndiaValidator_MissingTestDates_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BISCertificateIssueDate = ""
+	batch.Specs.UN383TestDate = ""
+	batch.Specs.IEC62133TestDate = ""
+	batch.Specs.MSDSIssueDate = ""
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, validIndiaTenant())
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "batch.specs.bis_certificate_issue_date")
+	assert.Contains(t, result.Missing, "batch.specs.un38_3_test_date")
+	assert.Contains(t, result.Missing, "batch.specs.iec_62133_test_date")
+	assert.Contains(t, result.Missing, "batch.specs.msds_issue_date")
+}
+
+func TestIndiaValidator_FutureTestDate_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	future := time.Now().AddDate(0, 1, 0).Format("2006-01-02")
+	batch.Specs.BISCertificateIssueDate = future
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, validIndiaTenant())
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	found := false
+	for _, e := range result.Errors {
+		if contains(e, "future") {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected future date error")
+}
+
+func TestIndiaValidator_InvalidTestDateFormat_BlocksActivation(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BISCertificateIssueDate = "01-03-2024" // wrong format
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, validIndiaTenant())
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	found := false
+	for _, e := range result.Errors {
+		if contains(e, "YYYY-MM-DD") {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected format error")
 }
 
 // ============================================================================

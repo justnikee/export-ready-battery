@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -26,9 +27,20 @@ const (
 )
 
 // indiaBaseCheckpoints counts the hard rules that always run regardless of
-// cell source: 4 tenant credentials + cell_source itself + PLI claim + AIS-156 + AIS-038.
+// cell source: 4 tenant credentials + 3 certificate uploads + 4 test dates +
+// cell_source itself + PLI claim + AIS-156 + AIS-038.
 // Sub-checks that are conditional on cell_source are added dynamically.
-const indiaBaseCheckpoints = 8
+const indiaBaseCheckpoints = 15
+
+// isCertificateValid returns true if the certificate has been uploaded and
+// has not been rejected. PENDING is acceptable because the certificate may
+// still be under admin review.
+func isCertificateValid(path, status string) bool {
+	if path == "" {
+		return false
+	}
+	return status == "PENDING" || status == "VERIFIED"
+}
 
 // IndiaValidator validates battery batch and tenant data against India's regulatory
 // framework: AIS-156, AIS-038, BIS CRS IS 16046, EPR (BWM Rules 2022), PLI Phase II,
@@ -101,6 +113,56 @@ func (v *IndiaValidator) Validate(specs json.RawMessage) (compliance.Result, err
 	return v.ValidateBatch(&batch, &models.Tenant{})
 }
 
+// ValidateIndiaTenant checks only tenant-level India compliance credentials
+// and certificate uploads. It does NOT require a batch and is safe to call
+// during onboarding to preview activation readiness.
+// Returns the list of compliance gaps found.
+func ValidateIndiaTenant(tenant *models.Tenant) []compliance.Gap {
+	var gaps []compliance.Gap
+
+	addMissing := func(field, msg, regulation string) {
+		gaps = append(gaps, compliance.Gap{
+			Field:      field,
+			Market:     indiaMarket,
+			Regulation: regulation,
+			Message:    msg,
+			Severity:   "ERROR",
+		})
+	}
+
+	tenant.EnsureBatteryProfile()
+
+	if tenant.BatteryProfile.EPRRegistrationNumber == "" {
+		addMissing("tenant.epr_registration_number",
+			"EPR registration number is mandatory under BWM Rules 2022", indiaBWMRef)
+	}
+	if tenant.BatteryProfile.BISRNumber == "" {
+		addMissing("tenant.bis_r_number",
+			"BIS R-Number (CRS IS 16046) is mandatory for lithium-ion batteries", indiaBISRef)
+	}
+	if tenant.BatteryProfile.IECCode == "" {
+		addMissing("tenant.iec_code",
+			"Import Export Code (IEC) is required for India market operations", "DGFT IEC Regulations")
+	}
+	if tenant.BatteryProfile.MorthManufacturerCode == "" {
+		addMissing("tenant.morth_manufacturer_code",
+			"MoRTH manufacturer code is required for vehicle battery registration", "MoRTH Notification S.O. 3400(E)")
+	}
+
+	// Certificate upload verification
+	if tenant.BatteryProfile.EPRRegistrationNumber != "" &&
+		!isCertificateValid(tenant.BatteryProfile.EPRCertificatePath, tenant.BatteryProfile.EPRStatus) {
+		addMissing("tenant.epr_certificate",
+			"EPR certificate PDF must be uploaded and verified to activate batches", indiaBWMRef)
+	}
+	if tenant.BatteryProfile.BISRNumber != "" &&
+		!isCertificateValid(tenant.BatteryProfile.BISCertificatePath, tenant.BatteryProfile.BISStatus) {
+		addMissing("tenant.bis_certificate",
+			"BIS certificate PDF must be uploaded and verified to activate batches", indiaBISRef)
+	}
+	return gaps
+}
+
 // ValidateBatch implements compliance.BatchValidator, running all India-specific
 // compliance rules against the full structured batch + tenant context.
 func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) (compliance.Result, error) {
@@ -144,23 +206,67 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// Tenant-level India compliance credentials
 	// ----------------------------------------------------------------
 
-	tenant.EnsureBatteryProfile()
+	tenantGaps := ValidateIndiaTenant(tenant)
+	for _, g := range tenantGaps {
+		if g.Severity == "ERROR" {
+			missing = append(missing, g.Field)
+		} else {
+			warnings = append(warnings, g.Message)
+		}
+	}
+	gaps = append(gaps, tenantGaps...)
 
-	if tenant.BatteryProfile.EPRRegistrationNumber == "" {
-		addMissing("tenant.epr_registration_number",
-			"EPR registration number is mandatory under BWM Rules 2022", indiaBWMRef)
+	// ----------------------------------------------------------------
+	// PLI certificate — batch-dependent check (kept in ValidateBatch)
+	// ----------------------------------------------------------------
+	if batch.PLICompliant &&
+		!isCertificateValid(tenant.BatteryProfile.PLICertificatePath, tenant.BatteryProfile.PLIStatus) {
+		addMissing("tenant.pli_certificate",
+			"PLI certificate PDF must be uploaded and verified to claim PLI compliance", indiaPLIRef)
 	}
-	if tenant.BatteryProfile.BISRNumber == "" {
-		addMissing("tenant.bis_r_number",
-			"BIS R-Number (CRS IS 16046) is mandatory for lithium-ion batteries", indiaBISRef)
+
+	// ----------------------------------------------------------------
+	// Test date validation — legal declarations required for India market
+	// ----------------------------------------------------------------
+
+	if batch.Specs.BISCertificateIssueDate == "" {
+		addMissing("batch.specs.bis_certificate_issue_date",
+			"BIS certificate issue date is required for India compliance", indiaBISRef)
 	}
-	if tenant.BatteryProfile.IECCode == "" {
-		addMissing("tenant.iec_code",
-			"Import Export Code (IEC) is required for India market operations", "DGFT IEC Regulations")
+	if batch.Specs.UN383TestDate == "" {
+		addMissing("batch.specs.un38_3_test_date",
+			"UN38.3 test date is required for lithium-ion battery transport safety", indiaAIS156Ref)
 	}
-	if tenant.BatteryProfile.MorthManufacturerCode == "" {
-		addMissing("tenant.morth_manufacturer_code",
-			"MoRTH manufacturer code is required for vehicle battery registration", "MoRTH Notification S.O. 3400(E)")
+	if batch.Specs.IEC62133TestDate == "" {
+		addMissing("batch.specs.iec_62133_test_date",
+			"IEC 62133 test date is required for cell safety certification", "IEC 62133")
+	}
+	if batch.Specs.MSDSIssueDate == "" {
+		addMissing("batch.specs.msds_issue_date",
+			"MSDS issue date is required for hazardous substance declaration", "MSDS")
+	}
+
+	// Validate dates are not in the future
+	today := time.Now().Truncate(24 * time.Hour)
+	for _, d := range []struct {
+		field string
+		value string
+		label string
+		ref   string
+	}{
+		{"batch.specs.bis_certificate_issue_date", batch.Specs.BISCertificateIssueDate, "BIS certificate issue", indiaBISRef},
+		{"batch.specs.un38_3_test_date", batch.Specs.UN383TestDate, "UN38.3 test", indiaAIS156Ref},
+		{"batch.specs.iec_62133_test_date", batch.Specs.IEC62133TestDate, "IEC 62133 test", "IEC 62133"},
+		{"batch.specs.msds_issue_date", batch.Specs.MSDSIssueDate, "MSDS issue", "MSDS"},
+	} {
+		if d.value != "" {
+			parsed, err := time.Parse("2006-01-02", d.value)
+			if err != nil {
+				addError(d.field, fmt.Sprintf("%s date must be in YYYY-MM-DD format", d.label), d.ref)
+			} else if parsed.After(today) {
+				addError(d.field, fmt.Sprintf("%s date cannot be in the future", d.label), d.ref)
+			}
+		}
 	}
 
 	// ----------------------------------------------------------------

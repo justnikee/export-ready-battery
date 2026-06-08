@@ -110,6 +110,49 @@ func (v *EUValidator) getRecycledThresholds(ctx context.Context) recycledThresho
 	return t
 }
 
+// ValidateEUTenant checks only tenant-level EU compliance credentials
+// (company name, address, authorized representative). It does NOT require
+// a batch and is safe to call during onboarding.
+// Returns the list of compliance gaps found.
+func ValidateEUTenant(tenant *models.Tenant) []compliance.Gap {
+	var gaps []compliance.Gap
+
+	addMissing := func(field, msg, regulation string) {
+		gaps = append(gaps, compliance.Gap{
+			Field:      field,
+			Market:     euMarket,
+			Regulation: regulation,
+			Message:    msg,
+			Severity:   "ERROR",
+		})
+	}
+
+	tenant.EnsureBatteryProfile()
+
+	if tenant.CompanyName == "" {
+		addMissing("tenant.company_name",
+			"Manufacturer company name is required for EU DPP", euBatRegRef)
+	}
+	if tenant.Address == "" {
+		addMissing("tenant.address",
+			"Manufacturer address is required for EU DPP", euBatRegRef)
+	}
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
+		addMissing("tenant.eu_authorized_representative_name",
+			"EU Authorized Representative name is mandatory for non-EU manufacturers", euBatRegRef)
+	}
+	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
+		addMissing("tenant.eu_authorized_representative_address",
+			"EU Authorized Representative address is mandatory", euBatRegRef)
+	}
+	if tenant.BatteryProfile.EUContactEmail == "" {
+		addMissing("tenant.eu_contact_email",
+			"EU point-of-contact email is mandatory for DPP access queries", euBatRegRef)
+	}
+
+	return gaps
+}
+
 // ValidateBatch implements compliance.BatchValidator, running all EU-specific
 // compliance rules against the full structured batch + tenant context.
 func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) (compliance.Result, error) {
@@ -153,29 +196,13 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	// Tenant-level EU compliance — Authorized Representative
 	// ----------------------------------------------------------------
 
-	tenant.EnsureBatteryProfile()
-
-	if tenant.CompanyName == "" {
-		addMissing("tenant.company_name",
-			"Manufacturer company name is required for EU DPP", euBatRegRef)
+	tenantGaps := ValidateEUTenant(tenant)
+	for _, g := range tenantGaps {
+		if g.Severity == "ERROR" {
+			missing = append(missing, g.Field)
+		}
 	}
-	if tenant.Address == "" {
-		addMissing("tenant.address",
-			"Manufacturer address is required for EU DPP", euBatRegRef)
-	}
-	tenant.EnsureBatteryProfile()
-	if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
-		addMissing("tenant.eu_authorized_representative_name",
-			"EU Authorized Representative name is mandatory for non-EU manufacturers", euBatRegRef)
-	}
-	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
-		addMissing("tenant.eu_authorized_representative_address",
-			"EU Authorized Representative address is mandatory", euBatRegRef)
-	}
-	if tenant.BatteryProfile.EUContactEmail == "" {
-		addMissing("tenant.eu_contact_email",
-			"EU point-of-contact email is mandatory for DPP access queries", euBatRegRef)
-	}
+	gaps = append(gaps, tenantGaps...)
 
 	// ----------------------------------------------------------------
 	// Battery category classification (EU 2023/1542 Art. 2)

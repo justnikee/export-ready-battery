@@ -23,6 +23,7 @@ import (
 func validBillingBatch(tenantID uuid.UUID) *models.Batch {
 	mfgStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	mfgEnd := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	pastDate := mfgStart.Format("2006-01-02")
 	return &models.Batch{
 		ID:                     uuid.New(),
 		TenantID:               tenantID,
@@ -34,24 +35,36 @@ func validBillingBatch(tenantID uuid.UUID) *models.Batch {
 		ManufacturingEndDate:   &mfgEnd,
 		DomesticValueAdd:       60.0,
 		Specs: models.BatchSpec{
-			Chemistry:      "LFP",
-			Capacity:       "100Ah",
-			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
-			CellSource:     "DOMESTIC",
+			Chemistry:               "LFP",
+			Capacity:                "100Ah",
+			Certifications:          []string{"AIS-156", "AIS-038", "BIS"},
+			CellSource:              "DOMESTIC",
+			BISCertificateIssueDate: pastDate,
+			UN383TestDate:           pastDate,
+			IEC62133TestDate:        pastDate,
+			MSDSIssueDate:           pastDate,
 		},
 	}
 }
 
 func validBillingTenant(tenantID uuid.UUID) *models.Tenant {
 	t := &models.Tenant{
-		ID:          tenantID,
-		CompanyName: "Test Battery Co",
+		ID:                  tenantID,
+		CompanyName:         "Test Battery Co",
+		OnboardingCompleted: true,
 	}
 	t.EnsureBatteryProfile()
 	t.BatteryProfile.EPRRegistrationNumber = "EPR/WP/2024/00001"
 	t.BatteryProfile.BISRNumber = "R-12345678"
 	t.BatteryProfile.IECCode = "IEC0123456"
 	t.BatteryProfile.MorthManufacturerCode = "TBC"
+	// Certificate uploads required when registration numbers are provided
+	t.BatteryProfile.EPRCertificatePath = "https://storage.example.com/epr.pdf"
+	t.BatteryProfile.EPRStatus = "VERIFIED"
+	t.BatteryProfile.BISCertificatePath = "https://storage.example.com/bis.pdf"
+	t.BatteryProfile.BISStatus = "VERIFIED"
+	t.BatteryProfile.PLICertificatePath = "https://storage.example.com/pli.pdf"
+	t.BatteryProfile.PLIStatus = "VERIFIED"
 	return t
 }
 
@@ -107,6 +120,7 @@ func TestActivateBatch_BatchNotFound(t *testing.T) {
 
 	tenantID := uuid.New()
 	batchID := uuid.New()
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(validBillingTenant(tenantID), nil)
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(nil, errors.New("not found"))
 
 	rr := httptest.NewRecorder()
@@ -114,6 +128,34 @@ func TestActivateBatch_BatchNotFound(t *testing.T) {
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
+	}
+	mockRepo.AssertExpectations(t)
+}
+
+// --- Onboarding incomplete ---
+
+func TestActivateBatch_OnboardingIncomplete(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	handler := newTestHandler(mockRepo)
+
+	tenantID := uuid.New()
+	batchID := uuid.New()
+
+	tenant := validBillingTenant(tenantID)
+	tenant.OnboardingCompleted = false
+
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+
+	rr := httptest.NewRecorder()
+	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var resp map[string]interface{}
+	json.NewDecoder(rr.Body).Decode(&resp)
+	if resp["error"] != "complete_onboarding_first" {
+		t.Errorf("expected 'complete_onboarding_first', got %v", resp["error"])
 	}
 	mockRepo.AssertExpectations(t)
 }
@@ -128,6 +170,7 @@ func TestActivateBatch_WrongTenant(t *testing.T) {
 	otherTenantID := uuid.New()
 	batchID := uuid.New()
 
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(validBillingTenant(tenantID), nil)
 	batch := validBillingBatch(otherTenantID) // belongs to different tenant
 	batch.ID = batchID
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
@@ -150,6 +193,7 @@ func TestActivateBatch_AlreadyActive(t *testing.T) {
 	tenantID := uuid.New()
 	batchID := uuid.New()
 
+	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(validBillingTenant(tenantID), nil)
 	batch := validBillingBatch(tenantID)
 	batch.ID = batchID
 	batch.Status = models.BatchStatusActive

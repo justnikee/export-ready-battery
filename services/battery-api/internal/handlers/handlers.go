@@ -8,8 +8,11 @@ import (
 
 	"github.com/anvayalabs/battery-api/internal/db"
 	"github.com/anvayalabs/battery-api/internal/events"
+	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/services"
+
+	"github.com/google/uuid"
 )
 
 // Handler holds dependencies for HTTP handlers
@@ -27,9 +30,10 @@ type Handler struct {
 	regulatorAPIKey   string                      // Art 78 regulator access key
 
 	// Phase 3: pluggable engines
-	batchService    *services.BatchService    // Schema validation + compliance runner
-	passportService *services.PassportService // Serial number generation
-	eventBus        *events.Bus               // Domain event bus
+	batchService           *services.BatchService           // Schema validation + compliance runner
+	batchCreationValidator *services.BatchCreationValidator // Batch creation pre-flight validation
+	passportService        *services.PassportService        // Serial number generation
+	eventBus               *events.Bus                      // Domain event bus
 
 	// VC signing
 	vcCryptoService *services.VCCryptoService // Ed25519 DID + LD-Proof signing
@@ -53,6 +57,11 @@ type Option func(*Handler)
 // WithBatchService injects the BatchService (schema validation + compliance).
 func WithBatchService(svc *services.BatchService) Option {
 	return func(h *Handler) { h.batchService = svc }
+}
+
+// WithBatchCreationValidator injects the BatchCreationValidator.
+func WithBatchCreationValidator(v *services.BatchCreationValidator) Option {
+	return func(h *Handler) { h.batchCreationValidator = v }
 }
 
 // WithPassportService injects the PassportService (serial generation).
@@ -172,6 +181,48 @@ func sanitizeDBError(err error) string {
 
 	// Default: keep the original message (safe for application-level errors)
 	return msg
+}
+
+// checkIfOnboardingCompleted verifies the tenant has completed onboarding.
+// If onboarding_completed is false, it writes a 403 Forbidden response and returns false.
+// Call this at the top of handlers that require a fully onboarded tenant.
+func (h *Handler) checkIfOnboardingCompleted(w http.ResponseWriter, r *http.Request) bool {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return false
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+		return false
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		slog.Error("Failed to retrieve tenant for onboarding check", "tenant_id", tenantIDStr, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return false
+	}
+
+	if !tenant.OnboardingCompleted {
+		respondError(w, http.StatusForbidden, "complete_onboarding_first")
+		return false
+	}
+
+	return true
+}
+
+// RequireOnboardingComplete returns middleware that blocks requests from tenants
+// who have not completed onboarding. Chain this AFTER authMiddleware.Protect.
+func (h *Handler) RequireOnboardingComplete(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !h.checkIfOnboardingCompleted(w, r) {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // RazorpayService returns the Razorpay service for webhook handler initialization

@@ -18,7 +18,7 @@ The battery codebase has **strong bones**: the web app and API are feature-rich,
 | **Due Diligence Engine** | PDF renderer only | No risk model, no CMRT/OECD workflow, no supplier scoring | EU Art. 48–52 mandatory Aug 2027 |
 | **Mobile App** | Empty Expo scaffold | No auth, no API client, no QR scanning, no offline sync | Field technicians cannot update lifecycle |
 | **Desktop App** | Thin Tauri shell with page stubs | No offline storage, no local QR print, no factory-floor sync | Factory floors need offline-capable QR printing |
-| **Regulatory Intelligence** | Doesn't exist | No policy scraping, no alert engine, no deadline tracking | Customers miss regulatory changes (e.g. Omnibus delays) |
+| **Regulatory Intelligence** | ✅ Complete (`75dce58`) | RSS/scraper ingestion, rule-based classifier, tenant alerts, notification bell + dashboard | Customers miss regulatory changes (e.g. Omnibus delays) |
 | **Carbon / LCA** | Static JRC factors | No supplier primary data ingestion, no dynamic LCA | Art. 7 requires supplier-specific footprints by 2025–27 |
 | **Event Architecture** | Monolithic synchronous Go binary | No pub/sub, no real-time compliance updates, no webhook reliability | Cannot scale telemetry ingestion independently |
 
@@ -407,7 +407,7 @@ async fn import_csv(path: String) -> CsvImportResult { ... }
 
 ---
 
-## Phase E — Regulatory Intelligence Module (4 weeks)
+## Phase E — Regulatory Intelligence Module (4 weeks) ✅ COMPLETE
 
 ### E.1 The Problem
 
@@ -487,12 +487,29 @@ CREATE TABLE tenant_regulatory_alerts (
 
 ### E.4 Implementation Steps
 
-| Week | Task | Deliverable |
-|------|------|-------------|
-| 1 | Source abstraction + RSS fetcher; MoEF/CPCB scrapers (Colly/GoQuery) | Daily ingestion running |
-| 2 | NLP classification (OpenAI API or local Ollama): tag product/region/urgency | Auto-classified items |
-| 3 | Tenant alert matching (active markets → relevant items); in-app notification bell | Users see personalized alerts |
-| 4 | Email digest + admin dashboard for manual alert entry; deadline countdown | Full delivery layer |
+| Week | Task | Deliverable | Status |
+|------|------|-------------|--------|
+| 1 | Source abstraction + RSS fetcher; MoEF/CPCB scrapers | Daily ingestion running | ✅ Done — stdlib XML RSS + regex scraper |
+| 2 | NLP classification: tag product/region/urgency/deadline | Auto-classified items | ✅ Done — rule-based classifier (OpenAI deferred) |
+| 3 | Tenant alert matching; in-app notification bell | Users see personalized alerts | ✅ Done — unified bell with legacy + regulatory alerts |
+| 4 | Admin dashboard for manual alert entry; deadline countdown | Full delivery layer | ✅ Done — regulatory dashboard with feed/alerts/sources tabs |
+
+**Completed in commit `75dce58` (2026-06-06).**
+
+**What was built:**
+- Migration `000092`: `regulatory_sources`, `regulatory_items`, `tenant_regulatory_alerts`
+- Go ingestion engine: RSS fetcher (stdlib `encoding/xml`), regex HTML scraper, rule-based classifier
+- Background worker: 6h ticker, auto-seeds EU OJ / ECHA SVHC / MoEF&CC sources
+- Handlers: sources CRUD, items list with filters, tenant alerts read/dismiss, force-fetch, unread count
+- React: unified notification bell (legacy + regulatory alerts), regulatory dashboard page (feed / my alerts / sources)
+- Nav: "Regulatory" added to Compliance sidebar group
+
+**Deferred to future:**
+- Email digest sender (weekly/urgent)
+- SMS for P0 deadlines
+- Webhook delivery for enterprise customers
+- OpenAI API NLP (rule-based is fast and deterministic; swap later)
+- Real MoEF/CPCB scraper selectors (seeded with placeholder regex)
 
 ### E.5 Why This Is The Right Way
 
