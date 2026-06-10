@@ -21,14 +21,22 @@ describe("DashboardPanel", () => {
     expect(container.firstChild).toHaveClass("custom-class");
   });
 
-  it("renders corner squares", () => {
+  it("renders a bordered panel container", () => {
     const { container } = render(
       <DashboardPanel>
         <p>Content</p>
       </DashboardPanel>,
     );
-    const spans = container.querySelectorAll("span");
-    expect(spans.length).toBe(4);
+    expect(container.firstChild).toHaveClass("border", "border-border");
+  });
+
+  it("applies the given id for anchor scrolling", () => {
+    const { container } = render(
+      <DashboardPanel id="activation-checklist">
+        <p>Content</p>
+      </DashboardPanel>,
+    );
+    expect(container.firstChild).toHaveAttribute("id", "activation-checklist");
   });
 
   it("renders without padding when noPadding is true", () => {

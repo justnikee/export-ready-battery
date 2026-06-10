@@ -113,7 +113,7 @@ export function ActivationChecklist({
   };
 
   return (
-    <DashboardPanel noPadding>
+    <DashboardPanel noPadding id="activation-checklist">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}

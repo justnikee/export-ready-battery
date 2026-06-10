@@ -50,7 +50,6 @@ import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton";
 import { dashboardPathFromPathname } from "@/lib/routes";
 
 // Types
-type MarketRegion = "INDIA" | "EU" | "GLOBAL";
 type FilterType = "ALL" | "DRAFT" | "ACTIVE" | "ARCHIVED";
 type ComplianceFilter = "ALL" | "READY" | "NEEDS_WORK" | "BLOCKED";
 
@@ -68,22 +67,40 @@ export default function BatchesPage() {
   const router = useRouter();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  // Full skeleton only on first load; filter/search refetches keep the table
+  // visible (stale rows) instead of flashing the whole page.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [complianceFilter, setComplianceFilter] = useState<ComplianceFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [batchToArchive, setBatchToArchive] = useState<Batch | null>(null);
   const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
 
+  // Debounce search input so we don't fire a request per keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchBatches = useCallback(
     async (page = 1) => {
       if (!user) return;
       try {
         setLoading(true);
+        // Status + search are applied server-side so they cover ALL batches,
+        // not just the currently loaded page.
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(ITEMS_PER_PAGE),
+        });
+        if (filter !== "ALL") params.set("status", filter);
+        if (debouncedSearch) params.set("search", debouncedSearch);
         const response = await api.get<BatchesResponse>(
-          `/batches?tenant_id=${user.tenant_id}&page=${page}&limit=${ITEMS_PER_PAGE}`,
+          `/batches?${params.toString()}`,
         );
         setBatches(response.data.batches || []);
         setTotalCount(response.data.total || 0);
@@ -92,39 +109,34 @@ export default function BatchesPage() {
         toast.error("Failed to load batches");
       } finally {
         setLoading(false);
+        setHasLoadedOnce(true);
       }
     },
-    [user],
+    [user, filter, debouncedSearch],
   );
 
   useEffect(() => {
     fetchBatches(currentPage);
   }, [currentPage, fetchBatches]);
 
+  // Compliance readiness is derived client-side from score + gaps, so this
+  // filter applies to the loaded page only; status + search are server-side.
   const filteredBatches = batches.filter((batch) => {
-    if (filter !== "ALL") {
-      const status = batch.status || "DRAFT";
-      if (status !== filter) return false;
-    }
     if (complianceFilter !== "ALL") {
       const { status } = getComplianceStatus(batch);
       if (status !== complianceFilter) return false;
-    }
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        batch.batch_name.toLowerCase().includes(query) ||
-        batch.id.toLowerCase().includes(query)
-      );
     }
     return true;
   });
 
   const paginatedBatches = filteredBatches;
 
+  const hasActiveFilters =
+    filter !== "ALL" || complianceFilter !== "ALL" || debouncedSearch !== "";
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, complianceFilter, searchQuery]);
+  }, [filter, complianceFilter, debouncedSearch]);
 
   const handleDuplicate = async (batchId: string) => {
     try {
@@ -151,85 +163,7 @@ export default function BatchesPage() {
     return { status: "BLOCKED", label: "Blocked", score, blockerCount };
   };
 
-  const getComplianceBadge = (batch: Batch) => {
-    const { status, label, score, blockerCount } = getComplianceStatus(batch);
-    if (status === "READY") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" title={`${score.toFixed(0)}% compliant`}>
-          <ShieldCheck className="h-3 w-3" />
-          {label}
-        </span>
-      );
-    }
-    if (status === "NEEDS_WORK") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20" title={`${score.toFixed(0)}% compliant`}>
-          <AlertTriangle className="h-3 w-3" />
-          {label}
-          {blockerCount > 0 && ` (${blockerCount})`}
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20" title={`${score.toFixed(0)}% compliant`}>
-        <XCircle className="h-3 w-3" />
-        {label}
-        {blockerCount > 0 && ` (${blockerCount})`}
-      </span>
-    );
-  };
-
-  const getStatusBadge = (status: string) => {
-    if (status === "ACTIVE") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Active
-        </span>
-      );
-    }
-    if (status === "ARCHIVED") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-          Archived
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-muted text-muted-foreground border border-border">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-        Draft
-      </span>
-    );
-  };
-
-  const getMarketBadge = (region: MarketRegion | undefined) => {
-    if (region === "INDIA") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-orange-500/10 text-orange-700 border border-orange-200">
-          <span className="w-3 h-3 rounded-full bg-linear-to-br from-orange-400 to-green-500 shrink-0" />
-          India
-        </span>
-      );
-    }
-    if (region === "EU") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20">
-          <span className="w-3 h-3 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0" />
-          EU
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground border border-border">
-        <Globe className="h-3 w-3" />
-        Global
-      </span>
-    );
-  };
-
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return <BatchesListSkeleton />;
   }
 
@@ -453,16 +387,42 @@ export default function BatchesPage() {
                   >
                     <div className="flex flex-col items-center gap-3">
                       <Package className="h-10 w-10 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          No batches found
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Create your first production batch to start generating
-                          battery passports
-                        </p>
-                      </div>
-                      <CreateBatchWizard onBatchCreated={fetchBatches} />
+                      {hasActiveFilters ? (
+                        <>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              No batches match your filters
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Try a different search term or clear the filters
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSearchQuery("");
+                              setFilter("ALL");
+                              setComplianceFilter("ALL");
+                            }}
+                          >
+                            Clear filters
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              No batches yet
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Create your first production batch to start
+                              generating battery passports
+                            </p>
+                          </div>
+                          <CreateBatchWizard onBatchCreated={fetchBatches} />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -503,7 +463,7 @@ export default function BatchesPage() {
                     {/* Market */}
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1 items-start">
-                        {getMarketBadge(batch.market_region)}
+                        <MarketBadge region={batch.market_region} />
                         {batch.pli_compliant && (
                           <span className="text-xs text-orange-600 font-medium">
                             PLI Eligible
@@ -553,7 +513,7 @@ export default function BatchesPage() {
                     {/* Compliance */}
                     <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
-                        {getComplianceBadge(batch)}
+                        <ComplianceBadge {...getComplianceStatus(batch)} />
                         {batch.compliance_score !== undefined && batch.compliance_score > 0 && (
                           <span className="text-xs text-muted-foreground font-mono">
                             {batch.compliance_score.toFixed(0)}%
@@ -564,7 +524,7 @@ export default function BatchesPage() {
 
                     {/* Status */}
                     <td className="px-4 py-4">
-                      {getStatusBadge(batch.status || "DRAFT")}
+                      <BatchStatusBadge status={batch.status} />
                     </td>
 
                     {/* Actions */}

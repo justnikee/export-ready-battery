@@ -31,7 +31,7 @@ describe("StatCard", () => {
     expect(screen.getByTestId("icon")).toBeInTheDocument();
   });
 
-  it("renders corner squares", () => {
+  it("renders a bordered card container", () => {
     const { container } = render(
       <StatCard
         label="Test"
@@ -41,8 +41,7 @@ describe("StatCard", () => {
         iconBg="bg-blue-500/10"
       />,
     );
-    const cornerSpans = container.querySelectorAll("span.absolute");
-    expect(cornerSpans.length).toBe(4);
+    expect(container.firstChild).toHaveClass("border", "border-border");
   });
 
   it("applies monospace styling to label and value", () => {

@@ -2,16 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Lock,
   Unlock,
-  Globe,
   AlertTriangle,
 } from "lucide-react";
 import type { Batch } from "@/lib/types";
 import type { MarketRegion, ActivationBlockers } from "./types";
+import {
+  BatchStatusBadge,
+  MarketBadge,
+} from "@/components/shared/status-badges";
 
 interface BatchHeaderProps {
   batch: Batch;
@@ -25,55 +27,6 @@ interface BatchHeaderProps {
   onDeleteDraft: () => void;
   onPrintLabels: () => void;
   onArchive: () => void;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "ACTIVE") {
-    return (
-      <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 text-xs px-2 py-0.5 font-medium">
-        <Unlock className="h-3 w-3 mr-1" />
-        Active
-      </Badge>
-    );
-  }
-  if (status === "ARCHIVED") {
-    return (
-      <Badge className="bg-muted text-muted-foreground hover:bg-muted/80 border-border text-xs px-2 py-0.5 font-medium">
-        Archived
-      </Badge>
-    );
-  }
-  return (
-    <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 text-xs px-2 py-0.5 font-medium">
-      <Lock className="h-3 w-3 mr-1" />
-      Draft
-    </Badge>
-  );
-}
-
-function MarketBadge({ region }: { region: MarketRegion }) {
-  if (region === "INDIA") {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-orange-500/10 text-orange-700 border border-orange-200">
-        <span className="w-2 h-2 rounded-full bg-orange-400 shrink-0" />
-        India
-      </span>
-    );
-  }
-  if (region === "EU") {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20">
-        <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
-        EU
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-muted text-muted-foreground border border-border">
-      <Globe className="h-3 w-3" />
-      Global
-    </span>
-  );
 }
 
 function ProductChip({ batch }: { batch: Batch }) {
@@ -122,7 +75,7 @@ export function BatchHeader({
             <h1 className="text-2xl text-foreground tracking-tight">
               {batch.batch_name}
             </h1>
-            <StatusBadge status={batch.status} />
+            <BatchStatusBadge status={batch.status} />
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -139,16 +92,26 @@ export function BatchHeader({
           {isDraft && (
             <>
               <Button
-                onClick={onActivate}
-                disabled={activating || hasBlockers}
+                onClick={() => {
+                  if (hasBlockers) {
+                    // Walk the user to the checklist instead of dead-ending
+                    // on a disabled button; onActivate also surfaces the
+                    // full blocker list as a toast.
+                    document
+                      .getElementById("activation-checklist")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                  onActivate();
+                }}
+                disabled={activating}
                 className={
                   hasBlockers
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                    ? "bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
                     : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-none"
                 }
                 title={
                   hasBlockers
-                    ? `${activationResult.blocking.length} requirement(s) missing`
+                    ? `${activationResult.blocking.length} requirement(s) missing — click to see what's needed`
                     : "Activate this batch"
                 }
               >
