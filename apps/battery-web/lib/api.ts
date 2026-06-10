@@ -2,6 +2,17 @@ import axios from "axios";
 import { routesFromPathname } from "@/lib/routes";
 import { clearProductCookies } from "@/lib/product-session";
 
+// The access token is held in memory only (never localStorage) so an XSS
+// payload can't read it out of persistent storage. It's re-hydrated on page
+// load via the HttpOnly refresh_token cookie (see auth-context's checkAuth).
+let accessToken: string | null = null;
+
+export const getAccessToken = () => accessToken;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
   headers: {
@@ -17,12 +28,32 @@ export const getBaseUrl = () => {
   return apiUrl.replace(/\/api\/v1\/?$/, "");
 };
 
+// Exchanges the HttpOnly refresh_token cookie for a new access token, storing
+// it in memory. Returns the token on success, or null if there's no valid
+// refresh session (e.g. first visit, expired/revoked session).
+export const refreshAccessToken = async (): Promise<string | null> => {
+  try {
+    const response = await axios.post(
+      `${api.defaults.baseURL}/auth/refresh`,
+      {},
+      { withCredentials: true },
+    );
+    if (response.data.token) {
+      setAccessToken(response.data.token);
+      return response.data.token;
+    }
+  } catch {
+    // No valid refresh cookie — caller treats this as logged out.
+  }
+  setAccessToken(null);
+  return null;
+};
+
 // Add a request interceptor to include the auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -41,33 +72,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        // The HttpOnly refresh_token cookie is sent automatically by the browser.
-        // We just need to call the refresh endpoint with credentials included.
-        const response = await axios.post(
-          `${api.defaults.baseURL}/auth/refresh`,
-          {}, // no body needed
-          { withCredentials: true }, // ensures cookies are sent cross-origin if needed
-        );
-
-        if (response.data.token) {
-          // Store the new access token
-          localStorage.setItem("token", response.data.token);
-          // Auth cookie is now HttpOnly (set by backend) — no JS access needed
-          // Update defaults and original request
-          api.defaults.headers.common["Authorization"] =
-            `Bearer ${response.data.token}`;
-          originalRequest.headers["Authorization"] =
-            `Bearer ${response.data.token}`;
-          // Retry original request
-          return api(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
+      // The HttpOnly refresh_token cookie is sent automatically by the browser.
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        // Update defaults and original request, then retry
+        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        return api(originalRequest);
       }
 
-      // Refresh failed — clear access token and redirect to the current product login.
-      localStorage.removeItem("token");
+      // Refresh failed — redirect to the current product login.
       // Auth cookie is HttpOnly — backend clears it on logout
       clearProductCookies();
       if (typeof window !== "undefined") {
@@ -101,9 +115,8 @@ export const apiPublic = axios.create({
 
 apiPublic.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },

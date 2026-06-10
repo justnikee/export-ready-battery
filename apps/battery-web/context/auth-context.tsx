@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import api from "@/lib/api";
+import api, { refreshAccessToken, setAccessToken } from "@/lib/api";
 import { authApi } from "@/lib/auth-api";
 import { useRouter } from "next/navigation";
 import { productRoutes } from "@/lib/routes";
@@ -65,10 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem("token");
+    // The access token lives in memory only, so on every fresh page load we
+    // exchange the HttpOnly refresh_token cookie for a new one.
+    const token = await refreshAccessToken();
     if (!token) {
-      // No token in localStorage — user is not authenticated.
-      // Auth cookie is HttpOnly (managed by backend); clear product cookies only.
+      // No valid refresh session — user is not authenticated.
       clearProductCookies();
       setLoading(false);
       return;
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const status = (error as { response?: { status?: number } })?.response
         ?.status;
       if (status === 401 || status === 403) {
-        localStorage.removeItem("token");
+        setAccessToken(null);
         // Auth cookie is HttpOnly — backend clears it on logout.
         // Product cookies should still be cleared to avoid redirect loops.
         clearProductCookies();
@@ -100,9 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (token: string, newUser: User, redirectTo?: string) => {
-    localStorage.setItem("token", token);
+    setAccessToken(token);
     // Auth cookie is now HttpOnly (set by backend on login/refresh).
-    // localStorage token is used for API Authorization headers.
+    // The in-memory access token is used for API Authorization headers.
 
     // Fetch the full user profile before committing state and navigating.
     // The minimal payload from /auth/login lacks onboarding_completed, which

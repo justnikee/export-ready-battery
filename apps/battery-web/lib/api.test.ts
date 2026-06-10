@@ -73,11 +73,9 @@ describe("getBaseUrl", () => {
 });
 
 describe("api request interceptor", () => {
-  it("injects Bearer token from localStorage into request headers", async () => {
-    localStorage.setItem("token", "test-access-token");
-
-    // Dynamic import ensures module re-evaluation after localStorage is set
-    const { default: api } = await import("./api");
+  it("injects Bearer token from in-memory storage into request headers", async () => {
+    const { default: api, setAccessToken } = await import("./api");
+    setAccessToken("test-access-token");
 
     // axios request interceptors are functions that receive config and return it.
     // We can exercise the interceptor by calling the internal handler if exposed,

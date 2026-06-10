@@ -18,21 +18,23 @@ vi.mock("@/lib/api", () => ({
     get: vi.fn(),
     post: vi.fn(),
   },
+  refreshAccessToken: vi.fn(),
+  setAccessToken: vi.fn(),
 }));
 
 vi.mock("@/lib/auth-api", () => ({
   authApi: {
-    logout: vi.fn().mockImplementation(async () => {
-      localStorage.removeItem("token");
-    }),
+    logout: vi.fn(),
   },
 }));
 
-import api from "@/lib/api";
+import api, { refreshAccessToken, setAccessToken } from "@/lib/api";
 import { authApi } from "@/lib/auth-api";
 
 const mockedApiGet = vi.mocked(api.get);
 const mockedAuthApiLogout = vi.mocked(authApi.logout);
+const mockedRefreshAccessToken = vi.mocked(refreshAccessToken);
+const mockedSetAccessToken = vi.mocked(setAccessToken);
 
 function TestConsumer() {
   const { user, loading, login, logout } = useAuth();
@@ -62,11 +64,12 @@ function TestConsumer() {
 describe("AuthProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     document.cookie = "";
   });
 
-  it("initializes with no user when token is absent", async () => {
+  it("initializes with no user when there is no valid refresh session", async () => {
+    mockedRefreshAccessToken.mockResolvedValueOnce(null);
+
     render(
       <AuthProvider>
         <TestConsumer />
@@ -80,8 +83,8 @@ describe("AuthProvider", () => {
     expect(mockedApiGet).not.toHaveBeenCalled();
   });
 
-  it("restores session from localStorage on mount", async () => {
-    localStorage.setItem("token", "existing-token");
+  it("restores session via silent refresh on mount", async () => {
+    mockedRefreshAccessToken.mockResolvedValueOnce("existing-token");
     mockedApiGet.mockResolvedValueOnce({
       data: {
         id: "u1",
@@ -108,16 +111,7 @@ describe("AuthProvider", () => {
   });
 
   it("logs in and navigates to dashboard", async () => {
-    mockedApiGet.mockResolvedValueOnce({
-      data: {
-        id: "u1",
-        tenant_id: "t1",
-        email: "test@example.com",
-        company_name: "Acme",
-        product_type: "BATTERY",
-        onboarding_completed: true,
-      },
-    });
+    mockedRefreshAccessToken.mockResolvedValueOnce(null);
 
     render(
       <AuthProvider>
@@ -129,18 +123,29 @@ describe("AuthProvider", () => {
       expect(screen.getByTestId("loading")).toHaveTextContent("ready");
     });
 
+    mockedApiGet.mockResolvedValueOnce({
+      data: {
+        id: "u1",
+        tenant_id: "t1",
+        email: "test@example.com",
+        company_name: "Acme",
+        product_type: "BATTERY",
+        onboarding_completed: true,
+      },
+    });
+
     fireEvent.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("user")).toHaveTextContent("test@example.com");
     });
 
-    expect(localStorage.getItem("token")).toBe("token123");
+    expect(mockedSetAccessToken).toHaveBeenCalledWith("token123");
     expect(pushMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("logs out and clears state", async () => {
-    localStorage.setItem("token", "existing-token");
+    mockedRefreshAccessToken.mockResolvedValueOnce("existing-token");
     mockedApiGet.mockResolvedValueOnce({
       data: {
         id: "u1",
@@ -171,7 +176,6 @@ describe("AuthProvider", () => {
     });
 
     expect(mockedAuthApiLogout).toHaveBeenCalled();
-    expect(localStorage.getItem("token")).toBeNull();
     expect(pushMock).toHaveBeenCalledWith("/login");
   });
 });

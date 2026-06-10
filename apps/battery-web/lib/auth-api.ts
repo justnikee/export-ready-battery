@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { getAccessToken, setAccessToken } from "./api";
 import { clearProductCookies } from "@/lib/product-session";
 
 export interface AuthResponse {
@@ -109,7 +109,7 @@ export const authApi = {
   logout: async (): Promise<void> => {
     try {
       // Revoke refresh token server-side
-      const token = localStorage.getItem("token");
+      const token = getAccessToken();
       if (token) {
         await api.post(
           "/auth/logout",
@@ -122,7 +122,7 @@ export const authApi = {
     } catch {
       // Silently ignore — still clear local state
     } finally {
-      localStorage.removeItem("token");
+      setAccessToken(null);
       // Auth cookie is HttpOnly — backend clears it on logout.
       clearProductCookies();
       // The HttpOnly refresh_token cookie is cleared by the backend Set-Cookie header

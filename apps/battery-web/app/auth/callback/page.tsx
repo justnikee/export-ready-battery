@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { setAccessToken } from "@/lib/api";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
@@ -44,9 +45,9 @@ function CallbackHandler() {
       return;
     }
 
-    // Store access token so /auth/me can be called with Authorization header
+    // Store access token in memory so /auth/me can be called with Authorization header
     // The HttpOnly refresh_token cookie is already set by the backend redirect
-    localStorage.setItem("token", token);
+    setAccessToken(token);
     document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 
     // Fetch full user from /auth/me so onboarding_completed is populated.

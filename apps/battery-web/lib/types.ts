@@ -260,6 +260,15 @@ export interface Batch {
   gtin?: string;
 }
 
+// Minimal per-batch fields returned by GET /batches/chart-data, used for the
+// dashboard production chart and compliance score card.
+export interface BatchChartData {
+  id: string;
+  created_at: string;
+  status: string;
+  total_passports: number;
+}
+
 // ============================================================================
 // PRODUCT SCHEMA & COMPLIANCE TYPES (v2 Dynamic Engine)
 // ============================================================================

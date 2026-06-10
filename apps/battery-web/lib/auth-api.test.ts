@@ -2,13 +2,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { authApi } from "./auth-api";
 
 // Mock the api module before auth-api imports it
-vi.mock("./api", () => ({
-  default: {
-    post: vi.fn(),
-  },
-}));
+vi.mock("./api", () => {
+  let token: string | null = null;
+  return {
+    default: {
+      post: vi.fn(),
+    },
+    getAccessToken: vi.fn(() => token),
+    setAccessToken: vi.fn((t: string | null) => {
+      token = t;
+    }),
+  };
+});
 
-import api from "./api";
+import api, { getAccessToken, setAccessToken } from "./api";
 
 const mockedPost = vi.mocked(api.post);
 
@@ -94,13 +101,15 @@ describe("authApi.register", () => {
 });
 
 describe("authApi.logout", () => {
+  const mockedSetAccessToken = vi.mocked(setAccessToken);
+
   beforeEach(() => {
     mockedPost.mockClear();
-    localStorage.clear();
+    mockedSetAccessToken.mockClear();
+    setAccessToken("my-token");
   });
 
   it("calls logout endpoint when token exists", async () => {
-    localStorage.setItem("token", "my-token");
     mockedPost.mockResolvedValueOnce({ data: {} });
 
     await authApi.logout();
@@ -112,15 +121,16 @@ describe("authApi.logout", () => {
         headers: { Authorization: "Bearer my-token" },
       },
     );
-    expect(localStorage.getItem("token")).toBeNull();
+    expect(mockedSetAccessToken).toHaveBeenCalledWith(null);
+    expect(getAccessToken()).toBeNull();
   });
 
   it("still clears local state when server logout fails", async () => {
-    localStorage.setItem("token", "my-token");
     mockedPost.mockRejectedValueOnce(new Error("server down"));
 
     await authApi.logout();
 
-    expect(localStorage.getItem("token")).toBeNull();
+    expect(mockedSetAccessToken).toHaveBeenCalledWith(null);
+    expect(getAccessToken()).toBeNull();
   });
 });
