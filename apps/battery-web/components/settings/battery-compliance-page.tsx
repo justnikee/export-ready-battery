@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import api from "@/lib/api";
+import { ErrorState } from "@/components/shared/error-state";
 import {
   Shield,
   Plus,
@@ -15,7 +16,6 @@ import {
   XCircle,
   TrendingUp,
   FileSpreadsheet,
-  RefreshCw,
   Loader2,
   ChevronDown,
 } from "lucide-react";
@@ -1284,27 +1284,6 @@ function LoadingState() {
   return (
     <div className="flex items-center justify-center py-12">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-(--brand) border-t-transparent" />
-    </div>
-  );
-}
-
-function ErrorState({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="bg-red-500/10 border border-red-500/20 p-6 text-center">
-      <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-      <p className="text-sm text-red-500">{message}</p>
-      <button
-        onClick={onRetry}
-        className="mt-3 inline-flex items-center gap-1 text-sm text-red-500 hover:text-red-800"
-      >
-        <RefreshCw className="w-3 h-3" /> Retry
-      </button>
     </div>
   );
 }

@@ -10,6 +10,8 @@ vi.mock("@/lib/api", () => ({
   default: {
     get: (...args: unknown[]) => mockGet(...args),
   },
+  refreshAccessToken: () => Promise.resolve(null),
+  setAccessToken: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
