@@ -374,7 +374,7 @@ type Supplier struct {
 	Address         string     `db:"address" json:"address,omitempty"`
 	Country         string     `db:"country" json:"country,omitempty"`
 	Status          string     `db:"status" json:"status"` // invited, active, blocked
-	InvitationToken string     `db:"invitation_token" json:"invitation_token,omitempty"`
+	InvitationToken string     `db:"invitation_token" json:"-"`
 	PasswordHash    string     `db:"password_hash" json:"-"`
 	InvitedAt       time.Time  `db:"invited_at" json:"invited_at"`
 	AcceptedAt      *time.Time `db:"accepted_at" json:"accepted_at,omitempty"`
@@ -1208,6 +1208,7 @@ type Transaction struct {
 	Description string     `json:"description"`
 	QuotaChange int        `json:"quota_change"` // Negative for usage, positive for top-up
 	BatchID     *uuid.UUID `json:"batch_id,omitempty"`
+	PaymentID   *string    `json:"payment_id,omitempty"` // Razorpay payment ID, set on purchase transactions for idempotency
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
@@ -1530,6 +1531,16 @@ type BatchSummary struct {
 	DownloadURL  string       `json:"download_url,omitempty"`
 	UsedTemplate bool         `json:"used_template"`
 	MarketRegion MarketRegion `json:"market_region"` // Added for dual-mode visibility
+}
+
+// BatchChartData represents the minimal per-batch fields needed to render
+// the dashboard production chart and compliance score card, without the
+// cost of fetching each batch's full specs JSON.
+type BatchChartData struct {
+	ID             string    `json:"id"`
+	CreatedAt      time.Time `json:"created_at"`
+	Status         string    `json:"status"`
+	TotalPassports int       `json:"total_passports"`
 }
 
 // ============================================================================

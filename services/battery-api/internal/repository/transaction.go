@@ -12,19 +12,34 @@ import (
 // CreateTransaction logs a quota usage event
 func (r *Repository) CreateTransaction(ctx context.Context, tx *models.Transaction) error {
 	query := `
-		INSERT INTO public.transactions (id, tenant_id, description, quota_change, batch_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, NOW())
+		INSERT INTO public.transactions (id, tenant_id, description, quota_change, batch_id, payment_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW())
 		RETURNING created_at`
 
 	tx.ID = uuid.New()
 	err := r.db.Pool.QueryRow(ctx, query,
-		tx.ID, tx.TenantID, tx.Description, tx.QuotaChange, tx.BatchID,
+		tx.ID, tx.TenantID, tx.Description, tx.QuotaChange, tx.BatchID, tx.PaymentID,
 	).Scan(&tx.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create transaction: %w", err)
 	}
 
 	return nil
+}
+
+// TransactionExistsForPayment reports whether a transaction has already been
+// recorded for the given Razorpay payment ID, used to make payment
+// verification idempotent against retried/duplicate requests.
+func (r *Repository) TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM public.transactions WHERE payment_id = $1)`
+
+	var exists bool
+	err := r.db.Pool.QueryRow(ctx, query, paymentID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check transaction for payment: %w", err)
+	}
+
+	return exists, nil
 }
 
 // ListTransactions returns all transactions for a tenant
@@ -34,7 +49,7 @@ func (r *Repository) ListTransactions(ctx context.Context, tenantID uuid.UUID, l
 	}
 
 	query := `
-		SELECT id, tenant_id, description, quota_change, batch_id, created_at
+		SELECT id, tenant_id, description, quota_change, batch_id, payment_id, created_at
 		FROM public.transactions
 		WHERE tenant_id = $1
 		ORDER BY created_at DESC
@@ -55,6 +70,7 @@ func (r *Repository) ListTransactions(ctx context.Context, tenantID uuid.UUID, l
 			&tx.Description,
 			&tx.QuotaChange,
 			&tx.BatchID,
+			&tx.PaymentID,
 			&tx.CreatedAt,
 		)
 		if err != nil {

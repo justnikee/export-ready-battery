@@ -120,6 +120,14 @@ func (m *MockRepository) ListBatches(ctx context.Context, tenantID uuid.UUID, pr
 	return args.Get(0).([]*models.Batch), args.Int(1), args.Error(2)
 }
 
+func (m *MockRepository) GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error) {
+	args := m.Called(ctx, tenantID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.BatchChartData), args.Error(1)
+}
+
 func (m *MockRepository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
@@ -883,6 +891,11 @@ func (m *MockRepository) ListTransactions(ctx context.Context, tenantID uuid.UUI
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*models.Transaction), args.Error(1)
+}
+
+func (m *MockRepository) TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error) {
+	args := m.Called(ctx, paymentID)
+	return args.Bool(0), args.Error(1)
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -117,10 +118,10 @@ func (r *Repository) certificateExpirySummary(ctx context.Context, tenantID uuid
 		{"specs->>'msds_issue_date'", "MSDS", 36},
 	}
 
-	var results []models.CertExpirySummary
-	for _, check := range checks {
-		query := fmt.Sprintf(`
-			SELECT
+	subqueries := make([]string, len(checks))
+	for i, check := range checks {
+		subqueries[i] = fmt.Sprintf(`
+			SELECT %d AS ord, '%s' AS cert_type,
 				COUNT(*) FILTER (WHERE (%s)::date + INTERVAL '%d months' <= $3 AND (%s)::date + INTERVAL '%d months' > $2) AS expiring_30d,
 				COUNT(*) FILTER (WHERE (%s)::date + INTERVAL '%d months' <= $3 AND (%s)::date + INTERVAL '%d months' > $4) AS expiring_7d,
 				COUNT(*) FILTER (WHERE (%s)::date + INTERVAL '%d months' <= $2) AS expired
@@ -128,23 +129,35 @@ func (r *Repository) certificateExpirySummary(ctx context.Context, tenantID uuid
 			WHERE tenant_id = $1
 				AND status = 'ACTIVE'
 				AND ($5 = '' OR product_type = $5)
-				AND %s != ''
-		`, check.dateField, check.validity, check.dateField, check.validity,
+				AND %s != ''`,
+			i, check.certName,
+			check.dateField, check.validity, check.dateField, check.validity,
 			check.dateField, check.validity, check.dateField, check.validity,
 			check.dateField, check.validity,
 			check.dateField)
+	}
 
+	query := fmt.Sprintf(`
+		SELECT cert_type, expiring_30d, expiring_7d, expired
+		FROM (%s) combined
+		ORDER BY ord
+	`, strings.Join(subqueries, " UNION ALL "))
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, now, cutoff30, cutoff7, productType)
+	if err != nil {
+		return nil, fmt.Errorf("certificate expiry query failed: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([]models.CertExpirySummary, 0, len(checks))
+	for rows.Next() {
 		var s models.CertExpirySummary
-		s.CertType = check.certName
-		err := r.db.Pool.QueryRow(ctx, query, tenantID, now, cutoff30, cutoff7, productType).Scan(
-			&s.Expiring30d, &s.Expiring7d, &s.Expired,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("%s query failed: %w", check.certName, err)
+		if err := rows.Scan(&s.CertType, &s.Expiring30d, &s.Expiring7d, &s.Expired); err != nil {
+			return nil, fmt.Errorf("certificate expiry scan failed: %w", err)
 		}
 		results = append(results, s)
 	}
-	return results, nil
+	return results, rows.Err()
 }
 
 func (r *Repository) carbonDistribution(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) ([]models.CarbonClassCount, error) {

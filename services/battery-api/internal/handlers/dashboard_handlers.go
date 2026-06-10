@@ -70,6 +70,42 @@ func (h *Handler) GetRecentBatches(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetBatchesChartData handles GET /api/v1/batches/chart-data
+// Returns the minimal per-batch fields (id, status, created_at, total_passports)
+// needed to render the dashboard production chart and compliance score card.
+func (h *Handler) GetBatchesChartData(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	limit := 200
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 200 {
+			limit = parsed
+		}
+	}
+
+	batches, err := h.repo.GetBatchesChartData(r.Context(), tenantID, limit)
+	if err != nil {
+		slog.Error("Failed to get batches chart data", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get batches chart data")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"batches": batches,
+		"count":   len(batches),
+	})
+}
+
 // GetAnalyticsOverview handles GET /api/v1/analytics/overview
 func (h *Handler) GetAnalyticsOverview(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())

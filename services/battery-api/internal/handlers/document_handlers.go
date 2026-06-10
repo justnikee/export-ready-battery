@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -168,15 +167,7 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Backward compatibility: local filesystem path
-	if _, err := os.Stat(certURL); os.IsNotExist(err) {
-		respondError(w, http.StatusNotFound, "Certificate file not found")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s_certificate.pdf\"", documentType))
-	http.ServeFile(w, r, certURL)
+	respondError(w, http.StatusNotFound, "Certificate file not found")
 }
 
 // UploadLogo handles POST /api/v1/settings/upload-logo
@@ -424,16 +415,7 @@ func (h *Handler) GetPassportDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Backward compatibility: local filesystem path
-	if _, err := os.Stat(doc.StoragePath); err == nil {
-		w.Header().Set("Content-Type", doc.ContentType)
-		w.Header().Set("Content-Disposition",
-			fmt.Sprintf(`attachment; filename="%s"`, filepath.Base(doc.Filename)))
-		http.ServeFile(w, r, doc.StoragePath)
-		return
-	}
-
-	// Modern path: generate a signed URL from Supabase Storage
+	// Generate a signed URL from Supabase Storage
 	if h.storageService == nil {
 		respondError(w, http.StatusServiceUnavailable, "Cloud storage not configured")
 		return

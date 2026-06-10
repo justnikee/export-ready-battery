@@ -30,6 +30,7 @@ type RepositoryInterface interface {
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
 	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
 	ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error)
+	GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error
 	PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error
@@ -177,6 +178,7 @@ type RepositoryInterface interface {
 	// transaction.go
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
 	ListTransactions(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.Transaction, error)
+	TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error)
 
 	// trusted_domain.go
 	CreateTrustedDomain(ctx context.Context, domain *models.TrustedDomain) error

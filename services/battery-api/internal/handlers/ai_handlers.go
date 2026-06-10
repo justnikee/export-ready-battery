@@ -43,6 +43,10 @@ type NLCreateBatchRequest struct {
 	MarketRegion string `json:"market_region,omitempty"` // Default if not specified in text
 }
 
+// maxDatasheetTextLen caps the extracted PDF text accepted by ParseDatasheet.
+// Generous for real datasheets, well under the 10MB request body cap.
+const maxDatasheetTextLen = 200_000
+
 // ParseDatasheet handles POST /api/v1/ai/parse-datasheet
 // @Summary Extract battery specs from datasheet text using AI
 // @Description Uses regex patterns first, then falls back to Groq LLM if confidence is low
@@ -67,6 +71,11 @@ func (h *AIHandler) ParseDatasheet(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(req.Text) == "" {
 		respondError(w, http.StatusBadRequest, "text is required")
+		return
+	}
+
+	if len(req.Text) > maxDatasheetTextLen {
+		respondError(w, http.StatusBadRequest, "text exceeds maximum length")
 		return
 	}
 

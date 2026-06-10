@@ -101,6 +101,28 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Idempotency check: a verify request that's already been processed for
+	// this Razorpay payment (e.g. retried after a network blip) must not
+	// credit quota a second time.
+	alreadyProcessed, err := h.repo.TransactionExistsForPayment(r.Context(), req.PaymentID)
+	if err != nil {
+		slog.Error("Failed to check existing transaction for payment", "error", err)
+		respondError(w, http.StatusInternalServerError, "Payment verification failed")
+		return
+	}
+	if alreadyProcessed {
+		newBalance, _ := h.repo.GetQuotaBalance(r.Context(), tenantID)
+		slog.Info("Payment already processed", "tenant", tenantIDStr[:8], "payment_id", req.PaymentID)
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"status":        "already_processed",
+			"success":       true,
+			"message":       "Payment already verified",
+			"quota_added":   0,
+			"quota_balance": newBalance,
+		})
+		return
+	}
+
 	// Add quota to tenant
 	err = h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits)
 	if err != nil {
@@ -109,11 +131,14 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Log transaction
+	// Log transaction. payment_id has a partial unique index, so a concurrent
+	// duplicate request will fail here as a backstop to the check above.
+	paymentID := req.PaymentID
 	tx := &models.Transaction{
 		TenantID:    tenantID,
 		Description: fmt.Sprintf("Razorpay Purchase: %s (%d quota)", pkg.Name, pkg.QuotaUnits),
 		QuotaChange: pkg.QuotaUnits,
+		PaymentID:   &paymentID,
 	}
 	err = h.repo.CreateTransaction(r.Context(), tx)
 	if err != nil {
@@ -127,6 +152,7 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 	slog.Info("Payment verified", "tenant", tenantIDStr[:8], "package", pkg.Name, "quota_added", pkg.QuotaUnits)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status":        "success",
 		"success":       true,
 		"message":       "Payment verified successfully",
 		"quota_added":   pkg.QuotaUnits,

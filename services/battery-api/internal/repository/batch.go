@@ -305,6 +305,47 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	return batches, totalCount, nil
 }
 
+// GetBatchesChartData returns the minimal per-batch fields needed for the
+// dashboard production chart and compliance score card (id, status,
+// created_at, total_passports), without the cost of the full specs JSON.
+func (r *Repository) GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	query := `
+		SELECT b.id, b.created_at, COALESCE(b.status, 'DRAFT') as status,
+		       COUNT(p.uuid)::int as total_passports
+		FROM public.batches b
+		LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
+		WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+		GROUP BY b.id, b.created_at, b.status
+		ORDER BY b.created_at DESC
+		LIMIT $2`
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get batches chart data: %w", err)
+	}
+	defer rows.Close()
+
+	var batches []*models.BatchChartData
+	for rows.Next() {
+		b := &models.BatchChartData{}
+		var id uuid.UUID
+		if err := rows.Scan(&id, &b.CreatedAt, &b.Status, &b.TotalPassports); err != nil {
+			return nil, fmt.Errorf("failed to scan batch chart data: %w", err)
+		}
+		b.ID = id.String()
+		batches = append(batches, b)
+	}
+
+	return batches, nil
+}
+
 // ListAllBatches returns all batches across all tenants (for background jobs like alert scanning).
 // Does not include passport counts — lightweight read for compliance scanning.
 func (r *Repository) ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error) {
