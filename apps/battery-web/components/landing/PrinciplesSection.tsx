@@ -66,7 +66,7 @@ export function PrinciplesSection() {
             Designed around regulation, not convenience.
           </h2>
           <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
-            Core principles that make AnvayaLabs audit-ready from day one.
+            Core principles that make Anviora audit-ready from day one.
           </p>
         </motion.div>
 

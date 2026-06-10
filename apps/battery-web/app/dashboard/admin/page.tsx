@@ -42,12 +42,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-border bg-transparent relative">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <div className="px-4 py-3 border-b border-border">
+    <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">
           {title}
         </h2>
@@ -197,12 +192,7 @@ export default function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="border border-border bg-transparent p-4 relative">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-center gap-2">
+        <div className="border border-border bg-transparent p-4 relative"><div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
             <span className="text-xs text-muted-foreground uppercase tracking-wider">
               Pending Requests
@@ -233,12 +223,7 @@ export default function AdminPage() {
               <div
                 key={req.id}
                 className="border border-border p-3 relative"
-              >
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <div className="flex items-start justify-between gap-4">
+              ><div className="flex items-start justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
                       {req.company_name}
@@ -291,12 +276,7 @@ export default function AdminPage() {
       {/* System Jobs */}
       <Section title="System Jobs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="border border-border p-3 relative">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-2 mb-2">
+          <div className="border border-border p-3 relative"><div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-medium text-foreground">
                 Daily Alert Scan
@@ -321,12 +301,7 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          <div className="border border-border p-3 relative">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-2 mb-2">
+          <div className="border border-border p-3 relative"><div className="flex items-center gap-2 mb-2">
               <Anchor className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-foreground">
                 Upgrade Certificate Anchors

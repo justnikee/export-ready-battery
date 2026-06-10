@@ -405,12 +405,7 @@ export default function PartnersPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 className="relative bg-transparent border border-border p-6 shadow-none"
-              >
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <h3 className="text-lg text-foreground mb-4">
+              ><h3 className="text-lg text-foreground mb-4">
                   Add Trusted Partner
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -531,12 +526,7 @@ export default function PartnersPage() {
                   <div
                     key={partner.id}
                     className="relative bg-transparent border border-border p-4 flex items-center justify-between shadow-none"
-                  >
-                    <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                    <div className="flex items-center gap-4">
+                  ><div className="flex items-center gap-4">
                       <div className="h-10 w-10 bg-emerald-100 flex items-center justify-center">
                         <Building2 className="h-5 w-5 text-emerald-500" />
                       </div>
@@ -593,12 +583,7 @@ export default function PartnersPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 className="relative bg-transparent border border-border p-6 shadow-none"
-              >
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <h3 className="text-lg text-foreground mb-4">
+              ><h3 className="text-lg text-foreground mb-4">
                   Create Partner Code
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -820,12 +805,7 @@ export default function PartnersPage() {
             </div>
 
             {showAddWebhook && (
-              <div className="relative bg-transparent border border-border p-6 space-y-4">
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <div>
+              <div className="relative bg-transparent border border-border p-6 space-y-4"><div>
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Webhook URL
                   </label>
@@ -900,12 +880,7 @@ export default function PartnersPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : webhooks.length === 0 ? (
-              <div className="relative bg-transparent border border-border p-8 text-center">
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <Radio className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <div className="relative bg-transparent border border-border p-8 text-center"><Radio className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">
                   No outbound webhooks configured
                 </p>
@@ -919,12 +894,7 @@ export default function PartnersPage() {
                   <div
                     key={wh.id}
                     className="relative bg-transparent border border-border p-4 flex items-center justify-between"
-                  >
-                    <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                    <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                    <div>
+                  ><div>
                       <code className="text-sm text-foreground font-mono">
                         {wh.url}
                       </code>

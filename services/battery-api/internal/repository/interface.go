@@ -29,6 +29,7 @@ type RepositoryInterface interface {
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
 	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
+	ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error)
 	ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error)
 	GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error

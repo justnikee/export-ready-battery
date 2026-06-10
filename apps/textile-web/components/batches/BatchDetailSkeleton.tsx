@@ -9,12 +9,7 @@ export function BatchDetailSkeleton() {
  <div className="w-full mx-auto space-y-8">
 
  {/* Header Card */}
- <div className="relative overflow-visible border border-border bg-transparent p-6">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+ <div className="relative overflow-visible border border-border bg-transparent p-6"><div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
  <div className="flex items-center gap-4">
  <Skeleton className="h-10 w-10 bg-muted/50" />
  <div>

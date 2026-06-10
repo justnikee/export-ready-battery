@@ -152,12 +152,7 @@ export default function ExportsPage() {
 
  {/* Empty State */}
  {exports.length === 0 ? (
- <div className="relative bg-transparent border border-border p-12">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="flex flex-col items-center justify-center text-center">
+ <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
  <div className="p-4 bg-muted rounded-full mb-4">
  <FileArchive className="w-8 h-8 text-muted-foreground" />
  </div>
@@ -167,12 +162,7 @@ export default function ExportsPage() {
  </div>
  ) : (
  /* Data Table */
- <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <table className="w-full">
+ <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
  <thead className="bg-muted border-b border-border">
  <tr>
  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>

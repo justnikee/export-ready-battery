@@ -11,12 +11,7 @@ function Card({ className, children, ...props }: React.ComponentProps<"div">) {
         className,
       )}
       {...props}
-    >
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border pointer-events-none" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border pointer-events-none" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border pointer-events-none" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border pointer-events-none" />
-      {children}
+    >{children}
     </div>
   );
 }

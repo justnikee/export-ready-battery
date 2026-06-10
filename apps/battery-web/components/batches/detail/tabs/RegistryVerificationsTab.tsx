@@ -127,13 +127,7 @@ function VerificationCard({
   };
 
   return (
-    <div className="border border-border bg-transparent relative p-4 space-y-3">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-
-      <div className="flex items-start justify-between gap-3">
+    <div className="border border-border bg-transparent relative p-4 space-y-3"><div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 bg-muted border border-border">
             {meta.icon}
@@ -243,12 +237,7 @@ export function RegistryVerificationsTab({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border border-border bg-transparent relative">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+      <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Shield className="h-4 w-4 text-emerald-500" />
           <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
             External Registry Verification

@@ -227,12 +227,7 @@ export default function TextileDashboardPage() {
 
         {/* Banner */}
         {dashboardConfig.banner ? (
-          <div className="relative bg-transparent border border-border rounded-none p-5">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-medium text-foreground">
                   {dashboardConfig.banner.title}
@@ -262,12 +257,7 @@ export default function TextileDashboardPage() {
                 key={action.title}
                 href={quickActionHref(action.route)}
                 className="relative bg-transparent border border-border rounded-none p-4 hover:bg-accent transition-colors cursor-pointer group"
-              >
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <div
+              ><div
                   className={`mb-3 flex h-10 w-10 items-center justify-center ${tone.panel}`}
                 >
                   <Icon className={`h-5 w-5 ${tone.icon}`} />
@@ -297,12 +287,7 @@ export default function TextileDashboardPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.totalEntitiesLabel}
               </span>
@@ -321,12 +306,7 @@ export default function TextileDashboardPage() {
             </div>
           </div>
 
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.activeCollectionsLabel}
               </span>
@@ -342,12 +322,7 @@ export default function TextileDashboardPage() {
             </div>
           </div>
 
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.quotaLabel}
               </span>
@@ -375,12 +350,7 @@ export default function TextileDashboardPage() {
           </div>
 
           {/* Chemical Compliance */}
-          <div className="relative overflow-visible rounded-none border border-border bg-transparent p-5">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="mb-3 flex items-center justify-between">
+          <div className="relative overflow-visible rounded-none border border-border bg-transparent p-5"><div className="mb-3 flex items-center justify-between">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.complianceCardTitle || "Chemical Compliance"}
               </span>
@@ -570,12 +540,7 @@ export default function TextileDashboardPage() {
         </div>
 
         {/* Recent Lots Table */}
-        <div className="relative bg-transparent border border-border rounded-none overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <h3 className="text-base font-medium text-foreground">
               {dashboardConfig.recentCollectionsLabel}
             </h3>

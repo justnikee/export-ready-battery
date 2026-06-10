@@ -49,7 +49,7 @@ export function PassportProofSection() {
               Every passport is proof.
             </h2>
             <p className="text-sm text-zinc-600 max-w-[55ch] mx-auto">
-              A real AnvayaLabs battery passport, structured for audit review.
+              A real Anviora battery passport, structured for audit review.
             </p>
           </motion.div>
 

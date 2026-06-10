@@ -35,14 +35,14 @@ const reasons = [
   {
     point: "Zero-config compliance updates",
     description:
-      "When regulations change, AnvayaLabs updates schemas automatically. No migration, no developer work.",
+      "When regulations change, Anviora updates schemas automatically. No migration, no developer work.",
     us: true,
     them: false,
   },
   {
     point: "Retroactive evidence audit mode",
     description:
-      "India EPR audits are retroactive. AnvayaLabs preserves and presents historical evidence on demand.",
+      "India EPR audits are retroactive. Anviora preserves and presents historical evidence on demand.",
     us: true,
     them: false,
   },
@@ -72,16 +72,16 @@ export function WhySection() {
               color: "var(--ld-accent)",
             }}
           >
-            Why AnvayaLabs?
+            Why Anviora?
           </span>
           <h2 className="text-3xl md:text-4xl text-white mb-4">
-            Why AnvayaLabs?
+            Why Anviora?
           </h2>
           <p
             className="text-base max-w-[52ch] mx-auto"
             style={{ color: "var(--ld-text-muted)" }}
           >
-            Most compliance tools are built for reporting. AnvayaLabs is built
+            Most compliance tools are built for reporting. Anviora is built
             for enforcement.
           </p>
         </motion.div>
@@ -93,7 +93,7 @@ export function WhySection() {
         >
           <span>Capability</span>
           <span className="text-center" style={{ color: "var(--ld-accent)" }}>
-            AnvayaLabs
+            Anviora
           </span>
           <span
             className="text-center"
@@ -131,7 +131,7 @@ export function WhySection() {
                   className="md:hidden text-xs"
                   style={{ color: "var(--ld-text-muted)" }}
                 >
-                  AnvayaLabs:
+                  Anviora:
                 </span>
                 <div
                   className="h-6 w-6 rounded-full flex items-center justify-center"

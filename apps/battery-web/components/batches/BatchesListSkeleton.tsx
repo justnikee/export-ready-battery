@@ -22,12 +22,7 @@ export function BatchesListSkeleton() {
  {/* Stats Row */}
  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
  {[1, 2, 3].map((i) => (
- <div key={i} className="relative bg-transparent border border-border p-4 flex items-center gap-4">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <Skeleton className="w-10 h-10 bg-muted/50" />
+ <div key={i} className="relative bg-transparent border border-border p-4 flex items-center gap-4"><Skeleton className="w-10 h-10 bg-muted/50" />
  <div>
  <Skeleton className="h-7 w-16 bg-muted" />
  <Skeleton className="h-3 w-24 mt-1 bg-muted/50" />
@@ -37,24 +32,14 @@ export function BatchesListSkeleton() {
  </div>
 
  {/* Toolbar */}
- <div className="relative flex items-center justify-between gap-4 bg-transparent p-4 border border-border">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="flex items-center gap-3 flex-1">
+ <div className="relative flex items-center justify-between gap-4 bg-transparent p-4 border border-border"><div className="flex items-center gap-3 flex-1">
  <Skeleton className="h-9 flex-1 max-w-md bg-muted/50" />
  <Skeleton className="h-9 w-32 bg-muted/50" />
  </div>
  </div>
 
  {/* Table */}
- <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- {/* Table Header */}
+ <div className="relative bg-transparent border border-border overflow-visible">{/* Table Header */}
  <div className="border-b border-border bg-background flex items-center px-4 py-3 gap-4">
  <Skeleton className="w-5 h-5 rounded bg-muted/50" />
  <Skeleton className="h-3 w-24 bg-muted/50" />

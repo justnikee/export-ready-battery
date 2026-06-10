@@ -28,7 +28,6 @@ import {
   Copy,
   Trash2,
   Zap,
-  Globe,
   ChevronLeft,
   ChevronRight,
   Battery,
@@ -38,6 +37,11 @@ import {
   AlertTriangle,
   XCircle,
 } from "lucide-react";
+import {
+  BatchStatusBadge,
+  MarketBadge,
+  ComplianceBadge,
+} from "@/components/shared/status-badges";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Batch } from "@/lib/types";
@@ -251,12 +255,7 @@ export default function BatchesPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="w-10 h-10 bg-muted flex items-center justify-center">
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
               <Package className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -266,12 +265,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
               <Zap className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
@@ -283,12 +277,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="w-10 h-10 bg-muted flex items-center justify-center">
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
               <Battery className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -300,12 +289,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
               <ShieldCheck className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
@@ -320,12 +304,7 @@ export default function BatchesPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="relative flex items-center justify-between gap-4 bg-transparent p-4 border border-border">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-center gap-3 flex-1">
+        <div className="relative flex items-center justify-between gap-4 bg-transparent p-4 border border-border"><div className="flex items-center gap-3 flex-1">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -439,12 +418,7 @@ export default function BatchesPage() {
         </div>
 
         {/* Table */}
-        <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <table className="w-full">
+        <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
             <thead>
               <tr className="border-b border-border bg-background">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">

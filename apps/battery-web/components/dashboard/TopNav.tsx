@@ -75,7 +75,7 @@ export function TopNav() {
               className="flex items-center shrink-0 group"
             >
               <span className="text-xl tracking-tight text-foreground">
-                ANVAYALABS
+                ANVIORA
               </span>
             </Link>
           </div>
@@ -185,7 +185,7 @@ export function TopNav() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-xl tracking-tight text-foreground">
-                  ANVAYALABS
+                  ANVIORA
                 </span>
               </Link>
               <Button

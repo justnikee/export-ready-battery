@@ -68,12 +68,7 @@ export default function TemplatesPage() {
     <div className="min-h-screen bg-background p-6 font-sans">
       <div className="w-full mx-auto space-y-8">
         {/* Header */}
-        <div className="relative overflow-visible border border-border bg-transparent p-6">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="relative overflow-visible border border-border bg-transparent p-6"><div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl text-foreground tracking-tight">
                 Batch Templates

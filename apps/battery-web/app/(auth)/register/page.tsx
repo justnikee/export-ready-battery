@@ -12,7 +12,7 @@ export default async function Page({
   return (
     <AuthLayout
       title={
-        isInviteFlow ? "Complete your invitation" : "Get started with AnvayaLabs"
+        isInviteFlow ? "Complete your invitation" : "Get started with Anviora"
       }
       subtitle={
         isInviteFlow

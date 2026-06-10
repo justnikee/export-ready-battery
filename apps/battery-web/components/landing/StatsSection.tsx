@@ -28,7 +28,7 @@ export function StatsSection() {
           </h2>
           <p className="text-base max-w-[52ch] mx-auto text-gray-600">
             From mid-size producers to enterprise battery exporters —
-            AnvayaLabs handles multi-thousand-unit batches with zero compliance drift.
+            Anviora handles multi-thousand-unit batches with zero compliance drift.
           </p>
         </motion.div>
 

@@ -96,7 +96,7 @@ export default function FeaturesPage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Explore all the powerful features of AnvayaLabs-Battery.
+ Explore all the powerful features of Anviora-Battery.
  From batch management to compliance tracking, we&apos;ve got you covered.
  </p>
  </section>

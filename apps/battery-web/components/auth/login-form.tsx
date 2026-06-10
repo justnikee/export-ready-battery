@@ -30,7 +30,8 @@ export function LoginForm({ productSlug }: LoginFormProps) {
   const searchParams = useSearchParams();
   const product = getProductConfig(productSlug);
   const routes = productRoutesFromSlug(productSlug);
-  const [email, setEmail] = useState("");
+  // Prefill from ?email= (set by the verify-email success screen)
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

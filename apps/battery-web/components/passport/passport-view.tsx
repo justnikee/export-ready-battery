@@ -1455,7 +1455,7 @@ export function PassportView({ passport, trustTier = "SELF_DECLARED" }: Passport
         <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <Smartphone className="h-3.5 w-3.5" />
-            <span>Secured by AnvayaLabs™</span>
+            <span>Secured by Anviora™</span>
             <span>•</span>
             <Link
               href="/terms"

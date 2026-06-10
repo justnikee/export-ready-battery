@@ -308,11 +308,13 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var tenantID uuid.UUID
+	var email string
+	var alreadyVerified bool
 	var expires time.Time
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, email_verification_expires FROM public.tenants
-		 WHERE email_verification_token = $1 AND email_verified = false`,
-		token).Scan(&tenantID, &expires)
+		`SELECT id, email, email_verified, email_verification_expires FROM public.tenants
+		 WHERE email_verification_token = $1`,
+		token).Scan(&tenantID, &email, &alreadyVerified, &expires)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusBadRequest, "Invalid or already used verification token")
@@ -323,14 +325,28 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Idempotent: re-clicking an already-used link (page refresh, double
+	// request) is treated as success — the email is verified either way.
+	if alreadyVerified {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"message":          "Email already verified. You can log in.",
+			"email":            email,
+			"already_verified": true,
+		})
+		return
+	}
+
 	if time.Now().After(expires) {
 		respondError(w, http.StatusBadRequest, "Verification token has expired. Please request a new one.")
 		return
 	}
 
+	// Keep the token in place (instead of nulling it) so retries of the same
+	// link hit the already-verified branch above. Post-verification, the token
+	// has no remaining power — verifying is its only effect.
 	_, err = h.db.Pool.Exec(r.Context(),
 		`UPDATE public.tenants
-		 SET email_verified = true, email_verification_token = NULL, email_verification_expires = NULL
+		 SET email_verified = true
 		 WHERE id = $1`,
 		tenantID)
 	if err != nil {
@@ -339,8 +355,9 @@ func (h *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{
+	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "Email verified successfully. You can now log in.",
+		"email":   email,
 	})
 }
 

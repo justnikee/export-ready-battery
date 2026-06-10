@@ -275,22 +275,12 @@ function LifecycleTableSkeleton() {
           <div
             key={index}
             className="relative border border-border bg-transparent p-3 space-y-2"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <Skeleton className="h-3 w-20" />
+          ><Skeleton className="h-3 w-20" />
             <Skeleton className="h-7 w-12" />
           </div>
         ))}
       </div>
-      <div className="relative border border-border overflow-visible">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <div className="border-b border-border bg-muted/60 px-4 py-3">
+      <div className="relative border border-border overflow-visible"><div className="border-b border-border bg-muted/60 px-4 py-3">
           <Skeleton className="h-4 w-48" />
         </div>
         <div className="divide-y divide-border">
@@ -1040,12 +1030,7 @@ export default function LifecyclePage() {
         </div>
 
         {/* â”€â”€ Table â”€â”€ */}
-        <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          {loading ? (
+        <div className="relative bg-transparent border border-border overflow-visible">{loading ? (
             <LifecycleTableSkeleton />
           ) : passports.length === 0 ? (
             <div className="text-center py-16">
@@ -1824,12 +1809,7 @@ export default function LifecyclePage() {
                 <div
                   key={index}
                   className="relative border border-border p-4 space-y-3"
-                >
-                  <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                  <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                  <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                  <div className="flex items-center justify-between gap-3">
+                ><div className="flex items-center justify-between gap-3">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />
                   </div>

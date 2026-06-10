@@ -83,7 +83,7 @@ export function DocsSidebar() {
  </div>
  <div>
  <span className=" text-white group-hover:text-blue-400 transition-colors">
- AnvayaLabs
+ Anviora
  </span>
  <span className="text-xs text-gray-500 block">Documentation</span>
  </div>

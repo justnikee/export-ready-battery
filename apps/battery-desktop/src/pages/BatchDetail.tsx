@@ -48,23 +48,13 @@ export default function BatchDetailPage() {
           { icon: Battery, label: "Chemistry", value: batch.specs?.chemistry || "N/A" },
           { icon: CheckCircle, label: "Created", value: new Date(batch.created_at).toLocaleDateString() },
         ].map(s => (
-          <div key={s.label} className="relative bg-transparent border border-border rounded-none p-4">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-2 text-muted-foreground mb-1"><s.icon className="h-4 w-4" /><span className="text-xs uppercase tracking-wider">{s.label}</span></div>
+          <div key={s.label} className="relative bg-transparent border border-border rounded-none p-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><s.icon className="h-4 w-4" /><span className="text-xs uppercase tracking-wider">{s.label}</span></div>
             <p className="text-lg text-foreground font-medium">{s.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="relative bg-transparent border border-border rounded-none p-6">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <h3 className="text-base font-medium text-foreground mb-4">Specifications</h3>
+      <div className="relative bg-transparent border border-border rounded-none p-6"><h3 className="text-base font-medium text-foreground mb-4">Specifications</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             ["Chemistry", batch.specs?.chemistry],

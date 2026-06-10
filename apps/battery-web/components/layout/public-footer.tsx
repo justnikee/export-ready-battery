@@ -38,7 +38,7 @@ export function PublicFooter() {
           <div className="col-span-2">
             <Link href="/" className="flex items-center text-xl mb-4">
               <span className="text-xl tracking-tight text-gray-900 font-semibold">
-                ANVAYALABS
+                ANVIORA
               </span>
             </Link>
             <p className="text-sm mb-6 max-w-xs leading-relaxed text-gray-600">
@@ -118,7 +118,7 @@ export function PublicFooter() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} AnvayaLabs. All rights reserved.
+            © {new Date().getFullYear()} Anviora. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">

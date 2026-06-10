@@ -301,13 +301,27 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		jwtProductType = models.DefaultProductType()
 	}
 
-	batches, totalCount, err := h.repo.ListBatches(r.Context(), jwtTenantID, jwtProductType, limit, offset)
+	// Optional filters: ?status=DRAFT|ACTIVE|ARCHIVED and ?search=<text>
+	// applied in SQL so they cover all batches, not just the current page.
+	status := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))
+	switch status {
+	case "DRAFT", "ACTIVE", "ARCHIVED", "":
+		// valid
+	default:
+		respondError(w, http.StatusBadRequest, "Invalid status filter. Must be DRAFT, ACTIVE, or ARCHIVED")
+		return
+	}
+	search := strings.TrimSpace(r.URL.Query().Get("search"))
+	if len(search) > 200 {
+		search = search[:200]
+	}
+
+	batches, totalCount, err := h.repo.ListBatchesFiltered(r.Context(), jwtTenantID, jwtProductType, limit, offset, status, search)
 	if err != nil {
 		slog.Error("Failed to list batches", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list batches")
 		return
 	}
-	// Server-side filtering now handled by repository query
 
 	totalPages := (totalCount + limit - 1) / limit
 

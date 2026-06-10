@@ -29,12 +29,12 @@ export function PublicHeader() {
           <Image
             src="/logo/logo-4.svg"
             className=""
-            alt="ANVAYALABS"
+            alt="ANVIORA"
             width={32}
             height={32}
           />
           <span className="text-xl tracking-tight text-gray-900 font-semibold">
-            ANVAYALABS
+            ANVIORA
           </span>
         </Link>
 

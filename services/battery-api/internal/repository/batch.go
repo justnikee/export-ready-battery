@@ -199,6 +199,14 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 
 // ListBatches retrieves batches for a tenant with dual-mode fields and pagination
 func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) {
+	return r.ListBatchesFiltered(ctx, tenantID, productType, limit, offset, "", "")
+}
+
+// ListBatchesFiltered retrieves batches for a tenant with optional status and
+// text-search filters applied server-side (so search works across all pages,
+// not just the currently loaded one). Empty status/search mean "no filter".
+// Search matches batch name, model name, or batch ID (partial, case-insensitive).
+func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error) {
 	// Default limit if not specified
 	if limit <= 0 {
 		limit = 50
@@ -207,10 +215,16 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 		limit = 200 // Cap at 200
 	}
 
-	// Get total count first
+	// Get total count first (same filters as the page query)
 	var totalCount int
-	countQuery := `SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)`
-	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, productType).Scan(&totalCount); err != nil {
+	countQuery := `SELECT COUNT(*) FROM public.batches
+	          WHERE tenant_id = $1 AND deleted_at IS NULL
+	            AND ($2 = '' OR product_type = $2)
+	            AND ($3 = '' OR COALESCE(status, 'DRAFT') = $3)
+	            AND ($4 = '' OR batch_name ILIKE '%' || $4 || '%'
+	                 OR COALESCE(model_name, '') ILIKE '%' || $4 || '%'
+	                 OR id::text ILIKE '%' || $4 || '%')`
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, productType, status, search).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
 
@@ -236,6 +250,10 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          FROM public.batches b
 	          LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
 	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND ($4 = '' OR b.product_type = $4)
+	            AND ($5 = '' OR COALESCE(b.status, 'DRAFT') = $5)
+	            AND ($6 = '' OR b.batch_name ILIKE '%' || $6 || '%'
+	                 OR COALESCE(b.model_name, '') ILIKE '%' || $6 || '%'
+	                 OR b.id::text ILIKE '%' || $6 || '%')
 	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status,
 	                   b.market_region, b.pli_compliant, b.domestic_value_add,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
@@ -245,7 +263,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset, productType)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset, productType, status, search)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list batches: %w", err)
 	}

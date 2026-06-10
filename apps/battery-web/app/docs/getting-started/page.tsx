@@ -60,7 +60,7 @@ export default function GettingStartedPage() {
         </h1>
 
         <p className="text-lg text-gray-400 max-w-2xl">
-          Get up and running with AnvayaLabs-Battery in under 10 minutes. This
+          Get up and running with Anviora-Battery in under 10 minutes. This
           guide covers installation, configuration, and your first battery
           passport.
         </p>

@@ -81,7 +81,7 @@ export default function DocsPage() {
  </div>
 
  <h1 className="text-4xl sm:text-5xl text-white mb-4">
- AnvayaLabs-Battery
+ Anviora-Battery
  <span className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-teal-400">
  Documentation
  </span>

@@ -55,7 +55,7 @@ export function WhyChooseSection() {
           className="text-center mb-16"
         >
           <span className="inline-block text-xs uppercase tracking-widest font-mono text-accent-green mb-4">
-            Why Manufacturers Choose AnvayaLabs
+            Why Manufacturers Choose Anviora
           </span>
           <h2 className="text-section-headline text-gray-900 mb-4">
             Compliance Without the Chaos

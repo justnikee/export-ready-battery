@@ -72,12 +72,7 @@ export function TextileTeamPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Plan Usage Card */}
-          <div className="md:col-span-2 bg-transparent border border-border p-6 relative overflow-visible">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="absolute top-0 right-0 p-4 opacity-5">
+          <div className="md:col-span-2 bg-transparent border border-border p-6 relative overflow-visible"><div className="absolute top-0 right-0 p-4 opacity-5">
               <Users className="h-32 w-32 text-foreground" />
             </div>
             <div className="relative z-10">
@@ -118,12 +113,7 @@ export function TextileTeamPage() {
           </div>
 
           {/* Total Members Card */}
-          <div className="relative bg-transparent border border-border p-6">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border p-6"><div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Team & Partners
               </span>
@@ -139,12 +129,7 @@ export function TextileTeamPage() {
         </div>
 
         {/* Team Members Table */}
-        <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="relative bg-transparent border border-border overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-base font-medium text-foreground">
                 Workspace Members

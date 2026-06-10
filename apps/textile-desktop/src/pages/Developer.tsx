@@ -13,10 +13,7 @@ export default function DeveloperPage() {
           { title: "Documentation", desc: "Full API reference and integration guides", icon: FileText },
           { title: "Webhooks", desc: "Configure real-time event notifications", icon: Code },
         ].map(item => (
-          <div key={item.title} className="relative bg-transparent border border-border rounded-none p-5 hover:bg-accent transition-colors cursor-pointer">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <item.icon className="h-6 w-6 text-muted-foreground mb-3" />
+          <div key={item.title} className="relative bg-transparent border border-border rounded-none p-5 hover:bg-accent transition-colors cursor-pointer"><item.icon className="h-6 w-6 text-muted-foreground mb-3" />
             <h3 className="text-sm font-medium text-foreground">{item.title}</h3>
             <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
           </div>

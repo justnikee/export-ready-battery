@@ -543,12 +543,7 @@ export default function DeveloperPage() {
         </Card>
 
         {/* Quick Start */}
-        <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border">
+        <div className="relative bg-transparent border border-border overflow-visible"><div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium text-foreground">Quick Start</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Example API request using your key

@@ -20,6 +20,7 @@ function VerifyEmailContent({ productSlug }: { productSlug: ProductSlug }) {
   const [message, setMessage] = useState(
     token ? "" : "No verification token found in the link.",
   );
+  const [verifiedEmail, setVerifiedEmail] = useState("");
 
   useEffect(() => {
     if (!token) {
@@ -27,8 +28,13 @@ function VerifyEmailContent({ productSlug }: { productSlug: ProductSlug }) {
     }
 
     api
-      .get(`/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then(() => setStatus("success"))
+      .get<{ email?: string }>(
+        `/auth/verify-email?token=${encodeURIComponent(token)}`,
+      )
+      .then((res) => {
+        setVerifiedEmail(res.data?.email || "");
+        setStatus("success");
+      })
       .catch((err: unknown) => {
         const axiosErr = err as { response?: { data?: { error?: string } } };
         setStatus("error");
@@ -38,6 +44,10 @@ function VerifyEmailContent({ productSlug }: { productSlug: ProductSlug }) {
         );
       });
   }, [token]);
+
+  const loginHref = verifiedEmail
+    ? `${routes.login}?email=${encodeURIComponent(verifiedEmail)}`
+    : routes.login;
 
   if (status === "verifying") {
     return (
@@ -61,7 +71,7 @@ function VerifyEmailContent({ productSlug }: { productSlug: ProductSlug }) {
           </p>
         </div>
         <Button
-          onClick={() => router.push(routes.login)}
+          onClick={() => router.push(loginHref)}
           variant="accent"
           className="h-11 w-full rounded-md"
         >
@@ -79,6 +89,9 @@ function VerifyEmailContent({ productSlug }: { productSlug: ProductSlug }) {
       <div className="space-y-1">
         <h2 className="text-xl text-foreground">Verification failed</h2>
         <p className="text-sm text-muted-foreground">{message}</p>
+        <p className="text-xs text-muted-foreground">
+          Already verified your email? You can just sign in.
+        </p>
       </div>
       <Button
         onClick={() => router.push(routes.login)}

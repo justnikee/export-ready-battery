@@ -90,12 +90,7 @@ export default function CsvImportPage() {
       </div>
 
       {/* File Picker */}
-      <div className="relative bg-transparent border border-border p-8 text-center">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <FileUp className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+      <div className="relative bg-transparent border border-border p-8 text-center"><FileUp className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
         <p className="text-sm text-muted-foreground mb-4">
           CSV format: serial_number,chemistry,voltage,capacity,weight,manufacturer,country
         </p>
@@ -142,12 +137,7 @@ export default function CsvImportPage() {
             </div>
           )}
 
-          <div className="relative bg-transparent border border-border overflow-hidden">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="overflow-x-auto">
+          <div className="relative bg-transparent border border-border overflow-hidden"><div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">

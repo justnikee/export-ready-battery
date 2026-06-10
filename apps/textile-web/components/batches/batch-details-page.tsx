@@ -1024,12 +1024,7 @@ export default function BatchDetailsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-8 font-sans">
       <div className="w-full mx-auto space-y-8">
-        <div className="relative overflow-visible border border-border bg-transparent p-6">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative overflow-visible border border-border bg-transparent p-6"><div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -1229,12 +1224,7 @@ export default function BatchDetailsPage() {
             </div>
           )}
 
-        <div className="relative bg-transparent border border-border">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex border-b border-border px-4">
+        <div className="relative bg-transparent border border-border"><div className="flex border-b border-border px-4">
             {[
               { id: "overview", label: "Overview" },
               { id: "passports", label: `Passports (${passportCount})` },

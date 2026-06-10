@@ -19,7 +19,7 @@ export function ExplainerSection() {
  className="text-xs uppercase tracking-widest mb-4 block font-mono"
  style={{ color: "var(--ld-accent)", letterSpacing: "1.2px" }}
  >
- What is AnvayaLabs?
+ What is Anviora?
  </span>
 
  <h2 className="text-3xl md:text-4xl text-white mb-6 leading-tight">
@@ -30,7 +30,7 @@ export function ExplainerSection() {
  className="text-base leading-relaxed mb-4"
  style={{ color: "var(--ld-text-muted)" }}
  >
- AnvayaLabs helps battery manufacturers comply with global
+ Anviora helps battery manufacturers comply with global
  regulations like EU Battery Regulation (2023/1542) and India&apos;s
  Battery Aadhaar system.
  </p>
@@ -48,7 +48,7 @@ export function ExplainerSection() {
  className="group inline-flex items-center gap-2 text-sm transition-colors hover:brightness-125"
  style={{ color: "var(--ld-accent)" }}
  >
- Learn about AnvayaLabs
+ Learn about Anviora
  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
  </Link>
  </motion.div>

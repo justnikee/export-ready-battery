@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/auth-context";
+import { dashboardPathFromPathname } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import {
   Sheet as Dialog,
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { PlusCircle, Sparkles, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { PlusCircle, Sparkles, ChevronLeft, ChevronRight, Check, History, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { useTemplates, type Template } from "@/hooks/use-queries";
@@ -58,11 +60,32 @@ const stepFieldCounts = [
   { total: 0, label: "Review & submit" },
 ];
 
+// Which wizard step a form field belongs to — used to scope backend
+// validation errors to steps the user has already reached.
+const IDENTITY_FIELDS = ["batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate", "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry"];
+const SPECS_FIELDS = ["weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable"];
+
+function getStepForField(field: string): number {
+  const root = field.split(".")[0];
+  if (IDENTITY_FIELDS.includes(root)) return 0;
+  if (SPECS_FIELDS.includes(root)) return 1;
+  return 2;
+}
+
+interface PendingDraft {
+  data: Partial<BatchFormData>;
+  step: number;
+  savedAt: string;
+}
+
 export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
+  const [pendingDraft, setPendingDraft] = useState<PendingDraft | null>(null);
 
   // Templates
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -260,45 +283,51 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         }
       }
 
-      // Offer to resume draft
-      const draft = loadDraft(user.tenant_id);
-      if (draft) {
-        const savedAt = new Date(draft.savedAt);
-        const timeAgo = Math.round((Date.now() - savedAt.getTime()) / 60000);
-        const timeText = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.round(timeAgo / 60)}h ago`;
-        toast.info(`Draft found from ${timeText}`, {
-          action: {
-            label: "Resume",
-            onClick: () => {
-              try {
-                // Merge draft with current defaults to handle schema drift
-                reset({
-                  ...defaultBatchFormValues,
-                  ...draft.data,
-                  // Ensure nested objects are preserved
-                  materialComposition: {
-                    ...defaultBatchFormValues.materialComposition,
-                    ...(draft.data.materialComposition || {}),
-                  },
-                  hazardousSubstances: {
-                    ...defaultBatchFormValues.hazardousSubstances,
-                    ...(draft.data.hazardousSubstances || {}),
-                  },
-                });
-                setStep(Math.min(draft.step, STEPS.length - 1));
-                clearDraft(user.tenant_id);
-                toast.success("Draft resumed");
-              } catch {
-                toast.error("Draft is corrupted or outdated. Starting fresh.");
-                clearDraft(user.tenant_id);
-              }
-            },
-          },
-          duration: 10000,
-        });
-      }
+      // Surface any saved draft as an inline banner (see render below) —
+      // a toast is too easy to miss for recovering real work.
+      setPendingDraft(loadDraft(user.tenant_id));
     }
   }, [open, setValue, reset, user]);
+
+  const handleResumeDraft = () => {
+    if (!pendingDraft || !user) return;
+    try {
+      // Merge draft with current defaults to handle schema drift
+      reset({
+        ...defaultBatchFormValues,
+        ...pendingDraft.data,
+        // Ensure nested objects are preserved
+        materialComposition: {
+          ...defaultBatchFormValues.materialComposition,
+          ...(pendingDraft.data.materialComposition || {}),
+        },
+        hazardousSubstances: {
+          ...defaultBatchFormValues.hazardousSubstances,
+          ...(pendingDraft.data.hazardousSubstances || {}),
+        },
+      });
+      setStep(Math.min(pendingDraft.step, STEPS.length - 1));
+      setPendingDraft(null);
+      toast.success("Draft resumed");
+    } catch {
+      toast.error("Draft is corrupted or outdated. Starting fresh.");
+      clearDraft(user.tenant_id);
+      setPendingDraft(null);
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    if (user) clearDraft(user.tenant_id);
+    setPendingDraft(null);
+  };
+
+  const draftAgeText = (savedAt: string) => {
+    const mins = Math.max(1, Math.round((Date.now() - new Date(savedAt).getTime()) / 60000));
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+  };
 
   // Auto-disable PLI and validate IEC for imported cells
   useEffect(() => {
@@ -341,13 +370,16 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formValues.batchName, formValues.marketRegion, formValues.cellSource, formValues.hsnCode, formValues.billOfEntryNo, formValues.cellCountryOfOrigin, formValues.customsDate, formValues.salePrice, formValues.importCost, formValues.dvaSource, formValues.auditedDva, formValues.pliCompliant, formValues.batteryCategory, formValues.carbonFootprint, formValues.expectedLifetime, formValues.warrantyMonths, formValues.manufacturingStartDate, formValues.manufacturingEndDate, open, user]);
 
-  // Apply backend validation errors to react-hook-form
+  // Apply backend validation errors to react-hook-form, scoped to steps the
+  // user has already reached — surfacing errors for fields on future steps
+  // before the user has even seen them is just noise.
   useEffect(() => {
     Object.entries(backendValidationErrors).forEach(([path, message]) => {
+      if (getStepForField(path) > step) return;
       methods.setError(path as keyof BatchFormData, { type: "backend", message });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backendValidationErrors]);
+  }, [backendValidationErrors, step]);
 
   // Template selection
   const handleTemplateSelect = (templateId: string) => {
@@ -582,7 +614,10 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         payload.declaration_of_conformity_path = data.docUploadUrl;
       }
 
-      await api.post("/batches", payload);
+      const createRes = await api.post<{ batch?: { id?: string } }>(
+        "/batches",
+        payload,
+      );
 
       // Save template
       if (data.saveAsTemplate && data.templateName.trim()) {
@@ -621,7 +656,17 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       setStep(0);
       setSelectedTemplate("");
       clearDraft(user.tenant_id);
+      setPendingDraft(null);
       setRetryPayload(null);
+
+      // Take the user straight to the new batch — the activation checklist,
+      // compliance gaps, and passport tools all live on the detail page.
+      const newBatchId = createRes.data?.batch?.id;
+      if (newBatchId) {
+        router.push(
+          `${dashboardPathFromPathname(pathname, "batches")}/${newBatchId}`,
+        );
+      }
     } catch (error: unknown) {
       const apiError = error as {
         message?: string;
@@ -648,16 +693,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         });
         // Auto-navigate to first error's step
         if (formPathErrors.length > 0) {
-          const firstErrField = formPathErrors[0].field;
-          const identityFields = ["batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate", "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry"];
-          const specsFields = ["weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable"];
-          let targetStep = 2;
-          if (identityFields.includes(firstErrField)) {
-            targetStep = 0;
-          } else if (specsFields.includes(firstErrField)) {
-            targetStep = 1;
-          }
-          setStep(targetStep);
+          setStep(getStepForField(formPathErrors[0].field));
         }
         errMsg = `Please fix the highlighted ${formPathErrors.length} field(s) before submitting.`;
       } else if (apiError.response?.statusText) {
@@ -727,6 +763,34 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
             ))}
           </div>
         </div>
+
+        {/* Saved draft banner */}
+        {pendingDraft && !isDirty && (
+          <div className="mx-6 mt-4 flex items-center justify-between gap-3 border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <History className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-sm text-foreground truncate">
+                You have an unsaved draft from{" "}
+                <span className="font-medium">{draftAgeText(pendingDraft.savedAt)}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button type="button" size="sm" variant="outline" onClick={handleResumeDraft}>
+                Resume
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={handleDiscardDraft}
+                aria-label="Discard draft"
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">

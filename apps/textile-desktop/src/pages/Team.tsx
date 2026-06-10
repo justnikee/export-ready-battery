@@ -12,10 +12,7 @@ export default function TeamPage() {
           <UserPlus className="h-4 w-4" /> Invite Member
         </button>
       </div>
-      <div className="relative bg-transparent border border-border rounded-none p-12 text-center">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+      <div className="relative bg-transparent border border-border rounded-none p-12 text-center"><Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg text-foreground mb-2">Team members will appear here</h3>
         <p className="text-sm text-muted-foreground">Use the web app for full team management capabilities.</p>
       </div>

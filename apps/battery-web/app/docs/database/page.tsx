@@ -75,7 +75,7 @@ export default function DatabasePage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Complete database schema reference for AnvayaLabs-Battery.
+ Complete database schema reference for Anviora-Battery.
  The database is PostgreSQL hosted on Supabase.
  </p>
  </section>

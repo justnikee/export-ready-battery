@@ -50,7 +50,7 @@ export default function ApiReferencePage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Complete reference for all AnvayaLabs-Battery API endpoints.
+ Complete reference for all Anviora-Battery API endpoints.
  All endpoints use JSON for request and response bodies.
  </p>
  </section>

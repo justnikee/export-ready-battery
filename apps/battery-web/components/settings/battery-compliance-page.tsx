@@ -101,12 +101,7 @@ export default function CompliancePage() {
         )}
 
         {/* India Compliance Readiness */}
-        <div className="relative bg-transparent border border-border p-5">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-center justify-between mb-4">
+        <div className="relative bg-transparent border border-border p-5"><div className="flex items-center justify-between mb-4">
             <h3 className="text-sm text-foreground">Compliance Readiness</h3>
             <Link
               href={settingsHref}
@@ -247,12 +242,7 @@ function OverviewTab() {
         <div
           key={ob.id}
           className="relative bg-transparent border border-border p-6"
-        >
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-center justify-between mb-4">
+        ><div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <h3 className="text-lg text-foreground">
                 FY {ob.financial_year}
@@ -452,12 +442,7 @@ function CertificatesTab() {
       ) : certificates.length === 0 ? (
         <EmptyState message="No certificates for this financial year" />
       ) : (
-        <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <table className="w-full">
+        <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
             <thead className="bg-muted border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -568,12 +553,7 @@ function ExportTab() {
   };
 
   return (
-    <div className="relative bg-transparent border border-border p-8">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <div className="max-w-lg mx-auto text-center space-y-6">
+    <div className="relative bg-transparent border border-border p-8"><div className="max-w-lg mx-auto text-center space-y-6">
         <div className="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <FileSpreadsheet className="w-8 h-8 text-emerald-500" />
         </div>
@@ -679,12 +659,7 @@ function CertificateForm({
     <form
       onSubmit={handleSubmit}
       className="relative bg-transparent border border-border p-6 space-y-4"
-    >
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <h4 className="text-sm text-foreground">Add EPR Certificate</h4>
+    ><h4 className="text-sm text-foreground">Add EPR Certificate</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Certificate Number *"
@@ -762,12 +737,7 @@ function BISTrackerTab() {
   return (
     <div className="space-y-6">
       {/* BIS Status Card */}
-      <div className="relative bg-transparent border border-border p-6">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <h3 className="text-base text-foreground mb-4">
+      <div className="relative bg-transparent border border-border p-6"><h3 className="text-base text-foreground mb-4">
           BIS CRS Registration â€” IS 16046
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -805,12 +775,7 @@ function BISTrackerTab() {
       </div>
 
       {/* BIS Requirements Checklist */}
-      <div className="relative bg-transparent border border-border">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <div className="px-6 py-4 border-b border-border">
+      <div className="relative bg-transparent border border-border"><div className="px-6 py-4 border-b border-border">
           <h3 className="text-sm text-foreground">
             IS 16046 Requirements Checklist
           </h3>
@@ -1065,12 +1030,7 @@ function EURegulationTab() {
 
   if (batches.length === 0) {
     return (
-      <div className="relative text-center py-12 bg-transparent border border-border">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+      <div className="relative text-center py-12 bg-transparent border border-border"><Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
         <p className="text-muted-foreground">
           No EU/GLOBAL active batches found
         </p>
@@ -1102,12 +1062,7 @@ function EURegulationTab() {
 
       {/* Score Overview */}
       {scoreResult && (
-        <div className="relative bg-transparent border border-border p-6">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-center gap-6 mb-4">
+        <div className="relative bg-transparent border border-border p-6"><div className="flex items-center gap-6 mb-4">
             <div
               className={`text-4xl ${
                 scoreResult.score >= 80
@@ -1155,12 +1110,7 @@ function EURegulationTab() {
             <div
               key={cat}
               className="relative bg-transparent border border-border"
-            >
-              <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+            ><div className="px-5 py-3 border-b border-border flex items-center justify-between">
                 <h3 className="text-sm font-medium text-foreground">{cat}</h3>
                 <span
                   className={`text-xs font-medium ${filledCount === attrs.length ? "text-emerald-500" : "text-amber-500"}`}
@@ -1195,12 +1145,7 @@ function EURegulationTab() {
         })}
 
       {/* EU Deadlines */}
-      <div className="relative bg-transparent border border-border p-5">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+      <div className="relative bg-transparent border border-border p-5"><h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           EU Battery Regulation Deadlines
         </h3>
@@ -1290,12 +1235,7 @@ function LoadingState() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="relative bg-transparent border border-border p-12">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <div className="flex flex-col items-center justify-center text-center">
+    <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
         <div className="p-4 bg-muted rounded-full mb-4">
           <Shield className="w-8 h-8 text-muted-foreground" />
         </div>

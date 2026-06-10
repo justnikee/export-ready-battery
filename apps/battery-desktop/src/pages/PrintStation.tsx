@@ -194,12 +194,7 @@ export default function PrintStationPage() {
 
       {/* Configuration */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative bg-transparent border border-border p-5">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <label className="text-xs text-muted-foreground font-medium block mb-2">Batch</label>
+        <div className="relative bg-transparent border border-border p-5"><label className="text-xs text-muted-foreground font-medium block mb-2">Batch</label>
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
@@ -214,12 +209,7 @@ export default function PrintStationPage() {
           </select>
         </div>
 
-        <div className="relative bg-transparent border border-border p-5">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <label className="text-xs text-muted-foreground font-medium block mb-2">Quantity</label>
+        <div className="relative bg-transparent border border-border p-5"><label className="text-xs text-muted-foreground font-medium block mb-2">Quantity</label>
           <input
             type="number"
             min={1}
@@ -230,12 +220,7 @@ export default function PrintStationPage() {
           />
         </div>
 
-        <div className="relative bg-transparent border border-border p-5">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <label className="text-xs text-muted-foreground font-medium block mb-2">Printer</label>
+        <div className="relative bg-transparent border border-border p-5"><label className="text-xs text-muted-foreground font-medium block mb-2">Printer</label>
           <select
             value={selectedPrinter}
             onChange={(e) => {
@@ -297,12 +282,7 @@ export default function PrintStationPage() {
 
       {/* Jobs Table */}
       {jobs.length > 0 && (
-        <div className="relative bg-transparent border border-border overflow-hidden">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border">
+        <div className="relative bg-transparent border border-border overflow-hidden"><div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium">Generated Labels ({jobs.length})</h3>
           </div>
           <div className="overflow-x-auto">

@@ -121,12 +121,7 @@ export default function RewardsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="relative bg-transparent border border-border p-6"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-4">
+          ><div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                 <Star className="h-6 w-6 text-amber-500" />
               </div>
@@ -150,12 +145,7 @@ export default function RewardsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
             className="relative bg-transparent border border-border p-6"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-4">
+          ><div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                 <Zap className="h-6 w-6 text-emerald-500" />
               </div>
@@ -174,12 +164,7 @@ export default function RewardsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="relative bg-transparent border border-border p-6"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-4">
+          ><div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
                 <Crown className="h-6 w-6 text-amber-500" />
               </div>
@@ -201,12 +186,7 @@ export default function RewardsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
             className="relative bg-transparent border border-border p-6"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center gap-4">
+          ><div className="flex items-center gap-4">
               <div className="h-12 w-12 bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                 <Users className="h-6 w-6 text-blue-500" />
               </div>
@@ -262,12 +242,7 @@ export default function RewardsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             className="relative bg-transparent border border-border overflow-visible lg:col-span-2"
-          >
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="p-4 border-b border-border flex items-center gap-2">
+          ><div className="p-4 border-b border-border flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-500" />
               <h3 className="text-lg text-foreground">Recent Activity</h3>
             </div>
@@ -327,12 +302,7 @@ export default function RewardsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="relative bg-transparent border border-border overflow-visible"
-        >
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="p-4 border-b border-border flex items-center gap-2">
+        ><div className="p-4 border-b border-border flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-emerald-500" />
             <h3 className="text-lg text-foreground">Leaderboard</h3>
           </div>

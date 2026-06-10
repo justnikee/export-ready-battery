@@ -1209,7 +1209,7 @@ export function CertificateView({
       <div className="text-center py-6 border-t border-border bg-card">
         <p className="text-muted-foreground text-sm">
           {t("footer_issued")}{" "}
-          <span className="text-foreground font-medium">AnvayaLabs™</span>{" "}
+          <span className="text-foreground font-medium">Anviora™</span>{" "}
           {t("footer_registry")}
         </p>
         <p className="text-muted-foreground text-xs mt-1">

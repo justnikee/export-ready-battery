@@ -125,7 +125,7 @@ export default function SupplierAcceptPage() {
     <div className="min-h-screen bg-[#F7F5F3] flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white border rounded-xl p-6 shadow-sm">
         <div className="text-center mb-6">
-          <h1 className="text-xl font-bold text-[#37322F]">AnvayaLabs</h1>
+          <h1 className="text-xl font-bold text-[#37322F]">Anviora</h1>
           <p className="text-sm text-muted-foreground">Supplier Portal</p>
         </div>
         <Suspense

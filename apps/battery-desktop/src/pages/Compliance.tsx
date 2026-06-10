@@ -30,12 +30,7 @@ export default function CompliancePage() {
         ].map(item => {
           const isVerified = item.status === 'VERIFIED';
           return (
-            <div key={item.label} className={`relative bg-transparent border border-border rounded-none p-5 ${isVerified ? "border-emerald-500/30" : ""}`}>
-              <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <div className="flex items-center gap-2 mb-2">
+            <div key={item.label} className={`relative bg-transparent border border-border rounded-none p-5 ${isVerified ? "border-emerald-500/30" : ""}`}><div className="flex items-center gap-2 mb-2">
                 {isVerified ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <Shield className="h-5 w-5 text-muted-foreground" />}
                 <span className="text-sm font-medium text-foreground">{item.label}</span>
               </div>
@@ -46,10 +41,7 @@ export default function CompliancePage() {
         })}
       </div>
 
-      <div className="relative bg-transparent border border-border rounded-none p-6">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <h3 className="text-base font-medium text-foreground mb-4 flex items-center gap-2"><Globe className="h-4 w-4 text-indigo-600" /> EU Battery Regulation Deadlines</h3>
+      <div className="relative bg-transparent border border-border rounded-none p-6"><h3 className="text-base font-medium text-foreground mb-4 flex items-center gap-2"><Globe className="h-4 w-4 text-indigo-600" /> EU Battery Regulation Deadlines</h3>
         <div className="space-y-3">
           {[
             ["Feb 18, 2027", "Digital Battery Passport mandatory for EV & industrial >2kWh"],

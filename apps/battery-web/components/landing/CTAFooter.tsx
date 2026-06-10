@@ -67,7 +67,7 @@ export function CTAFooter() {
             {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <Link href="/" className="text-xl font-heading text-white">
-                AnvayaLabs
+                Anviora
               </Link>
               <p className="text-sm text-zinc-400 mt-3">
                 Audit-grade battery passports for India and the EU.
@@ -97,7 +97,7 @@ export function CTAFooter() {
           {/* Bottom */}
           <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-zinc-800">
             <p className="text-sm text-zinc-500">
-              © {new Date().getFullYear()} AnvayaLabs. All rights reserved.
+              © {new Date().getFullYear()} Anviora. All rights reserved.
             </p>
             <div className="flex items-center gap-4 mt-4 md:mt-0">
               <Link

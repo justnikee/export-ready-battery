@@ -142,7 +142,7 @@ export function LifecycleSection() {
           </h2>
           <p className="text-base text-zinc-600 max-w-[55ch] mx-auto">
             The 7 lifecycle states required by EU Battery Regulation, enforced
-            by AnvayaLabs at the system level.
+            by Anviora at the system level.
           </p>
         </motion.div>
 
@@ -229,7 +229,7 @@ export function LifecycleSection() {
           className="mt-12 text-center max-w-[60ch] mx-auto"
         >
           <span className="inline-flex items-center gap-2 px-5 py-3 bg-[#1F7A5F]/10 text-[#1F7A5F] rounded-full text-sm font-medium border border-[#1F7A5F]/20">
-            AnvayaLabs enforces this lifecycle at the system level, not through
+            Anviora enforces this lifecycle at the system level, not through
             guidelines or best practices.
           </span>
         </motion.p>

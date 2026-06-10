@@ -48,7 +48,7 @@ export function AuthLayout({
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Brand */}
           <Link href="/" className="flex items-center text-white group w-fit">
-            <span className="text-xl tracking-tight">ANVAYALABS</span>
+            <span className="text-xl tracking-tight">ANVIORA</span>
           </Link>
 
           {/* Hero Copy + Features */}
@@ -94,7 +94,7 @@ export function AuthLayout({
         <div className="lg:hidden p-6 border-b border-border">
           <Link href="/" className="flex items-center">
             <span className="text-lg tracking-tight text-foreground">
-              ANVAYALABS
+              ANVIORA
             </span>
           </Link>
         </div>
@@ -153,7 +153,7 @@ export function AuthLayout({
 
         {/* Footer */}
         <div className="p-6 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} AnvayaLabs. All rights reserved.
+          &copy; {new Date().getFullYear()} Anviora. All rights reserved.
         </div>
       </div>
     </div>

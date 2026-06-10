@@ -97,12 +97,7 @@ export function PassportsTab({
 
       {/* Empty state guidance */}
       {passportCount === 0 && !isDraft && (
-        <div className="border border-border bg-muted/20 p-4 relative">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="flex items-start gap-3">
+        <div className="border border-border bg-muted/20 p-4 relative"><div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -152,12 +147,7 @@ export function PassportsTab({
 
       {/* Creation tools — always shown when 0 passports, toggled otherwise */}
       {(showTools || passportCount === 0) && (
-        <div className="border border-border bg-transparent p-4 relative">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <UploadCSV
+        <div className="border border-border bg-transparent p-4 relative"><UploadCSV
             batchId={batchId}
             marketRegion={region}
             chemistry={chemistry}

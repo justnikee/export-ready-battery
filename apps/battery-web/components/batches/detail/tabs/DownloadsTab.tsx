@@ -45,12 +45,7 @@ function DownloadCard({
   disabledReason?: string;
 }) {
   return (
-    <div className="border border-border bg-transparent hover:border-foreground/30 transition-colors p-4 relative">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <Button
+    <div className="border border-border bg-transparent hover:border-foreground/30 transition-colors p-4 relative"><Button
         variant="outline"
         className="w-full justify-start gap-2 h-auto py-2.5 px-3 border-border text-foreground hover:bg-muted disabled:opacity-50"
         onClick={onClick}

@@ -56,7 +56,7 @@ export default function DeploymentPage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- Complete guide for deploying AnvayaLabs-Battery to production.
+ Complete guide for deploying Anviora-Battery to production.
  Covers environment configuration, build commands, and hosting options.
  </p>
  </section>

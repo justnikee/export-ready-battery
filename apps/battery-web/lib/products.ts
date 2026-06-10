@@ -163,7 +163,7 @@ const BATTERY_CONFIG: ProductConfig = {
   auth: {
     loginTitle: "Welcome back",
     loginSubtitle: "Sign in to manage your battery passports and compliance",
-    registerTitle: "Get started with AnvayaLabs",
+    registerTitle: "Get started with Anviora",
     registerSubtitle:
       "Set up your battery passport workspace in under 2 minutes",
     inviteSubtitle:

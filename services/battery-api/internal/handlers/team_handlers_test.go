@@ -145,6 +145,7 @@ func (f *fakeTeamRepo) CleanupOldUsage(ctx context.Context) error { return nil }
 func (f *fakeTeamRepo) CreateBatch(ctx context.Context, req repository.CreateBatchRequest) (*models.Batch, error) { return nil, nil }
 func (f *fakeTeamRepo) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error) { return nil, nil }
 func (f *fakeTeamRepo) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error) { return nil, 0, nil }
 func (f *fakeTeamRepo) GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error) { return nil, nil }
 func (f *fakeTeamRepo) DeleteBatch(ctx context.Context, id uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error { return nil }

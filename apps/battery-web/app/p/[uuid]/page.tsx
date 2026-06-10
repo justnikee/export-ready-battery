@@ -217,7 +217,7 @@ export default function PublicPassportPage() {
             </div>
             <div className="hidden sm:block">
               <p className="text-foreground text-sm tracking-tight">
-                ANVAYALABS
+                ANVIORA
               </p>
               <p className="text-muted-foreground text-xs">
                 {t("header_registry")}

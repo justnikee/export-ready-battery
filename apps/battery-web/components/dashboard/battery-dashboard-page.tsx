@@ -340,8 +340,12 @@ export default function DashboardPage() {
 
   const quotaUsed = stats?.quota_used || 0;
   const quotaLimit = stats?.quota_limit ?? 0;
-  const quotaPercent = Math.round((quotaUsed / quotaLimit) * 100);
-  const isOverLimit = quotaUsed > quotaLimit;
+  const quotaPercent =
+    quotaLimit > 0 ? Math.round((quotaUsed / quotaLimit) * 100) : 0;
+  const isOverLimit = quotaLimit > 0 && quotaUsed > quotaLimit;
+
+  // First-run: account has no batches yet — show getting-started guidance
+  const isFirstRun = (stats?.total_batches ?? 0) === 0;
 
   const allVerified =
     dashboardConfig.compliance?.items.every(
@@ -359,10 +363,13 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              Welcome back, {user?.company_name || "Account"}
+              {isFirstRun ? "Welcome" : "Welcome back"},{" "}
+              {user?.company_name || "Account"}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {dashboardConfig.subtitle}
+              {isFirstRun
+                ? "Let's get your first battery passport ready"
+                : dashboardConfig.subtitle}
             </p>
           </div>
           <Link
@@ -374,13 +381,68 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        {/* First-run: getting-started checklist */}
+        {isFirstRun && (
+          <div className="relative bg-transparent border border-border rounded-none p-5"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+              Getting started
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                {
+                  step: 1,
+                  title: "Complete your compliance profile",
+                  description:
+                    "Add EPR / BIS registration numbers and upload certificates",
+                  href: `${settingsHref}?tab=compliance`,
+                  done: allVerified,
+                },
+                {
+                  step: 2,
+                  title: "Create your first batch",
+                  description:
+                    "Describe a production run — specs, chemistry, and market",
+                  href: batchesHref,
+                  done: false,
+                },
+                {
+                  step: 3,
+                  title: "Activate & print QR labels",
+                  description:
+                    "Activation generates passports buyers can scan anywhere",
+                  href: batchesHref,
+                  done: false,
+                },
+              ].map((item) => (
+                <Link
+                  key={item.step}
+                  href={item.href}
+                  className="group flex items-start gap-3 p-3 border border-border hover:border-foreground/30 hover:bg-accent/50 transition-colors"
+                >
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center text-xs font-medium border ${
+                      item.done
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    {item.done ? "✓" : item.step}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium text-foreground group-hover:underline underline-offset-2">
+                      {item.title}
+                    </span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      {item.description}
+                    </span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         {dashboardConfig.compliance ? (
-          <div className="relative bg-transparent border border-border rounded-none p-5">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-center gap-3 shrink-0">
                 <div className="p-2 bg-muted">
                   <Shield className="h-5 w-5 text-foreground" />
@@ -418,12 +480,7 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : dashboardConfig.banner ? (
-          <div className="relative bg-transparent border border-border rounded-none p-5">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-sm font-medium text-foreground">
                   {dashboardConfig.banner.title}
@@ -453,12 +510,7 @@ export default function DashboardPage() {
                 key={action.title}
                 href={quickActionHref(action.route)}
                 className="relative bg-transparent border border-border rounded-none p-4 hover:bg-accent transition-colors cursor-pointer group"
-              >
-                <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-                <div
+              ><div
                   className={`mb-3 flex h-10 w-10 items-center justify-center ${tone.panel}`}
                 >
                   <Icon className={`h-5 w-5 ${tone.icon}`} />
@@ -477,12 +529,7 @@ export default function DashboardPage() {
         {/* Section 4: Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Passports */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.totalEntitiesLabel}
               </span>
@@ -502,12 +549,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Active Batches */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.activeCollectionsLabel}
               </span>
@@ -524,12 +566,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Passport Quota */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-3">
+          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
               <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                 {dashboardConfig.quotaLabel}
               </span>
@@ -567,12 +604,7 @@ export default function DashboardPage() {
           {dashboardConfig.compliance ? (
             <ComplianceScoreCard batches={batches} />
           ) : dashboardConfig.workspaceCard && workspaceCardHref ? (
-            <div className="relative overflow-visible rounded-none border border-border bg-transparent p-5">
-              <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <div className="mb-3 flex items-center justify-between">
+            <div className="relative overflow-visible rounded-none border border-border bg-transparent p-5"><div className="mb-3 flex items-center justify-between">
                 <span className="code-label text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {dashboardConfig.workspaceCard.title}
                 </span>
@@ -594,12 +626,7 @@ export default function DashboardPage() {
         {/* Section 5: Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Production Overview */}
-          <div className="relative lg:col-span-3 bg-transparent border border-border rounded-none overflow-visible">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="px-6 py-4 border-b border-border">
+          <div className="relative lg:col-span-3 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
               <h3 className="text-base font-medium text-foreground">
                 {dashboardConfig.trendTitle}
               </h3>
@@ -613,12 +640,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Batch Status */}
-          <div className="relative bg-transparent border border-border rounded-none overflow-visible">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="px-6 py-4 border-b border-border">
+          <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
               <h3 className="text-base font-medium text-foreground">
                 Batch Status
               </h3>
@@ -636,12 +658,7 @@ export default function DashboardPage() {
         {/* Section 6: Recent Batches + Audit Log */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Recent Batches */}
-          <div className="relative lg:col-span-2 bg-transparent border border-border rounded-none overflow-visible">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <div className="relative lg:col-span-2 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h3 className="text-base font-medium text-foreground">
                 {dashboardConfig.recentCollectionsLabel}
               </h3>
@@ -791,12 +808,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Audit Log */}
-          <div className="relative bg-transparent border border-border rounded-none overflow-visible">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="px-6 py-4 border-b border-border">
+          <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
               <h3 className="text-base font-medium text-foreground">
                 Audit Log
               </h3>
@@ -839,12 +851,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Section 7: Global Scan Activity */}
-        <div className="relative bg-transparent border border-border rounded-none overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="text-base font-medium text-foreground">
                 Global Scan Activity

@@ -147,12 +147,7 @@ export function TemplatesDialog({ onTemplateDeleted }: TemplatesDialogProps) {
  <div
  key={template.id}
  className="relative border border-border p-4 hover:border-border transition-colors bg-transparent"
- >
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="flex items-start justify-between">
+ ><div className="flex items-start justify-between">
  <div className="flex-1">
  <div className="flex items-center gap-2 mb-2">
  <h3 className="font-medium text-foreground">{template.name}</h3>

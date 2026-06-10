@@ -82,15 +82,25 @@ export function OnboardingNavigation({
           )}
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={() => onNavigateToStep?.(3)}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-none bg-amber-500 text-white text-sm hover:bg-amber-600 focus:outline-none focus:ring-[3px] focus:ring-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          <AlertTriangle className="w-4 h-4" />
-          Complete Compliance Setup
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => onNavigateToStep?.(3)}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-none bg-amber-500 text-white text-sm hover:bg-amber-600 focus:outline-none focus:ring-[3px] focus:ring-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Complete Compliance Setup
+          </button>
+          <button
+            type="button"
+            onClick={onComplete}
+            disabled={loading}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "Setting up..." : "Skip for now — I'll add compliance details later"}
+          </button>
+        </div>
       )}
     </div>
   );

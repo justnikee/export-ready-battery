@@ -46,7 +46,7 @@ export function ValuesSection() {
  For Manufacturers
  </span>
  <h2 className="text-3xl md:text-4xl text-white">
- Why AnvayaLabs
+ Why Anviora
  </h2>
  </motion.div>
 

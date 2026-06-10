@@ -46,12 +46,12 @@ export function Header() {
         <Image
           src="/logo/logo-1.svg"
           className=""
-          alt="ANVAYALABS"
+          alt="ANVIORA"
           width={32}
           height={32}
         />
         <span className="text-xl tracking-tight text-foreground">
-          ANVAYALABS
+          ANVIORA
         </span>
       </Link>
 

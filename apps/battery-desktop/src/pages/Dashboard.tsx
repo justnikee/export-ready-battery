@@ -137,10 +137,7 @@ export default function DashboardPage() {
           { label: "Scans Today", value: stats?.scans_today?.toLocaleString() || "0", icon: QrCode, color: "text-amber-500" },
           { label: "Quota Used", value: `${stats?.quota_used || 0} / ${stats?.quota_limit || 0}`, icon: Shield, color: "text-purple-500" },
         ].map(item => (
-          <div key={item.label} className="relative bg-transparent border border-border rounded-none p-5">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-center justify-between mb-2">
+          <div key={item.label} className="relative bg-transparent border border-border rounded-none p-5"><div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">{item.label}</span>
               <item.icon className={`h-4 w-4 ${item.color}`} />
             </div>
@@ -151,10 +148,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="relative bg-transparent border border-border rounded-none overflow-hidden">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <div className="relative bg-transparent border border-border rounded-none overflow-hidden"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">Recent Batches</h3>
               <Link to="/dashboard/batches" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                 View all <ArrowRight className="h-3 w-3" />
@@ -222,10 +216,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="relative bg-transparent border border-border rounded-none">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border">
+        <div className="relative bg-transparent border border-border rounded-none"><div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium text-foreground">Quick Actions</h3>
           </div>
           <div className="p-4 space-y-2">
@@ -246,10 +237,7 @@ export default function DashboardPage() {
       </div>
 
       {activities.length > 0 && (
-        <div className="relative bg-transparent border border-border rounded-none">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <div className="px-6 py-4 border-b border-border">
+        <div className="relative bg-transparent border border-border rounded-none"><div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium text-foreground">Recent Activity</h3>
           </div>
           <div className="divide-y divide-border">

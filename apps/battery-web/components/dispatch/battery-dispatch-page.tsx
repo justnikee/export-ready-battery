@@ -398,12 +398,7 @@ export default function DispatchPage() {
             </div>
 
             {/* Pending List */}
-            <div className="relative flex-1 flex flex-col bg-transparent border border-border p-5 min-h-[300px] shadow-none">
-              <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-              <div className="flex items-center justify-between mb-4">
+            <div className="relative flex-1 flex flex-col bg-transparent border border-border p-5 min-h-[300px] shadow-none"><div className="flex items-center justify-between mb-4">
                 <h2 className=" text-lg text-foreground flex items-center gap-2">
                   <Package className="h-5 w-5 text-amber-500" />
                   Pending Scans

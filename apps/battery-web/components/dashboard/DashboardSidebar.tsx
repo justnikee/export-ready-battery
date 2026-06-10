@@ -84,7 +84,7 @@ export function DashboardSidebar({
                 isCollapsed && "md:hidden",
               )}
             >
-              ANVAYALABS
+              ANVIORA
             </span>
           </Link>
 

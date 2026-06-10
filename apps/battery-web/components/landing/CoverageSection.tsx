@@ -127,7 +127,7 @@ export function CoverageSection() {
             className="text-base max-w-[52ch] mx-auto"
             style={{ color: "var(--ld-text-muted)" }}
           >
-            Battery regulation is accelerating globally. AnvayaLabs is
+            Battery regulation is accelerating globally. Anviora is
             architected natively for both markets — not retrofitted.
           </p>
         </motion.div>

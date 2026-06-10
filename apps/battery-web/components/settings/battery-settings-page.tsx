@@ -302,12 +302,7 @@ export default function SettingsPage() {
  <form onSubmit={handleSubmit} className="space-y-6">
  {activeSettingsTab === 'profile' && (<>
  {/* Company Profile Card */}
- <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="border-b border-border px-6 py-4">
+ <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-blue-500/10 border border-blue-100">
  <Building2 className="h-5 w-5 text-blue-500" />
@@ -453,12 +448,7 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'compliance' && (<>
  {/* India Compliance Vault Card */}
- <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="border-b border-border px-6 py-4">
+ <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-emerald-500/10 border border-emerald-100">
  <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -671,12 +661,7 @@ export default function SettingsPage() {
 
  {/* EU Compliance Contact Card */}
  {activeSettingsTab === 'profile' && (
- <div className="relative bg-transparent border border-border overflow-visible">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <div className="border-b border-border px-6 py-4">
+ <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-indigo-500/10 border border-indigo-100">
  <Globe className="h-5 w-5 text-indigo-600" />

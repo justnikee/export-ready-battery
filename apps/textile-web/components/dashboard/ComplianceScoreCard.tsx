@@ -82,12 +82,7 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
     avgScore === null ? Shield : avgScore >= 80 ? CheckCircle : AlertTriangle;
 
   return (
-    <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <div className="flex items-center justify-between mb-3">
+    <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible"><div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider code-label">
           Compliance
         </span>

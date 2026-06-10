@@ -28,7 +28,7 @@ export function DocsLayout({ children }: DocsLayoutProps) {
  {/* Footer */}
  <footer className="border-t border-white/10 py-8 px-6">
  <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
- <p>© {new Date().getFullYear()} AnvayaLabs-Battery. All rights reserved.</p>
+ <p>© {new Date().getFullYear()} Anviora-Battery. All rights reserved.</p>
  <div className="flex items-center gap-4">
  <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
  <a href="/terms" className="hover:text-white transition-colors">Terms</a>

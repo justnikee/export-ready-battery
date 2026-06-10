@@ -266,12 +266,7 @@ export function OnboardingPage() {
       />
 
       <motion.div className="bg-transparent border border-border rounded-none p-6 relative overflow-visible">
-        {/* Corner-dot decorations (dashboard card pattern) */}
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border pointer-events-none" />
-        <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border pointer-events-none" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border pointer-events-none" />
-        <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border pointer-events-none" />
-        <AnimatePresence mode="wait" custom={direction}>
+        {/* Corner-dot decorations (dashboard card pattern) */}<AnimatePresence mode="wait" custom={direction}>
           <AnimatedStep stepKey={currentStep} direction={direction}>
             {currentStep === 1 && (
               <StepCompanyProfile

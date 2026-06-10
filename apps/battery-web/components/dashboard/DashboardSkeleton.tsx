@@ -9,12 +9,7 @@ export function DashboardSkeleton() {
  <div className="max-w-[1600px] mx-auto space-y-8">
 
  {/* Header Skeleton */}
- <div className="relative border border-border bg-transparent p-6">
-          <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-          <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
- <Skeleton className="h-8 w-48 bg-muted" />
+ <div className="relative border border-border bg-transparent p-6"><Skeleton className="h-8 w-48 bg-muted" />
  <Skeleton className="h-4 w-80 mt-2 bg-muted/50" />
  </div>
 

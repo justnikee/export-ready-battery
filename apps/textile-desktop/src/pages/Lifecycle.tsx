@@ -23,10 +23,7 @@ export default function LifecyclePage() {
         ))}
       </div>
 
-      <div className="relative bg-transparent border border-border rounded-none p-12 text-center">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+      <div className="relative bg-transparent border border-border rounded-none p-12 text-center"><Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg text-foreground mb-2">Full Lifecycle Management</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">The complete lifecycle management interface is available in the web app. Connect backend to enable.</p>
         <Link to="/dashboard/batches" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">

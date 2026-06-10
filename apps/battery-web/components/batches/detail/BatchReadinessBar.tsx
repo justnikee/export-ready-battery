@@ -130,13 +130,7 @@ export function BatchReadinessBar({
     pct >= 90 ? "bg-emerald-500" : pct >= 60 ? "bg-amber-500" : "bg-red-500";
 
   return (
-    <div className="border border-border bg-transparent p-4 relative">
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-
-      {/* Top row: label + percentage */}
+    <div className="border border-border bg-transparent p-4 relative">{/* Top row: label + percentage */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
           Export Readiness

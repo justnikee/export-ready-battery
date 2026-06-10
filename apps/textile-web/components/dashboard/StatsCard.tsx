@@ -21,13 +21,7 @@ export function StatsCard({
 }: StatsCardProps) {
   return (
     <div className="relative bg-transparent border border-border rounded-none p-5 hover:border-(--border-prominent) transition-colors cursor-pointer overflow-visible">
-      {/* Corner squares */}
-      <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" />
-      <span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-
-      <div className="flex items-center justify-between mb-3">
+      {/* Corner squares */}<div className="flex items-center justify-between mb-3">
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {title}
         </span>

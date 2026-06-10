@@ -20,7 +20,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 
 export const metadata: Metadata = {
-  title: "AnvayaLabs - Digital Battery Passport",
+  title: "Anviora - Digital Battery Passport",
   description: "Manage and track battery passports",
 };
 

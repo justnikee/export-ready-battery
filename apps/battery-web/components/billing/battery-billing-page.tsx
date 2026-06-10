@@ -268,7 +268,7 @@ export default function BillingPage() {
         key: key_id,
         amount: amount,
         currency: "INR",
-        name: "AnvayaLabs Battery",
+        name: "Anviora Battery",
         description: pkg.description,
         order_id: order_id,
         handler: async function (response: RazorpayResponse) {

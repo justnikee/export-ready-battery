@@ -96,7 +96,7 @@ export default function CompliancePage() {
  </h1>
 
  <p className="text-lg text-gray-400 max-w-2xl">
- AnvayaLabs-Battery supports compliance with global battery regulations
+ Anviora-Battery supports compliance with global battery regulations
  including India&apos;s PLI scheme and the EU Battery Regulation.
  </p>
  </section>

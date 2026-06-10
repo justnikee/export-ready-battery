@@ -14,10 +14,7 @@ export default function BillingPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your subscription and passport quota</p>
       </div>
 
-      <div className="relative bg-transparent border border-border rounded-none p-6">
-        <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-        <div className="flex items-center justify-between mb-4">
+      <div className="relative bg-transparent border border-border rounded-none p-6"><div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <CreditCard className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-base font-medium text-foreground">Passport Quota</h3>
@@ -32,10 +29,7 @@ export default function BillingPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {["Starter", "Professional", "Enterprise"].map((plan, i) => (
-          <div key={plan} className={`relative bg-transparent border border-border rounded-none p-5 ${i === 1 ? "border-emerald-500/30" : ""}`}>
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <h3 className="text-base font-medium text-foreground">{plan}</h3>
+          <div key={plan} className={`relative bg-transparent border border-border rounded-none p-5 ${i === 1 ? "border-emerald-500/30" : ""}`}><h3 className="text-base font-medium text-foreground">{plan}</h3>
             <p className="text-xs text-muted-foreground mt-1">{["India-only, 5K passes", "India + EU, 50K passes", "Unlimited, multi-market"][i]}</p>
             {i === 1 && <span className="inline-block mt-2 text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Current</span>}
           </div>

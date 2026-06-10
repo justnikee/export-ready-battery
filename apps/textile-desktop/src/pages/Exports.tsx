@@ -16,10 +16,7 @@ export default function ExportsPage() {
           { title: "EPCIS Export", desc: "GS1 EPCIS 2.0 traceability document", icon: FileDown, action: "Export JSON-LD" },
           { title: "Audit Trail", desc: "Full tamper-evident lifecycle log", icon: FileSpreadsheet, action: "Export CSV" },
         ].map(item => (
-          <div key={item.title} className="relative bg-transparent border border-border rounded-none p-5 hover:bg-accent transition-colors cursor-pointer group">
-            <span className="absolute -top-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-border" /><span className="absolute -bottom-0.5 -right-0.5 w-1 h-1 bg-border" />
-            <div className="flex items-start justify-between">
+          <div key={item.title} className="relative bg-transparent border border-border rounded-none p-5 hover:bg-accent transition-colors cursor-pointer group"><div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-medium text-foreground">{item.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
