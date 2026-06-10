@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { Batch } from "@/lib/types";
+import type { BatchChartData } from "@/lib/types";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import {
   DropdownMenu,
@@ -100,8 +100,8 @@ interface RecentBatch {
   created_at: string;
 }
 
-interface BatchesResponse {
-  batches?: Batch[];
+interface BatchesChartDataResponse {
+  batches?: BatchChartData[];
 }
 
 interface RecentBatchesResponse {
@@ -154,7 +154,7 @@ export default function DashboardPage() {
   const pathname = usePathname();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [batches, setBatches] = useState<Batch[]>([]);
+  const [batches, setBatches] = useState<BatchChartData[]>([]);
   const [recentBatches, setRecentBatches] = useState<RecentBatch[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [scanLocations, setScanLocations] = useState<ScanLocation[]>([]);
@@ -215,29 +215,23 @@ export default function DashboardPage() {
     if (!user) return;
 
     try {
-      // Fetch stats, full batches (for chart + compliance), and recent batches
+      // Fetch stats, lightweight batch chart data (for chart + compliance), and recent batches
       const [statsRes, batchesRes, recentRes] = await Promise.all([
-        api.get<DashboardStats>(`/dashboard/stats?tenant_id=${user.tenant_id}`),
-        api.get<BatchesResponse>(`/batches?tenant_id=${user.tenant_id}&limit=200`),
+        api.get<DashboardStats>(`/dashboard/stats`),
+        api.get<BatchesChartDataResponse>(`/batches/chart-data?limit=200`),
         api.get<RecentBatchesResponse>(`/batches/recent?limit=5`),
       ]);
 
       // Fetch scans separately — non-critical, shouldn't break dashboard
       let scansRes: { data: ScansResponse } = { data: { scans: [] } };
       try {
-        scansRes = await api.get<ScansResponse>(
-          `/scans/feed?tenant_id=${user.tenant_id}&limit=20`,
-        );
+        scansRes = await api.get<ScansResponse>(`/scans/feed?limit=20`);
       } catch (scanError) {
         console.warn("Scan feed unavailable:", scanError);
       }
 
       setStats(statsRes.data);
       const allBatches = batchesRes.data.batches || [];
-      const sortedByDateDesc = [...allBatches].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
       setBatches(allBatches);
 
       // Chart Data
@@ -313,12 +307,12 @@ export default function DashboardPage() {
         location: `${s.city || "Unknown"}, ${s.country || "Unknown"}`,
         time: formatDistanceToNow(new Date(s.scanned_at), { addSuffix: true }),
       }));
-      const batchEvents: ActivityItem[] = sortedByDateDesc
+      const batchEvents: ActivityItem[] = recent
         .slice(0, 3)
         .map((b) => ({
           id: `batch-${b.id}`,
           type: "BATCH",
-          title: `Batch Created: ${b.batch_name || "Batch"}`,
+          title: `Batch Created: ${b.name || "Batch"}`,
           location: b.market_region === "INDIA" ? "Local" : "EU Export",
           time: formatDistanceToNow(new Date(b.created_at), {
             addSuffix: true,

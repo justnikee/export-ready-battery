@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Shield, AlertTriangle, CheckCircle } from "lucide-react";
 import api from "@/lib/api";
-import type { Batch, ComplianceGap } from "@/lib/types";
+import type { BatchChartData, ComplianceGap } from "@/lib/types";
 
 interface ComplianceData {
   batch_id: string;
@@ -12,7 +12,7 @@ interface ComplianceData {
 }
 
 interface ComplianceScoreCardProps {
-  batches: Batch[];
+  batches: BatchChartData[];
 }
 
 export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
