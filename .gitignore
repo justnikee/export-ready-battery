@@ -67,6 +67,7 @@ server.exe
 # Go service temporary files
 services/**/*.ps1
 services/**/*.sql
+!services/**/migrations/**/*.sql
 services/**/server_output.txt
 services/**/server_errors.txt
 services/**/temp_*.go
@@ -76,6 +77,9 @@ services/**/test_output*.txt
 services/**/test_output*.json
 services/**/build_err.txt
 services/**/errors_full.txt
+services/**/_patch_*.py
+services/**/fake_*.pdf
+services/**/test_labels.pdf
 
 # Frontend tsbuildinfo
 apps/**/tsconfig.tsbuildinfo

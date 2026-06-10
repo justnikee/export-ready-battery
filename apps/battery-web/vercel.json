@@ -3,24 +3,5 @@
   "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@anvaya/battery-web...",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "echo 'pnpm install handled in buildCommand'",
-  "rewrites": [
-    {
-      "source": "/api/battery/:path*",
-      "destination": "https://battery-api.yourdomain.com/api/:path*"
-    },
-    {
-      "source": "/api/platform/:path*",
-      "destination": "https://api.yourdomain.com/api/:path*"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    }
-  ]
+  "installCommand": "echo 'pnpm install handled in buildCommand'"
 }

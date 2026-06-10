@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -377,9 +375,9 @@ func main() {
 	mux.Handle("PUT /api/v1/suppliers/{id}/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateSupplierStatus))))
 	mux.Handle("GET /api/v1/supplier-documents", authMiddleware.Protect(http.HandlerFunc(h.ListTenantSupplierDocuments)))
 	mux.Handle("PUT /api/v1/supplier-documents/{id}/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ReviewSupplierDocument))))
-	// Supplier auth (no middleware)
-	mux.Handle("POST /api/v1/suppliers/accept", http.HandlerFunc(h.AcceptSupplierInvitation))
-	mux.Handle("POST /api/v1/supplier/login", http.HandlerFunc(h.SupplierLogin))
+	// Supplier auth (rate-limited like other auth endpoints)
+	mux.Handle("POST /api/v1/suppliers/accept", authRateLimiter.Limit(http.HandlerFunc(h.AcceptSupplierInvitation)))
+	mux.Handle("POST /api/v1/supplier/login", authRateLimiter.Limit(http.HandlerFunc(h.SupplierLogin)))
 	// Supplier-scoped actions (Protect validates any JWT; handler checks SupplierID)
 	mux.Handle("GET /api/v1/supplier/batches", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierBatches)))
 	mux.Handle("POST /api/v1/supplier/documents", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadSupplierDocument))))
@@ -513,6 +511,7 @@ func main() {
 	// ============================================
 	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
+	mux.Handle("GET /api/v1/batches/chart-data", authMiddleware.Protect(http.HandlerFunc(h.GetBatchesChartData)))
 	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
 
 	// ============================================
@@ -601,21 +600,6 @@ func main() {
 	// ============================================
 	mux.Handle("POST /api/v1/documents/upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadPassportDocument))))
 	mux.Handle("GET /api/v1/documents/{document_id}", authMiddleware.Protect(http.HandlerFunc(h.GetPassportDocument)))
-
-	// ============================================
-	// STATIC UPLOADS (Public - for serving logos)
-	// ============================================
-	uploadsFS := http.FileServer(http.Dir("./uploads"))
-	// Wrap with path traversal guard to prevent directory traversal attacks
-	safeUploadsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cleanPath := filepath.Clean(r.URL.Path)
-		if strings.Contains(cleanPath, "..") {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-		http.StripPrefix("/api/v1/uploads/", uploadsFS).ServeHTTP(w, r)
-	})
-	mux.Handle("GET /api/v1/uploads/", safeUploadsHandler)
 
 	// ============================================
 	// ADMIN ROUTES (Secret - for document verification)
@@ -902,7 +886,6 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 				}
 			}
 
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Device-Token")
 
