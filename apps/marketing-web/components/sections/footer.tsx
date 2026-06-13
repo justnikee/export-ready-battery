@@ -33,7 +33,7 @@ const footerLinks = {
 export default function Footer() {
   return (
     <footer className="relative pt-16 pb-9 overflow-hidden text-white"
-      style={{ background: "linear-gradient(180deg, #2d2424 0%, #1f1818 100%)" }}
+      style={{ background: "linear-gradient(180deg, #11251d 0%, #0c1a14 100%)" }}
     >
       {/* Grain texture */}
       <svg
@@ -63,11 +63,11 @@ export default function Footer() {
                 className="w-4 h-4 rounded-[5px] bg-white"
                 style={{ transform: "skewX(-10deg)" }}
               />
-              ExportReady
+              Anviora
             </Link>
             <p className="max-w-[260px] mt-3 text-[13px] leading-[1.55] text-white/75">
-              AI compliance infrastructure for Indian battery and textile exporters
-              selling into Europe.
+              The Digital Product Identity Platform — compliance and passports for Indian
+              battery and textile manufacturers selling at home and into Europe.
             </p>
 
             <form
@@ -88,7 +88,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white text-[#7c3a2e] hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white text-[#0f5a43] hover:bg-white/90 transition-colors"
                   aria-label="Subscribe"
                 >
                   <ArrowRight size={16} />
@@ -121,7 +121,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/15 pt-6 text-[12px] text-white/60">
-          <span>© 2026 ExportReady. Built in India for Indian exporters. 🇮🇳</span>
+          <span>© 2026 Anviora. Built in India for Indian exporters. 🇮🇳</span>
           <div className="flex items-center gap-6 mt-3 sm:mt-0">
             <a href="#" className="hover:text-white transition-colors">
               Privacy

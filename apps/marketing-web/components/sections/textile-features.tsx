@@ -19,25 +19,25 @@ const features = [
       "Upload certificates. Auto-extract expiry dates. Get 30-day renewal alerts. Never scramble for a missing cert during an audit again.",
   },
   {
-    title: "Ready for the 2028 Mandate.",
+    title: "Get ahead of the ESPR mandate.",
     description:
-      "The EU Ecodesign for Sustainable Products Regulation (ESPR) will mandate textile DPPs in late 2028. Get ahead now. Build your data foundation before the deadline.",
+      "The EU's Ecodesign for Sustainable Products Regulation (ESPR) is expected to mandate textile DPPs around 2027–2028. Build the data foundation regulators will ask for now — and be ready the day it lands.",
   },
 ];
 
 export default function TextileFeatures() {
   return (
-    <section className="py-[88px] bg-[#f6f9fc]">
+    <section className="py-[88px] bg-crew-paper-soft">
       <div className="max-w-[1080px] mx-auto px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <motion.div
               key={f.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className="glow-card bg-white border border-[#e3e8ee] rounded-xl p-6 transition-all duration-200 hover:border-[rgba(83,58,253,0.18)] hover:shadow-[rgba(0,55,112,0.08)_0_1px_3px,rgba(83,58,253,0.12)_0_12px_32px]"
+              transition={{ duration: 0.5 }}
+              className="glow-card bg-white border border-crew-border rounded-2xl p-6 transition-all duration-200 hover:border-[rgba(21,122,91,0.18)] hover:shadow-[rgba(7,46,33,0.06)_0_1px_3px,rgba(21,122,91,0.12)_0_12px_32px]"
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 e.currentTarget.style.setProperty(
@@ -50,10 +50,10 @@ export default function TextileFeatures() {
                 );
               }}
             >
-              <h3 className="text-[17px] font-medium leading-[1.25] text-[#0d253d] mb-2">
+              <h3 className="font-serif text-[22px] font-normal leading-[1.2] tracking-[-0.01em] text-crew-ink mb-2">
                 {f.title}
               </h3>
-              <p className="text-[13px] leading-[1.48] text-[#64748d]">
+              <p className="text-[15px] leading-[1.55] text-crew-muted">
                 {f.description}
               </p>
             </motion.div>

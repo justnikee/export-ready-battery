@@ -14,9 +14,9 @@
   --color-ink-mute-2: #9d9188;
   --color-hairline: #e7dccb;
 
-  --color-accent: #c2542c;
-  --color-accent-deep: #9c3f1e;
-  --color-accent-soft: #f4e0d0;
+  --color-accent: #157a5b;
+  --color-accent-deep: #0f5a43;
+  --color-accent-soft: #e8f4ee;
 
   --color-charcoal: #1e1a16;
   --color-charcoal-panel: #2a2420;
@@ -25,9 +25,9 @@
   --color-crew-navy: #0a0a0f;
   --color-crew-navy-light: #13131a;
   --color-crew-navy-panel: #1c1c26;
-  --color-crew-coral: #ff5a45;
-  --color-crew-coral-light: #ff7a65;
-  --color-crew-coral-soft: #fff0ee;
+  --color-crew-coral: #157a5b;
+  --color-crew-coral-light: #1d9670;
+  --color-crew-coral-soft: #e8f4ee;
   --color-crew-ink: #0f0f0f;
   --color-crew-muted: #6b7280;
   --color-crew-muted-2: #9ca3af;
@@ -70,7 +70,7 @@
   }
 
   ::selection {
-    background: rgba(194, 84, 44, 0.16);
+    background: rgba(21, 122, 91, 0.16);
     color: #2a2521;
   }
 }
@@ -100,12 +100,12 @@
     font-size: 15px;
     font-weight: 650;
     letter-spacing: -0.01em;
-    color: #c2542c;
+    color: #157a5b;
   }
 
   /* Gradient text accent (used on product pages) */
   .gradient-text {
-    background: linear-gradient(135deg, #c2542c 0%, #9c3f1e 100%);
+    background: linear-gradient(135deg, #157a5b 0%, #0f5a43 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -167,8 +167,8 @@
     opacity: 0;
     background: radial-gradient(
       180px circle at var(--glow-x) var(--glow-y),
-      rgba(194, 84, 44, 0.55),
-      rgba(194, 84, 44, 0.2) 45%,
+      rgba(21, 122, 91, 0.55),
+      rgba(21, 122, 91, 0.2) 45%,
       transparent 72%
     );
     -webkit-mask:

@@ -2,7 +2,10 @@ import SiteHeader from "@/components/site-header";
 import Hero from "@/components/sections/hero";
 import LogoStrip from "@/components/sections/logo-strip";
 import ValueProp from "@/components/sections/value-prop";
+import ComplianceCliff from "@/components/sections/compliance-cliff";
 import Platform from "@/components/sections/platform";
+import DualMarket from "@/components/sections/dual-market";
+import ProductsSplit from "@/components/sections/products-split";
 import Backbone from "@/components/sections/backbone";
 import Business from "@/components/sections/business";
 import NewsCTA from "@/components/sections/news-cta";
@@ -15,7 +18,10 @@ export default function Home() {
       <Hero />
       <LogoStrip />
       <ValueProp />
+      <ComplianceCliff />
       <Platform />
+      <DualMarket />
+      <ProductsSplit />
       <Backbone />
       <Business />
       <NewsCTA />

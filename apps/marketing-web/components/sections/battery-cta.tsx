@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 export default function BatteryCTA() {
   return (
-    <section className="py-[88px] bg-white">
+    <section className="py-[88px] bg-crew-paper">
       <div className="max-w-[1080px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -13,25 +13,25 @@ export default function BatteryCTA() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <h2 className="text-[28px] sm:text-[34px] font-light leading-[1.12] text-[#0d253d]">
-            Ship Your First Compliant Battery This Month.
+          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+            Ship your first compliant battery this month.
           </h2>
-          <p className="mt-4 text-[16px] leading-[1.55] text-[#64748d]">
+          <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">
             14-day free trial. No setup fee. Cancel anytime.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
             <a
-              href="/demo"
-              className="inline-flex items-center justify-center h-[34px] px-4 rounded-full text-sm font-medium text-white"
-              style={{ background: "#533afd" }}
+              href="/request-access"
+              className="group inline-flex items-center justify-center gap-1.5 h-[44px] px-6 rounded-full text-[15px] font-semibold text-white bg-crew-coral hover:bg-crew-coral-light transition-colors"
             >
-              Request Demo
+              Request a Demo
+              <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
-              href="#"
-              className="inline-flex items-center gap-1 text-sm font-medium text-[#533afd] hover:underline"
+              href="/request-access"
+              className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
             >
-              Start Free Trial <ArrowRight size={14} />
+              Start free trial <ArrowRight size={14} className="cta-arrow" />
             </a>
           </div>
         </motion.div>

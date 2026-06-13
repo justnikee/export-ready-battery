@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 export default function TextileCTA() {
   return (
-    <section className="py-[88px] bg-[#f6f9fc]">
+    <section className="py-[88px] bg-crew-paper-soft">
       <div className="max-w-[1080px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -13,25 +13,26 @@ export default function TextileCTA() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <h2 className="text-[28px] sm:text-[34px] font-light leading-[1.12] text-[#0d253d]">
+          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
             Tirupur. Surat. Panipat. Europe.
           </h2>
-          <p className="mt-4 text-[16px] leading-[1.55] text-[#64748d]">
-            Wherever you weave, we&apos;ll get you there.
+          <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">
+            Wherever you weave, we&apos;ll get you there. Join the founding cohort before
+            the ESPR mandate lands.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
             <a
-              href="/demo"
-              className="inline-flex items-center justify-center h-[34px] px-4 rounded-full text-sm font-medium text-white"
-              style={{ background: "#533afd" }}
+              href="/request-access"
+              className="group inline-flex items-center justify-center gap-1.5 h-[44px] px-6 rounded-full text-[15px] font-semibold text-white bg-crew-coral hover:bg-crew-coral-light transition-colors"
             >
-              Request Demo
+              Join the waitlist
+              <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
-              href="#"
-              className="inline-flex items-center gap-1 text-sm font-medium text-[#533afd] hover:underline"
+              href="/contact"
+              className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
             >
-              Start Free Trial <ArrowRight size={14} />
+              Talk to us <ArrowRight size={14} className="cta-arrow" />
             </a>
           </div>
         </motion.div>

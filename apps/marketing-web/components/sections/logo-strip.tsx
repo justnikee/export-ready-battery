@@ -1,33 +1,32 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
 
-const logos = [
-  { name: "Nordvolt", country: "DE" },
-  { name: "Eurocell", country: "NL" },
-  { name: "GreenCell", country: "FR" },
-  { name: "BharatCells", country: "IN" },
-  { name: "MeghnaPolymers", country: "IN" },
-  { name: "TraceFabrics", country: "ES" },
-  { name: "RenewPower", country: "IN" },
-  { name: "ECOBattery", country: "IT" },
+const standards = [
+  "EU Battery Regulation 2023/1542",
+  "Battery Passport (BPAN)",
+  "BIS IS 16046",
+  "CPCB EPR",
+  "India BWM Rules 2022",
+  "DGFT TRACE",
+  "UN38.3 / IEC 62133",
+  "REACH",
+  "EU ESPR (textile — upcoming)",
 ];
 
-function LogoPill({ name, country }: { name: string; country: string }) {
+function StandardChip({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-crew-paper-soft border border-crew-border">
-      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-crew-navy text-white text-[9px] font-bold">
-        {name.slice(0, 1)}
-      </span>
-      <span className="text-[13px] font-medium text-crew-ink whitespace-nowrap">{name}</span>
-      <span className="text-[10px] text-crew-muted">{country}</span>
+      <ShieldCheck size={14} className="text-crew-coral shrink-0" />
+      <span className="text-[13px] font-medium text-crew-ink whitespace-nowrap">{label}</span>
     </div>
   );
 }
 
 export default function LogoStrip() {
   return (
-    <section className="py-10 bg-crew-paper border-b border-crew-border">
+    <section className="py-10 bg-crew-paper">
       <div className="max-w-[1200px] mx-auto px-6">
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -36,7 +35,7 @@ export default function LogoStrip() {
           transition={{ duration: 0.5 }}
           className="text-center text-[13px] text-crew-muted mb-6"
         >
-          Trusted by Indian exporters shipping to Europe every day
+          One platform for every regulation that gets you to market
         </motion.p>
 
         <div className="relative overflow-hidden">
@@ -51,8 +50,8 @@ export default function LogoStrip() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="flex gap-4 animate-marquee-slow w-max"
           >
-            {[...logos, ...logos, ...logos, ...logos].map((logo, i) => (
-              <LogoPill key={`${logo.name}-${i}`} name={logo.name} country={logo.country} />
+            {[...standards, ...standards, ...standards, ...standards].map((s, i) => (
+              <StandardChip key={`${s}-${i}`} label={s} />
             ))}
           </motion.div>
         </div>

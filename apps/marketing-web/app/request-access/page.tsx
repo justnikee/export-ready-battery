@@ -155,7 +155,7 @@ export default function RequestAccessPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-navy-900 mb-3">Request Access</h1>
             <p className="text-navy-600">
-              ExportReady is built exclusively for Indian manufacturers and exporters. 
+              Anviora is built exclusively for Indian manufacturers and exporters.
               We review every application to ensure the platform serves legitimate businesses.
             </p>
           </div>
@@ -336,7 +336,7 @@ export default function RequestAccessPage() {
 
             <p className="text-xs text-navy-400 text-center">
               Not a manufacturer?{" "}
-              <a href="mailto:founders@exportready.io" className="text-emerald-600 hover:underline">
+              <a href="mailto:founders@anviora.io" className="text-emerald-600 hover:underline">
                 Apply as a Partner
               </a>
             </p>

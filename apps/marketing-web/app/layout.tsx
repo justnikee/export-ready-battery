@@ -25,7 +25,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "ExportReady — AI Compliance for Indian Battery & Textile Exporters",
+  title: "Anviora — Digital Product Passports for Indian Battery & Textile Exporters",
   description:
     "Automate EU Battery Passport generation, certificate tracking, QR-code verification, and compliance gaps. Built for Indian manufacturers exporting to Europe.",
   keywords: [
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     "QR code passport",
   ],
   openGraph: {
-    title: "ExportReady — AI Compliance for Indian Exporters",
+    title: "Anviora — Digital Product Passports for Indian Exporters",
     description:
       "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
     type: "website",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ExportReady — AI Compliance for Indian Exporters",
+    title: "Anviora — Digital Product Passports for Indian Exporters",
     description:
       "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
   },

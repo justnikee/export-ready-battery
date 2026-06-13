@@ -1,68 +1,75 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import TextReveal from "@/components/text-reveal";
+import CountUp from "@/components/count-up";
 
 const stats = [
-  { value: "150+", label: "Indian exporters onboarded" },
-  { value: "2,400+", label: "batches compliantly shipped" },
-  { value: "12", label: "European markets served" },
-  { value: "85%", label: "faster documentation" },
+  {
+    to: 100,
+    suffix: "+",
+    label: "Fields auto-extracted from a single certificate",
+  },
+  {
+    to: 2,
+    suffix: "",
+    label: "Regulators, one dataset — India and the EU",
+  },
+  {
+    to: 75,
+    suffix: "%",
+    label: "Of platform cost reimbursable via DGFT TRACE",
+  },
 ];
 
 export default function Backbone() {
   return (
-    <section className="relative py-24 lg:py-32 overflow-hidden bg-crew-paper-soft">
-      <div className="relative z-[2] max-w-[1200px] mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-[640px] mb-14"
-        >
-          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
-            Proven results
-          </div>
-          <h2 className="text-[clamp(30px,4vw,42px)] font-semibold tracking-[-0.03em] leading-[1.1] text-crew-ink mb-5">
-            <TextReveal as="span" className="block">
-              The future of export compliance is here, right now.
+    <section className="relative py-16 lg:py-24 bg-crew-paper">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="rounded-[28px] bg-crew-paper-soft border border-crew-border px-7 sm:px-12 lg:px-16 py-12 lg:py-16">
+          {/* Eyebrow */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3"
+          >
+            What you get
+          </motion.div>
+
+          {/* Headline */}
+          <h2 className="font-serif text-crew-ink text-[clamp(34px,5vw,56px)] font-normal leading-[1.05] tracking-[-0.01em] max-w-[760px]">
+            <TextReveal as="span" className="inline">
+              The future of export compliance is here,
+            </TextReveal>{" "}
+            <TextReveal as="span" className="inline italic" delay={0.15}>
+              right now.
             </TextReveal>
           </h2>
-          <p className="text-[17px] leading-[1.6] text-crew-muted">
-            Indian manufacturers are already using ExportReady to cut documentation
-            time, avoid blocked shipments, and win European buyers.
-          </p>
-          <a
-            href="/battery"
-            className="group inline-flex items-center gap-1 mt-6 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
-          >
-            Explore the platform <ArrowRight size={15} className="cta-arrow" />
-          </a>
-        </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="relative p-6 rounded-2xl bg-crew-paper border border-crew-border"
-            >
-              <strong
-                className="block text-crew-ink text-[32px] sm:text-[40px] font-bold tracking-[-0.03em] leading-none mb-3"
-                style={{ fontFeatureSettings: '"tnum"' }}
+          {/* Stats */}
+          <div className="mt-16 lg:mt-24 grid grid-cols-1 sm:grid-cols-3 gap-y-10">
+            {stats.map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="sm:border-l border-crew-border sm:pl-7 lg:pl-9"
               >
-                {s.value}
-              </strong>
-              <span className="block text-[14px] leading-[1.45] text-crew-muted">
-                {s.label}
-              </span>
-            </motion.div>
-          ))}
+                <CountUp
+                  to={s.to}
+                  suffix={s.suffix}
+                  className="block text-crew-ink text-[clamp(52px,6vw,80px)] font-medium tracking-[-0.04em] leading-none"
+                />
+                <span className="block mt-5 max-w-[230px] text-[15px] leading-[1.45] text-crew-muted">
+                  {s.label}
+                </span>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

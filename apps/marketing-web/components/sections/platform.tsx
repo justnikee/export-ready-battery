@@ -1,13 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, FileText, QrCode } from "lucide-react";
 import TextReveal from "@/components/text-reveal";
 
-const supplierRequests = [
-  { name: "Shree Cells Pvt Ltd", item: "REACH declaration", status: "Received", tone: "green" },
-  { name: "Meghna Polymers", item: "RoHS test report", status: "Opened", tone: "amber" },
-  { name: "Kavya Metals", item: "Cobalt origin record", status: "Sent", tone: "gray" },
+const parsedFields = [
+  { label: "Chemistry", value: "LFP" },
+  { label: "Nominal voltage", value: "3.2 V" },
+  { label: "Rated capacity", value: "280 Ah" },
+  { label: "Cycle life", value: "6,000" },
+  { label: "UN38.3", value: "Pass" },
+  { label: "Mfg. country", value: "India" },
 ];
 
 const assembleFields = [
@@ -17,21 +20,7 @@ const assembleFields = [
   { label: "Supply chain due diligence", pct: 64 },
 ];
 
-function StatusChip({ status, tone }: { status: string; tone: string }) {
-  const styles =
-    tone === "green"
-      ? "bg-crew-green-soft text-crew-green"
-      : tone === "amber"
-        ? "bg-crew-amber-soft text-crew-amber"
-        : "bg-crew-paper-soft text-crew-muted";
-  return (
-    <span
-      className={`inline-flex items-center h-5 px-2 rounded-full text-[10.5px] font-semibold ${styles}`}
-    >
-      {status}
-    </span>
-  );
-}
+const carbonClasses = ["A", "B", "C", "D", "E"];
 
 interface RowProps {
   eyebrow: string;
@@ -59,15 +48,15 @@ function FeatureRow({ eyebrow, title, body, bullets, cta, flip, children }: RowP
         <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
           {eyebrow}
         </div>
-        <h3 className="text-[clamp(28px,3.4vw,40px)] font-semibold tracking-[-0.03em] leading-[1.1] text-crew-ink mb-5">
+        <h3 className="font-serif text-[clamp(28px,3.4vw,40px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink mb-5">
           <TextReveal as="span" className="block">
             {title}
           </TextReveal>
         </h3>
-        <p className="text-[17px] leading-[1.6] text-crew-muted mb-6">{body}</p>
-        <ul className="grid gap-3 mb-6">
+        <p className="text-[16px] leading-[1.6] text-[#131313] mb-3">{body}</p>
+        <ul className="grid gap-2 mb-6">
           {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-3 text-[15px] text-crew-ink-secondary">
+            <li key={b} className="flex items-start gap-3 text-[16px] leading-[1.6] text-[#131313]">
               <span className="inline-flex items-center justify-center w-[20px] h-[20px] mt-0.5 rounded-full bg-crew-coral-soft text-crew-coral shrink-0">
                 <Check size={12} strokeWidth={3} />
               </span>
@@ -109,37 +98,52 @@ export default function Platform() {
           <FeatureRow
             eyebrow="Collect"
             title="Know what's missing before you ship"
-            body="ExportReady maps every certificate, test report, and supplier declaration against EU Battery Regulation and India BWM requirements — so you see exactly which gaps will block your next shipment."
+            body="Drop in your BIS, EPR, UN38.3, IEC 62133 and MSDS PDFs. Anviora reads them, extracts 100+ fields, and maps every one against EU and India requirements — so you see exactly which gaps will block your next order."
             bullets={[
-              "AI reads BIS, EPR, UN38.3, IEC 62133, MSDS and extracts 40+ fields",
-              "Gap score per product line, updated as documents arrive",
+              "AI extracts 100+ fields from a certificate in seconds",
+              "Live gap score per product line, updated as documents arrive",
               "Supplier reminders and expiry tracking built in",
             ]}
             cta={{ label: "Learn more", href: "/battery" }}
           >
             <div className={visualCard}>
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[13px] font-semibold text-crew-ink">Evidence requests</span>
-                <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-crew-coral-soft text-crew-coral text-[11px] font-semibold">
-                  + New request
+                <span className="text-[13px] font-semibold text-crew-ink">Certificate parsing</span>
+                <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-crew-green-soft text-crew-green text-[11px] font-semibold">
+                  112 fields · 98%
                 </span>
               </div>
-              <div className="grid gap-2">
-                {supplierRequests.map((r) => (
-                  <div
-                    key={r.name}
-                    className="flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border border-crew-border"
-                  >
-                    <div>
-                      <div className="text-[12.5px] font-semibold text-crew-ink">{r.name}</div>
-                      <div className="text-[11px] text-crew-muted">{r.item}</div>
+              <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-crew-border mb-4">
+                <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-crew-coral-soft text-crew-coral shrink-0">
+                  <FileText size={16} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12.5px] font-semibold text-crew-ink truncate">
+                    UN38.3_LFP-B4471.pdf
+                  </div>
+                  <div className="text-[11px] text-crew-muted">Parsed in 4.2s · auto-mapped</div>
+                </div>
+                <span className="inline-flex items-center h-5 px-2 rounded-full bg-crew-green-soft text-crew-green text-[10.5px] font-semibold">
+                  Done
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {parsedFields.map((f) => (
+                  <div key={f.label} className="px-3 py-2 rounded-lg bg-crew-paper-soft">
+                    <div className="text-[10px] uppercase tracking-wider text-crew-muted">
+                      {f.label}
                     </div>
-                    <StatusChip status={r.status} tone={r.tone} />
+                    <div
+                      className="text-[12.5px] font-semibold text-crew-ink"
+                      style={{ fontFeatureSettings: '"tnum"' }}
+                    >
+                      {f.value}
+                    </div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t border-crew-border text-[11px] font-medium text-crew-muted">
-                14 of 17 suppliers responded this quarter
+                Mapped to EU 2023/1542 + India BWM — 2 gaps flagged
               </div>
             </div>
           </FeatureRow>
@@ -147,12 +151,12 @@ export default function Platform() {
           {/* Row 2 — Assemble / Build */}
           <FeatureRow
             eyebrow="Assemble"
-            title="Easy to build EU-ready passports"
-            body="Turn scattered certificates and ERP exports into structured, versioned Battery Passports — with all 80+ fields the EU expects, and QR codes buyers can verify in seconds."
+            title="Build an EU-ready passport in minutes"
+            body="Turn scattered certificates and ERP exports into a structured, versioned Battery Passport — every field the EU expects, a calculated carbon class, and a QR code buyers can verify in seconds."
             bullets={[
-              "80+ EU Battery Regulation fields, pre-mapped",
-              "One-click QR-coded passport generation",
-              "Full version history for every field change",
+              "Every EU 2023/1542 passport field, pre-mapped",
+              "Carbon footprint + A–G class, calculated for you",
+              "Full version history on every field",
             ]}
             cta={{ label: "See how it works", href: "/battery" }}
             flip
@@ -192,18 +196,40 @@ export default function Platform() {
                   </div>
                 ))}
               </div>
+              <div className="mt-5 pt-4 border-t border-crew-border flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] text-crew-muted mb-1.5">Carbon class</div>
+                  <div className="flex items-center gap-1">
+                    {carbonClasses.map((c) => (
+                      <span
+                        key={c}
+                        className={`inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold ${
+                          c === "B"
+                            ? "bg-crew-green text-white"
+                            : "bg-crew-paper-soft text-crew-muted"
+                        }`}
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg border border-crew-border text-crew-ink">
+                  <QrCode size={28} />
+                </span>
+              </div>
             </div>
           </FeatureRow>
 
           {/* Row 3 — Share / Govern */}
           <FeatureRow
             eyebrow="Share"
-            title="Share evidence with buyers, under your control"
-            body="Publish permissioned portals and QR-ready public pages. Buyers verify compliance in one click; you control exactly which fields each stakeholder sees."
+            title="Share proof with buyers, on your terms"
+            body="Publish a QR-coded public page and permissioned portals. Buyers verify in one click; regulators get the full audit trail; you control exactly which fields each side sees."
             bullets={[
-              "QR codes resolve to live, versioned records",
-              "Per-buyer permissions on sensitive fields",
-              "View tracking for every shared pack",
+              "Three access tiers — public, partner, regulator (Art. 78)",
+              "Magic-link portals per buyer",
+              "Scan analytics and view tracking",
             ]}
             cta={{ label: "Explore sharing", href: "/battery" }}
           >
@@ -211,7 +237,7 @@ export default function Platform() {
               <div className="text-[13px] font-semibold text-crew-ink mb-4">Share passport — LFP-B4471</div>
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-crew-border bg-crew-paper-soft mb-4">
                 <span className="flex-1 text-[11.5px] font-medium text-crew-muted truncate">
-                  portal.exportready.in/p/lfp-b4471
+                  portal.anviora.com/p/lfp-b4471
                 </span>
                 <span className="inline-flex items-center h-6 px-2.5 rounded-md bg-crew-navy text-white text-[11px] font-semibold">
                   Copy link
@@ -219,9 +245,9 @@ export default function Platform() {
               </div>
               <div className="grid gap-2.5">
                 {[
-                  { label: "Nordvolt GmbH", desc: "Full evidence access", on: true },
-                  { label: "Eurocell Logistics", desc: "Passport fields only", on: true },
-                  { label: "Public QR view", desc: "Regulated fields only", on: false },
+                  { label: "Public QR page", desc: "Regulated fields — anyone", on: true },
+                  { label: "Buyer portal — Nordvolt", desc: "Partner: full evidence", on: true },
+                  { label: "Regulator access", desc: "Complete audit trail", on: false },
                 ].map((p) => (
                   <div key={p.label} className="flex items-center justify-between gap-3">
                     <div>
@@ -252,12 +278,12 @@ export default function Platform() {
           {/* Row 4 — Monitor / Optimize */}
           <FeatureRow
             eyebrow="Monitor"
-            title="Catch compliance gaps before they become blocked shipments"
-            body="Get 30/7/day-of alerts for expiring certificates, stale carbon data, and missing supplier evidence — so your team fixes problems before they reach Rotterdam."
+            title="Catch problems before they reach the port"
+            body="Anviora watches every certificate, carbon figure, and supplier record and warns you 30, 7, and 1 days out — so issues get fixed in Pune, not flagged in Rotterdam."
             bullets={[
-              "Proactive alerts for certificate expiry and compliance drops",
+              "Proactive expiry and compliance-drop alerts",
               "Multi-supplier dashboard with risk scoring",
-              "Audit-ready evidence packs in one click",
+              "Audit-ready evidence pack in one click",
             ]}
             cta={{ label: "See monitoring", href: "/battery" }}
             flip

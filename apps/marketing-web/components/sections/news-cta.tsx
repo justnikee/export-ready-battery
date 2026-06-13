@@ -45,12 +45,12 @@ export default function NewsCTA() {
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             Get started
           </div>
-          <h2 className="text-[clamp(30px,4vw,42px)] font-semibold tracking-[-0.03em] leading-[1.1] text-crew-ink mb-5">
+          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink mb-5">
             <TextReveal as="span" className="block">
-              ExportReady supports any stage of your export journey
+              Wherever you are in your export journey, there&apos;s a path in.
             </TextReveal>
           </h2>
-          <p className="text-[17px] leading-[1.6] text-crew-muted">
+          <p className="text-[16px] leading-[1.6] text-[#131313]">
             Whether you&apos;re preparing your first shipment or running a multi-market
             compliance programme, we have a path for you.
           </p>

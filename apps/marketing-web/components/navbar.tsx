@@ -92,9 +92,7 @@ export default function Navbar({
       <nav
         ref={navRef}
         onMouseLeave={() => scheduleClose()}
-        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white border-b transition-all duration-300 ${
-          scrolled ? "border-crew-border shadow-sm" : "border-crew-border/60"
-        }`}
+        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white transition-all duration-300`}
       >
         <div
           className={`max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
@@ -104,8 +102,8 @@ export default function Navbar({
           {/* Left: Brand */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-semibold shrink-0 text-crew-ink justify-self-start"
-            style={{ fontSize: "16px" }}
+            className="inline-flex items-center gap-2.5 font-serif italic shrink-0 text-crew-ink justify-self-start"
+            style={{ fontSize: "24px" }}
           >
             <span
               aria-hidden="true"
@@ -117,7 +115,7 @@ export default function Navbar({
                 transform: "skewX(-10deg)",
               }}
             />
-            ExportReady
+            Anviora
           </Link>
 
           {/* Center: Desktop links */}
@@ -129,7 +127,7 @@ export default function Navbar({
                   <a
                     key={item.label}
                     href={item.href}
-                    className="px-3 py-1.5 text-[13px] font-medium rounded-md text-crew-ink/70 hover:text-crew-ink transition-colors"
+                    className="px-3 py-1.5 text-[16px] font-medium rounded-md text-crew-ink/70 hover:text-crew-ink transition-colors"
                   >
                     {item.label}
                   </a>
@@ -143,7 +141,7 @@ export default function Navbar({
                   onMouseLeave={() => scheduleClose()}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors ${
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[16px] font-medium rounded-md transition-colors ${
                       isOpen
                         ? "text-crew-ink bg-crew-paper-soft"
                         : "text-crew-ink/70 hover:text-crew-ink"
@@ -191,18 +189,12 @@ export default function Navbar({
           </div>
 
           {/* Right: Actions */}
-          <div className="hidden md:flex items-center gap-4 justify-self-end text-[13px] font-medium">
-            <a
-              href="/login"
-              className="text-crew-ink/70 hover:text-crew-ink transition-colors"
-            >
-              Sign In
-            </a>
+          <div className="hidden md:flex items-center gap-4 justify-self-end text-[16px] font-medium">
             <a
               href="/request-access"
-              className="inline-flex items-center justify-center h-[36px] px-5 rounded-full text-[13px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
+              className="inline-flex items-center justify-center h-[38px] px-5 rounded-full text-[16px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
             >
-              Sign Up
+              Request a Demo
             </a>
           </div>
 
@@ -252,14 +244,11 @@ export default function Navbar({
                 )}
               </div>
             ))}
-            <a href="/login" className="py-2 text-crew-muted">
-              Sign In
-            </a>
             <a
               href="/request-access"
               className="inline-flex items-center justify-center h-10 rounded-full text-white text-sm font-semibold mt-2 bg-crew-ink"
             >
-              Sign Up
+              Request a Demo
             </a>
           </div>
         </div>

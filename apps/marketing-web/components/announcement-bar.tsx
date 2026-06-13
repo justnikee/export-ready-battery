@@ -4,7 +4,7 @@ import { ArrowRight, X } from "lucide-react";
 
 export default function AnnouncementBar({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="relative bg-[#ff5a45] text-white text-center py-2.5 px-12 text-sm font-medium overflow-hidden">
+    <div className="relative bg-crew-coral text-white text-center py-2.5 px-12 text-sm font-medium overflow-hidden">
       {/* Grain texture overlay */}
       <svg
         aria-hidden="true"
