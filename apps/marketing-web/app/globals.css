@@ -2,30 +2,49 @@
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Consolas, monospace;
 
-  /* Anviora Color System */
-  --color-primary: #533afd;
-  --color-primary-deep: #4434d4;
-  --color-primary-press: #2e2b8c;
-  --color-primary-soft: #665efd;
-  --color-primary-sub: #b9b9f9;
-  --color-dark-900: #1c1e54;
-  --color-ink: #0d253d;
-  --color-ink-secondary: #273951;
-  --color-ink-mute: #64748d;
-  --color-ink-mute-2: #61718a;
-  --color-canvas: #ffffff;
-  --color-canvas-soft: #f6f9fc;
-  --color-canvas-cream: #f5e9d4;
-  --color-hairline: #e3e8ee;
-  --color-hairline-input: #a8c3de;
-  --color-ruby: #ea2261;
-  --color-magenta: #f96bee;
-  --color-lemon: #f59b38;
-  --color-shadow-blue: #003770;
-  --color-dark-section: #07142f;
-  --color-dark-panel: #0b1738;
+  /* Anviora Editorial Color System — warm neutral, single accent */
+  --color-paper: #faf6f0;
+  --color-paper-soft: #f1e7d9;
+  --color-ink: #2a2521;
+  --color-ink-secondary: #4e443c;
+  --color-ink-mute: #7c7066;
+  --color-ink-mute-2: #9d9188;
+  --color-hairline: #e7dccb;
+
+  --color-accent: #c2542c;
+  --color-accent-deep: #9c3f1e;
+  --color-accent-soft: #f4e0d0;
+
+  --color-charcoal: #1e1a16;
+  --color-charcoal-panel: #2a2420;
+
+  /* CrewAI-style dark landing palette (ExportReady re-skin) */
+  --color-crew-navy: #0a0a0f;
+  --color-crew-navy-light: #13131a;
+  --color-crew-navy-panel: #1c1c26;
+  --color-crew-coral: #ff5a45;
+  --color-crew-coral-light: #ff7a65;
+  --color-crew-coral-soft: #fff0ee;
+  --color-crew-ink: #0f0f0f;
+  --color-crew-muted: #6b7280;
+  --color-crew-muted-2: #9ca3af;
+  --color-crew-border: #e5e7eb;
+  --color-crew-border-dark: #272730;
+  --color-crew-paper: #ffffff;
+  --color-crew-paper-soft: #f9fafb;
+  --color-crew-green: #22c55e;
+  --color-crew-green-soft: #dcfce7;
+  --color-crew-amber: #f59e0b;
+  --color-crew-amber-soft: #fef3c7;
+
+  /* Aliases for legacy classnames shared with battery/textile/admin pages */
+  --color-canvas: var(--color-paper);
+  --color-canvas-soft: var(--color-paper-soft);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-paper);
 
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -43,16 +62,16 @@
 
   body {
     font-family: var(--font-sans);
-    background: #ffffff;
-    color: #0d253d;
-    font-weight: 300;
+    background: #faf6f0;
+    color: #2a2521;
+    font-weight: 400;
     font-size: 15px;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   ::selection {
-    background: rgba(83, 58, 253, 0.12);
-    color: #0d253d;
+    background: rgba(194, 84, 44, 0.16);
+    color: #2a2521;
   }
 }
 
@@ -61,13 +80,55 @@
     text-wrap: balance;
   }
 
-  /* Gradient text using primary */
+  /* Editorial display headline */
+  .display-xl {
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    color: #2a2521;
+  }
+
+  .display-lg {
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #2a2521;
+  }
+
+  /* Section eyebrow */
+  .eyebrow {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: #c2542c;
+  }
+
+  /* Gradient text accent (used on product pages) */
   .gradient-text {
-    background: linear-gradient(135deg, #533afd 0%, #f96bee 100%);
+    background: linear-gradient(135deg, #c2542c 0%, #9c3f1e 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Arrow nudge on CTA hover */
+  .cta-arrow {
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+  .group:hover .cta-arrow,
+  a:hover > .cta-arrow,
+  button:hover > .cta-arrow {
+    transform: translateX(3px);
+  }
+
+  /* Code window syntax tokens */
+  .tok-kw  { color: #f0a868; }
+  .tok-str { color: #a8c9a0; }
+  .tok-num { color: #e8b88a; }
+  .tok-key { color: #9cb8d4; }
+  .tok-cmt { color: #8a7d6f; }
+  .tok-flag { color: #d4826a; }
 
   /* Seamless marquee */
   @keyframes marquee {
@@ -77,6 +138,15 @@
 
   .animate-marquee {
     animation: marquee 30s linear infinite;
+  }
+
+  @keyframes marquee-slow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee-slow {
+    animation: marquee-slow 40s linear infinite;
   }
 
   /* Card glow border effect */
@@ -97,9 +167,8 @@
     opacity: 0;
     background: radial-gradient(
       180px circle at var(--glow-x) var(--glow-y),
-      rgba(83, 58, 253, 0.82),
-      rgba(249, 107, 238, 0.48) 34%,
-      rgba(245, 155, 56, 0.28) 52%,
+      rgba(194, 84, 44, 0.55),
+      rgba(194, 84, 44, 0.2) 45%,
       transparent 72%
     );
     -webkit-mask:

@@ -1,61 +1,70 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import TextReveal from "@/components/text-reveal";
 
 const stats = [
-  { value: "80+", label: "passport fields tracked per product" },
-  { value: "2027", label: "EU Battery Passport deadline" },
-  { value: "99.9%", label: "evidence version history retained" },
-  { value: "24h", label: "buyer evidence pack turnaround" },
+  { value: "150+", label: "Indian exporters onboarded" },
+  { value: "2,400+", label: "batches compliantly shipped" },
+  { value: "12", label: "European markets served" },
+  { value: "85%", label: "faster documentation" },
 ];
 
 export default function Backbone() {
   return (
-    <section className="text-center bg-white pt-[86px] overflow-hidden">
-      <div className="max-w-[1080px] mx-auto px-6">
-        <motion.h2
+    <section className="relative py-24 lg:py-32 overflow-hidden bg-crew-paper-soft">
+      <div className="relative z-[2] max-w-[1200px] mx-auto px-6">
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[28px] sm:text-[34px] font-light leading-[1.12] text-[#0d253d] mb-10"
+          transition={{ duration: 0.5 }}
+          className="max-w-[640px] mb-14"
         >
-          The backbone of verifiable global trade
-        </motion.h2>
+          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
+            Proven results
+          </div>
+          <h2 className="text-[clamp(30px,4vw,42px)] font-semibold tracking-[-0.03em] leading-[1.1] text-crew-ink mb-5">
+            <TextReveal as="span" className="block">
+              The future of export compliance is here, right now.
+            </TextReveal>
+          </h2>
+          <p className="text-[17px] leading-[1.6] text-crew-muted">
+            Indian manufacturers are already using ExportReady to cut documentation
+            time, avoid blocked shipments, and win European buyers.
+          </p>
+          <a
+            href="/battery"
+            className="group inline-flex items-center gap-1 mt-6 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
+          >
+            Explore the platform <ArrowRight size={15} className="cta-arrow" />
+          </a>
+        </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 border-b border-[#e3e8ee] mb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((s, i) => (
             <motion.div
               key={s.label}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="px-5 pb-6 text-left border-r border-[#e3e8ee] last:border-r-0"
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="relative p-6 rounded-2xl bg-crew-paper border border-crew-border"
             >
               <strong
-                className="block text-[#0d253d] text-[22px] sm:text-[24px] font-light mb-1.5"
+                className="block text-crew-ink text-[32px] sm:text-[40px] font-bold tracking-[-0.03em] leading-none mb-3"
                 style={{ fontFeatureSettings: '"tnum"' }}
               >
                 {s.value}
               </strong>
-              <span className="text-[12px] leading-[1.35] text-[#64748d]">
+              <span className="block text-[14px] leading-[1.45] text-crew-muted">
                 {s.label}
               </span>
             </motion.div>
           ))}
         </div>
       </div>
-
-      {/* Burst graphic */}
-      <div
-        className="w-[min(760px,120vw)] h-[250px] mx-auto -mb-[54px]"
-        style={{
-          background:
-            "repeating-conic-gradient(from 182deg at 50% 100%, rgba(245,155,56,.88) 0deg 1deg, transparent 1deg 3deg), linear-gradient(180deg, rgba(83,58,253,.08), rgba(83,58,253,0))",
-          clipPath: "ellipse(50% 100% at 50% 100%)",
-        }}
-        aria-hidden="true"
-      />
     </section>
   );
 }

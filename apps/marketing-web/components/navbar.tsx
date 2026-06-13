@@ -14,8 +14,8 @@ const navItems: NavItem[] = [
   {
     label: "Products",
     children: [
-      { label: "Anviora Battery", href: "/battery", desc: "Digital battery passports" },
-      { label: "Anviora Textile", href: "/textile", desc: "Textile DPP & traceability" },
+      { label: "Battery Passport", href: "/battery", desc: "EU 2023/1542 ready" },
+      { label: "Textile DPP", href: "/textile", desc: "Traceability & compliance" },
       { label: "Pricing", href: "/pricing", desc: "Plans for every scale" },
     ],
   },
@@ -35,10 +35,15 @@ const navItems: NavItem[] = [
       { label: "EU Battery Guide", href: "/battery", desc: "Regulatory roadmap" },
     ],
   },
-  { label: "Company", href: "#" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
-export default function Navbar() {
+export default function Navbar({
+  fixed = true,
+}: {
+  fixed?: boolean;
+  transparent?: boolean;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
@@ -46,7 +51,8 @@ export default function Navbar() {
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 32);
+    onScroll();
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -73,7 +79,6 @@ export default function Navbar() {
     }
   }, []);
 
-  // Close on escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActiveLabel(null);
@@ -87,123 +92,125 @@ export default function Navbar() {
       <nav
         ref={navRef}
         onMouseLeave={() => scheduleClose()}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/95 backdrop-blur-md border-b border-[#e3e8ee]"
-            : "bg-transparent"
+        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white border-b transition-all duration-300 ${
+          scrolled ? "border-crew-border shadow-sm" : "border-crew-border/60"
         }`}
       >
-        <div className="max-w-[1080px] mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Left cluster: Logo + Nav */}
-          <div className="flex items-center gap-8">
-            {/* Brand */}
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-[#0d253d] text-sm font-semibold shrink-0"
-            >
-              <span
-                className="w-4 h-4 rounded-[5px]"
-                style={{
-                  background: "linear-gradient(135deg, #533afd, #ea2261)",
-                  transform: "skewX(-10deg)",
-                  boxShadow: "rgba(83,58,253,.26) 0 8px 18px",
-                }}
-              />
-              Anviora
-            </Link>
+        <div
+          className={`max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
+            scrolled ? "h-14" : "h-16"
+          }`}
+        >
+          {/* Left: Brand */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2.5 font-semibold shrink-0 text-crew-ink justify-self-start"
+            style={{ fontSize: "16px" }}
+          >
+            <span
+              aria-hidden="true"
+              className="block bg-crew-coral"
+              style={{
+                width: "18px",
+                height: "18px",
+                borderRadius: "5px",
+                transform: "skewX(-10deg)",
+              }}
+            />
+            ExportReady
+          </Link>
 
-            {/* Desktop links */}
-            <div className="hidden md:flex items-center gap-1">
-              {navItems.map((item) => {
-                const isOpen = activeLabel === item.label;
-                if (!item.children) {
-                  return (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      className="px-3 py-1.5 text-[13px] font-medium text-[#61718a] hover:text-[#0d253d] transition-colors rounded-md"
-                    >
-                      {item.label}
-                    </a>
-                  );
-                }
+          {/* Center: Desktop links */}
+          <div className="hidden md:flex items-center gap-1 justify-self-center">
+            {navItems.map((item) => {
+              const isOpen = activeLabel === item.label;
+              if (!item.children) {
                 return (
-                  <div
+                  <a
                     key={item.label}
-                    className="relative"
-                    onMouseEnter={() => openDropdown(item.label)}
+                    href={item.href}
+                    className="px-3 py-1.5 text-[13px] font-medium rounded-md text-crew-ink/70 hover:text-crew-ink transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                );
+              }
+              return (
+                <div
+                  key={item.label}
+                  className="relative"
+                  onMouseEnter={() => openDropdown(item.label)}
+                  onMouseLeave={() => scheduleClose()}
+                >
+                  <button
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors ${
+                      isOpen
+                        ? "text-crew-ink bg-crew-paper-soft"
+                        : "text-crew-ink/70 hover:text-crew-ink"
+                    }`}
+                  >
+                    {item.label}
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-200 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown */}
+                  <div
+                    className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[220px] bg-crew-paper rounded-xl border border-crew-border shadow-[0_12px_40px_rgba(0,0,0,0.12)] py-2 z-50 transition-all duration-200 origin-top ${
+                      isOpen
+                        ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                        : "opacity-0 scale-[0.97] -translate-y-1 pointer-events-none"
+                    }`}
+                    onMouseEnter={cancelClose}
                     onMouseLeave={() => scheduleClose()}
                   >
-                    <button
-                      className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium rounded-md transition-colors ${
-                        isOpen
-                          ? "text-[#0d253d] bg-[#f6f9fc]"
-                          : "text-[#61718a] hover:text-[#0d253d]"
-                      }`}
-                    >
-                      {item.label}
-                      <ChevronDown
-                        size={14}
-                        className={`transition-transform duration-200 ${
-                          isOpen ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-
-                    {/* Dropdown */}
-                    <div
-                      className={`absolute top-full left-0 mt-1 w-[220px] bg-white rounded-xl border border-[#e3e8ee] shadow-[rgba(0,55,112,0.08)_0_12px_40px] py-2 z-50 transition-all duration-200 origin-top-left ${
-                        isOpen
-                          ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-                          : "opacity-0 scale-[0.97] -translate-y-1 pointer-events-none"
-                      }`}
-                      onMouseEnter={cancelClose}
-                      onMouseLeave={() => scheduleClose()}
-                    >
-                      {item.children.map((child) => (
-                        <a
-                          key={child.label}
-                          href={child.href}
-                          className="block px-4 py-2.5 hover:bg-[#f6f9fc] transition-colors"
-                        >
-                          <div className="text-[13px] font-medium text-[#0d253d]">
-                            {child.label}
+                    {item.children.map((child) => (
+                      <a
+                        key={child.label}
+                        href={child.href}
+                        className="block px-4 py-2.5 hover:bg-crew-paper-soft transition-colors"
+                      >
+                        <div className="text-[13px] font-medium text-crew-ink">
+                          {child.label}
+                        </div>
+                        {child.desc && (
+                          <div className="text-[11px] text-crew-muted mt-0.5">
+                            {child.desc}
                           </div>
-                          {child.desc && (
-                            <div className="text-[11px] text-[#64748d] mt-0.5">
-                              {child.desc}
-                            </div>
-                          )}
-                        </a>
-                      ))}
-                    </div>
+                        )}
+                      </a>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Right: Actions */}
-          <div className="hidden md:flex items-center gap-3.5 text-[13px] font-medium text-[#61718a]">
+          <div className="hidden md:flex items-center gap-4 justify-self-end text-[13px] font-medium">
             <a
               href="/login"
-              className="hover:text-[#0d253d] transition-colors"
+              className="text-crew-ink/70 hover:text-crew-ink transition-colors"
             >
-              Sign in
+              Sign In
             </a>
             <a
-              href="/demo"
-              className="inline-flex items-center justify-center gap-1.5 h-[30px] px-3.5 rounded-full text-[13px] font-medium text-white"
-              style={{ background: "#533afd" }}
+              href="/request-access"
+              className="inline-flex items-center justify-center h-[36px] px-5 rounded-full text-[13px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
             >
-              Book demo
+              Sign Up
             </a>
           </div>
 
           {/* Mobile toggle */}
           <button
-            className="md:hidden p-2 text-[#0d253d]"
+            className="md:hidden p-2 justify-self-end text-crew-ink"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -212,22 +219,22 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-white pt-16 px-6 md:hidden overflow-y-auto">
-          <div className="flex flex-col gap-2 text-[15px] font-medium text-[#0d253d]">
+        <div className="fixed inset-0 z-40 bg-crew-paper pt-20 px-6 md:hidden overflow-y-auto">
+          <div className="flex flex-col gap-2 text-[15px] font-medium text-crew-ink">
             {navItems.map((item) => (
               <div key={item.label}>
                 {item.children ? (
                   <>
-                    <div className="py-2 text-[13px] font-semibold text-[#64748d] uppercase tracking-wider">
+                    <div className="py-2 text-[13px] font-semibold text-crew-muted uppercase tracking-wider">
                       {item.label}
                     </div>
-                    <div className="pl-3 border-l border-[#e3e8ee] ml-1 space-y-1">
+                    <div className="pl-3 border-l border-crew-border ml-1 space-y-1">
                       {item.children.map((child) => (
                         <a
                           key={child.label}
                           href={child.href}
                           onClick={() => setMobileOpen(false)}
-                          className="block py-2 text-[14px] text-[#0d253d]"
+                          className="block py-2 text-[14px] text-crew-ink"
                         >
                           {child.label}
                         </a>
@@ -238,22 +245,21 @@ export default function Navbar() {
                   <a
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block py-2 border-b border-[#e3e8ee]"
+                    className="block py-2 border-b border-crew-border"
                   >
                     {item.label}
                   </a>
                 )}
               </div>
             ))}
-            <a href="/login" className="py-2 text-[#61718a]">
-              Sign in
+            <a href="/login" className="py-2 text-crew-muted">
+              Sign In
             </a>
             <a
-              href="/demo"
-              className="inline-flex items-center justify-center h-9 rounded-full text-white text-sm font-medium mt-2"
-              style={{ background: "#533afd" }}
+              href="/request-access"
+              className="inline-flex items-center justify-center h-10 rounded-full text-white text-sm font-semibold mt-2 bg-crew-ink"
             >
-              Book demo
+              Sign Up
             </a>
           </div>
         </div>

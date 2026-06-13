@@ -1,201 +1,280 @@
 "use client";
 
 import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  Bell,
+  FileText,
+  FolderOpen,
+  Globe,
+  Package,
+} from "lucide-react";
+import TextReveal from "@/components/text-reveal";
 
-const solutions = [
-  {
-    title: "Accept and organise compliance evidence across products",
-    description:
-      "Collect documents, map supplier data, and publish verified records from a single operating layer.",
-    large: true,
-    hasComposite: true,
-  },
-  {
-    title: "Enable any audit model",
-    description:
-      "Prepare buyer packs, regulator exports, and internal QA reviews without rebuilding the data.",
-    hasChart: true,
-  },
-  {
-    title: "Monitor supplier gaps",
-    description:
-      "Find missing certificates and stale records before they become blocked shipments.",
-    hasPattern: true,
-  },
-  {
-    title: "Create a buyer portal",
-    description:
-      "Give European customers a polished, permissioned view into product evidence.",
-    hasGradient: true,
-  },
-  {
-    title: "Access borderless product data",
-    description:
-      "Keep provenance, carbon, quality, and compliance fields connected across teams.",
-    hasMesh: true,
-  },
-  {
-    title: "Embed passports in every shipment",
-    description:
-      "Publish product-level records with QR-ready IDs, version history, and buyer-ready status.",
-    wide: true,
-    hasTable: true,
-  },
+function GlowHandlers(e: React.MouseEvent<HTMLElement>) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--glow-x", `${e.clientX - rect.left}px`);
+  e.currentTarget.style.setProperty("--glow-y", `${e.clientY - rect.top}px`);
+}
+
+const cardBase =
+  "glow-card group bg-paper border border-hairline rounded-2xl p-7 transition-all duration-200 hover:shadow-[0_1px_3px_rgba(42,37,33,0.06),0_16px_40px_rgba(194,84,44,0.12)] flex flex-col";
+
+function CardHeader({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent-soft text-accent mb-4">
+        {icon}
+      </div>
+      <h3 className="text-[17px] font-semibold tracking-[-0.01em] text-ink mb-2">
+        {title}
+      </h3>
+      <p className="text-[14px] leading-[1.5] text-ink-mute">{children}</p>
+    </div>
+  );
+}
+
+function LearnMore({ href = "#" }: { href?: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-1 mt-4 text-[13.5px] font-semibold text-accent"
+    >
+      Learn more <ArrowRight size={13} className="cta-arrow" />
+    </a>
+  );
+}
+
+const passportFields = [
+  ["Chemistry", "LFP"],
+  ["Rated capacity", "105 Ah"],
+  ["Carbon class", "B"],
+  ["Recycled content", "12.4%"],
+  ["Hazardous substances", "None declared"],
+];
+
+const vaultDocs = [
+  { name: "BIS-R-41023881.pdf", meta: "Valid · expires Mar 2027", ok: true },
+  { name: "UN38.3-TestReport.pdf", meta: "Valid · expires Nov 2026", ok: true },
+  { name: "Cobalt-DueDiligence.docx", meta: "Awaiting supplier", ok: false },
+];
+
+const gapAlerts = [
+  { text: "CE Declaration expires in 14 days", tone: "#ea580c" },
+  { text: "2 suppliers missing REACH letters", tone: "#dc2626" },
+  { text: "Carbon data stale for PACK-M204", tone: "#a16207" },
 ];
 
 export default function Solutions() {
   return (
-    <section id="product" className="py-[88px] bg-[#f6f9fc]">
+    <section id="product" className="py-24 bg-canvas-soft">
       <div className="max-w-[1080px] mx-auto px-6">
         {/* Head */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-1 lg:grid-cols-[minmax(0,470px)_minmax(0,360px)] items-end justify-between gap-10 lg:gap-12 mb-9"
+          transition={{ duration: 0.5 }}
+          className="max-w-[640px] mb-14"
         >
-          <div>
-            <div className="text-[#533afd] text-[12px] font-medium leading-[1.35] mb-3.5">
-              Product suite
-            </div>
-            <h2 className="text-[28px] sm:text-[34px] font-light leading-[1.12] tracking-normal text-[#0d253d]">
-              Flexible workflows for every export compliance model.
-            </h2>
-          </div>
-          <p className="text-[16px] leading-[1.55] text-[#64748d]">
-            A connected set of tools designed to work individually or together,
-            from first supplier upload to buyer verification.
+          <div className="eyebrow mb-3">Modular products</div>
+          <h2 className="display-lg text-[clamp(30px,4vw,42px)] mb-5">
+            <TextReveal as="span" className="block">
+              A fully integrated compliance suite
+            </TextReveal>
+          </h2>
+          <p className="text-[17px] leading-[1.6] text-ink-mute">
+            Reduce audit prep, blocked shipments, and buyer back-and-forth with one
+            connected platform. Each product works on its own — together they run
+            your entire export compliance programme.
           </p>
         </motion.div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {solutions.map((s, i) => (
-            <motion.article
-              key={s.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className={`glow-card bg-white border border-[#e3e8ee] rounded-xl overflow-hidden transition-all duration-200 hover:border-[rgba(83,58,253,0.18)] hover:shadow-[rgba(0,55,112,0.08)_0_1px_3px,rgba(83,58,253,0.12)_0_12px_32px] ${
-                s.large ? "sm:col-span-2 min-h-[360px] p-7" : "min-h-[250px] p-6"
-              } ${s.wide ? "sm:col-span-2" : ""}`}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                e.currentTarget.style.setProperty(
-                  "--glow-x",
-                  `${e.clientX - rect.left}px`
-                );
-                e.currentTarget.style.setProperty(
-                  "--glow-y",
-                  `${e.clientY - rect.top}px`
-                );
-              }}
-            >
-              <h3 className="text-[17px] font-medium leading-[1.25] text-[#0d253d] mb-2">
-                {s.title}
-              </h3>
-              <p className="text-[13px] leading-[1.48] text-[#64748d]">
-                {s.description}
-              </p>
-
-              {s.hasComposite && (
+        {/* Bento */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Passports — large */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className={`${cardBase} sm:col-span-2 lg:flex-row lg:items-center lg:gap-10`}
+            onMouseMove={GlowHandlers}
+          >
+            <div className="lg:flex-1">
+              <CardHeader icon={<Package size={18} />} title="Digital product passports">
+                Publish versioned, QR-ready passports for every SKU — with the 80+
+                fields the EU Battery Regulation expects, kept current automatically.
+              </CardHeader>
+              <LearnMore href="/battery" />
+            </div>
+            {/* Mini passport record */}
+            <div className="mt-6 lg:mt-0 lg:w-[320px] shrink-0 rounded-xl border border-hairline bg-paper shadow-[0_8px_24px_rgba(42,37,33,0.07)] overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">
+                <span className="text-[12.5px] font-bold text-ink" style={{ fontFeatureSettings: '"tnum"' }}>
+                  LFP-B4471
+                </span>
+                <span className="inline-flex items-center h-[20px] px-2 rounded-full bg-[#e8f7ef] text-[#1a7f4f] text-[10.5px] font-semibold">
+                  Published · v14
+                </span>
+              </div>
+              {passportFields.map(([k, v], i) => (
                 <div
-                  className="relative mt-6 rounded-xl overflow-hidden border border-[rgba(227,232,238,0.72)]"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.58)), linear-gradient(140deg, #f5e9d4 0%, #ff9d3d 38%, #f96bee 68%, #533afd 100%)",
-                    height: "220px",
-                  }}
+                  key={k}
+                  className={`flex items-center justify-between px-4 py-[8px] text-[12px] ${
+                    i < passportFields.length - 1 ? "border-b border-hairline" : ""
+                  }`}
                 >
-                  <div className="absolute left-7 top-6 w-[72px] h-[142px] rounded-[18px] bg-[#101747] shadow-[rgba(0,55,112,0.18)_0_14px_30px]">
-                    <div className="absolute inset-2 rounded-xl bg-white" />
-                  </div>
-                  <div className="absolute left-[120px] top-[34px] right-6 bottom-[30px] rounded-lg bg-[rgba(255,255,255,0.96)] border border-[#e3e8ee] p-4">
-                    <div className="h-2 rounded-full bg-[#f6f9fc] mb-3" />
-                    <div className="h-2 w-[76%] rounded-full bg-[rgba(83,58,253,0.18)] mb-3" />
-                    <div className="h-2 w-[54%] rounded-full bg-[#f6f9fc]" />
-                  </div>
+                  <span className="text-ink-mute-2">{k}</span>
+                  <span className="font-semibold text-ink" style={{ fontFeatureSettings: '"tnum"' }}>
+                    {v}
+                  </span>
                 </div>
-              )}
+              ))}
+            </div>
+          </motion.article>
 
-              {s.hasChart && (
+          {/* Supplier vault */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            className={cardBase}
+            onMouseMove={GlowHandlers}
+          >
+            <CardHeader icon={<FolderOpen size={18} />} title="Supplier evidence vault">
+              Certificates, test reports, and declarations from every tier — organised,
+              versioned, and linked to the products they cover.
+            </CardHeader>
+            <div className="mt-6 grid gap-2">
+              {vaultDocs.map((doc) => (
                 <div
-                  className="mt-7 h-[118px] rounded-lg relative"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(83,58,253,.14), transparent 58%), repeating-linear-gradient(90deg, transparent 0 28px, rgba(227,232,238,.7) 29px 30px)",
-                  }}
+                  key={doc.name}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-hairline"
                 >
-                  <div
-                    className="absolute left-2.5 right-2.5 bottom-6 h-[60px]"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(83,58,253,.1), rgba(249,107,238,.5))",
-                      clipPath:
-                        "polygon(0 100%, 14% 70%, 28% 76%, 44% 34%, 62% 50%, 78% 18%, 100% 0, 100% 100%)",
-                    }}
-                  />
-                </div>
-              )}
-
-              {s.hasPattern && (
-                <div
-                  className="mt-6 h-[126px] rounded-lg border border-[#e3e8ee]"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 30% 42%, rgba(234,34,97,.45) 0 2px, transparent 3px), radial-gradient(circle at 68% 48%, rgba(83,58,253,.38) 0 2px, transparent 3px)",
-                    backgroundSize: "13px 13px",
-                  }}
-                />
-              )}
-
-              {s.hasGradient && (
-                <div
-                  className="mt-7 h-[126px] rounded-lg"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #f5e9d4 0%, #ff9449 24%, #f96bee 58%, #533afd 100%)",
-                  }}
-                />
-              )}
-
-              {s.hasMesh && (
-                <div
-                  className="mt-6 h-[136px] rounded-lg"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 22% 60%, rgba(83,58,253,.4), transparent 34%), radial-gradient(circle at 78% 42%, rgba(234,34,97,.35), transparent 30%), #f6f9fc",
-                  }}
-                />
-              )}
-
-              {s.hasTable && (
-                <div className="mt-5 border border-[#e3e8ee] rounded-lg overflow-hidden">
-                  {[
-                    ["LFP-B4471", "EU 2023/1542", "Ready"],
-                    ["PACK-M204", "Carbon class", "Review"],
-                    ["TEXT-T889", "EUDR", "Ready"],
-                  ].map(([name, label, status], idx) => (
-                    <div
-                      key={name}
-                      className="grid grid-cols-[1.2fr_1fr_.8fr] gap-3.5 px-3 py-2.5 text-[12px]"
-                      style={{
-                        fontFeatureSettings: '"tnum"',
-                        borderBottom:
-                          idx < 2 ? "1px solid #e3e8ee" : "none",
-                        color: "#64748d",
-                      }}
-                    >
-                      <b className="text-[#0d253d] font-medium">{name}</b>
-                      <span>{label}</span>
-                      <span>{status}</span>
+                  <FileText size={14} className="shrink-0 text-ink-mute-2" />
+                  <div className="min-w-0">
+                    <div className="text-[11.5px] font-semibold text-ink truncate">
+                      {doc.name}
                     </div>
-                  ))}
+                    <div
+                      className={`text-[10.5px] font-medium ${
+                        doc.ok ? "text-[#1a7f4f]" : "text-[#a16207]"
+                      }`}
+                    >
+                      {doc.meta}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </motion.article>
-          ))}
+              ))}
+            </div>
+            <LearnMore />
+          </motion.article>
+
+          {/* Gap monitoring */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className={cardBase}
+            onMouseMove={GlowHandlers}
+          >
+            <CardHeader icon={<Bell size={18} />} title="Gap monitoring">
+              Catch expiring certificates and missing evidence months before they
+              become blocked shipments.
+            </CardHeader>
+            <div className="mt-6 grid gap-2">
+              {gapAlerts.map((alert) => (
+                <div
+                  key={alert.text}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-hairline text-[11.5px] font-medium text-ink"
+                >
+                  <span
+                    className="w-[7px] h-[7px] rounded-full shrink-0"
+                    style={{ background: alert.tone }}
+                  />
+                  {alert.text}
+                </div>
+              ))}
+            </div>
+            <LearnMore />
+          </motion.article>
+
+          {/* Buyer portal */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className={cardBase}
+            onMouseMove={GlowHandlers}
+          >
+            <CardHeader icon={<Globe size={18} />} title="Buyer portal">
+              Give European buyers a polished, permissioned view of your evidence —
+              no email attachments, no spreadsheets.
+            </CardHeader>
+            <div className="mt-6 rounded-lg border border-hairline overflow-hidden">
+              <div className="px-3 py-2 bg-canvas-soft text-[11px] font-medium text-ink-mute-2 truncate">
+                portal.anviora.com/p/lfp-b4471
+              </div>
+              <div className="px-3 py-2.5 flex items-center gap-2">
+                <div className="flex -space-x-1.5">
+                  <span className="w-5 h-5 rounded-full bg-accent border-2 border-paper" />
+                  <span className="w-5 h-5 rounded-full bg-ink-secondary border-2 border-paper" />
+                  <span className="w-5 h-5 rounded-full bg-[#d9a574] border-2 border-paper" />
+                </div>
+                <span className="text-[11px] font-medium text-ink-mute">
+                  Viewed by Nordvolt GmbH · 2h ago
+                </span>
+              </div>
+            </div>
+            <LearnMore />
+          </motion.article>
+
+          {/* Audit packs */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className={cardBase}
+            onMouseMove={GlowHandlers}
+          >
+            <CardHeader icon={<FileText size={18} />} title="Audit evidence packs">
+              Assemble buyer packs and regulator exports from data you already
+              have — in minutes, not weeks.
+            </CardHeader>
+            <div className="mt-6 rounded-lg border border-hairline px-3 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11.5px] font-semibold text-ink">
+                  Q3 buyer pack — Nordvolt
+                </span>
+                <span
+                  className="text-[11px] font-semibold text-accent"
+                  style={{ fontFeatureSettings: '"tnum"' }}
+                >
+                  92%
+                </span>
+              </div>
+              <div className="h-[6px] rounded-full bg-canvas-soft overflow-hidden">
+                <div className="h-full w-[92%] rounded-full bg-accent" />
+              </div>
+              <div className="mt-2 text-[10.5px] font-medium text-ink-mute-2">
+                312 documents · 4 product lines · 1 open gap
+              </div>
+            </div>
+            <LearnMore />
+          </motion.article>
         </div>
       </div>
     </section>

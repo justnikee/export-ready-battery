@@ -1,80 +1,60 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 
-interface BadgeProps {
-  label: string;
-  abbr: string;
-  color: string;
-}
+const logos = [
+  { name: "Nordvolt", country: "DE" },
+  { name: "Eurocell", country: "NL" },
+  { name: "GreenCell", country: "FR" },
+  { name: "BharatCells", country: "IN" },
+  { name: "MeghnaPolymers", country: "IN" },
+  { name: "TraceFabrics", country: "ES" },
+  { name: "RenewPower", country: "IN" },
+  { name: "ECOBattery", country: "IT" },
+];
 
-function ComplianceBadge({ label, abbr, color }: BadgeProps) {
+function LogoPill({ name, country }: { name: string; country: string }) {
   return (
-    <div className="flex items-center gap-2 shrink-0 px-2">
-      <span
-        className="inline-flex items-center justify-center w-6 h-6 rounded text-[9px] font-bold text-white"
-        style={{ background: color }}
-      >
-        {abbr}
+    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-crew-paper-soft border border-crew-border">
+      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-crew-navy text-white text-[9px] font-bold">
+        {name.slice(0, 1)}
       </span>
-      <span className="text-[12px] font-medium text-[#64748d] whitespace-nowrap">
-        {label}
-      </span>
+      <span className="text-[13px] font-medium text-crew-ink whitespace-nowrap">{name}</span>
+      <span className="text-[10px] text-crew-muted">{country}</span>
     </div>
   );
 }
 
-const badges: BadgeProps[] = [
-  { label: "EU Battery Regulation", abbr: "EU", color: "#003399" },
-  { label: "EUDR", abbr: "DR", color: "#1e4d2b" },
-  { label: "REACH", abbr: "RE", color: "#2563eb" },
-  { label: "RoHS", abbr: "RH", color: "#0891b2" },
-  { label: "CE Marking", abbr: "CE", color: "#dc2626" },
-  { label: "BIS", abbr: "BI", color: "#ea580c" },
-  { label: "UN38.3", abbr: "UN", color: "#4f46e5" },
-  { label: "GOTS", abbr: "GO", color: "#16a34a" },
-  { label: "OEKO-TEX", abbr: "OE", color: "#7c3aed" },
-];
-
 export default function LogoStrip() {
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const onEnter = () => { track.style.animationPlayState = "paused"; };
-    const onLeave = () => { track.style.animationPlayState = "running"; };
-    track.addEventListener("mouseenter", onEnter);
-    track.addEventListener("mouseleave", onLeave);
-    return () => {
-      track.removeEventListener("mouseenter", onEnter);
-      track.removeEventListener("mouseleave", onLeave);
-    };
-  }, []);
-
   return (
-    <section className="relative z-[3] py-4 bg-[#f6f9fc]">
-      <div className="max-w-[1080px] mx-auto px-6 overflow-hidden">
-        {/* Fade edges */}
-        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-[#f6f9fc] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f6f9fc] to-transparent z-10 pointer-events-none" />
-
-        <div
-          ref={trackRef}
-          className="flex gap-6 w-max animate-marquee"
+    <section className="py-10 bg-crew-paper border-b border-crew-border">
+      <div className="max-w-[1200px] mx-auto px-6">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center text-[13px] text-crew-muted mb-6"
         >
-          {/* First set */}
-          {badges.map((b, i) => (
-            <ComplianceBadge key={`a-${i}`} {...b} />
-          ))}
-          {/* Duplicate for seamless loop */}
-          {badges.map((b, i) => (
-            <ComplianceBadge key={`b-${i}`} {...b} />
-          ))}
-          {/* Third set for extra smoothness on wide screens */}
-          {badges.map((b, i) => (
-            <ComplianceBadge key={`c-${i}`} {...b} />
-          ))}
+          Trusted by Indian exporters shipping to Europe every day
+        </motion.p>
+
+        <div className="relative overflow-hidden">
+          {/* Fade edges */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-crew-paper to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-crew-paper to-transparent z-10" />
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex gap-4 animate-marquee-slow w-max"
+          >
+            {[...logos, ...logos, ...logos, ...logos].map((logo, i) => (
+              <LogoPill key={`${logo.name}-${i}`} name={logo.name} country={logo.country} />
+            ))}
+          </motion.div>
         </div>
       </div>
     </section>
