@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
@@ -152,6 +152,34 @@ function getIndiaComplianceChecks(
       required: true,
     },
   ]
+}
+
+// Field-level badge shown next to a regulatory number once its certificate
+// has been uploaded. Mirrors the wording used by DocumentUpload's own status
+// badge below the field, so "Submitted" vs "Verified" never contradict each
+// other on screen.
+function getFieldStatusBadge(status?: string) {
+  if (status === "VERIFIED") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-normal">
+        <CheckCircle className="h-3 w-3" />
+        Verified
+      </span>
+    )
+  }
+  if (status === "PENDING") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-normal">
+        <Clock className="h-3 w-3" />
+        Submitted — pending verification
+      </span>
+    )
+  }
+  return null
+}
+
+function hasPendingCertVerification(certs: Record<string, string>): boolean {
+  return certs.epr_status === "PENDING" || certs.bis_status === "PENDING" || certs.pli_status === "PENDING"
 }
 
 function getActivationBlockers(
@@ -455,7 +483,7 @@ export default function SettingsPage() {
  </div>
  <div>
  <h3 className="text-base font-medium text-foreground">India Compliance Vault</h3>
- <p className="text-xs text-muted-foreground">BWM 2022 & BIS Safety Standards â€¢ Upload certificates for verification</p>
+ <p className="text-xs text-muted-foreground">BWM 2022 & BIS Safety Standards • Upload certificates for verification</p>
  </div>
  </div>
  {/* Compliance Readiness Indicator */}
@@ -476,6 +504,12 @@ export default function SettingsPage() {
  style={{ width: `${(completed / checks.length) * 100}%` }}
  />
  </div>
+ {completed === checks.length && hasPendingCertVerification(certificatePaths) && (
+ <p className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-400">
+ <Clock className="h-3 w-3 shrink-0" />
+ All required documents submitted — batches can be activated. Some certificates are still pending registry/admin verification.
+ </p>
+ )}
  {blockers.length > 0 && (
  <div className="mt-2 flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/20 rounded">
  <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
@@ -510,12 +544,7 @@ export default function SettingsPage() {
  Certificate required
  </span>
  )}
- {formData.epr_registration_number?.trim() && isCertValid(certificatePaths.epr_status) && (
- <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-normal">
- <CheckCircle className="h-3 w-3" />
- Ready
- </span>
- )}
+ {formData.epr_registration_number?.trim() && isCertValid(certificatePaths.epr_status) && getFieldStatusBadge(certificatePaths.epr_status)}
  </label>
  <div className="relative">
  <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
@@ -546,12 +575,7 @@ export default function SettingsPage() {
  Certificate required
  </span>
  )}
- {formData.bis_r_number?.trim() && isCertValid(certificatePaths.bis_status) && (
- <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-normal">
- <CheckCircle className="h-3 w-3" />
- Ready
- </span>
- )}
+ {formData.bis_r_number?.trim() && isCertValid(certificatePaths.bis_status) && getFieldStatusBadge(certificatePaths.bis_status)}
  </label>
  <div className="relative">
  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
@@ -632,7 +656,7 @@ export default function SettingsPage() {
  </div>
  {formData.morth_manufacturer_code === 'TBC' && (
  <p className="text-xs text-amber-500">
- âš ï¸ â€œTBCâ€ is a placeholder â€” replace it with your actual 3-character MoRTH-registered code.
+ ⚠️ “TBC” is a placeholder — replace it with your actual 3-character MoRTH-registered code.
  </p>
  )}
  <p className="text-xs text-muted-foreground">3-char MoRTH-registered code used in the BMI section of your BPAN serial numbers.</p>
@@ -660,7 +684,7 @@ export default function SettingsPage() {
  </>)}
 
  {/* EU Compliance Contact Card */}
- {activeSettingsTab === 'profile' && (
+ {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
  <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-indigo-500/10 border border-indigo-100">
@@ -737,9 +761,16 @@ export default function SettingsPage() {
  const allReady = checks.every(c => c.done)
  if (allReady) {
  return (
- <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded">
- <CheckCircle className="h-4 w-4 text-emerald-400" />
- <p className="text-sm text-emerald-300">All compliance items ready. You can activate India batches.</p>
+ <div className="flex items-start gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded">
+ <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+ <div className="text-sm text-emerald-300">
+ <p>All compliance items ready. You can activate India batches.</p>
+ {hasPendingCertVerification(certificatePaths) && (
+ <p className="mt-1 text-emerald-300/70 text-xs">
+ Certificates marked &ldquo;Submitted &mdash; pending verification&rdquo; are still under registry/admin review, but won&rsquo;t block activation.
+ </p>
+ )}
+ </div>
  </div>
  )
  }

@@ -14,15 +14,26 @@ import (
 	"github.com/google/uuid"
 )
 
+// tenantCertJobStore is the subset of repository methods needed to process
+// tenant-level certificate verification jobs. Satisfied implicitly by
+// *repository.Repository; asserted at construction time so test fakes that
+// don't implement it simply disable this part of the worker.
+type tenantCertJobStore interface {
+	GetPendingTenantCertVerificationJobs(ctx context.Context, limit int) ([]models.TenantCertVerificationJob, error)
+	UpdateTenantCertVerificationJobStatus(ctx context.Context, id uuid.UUID, status string, attemptCount int, nextAttemptAt *time.Time, resultStatus, resultTrustTier, errorMessage string) error
+	UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUID, docType string, status string) error
+}
+
 // RegistryWorkerPool processes async registry verification jobs.
 type RegistryWorkerPool struct {
-	repo      repository.RepositoryInterface
-	adapters  *registry.AdapterRegistry
-	cfg       *config.Config
-	interval  time.Duration
-	maxWorkers int
-	quit      chan struct{}
-	wg        sync.WaitGroup
+	repo            repository.RepositoryInterface
+	tenantCertStore tenantCertJobStore
+	adapters        *registry.AdapterRegistry
+	cfg             *config.Config
+	interval        time.Duration
+	maxWorkers      int
+	quit            chan struct{}
+	wg              sync.WaitGroup
 }
 
 // NewRegistryWorkerPool creates a worker pool for registry jobs.
@@ -37,13 +48,15 @@ func NewRegistryWorkerPool(repo repository.RepositoryInterface, cfg *config.Conf
 			HTTPTimeout:    cfg.RegistryHTTPTimeout,
 		}
 	}
+	tenantCertStore, _ := repo.(tenantCertJobStore)
 	return &RegistryWorkerPool{
-		repo:       repo,
-		adapters:   registry.NewAdapterRegistry(regCfg, repo),
-		cfg:        cfg,
-		interval:   cfg.RegistryWorkerInterval,
-		maxWorkers: cfg.RegistryWorkerCount,
-		quit:       make(chan struct{}),
+		repo:            repo,
+		tenantCertStore: tenantCertStore,
+		adapters:        registry.NewAdapterRegistry(regCfg, repo),
+		cfg:             cfg,
+		interval:        cfg.RegistryWorkerInterval,
+		maxWorkers:      cfg.RegistryWorkerCount,
+		quit:            make(chan struct{}),
 	}
 }
 
@@ -77,6 +90,7 @@ func (p *RegistryWorkerPool) loop() {
 			return
 		case <-ticker.C:
 			p.processBatch()
+			p.processTenantCertBatch()
 		}
 	}
 }
@@ -222,6 +236,108 @@ func (p *RegistryWorkerPool) failJob(ctx context.Context, jobID uuid.UUID, job m
 		"max_attempts", maxAttempts,
 		"next_attempt", nextAttempt,
 		"latency_ms", latency,
+		"error", err.Error(),
+	)
+}
+
+// processTenantCertBatch polls and processes pending tenant certificate
+// verification jobs (e.g. checking a BIS R-Number against the BIS portal).
+// No-op if the underlying repo doesn't support tenant cert jobs.
+func (p *RegistryWorkerPool) processTenantCertBatch() {
+	if p.tenantCertStore == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	jobs, err := p.tenantCertStore.GetPendingTenantCertVerificationJobs(ctx, p.maxWorkers*2)
+	if err != nil {
+		slog.Error("failed to poll tenant cert verification jobs", "error", err)
+		return
+	}
+	if len(jobs) == 0 {
+		return
+	}
+
+	slog.Info("processing tenant cert verification jobs", "count", len(jobs))
+
+	sem := make(chan struct{}, p.maxWorkers)
+	for _, job := range jobs {
+		p.wg.Add(1)
+		go func(j models.TenantCertVerificationJob) {
+			defer p.wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			p.processTenantCertJob(ctx, j)
+		}(job)
+	}
+}
+
+func (p *RegistryWorkerPool) processTenantCertJob(ctx context.Context, job models.TenantCertVerificationJob) {
+	jobID, _ := uuid.Parse(job.ID)
+	tenantID, _ := uuid.Parse(job.TenantID)
+
+	_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, "running", job.AttemptCount+1, nil, "", "", "")
+
+	regType, err := registry.NormalizeRegistryType(job.DocType)
+	if err != nil {
+		// No registry adapter for this doc type (e.g. "epr"/"pli" today) —
+		// leave it for manual admin review via /api/v1/admin/verify-doc.
+		_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, "dead", job.AttemptCount+1, nil, "", "", fmt.Sprintf("no registry adapter for doc type %q", job.DocType))
+		return
+	}
+
+	adapter := p.adapters.Get(regType)
+	if adapter == nil {
+		_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, "dead", job.AttemptCount+1, nil, "", "", fmt.Sprintf("no adapter for registry type %q", regType))
+		return
+	}
+
+	result, adapterErr := adapter.Verify(ctx, job.CertificateNo, nil)
+	if adapterErr != nil {
+		p.failTenantCertJob(ctx, jobID, job, adapterErr)
+		return
+	}
+
+	// Only auto-promote to VERIFIED when the registry positively confirms
+	// the registration. Anything else (not_found, failed, error) leaves the
+	// cert in PENDING for manual admin review — a fragile portal scrape
+	// should never auto-reject a tenant's submission.
+	if result.Status == models.RegistryStatusVerified && result.TrustTier == models.TrustTierRegistry {
+		if err := p.tenantCertStore.UpdateDocumentStatus(ctx, tenantID, job.DocType, "VERIFIED"); err != nil {
+			slog.Error("failed to mark document verified from registry", "error", err, "tenant_id", job.TenantID, "doc_type", job.DocType)
+		} else {
+			slog.Info("tenant cert auto-verified via registry", "tenant_id", job.TenantID, "doc_type", job.DocType, "registry", regType)
+		}
+	} else {
+		slog.Info("tenant cert registry check inconclusive, awaiting manual review", "tenant_id", job.TenantID, "doc_type", job.DocType, "status", result.Status)
+	}
+
+	_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, "success", job.AttemptCount+1, nil, string(result.Status), string(result.TrustTier), "")
+}
+
+func (p *RegistryWorkerPool) failTenantCertJob(ctx context.Context, jobID uuid.UUID, job models.TenantCertVerificationJob, err error) {
+	attempts := job.AttemptCount + 1
+	maxAttempts := job.MaxAttempts
+	if maxAttempts == 0 {
+		maxAttempts = 5
+	}
+
+	backoff := calculateBackoff(attempts)
+	nextAttempt := time.Now().Add(backoff)
+	status := "failed"
+	if attempts >= maxAttempts {
+		status = "dead"
+	}
+
+	_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, status, attempts, &nextAttempt, "", "", err.Error())
+	slog.Warn("tenant cert verification job failed",
+		"job_id", job.ID,
+		"doc_type", job.DocType,
+		"attempt", attempts,
+		"max_attempts", maxAttempts,
+		"next_attempt", nextAttempt,
 		"error", err.Error(),
 	)
 }

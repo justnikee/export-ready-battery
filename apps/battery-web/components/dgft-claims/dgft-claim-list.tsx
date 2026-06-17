@@ -100,7 +100,7 @@ export default function DGFTClaimsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">DGFT Claims</h1>
@@ -124,23 +124,23 @@ export default function DGFTClaimsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={schemeFilter} onValueChange={(v) => { setSchemeFilter(v); setPage(1); }}>
+        <Select value={schemeFilter || "ALL"} onValueChange={(v) => { setSchemeFilter(v === "ALL" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Schemes" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Schemes</SelectItem>
+            <SelectItem value="ALL">All Schemes</SelectItem>
             <SelectItem value="RODTEP">RoDTEP</SelectItem>
             <SelectItem value="INTEREST_EQUALIZATION">Interest Equalization</SelectItem>
             <SelectItem value="DUTY_DRAWBACK">Duty Drawback</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+        <Select value={statusFilter || "ALL"} onValueChange={(v) => { setStatusFilter(v === "ALL" ? "" : v); setPage(1); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="DRAFT">Draft</SelectItem>
             <SelectItem value="SUBMITTED">Submitted</SelectItem>
             <SelectItem value="APPROVED">Approved</SelectItem>
@@ -154,7 +154,7 @@ export default function DGFTClaimsPage() {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredClaims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-lg">
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-none">
           <Landmark className="w-10 h-10 text-muted-foreground mb-3" />
           <h3 className="text-sm font-medium">No claims yet</h3>
           <p className="text-xs text-muted-foreground max-w-[300px] mt-1">
@@ -166,7 +166,7 @@ export default function DGFTClaimsPage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
+        <div className="border border-border rounded-none overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

@@ -11,7 +11,7 @@ export default function ValueProp() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="font-serif text-[clamp(28px,3.8vw,42px)] font-normal tracking-[-0.01em] leading-[1.2] text-crew-ink max-w-[800px] mx-auto"
+          className="font-serif text-balance text-[clamp(28px,3.8vw,42px)] font-normal tracking-[-0.01em] leading-[1.2] text-crew-ink max-w-[720px] mx-auto"
         >
           Compliance is no longer a cost center. It&apos;s how you win the order.
         </motion.h2>

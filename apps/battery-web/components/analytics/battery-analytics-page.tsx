@@ -160,7 +160,17 @@ export default function AnalyticsPage() {
 
     try {
       const response = await api.get("/analytics/overview");
-      setComplianceData(response.data);
+      const data = response.data || {};
+      setComplianceData({
+        compliance_trend: data.compliance_trend || [],
+        certificate_expiry: data.certificate_expiry || [],
+        carbon_distribution: data.carbon_distribution || [],
+        batch_status_breakdown: data.batch_status_breakdown || {},
+        market_region_split: data.market_region_split || [],
+        supplier_document_status: data.supplier_document_status || {},
+        dgft_claim_funnel: data.dgft_claim_funnel || [],
+        alert_severity_breakdown: data.alert_severity_breakdown || {},
+      });
     } catch {
       toast.error("Failed to load compliance analytics");
     } finally {

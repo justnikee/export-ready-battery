@@ -13,17 +13,15 @@ import (
 )
 
 // CreateBatchRequest contains all parameters for creating a batch.
-// Battery-specific fields (CellSource, HSNCode, BISNumber, etc.) are stored
+// Product-specific fields (HSNCode, BISNumber, EPRNumber, etc.) are stored
 // inside Specs JSONB — do not set them as top-level fields.
 type CreateBatchRequest struct {
-	TenantID         uuid.UUID
-	BatchName        string
-	ModelName        string
-	Specs            models.BatchSpec
-	MarketRegion     models.MarketRegion
-	ProductType      models.ProductType // v2: defaults to BATTERY if empty
-	PLICompliant     bool
-	DomesticValueAdd float64
+	TenantID     uuid.UUID
+	BatchName    string
+	ModelName    string
+	Specs        models.BatchSpec
+	MarketRegion models.MarketRegion
+	ProductType  models.ProductType
 
 	// Manufacturing window
 	ManufacturingStartDate *time.Time
@@ -54,8 +52,6 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		ProductType:            productType,
 		SchemaVersion:          1,
 		MarketRegion:           marketRegion,
-		PLICompliant:           req.PLICompliant,
-		DomesticValueAdd:       req.DomesticValueAdd,
 		ManufacturingStartDate: req.ManufacturingStartDate,
 		ManufacturingEndDate:   req.ManufacturingEndDate,
 	}
@@ -66,10 +62,10 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 	}
 
 	query := `INSERT INTO public.batches
-		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add,
+		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region,
 		 manufacturing_start_date, manufacturing_end_date,
 		 product_type, schema_version)
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12)`
 
 	_, err = r.db.Pool.Exec(ctx, query,
 		batch.ID,
@@ -80,8 +76,6 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.CreatedAt,
 		models.BatchStatusDraft, // New batches start as DRAFT
 		string(marketRegion),
-		batch.PLICompliant,
-		batch.DomesticValueAdd,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
 		string(productType),
@@ -105,8 +99,6 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	query := `SELECT id, tenant_id, batch_name, model_name, specs, created_at,
 	          COALESCE(status, 'DRAFT') as status,
 	          COALESCE(market_region, 'GLOBAL') as market_region,
-	          COALESCE(pli_compliant, false),
-	          COALESCE(domestic_value_add, 0),
 	          manufacturing_start_date,
 	          manufacturing_end_date,
 	          COALESCE(product_type, 'TEXTILE') as product_type,
@@ -125,8 +117,6 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&batch.CreatedAt,
 		&batch.Status,
 		&marketRegion,
-		&batch.PLICompliant,
-		&batch.DomesticValueAdd,
 		&manufacturingStart,
 		&manufacturingEnd,
 		&productType,
@@ -173,8 +163,6 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	query := `SELECT b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at,
 	          COALESCE(b.status, 'DRAFT') as status,
 	          COALESCE(b.market_region::text, 'GLOBAL') as market_region,
-	          COALESCE(b.pli_compliant, false),
-	          COALESCE(b.domestic_value_add, 0),
 	          b.manufacturing_start_date,
 	          b.manufacturing_end_date,
 	          COALESCE(b.product_type, 'TEXTILE') as product_type,
@@ -186,7 +174,7 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 	          LEFT JOIN public.passports p ON b.id = p.batch_id
 	          WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND ($4 = '' OR b.product_type = $4)
 	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status,
-	                   b.market_region, b.pli_compliant, b.domestic_value_add,
+	                   b.market_region,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
 	                   b.product_type, b.schema_version, b.compliance_score, b.compliance_gaps
 	          ORDER BY b.created_at DESC
@@ -215,8 +203,6 @@ func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, produc
 			&batch.CreatedAt,
 			&batch.Status,
 			&marketRegion,
-			&batch.PLICompliant,
-			&batch.DomesticValueAdd,
 			&manufacturingStart,
 			&manufacturingEnd,
 			&productType,
@@ -254,18 +240,11 @@ func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// UpdateBatchMetadata updates the domestic_value_add of a batch.
-// Battery-specific fields (cell_source, bill_of_entry, country_of_origin) are
-// now stored in specs JSONB and updated via PatchBatchDraft.
-func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error {
-	query := `UPDATE public.batches SET
-		domestic_value_add = COALESCE($2, domestic_value_add)
-		WHERE id = $1`
-
-	_, err := r.db.Pool.Exec(ctx, query, id, domesticValue)
-	if err != nil {
-		return fmt.Errorf("failed to update batch metadata: %w", err)
-	}
+// UpdateBatchMetadata is a legacy helper kept for interface compatibility.
+// Product-specific metadata updates should use PatchBatchDraft and store
+// values inside specs JSONB.
+func (r *Repository) UpdateBatchMetadata(ctx context.Context, id uuid.UUID, _ *float64) error {
+	_ = id
 	return nil
 }
 
@@ -286,8 +265,7 @@ func (r *Repository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID
 		model_name              = COALESCE($3,  model_name),
 		manufacturing_start_date= COALESCE($4,  manufacturing_start_date),
 		manufacturing_end_date  = COALESCE($5,  manufacturing_end_date),
-		domestic_value_add      = COALESCE($6,  domestic_value_add),
-		specs = CASE WHEN $7::text IS NULL THEN specs ELSE specs || $7::jsonb END
+		specs = CASE WHEN $6::text IS NULL THEN specs ELSE specs || $6::jsonb END
 	WHERE id = $1 AND tenant_id = $2 AND COALESCE(status, 'DRAFT') = 'DRAFT'`
 
 	result, err := r.db.Pool.Exec(ctx, query,
@@ -295,7 +273,6 @@ func (r *Repository) PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID
 		req.ModelName,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
-		req.DomesticValueAdd,
 		specsFragment,
 	)
 	if err != nil {

@@ -12,7 +12,7 @@ interface TabsContextType {
 const TabsContext = React.createContext<TabsContextType | undefined>(undefined)
 
 interface TabsProps {
- defaultValue: string
+ defaultValue?: string
  children: React.ReactNode
  className?: string
  value?: string
@@ -20,7 +20,7 @@ interface TabsProps {
 }
 
 export function Tabs({ defaultValue, children, className, value, onValueChange }: TabsProps) {
- const [internalTab, setInternalTab] = React.useState(defaultValue)
+ const [internalTab, setInternalTab] = React.useState(defaultValue ?? "")
  const activeTab = value !== undefined ? value : internalTab
  const setActiveTab = (tab: string) => {
  setInternalTab(tab)

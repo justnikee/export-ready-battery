@@ -91,7 +91,7 @@ func (r *Repository) complianceTrend(ctx context.Context, tenantID uuid.UUID, pr
 	}
 	defer rows.Close()
 
-	var points []models.ComplianceTrendPoint
+	points := make([]models.ComplianceTrendPoint, 0)
 	for rows.Next() {
 		var p models.ComplianceTrendPoint
 		if err := rows.Scan(&p.Period, &p.AvgScore, &p.BatchCount); err != nil {
@@ -174,7 +174,7 @@ func (r *Repository) carbonDistribution(ctx context.Context, tenantID uuid.UUID,
 	}
 	defer rows.Close()
 
-	var results []models.CarbonClassCount
+	results := make([]models.CarbonClassCount, 0)
 	for rows.Next() {
 		var c models.CarbonClassCount
 		if err := rows.Scan(&c.Class, &c.Count); err != nil {
@@ -220,7 +220,7 @@ func (r *Repository) marketRegionSplit(ctx context.Context, tenantID uuid.UUID, 
 	}
 	defer rows.Close()
 
-	var results []models.RegionCount
+	results := make([]models.RegionCount, 0)
 	for rows.Next() {
 		var rc models.RegionCount
 		if err := rows.Scan(&rc.Region, &rc.Count); err != nil {
@@ -267,7 +267,7 @@ func (r *Repository) dgftClaimFunnel(ctx context.Context, tenantID uuid.UUID) ([
 	}
 	defer rows.Close()
 
-	var results []models.StatusCount
+	results := make([]models.StatusCount, 0)
 	for rows.Next() {
 		var sc models.StatusCount
 		if err := rows.Scan(&sc.Status, &sc.Count); err != nil {

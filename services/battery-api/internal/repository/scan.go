@@ -50,12 +50,12 @@ func (r *Repository) GetLastScanTime(ctx context.Context, passportID uuid.UUID) 
 // GetScanFeed retrieves recent scans for the live feed
 func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error) {
 	query := `
-		SELECT 
-			s.city, 
-			s.country,
+		SELECT
+			COALESCE(s.city, '') as city,
+			COALESCE(s.country, '') as country,
 			COALESCE(s.latitude, 0) as latitude,
 			COALESCE(s.longitude, 0) as longitude,
-			s.device_type, 
+			COALESCE(s.device_type, '') as device_type,
 			s.scanned_at,
 			p.serial_number,
 			b.batch_name

@@ -155,8 +155,6 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		ProductType:            req.ProductType,
 		Specs:                  req.Specs,
 		MarketRegion:           req.MarketRegion,
-		PLICompliant:           req.PLICompliant,
-		DomesticValueAdd:       req.DomesticValueAdd,
 		ManufacturingStartDate: manufacturingStart,
 		ManufacturingEndDate:   manufacturingEnd,
 	})
@@ -756,8 +754,6 @@ func (h *Handler) DuplicateBatch(w http.ResponseWriter, r *http.Request) {
 		Specs:                  originalBatch.Specs,
 		MarketRegion:           originalBatch.MarketRegion,
 		ProductType:            originalBatch.ProductType,
-		PLICompliant:           originalBatch.PLICompliant,
-		DomesticValueAdd:       originalBatch.DomesticValueAdd,
 		ManufacturingStartDate: originalBatch.ManufacturingStartDate,
 		ManufacturingEndDate:   originalBatch.ManufacturingEndDate,
 	})

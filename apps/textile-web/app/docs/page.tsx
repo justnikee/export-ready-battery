@@ -12,7 +12,7 @@ import {
  ArrowRight,
  Zap,
  CheckCircle2,
- Battery,
+ Shirt,
  Globe,
  FileText
 } from 'lucide-react';
@@ -81,15 +81,15 @@ export default function DocsPage() {
  </div>
 
  <h1 className="text-4xl sm:text-5xl text-white mb-4">
- AnvayaLabs-Battery
+ AnvayaLabs-Textile
  <span className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-teal-400">
  Documentation
  </span>
  </h1>
 
  <p className="text-xl text-gray-400 max-w-2xl leading-relaxed">
- Complete technical documentation for the Digital Battery Passport platform.
- Build compliant battery passports for EU and India markets with our comprehensive API and tools.
+ Complete technical documentation for the Digital Product Passport platform for textiles.
+ Build compliant textile DPPs for EU and India markets with our comprehensive API and tools.
  </p>
  </motion.div>
 
@@ -124,7 +124,7 @@ export default function DocsPage() {
  <QuickStartCard
  icon={<Rocket className="w-6 h-6 text-emerald-400" />}
  title="Getting Started"
- description="Set up your development environment and create your first battery passport in minutes."
+ description="Set up your development environment and create your first textile DPP in minutes."
  href="/docs/getting-started"
  color="emerald"
  />
@@ -138,7 +138,7 @@ export default function DocsPage() {
  <QuickStartCard
  icon={<Sparkles className="w-6 h-6 text-teal-400" />}
  title="Features"
- description="Discover powerful features like QR generation, CSV upload, and DVA calculator."
+ description="Discover powerful features like QR generation, CSV upload, and fiber composition tracking."
  href="/docs/features"
  color="teal"
  />
@@ -149,12 +149,12 @@ export default function DocsPage() {
  <section className="grid md:grid-cols-2 gap-8">
  <div className="p-6 rounded-2xl border border-white/10 bg-linear-to-br from-blue-500/10 to-transparent">
  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
- <Battery className="w-6 h-6 text-blue-400" />
+ <Shirt className="w-6 h-6 text-blue-400" />
  </div>
- <h3 className="text-xl text-white mb-3">Digital Battery Passports</h3>
+ <h3 className="text-xl text-white mb-3">Digital Textile Passports</h3>
  <ul className="space-y-3">
  <FeatureItem>UUID-based unique identification</FeatureItem>
- <FeatureItem>QR code generation for each battery</FeatureItem>
+ <FeatureItem>QR code generation for each product</FeatureItem>
  <FeatureItem>Bulk passport creation via CSV</FeatureItem>
  <FeatureItem>Real-time scan tracking & analytics</FeatureItem>
  </ul>
@@ -166,10 +166,10 @@ export default function DocsPage() {
  </div>
  <h3 className="text-xl text-white mb-3">Global Compliance</h3>
  <ul className="space-y-3">
- <FeatureItem>EU Battery Regulation (2023/1542)</FeatureItem>
- <FeatureItem>India PLI Scheme & Battery Aadhaar</FeatureItem>
+ <FeatureItem>EU ESPR & Digital Product Passport</FeatureItem>
+ <FeatureItem>India textile EPR & BIS guidelines</FeatureItem>
  <FeatureItem>EPR, BIS, and IEC tracking</FeatureItem>
- <FeatureItem>DVA Calculator for PLI eligibility</FeatureItem>
+ <FeatureItem>Fiber composition & care labeling</FeatureItem>
  </ul>
  </div>
  </section>

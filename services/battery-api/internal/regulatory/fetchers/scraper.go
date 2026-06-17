@@ -41,7 +41,7 @@ func (f *ScraperFetcher) Fetch(ctx context.Context, source *models.RegulatorySou
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("scraper returned %d", resp.StatusCode)
 	}
 

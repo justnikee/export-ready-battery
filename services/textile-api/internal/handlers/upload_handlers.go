@@ -100,16 +100,13 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log detected CSV metadata for audit purposes.
-	// COMPLIANCE LOCK: Active batches are immutable — CSV metadata fields (DVA,
-	// cell_source, country_of_origin) must be set before activation via the batch
-	// creation or PATCH /batches/{id} endpoints. Retroactive mutation of an ACTIVE
-	// batch would corrupt the PLI/DVA audit chain.
-	if parseResult.DetectedCellSource != "" || parseResult.DetectedBillOfEntry != "" || parseResult.DetectedCountryOfOrigin != "" || parseResult.DetectedDomesticValue != nil {
+	// COMPLIANCE LOCK: Active batches are immutable — CSV metadata fields
+	// (country_of_origin) must be set before activation via the batch creation
+	// or PATCH /batches/{id} endpoints.
+	if parseResult.DetectedCountryOfOrigin != "" {
 		slog.Info("CSV metadata fields detected but not applied (batch is ACTIVE — immutable)",
 			"batch_id", batchID,
-			"cell_source", parseResult.DetectedCellSource,
 			"country_of_origin", parseResult.DetectedCountryOfOrigin,
-			"domestic_value_add", parseResult.DetectedDomesticValue,
 		)
 	}
 
@@ -240,12 +237,12 @@ func (h *Handler) DownloadSampleCSV(w http.ResponseWriter, r *http.Request) {
 
 	if marketRegion == "INDIA" {
 		// India-specific sample with BPAN format and optional import fields
-		sampleCSV = `serial_number,manufacture_date,cell_source,bill_of_entry_no,country_of_origin,domestic_value_add
-IN-MFG-LFP-2026-00001,2026-01-15,DOMESTIC,,,65.5
-IN-MFG-LFP-2026-00002,2026-01-15,DOMESTIC,,,65.5
-IN-MFG-NMC-2026-00003,2026-01-16,IMPORTED,BOE-2026-1234,China,0
-IN-MFG-NMC-2026-00004,2026-01-16,IMPORTED,BOE-2026-1234,South Korea,0
-IN-MFG-LFP-2026-00005,2026-01-17,DOMESTIC,,,72.0`
+		sampleCSV = `serial_number,manufacture_date,country_of_origin
+IN-MFG-LFP-2026-00001,2026-01-15,IN
+IN-MFG-LFP-2026-00002,2026-01-15,IN
+IN-MFG-NMC-2026-00003,2026-01-16,CN
+IN-MFG-NMC-2026-00004,2026-01-16,KR
+IN-MFG-LFP-2026-00005,2026-01-17,IN`
 	} else if marketRegion == "EU" {
 		// EU-specific sample with BPAN V2 format
 		sampleCSV = `serial_number,manufacture_date
@@ -256,12 +253,12 @@ EU-MFG-LFP-2026-00004,2026-01-16
 EU-MFG-NMC-2026-00005,2026-01-17`
 	} else {
 		// Generic sample with BPAN V2 format
-		sampleCSV = `serial_number,manufacture_date,cell_source,bill_of_entry_no,country_of_origin,domestic_value_add
-GL-MFG-LFP-2026-00001,2026-01-15,,,,
-GL-MFG-LFP-2026-00002,2026-01-15,,,,
-GL-MFG-NMC-2026-00003,2026-01-16,,,,
-GL-MFG-NMC-2026-00004,2026-01-16,,,,
-GL-MFG-LFP-2026-00005,2026-01-17,,,,`
+		sampleCSV = `serial_number,manufacture_date,country_of_origin
+GL-MFG-LFP-2026-00001,2026-01-15,
+GL-MFG-LFP-2026-00002,2026-01-15,
+GL-MFG-NMC-2026-00003,2026-01-16,
+GL-MFG-NMC-2026-00004,2026-01-16,
+GL-MFG-LFP-2026-00005,2026-01-17,`
 	}
 
 	w.Header().Set("Content-Type", "text/csv")

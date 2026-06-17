@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS due_diligence_assessments (
     step                text NOT NULL CHECK (step IN ('policy','identify','assess','respond','audit')),
     status              text NOT NULL DEFAULT 'not_started' CHECK (status IN ('not_started','in_progress','complete','failed')),
     evidence_docs       uuid[] NOT NULL DEFAULT '{}',
-    completed_by        uuid REFERENCES users(id),
+    completed_by        text,
     completed_at        timestamptz,
     notes               text,
     created_at          timestamptz NOT NULL DEFAULT NOW(),

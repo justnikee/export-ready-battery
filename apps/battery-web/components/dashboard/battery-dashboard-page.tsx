@@ -352,6 +352,15 @@ export default function DashboardPage() {
       ({ statusField }) => user?.[statusField]?.toUpperCase() === "VERIFIED",
     ) ?? false;
 
+  // All docs uploaded (PENDING or VERIFIED) but not yet all VERIFIED — nothing left
+  // for the user to do, just waiting on admin review. Distinguish this from items
+  // that are still NOT_UPLOADED/REJECTED, which genuinely need user action.
+  const allSubmitted =
+    dashboardConfig.compliance?.items.every(({ statusField }) => {
+      const s = user?.[statusField]?.toUpperCase();
+      return s === "PENDING" || s === "VERIFIED";
+    }) ?? false;
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -394,7 +403,7 @@ export default function DashboardPage() {
                   description:
                     "Add EPR / BIS registration numbers and upload certificates",
                   href: `${settingsHref}?tab=compliance`,
-                  done: allVerified,
+                  done: allSubmitted,
                 },
                 {
                   step: 2,
@@ -467,6 +476,10 @@ export default function DashboardPage() {
                 {allVerified ? (
                   <span className="text-sm text-emerald-500 font-medium">
                     ✓ {dashboardConfig.compliance.verifiedText}
+                  </span>
+                ) : allSubmitted ? (
+                  <span className="text-sm text-amber-500 font-medium">
+                    {dashboardConfig.compliance.pendingText}
                   </span>
                 ) : (
                   <Link

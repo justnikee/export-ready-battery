@@ -26,12 +26,7 @@ type ExternalCreateBatchRequest struct {
 	ProductType            string           `json:"product_type,omitempty"`
 	MarketRegion           string           `json:"market_region"`
 	Specs                  models.BatchSpec `json:"specs"`
-	PLICompliant           bool             `json:"pli_compliant,omitempty"`
-	DomesticValueAdd       float64          `json:"domestic_value_add,omitempty"`
-	CellSource             string           `json:"cell_source,omitempty"`
-	BillOfEntryNo          string           `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin        string           `json:"country_of_origin,omitempty"`
-	CustomsDate            string           `json:"customs_date,omitempty"`
 	ManufacturingStartDate string           `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   string           `json:"manufacturing_end_date,omitempty"`
 }
@@ -118,8 +113,6 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 		Specs:                  req.Specs,
 		MarketRegion:           marketRegion,
 		ProductType:            models.ProductType(req.ProductType),
-		PLICompliant:           req.PLICompliant,
-		DomesticValueAdd:       req.DomesticValueAdd,
 		ManufacturingStartDate: manufacturingStart,
 		ManufacturingEndDate:   manufacturingEnd,
 	}

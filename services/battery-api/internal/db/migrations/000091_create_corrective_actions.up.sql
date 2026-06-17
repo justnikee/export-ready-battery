@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS corrective_actions (
     status              text NOT NULL DEFAULT 'open' CHECK (status IN ('open','remediated','verified','escalated','closed')),
     due_date            date NOT NULL,
     remediated_at       timestamptz,
-    verified_by         uuid REFERENCES users(id),
+    verified_by         text,
     created_at          timestamptz NOT NULL DEFAULT NOW()
 );
 

@@ -111,7 +111,6 @@ export default function FeaturesPage() {
  { icon: <Layers className="w-5 h-5 text-purple-400" />, label: 'Templates', status: '✅' },
  { icon: <Zap className="w-5 h-5 text-orange-400" />, label: 'Lifecycle Tracking', status: '✅' },
  { icon: <Mail className="w-5 h-5 text-teal-400" />, label: 'Team Management', status: '✅' },
- { icon: <BarChart3 className="w-5 h-5 text-cyan-400" />, label: 'Scan-to-Earn', status: '✅' },
  ].map((feature) => (
  <div
  key={feature.label}
@@ -441,31 +440,6 @@ GET /api/v1/templates
  </div>
  </FeatureCard>
 
- {/* ============= SCAN-TO-EARN REWARDS ============= */}
- <FeatureCard
- id="rewards"
- icon={<BarChart3 className="w-5 h-5 text-pink-400" />}
- title="Scan-to-Earn Rewards"
- description="Gamification system to incentivize passport scanning and verification."
- status="complete"
- >
- <ul className="space-y-2 mb-6">
- <FeatureItem>Earn points for scanning battery passports</FeatureItem>
- <FeatureItem>Consumer wallet via phone number linking</FeatureItem>
- <FeatureItem>Leaderboard rankings and history</FeatureItem>
- <FeatureItem>Lifecycle action bonuses (recycle)</FeatureItem>
- </ul>
-
- <h4 className="text-sm text-gray-400 uppercase mb-2">Point System</h4>
- <CodeBlock
- code={`// Points earned per action
-Scan passport: +10 points
-First scan bonus: +50 points
-Recycle action: +100 points
-`}
- language="text"
- />
- </FeatureCard>
  </div>
  );
 }

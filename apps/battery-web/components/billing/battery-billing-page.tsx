@@ -8,19 +8,13 @@ import { PricingCard } from "@/components/billing/pricing-card";
 import { LiveBalanceBanner } from "@/components/billing/live-balance-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  HelpCircle,
   ArrowUpRight,
   ArrowDownRight,
   Receipt,
   Loader2,
   CreditCard,
+  Package,
 } from "lucide-react";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import { formatDistanceToNow } from "date-fns";
 
 // Declare Razorpay type for TypeScript
@@ -166,24 +160,6 @@ const defaultPackages: Package[] = [
       "Dedicated Account Manager",
       "API Access & Custom Integrations",
     ],
-  },
-];
-
-const faqs = [
-  {
-    question: "Do quota credits expire?",
-    answer:
-      "No, your purchased batch activation licenses are valid forever. They never expire.",
-  },
-  {
-    question: "What defines a 'batch'?",
-    answer:
-      "A batch is defined as a single production run (up to 5,000 batteries) with unique manufacturing specifications.",
-  },
-  {
-    question: "Can I top up later?",
-    answer:
-      "Yes, you can purchase additional licenses at any time. They will be added to your existing balance immediately.",
   },
 ];
 
@@ -409,39 +385,23 @@ export default function BillingPage() {
         </Card>
 
         {/* Pricing Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {packages.map((pkg) => (
-            <PricingCard
-              key={pkg.id}
-              {...pkg}
-              loading={purchasing === pkg.id}
-              onAction={() => handleBuyPackage(pkg)}
-              actionLabel={pkg.isEnterprise ? "Contact Sales" : "Buy License"}
-            />
-          ))}
-        </div>
-
-        {/* FAQ Section */}
-        <div className="pt-8 border-t border-border">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-xl text-foreground flex items-center justify-center gap-2">
-                <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                Frequently Asked Questions
-              </h2>
-            </div>
-            <Accordion className="w-full">
-              {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`item-${i}`}>
-                  <AccordionTrigger className="text-foreground">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              License Packages
+            </h2>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            {packages.map((pkg) => (
+              <PricingCard
+                key={pkg.id}
+                {...pkg}
+                loading={purchasing === pkg.id}
+                onAction={() => handleBuyPackage(pkg)}
+                actionLabel={pkg.isEnterprise ? "Contact Sales" : "Buy License"}
+              />
+            ))}
           </div>
         </div>
       </div>

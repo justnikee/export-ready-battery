@@ -242,6 +242,20 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 		return nil, fmt.Errorf("failed to commit tenant profile update: %w", err)
 	}
 
+	// If the BIS R-Number was just added/changed and a certificate is already
+	// on file, kick off an async registry check (best-effort, non-blocking).
+	if bp := tenant.BatteryProfile; bp != nil && bp.BISRNumber != "" &&
+		(bp.BISStatus == "PENDING" || bp.BISStatus == "VERIFIED") {
+		_ = r.CreateTenantCertVerificationJob(ctx, &models.TenantCertVerificationJob{
+			ID:            uuid.New().String(),
+			TenantID:      id.String(),
+			DocType:       "bis",
+			CertificateNo: bp.BISRNumber,
+			Status:        "pending",
+			MaxAttempts:   5,
+		})
+	}
+
 	return tenant, nil
 }
 
@@ -322,7 +336,40 @@ func (r *Repository) UpdateCertificatePath(ctx context.Context, tenantID uuid.UU
 	if err != nil {
 		return fmt.Errorf("failed to update certificate path: %w", err)
 	}
+
+	// If the matching registration number is already on file, kick off an
+	// async registry check so bis_status can move to VERIFIED automatically
+	// without waiting on manual admin review.
+	if docType == "bis" {
+		r.enqueueCertVerificationIfReady(ctx, tenantID, "bis")
+	}
 	return nil
+}
+
+// enqueueCertVerificationIfReady enqueues a tenant cert verification job for
+// docType if the corresponding registration number is present on the
+// tenant's battery profile. Errors are logged by the caller's repo methods
+// and intentionally swallowed here — verification is best-effort and must
+// never block the certificate upload / profile save it's triggered from.
+func (r *Repository) enqueueCertVerificationIfReady(ctx context.Context, tenantID uuid.UUID, docType string) {
+	var certificateNo string
+	switch docType {
+	case "bis":
+		_ = r.db.Pool.QueryRow(ctx, `SELECT COALESCE(bis_r_number, '') FROM public.battery_tenant_profiles WHERE tenant_id = $1`, tenantID).Scan(&certificateNo)
+	default:
+		return
+	}
+	if certificateNo == "" {
+		return
+	}
+	_ = r.CreateTenantCertVerificationJob(ctx, &models.TenantCertVerificationJob{
+		ID:            uuid.New().String(),
+		TenantID:      tenantID.String(),
+		DocType:       docType,
+		CertificateNo: certificateNo,
+		Status:        "pending",
+		MaxAttempts:   5,
+	})
 }
 
 // UpdateDocumentStatus updates the verification status of a document (for admin use)

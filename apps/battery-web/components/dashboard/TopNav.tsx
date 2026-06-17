@@ -11,7 +11,6 @@ import {
   Box,
   Truck,
   Users,
-  Trophy,
   CreditCard,
   Settings,
   UserPlus,
@@ -37,7 +36,6 @@ const navItems = [
   { name: "Dispatch", subpath: "dispatch", icon: Truck },
   { name: "Partners", subpath: "partners", icon: Users },
   { name: "Team", subpath: "team", icon: UserPlus },
-  { name: "Rewards", subpath: "rewards", icon: Trophy },
   { name: "Billing", subpath: "billing", icon: CreditCard },
   { name: "Settings", subpath: "settings", icon: Settings },
 ];

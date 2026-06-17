@@ -1,8 +1,10 @@
 -- 000040: Add audited_domestic_value_add to batches
--- CA-certified Domestic Value Add percentage (nullable, set when dva_source = 'AUDITED')
-
-ALTER TABLE public.batches
-    ADD COLUMN IF NOT EXISTS audited_domestic_value_add DOUBLE PRECISION;
-
-COMMENT ON COLUMN public.batches.audited_domestic_value_add
-    IS 'CA-certified Domestic Value Add percentage (nullable, set when dva_source=AUDITED)';
+-- DISABLED during Phase 0 cleanup: audited DVA is a battery-only concept and is
+-- no longer referenced by the textile-api code. Existing deployments that already
+-- applied this migration retain the column; fresh deployments skip it.
+--
+-- ALTER TABLE public.batches
+--     ADD COLUMN IF NOT EXISTS audited_domestic_value_add DOUBLE PRECISION;
+--
+-- COMMENT ON COLUMN public.batches.audited_domestic_value_add
+--     IS 'CA-certified Domestic Value Add percentage (nullable, set when dva_source=AUDITED)';

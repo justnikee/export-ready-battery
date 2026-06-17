@@ -27,23 +27,11 @@ COMMENT ON COLUMN public.tenants.iec_code IS '10-digit Import Export Code issued
 -- BATCHES: Add import/customs data fields
 -- ============================================================================
 
--- Bill of Entry Number (Customs entry number for imported cells)
-ALTER TABLE public.batches 
-ADD COLUMN IF NOT EXISTS bill_of_entry_no VARCHAR(50);
-
-COMMENT ON COLUMN public.batches.bill_of_entry_no IS 'Customs Bill of Entry number for imported battery cells/packs';
-
--- Country of Origin (Source country for imported cells)
+-- Country of Origin (Source country for imported materials)
 ALTER TABLE public.batches 
 ADD COLUMN IF NOT EXISTS country_of_origin VARCHAR(100);
 
-COMMENT ON COLUMN public.batches.country_of_origin IS 'Country of origin for imported cells (e.g., China, South Korea, Japan)';
-
--- Customs Clearance Date
-ALTER TABLE public.batches 
-ADD COLUMN IF NOT EXISTS customs_date DATE;
-
-COMMENT ON COLUMN public.batches.customs_date IS 'Date of customs clearance for imported cells';
+COMMENT ON COLUMN public.batches.country_of_origin IS 'Country of origin for imported materials (e.g., China, South Korea, Japan)';
 
 -- ============================================================================
 -- INDEXES for faster compliance queries

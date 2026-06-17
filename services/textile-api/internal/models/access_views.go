@@ -57,10 +57,8 @@ type PublicPassportView struct {
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 
 	// Import / customs traceability (public — India + global)
-	HSNCode         string     `json:"hsn_code,omitempty"`
-	BillOfEntryNo   string     `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin string     `json:"country_of_origin,omitempty"`
-	CustomsDate     *time.Time `json:"customs_date,omitempty"`
+	HSNCode         string `json:"hsn_code,omitempty"`
+	CountryOfOrigin string `json:"country_of_origin,omitempty"`
 
 	// Access tier metadata
 	AccessTier AccessTier `json:"access_tier"`
@@ -113,18 +111,16 @@ type PublicTenantView struct {
 }
 
 type publicViewBatchSnapshot struct {
-	BatchName              string              `json:"batch_name"`
-	ModelName              string              `json:"model_name,omitempty"`
-	ProductType            ProductType         `json:"product_type"`
-	TemplateVariant        string              `json:"template_variant,omitempty"`
-	MarketRegion           MarketRegion        `json:"market_region"`
-	Specs                  *BatchSpec          `json:"specs,omitempty"`
-	ManufacturingStartDate *time.Time          `json:"manufacturing_start_date,omitempty"`
-	ManufacturingEndDate   *time.Time          `json:"manufacturing_end_date,omitempty"`
-	HSNCode                string              `json:"hsn_code,omitempty"`
-	BillOfEntryNo          string              `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin        string              `json:"country_of_origin,omitempty"`
-	CustomsDate            *time.Time          `json:"customs_date,omitempty"`
+	BatchName              string                `json:"batch_name"`
+	ModelName              string                `json:"model_name,omitempty"`
+	ProductType            ProductType           `json:"product_type"`
+	TemplateVariant        string                `json:"template_variant,omitempty"`
+	MarketRegion           MarketRegion          `json:"market_region"`
+	Specs                  *BatchSpec            `json:"specs,omitempty"`
+	ManufacturingStartDate *time.Time            `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time            `json:"manufacturing_end_date,omitempty"`
+	HSNCode                string                `json:"hsn_code,omitempty"`
+	CountryOfOrigin        string                `json:"country_of_origin,omitempty"`
 	Tenant                 *publicTenantSnapshot `json:"tenant,omitempty"`
 }
 
@@ -211,9 +207,7 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		ManufacturingEndDate:   full.ManufacturingEndDate,
 
 		HSNCode:         full.HSNCode,
-		BillOfEntryNo:   full.BillOfEntryNo,
 		CountryOfOrigin: full.CountryOfOrigin,
-		CustomsDate:     full.CustomsDate,
 
 		AccessTier: AccessTierPublic,
 	}
@@ -336,14 +330,8 @@ func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
 	if snapshot.HSNCode != "" {
 		view.HSNCode = snapshot.HSNCode
 	}
-	if snapshot.BillOfEntryNo != "" {
-		view.BillOfEntryNo = snapshot.BillOfEntryNo
-	}
 	if snapshot.CountryOfOrigin != "" {
 		view.CountryOfOrigin = snapshot.CountryOfOrigin
-	}
-	if snapshot.CustomsDate != nil {
-		view.CustomsDate = snapshot.CustomsDate
 	}
 	if snapshot.Specs != nil {
 		view.Specs = buildPublicSpecsView(snapshot.Specs)

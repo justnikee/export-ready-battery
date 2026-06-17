@@ -30,10 +30,7 @@ type CSVParseResult struct {
 	RowCount  int
 
 	// Batch Metadata detected from CSV
-	DetectedCellSource      string
-	DetectedBillOfEntry     string
 	DetectedCountryOfOrigin string
-	DetectedDomesticValue   *float64
 }
 
 // CSVRowError represents an error in a specific row
@@ -44,7 +41,7 @@ type CSVRowError struct {
 
 // ParseCSV parses a CSV file and creates passport records
 // Expected CSV format: serial_number,manufacture_date
-// Optional columns: cell_source, bill_of_entry_no, country_of_origin, domestic_value_add
+// Optional columns: country_of_origin
 func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID, filename string) (*CSVParseResult, error) {
 	csvReader := csv.NewReader(reader)
 	csvReader.TrimLeadingSpace = true
@@ -75,10 +72,7 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID, filename stri
 	}
 
 	// Check for optional metadata columns
-	cellSourceIdx, hasCellSource := headerMap["cell_source"]
-	billEntryIdx, hasBillEntry := headerMap["bill_of_entry_no"]
 	originIdx, hasOrigin := headerMap["country_of_origin"]
-	dvaIdx, hasDVA := headerMap["domestic_value_add"]
 
 	// SECURITY: Read rows one-by-one with a limit to prevent CSV memory bomb attacks
 	const maxRows = 10000
@@ -111,34 +105,10 @@ func (s *CSVService) ParseCSV(reader io.Reader, batchID uuid.UUID, filename stri
 	if len(records) > 0 {
 		firstRow := records[0]
 
-		if hasCellSource && len(firstRow) > cellSourceIdx {
-			val := strings.TrimSpace(firstRow[cellSourceIdx])
-			if val != "" {
-				result.DetectedCellSource = val
-			}
-		}
-		if hasBillEntry && len(firstRow) > billEntryIdx {
-			val := strings.TrimSpace(firstRow[billEntryIdx])
-			if val != "" {
-				result.DetectedBillOfEntry = val
-			}
-		}
 		if hasOrigin && len(firstRow) > originIdx {
 			val := strings.TrimSpace(firstRow[originIdx])
 			if val != "" {
 				result.DetectedCountryOfOrigin = val
-			}
-		}
-		if hasDVA && len(firstRow) > dvaIdx {
-			valStr := strings.TrimSpace(firstRow[dvaIdx])
-			if valStr != "" {
-				var dva float64
-				if _, err := fmt.Sscanf(valStr, "%f", &dva); err == nil {
-					if dva < 0 || dva > 100 {
-						return nil, fmt.Errorf("domestic_value_add must be between 0 and 100 (got %g)", dva)
-					}
-					result.DetectedDomesticValue = &dva
-				}
 			}
 		}
 	}

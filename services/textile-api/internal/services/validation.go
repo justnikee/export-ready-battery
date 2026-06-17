@@ -288,60 +288,6 @@ func (v *ValidationService) ValidateBatchCompliance(hsn, iec string, isImported 
 	return results, nil
 }
 
-// DVA Source constants
-const (
-	DVASourceEstimated = "ESTIMATED"
-	DVASourceAudited   = "AUDITED"
-)
-
-// ValidateDVASource validates the dva_source field
-func (v *ValidationService) ValidateDVASource(source string) ValidationResult {
-	if source == "" || source == DVASourceEstimated {
-		return ValidationResult{Valid: true, Field: "dva_source", Value: source}
-	}
-	if source == DVASourceAudited {
-		return ValidationResult{Valid: true, Field: "dva_source", Value: source}
-	}
-	return ValidationResult{
-		Valid:   false,
-		Field:   "dva_source",
-		Value:   source,
-		Message: "DVA Source must be 'ESTIMATED' or 'AUDITED'",
-	}
-}
-
-// ValidatePLICompliance validates PLI eligibility based on DVA source
-// For AUDITED source, requires auditedDVA >= 50%
-// For ESTIMATED source, logs warning but allows submission
-func (v *ValidationService) ValidatePLICompliance(dvaSource string, auditedDVA *float64, estimatedDVA float64, pliCompliant bool) error {
-	if !pliCompliant {
-		return nil // No validation needed if not claiming PLI
-	}
-
-	if dvaSource == DVASourceAudited {
-		if auditedDVA == nil {
-			return errors.New("PLI eligibility with AUDITED source requires an audited DVA value")
-		}
-		if *auditedDVA < 50 {
-			return errors.New("PLI eligibility requires Audited DVA >= 50%. Provided: " + formatFloat(*auditedDVA) + "%")
-		}
-		// Audited DVA is valid for PLI
-		return nil
-	}
-
-	// ESTIMATED source - warn if below threshold but allow (pending CA certification)
-	if estimatedDVA < 50 {
-		return errors.New("Estimated DVA is below 50%. PLI subsidy claims require CA certification with DVA >= 50%")
-	}
-
-	return nil
-}
-
-// formatFloat formats a float64 to a string with 1 decimal place
-func formatFloat(f float64) string {
-	return fmt.Sprintf("%.1f", f)
-}
-
 // ============================================================================
 // EU ESPR REGULATION VALIDATION
 // ============================================================================
@@ -510,9 +456,6 @@ func (v *ValidationService) ValidateIndiaCompliance(
 	eprNumber string,
 	hsnCode string,
 	iecCode string,
-	cellSource string,
-	pliCompliant bool,
-	domesticValueAdd float64,
 ) IndiaComplianceResult {
 	var errs []string
 	var warnings []string
@@ -548,21 +491,12 @@ func (v *ValidationService) ValidateIndiaCompliance(
 	}
 
 	// 4. IEC Code - Required for importers
-	if cellSource == "IMPORTED" {
-		if iecCode == "" {
-			errs = append(errs, "IEC Code is mandatory when cell_source is IMPORTED")
-		} else {
-			iecResult := v.ValidateIECCode(iecCode)
-			if !iecResult.Valid {
-				errs = append(errs, iecResult.Message)
-			}
-		}
-	}
-
-	// 5. PLI Eligibility Check
-	if pliCompliant {
-		if domesticValueAdd < 50 {
-			warnings = append(warnings, fmt.Sprintf("DVA (%.1f%%) is below 50%% threshold for PLI eligibility. CA certification recommended.", domesticValueAdd))
+	if iecCode == "" {
+		warnings = append(warnings, "IEC Code not provided. Required for imports into India.")
+	} else {
+		iecResult := v.ValidateIECCode(iecCode)
+		if !iecResult.Valid {
+			errs = append(errs, iecResult.Message)
 		}
 	}
 

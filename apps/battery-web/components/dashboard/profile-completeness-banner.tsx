@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/context/auth-context"
 import { productRoutes } from "@/lib/routes"
-import { AlertTriangle, CheckCircle, X, ShieldCheck } from "lucide-react"
+import { AlertTriangle, X, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 
 interface CompletenessItem {
@@ -21,28 +21,41 @@ function getProfileCompleteness(user: NonNullable<ReturnType<typeof useAuth>["us
   const items: CompletenessItem[] = []
   const blockers: string[] = []
 
+  // Only require the compliance items that match the user's target market.
+  // This mirrors the onboarding/settings flows, which hide EU fields for
+  // India-only accounts (and India fields for EU-only accounts). Without this,
+  // an India-only manufacturer is permanently stuck below 100% for an "EU
+  // Representative" item they're never shown a field to complete.
+  const market = user.data_visibility?.primary_market || "india"
+  const includeIndia = market === "india" || market === "both"
+  const includeEU = market === "eu" || market === "both"
+
   // India items
-  const hasEprNumber = !!user.epr_registration_number?.trim()
-  const hasEprCert = user.epr_status === "PENDING" || user.epr_status === "VERIFIED"
-  const hasBisNumber = !!user.bis_r_number?.trim()
-  const hasBisCert = user.bis_status === "PENDING" || user.bis_status === "VERIFIED"
-  const hasIec = !!user.iec_code?.trim()
-  const hasMorth = !!user.morth_manufacturer_code?.trim() && user.morth_manufacturer_code !== "TBC"
+  if (includeIndia) {
+    const hasEprNumber = !!user.epr_registration_number?.trim()
+    const hasEprCert = user.epr_status === "PENDING" || user.epr_status === "VERIFIED"
+    const hasBisNumber = !!user.bis_r_number?.trim()
+    const hasBisCert = user.bis_status === "PENDING" || user.bis_status === "VERIFIED"
+    const hasIec = !!user.iec_code?.trim()
+    const hasMorth = !!user.morth_manufacturer_code?.trim() && user.morth_manufacturer_code !== "TBC"
 
-  items.push({ label: "EPR Registration", done: hasEprNumber && hasEprCert, market: "india" })
-  items.push({ label: "BIS Certification", done: hasBisNumber && hasBisCert, market: "india" })
-  items.push({ label: "IEC Code", done: hasIec, market: "india" })
-  items.push({ label: "MoRTH Code", done: hasMorth, market: "india" })
+    items.push({ label: "EPR Registration", done: hasEprNumber && hasEprCert, market: "india" })
+    items.push({ label: "BIS Certification", done: hasBisNumber && hasBisCert, market: "india" })
+    items.push({ label: "IEC Code", done: hasIec, market: "india" })
+    items.push({ label: "MoRTH Code", done: hasMorth, market: "india" })
 
-  if (hasEprNumber && !hasEprCert) blockers.push("EPR certificate required for India activation")
-  if (hasBisNumber && !hasBisCert) blockers.push("BIS certificate required for India activation")
+    if (hasEprNumber && !hasEprCert) blockers.push("EPR certificate required for India activation")
+    if (hasBisNumber && !hasBisCert) blockers.push("BIS certificate required for India activation")
+  }
 
   // EU items
-  const hasEuRep = !!user.eu_authorized_representative_name?.trim()
-  const hasEuEmail = !!user.eu_contact_email?.trim()
-  const hasEuAddress = !!user.eu_authorized_representative_address?.trim()
+  if (includeEU) {
+    const hasEuRep = !!user.eu_authorized_representative_name?.trim()
+    const hasEuEmail = !!user.eu_contact_email?.trim()
+    const hasEuAddress = !!user.eu_authorized_representative_address?.trim()
 
-  items.push({ label: "EU Representative", done: hasEuRep && hasEuEmail && hasEuAddress, market: "eu" })
+    items.push({ label: "EU Representative", done: hasEuRep && hasEuEmail && hasEuAddress, market: "eu" })
+  }
 
   // Core items
   items.push({ label: "Company Profile", done: !!user.company_name?.trim() && !!user.address?.trim(), market: "global" })
@@ -50,7 +63,7 @@ function getProfileCompleteness(user: NonNullable<ReturnType<typeof useAuth>["us
   const doneCount = items.filter((i) => i.done).length
   const requiredCount = items.filter((i) => i.market !== "global").length
   const requiredDone = items.filter((i) => i.market !== "global" && i.done).length
-  const score = Math.round((doneCount / items.length) * 100)
+  const score = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 100
 
   return { score, items, blockers, requiredIncomplete: requiredCount - requiredDone }
 }
@@ -60,28 +73,29 @@ const BANNER_COOLDOWN_HOURS = 24
 
 export function ProfileCompletenessBanner() {
   const { user } = useAuth()
-  const [visible, setVisible] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    if (!user) return
     const dismissedAt = localStorage.getItem(BANNER_DISMISS_KEY)
-    if (dismissedAt) {
-      const hoursSince = (Date.now() - parseInt(dismissedAt)) / 3600000
-      if (hoursSince < BANNER_COOLDOWN_HOURS) return
-    }
-    const { blockers, requiredIncomplete } = getProfileCompleteness(user)
-    setVisible(blockers.length > 0 || requiredIncomplete > 0)
-  }, [user])
+    if (!dismissedAt) return
+    const hoursSince = (Date.now() - parseInt(dismissedAt)) / 3600000
+    setDismissed(hoursSince < BANNER_COOLDOWN_HOURS)
+  }, [])
 
   const handleDismiss = useCallback(() => {
     localStorage.setItem(BANNER_DISMISS_KEY, String(Date.now()))
-    setVisible(false)
+    setDismissed(true)
   }, [])
 
-  if (!visible || !user) return null
+  if (!user) return null
 
   const { score, items, blockers, requiredIncomplete } = getProfileCompleteness(user)
   const hasBlockers = blockers.length > 0
+  const needsAttention = hasBlockers || requiredIncomplete > 0
+
+  // Nothing left to do — never show a "complete your profile" nag at 100%,
+  // and don't let a stale dismiss-cooldown keep it hidden once it does need attention again.
+  if (!needsAttention || dismissed) return null
 
   return (
     <div

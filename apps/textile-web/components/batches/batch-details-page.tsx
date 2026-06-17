@@ -546,17 +546,13 @@ export default function BatchDetailsPage() {
       manufacturing_start_date: "Manufacturing start date",
       manufacturing_end_date: "Manufacturing end date",
       cell_source: "Cell source (IMPORTED/DOMESTIC)",
-      "specs.certifications: AIS-156": "AIS-156 certification",
-      "specs.certifications: AIS-038": "AIS-038 certification",
+      "specs.certifications: BIS-CARE": "BIS-CARE certification",
       "tenant.epr_registration_number":
         "EPR registration (Settings -> Compliance)",
       "tenant.bis_r_number": "BIS R-number (Settings -> Compliance)",
       "tenant.iec_code": "IEC code (Settings -> Compliance)",
-      "tenant.morth_manufacturer_code": "MoRTH code (Settings -> Compliance)",
-      bill_of_entry_no: "Bill of entry number",
-      country_of_origin: "Cell country of origin",
-      customs_date: "Import date",
-      domestic_value_add: "Domestic value-add percentage",
+      country_of_origin: "Country of origin",
+      hsn_code: "HSN code",
       "specs.battery_category": "EU battery category",
       "tenant.company_name": "Company name (Settings -> Profile)",
       "tenant.address": "Company address (Settings -> Profile)",
@@ -616,7 +612,6 @@ export default function BatchDetailsPage() {
       "tenant.epr_registration_number",
       "tenant.bis_r_number",
       "tenant.iec_code",
-      "tenant.morth_manufacturer_code",
     ];
     const settingsProfileKeys = [
       "tenant.company_name",
@@ -719,42 +714,18 @@ export default function BatchDetailsPage() {
         if (!batchRecord.specs.cell_source) blocking.push("cell_source");
 
         const certs = batchRecord.specs?.certifications || [];
-        if (!certs.includes("AIS-156"))
-          blocking.push("specs.certifications: AIS-156");
-        if (!certs.includes("AIS-038"))
-          blocking.push("specs.certifications: AIS-038");
+        if (!certs.includes("BIS-CARE"))
+          blocking.push("specs.certifications: BIS-CARE");
 
         if (!currentUser?.epr_registration_number?.trim())
           blocking.push("tenant.epr_registration_number");
         if (!currentUser?.bis_r_number?.trim())
           blocking.push("tenant.bis_r_number");
         if (!currentUser?.iec_code?.trim()) blocking.push("tenant.iec_code");
-        if (!currentUser?.morth_manufacturer_code?.trim())
-          blocking.push("tenant.morth_manufacturer_code");
 
-        if (batchRecord.specs.cell_source === "IMPORTED") {
-          if (!batchRecord.specs.bill_of_entry_no?.trim())
-            blocking.push("bill_of_entry_no");
-          if (!batchRecord.specs.country_of_origin?.trim())
-            blocking.push("country_of_origin");
-          if (!batchRecord.specs.customs_date) blocking.push("customs_date");
-        }
-
-        if (
-          batchRecord.specs.cell_source === "DOMESTIC" &&
-          (batchRecord.domestic_value_add ?? 0) <= 0
-        ) {
-          blocking.push("domestic_value_add");
-        }
-
-        if (
-          batchRecord.pli_compliant &&
-          (batchRecord.domestic_value_add ?? 0) < 50
-        ) {
-          warnings.push(
-            `PLI requires >=50% DVA (current: ${batchRecord.domestic_value_add ?? 0}%)`,
-          );
-        }
+        if (!batchRecord.specs.country_of_origin?.trim())
+          blocking.push("country_of_origin");
+        if (!batchRecord.specs.hsn_code?.trim()) blocking.push("hsn_code");
       }
 
       if (region === "EU" || region === "GLOBAL") {
@@ -1710,11 +1681,11 @@ export default function BatchDetailsPage() {
                           </dt>
                           <dd className="font-mono text-sm bg-orange-500/10 text-orange-400 px-3 py-2 border border-orange-500/20 inline-block">
                             IN-
-                            {user?.morth_manufacturer_code?.trim() &&
-                            user.morth_manufacturer_code.trim() !== "TBC"
-                              ? user.morth_manufacturer_code.trim()
+                            {user?.bis_r_number?.trim() &&
+                            user.bis_r_number.trim() !== "TBC"
+                              ? user.bis_r_number.trim()
                               : "XXX"}
-                            -{batch.specs?.chemistry || "LFP"}-2026-XXXXX
+                            -{batch.specs?.material_profile || "TEXTILE"}-2026-XXXXX
                           </dd>
                         </div>
                       </dl>
@@ -2208,11 +2179,11 @@ export default function BatchDetailsPage() {
                       {isIndia && (
                         <span className="block mt-2 text-orange-400 font-medium">
                           Auto-generates BPAN format: IN-
-                          {user?.morth_manufacturer_code?.trim() &&
-                          user?.morth_manufacturer_code.trim() !== "TBC"
-                            ? user.morth_manufacturer_code.trim()
+                          {user?.bis_r_number?.trim() &&
+                          user?.bis_r_number.trim() !== "TBC"
+                            ? user.bis_r_number.trim()
                             : "XXX"}
-                          -{batch.specs.chemistry}-2026-00001 to ...
+                          -{batch.specs.material_profile || "TEXTILE"}-2026-00001 to ...
                           {passportCount || "N"}
                         </span>
                       )}
@@ -2222,8 +2193,7 @@ export default function BatchDetailsPage() {
                     <UploadCSV
                       batchId={batch.id}
                       marketRegion={region}
-                      fiber_type={batch.specs?.chemistry}
-                      morthCode={user?.morth_manufacturer_code}
+                      fiber_type={batch.specs?.material_profile}
                       isDraft={isDraft}
                       onUploadComplete={handleUploadComplete}
                     />

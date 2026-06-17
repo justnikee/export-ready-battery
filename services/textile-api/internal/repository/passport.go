@@ -254,8 +254,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       p.recycling_status, p.recycler_epr_id, p.recycling_date, p.owner_id,
 		       b.batch_name, COALESCE(b.model_name, ''), COALESCE(b.product_type, 'TEXTILE'), b.specs, b.market_region,
        b.manufacturing_start_date, b.manufacturing_end_date,
-       COALESCE(b.cell_source, ''), COALESCE(b.bill_of_entry_no, ''), COALESCE(b.country_of_origin, ''),
-       b.domestic_value_add, b.pli_compliant, b.customs_date, COALESCE(b.hsn_code, ''), COALESCE(b.dva_source, ''),
+       COALESCE(b.country_of_origin, ''), COALESCE(b.hsn_code, ''),
 		       t.company_name, COALESCE(t.address, ''), COALESCE(t.logo_url, ''), COALESCE(t.support_email, ''), COALESCE(t.website, ''),
 		       COALESCE(tp.facility_type, ''), COALESCE(tp.supply_chain_tier, ''),
 		       t.id
@@ -273,10 +272,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	var specsJSON []byte
 	var marketRegion models.MarketRegion
 	var manufacturingStartDate, manufacturingEndDate *time.Time
-	var cellSource, billOfEntry, countryOrigin, hsnCode, dvaSource string
-	var domesticValueAdd float64
-	var pliCompliant bool
-	var customsDate *time.Time
+	var countryOrigin, hsnCode string
 	var batchSnapshotJSON []byte
 	var ownershipHistoryJSON []byte
 	var repairEventsJSON []byte
@@ -318,14 +314,8 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&marketRegion,
 		&manufacturingStartDate,
 		&manufacturingEndDate,
-		&cellSource,
-		&billOfEntry,
 		&countryOrigin,
-		&domesticValueAdd,
-		&pliCompliant,
-		&customsDate,
 		&hsnCode,
-		&dvaSource,
 		&tenant.CompanyName,
 		&tenant.Address,
 		&tenant.LogoURL,
@@ -385,14 +375,8 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		Tenant:                 tenant,
 		ManufacturingStartDate: manufacturingStartDate,
 		ManufacturingEndDate:   manufacturingEndDate,
-		CellSource:             cellSource,
-		BillOfEntryNo:          billOfEntry,
 		CountryOfOrigin:        countryOrigin,
-		DomesticValueAdd:       domesticValueAdd,
-		PLICompliant:           pliCompliant,
-		CustomsDate:            customsDate,
 		HSNCode:                hsnCode,
-		DVASource:              dvaSource,
 	}, nil
 }
 

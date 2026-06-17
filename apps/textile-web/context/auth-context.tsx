@@ -22,8 +22,6 @@ interface User {
   epr_registration_number?: string;
   bis_r_number?: string;
   iec_code?: string;
-  morth_manufacturer_code?: string;
-  morth_factory_codes?: string;
   // EU Authorized Representative Fields
   eu_authorized_representative_name?: string;
   eu_authorized_representative_address?: string;
@@ -31,11 +29,9 @@ interface User {
   // Certificate Document Paths (Compliance Vault)
   epr_certificate_path?: string;
   bis_certificate_path?: string;
-  pli_certificate_path?: string;
   // Document Verification Status (NOT_UPLOADED, PENDING, VERIFIED, REJECTED)
   epr_status?: string;
   bis_status?: string;
-  pli_status?: string;
   // Onboarding status from DB
   onboarding_completed?: boolean;
   // Product type — always TEXTILE for this app

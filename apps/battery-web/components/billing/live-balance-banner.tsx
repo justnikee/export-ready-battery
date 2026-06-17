@@ -59,7 +59,7 @@ export function LiveBalanceBanner() {
 
   return (
     <Card
-      className={`relative overflow-hidden ${isLow ? "border-red-200 bg-red-500/10/50" : "border-border bg-transparent"}`}
+      className={`relative overflow-hidden ${isLow ? "border-red-200 bg-red-500/10" : "border-border bg-transparent"}`}
     >
       <CardContent className="p-8 flex items-center justify-between relative z-10">
         <div className="space-y-2">

@@ -21,6 +21,28 @@ func TestNewVCCryptoService_GeneratesKeyWhenEnvMissing(t *testing.T) {
 	assert.NotEmpty(t, svc.PublicKeyMultibase())
 }
 
+func TestNewVCCryptoService_ProductionRequiresKey(t *testing.T) {
+	os.Unsetenv("VC_SIGNING_KEY")
+	t.Setenv("APP_ENV", "production")
+
+	svc, err := NewVCCryptoService()
+	assert.Error(t, err)
+	assert.Nil(t, svc)
+	assert.Contains(t, err.Error(), "VC_SIGNING_KEY")
+}
+
+func TestNewVCCryptoService_DevFallbackIsDeterministic(t *testing.T) {
+	os.Unsetenv("VC_SIGNING_KEY")
+	os.Unsetenv("APP_ENV")
+
+	svc1, err := NewVCCryptoService()
+	require.NoError(t, err)
+	svc2, err := NewVCCryptoService()
+	require.NoError(t, err)
+
+	assert.Equal(t, svc1.DID(), svc2.DID())
+}
+
 func TestNewVCCryptoService_LoadsKeyFromEnv(t *testing.T) {
 	// Generate a fresh service to get a valid key
 	os.Unsetenv("VC_SIGNING_KEY")

@@ -143,17 +143,11 @@ type Batch struct {
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
 
-	// Dual-Mode Compliance Fields
-	MarketRegion     MarketRegion `json:"market_region"`      // INDIA, EU, or GLOBAL
-	PLICompliant     bool         `json:"pli_compliant"`      // India: PLI subsidy eligibility
-	DomesticValueAdd float64      `json:"domestic_value_add"` // India: % of local value (stored as literal: 45.5 = 45.5%)
-	TotalPassports   int          `json:"total_passports"`    // Computed count of passports
+	// Target market for compliance rules
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
 
-	// ── v2: Battery-specific fields moved to Specs JSONB ──
-	// CellSource, BillOfEntryNo, CountryOfOrigin, CustomsDate, HSNCode, BISNumber,
-	// EPRNumber, DVASource, AuditedDomesticValueAdd, PLICertificateURL are now
-	// stored inside the specs JSONB column for product-agnostic schema design.
-	// Access them via batch.Specs.CellSource, batch.Specs.HSNCode, etc.
+	// Computed count of passports
+	TotalPassports int `json:"total_passports"`
 
 	// EU Carbon Footprint Calculator Result (JSONB, from POST /api/v1/carbon/calculate)
 	CarbonFootprintResult json.RawMessage `json:"carbon_footprint_result,omitempty"`
@@ -740,32 +734,22 @@ type CreateBatchRequest struct {
 	TenantID    uuid.UUID   `json:"tenant_id"`
 	BatchName   string      `json:"batch_name"`
 	ModelName   string      `json:"model_name"`
-	ProductType ProductType `json:"product_type,omitempty"` // v2: defaults to BATTERY if empty
+	ProductType ProductType `json:"product_type,omitempty"` // defaults to TEXTILE if empty
 	Specs       BatchSpec   `json:"specs"`
 
-	// Dual-Mode Fields
-	MarketRegion     MarketRegion `json:"market_region"`                // INDIA, EU, or GLOBAL
-	PLICompliant     bool         `json:"pli_compliant,omitempty"`      // India only
-	DomesticValueAdd float64      `json:"domestic_value_add,omitempty"` // India only (stored as literal: 45.5 = 45.5%)
-	CellSource       string       `json:"cell_source,omitempty"`        // India only
+	// Target market for compliance rules
+	MarketRegion MarketRegion `json:"market_region"` // INDIA, EU, or GLOBAL
 
 	// Manufacturing window (legal declaration)
 	ManufacturingStartDate string `json:"manufacturing_start_date,omitempty"` // YYYY-MM-DD
 	ManufacturingEndDate   string `json:"manufacturing_end_date,omitempty"`   // YYYY-MM-DD
 
-	// India Import/Customs Fields (Required when MarketRegion=INDIA and CellSource=IMPORTED)
-	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`  // Customs Bill of Entry number
+	// India trade & compliance fields (also relevant for textiles)
 	CountryOfOrigin string `json:"country_of_origin,omitempty"` // Source country
-	CustomsDate     string `json:"customs_date,omitempty"`      // Date in YYYY-MM-DD format
-	HSNCode         string `json:"hsn_code,omitempty"`          // India: HSN code (e.g., "8507.60")
-
-	// PLI/DVA Audit Compliance Fields
-	DVASource               string   `json:"dva_source,omitempty"`                 // "ESTIMATED" or "AUDITED"
-	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"` // CA-certified DVA %
-	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`        // Path to CA certificate
+	HSNCode         string `json:"hsn_code,omitempty"`          // India: 8-digit HSN code
 
 	// India Compliance Certification Fields
-	BISNumber string `json:"bis_number,omitempty"` // BIS R-Number (e.g., "R-12345678")
+	BISNumber string `json:"bis_number,omitempty"` // BIS registration number
 	EPRNumber string `json:"epr_number,omitempty"` // EPR Registration Number
 }
 
@@ -780,11 +764,7 @@ type PatchBatchRequest struct {
 	ModelName              *string    `json:"model_name,omitempty"`
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time `json:"manufacturing_end_date,omitempty"`
-	CellSource             *string    `json:"cell_source,omitempty"`
-	BillOfEntryNo          *string    `json:"bill_of_entry_no,omitempty"`
 	CountryOfOrigin        *string    `json:"country_of_origin,omitempty"`
-	CustomsDate            *time.Time `json:"customs_date,omitempty"`
-	DomesticValueAdd       *float64   `json:"domestic_value_add,omitempty"`
 	// Specs is a partial spec update; keys are merged into the existing JSONB via ||
 	Specs map[string]interface{} `json:"specs,omitempty"`
 }
@@ -808,16 +788,10 @@ type PassportWithSpecs struct {
 	Tenant                 *Tenant      `json:"tenant"`        // Added for public profile display
 	ManufacturingStartDate *time.Time   `json:"manufacturing_start_date,omitempty"`
 	ManufacturingEndDate   *time.Time   `json:"manufacturing_end_date,omitempty"`
-	// Added for Import/Domestic logic
-	CellSource      string `json:"cell_source,omitempty"`
-	BillOfEntryNo   string `json:"bill_of_entry_no,omitempty"`
+	// India trade field - needed for passport view
 	CountryOfOrigin string `json:"country_of_origin,omitempty"`
 	// India compliance fields - needed for passport view
-	DomesticValueAdd float64    `json:"domestic_value_add,omitempty"` // Stored as literal: 45.5 = 45.5%
-	PLICompliant     bool       `json:"pli_compliant,omitempty"`
-	CustomsDate      *time.Time `json:"customs_date,omitempty"`
-	HSNCode          string     `json:"hsn_code,omitempty"`
-	DVASource        string     `json:"dva_source,omitempty"`
+	HSNCode string `json:"hsn_code,omitempty"`
 	// EU fields from specs are already in BatchSpec
 	// Materials composition is in specs.material_composition
 }

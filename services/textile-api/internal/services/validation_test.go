@@ -203,32 +203,6 @@ func TestValidateCarbonFootprint(t *testing.T) {
 	}
 }
 
-func TestValidateDVASource(t *testing.T) {
-	v := NewValidationService()
-
-	tests := []struct {
-		name      string
-		input     string
-		wantValid bool
-	}{
-		{"ESTIMATED", "ESTIMATED", true},
-		{"AUDITED", "AUDITED", true},
-		{"Empty (defaults to ESTIMATED)", "", true},
-		{"Invalid value", "MANUAL", false},
-		{"Lowercase", "estimated", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := v.ValidateDVASource(tt.input)
-			if result.Valid != tt.wantValid {
-				t.Errorf("ValidateDVASource(%q) valid=%v, want %v (msg: %s)",
-					tt.input, result.Valid, tt.wantValid, result.Message)
-			}
-		})
-	}
-}
-
 func TestValidateFiberType(t *testing.T) {
 	v := NewValidationService()
 
@@ -251,42 +225,6 @@ func TestValidateFiberType(t *testing.T) {
 			if result.Valid != tt.wantValid {
 				t.Errorf("ValidateFiberType(%q) valid=%v, want %v (msg: %s)",
 					tt.input, result.Valid, tt.wantValid, result.Message)
-			}
-		})
-	}
-}
-
-// ============================================================================
-// PLI COMPLIANCE VALIDATION
-// ============================================================================
-
-func TestValidatePLICompliance(t *testing.T) {
-	v := NewValidationService()
-
-	auditedDVA60 := 60.0
-	auditedDVA40 := 40.0
-
-	tests := []struct {
-		name         string
-		dvaSource    string
-		auditedDVA   *float64
-		estimatedDVA float64
-		pliCompliant bool
-		wantErr      bool
-	}{
-		{"Not claiming PLI - no validation", "", nil, 0, false, false},
-		{"AUDITED with DVA >= 50%", "AUDITED", &auditedDVA60, 0, true, false},
-		{"AUDITED with DVA < 50%", "AUDITED", &auditedDVA40, 0, true, true},
-		{"AUDITED with nil DVA", "AUDITED", nil, 0, true, true},
-		{"ESTIMATED with DVA >= 50%", "ESTIMATED", nil, 65.0, true, false},
-		{"ESTIMATED with DVA < 50%", "ESTIMATED", nil, 30.0, true, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := v.ValidatePLICompliance(tt.dvaSource, tt.auditedDVA, tt.estimatedDVA, tt.pliCompliant)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidatePLICompliance() error=%v, wantErr=%v", err, tt.wantErr)
 			}
 		})
 	}
@@ -407,45 +345,37 @@ func TestValidateIndiaCompliance(t *testing.T) {
 	v := NewValidationService()
 
 	tests := []struct {
-		name         string
-		bisNumber    string
-		eprNumber    string
-		hsnCode      string
-		iecCode      string
-		cellSource   string
-		pliCompliant bool
-		domesticVA   float64
-		wantValid    bool
+		name      string
+		bisNumber string
+		eprNumber string
+		hsnCode   string
+		iecCode   string
+		wantValid bool
 	}{
 		{
 			"Fully compliant domestic",
-			"R-41001234", "B-29016/2024-25/CPCB", "52081110", "", "DOMESTIC", true, 65.0,
+			"R-41001234", "B-29016/2024-25/CPCB", "52081110", "",
 			true,
 		},
 		{
 			"Missing BIS (mandatory)",
-			"", "B-29016/2024-25/CPCB", "52081110", "", "DOMESTIC", false, 0,
+			"", "B-29016/2024-25/CPCB", "52081110", "",
 			false,
 		},
 		{
-			"Imported without IEC (mandatory)",
-			"R-41001234", "", "52081110", "", "IMPORTED", false, 0,
-			false,
+			"Missing IEC (warning)",
+			"R-41001234", "", "52081110", "",
+			true,
 		},
 		{
 			"Imported with valid IEC",
-			"R-41001234", "", "52081110", "AAAPL1234C", "IMPORTED", false, 0,
+			"R-41001234", "", "52081110", "AAAPL1234C",
 			true,
 		},
 		{
 			"Invalid HSN code",
-			"R-41001234", "", "1234", "", "DOMESTIC", false, 0,
+			"R-41001234", "", "1234", "",
 			false,
-		},
-		{
-			"PLI with low DVA (warning only)",
-			"R-41001234", "", "52081110", "", "DOMESTIC", true, 30.0,
-			true, // valid with warning
 		},
 	}
 
@@ -453,7 +383,6 @@ func TestValidateIndiaCompliance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := v.ValidateIndiaCompliance(
 				tt.bisNumber, tt.eprNumber, tt.hsnCode, tt.iecCode,
-				tt.cellSource, tt.pliCompliant, tt.domesticVA,
 			)
 			if result.Valid != tt.wantValid {
 				t.Errorf("ValidateIndiaCompliance() valid=%v, want %v (errors: %v, warnings: %v)",

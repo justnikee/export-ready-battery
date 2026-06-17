@@ -18,7 +18,6 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-  Trophy,
   Upload,
   Users,
   Zap,
@@ -47,7 +46,6 @@ type DashboardRouteKey =
   | "lifecycle"
   | "mass-balance"
   | "partners"
-  | "rewards"
   | "settings"
   | "team"
   | "templates";
@@ -76,6 +74,7 @@ type DashboardCompliance = {
     statusField: "epr_status" | "bis_status" | "pli_status";
   }>;
   verifiedText: string;
+  pendingText: string;
   ctaLabel: string;
 };
 
@@ -224,7 +223,6 @@ const BATTERY_CONFIG: ProductConfig = {
         { name: "Team", dashboardSubpath: "team", icon: Users },
         { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
         { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
-        { name: "Rewards", dashboardSubpath: "rewards", icon: Trophy },
         { name: "Settings", dashboardSubpath: "settings", icon: Settings },
       ],
     },
@@ -300,6 +298,7 @@ const BATTERY_CONFIG: ProductConfig = {
         { label: "PLI", statusField: "pli_status" },
       ],
       verifiedText: "All India compliance documents verified",
+      pendingText: "Documents submitted — awaiting verification",
       ctaLabel: "Complete your compliance setup",
     },
   },

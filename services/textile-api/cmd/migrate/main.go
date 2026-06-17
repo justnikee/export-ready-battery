@@ -70,17 +70,11 @@ var expectedColumns = []struct{ table, column string }{
 	{"batches", "product_type"},
 	{"batches", "specs"},
 	{"batches", "market_region"},
-	{"batches", "pli_compliant"},
-	{"batches", "domestic_value_add"},
-	{"batches", "cell_source"},
-	{"batches", "dva_source"},
-	{"batches", "pli_certificate_url"},
 	{"batches", "hsn_code"},
 	{"batches", "bis_number"},
 	{"batches", "epr_number"},
 	{"batches", "carbon_footprint_result"},
 	{"batches", "model_name"},
-	{"batches", "audited_domestic_value_add"},
 
 	// passports
 	{"passports", "batch_id"},

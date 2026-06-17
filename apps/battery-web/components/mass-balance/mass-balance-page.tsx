@@ -114,7 +114,7 @@ export default function MassBalancePage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -137,7 +137,7 @@ export default function MassBalancePage() {
           return (
             <div
               key={mt}
-              className={`border rounded-lg p-4 space-y-3 ${
+              className={`border rounded-none p-4 space-y-3 ${
                 hasData ? "bg-card" : "bg-muted/30"
               }`}
             >
@@ -221,7 +221,7 @@ export default function MassBalancePage() {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredLedgers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-lg">
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-none">
           <Scale className="w-10 h-10 text-muted-foreground mb-3" />
           <h3 className="text-sm font-medium">No ledgers yet</h3>
           <p className="text-xs text-muted-foreground max-w-[300px] mt-1">
@@ -234,7 +234,7 @@ export default function MassBalancePage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
+        <div className="border border-border rounded-none overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

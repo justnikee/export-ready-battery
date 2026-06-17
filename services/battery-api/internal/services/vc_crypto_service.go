@@ -2,7 +2,7 @@ package services
 
 import (
 	"crypto/ed25519"
-	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -13,6 +13,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/multiformats/go-multibase"
 )
+
+// devSigningKeySeedMaterial derives a fixed, deterministic Ed25519 seed used only
+// when VC_SIGNING_KEY is unset outside of production. It keeps the DID stable
+// across local restarts (so dev-issued VCs keep verifying) without ever logging
+// real key material.
+const devSigningKeySeedMaterial = "battery-api-dev-only-vc-signing-key-do-not-use-in-production"
 
 // LDProof represents a W3C Linked Data Proof (Ed25519Signature2020).
 type LDProof struct {
@@ -54,11 +60,17 @@ var ed25519PubMulticodecPrefix = []byte{0xed, 0x01}
 
 // NewVCCryptoService creates a new VC crypto service.
 // It loads the signing key from the VC_SIGNING_KEY environment variable (base64).
-// If the variable is not set, it generates a new key pair and logs the base64 private key.
+// In production (APP_ENV=production) the variable is required; if missing, an error
+// is returned. Outside production, a fixed insecure dev-only key is used so the DID
+// stays stable across restarts.
 func NewVCCryptoService() (*VCCryptoService, error) {
 	var priv ed25519.PrivateKey
 
 	keyEnv := os.Getenv("VC_SIGNING_KEY")
+	if keyEnv == "" && os.Getenv("APP_ENV") == "production" {
+		return nil, fmt.Errorf("VC_SIGNING_KEY environment variable must be set in production")
+	}
+
 	if keyEnv != "" {
 		decoded, err := base64.StdEncoding.DecodeString(keyEnv)
 		if err != nil {
@@ -74,13 +86,9 @@ func NewVCCryptoService() (*VCCryptoService, error) {
 		}
 		slog.Info("Loaded VC signing key from VC_SIGNING_KEY environment variable")
 	} else {
-		_, privGen, err := ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate Ed25519 key: %w", err)
-		}
-		priv = privGen
-		encoded := base64.StdEncoding.EncodeToString(priv)
-		slog.Warn("VC_SIGNING_KEY not set; generated a new Ed25519 key pair", "private_key_base64", encoded)
+		seed := sha256.Sum256([]byte(devSigningKeySeedMaterial))
+		priv = ed25519.NewKeyFromSeed(seed[:])
+		slog.Warn("VC_SIGNING_KEY not set; using insecure fixed dev signing key (do not use in production)")
 	}
 
 	pub := priv.Public().(ed25519.PublicKey)

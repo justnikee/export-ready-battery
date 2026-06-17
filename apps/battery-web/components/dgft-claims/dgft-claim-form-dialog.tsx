@@ -100,6 +100,10 @@ export default function DGFTClaimFormDialog({
   }, [open, resetForm]);
 
   const handleBatchSelect = (batchId: string) => {
+    if (batchId === "NONE") {
+      setSelectedBatchId("");
+      return;
+    }
     setSelectedBatchId(batchId);
     const batch = batches.find((b) => b.id === batchId);
     if (!batch) return;
@@ -300,12 +304,12 @@ export default function DGFTClaimFormDialog({
               {/* Batch auto-population selector */}
               <div className="space-y-1.5">
                 <Label htmlFor="batch-select">Link to Batch (optional)</Label>
-                <Select value={selectedBatchId} onValueChange={handleBatchSelect}>
+                <Select value={selectedBatchId || "NONE"} onValueChange={handleBatchSelect}>
                   <SelectTrigger id="batch-select">
                     <SelectValue placeholder={loadingBatches ? "Loading batches..." : "Select a batch to auto-fill details"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None — manual entry</SelectItem>
+                    <SelectItem value="NONE">None — manual entry</SelectItem>
                     {batches.map((batch) => (
                       <SelectItem key={batch.id} value={batch.id}>
                         {batch.batch_name} {batch.model_name ? `(${batch.model_name})` : ""}

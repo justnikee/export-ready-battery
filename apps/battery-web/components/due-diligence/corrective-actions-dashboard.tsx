@@ -121,7 +121,7 @@ export default function CorrectiveActionsDashboard() {
   const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -152,7 +152,7 @@ export default function CorrectiveActionsDashboard() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="h-9 pl-8 pr-6 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-9 pl-8 pr-6 text-sm border rounded-none bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
@@ -167,7 +167,7 @@ export default function CorrectiveActionsDashboard() {
             <select
               value={severityFilter}
               onChange={(e) => { setSeverityFilter(e.target.value); setPage(1); }}
-              className="h-9 pl-8 pr-6 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-9 pl-8 pr-6 text-sm border rounded-none bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="all">All Severities</option>
               <option value="critical">Critical</option>
@@ -180,7 +180,7 @@ export default function CorrectiveActionsDashboard() {
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-none overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

@@ -1505,6 +1505,26 @@ type RegistryJob struct {
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
+// TenantCertVerificationJob is an async job that checks a tenant's compliance
+// registration number (e.g. BIS R-Number) against an external registry
+// adapter, so the corresponding *_status field can move from PENDING to
+// VERIFIED automatically when the registry confirms it.
+type TenantCertVerificationJob struct {
+	ID              string     `json:"id"`
+	TenantID        string     `json:"tenant_id"`
+	DocType         string     `json:"doc_type"`
+	CertificateNo   string     `json:"certificate_no"`
+	Status          string     `json:"status"`
+	AttemptCount    int        `json:"attempt_count"`
+	MaxAttempts     int        `json:"max_attempts"`
+	NextAttemptAt   *time.Time `json:"next_attempt_at,omitempty"`
+	ResultStatus    string     `json:"result_status,omitempty"`
+	ResultTrustTier string     `json:"result_trust_tier,omitempty"`
+	ErrorMessage    string     `json:"error_message,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
 // RegistryAuditLog records every external registry call for compliance.
 type RegistryAuditLog struct {
 	ID               string     `json:"id"`

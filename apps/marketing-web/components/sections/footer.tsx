@@ -32,8 +32,8 @@ const footerLinks = {
 
 export default function Footer() {
   return (
-    <footer className="relative pt-16 pb-9 overflow-hidden text-white"
-      style={{ background: "linear-gradient(180deg, #11251d 0%, #0c1a14 100%)" }}
+    <footer className="relative pt-20 pb-10 overflow-hidden text-white"
+      style={{ background: "linear-gradient(180deg, #11251d 0%, #0a160f 100%)" }}
     >
       {/* Grain texture */}
       <svg
@@ -57,26 +57,27 @@ export default function Footer() {
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-white text-sm font-semibold"
+              className="inline-flex items-center gap-2.5 font-serif italic text-white"
+              style={{ fontSize: "24px" }}
             >
               <span
-                className="w-4 h-4 rounded-[5px] bg-white"
+                className="w-[18px] h-[18px] rounded-[5px] bg-crew-coral"
                 style={{ transform: "skewX(-10deg)" }}
               />
               Anviora
             </Link>
-            <p className="max-w-[260px] mt-3 text-[13px] leading-[1.55] text-white/75">
+            <p className="max-w-[280px] mt-4 text-[14px] leading-[1.65] text-white/60">
               The Digital Product Identity Platform — compliance and passports for Indian
               battery and textile manufacturers selling at home and into Europe.
             </p>
 
             <form
-              className="mt-5"
+              className="mt-6"
               onSubmit={(e) => {
                 e.preventDefault();
               }}
             >
-              <label htmlFor="newsletter" className="block text-[12px] font-medium text-white/90 mb-2">
+              <label htmlFor="newsletter" className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45 mb-2.5">
                 Subscribe to our newsletter
               </label>
               <div className="flex items-center gap-2">
@@ -84,11 +85,11 @@ export default function Footer() {
                   id="newsletter"
                   type="email"
                   placeholder="you@company.com"
-                  className="flex-1 h-9 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-[13px] placeholder:text-white/50 focus:outline-none focus:border-white/50"
+                  className="flex-1 h-10 px-3.5 rounded-lg bg-white/[0.07] border border-white/15 text-white text-[14px] placeholder:text-white/40 focus:outline-none focus:border-crew-coral-light transition-colors"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white text-[#0f5a43] hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-crew-coral text-white hover:bg-crew-coral-light transition-colors"
                   aria-label="Subscribe"
                 >
                   <ArrowRight size={16} />
@@ -100,15 +101,15 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-[13px] font-medium text-white mb-4">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45 mb-4">
                 {category}
               </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-[13px] leading-[1.7] text-white/70 hover:text-white transition-colors"
+                      className="text-[14px] text-white/65 hover:text-white transition-colors"
                     >
                       {link.label}
                     </a>
@@ -120,7 +121,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/15 pt-6 text-[12px] text-white/60">
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-7 text-[12.5px] text-white/50">
           <span>© 2026 Anviora. Built in India for Indian exporters. 🇮🇳</span>
           <div className="flex items-center gap-6 mt-3 sm:mt-0">
             <a href="#" className="hover:text-white transition-colors">
