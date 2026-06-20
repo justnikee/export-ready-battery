@@ -106,6 +106,13 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 
 	// 10. EU mode: CE certification soft warning (log only, not an error) — skipped.
 
+	// 10b. EU + Battery: battery_category is required (EU Battery Regulation 2023/1542 Art. 3).
+	// The product-schema route (step 8) does not enforce this in production (battery_v1.json
+	// only requires chemistry/capacity), so it must be checked explicitly here.
+	if marketRegion == models.MarketRegionEU && productType == models.ProductTypeBattery && req.Specs.BatteryCategory == "" {
+		addError("battery_category", "Battery category is required for EU compliance (Art. 3)")
+	}
+
 	// 11. India Mode + Battery: PLI/DVA/HSN/customs logic
 	if marketRegion == models.MarketRegionIndia && productType == models.ProductTypeBattery {
 		// a. cell_source validation
@@ -146,8 +153,14 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 		if dvaSource == DVASourceAudited {
 			if req.AuditedDomesticValueAdd != nil {
 				calculatedDVA = *req.AuditedDomesticValueAdd
+				if calculatedDVA < 0 || calculatedDVA > 100 {
+					addError("audited_domestic_value_add", "Audited Domestic Value Add must be between 0 and 100")
+				}
 			} else {
 				addError("audited_domestic_value_add", "Audited DVA mode requires audited_domestic_value_add value")
+			}
+			if req.PLICertificateURL == "" {
+				addError("pli_certificate_url", "CA certificate upload is required for audited DVA mode")
 			}
 		} else {
 			// ESTIMATED: calculate DVA server-side from specs financial fields
@@ -161,8 +174,14 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 
 		// e. India Mode + IMPORTED: require customs declaration fields
 		if req.CellSource == "IMPORTED" {
-			if req.BillOfEntryNo == "" || req.CountryOfOrigin == "" {
-				addError("bill_of_entry_no", "Imported batches must include Bill of Entry and Country of Origin per Customs regulations")
+			if req.BillOfEntryNo == "" {
+				addError("bill_of_entry_no", "Bill of Entry No. is required for imported cells per Customs regulations")
+			}
+			if req.CountryOfOrigin == "" {
+				addError("country_of_origin", "Cell country of origin is required for imported cells per Customs regulations")
+			}
+			if req.CustomsDate == "" {
+				addError("customs_date", "Import date (customs_date) is required for imported cells per Customs regulations")
 			}
 			// For pure imports with no local value add (ESTIMATED mode only)
 			if dvaSource == DVASourceEstimated {

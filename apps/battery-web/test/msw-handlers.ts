@@ -11,6 +11,7 @@ export const dashboardStatsFixture = {
   total_batches: 8,
   quota_used: 12,
   quota_limit: 100,
+  quota_balance: 88,
   passports_this_week: 15,
   batches_by_status: { ACTIVE: 5, DRAFT: 3 },
 };

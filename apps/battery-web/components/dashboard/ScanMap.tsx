@@ -209,7 +209,18 @@ function ScanMapComponent({ scans, height = 280 }: ScanMapProps) {
  />
  </svg>
  </div>
+ {scans.length > 0 ? (
+ <>
+ <p className="text-sm text-muted-foreground">
+ {scans.length} scan{scans.length === 1 ? "" : "s"} recorded, but none could be located
+ </p>
+ <p className="text-xs text-muted-foreground mt-1">
+ Likely local/test traffic or an unresolved IP lookup
+ </p>
+ </>
+ ) : (
  <p className="text-sm text-muted-foreground">No scan locations yet</p>
+ )}
  </div>
  </div>
  )}

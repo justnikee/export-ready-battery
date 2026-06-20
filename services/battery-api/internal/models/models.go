@@ -1370,6 +1370,7 @@ type DashboardStats struct {
 	TotalBatches         int            `json:"total_batches"`
 	QuotaUsed            int            `json:"quota_used"`
 	QuotaLimit           int            `json:"quota_limit"`
+	QuotaBalance         int            `json:"quota_balance"`
 	CarbonCompliancePct  float64        `json:"carbon_compliance_percentage"`
 	PassportsThisWeek    int            `json:"passports_this_week"`
 	PendingExportBatches int            `json:"pending_export_batches"`

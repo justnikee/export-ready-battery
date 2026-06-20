@@ -1,0 +1,167 @@
+{
+  "_comment": "Shared validation-rule fixtures consumed by both services/battery-api/internal/services/batch_creation_validator_test.go and apps/battery-web/components/batches/batch-form-schema.test.ts. Field names follow the frontend's BatchFormData naming; each case that expects an error also carries the matching backend (CreateBatchRequest/BatchSpec) field name, since the two validators don't share a naming convention. This file is test-only fixtures — it does not change either validator's behavior. Every case is built India/DOMESTIC unless noted, since the rules under test (HSN prefix, DVA>0%, PLI>=50%, IMPORTED required fields, AUDITED required fields, date ordering) are all India-Battery rules confirmed to exist on both sides.",
+  "cases": [
+    {
+      "name": "HSN code missing the 8507 battery prefix",
+      "rule": "hsn-prefix",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "12345678",
+      "salePrice": 1000,
+      "importCost": 400,
+      "expectValid": false,
+      "expectErrors": [{ "go": "hsn_code", "ts": "hsnCode" }]
+    },
+    {
+      "name": "HSN code with valid 8507 battery prefix",
+      "rule": "hsn-prefix",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "salePrice": 1000,
+      "importCost": 400,
+      "expectValid": true
+    },
+    {
+      "name": "HSN code with the right prefix but the wrong length",
+      "rule": "hsn-length",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "850760",
+      "salePrice": 1000,
+      "importCost": 400,
+      "expectValid": false,
+      "expectErrors": [{ "go": "hsn_code", "ts": "hsnCode" }]
+    },
+    {
+      "name": "Domestic batch with zero Domestic Value Add",
+      "rule": "dva-positive",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "salePrice": 100,
+      "importCost": 100,
+      "expectValid": false,
+      "expectErrors": [{ "go": "domestic_value_add", "ts": "salePrice" }]
+    },
+    {
+      "name": "PLI claimed below the 50% DVA threshold",
+      "rule": "pli-threshold",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "salePrice": 100,
+      "importCost": 60,
+      "pliCompliant": true,
+      "expectValid": false,
+      "expectErrors": [{ "go": "pli_compliant", "ts": "pliCompliant" }]
+    },
+    {
+      "name": "PLI claimed at exactly the 50% DVA threshold (boundary — should pass)",
+      "rule": "pli-threshold",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "salePrice": 100,
+      "importCost": 50,
+      "pliCompliant": true,
+      "expectValid": true
+    },
+    {
+      "name": "Imported cells missing Bill of Entry No.",
+      "rule": "imported-required-fields",
+      "marketRegion": "INDIA",
+      "cellSource": "IMPORTED",
+      "hsnCode": "85076000",
+      "dvaSource": "ESTIMATED",
+      "billOfEntryNo": "",
+      "cellCountryOfOrigin": "CN",
+      "customsDate": "2024-03-01",
+      "expectValid": false,
+      "expectErrors": [{ "go": "bill_of_entry_no", "ts": "billOfEntryNo" }]
+    },
+    {
+      "name": "Imported cells missing country of origin",
+      "rule": "imported-required-fields",
+      "marketRegion": "INDIA",
+      "cellSource": "IMPORTED",
+      "hsnCode": "85076000",
+      "dvaSource": "ESTIMATED",
+      "billOfEntryNo": "BOE123",
+      "cellCountryOfOrigin": "",
+      "customsDate": "2024-03-01",
+      "expectValid": false,
+      "expectErrors": [{ "go": "country_of_origin", "ts": "cellCountryOfOrigin" }]
+    },
+    {
+      "name": "Imported cells missing the customs/import date",
+      "rule": "imported-required-fields",
+      "marketRegion": "INDIA",
+      "cellSource": "IMPORTED",
+      "hsnCode": "85076000",
+      "dvaSource": "ESTIMATED",
+      "billOfEntryNo": "BOE123",
+      "cellCountryOfOrigin": "CN",
+      "customsDate": "",
+      "expectValid": false,
+      "expectErrors": [{ "go": "customs_date", "ts": "customsDate" }]
+    },
+    {
+      "name": "Audited DVA mode missing the audited percentage",
+      "rule": "audited-required-fields",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "dvaSource": "AUDITED",
+      "auditedDva": null,
+      "uploadedFileUrl": "https://example.com/ca-cert.pdf",
+      "expectValid": false,
+      "expectErrors": [{ "go": "audited_domestic_value_add", "ts": "auditedDva" }]
+    },
+    {
+      "name": "Audited DVA mode missing the CA certificate upload",
+      "rule": "audited-required-fields",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "dvaSource": "AUDITED",
+      "auditedDva": 65,
+      "uploadedFileUrl": null,
+      "expectValid": false,
+      "expectErrors": [{ "go": "pli_certificate_url", "ts": "uploadedFileUrl" }]
+    },
+    {
+      "name": "Audited DVA percentage out of the valid 0-100 range",
+      "rule": "audited-range",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "dvaSource": "AUDITED",
+      "auditedDva": 150,
+      "uploadedFileUrl": "https://example.com/ca-cert.pdf",
+      "expectValid": false,
+      "expectErrors": [{ "go": "audited_domestic_value_add", "ts": "auditedDva" }]
+    },
+    {
+      "name": "EU batch missing the required battery category",
+      "rule": "eu-battery-category",
+      "marketRegion": "EU",
+      "batteryCategory": "",
+      "expectValid": false,
+      "expectErrors": [{ "go": "battery_category", "ts": "batteryCategory" }]
+    },
+    {
+      "name": "Manufacturing end date before start date",
+      "rule": "date-ordering",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "85076000",
+      "salePrice": 1000,
+      "importCost": 400,
+      "manufacturingStartDate": "2024-06-15",
+      "manufacturingEndDate": "2024-06-10",
+      "expectValid": false,
+      "expectErrors": [{ "go": "manufacturing_end_date", "ts": "manufacturingEndDate" }]
+    }
+  ]
+}

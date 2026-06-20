@@ -3,6 +3,8 @@ package services_test
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
@@ -18,12 +20,14 @@ import (
 func setupBatchCreationValidator(t *testing.T) (*services.BatchCreationValidator, *repository.MockRepository) {
 	mockRepo := new(repository.MockRepository)
 
+	// Mirrors services/battery-api/internal/schema/seeds/battery_v1.json: production does
+	// NOT require battery_category at the generic product-schema level — EU enforcement is
+	// a hardcoded check in BatchCreationValidator.Validate (see "10b" in batch_creation_validator.go).
 	schemaReg := schema.NewRegistry(nil)
 	schemaReg.Seed(&models.ProductSchema{
 		ProductType: models.ProductTypeBattery,
 		Version:     1,
 		SchemaJSON: json.RawMessage(`{
-			"required": ["battery_category"],
 			"properties": {
 				"battery_category": {"type": "string"}
 			}
@@ -87,6 +91,7 @@ func TestBatchCreationValidator(t *testing.T) {
 				HSNCode:         "85076000",
 				BillOfEntryNo:   "BOE123",
 				CountryOfOrigin: "CN",
+				CustomsDate:     "2024-03-01",
 				DVASource:       services.DVASourceEstimated,
 				Specs: models.BatchSpec{
 					BatteryCategory: models.BatteryCategoryEV,
@@ -162,6 +167,25 @@ func TestBatchCreationValidator(t *testing.T) {
 			tenant:     validTenant,
 			wantValid:  false,
 			wantFields: []string{"bill_of_entry_no"},
+		},
+		{
+			name: "India IMPORTED missing CountryOfOrigin",
+			req: models.CreateBatchRequest{
+				TenantID:      tenantID,
+				BatchName:     "TestBatch",
+				ProductType:   models.ProductTypeBattery,
+				MarketRegion:  models.MarketRegionIndia,
+				CellSource:    "IMPORTED",
+				HSNCode:       "85076000",
+				BillOfEntryNo: "BOE123",
+				DVASource:     services.DVASourceEstimated,
+				Specs: models.BatchSpec{
+					BatteryCategory: models.BatteryCategoryEV,
+				},
+			},
+			tenant:     validTenant,
+			wantValid:  false,
+			wantFields: []string{"country_of_origin"},
 		},
 		{
 			name: "India IMPORTED with PLICompliant=true",
@@ -281,6 +305,108 @@ func TestBatchCreationValidator(t *testing.T) {
 				for _, field := range tt.wantFields {
 					assert.Contains(t, errorFields, field, "expected error for field %q", field)
 				}
+			}
+		})
+	}
+}
+
+// TestBatchCreationValidatorSharedFixtures runs the cross-stack fixture set in
+// test-fixtures/batch-validation-fixtures.json — the same cases are run against
+// the frontend's batchFormSchema in batch-form-schema.test.ts. The fixtures are
+// the source of truth for HSN-prefix, DVA>0%, PLI>=50%, IMPORTED-required-field,
+// AUDITED-required-field and date-ordering rules; if one validator drifts from
+// the other, this test (or its frontend counterpart) catches it.
+func TestBatchCreationValidatorSharedFixtures(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "test-fixtures", "batch-validation-fixtures.json"))
+	if err != nil {
+		t.Fatalf("failed to read shared fixtures: %v", err)
+	}
+
+	var fixtureFile struct {
+		Cases []struct {
+			Name                   string   `json:"name"`
+			MarketRegion           string   `json:"marketRegion"`
+			CellSource             string   `json:"cellSource"`
+			HSNCode                string   `json:"hsnCode"`
+			SalePrice              float64  `json:"salePrice"`
+			ImportCost             float64  `json:"importCost"`
+			PLICompliant           bool     `json:"pliCompliant"`
+			DVASource              string   `json:"dvaSource"`
+			AuditedDva             *float64 `json:"auditedDva"`
+			UploadedFileURL        string   `json:"uploadedFileUrl"`
+			BatteryCategory        string   `json:"batteryCategory"`
+			BillOfEntryNo          string   `json:"billOfEntryNo"`
+			CellCountryOfOrigin    string   `json:"cellCountryOfOrigin"`
+			CustomsDate            string   `json:"customsDate"`
+			ManufacturingStartDate string   `json:"manufacturingStartDate"`
+			ManufacturingEndDate   string   `json:"manufacturingEndDate"`
+			ExpectValid            bool     `json:"expectValid"`
+			ExpectErrors           []struct {
+				Go string `json:"go"`
+				TS string `json:"ts"`
+			} `json:"expectErrors"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(data, &fixtureFile); err != nil {
+		t.Fatalf("failed to parse shared fixtures: %v", err)
+	}
+
+	tenantID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	tenant := &models.Tenant{
+		ID:             tenantID,
+		BatteryProfile: &models.BatteryTenantProfile{IECCode: "AAAPL1234C"},
+	}
+	validator, _ := setupBatchCreationValidator(t)
+
+	for _, tc := range fixtureFile.Cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			// Fixtures default to a valid battery category since it's irrelevant to the
+			// India-market rules most cases exercise; cases testing EU's battery_category
+			// requirement set batteryCategory explicitly (including "" for "missing").
+			batteryCategory := models.BatteryCategoryEV
+			if tc.BatteryCategory != "" {
+				batteryCategory = models.BatteryCategory(tc.BatteryCategory)
+			} else if tc.MarketRegion == "EU" {
+				batteryCategory = ""
+			}
+
+			req := models.CreateBatchRequest{
+				TenantID:                tenantID,
+				BatchName:               "TestBatch",
+				ProductType:             models.ProductTypeBattery,
+				MarketRegion:            models.MarketRegion(tc.MarketRegion),
+				CellSource:              tc.CellSource,
+				HSNCode:                 tc.HSNCode,
+				BillOfEntryNo:           tc.BillOfEntryNo,
+				CountryOfOrigin:         tc.CellCountryOfOrigin,
+				CustomsDate:             tc.CustomsDate,
+				DVASource:               tc.DVASource,
+				PLICompliant:            tc.PLICompliant,
+				AuditedDomesticValueAdd: tc.AuditedDva,
+				PLICertificateURL:       tc.UploadedFileURL,
+				ManufacturingStartDate:  tc.ManufacturingStartDate,
+				ManufacturingEndDate:    tc.ManufacturingEndDate,
+				Specs: models.BatchSpec{
+					BatteryCategory: batteryCategory,
+					SalePriceINR:    tc.SalePrice,
+					ImportCostINR:   tc.ImportCost,
+				},
+			}
+
+			result := validator.Validate(context.Background(), req, tenant)
+
+			if tc.ExpectValid {
+				assert.True(t, result.Valid, "expected valid but got errors: %+v", result.Errors)
+				return
+			}
+
+			assert.False(t, result.Valid, "expected invalid but got valid")
+			errorFields := make([]string, len(result.Errors))
+			for i, e := range result.Errors {
+				errorFields[i] = e.Field
+			}
+			for _, expected := range tc.ExpectErrors {
+				assert.Contains(t, errorFields, expected.Go, "expected error for field %q", expected.Go)
 			}
 		})
 	}

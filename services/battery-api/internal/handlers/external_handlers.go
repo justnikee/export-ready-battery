@@ -128,7 +128,12 @@ func (h *Handler) ExternalCreateBatch(w http.ResponseWriter, r *http.Request) {
 	// v2: Copy battery-specific fields into Specs JSONB
 	req.Specs.CellSource = req.CellSource
 	req.Specs.BillOfEntryNo = req.BillOfEntryNo
-	req.Specs.CountryOfOrigin = req.CountryOfOrigin
+	// Top-level CountryOfOrigin is the cell's customs import origin
+	// (IMPORTED only) — don't let it clobber Specs.CountryOfOrigin (the
+	// battery's own manufacturing origin) for non-imported batches.
+	if req.CellSource == "IMPORTED" {
+		req.Specs.CountryOfOrigin = req.CountryOfOrigin
+	}
 	if customsDate != nil {
 		req.Specs.CustomsDate = customsDate.Format("2006-01-02")
 	}

@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
     if (showRefresh) setRefreshing(true);
 
     try {
-      const response = await api.get(`/scans/feed?tenant_id=${user.tenant_id}&limit=50`);
+      const response = await api.get(`/scans/feed?limit=50`);
       const scans: ScanFeedItem[] = response.data.scans || [];
 
       const countryMap = new Map<string, number>();

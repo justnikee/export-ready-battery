@@ -226,18 +226,20 @@ export const batchFormSchema = z
       });
     }
 
-    // India: HSN code required and must start with 8507
+    // India: HSN code required, exactly 8 digits, and must start with 8507
+    // (mirrors Go's ValidateHSNCode / HSNBatteryRegex — services/battery-api/internal/services/validation.go)
     if (data.marketRegion === "INDIA") {
-      if (!data.hsnCode.trim()) {
+      const normalizedHsn = data.hsnCode.trim().replace(/[. ]/g, "");
+      if (!normalizedHsn) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "HSN Code is required for India",
           path: ["hsnCode"],
         });
-      } else if (!data.hsnCode.startsWith("8507")) {
+      } else if (!/^8507[0-9]{4}$/.test(normalizedHsn)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'HSN Code must start with "8507" (Li-ion accumulators)',
+          message: 'HSN Code must be exactly 8 digits starting with "8507" (e.g., 85076000)',
           path: ["hsnCode"],
         });
       }

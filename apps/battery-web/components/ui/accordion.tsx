@@ -22,7 +22,7 @@ interface AccordionItemProps extends React.HTMLAttributes<HTMLDivElement> {
 const AccordionItem = React.forwardRef<
  HTMLDivElement,
  AccordionItemProps
->(({ className, children, ...props }, ref) => (
+>(({ className, children, value: _value, isOpen: _isOpen, onToggle: _onToggle, ...props }, ref) => (
  <div ref={ref} className={cn("border border-border rounded-lg bg-card overflow-hidden", className)} {...props}>
  {children}
  </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/context/auth-context";
 import { dashboardPathFromPathname } from "@/lib/routes";
@@ -14,12 +14,10 @@ import {
   SheetFooter as DialogFooter,
   SheetHeader as DialogHeader,
   SheetTitle as DialogTitle,
-  SheetTrigger as DialogTrigger,
 } from "@/components/ui/sheet";
 import api from "@/lib/api";
 import { toast } from "sonner";
-import { PlusCircle, Sparkles, ChevronLeft, ChevronRight, Check, History, X } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { PlusCircle, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useTemplates, type Template } from "@/hooks/use-queries";
 import { useBatchValidation } from "@/hooks/use-batch-validation";
@@ -33,10 +31,11 @@ import {
 } from "@/components/batches/batch-form-schema";
 import {
   scheduleDraftSave,
-  saveDraft,
-  loadDraft,
-  clearDraft,
+  saveDraftSlot,
+  loadDraftSlot,
+  deleteDraftSlot,
 } from "@/lib/batch-draft";
+import { BatchEntryModal, type EntryChoice } from "@/components/batches/batch-entry-modal";
 import { StepIdentity } from "@/components/batches/batch-form-steps/step-identity";
 import { StepSpecs } from "@/components/batches/batch-form-steps/step-specs";
 import { StepCompliance } from "@/components/batches/batch-form-steps/step-compliance";
@@ -47,49 +46,55 @@ interface CreateBatchWizardProps {
 }
 
 const STEPS = [
-  { id: 0, label: "Identity", description: "Basic info & market" },
-  { id: 1, label: "Specifications", description: "Chemistry & materials" },
-  { id: 2, label: "Compliance", description: "Market-specific rules" },
-  { id: 3, label: "Review", description: "Verify & submit" },
+  { id: 0, label: "Core", description: "Identity & specs" },
+  { id: 1, label: "Compliance", description: "Market-specific rules" },
+  { id: 2, label: "Review", description: "Verify & submit" },
 ] as const;
 
 const stepFieldCounts = [
-  { total: 6, label: "6 required fields" },
-  { total: 5, label: "5 required fields" },
+  { total: 11, label: "11 required fields" },
   { total: 8, label: "8–11 fields depending on market" },
   { total: 0, label: "Review & submit" },
 ];
 
 // Which wizard step a form field belongs to — used to scope backend
 // validation errors to steps the user has already reached.
-const IDENTITY_FIELDS = ["batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate", "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry"];
-const SPECS_FIELDS = ["weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable"];
+const CORE_FIELDS = [
+  "batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate",
+  "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry",
+  "weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable",
+];
 
 function getStepForField(field: string): number {
   const root = field.split(".")[0];
-  if (IDENTITY_FIELDS.includes(root)) return 0;
-  if (SPECS_FIELDS.includes(root)) return 1;
-  return 2;
-}
-
-interface PendingDraft {
-  data: Partial<BatchFormData>;
-  step: number;
-  savedAt: string;
+  if (CORE_FIELDS.includes(root)) return 0;
+  return 1;
 }
 
 export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
-  const [pendingDraft, setPendingDraft] = useState<PendingDraft | null>(null);
+  const [currentDraftId, setCurrentDraftId] = useState<string>("");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [pendingAiMode, setPendingAiMode] = useState<"pdf" | "nl" | undefined>(undefined);
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
+  const [settingsFilledFields, setSettingsFilledFields] = useState<Set<string>>(new Set());
+
+  const handleAiFill = useCallback((fields: string[]) => {
+    setAiFilledFields((prev) => {
+      const next = new Set(prev);
+      fields.forEach((f) => next.add(f));
+      return next;
+    });
+  }, []);
 
   // Templates
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState("");
 
   // Upload state
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -127,11 +132,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   const {
     watch,
+    getValues,
     setValue,
     reset,
     handleSubmit,
     trigger,
     setError,
+    control,
     formState: { errors, isDirty },
   } = methods;
 
@@ -140,7 +147,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   // Default certifications based on market region
   useEffect(() => {
-    if (!open) return
+    if (!wizardOpen) return
     const currentCerts = watch("certifications")
     const isDefault =
       JSON.stringify(currentCerts) === JSON.stringify(["AIS-156", "AIS-038"]) ||
@@ -154,7 +161,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       setValue("certifications", ["CE"], { shouldValidate: false })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketRegion, open])
+  }, [marketRegion, wizardOpen])
 
   // Fetch templates via React Query (cached, deduped)
   const { data: templatesData } = useTemplates(user?.tenant_id, "BATTERY");
@@ -234,121 +241,149 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   // Auto-save draft on form changes (debounced)
   useEffect(() => {
-    if (!open || !user) return;
+    if (!wizardOpen || !user || !currentDraftId) return;
     const subscription = watch((value) => {
       if (isDirty) {
-        scheduleDraftSave(user.tenant_id, value as BatchFormData, step);
+        scheduleDraftSave(user.tenant_id, currentDraftId, value as BatchFormData, step, () =>
+          setLastSavedAt(new Date().toISOString())
+        );
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, isDirty, user, open, step]);
+  }, [watch, isDirty, user, wizardOpen, step, currentDraftId]);
 
-  // Pre-fill static fields from user profile when dialog opens + offer draft resume
+  // Re-fills euRepresentative*/eprNumber/bisNumber from the org profile.
+  // Only touches fields that are currently empty, so it's safe to call again
+  // later from a manual "Fill from profile" action on the Compliance step.
+  const fillComplianceFromSettings = useCallback(() => {
+    if (!user) return [] as string[];
+    const filled: string[] = [];
+
+    if (user.eu_authorized_representative_name && !watch("euRepresentative")) {
+      setValue("euRepresentative", user.eu_authorized_representative_name);
+      filled.push("euRepresentative");
+    }
+    if (user.eu_contact_email && !watch("euRepresentativeEmail")) {
+      setValue("euRepresentativeEmail", user.eu_contact_email);
+      filled.push("euRepresentativeEmail");
+    }
+    if (user.eu_authorized_representative_address && !watch("euRepresentativeAddress")) {
+      setValue("euRepresentativeAddress", user.eu_authorized_representative_address);
+      filled.push("euRepresentativeAddress");
+    }
+    if (user.epr_registration_number && !watch("eprNumber")) {
+      setValue("eprNumber", user.epr_registration_number);
+      filled.push("eprNumber");
+    }
+    if (user.bis_r_number && !watch("bisNumber")) {
+      setValue("bisNumber", user.bis_r_number);
+      filled.push("bisNumber");
+    }
+
+    if (filled.length > 0) {
+      setSettingsFilledFields((prev) => {
+        const next = new Set(prev);
+        filled.forEach((f) => next.add(f));
+        return next;
+      });
+    }
+    return filled;
+  }, [user, watch, setValue]);
+
+  // User-triggered version of fillComplianceFromSettings — same fields, but
+  // with toast feedback since this one is an explicit click, not a silent
+  // mount-time default.
+  const handleFillComplianceFromProfile = useCallback(() => {
+    const filled = fillComplianceFromSettings();
+    if (filled.length > 0) {
+      toast.success(`Filled ${filled.length} field${filled.length > 1 ? "s" : ""} from your organization profile`);
+    } else {
+      toast.info("Nothing to fill — these fields are already set, or missing from Organization Settings");
+    }
+  }, [fillComplianceFromSettings]);
+
+  // Pre-fill static fields from user profile when the wizard opens. Fields
+  // touched here are tracked in settingsFilledFields so the form can show a
+  // "from Settings" badge — otherwise a silently pre-filled field looks no
+  // different from one the user typed, and they won't know editing it here
+  // is per-batch only (the permanent fix lives in Organization Settings).
   useEffect(() => {
-    if (open && user) {
+    if (wizardOpen && user) {
+      const filledFromSettings: string[] = [];
+
       // Core company info (only if field is currently empty)
       if (user.company_name && !watch("manufacturer")) {
         setValue("manufacturer", user.company_name);
+        filledFromSettings.push("manufacturer");
       }
       if (user.address && !watch("manufacturerAddress")) {
         setValue("manufacturerAddress", user.address);
+        filledFromSettings.push("manufacturerAddress");
       }
       if (user.support_email && !watch("manufacturerEmail")) {
         setValue("manufacturerEmail", user.support_email);
+        filledFromSettings.push("manufacturerEmail");
       }
 
-      // EU representative (only if field is currently empty)
-      if (user.eu_authorized_representative_name && !watch("euRepresentative")) {
-        setValue("euRepresentative", user.eu_authorized_representative_name);
-      }
-      if (user.eu_contact_email && !watch("euRepresentativeEmail")) {
-        setValue("euRepresentativeEmail", user.eu_contact_email);
-      }
-      if (user.eu_authorized_representative_address && !watch("euRepresentativeAddress")) {
-        setValue("euRepresentativeAddress", user.eu_authorized_representative_address);
-      }
-
-      // India regulatory numbers (only if field is currently empty)
-      if (user.epr_registration_number && !watch("eprNumber")) {
-        setValue("eprNumber", user.epr_registration_number);
-      }
-      if (user.bis_r_number && !watch("bisNumber")) {
-        setValue("bisNumber", user.bis_r_number);
-      }
+      filledFromSettings.push(...fillComplianceFromSettings());
 
       // Default country of origin based on tenant profile signals
       if (!watch("countryOfOrigin")) {
         if (user.epr_registration_number || user.bis_r_number || user.iec_code) {
           setValue("countryOfOrigin", "IN");
+          filledFromSettings.push("countryOfOrigin");
         }
       }
 
-      // Surface any saved draft as an inline banner (see render below) —
-      // a toast is too easy to miss for recovering real work.
-      setPendingDraft(loadDraft(user.tenant_id));
+      if (filledFromSettings.length > 0) {
+        setSettingsFilledFields((prev) => {
+          const next = new Set(prev);
+          filledFromSettings.forEach((f) => next.add(f));
+          return next;
+        });
+      }
     }
-  }, [open, setValue, reset, user]);
+  }, [wizardOpen, setValue, reset, user, fillComplianceFromSettings]);
 
-  const handleResumeDraft = () => {
-    if (!pendingDraft || !user) return;
-    try {
-      // Merge draft with current defaults to handle schema drift
-      reset({
-        ...defaultBatchFormValues,
-        ...pendingDraft.data,
-        // Ensure nested objects are preserved
-        materialComposition: {
-          ...defaultBatchFormValues.materialComposition,
-          ...(pendingDraft.data.materialComposition || {}),
-        },
-        hazardousSubstances: {
-          ...defaultBatchFormValues.hazardousSubstances,
-          ...(pendingDraft.data.hazardousSubstances || {}),
-        },
-      });
-      setStep(Math.min(pendingDraft.step, STEPS.length - 1));
-      setPendingDraft(null);
-      toast.success("Draft resumed");
-    } catch {
-      toast.error("Draft is corrupted or outdated. Starting fresh.");
-      clearDraft(user.tenant_id);
-      setPendingDraft(null);
-    }
-  };
-
-  const handleDiscardDraft = () => {
-    if (user) clearDraft(user.tenant_id);
-    setPendingDraft(null);
-  };
-
-  const draftAgeText = (savedAt: string) => {
-    const mins = Math.max(1, Math.round((Date.now() - new Date(savedAt).getTime()) / 60000));
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.round(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.round(hours / 24)}d ago`;
-  };
-
-  // Auto-disable PLI and validate IEC for imported cells
+  // Auto-disable PLI and validate IEC for imported cells. DVA mode/audit
+  // fields are India-DOMESTIC-only concepts — reset them so a stale AUDITED
+  // selection from a prior DOMESTIC choice doesn't trip the backend's
+  // "IMPORTED cells require DVA source to be ESTIMATED" check.
   useEffect(() => {
     if (cellSource === "IMPORTED") {
       setValue("pliCompliant", false);
+      setValue("dvaSource", "ESTIMATED");
+      setValue("auditedDva", "");
+      setValue("uploadedFileUrl", null);
       setIecError(!user?.iec_code);
     } else {
       setIecError(false);
     }
   }, [cellSource, setValue, user?.iec_code]);
 
-  // Real-time backend validation (debounced 500ms)
-  const formValues = watch();
+  // Real-time backend validation (debounced 500ms). Only watches the
+  // specific fields the validator cares about — watching the whole form
+  // here would re-render (and re-debounce) the entire multi-step wizard on
+  // every keystroke in any step.
+  const validationTriggerFields = useWatch({
+    control,
+    name: [
+      "batchName", "marketRegion", "cellSource", "hsnCode", "billOfEntryNo",
+      "cellCountryOfOrigin", "customsDate", "salePrice", "importCost",
+      "dvaSource", "auditedDva", "pliCompliant", "batteryCategory",
+      "carbonFootprint", "expectedLifetime", "warrantyMonths",
+      "manufacturingStartDate", "manufacturingEndDate",
+    ],
+  });
   useEffect(() => {
-    if (!open || !user) return;
+    if (!wizardOpen || !user) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       // Only validate if we have minimum required fields
-      if (!formValues.batchName || !formValues.marketRegion) return;
+      const currentValues = getValues();
+      if (!currentValues.batchName || !currentValues.marketRegion) return;
       try {
-        const payload = buildValidationPayload(formValues, user);
+        const payload = buildValidationPayload(currentValues, user);
         const result = await batchValidation.mutateAsync(payload);
         if (result.errors && result.errors.length > 0) {
           const mapped: Record<string, string> = {};
@@ -368,7 +403,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formValues.batchName, formValues.marketRegion, formValues.cellSource, formValues.hsnCode, formValues.billOfEntryNo, formValues.cellCountryOfOrigin, formValues.customsDate, formValues.salePrice, formValues.importCost, formValues.dvaSource, formValues.auditedDva, formValues.pliCompliant, formValues.batteryCategory, formValues.carbonFootprint, formValues.expectedLifetime, formValues.warrantyMonths, formValues.manufacturingStartDate, formValues.manufacturingEndDate, open, user]);
+  }, [...validationTriggerFields, wizardOpen, user]);
 
   // Apply backend validation errors to react-hook-form, scoped to steps the
   // user has already reached — surfacing errors for fields on future steps
@@ -383,7 +418,6 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   // Template selection
   const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
     if (!templateId) return;
 
     const template = templates.find((t) => t.id === templateId);
@@ -464,6 +498,77 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     toast.success(`Loaded "${template.name}" template (${template.market_region} market)`);
   };
 
+  // Resume a saved draft slot, selected from the entry modal
+  const handleResumeDraftSlot = (draftId: string) => {
+    if (!user) return;
+    const slot = loadDraftSlot(user.tenant_id, draftId);
+    if (!slot) {
+      toast.error("Draft is no longer available.");
+      return;
+    }
+    try {
+      reset({
+        ...defaultBatchFormValues,
+        ...slot.data,
+        // Ensure nested objects are preserved even if the draft predates new fields
+        materialComposition: {
+          ...defaultBatchFormValues.materialComposition,
+          ...(slot.data.materialComposition || {}),
+        },
+        hazardousSubstances: {
+          ...defaultBatchFormValues.hazardousSubstances,
+          ...(slot.data.hazardousSubstances || {}),
+        },
+      });
+      setCurrentDraftId(draftId);
+      setLastSavedAt(slot.savedAt);
+      setPendingAiMode(undefined);
+      setAiFilledFields(new Set());
+      setSettingsFilledFields(new Set());
+      setStep(Math.min(slot.step, STEPS.length - 1));
+      setEntryOpen(false);
+      setWizardOpen(true);
+      toast.success("Draft resumed");
+    } catch {
+      toast.error("Draft is corrupted or outdated.");
+      deleteDraftSlot(user.tenant_id, draftId);
+    }
+  };
+
+  // Entry modal selection — seed the wizard's form state and open it
+  const handleEntryChoice = (choice: EntryChoice) => {
+    if (choice.type === "resume-draft") {
+      handleResumeDraftSlot(choice.draftId);
+      return;
+    }
+    if (choice.type === "template") {
+      handleTemplateSelect(choice.templateId);
+      setCurrentDraftId(crypto.randomUUID());
+      setLastSavedAt(null);
+      setPendingAiMode(undefined);
+      setAiFilledFields(new Set());
+      setSettingsFilledFields(new Set());
+      setStep(0);
+      setEntryOpen(false);
+      setWizardOpen(true);
+      return;
+    }
+
+    reset({
+      ...defaultBatchFormValues,
+      manufacturer: user?.company_name || "",
+      marketRegion: choice.market,
+    });
+    setCurrentDraftId(crypto.randomUUID());
+    setLastSavedAt(null);
+    setPendingAiMode(choice.type === "ai-pdf" ? "pdf" : choice.type === "ai-nl" ? "nl" : undefined);
+    setAiFilledFields(new Set());
+    setSettingsFilledFields(new Set());
+    setStep(0);
+    setEntryOpen(false);
+    setWizardOpen(true);
+  };
+
   // File upload handlers
   const handleCertificateUpload = async (file: File) => {
     if (!user) return;
@@ -516,23 +621,26 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   };
 
   // Market-aware required fields per step
-  const getRequiredFieldsForStep = useCallback((stepIdx: number, market: MarketRegion, source: CellSource): (keyof BatchFormData)[] => {
+  const getRequiredFieldsForStep = useCallback((stepIdx: number, market: MarketRegion, source: CellSource, dvaSource: BatchFormData["dvaSource"]): (keyof BatchFormData)[] => {
     const base: (keyof BatchFormData)[][] = [
-      ["batchName", "modelName", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer"],
-      ["chemistry", "capacity", "voltage"],
-      [], // Step 3 varies by market
+      ["batchName", "modelName", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer", "chemistry", "capacity", "voltage"],
+      [], // Compliance step varies by market
       ["templateName"],
     ];
     const fields = [...base[stepIdx]];
 
-    if (stepIdx === 2) {
+    if (stepIdx === 1) {
       if (market === "INDIA") {
         fields.push("hsnCode", "cellSource");
         if (source === "IMPORTED") {
           fields.push("billOfEntryNo", "cellCountryOfOrigin", "customsDate");
         }
         if (source === "DOMESTIC") {
-          fields.push("salePrice", "importCost");
+          if (dvaSource === "AUDITED") {
+            fields.push("auditedDva", "uploadedFileUrl");
+          } else {
+            fields.push("salePrice", "importCost");
+          }
         }
       }
       if (market === "EU") {
@@ -545,7 +653,10 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   // Step navigation
   const canGoNext = async () => {
-    const fields = getRequiredFieldsForStep(step, marketRegion, cellSource);
+    if (step === 1 && marketRegion === "INDIA" && cellSource === "IMPORTED" && iecError) {
+      return false;
+    }
+    const fields = getRequiredFieldsForStep(step, marketRegion, cellSource, watch("dvaSource"));
     const valid = await trigger(fields);
     return valid;
   };
@@ -559,6 +670,20 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   const goBack = () => {
     if (step > 0) setStep((s) => s - 1);
+  };
+
+  // Explicit "Save & Exit" — flushes the draft immediately instead of
+  // relying on the 5s-debounced autosave, so closing right after a quick
+  // edit can't silently drop it.
+  const handleSaveAndExit = () => {
+    if (!user || !currentDraftId) {
+      setWizardOpen(false);
+      return;
+    }
+    saveDraftSlot(user.tenant_id, currentDraftId, watch(), step);
+    setLastSavedAt(new Date().toISOString());
+    setWizardOpen(false);
+    toast.success("Draft saved — resume it anytime from Create Batch");
   };
 
   // Submit
@@ -650,13 +775,15 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       }
 
       toast.success("Batch created successfully");
-      setOpen(false);
+      setWizardOpen(false);
       onBatchCreated();
       reset({ ...defaultBatchFormValues, manufacturer: user?.company_name || "" });
       setStep(0);
-      setSelectedTemplate("");
-      clearDraft(user.tenant_id);
-      setPendingDraft(null);
+      if (currentDraftId) deleteDraftSlot(user.tenant_id, currentDraftId);
+      setCurrentDraftId("");
+      setLastSavedAt(null);
+      setAiFilledFields(new Set());
+      setSettingsFilledFields(new Set());
       setRetryPayload(null);
 
       // Take the user straight to the new batch — the activation checklist,
@@ -720,13 +847,19 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Batch
-        </Button>
-      </DialogTrigger>
+    <>
+      <Button onClick={() => setEntryOpen(true)}>
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Create Batch
+      </Button>
+      <BatchEntryModal
+        open={entryOpen}
+        onOpenChange={setEntryOpen}
+        tenantId={user?.tenant_id}
+        templates={templates}
+        onChoice={handleEntryChoice}
+      />
+      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
       <DialogContent className="sm:max-w-160 w-full h-full overflow-y-auto bg-background border-border text-foreground p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle>Create New Batch</DialogTitle>
@@ -764,62 +897,25 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
           </div>
         </div>
 
-        {/* Saved draft banner */}
-        {pendingDraft && !isDirty && (
-          <div className="mx-6 mt-4 flex items-center justify-between gap-3 border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <History className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <p className="text-sm text-foreground truncate">
-                You have an unsaved draft from{" "}
-                <span className="font-medium">{draftAgeText(pendingDraft.savedAt)}</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button type="button" size="sm" variant="outline" onClick={handleResumeDraft}>
-                Resume
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={handleDiscardDraft}
-                aria-label="Discard draft"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
             <div className="grid gap-6 px-6 py-4 overflow-y-auto flex-1">
-              {/* Template Selector */}
-              {templates.length > 0 && step === 0 && (
-                <div className="grid gap-2 pb-2 border-b border-border">
-                  <Label htmlFor="template" className="flex items-center gap-2 text-foreground">
-                    <Sparkles className="h-4 w-4 text-muted-foreground" />
-                    Load Template
-                  </Label>
-                  <select
-                    id="template"
-                    value={selectedTemplate}
-                    onChange={(e) => handleTemplateSelect(e.target.value)}
-                    className="flex h-10 w-full border border-border bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
-                  >
-                    <option value="">-- Select a template --</option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
+              {/* Step Content */}
+              {step === 0 && (
+                <div className="space-y-8">
+                  <StepIdentity
+                    initialAiMode={pendingAiMode}
+                    aiFilledFields={aiFilledFields}
+                    onAiFill={handleAiFill}
+                    settingsFilledFields={settingsFilledFields}
+                  />
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-t border-border pt-6">
+                    Battery Specs
+                  </div>
+                  <StepSpecs aiFilledFields={aiFilledFields} settingsFilledFields={settingsFilledFields} />
                 </div>
               )}
-
-              {/* Step Content */}
-              {step === 0 && <StepIdentity />}
-              {step === 1 && <StepSpecs />}
-              {step === 2 && (
+              {step === 1 && (
                 <StepCompliance
                   isUploading={isUploading}
                   uploadProgress={uploadProgress}
@@ -827,9 +923,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                   onCertificateUpload={handleCertificateUpload}
                   iecError={iecError}
                   user={user}
+                  aiFilledFields={aiFilledFields}
+                  settingsFilledFields={settingsFilledFields}
+                  primaryMarket={user?.data_visibility?.primary_market}
+                  onFillFromProfile={handleFillComplianceFromProfile}
                 />
               )}
-              {step === 3 && <StepReview />}
+              {step === 2 && <StepReview onJumpToStep={setStep} aiFilledFields={aiFilledFields} iecError={iecError} />}
             </div>
 
             <DialogFooter className="border-t border-border px-6 py-4 flex justify-between items-center">
@@ -846,22 +946,34 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   {stepFieldCounts[step].label}
                 </span>
+                {lastSavedAt && (
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline-flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Saved
+                  </span>
+                )}
               </div>
 
-              {step < STEPS.length - 1 ? (
-                <Button type="button" onClick={goNext} disabled={isLoading}>
-                  Next: {STEPS[step + 1].label}
-                  <ChevronRight className="ml-2 h-4 w-4" />
+              <div className="flex items-center gap-3">
+                <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isLoading}>
+                  Save & Exit
                 </Button>
-              ) : (
-                <Button type="submit" disabled={isLoading || iecError}>
-                  {isLoading ? "Creating..." : "Create Batch"}
-                </Button>
-              )}
+                {step < STEPS.length - 1 ? (
+                  <Button type="button" onClick={goNext} disabled={isLoading}>
+                    Next: {STEPS[step + 1].label}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button type="submit" disabled={isLoading || iecError}>
+                    {isLoading ? "Creating..." : "Create Batch"}
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </form>
         </FormProvider>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

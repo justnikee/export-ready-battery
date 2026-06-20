@@ -1,18 +1,66 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Globe, Leaf, Flag, FileText, Sparkles, Loader2, Check, AlertTriangle, Wand2, HardDrive, X } from "lucide-react";
+import { Globe, Leaf, Flag, FileText, Sparkles, Loader2, Check, AlertTriangle, Wand2, HardDrive, X, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromPDF, type ExtractProgress } from "@/lib/pdf-extractor";
 import { parseDatasheet, createBatchFromNL, type DatasheetParseResult, type NLCreateResult } from "@/lib/ai/parse-datasheet";
 import { hashFile, getCachedResult, setCachedResult, getCacheEntries } from "@/lib/ai/datasheet-cache";
+import { useFileDropzone } from "@/hooks/use-file-dropzone";
+import { AiFieldPreviewTable } from "@/components/batches/batch-form-steps/ai-field-preview-table";
+import { AiBadge, aiFieldClass } from "@/components/batches/batch-form-steps/ai-badge";
+import { SettingsBadge } from "@/components/batches/batch-form-steps/settings-badge";
+import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
 
-export function StepIdentity() {
+// Human-readable labels for the "AI populated N fields" banner — keyed by
+// react-hook-form field name (the same keys passed to onAiFill).
+const FIELD_LABELS: Record<string, string> = {
+  modelName: "Model Name",
+  chemistry: "Chemistry",
+  capacity: "Capacity",
+  voltage: "Voltage",
+  weight: "Weight",
+  manufacturer: "Manufacturer",
+  manufacturerAddress: "Manufacturer Address",
+  manufacturerEmail: "Manufacturer Email",
+  countryOfOrigin: "Country of Origin",
+  ceMarking: "CE Marking",
+  carbonFootprint: "Carbon Footprint",
+  carbonPerformanceClass: "Carbon Performance Class",
+  notifiedBodyNumber: "Notified Body Number",
+  euRepresentative: "EU Representative",
+  euRepresentativeEmail: "EU Representative Email",
+  euRepresentativeAddress: "EU Representative Address",
+  removableAndReplaceable: "Removable & Replaceable",
+  expectedLifetime: "Expected Lifetime",
+  warrantyMonths: "Warranty",
+  bisNumber: "BIS Number",
+  eprNumber: "EPR Number",
+  hsnCode: "HSN Code",
+  hazardousDeclaration: "Hazardous Declaration",
+  certifications: "Certifications",
+  materialComposition: "Material Composition",
+  batchName: "Batch Name",
+  marketRegion: "Market Region",
+  batteryCategory: "Battery Category",
+};
+
+interface StepIdentityProps {
+  initialAiMode?: "pdf" | "nl";
+  aiFilledFields?: Set<string>;
+  onAiFill?: (fields: string[]) => void;
+  settingsFilledFields?: Set<string>;
+}
+
+export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settingsFilledFields }: StepIdentityProps = {}) {
+  const filledByAi = aiFilledFields ?? new Set<string>();
+  const filledBySettings = settingsFilledFields ?? new Set<string>();
+  const markAiFilled = onAiFill ?? (() => {});
   const {
     register,
     formState: { errors },
@@ -23,12 +71,13 @@ export function StepIdentity() {
   const marketRegion = watch("marketRegion");
 
   // AI assistant state
-  const [aiMode, setAiMode] = useState<"none" | "pdf" | "nl">("none");
+  const [aiMode, setAiMode] = useState<"none" | "pdf" | "nl">(initialAiMode ?? "none");
   const [isParsing, setIsParsing] = useState(false);
   const [parseStage, setParseStage] = useState<"idle" | "hashing" | "extracting" | "parsing" | "cached">("idle");
   const [parseProgress, setParseProgress] = useState<ExtractProgress | null>(null);
   const [parsedResult, setParsedResult] = useState<DatasheetParseResult | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
+  const [editedFieldValues, setEditedFieldValues] = useState<Record<string, string | boolean | string[]>>({});
   const [nlText, setNlText] = useState("");
   const [nlResult, setNlResult] = useState<NLCreateResult | null>(null);
   const [isNlProcessing, setIsNlProcessing] = useState(false);
@@ -36,6 +85,21 @@ export function StepIdentity() {
 
   // Track which fields were populated by AI so we can highlight them
   const [aiPopulatedFields, setAiPopulatedFields] = useState<string[]>([]);
+
+  // Manufacturer Info accordion — collapsed by default once Settings has
+  // pre-filled it, open by default when the tenant has nothing on file yet.
+  const manufacturerPrefilled =
+    filledBySettings.has("manufacturer") ||
+    filledBySettings.has("manufacturerAddress") ||
+    filledBySettings.has("manufacturerEmail");
+  const [manufacturerOpen, setManufacturerOpen] = useState(() => !manufacturerPrefilled);
+
+  // Never let a collapsed accordion hide a real validation error.
+  useEffect(() => {
+    if (errors.manufacturer || errors.manufacturerEmail) {
+      setManufacturerOpen(true);
+    }
+  }, [errors.manufacturer, errors.manufacturerEmail]);
 
   // AbortControllers for cancellation
   const pdfAbortRef = useRef<AbortController | null>(null);
@@ -80,6 +144,7 @@ export function StepIdentity() {
       if (cached) {
         setParseStage("cached");
         setParsedResult(cached as DatasheetParseResult);
+        setEditedFieldValues({});
         setIsFromCache(true);
         toast.success("Loaded from cache — instant result!");
         pdfInFlightRef.current = false;
@@ -107,6 +172,7 @@ export function StepIdentity() {
       if (abortController.signal.aborted) return;
 
       setParsedResult(response.data);
+      setEditedFieldValues({});
       setCachedResult(fileHash, file.name, response.data);
       setCachedFiles(getCacheEntries());
       toast.success(`Parsed with ${Math.round(response.confidence * 100)}% confidence (${response.method})`);
@@ -125,6 +191,11 @@ export function StepIdentity() {
       }
     }
   }, []);
+
+  const { isDragActive: isPdfDragActive, dropHandlers: pdfDropHandlers } = useFileDropzone(
+    handlePdfDrop,
+    isParsing
+  );
 
   const handleCancelParse = useCallback(() => {
     if (pdfAbortRef.current) {
@@ -168,34 +239,39 @@ export function StepIdentity() {
     }
   }, [nlText, marketRegion]);
 
-  const applyPdfResult = (result: DatasheetParseResult) => {
+  const applyPdfResult = (
+    rawResult: DatasheetParseResult,
+    edits: Record<string, string | boolean | string[]> = {}
+  ) => {
+    const result = { ...rawResult, ...edits } as DatasheetParseResult;
+    const appliedKeys: string[] = [];
     // === Identity & Electrical ===
-    if (result.model_name) setValue("modelName", result.model_name, { shouldDirty: true });
-    if (result.chemistry) setValue("chemistry", result.chemistry as BatchFormData["chemistry"], { shouldDirty: true });
-    if (result.capacity) setValue("capacity", result.capacity, { shouldDirty: true });
-    if (result.voltage) setValue("voltage", result.voltage, { shouldDirty: true });
-    if (result.weight) setValue("weight", result.weight, { shouldDirty: true });
-    if (result.manufacturer) setValue("manufacturer", result.manufacturer, { shouldDirty: true });
-    if (result.manufacturer_address) setValue("manufacturerAddress", result.manufacturer_address, { shouldDirty: true });
-    if (result.manufacturer_email) setValue("manufacturerEmail", result.manufacturer_email, { shouldDirty: true });
-    if (result.country_of_origin) setValue("countryOfOrigin", result.country_of_origin, { shouldDirty: true });
+    if (result.model_name) { setValue("modelName", result.model_name, { shouldDirty: true }); appliedKeys.push("modelName"); }
+    if (result.chemistry) { setValue("chemistry", result.chemistry as BatchFormData["chemistry"], { shouldDirty: true }); appliedKeys.push("chemistry"); }
+    if (result.capacity) { setValue("capacity", result.capacity, { shouldDirty: true }); appliedKeys.push("capacity"); }
+    if (result.voltage) { setValue("voltage", result.voltage, { shouldDirty: true }); appliedKeys.push("voltage"); }
+    if (result.weight) { setValue("weight", result.weight, { shouldDirty: true }); appliedKeys.push("weight"); }
+    if (result.manufacturer) { setValue("manufacturer", result.manufacturer, { shouldDirty: true }); appliedKeys.push("manufacturer"); }
+    if (result.manufacturer_address) { setValue("manufacturerAddress", result.manufacturer_address, { shouldDirty: true }); appliedKeys.push("manufacturerAddress"); }
+    if (result.manufacturer_email) { setValue("manufacturerEmail", result.manufacturer_email, { shouldDirty: true }); appliedKeys.push("manufacturerEmail"); }
+    if (result.country_of_origin) { setValue("countryOfOrigin", result.country_of_origin, { shouldDirty: true }); appliedKeys.push("countryOfOrigin"); }
 
     // === EU Compliance ===
-    if (result.ce_marking) setValue("ceMarking", true, { shouldDirty: true });
-    if (result.carbon_footprint) setValue("carbonFootprint", result.carbon_footprint, { shouldDirty: true });
-    if (result.carbon_performance_class) setValue("carbonPerformanceClass", result.carbon_performance_class, { shouldDirty: true });
-    if (result.notified_body_number) setValue("notifiedBodyNumber", result.notified_body_number, { shouldDirty: true });
-    if (result.eu_representative) setValue("euRepresentative", result.eu_representative, { shouldDirty: true });
-    if (result.eu_representative_email) setValue("euRepresentativeEmail", result.eu_representative_email, { shouldDirty: true });
-    if (result.eu_representative_address) setValue("euRepresentativeAddress", result.eu_representative_address, { shouldDirty: true });
-    if (result.removable_and_replaceable) setValue("removableAndReplaceable", true, { shouldDirty: true });
-    if (result.expected_lifetime_cycles) setValue("expectedLifetime", result.expected_lifetime_cycles, { shouldDirty: true });
-    if (result.warranty_months) setValue("warrantyMonths", result.warranty_months, { shouldDirty: true });
+    if (result.ce_marking) { setValue("ceMarking", true, { shouldDirty: true }); appliedKeys.push("ceMarking"); }
+    if (result.carbon_footprint) { setValue("carbonFootprint", result.carbon_footprint, { shouldDirty: true }); appliedKeys.push("carbonFootprint"); }
+    if (result.carbon_performance_class) { setValue("carbonPerformanceClass", result.carbon_performance_class, { shouldDirty: true }); appliedKeys.push("carbonPerformanceClass"); }
+    if (result.notified_body_number) { setValue("notifiedBodyNumber", result.notified_body_number, { shouldDirty: true }); appliedKeys.push("notifiedBodyNumber"); }
+    if (result.eu_representative) { setValue("euRepresentative", result.eu_representative, { shouldDirty: true }); appliedKeys.push("euRepresentative"); }
+    if (result.eu_representative_email) { setValue("euRepresentativeEmail", result.eu_representative_email, { shouldDirty: true }); appliedKeys.push("euRepresentativeEmail"); }
+    if (result.eu_representative_address) { setValue("euRepresentativeAddress", result.eu_representative_address, { shouldDirty: true }); appliedKeys.push("euRepresentativeAddress"); }
+    if (result.removable_and_replaceable) { setValue("removableAndReplaceable", true, { shouldDirty: true }); appliedKeys.push("removableAndReplaceable"); }
+    if (result.expected_lifetime_cycles) { setValue("expectedLifetime", result.expected_lifetime_cycles, { shouldDirty: true }); appliedKeys.push("expectedLifetime"); }
+    if (result.warranty_months) { setValue("warrantyMonths", result.warranty_months, { shouldDirty: true }); appliedKeys.push("warrantyMonths"); }
 
     // === India Compliance ===
-    if (result.bis_number) setValue("bisNumber", result.bis_number, { shouldDirty: true });
-    if (result.epr_number) setValue("eprNumber", result.epr_number, { shouldDirty: true });
-    if (result.hsn_code) setValue("hsnCode", result.hsn_code, { shouldDirty: true });
+    if (result.bis_number) { setValue("bisNumber", result.bis_number, { shouldDirty: true }); appliedKeys.push("bisNumber"); }
+    if (result.epr_number) { setValue("eprNumber", result.epr_number, { shouldDirty: true }); appliedKeys.push("eprNumber"); }
+    if (result.hsn_code) { setValue("hsnCode", result.hsn_code, { shouldDirty: true }); appliedKeys.push("hsnCode"); }
 
     // === Hazardous Substances ===
     const currentHS = watch("hazardousSubstances");
@@ -204,7 +280,7 @@ export function StepIdentity() {
       mercury: result.hazardous_mercury_present ?? currentHS.mercury,
       cadmium: result.hazardous_cadmium_present ?? currentHS.cadmium,
     }, { shouldDirty: true });
-    if (result.hazardous_declaration) setValue("hazardousDeclaration", result.hazardous_declaration, { shouldDirty: true });
+    if (result.hazardous_declaration) { setValue("hazardousDeclaration", result.hazardous_declaration, { shouldDirty: true }); appliedKeys.push("hazardousDeclaration"); }
 
     // === Material Composition ===
     if (result.material_composition) {
@@ -232,6 +308,12 @@ export function StepIdentity() {
       setValue("certifications", certs, { shouldDirty: true });
     }
 
+    if (result.certifications?.length > 0) appliedKeys.push("certifications");
+    if (result.material_composition) appliedKeys.push("materialComposition");
+
+    markAiFilled(appliedKeys);
+    setAiPopulatedFields(appliedKeys.map((k) => FIELD_LABELS[k] ?? k));
+
     const r = result as unknown as Record<string, unknown>;
     const appliedCount = Object.keys(result).filter(k =>
       r[k] !== "" && r[k] !== false && r[k] !== null &&
@@ -240,38 +322,47 @@ export function StepIdentity() {
     toast.success(`Applied ${appliedCount} fields — review and adjust as needed`);
     setAiMode("none");
     setParsedResult(null);
+    setEditedFieldValues({});
   };
 
   const applyNlResult = (result: NLCreateResult) => {
     const populated: string[] = [];
+    const appliedKeys: string[] = [];
 
     if (result.batch_name) {
       setValue("batchName", result.batch_name, { shouldDirty: true });
       populated.push("Batch Name");
+      appliedKeys.push("batchName");
     }
     if (result.model_name) {
       setValue("modelName", result.model_name, { shouldDirty: true });
       populated.push("Model Name");
+      appliedKeys.push("modelName");
     }
     if (result.chemistry) {
       setValue("chemistry", result.chemistry as BatchFormData["chemistry"], { shouldDirty: true });
       populated.push("Chemistry");
+      appliedKeys.push("chemistry");
     }
     if (result.capacity) {
       setValue("capacity", result.capacity, { shouldDirty: true });
       populated.push("Capacity");
+      appliedKeys.push("capacity");
     }
     if (result.voltage) {
       setValue("voltage", result.voltage, { shouldDirty: true });
       populated.push("Voltage");
+      appliedKeys.push("voltage");
     }
     if (result.weight) {
       setValue("weight", result.weight, { shouldDirty: true });
       populated.push("Weight");
+      appliedKeys.push("weight");
     }
     if (result.market_region) {
       setValue("marketRegion", result.market_region as BatchFormData["marketRegion"], { shouldDirty: true, shouldValidate: true });
       populated.push("Market Region");
+      appliedKeys.push("marketRegion");
       // Update certifications based on market
       if (result.market_region === "INDIA") {
         setValue("certifications", ["AIS-156", "AIS-038"], { shouldDirty: true });
@@ -284,8 +375,10 @@ export function StepIdentity() {
     if (result.battery_category) {
       setValue("batteryCategory", result.battery_category, { shouldDirty: true });
       populated.push("Battery Category");
+      appliedKeys.push("batteryCategory");
     }
 
+    markAiFilled(appliedKeys);
     setAiPopulatedFields(populated);
     toast.success(`AI populated ${populated.length} field${populated.length > 1 ? "s" : ""}: ${populated.join(", ")}`);
     setAiMode("none");
@@ -301,26 +394,28 @@ export function StepIdentity() {
 
   return (
     <div className="space-y-6">
-      {/* ===== AI ASSISTANT ===== */}
-      <div className="border border-border bg-muted/30 rounded-lg p-4 space-y-3">
-        <div className="flex items-center gap-2 text-foreground text-sm">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">AI Assistant</span>
-          <span className="text-xs text-muted-foreground">Upload a datasheet or describe what you need</span>
-        </div>
-
-        {aiMode === "none" && (
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setAiMode("pdf")} className="flex-1">
-              <FileText className="mr-2 h-4 w-4" />
-              Upload Datasheet PDF
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setAiMode("nl")} className="flex-1">
-              <Wand2 className="mr-2 h-4 w-4" />
-              Describe in Words
-            </Button>
+      {/* ===== AI ASSISTANT STRIP ===== */}
+      <div className="border border-amber-400/30 bg-gradient-to-r from-amber-400/10 via-amber-400/5 to-transparent rounded-lg p-3 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-foreground text-sm">
+            <Sparkles className="h-4 w-4 text-amber-500" />
+            <span className="font-medium">AI Assistant</span>
+            <span className="text-xs text-muted-foreground">Upload a datasheet or describe what you need</span>
           </div>
-        )}
+
+          {aiMode === "none" && (
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setAiMode("pdf")}>
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                Upload PDF
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setAiMode("nl")}>
+                <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                Describe in Words
+              </Button>
+            </div>
+          )}
+        </div>
 
         {aiMode === "pdf" && (
           <div className="space-y-3">
@@ -341,6 +436,7 @@ export function StepIdentity() {
                             const cached = getCachedResult(entry.hash);
                             if (cached) {
                               setParsedResult(cached as DatasheetParseResult);
+                              setEditedFieldValues({});
                               setIsFromCache(true);
                               toast.success("Loaded from cache");
                             }
@@ -355,7 +451,10 @@ export function StepIdentity() {
                   </div>
                 )}
 
-                <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded cursor-pointer transition-colors ${isParsing ? "border-foreground bg-muted/50" : "border-border bg-background hover:bg-accent"}`}>
+                <label
+                  {...pdfDropHandlers}
+                  className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded cursor-pointer transition-colors ${isParsing ? "border-foreground bg-muted/50" : isPdfDragActive ? "border-foreground bg-accent" : "border-border bg-background hover:bg-accent"}`}
+                >
                   <div className="flex flex-col items-center justify-center py-4 w-full px-4">
                     {isParsing ? (
                       <div className="w-full space-y-2">
@@ -395,7 +494,13 @@ export function StepIdentity() {
                     ) : (
                       <>
                         <FileText className="w-6 h-6 mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground"><span className="font-medium">Click to upload</span> or drag and drop PDF</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isPdfDragActive ? (
+                            <span className="font-medium">Drop your PDF here</span>
+                          ) : (
+                            <><span className="font-medium">Click to upload</span> or drag and drop PDF</>
+                          )}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">Max 10MB. Text-based PDFs work best.</p>
                       </>
                     )}
@@ -430,150 +535,16 @@ export function StepIdentity() {
                     </span>
                   </div>
                 </div>
-                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-                  {/* Identity */}
-                  <div className="space-y-1">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Identity</div>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
-                      {parsedResult.model_name && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Model:</span> {parsedResult.model_name}</div>}
-                      {parsedResult.part_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Part #:</span> {parsedResult.part_number}</div>}
-                      {parsedResult.serial_number_format && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Serial Format:</span> {parsedResult.serial_number_format}</div>}
-                      {parsedResult.manufacturer && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Mfg:</span> {parsedResult.manufacturer}</div>}
-                      {parsedResult.manufacturer_address && <div className="p-1.5 bg-background border border-border rounded col-span-2"><span className="text-muted-foreground">Mfg Address:</span> {parsedResult.manufacturer_address}</div>}
-                      {parsedResult.country_of_origin && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Origin:</span> {parsedResult.country_of_origin}</div>}
-                    </div>
-                  </div>
-                  {/* Electrical */}
-                  {(parsedResult.capacity || parsedResult.voltage || parsedResult.energy_density || parsedResult.internal_resistance) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Electrical</div>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        {parsedResult.chemistry && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Chemistry:</span> {parsedResult.chemistry}</div>}
-                        {parsedResult.capacity && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Capacity:</span> {parsedResult.capacity}</div>}
-                        {parsedResult.voltage && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Voltage:</span> {parsedResult.voltage}</div>}
-                        {parsedResult.energy_density && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Energy Density:</span> {parsedResult.energy_density}</div>}
-                        {parsedResult.internal_resistance && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Int. Resistance:</span> {parsedResult.internal_resistance}</div>}
-                        {parsedResult.max_charge_current && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Max Charge:</span> {parsedResult.max_charge_current}</div>}
-                        {parsedResult.max_discharge_current && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Max Discharge:</span> {parsedResult.max_discharge_current}</div>}
-                        {parsedResult.cutoff_voltage && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Cutoff:</span> {parsedResult.cutoff_voltage}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {/* Physical */}
-                  {(parsedResult.weight || parsedResult.dimensions || parsedResult.ip_rating) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Physical</div>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        {parsedResult.weight && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Weight:</span> {parsedResult.weight}</div>}
-                        {parsedResult.dimensions && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Dimensions:</span> {parsedResult.dimensions}</div>}
-                        {parsedResult.ip_rating && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">IP Rating:</span> {parsedResult.ip_rating}</div>}
-                        {parsedResult.terminal_type && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Terminal:</span> {parsedResult.terminal_type}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {/* Performance */}
-                  {(parsedResult.cycle_life || parsedResult.expected_lifetime_cycles || parsedResult.warranty_months) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Performance</div>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        {parsedResult.cycle_life && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Cycle Life:</span> {parsedResult.cycle_life}</div>}
-                        {parsedResult.expected_lifetime_cycles && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Exp. Lifetime:</span> {parsedResult.expected_lifetime_cycles}</div>}
-                        {parsedResult.warranty_months && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Warranty:</span> {parsedResult.warranty_months} mo</div>}
-                        {parsedResult.operating_temperature && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Op. Temp:</span> {parsedResult.operating_temperature}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {/* EU Compliance */}
-                  {(parsedResult.ce_marking || parsedResult.carbon_footprint || parsedResult.eu_representative || parsedResult.removable_and_replaceable) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">EU Compliance</div>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        {parsedResult.ce_marking !== undefined && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">CE Marking:</span> {parsedResult.ce_marking ? "Yes" : "No"}</div>}
-                        {parsedResult.carbon_footprint && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Carbon:</span> {parsedResult.carbon_footprint}</div>}
-                        {parsedResult.carbon_performance_class && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Class:</span> {parsedResult.carbon_performance_class}</div>}
-                        {parsedResult.notified_body_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Notified Body:</span> {parsedResult.notified_body_number}</div>}
-                        {parsedResult.eu_representative && <div className="p-1.5 bg-background border border-border rounded col-span-2"><span className="text-muted-foreground">EU Rep:</span> {parsedResult.eu_representative}</div>}
-                        {parsedResult.removable_and_replaceable !== undefined && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">Removable:</span> {parsedResult.removable_and_replaceable ? "Yes" : "No"}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {/* India Compliance */}
-                  {(parsedResult.bis_number || parsedResult.epr_number || parsedResult.hsn_code) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">India Compliance</div>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        {parsedResult.bis_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">BIS:</span> {parsedResult.bis_number}</div>}
-                        {parsedResult.epr_number && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">EPR:</span> {parsedResult.epr_number}</div>}
-                        {parsedResult.hsn_code && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">HSN:</span> {parsedResult.hsn_code}</div>}
-                        {parsedResult.is_standard && <div className="p-1.5 bg-background border border-border rounded"><span className="text-muted-foreground">IS Std:</span> {parsedResult.is_standard}</div>}
-                      </div>
-                    </div>
-                  )}
-                  {/* Certifications */}
-                  {parsedResult.certifications && parsedResult.certifications.length > 0 && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Certifications</div>
-                      <div className="flex flex-wrap gap-1">
-                        {parsedResult.certifications.map((cert: string) => (
-                          <span key={cert} className="px-2 py-0.5 text-xs bg-muted text-muted-foreground border border-border rounded">
-                            {cert}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* Hazardous Substances */}
-                  {(parsedResult.hazardous_lead_present !== undefined || parsedResult.hazardous_mercury_present !== undefined || parsedResult.hazardous_cadmium_present !== undefined) && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-red-400 font-medium">Hazardous Substances</div>
-                      <div className="grid grid-cols-3 gap-1 text-xs">
-                        {parsedResult.hazardous_lead_present !== undefined && (
-                          <div className={`p-1.5 border rounded ${parsedResult.hazardous_lead_present ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-background border-border"}`}>
-                            Lead: {parsedResult.hazardous_lead_present ? "Yes" : "No"}
-                          </div>
-                        )}
-                        {parsedResult.hazardous_mercury_present !== undefined && (
-                          <div className={`p-1.5 border rounded ${parsedResult.hazardous_mercury_present ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-background border-border"}`}>
-                            Hg: {parsedResult.hazardous_mercury_present ? "Yes" : "No"}
-                          </div>
-                        )}
-                        {parsedResult.hazardous_cadmium_present !== undefined && (
-                          <div className={`p-1.5 border rounded ${parsedResult.hazardous_cadmium_present ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-background border-border"}`}>
-                            Cd: {parsedResult.hazardous_cadmium_present ? "Yes" : "No"}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {/* Material Composition */}
-                  {parsedResult.material_composition && Object.keys(parsedResult.material_composition).length > 0 && (
-                    <div className="space-y-1">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Material Composition</div>
-                      <div className="grid grid-cols-3 gap-1 text-xs">
-                        {Object.entries(parsedResult.material_composition).map(([mat, val]) => (
-                          <div key={mat} className="p-1.5 bg-background border border-border rounded">
-                            <span className="text-muted-foreground capitalize">{mat}:</span> {val}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {parsedResult.confidence < 0.5 && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <AlertTriangle className="h-3 w-3" />
-                    Low confidence — please verify all fields before applying
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" onClick={() => applyPdfResult(parsedResult)} className="flex-1">
-                    <Check className="mr-1 h-3 w-3" />
-                    Apply to Form
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setParsedResult(null)}>
-                    Try Another
-                  </Button>
-                </div>
+                <AiFieldPreviewTable
+                  result={parsedResult}
+                  editedValues={editedFieldValues}
+                  onEdit={(field, value) => setEditedFieldValues((prev) => ({ ...prev, [field]: value }))}
+                  onApply={() => applyPdfResult(parsedResult, editedFieldValues)}
+                  onTryAnother={() => {
+                    setParsedResult(null);
+                    setEditedFieldValues({});
+                  }}
+                />
               </div>
             )}
           </div>
@@ -636,6 +607,9 @@ export function StepIdentity() {
                     {Object.values(nlResult).filter(v => v !== null && v !== "" && v !== 0).length} fields detected
                   </span>
                 </div>
+                <p className="text-[10px] text-muted-foreground/80">
+                  A text description only covers core identity & spec fields. For HSN codes, EU/India compliance fields, and certifications, upload a datasheet PDF instead.
+                </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {nlResult.batch_name && (
@@ -798,14 +772,15 @@ export function StepIdentity() {
 
       {/* Model Name */}
       <div className="grid gap-2">
-        <Label htmlFor="modelName">
+        <Label htmlFor="modelName" className="flex items-center gap-1.5">
           Model Name <span className="text-red-500">*</span>
+          {filledByAi.has("modelName") && <AiBadge />}
         </Label>
         <Input
           id="modelName"
           {...register("modelName")}
           placeholder="e.g. ER-52V-20Ah"
-          className={errors.modelName ? "border-red-500" : ""}
+          className={`${errors.modelName ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("modelName"))}`}
         />
         {errors.modelName && (
           <p className="text-xs text-red-500">{errors.modelName.message}</p>
@@ -844,45 +819,69 @@ export function StepIdentity() {
         </div>
       </div>
 
-      {/* Manufacturer */}
-      <div className="grid gap-2">
-        <Label htmlFor="manufacturer">
-          Manufacturer <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="manufacturer"
-          {...register("manufacturer")}
-          className={errors.manufacturer ? "border-red-500" : ""}
-        />
-        {errors.manufacturer && (
-          <p className="text-xs text-red-500">{errors.manufacturer.message}</p>
-        )}
-      </div>
+      {/* Manufacturer Info */}
+      <AccordionItem value="manufacturer-info" className="!rounded-md">
+        <AccordionTrigger isOpen={manufacturerOpen} onClick={() => setManufacturerOpen((o) => !o)} className="!px-4 !py-3">
+          <span className="flex items-center gap-2 text-sm">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            Manufacturer Info <span className="text-red-500">*</span>
+            {(errors.manufacturer || errors.manufacturerEmail) && (
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+            )}
+          </span>
+          {manufacturerPrefilled && !manufacturerOpen && <SettingsBadge />}
+        </AccordionTrigger>
+        <AccordionContent isOpen={manufacturerOpen} className="!px-4 space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="manufacturer" className="flex items-center gap-1.5">
+              Manufacturer <span className="text-red-500">*</span>
+              {filledByAi.has("manufacturer") && <AiBadge />}
+              {filledBySettings.has("manufacturer") && <SettingsBadge />}
+            </Label>
+            <Input
+              id="manufacturer"
+              {...register("manufacturer")}
+              className={`${errors.manufacturer ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("manufacturer"))}`}
+            />
+            {errors.manufacturer && (
+              <p className="text-xs text-red-500">{errors.manufacturer.message}</p>
+            )}
+          </div>
 
-      {/* Manufacturer Address & Email */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="manufacturerAddress">Manufacturer Address</Label>
-          <Input
-            id="manufacturerAddress"
-            {...register("manufacturerAddress")}
-            placeholder="e.g. Industrial Area, New Delhi"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="manufacturerEmail">Compliance Email</Label>
-          <Input
-            id="manufacturerEmail"
-            type="email"
-            {...register("manufacturerEmail")}
-            placeholder="e.g. compliance@company.com"
-            className={errors.manufacturerEmail ? "border-red-500" : ""}
-          />
-          {errors.manufacturerEmail && (
-            <p className="text-xs text-red-500">{errors.manufacturerEmail.message}</p>
-          )}
-        </div>
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="manufacturerAddress" className="flex items-center gap-1.5">
+                Manufacturer Address
+                {filledByAi.has("manufacturerAddress") && <AiBadge />}
+                {filledBySettings.has("manufacturerAddress") && <SettingsBadge />}
+              </Label>
+              <Input
+                id="manufacturerAddress"
+                {...register("manufacturerAddress")}
+                placeholder="e.g. Industrial Area, New Delhi"
+                className={aiFieldClass(filledByAi.has("manufacturerAddress"))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="manufacturerEmail" className="flex items-center gap-1.5">
+                Compliance Email
+                {filledByAi.has("manufacturerEmail") && <AiBadge />}
+                {filledBySettings.has("manufacturerEmail") && <SettingsBadge />}
+              </Label>
+              <Input
+                id="manufacturerEmail"
+                type="email"
+                {...register("manufacturerEmail")}
+                placeholder="e.g. compliance@company.com"
+                className={`${errors.manufacturerEmail ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("manufacturerEmail"))}`}
+              />
+              {errors.manufacturerEmail && (
+                <p className="text-xs text-red-500">{errors.manufacturerEmail.message}</p>
+              )}
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* GTIN — GS1 Digital Link for EU Battery Passport */}
       <div className="grid gap-2">

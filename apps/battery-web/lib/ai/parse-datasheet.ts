@@ -81,6 +81,9 @@ export interface DatasheetParseResult {
   confidence: number;
   method: "regex" | "llm" | "cached";
   processing_time_ms: number;
+  // Per-field provenance for a tracked subset of fields: "regex" | "llm" | "missing".
+  // Powers the per-field confidence preview table — see ai-field-preview-table.tsx.
+  field_sources?: Record<string, string>;
 }
 
 export interface ParseDatasheetResponse {

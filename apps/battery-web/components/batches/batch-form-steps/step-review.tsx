@@ -6,30 +6,139 @@ import { Label } from "@/components/ui/label";
 import { Save, FileCheck, AlertTriangle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
+import { AiBadge } from "@/components/batches/batch-form-steps/ai-badge";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  onJump,
+  children,
+}: {
+  title: string;
+  onJump?: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <div className="border border-border rounded p-3 space-y-2">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+        {onJump && (
+          <button
+            type="button"
+            onClick={onJump}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Edit →
+          </button>
+        )}
+      </div>
       <div className="space-y-1">{children}</div>
     </div>
   );
 }
 
-function Row({ label, value, warning }: { label: string; value: React.ReactNode; warning?: string }) {
-  return (
-    <div className="flex justify-between items-start text-sm">
-      <span className="text-muted-foreground">{label}</span>
+function Row({
+  label,
+  value,
+  warning,
+  onClick,
+  ai,
+  incomplete,
+  scoreImpact,
+}: {
+  label: string;
+  value: React.ReactNode;
+  warning?: string;
+  onClick?: () => void;
+  ai?: boolean;
+  incomplete?: boolean;
+  scoreImpact?: number;
+}) {
+  const content = (
+    <>
+      <span className="text-muted-foreground flex items-center gap-1.5">
+        {label}
+        {ai && <AiBadge />}
+      </span>
       <div className="text-right">
-        <span className="font-medium">{value || <span className="text-muted-foreground italic">—</span>}</span>
+        {incomplete ? (
+          <span className="font-medium text-amber-600 dark:text-amber-400">Add now →</span>
+        ) : (
+          <span className="font-medium">{value || <span className="text-muted-foreground italic">—</span>}</span>
+        )}
         {warning && <p className="text-[10px] text-muted-foreground flex items-center gap-1 justify-end"><AlertTriangle className="h-3 w-3" />{warning}</p>}
+        {incomplete && scoreImpact ? (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 justify-end">
+            <AlertTriangle className="h-3 w-3" />Not filled — adds {scoreImpact}% to passport score
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+
+  const wrapperClass = `flex justify-between items-start text-sm rounded px-1 -mx-1 ${incomplete ? "bg-amber-400/10 border-l-2 border-l-amber-400" : ""}`;
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${wrapperClass} w-full text-left hover:bg-accent/40 transition-colors`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={wrapperClass}>{content}</div>;
+}
+
+function CompletionRing({ pct }: { pct: number }) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (pct / 100) * circumference;
+  const colorClass = pct >= 100 ? "text-emerald-500" : pct >= 50 ? "text-foreground" : "text-amber-500";
+
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-muted opacity-20" />
+        <circle
+          cx="32"
+          cy="32"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className={`${colorClass} transition-all duration-300`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
+        {pct}%
       </div>
     </div>
   );
 }
 
-export function StepReview() {
+interface StepReviewProps {
+  onJumpToStep: (step: number) => void;
+  aiFilledFields?: Set<string>;
+  iecError?: boolean;
+}
+
+function scoreBandLabel(pct: number): string {
+  if (pct >= 100) return "Complete — export passport ready";
+  if (pct >= 75) return "Good — almost ready";
+  if (pct >= 50) return "Fair — keep going";
+  if (pct > 0) return "Getting started";
+  return "Not started";
+}
+
+export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepReviewProps) {
+  const filledByAi = aiFilledFields ?? new Set<string>();
   const {
     register,
     formState: { errors },
@@ -60,6 +169,52 @@ export function StepReview() {
   }
   const readiness = profileReadiness()
 
+  // Batch-form completion ring — distinct from profileReadiness() (which tracks the
+  // tenant's company-level certifications, not this batch's own field values).
+  const completionChecks: { label: string; filled: boolean; step: number }[] = (() => {
+    const checks: { label: string; filled: boolean; step: number }[] = [
+      { label: "Batch Name", filled: !!values.batchName, step: 0 },
+      { label: "Model Name", filled: !!values.modelName, step: 0 },
+      { label: "Manufacturer", filled: !!values.manufacturer, step: 0 },
+      { label: "Chemistry", filled: !!values.chemistry, step: 0 },
+      { label: "Capacity", filled: !!values.capacity, step: 0 },
+      { label: "Voltage", filled: !!values.voltage, step: 0 },
+      { label: "Weight", filled: !!values.weight, step: 0 },
+      { label: "Manufacturing Start Date", filled: !!values.manufacturingStartDate, step: 0 },
+      { label: "Manufacturing End Date", filled: !!values.manufacturingEndDate, step: 0 },
+    ];
+    if (isEUMode || values.marketRegion === "GLOBAL") {
+      checks.push(
+        { label: "Carbon Footprint", filled: !!values.carbonFootprint, step: 1 },
+        { label: "Carbon Class", filled: !!values.carbonPerformanceClass, step: 1 },
+        { label: "CE Marking", filled: values.ceMarking === true, step: 1 },
+        { label: "Notified Body", filled: !!values.notifiedBodyNumber, step: 1 },
+        { label: "EU Representative", filled: !!values.euRepresentative, step: 1 },
+        { label: "Lifetime", filled: !!values.expectedLifetime, step: 1 },
+        { label: "Warranty", filled: !!values.warrantyMonths, step: 1 }
+      );
+    }
+    if (isIndiaMode || values.marketRegion === "GLOBAL") {
+      checks.push(
+        { label: "HSN Code", filled: !!values.hsnCode, step: 1 },
+        { label: "Cell Source", filled: !!values.cellSource, step: 1 },
+        { label: "BIS Number", filled: !!values.bisNumber, step: 1 },
+        { label: "EPR Number", filled: !!values.eprNumber, step: 1 }
+      );
+    }
+    return checks;
+  })();
+
+  const completionFilledCount = completionChecks.filter((c) => c.filled).length;
+  const completionPct =
+    completionChecks.length > 0 ? Math.round((completionFilledCount / completionChecks.length) * 100) : 0;
+  const incompleteLabels = new Set(completionChecks.filter((c) => !c.filled).map((c) => c.label));
+  const scoreImpactPct = completionChecks.length > 0 ? Math.round(100 / completionChecks.length) : 0;
+  const nextBestAction = completionChecks.find((c) => !c.filled);
+  const nextBestActionProjectedPct = nextBestAction
+    ? Math.round(((completionFilledCount + 1) / completionChecks.length) * 100)
+    : completionPct;
+
   const matTotal = (
     ["cobalt", "lithium", "nickel", "manganese", "graphite", "lead"] as const
   ).reduce((sum, key) => sum + (parseFloat(values.materialComposition[key]) || 0), 0);
@@ -72,6 +227,41 @@ export function StepReview() {
           Please fix the errors highlighted above before submitting.
         </div>
       )}
+
+      {iecError && (
+        <div className="p-3 bg-red-500/10 border border-red-200 rounded text-red-400 text-sm flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div>
+            <p>Create Batch is disabled — an IEC Code is required for imported cells.</p>
+            <div className="flex gap-3 mt-1">
+              <button type="button" onClick={() => onJumpToStep(1)} className="text-xs underline hover:text-foreground">
+                Back to Compliance
+              </button>
+              <Link href="/dashboard/settings?tab=compliance" className="text-xs underline hover:text-foreground">
+                Add IEC Code in Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch completion ring */}
+      <div className="flex items-center gap-4 p-3 border border-border rounded">
+        <CompletionRing pct={completionPct} />
+        <div className="flex-1">
+          <div className="text-sm font-medium text-foreground">{scoreBandLabel(completionPct)}</div>
+          <p className="text-xs text-muted-foreground">Batch profile completeness</p>
+          {nextBestAction && (
+            <button
+              type="button"
+              onClick={() => onJumpToStep(nextBestAction.step)}
+              className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+            >
+              Add {nextBestAction.label} to raise score to {nextBestActionProjectedPct}% — Add now →
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Profile Readiness for Selected Market */}
       {readiness && readiness.total > 0 && (
@@ -102,58 +292,59 @@ export function StepReview() {
         </div>
       )}
 
-      {/* Identity Summary -->
-      <Section title="Identity">
-        <Row label="Batch Name" value={values.batchName} />
-        <Row label="Model Name" value={values.modelName} />
-        <Row label="Market Region" value={values.marketRegion} />
-        <Row label="Manufacturing" value={`${values.manufacturingStartDate} → ${values.manufacturingEndDate}`} />
-        <Row label="Manufacturer" value={values.manufacturer} />
+      {/* Identity Summary */}
+      <Section title="Identity" onJump={() => onJumpToStep(0)}>
+        <Row label="Batch Name" value={values.batchName} onClick={() => onJumpToStep(0)} incomplete={incompleteLabels.has("Batch Name")} scoreImpact={scoreImpactPct} />
+        <Row label="Model Name" value={values.modelName} onClick={() => onJumpToStep(0)} ai={filledByAi.has("modelName")} incomplete={incompleteLabels.has("Model Name")} scoreImpact={scoreImpactPct} />
+        <Row label="Market Region" value={values.marketRegion} onClick={() => onJumpToStep(0)} />
+        <Row label="Manufacturing" value={`${values.manufacturingStartDate} → ${values.manufacturingEndDate}`} onClick={() => onJumpToStep(0)} incomplete={incompleteLabels.has("Manufacturing Start Date") || incompleteLabels.has("Manufacturing End Date")} scoreImpact={scoreImpactPct} />
+        <Row label="Manufacturer" value={values.manufacturer} onClick={() => onJumpToStep(0)} ai={filledByAi.has("manufacturer")} incomplete={incompleteLabels.has("Manufacturer")} scoreImpact={scoreImpactPct} />
       </Section>
 
       {/* Specifications Summary */}
-      <Section title="Specifications">
-        <Row label="Chemistry" value={values.chemistry} />
-        <Row label="Capacity" value={values.capacity} />
-        <Row label="Voltage" value={values.voltage} />
-        <Row label="Weight" value={values.weight} />
+      <Section title="Specifications" onJump={() => onJumpToStep(0)}>
+        <Row label="Chemistry" value={values.chemistry} onClick={() => onJumpToStep(0)} ai={filledByAi.has("chemistry")} incomplete={incompleteLabels.has("Chemistry")} scoreImpact={scoreImpactPct} />
+        <Row label="Capacity" value={values.capacity} onClick={() => onJumpToStep(0)} ai={filledByAi.has("capacity")} incomplete={incompleteLabels.has("Capacity")} scoreImpact={scoreImpactPct} />
+        <Row label="Voltage" value={values.voltage} onClick={() => onJumpToStep(0)} ai={filledByAi.has("voltage")} incomplete={incompleteLabels.has("Voltage")} scoreImpact={scoreImpactPct} />
+        <Row label="Weight" value={values.weight} onClick={() => onJumpToStep(0)} ai={filledByAi.has("weight")} incomplete={incompleteLabels.has("Weight")} scoreImpact={scoreImpactPct} />
         {(isEUMode || values.marketRegion === "GLOBAL") && (
-          <Row label="Battery Category" value={values.batteryCategory} />
+          <Row label="Battery Category" value={values.batteryCategory} onClick={() => onJumpToStep(0)} />
         )}
-        <Row label="Material Total" value={`${matTotal.toFixed(1)}%`} warning={matTotal > 100 ? "Exceeds 100%" : undefined} />
+        <Row label="Material Total" value={`${matTotal.toFixed(1)}%`} warning={matTotal > 100 ? "Exceeds 100%" : undefined} onClick={() => onJumpToStep(0)} />
       </Section>
 
       {/* Compliance Summary */}
       {(isEUMode || values.marketRegion === "GLOBAL") && (
-        <Section title="EU Compliance">
-          <Row label="Carbon Footprint" value={values.carbonFootprint} />
-          <Row label="Carbon Class" value={values.carbonPerformanceClass} />
-          <Row label="CE Marking" value={values.ceMarking ? "Yes" : "No"} />
-          <Row label="Notified Body" value={values.notifiedBodyNumber} />
-          <Row label="EU Representative" value={values.euRepresentative} />
-          <Row label="Lifetime" value={values.expectedLifetime ? `${values.expectedLifetime} cycles` : ""} />
-          <Row label="Warranty" value={values.warrantyMonths ? `${values.warrantyMonths} months` : ""} />
-          <Row label="DoC Upload" value={values.docUploadUrl ? <span className="text-foreground flex items-center gap-1"><FileCheck className="h-3 w-3" /> Uploaded</span> : "Not uploaded"} />
+        <Section title="EU Compliance" onJump={() => onJumpToStep(1)}>
+          <Row label="Carbon Footprint" value={values.carbonFootprint} onClick={() => onJumpToStep(1)} ai={filledByAi.has("carbonFootprint")} incomplete={incompleteLabels.has("Carbon Footprint")} scoreImpact={scoreImpactPct} />
+          <Row label="Carbon Class" value={values.carbonPerformanceClass} onClick={() => onJumpToStep(1)} ai={filledByAi.has("carbonPerformanceClass")} incomplete={incompleteLabels.has("Carbon Class")} scoreImpact={scoreImpactPct} />
+          <Row label="CE Marking" value={values.ceMarking ? "Yes" : "No"} onClick={() => onJumpToStep(1)} incomplete={incompleteLabels.has("CE Marking")} scoreImpact={scoreImpactPct} />
+          <Row label="Notified Body" value={values.notifiedBodyNumber} onClick={() => onJumpToStep(1)} ai={filledByAi.has("notifiedBodyNumber")} incomplete={incompleteLabels.has("Notified Body")} scoreImpact={scoreImpactPct} />
+          <Row label="EU Representative" value={values.euRepresentative} onClick={() => onJumpToStep(1)} ai={filledByAi.has("euRepresentative")} incomplete={incompleteLabels.has("EU Representative")} scoreImpact={scoreImpactPct} />
+          <Row label="Lifetime" value={values.expectedLifetime ? `${values.expectedLifetime} cycles` : ""} onClick={() => onJumpToStep(1)} ai={filledByAi.has("expectedLifetime")} incomplete={incompleteLabels.has("Lifetime")} scoreImpact={scoreImpactPct} />
+          <Row label="Warranty" value={values.warrantyMonths ? `${values.warrantyMonths} months` : ""} onClick={() => onJumpToStep(1)} ai={filledByAi.has("warrantyMonths")} incomplete={incompleteLabels.has("Warranty")} scoreImpact={scoreImpactPct} />
+          <Row label="DoC Upload" value={values.docUploadUrl ? <span className="text-foreground flex items-center gap-1"><FileCheck className="h-3 w-3" /> Uploaded</span> : "Not uploaded"} onClick={() => onJumpToStep(1)} />
         </Section>
       )}
 
       {isIndiaMode && (
-        <Section title="India Compliance">
-          <Row label="HSN Code" value={values.hsnCode} />
-          <Row label="Cell Source" value={values.cellSource} />
-          <Row label="BIS Number" value={values.bisNumber} />
-          <Row label="EPR Number" value={values.eprNumber} />
-          <Row label="PLI Eligible" value={values.pliCompliant ? "Yes" : "No"} />
+        <Section title="India Compliance" onJump={() => onJumpToStep(1)}>
+          <Row label="HSN Code" value={values.hsnCode} onClick={() => onJumpToStep(1)} ai={filledByAi.has("hsnCode")} incomplete={incompleteLabels.has("HSN Code")} scoreImpact={scoreImpactPct} />
+          <Row label="Cell Source" value={values.cellSource} onClick={() => onJumpToStep(1)} incomplete={incompleteLabels.has("Cell Source")} scoreImpact={scoreImpactPct} />
+          <Row label="BIS Number" value={values.bisNumber} onClick={() => onJumpToStep(1)} ai={filledByAi.has("bisNumber")} incomplete={incompleteLabels.has("BIS Number")} scoreImpact={scoreImpactPct} />
+          <Row label="EPR Number" value={values.eprNumber} onClick={() => onJumpToStep(1)} ai={filledByAi.has("eprNumber")} incomplete={incompleteLabels.has("EPR Number")} scoreImpact={scoreImpactPct} />
+          <Row label="PLI Eligible" value={values.pliCompliant ? "Yes" : "No"} onClick={() => onJumpToStep(1)} />
           {values.cellSource === "IMPORTED" && (
             <>
-              <Row label="Bill of Entry" value={values.billOfEntryNo} />
-              <Row label="Import Date" value={values.customsDate} />
+              <Row label="Bill of Entry" value={values.billOfEntryNo} onClick={() => onJumpToStep(1)} />
+              <Row label="Import Date" value={values.customsDate} onClick={() => onJumpToStep(1)} />
             </>
           )}
           {values.cellSource !== "IMPORTED" && values.dvaSource === "ESTIMATED" && values.salePrice && values.importCost && (
             <Row
               label="Estimated DVA"
               value={`${Math.max(0, ((parseFloat(values.salePrice) - parseFloat(values.importCost)) / parseFloat(values.salePrice)) * 100).toFixed(1)}%`}
+              onClick={() => onJumpToStep(1)}
             />
           )}
         </Section>

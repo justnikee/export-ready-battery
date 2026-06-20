@@ -19,12 +19,17 @@ export const backendFieldToFormPath: Record<string, string> = {
   cell_source: "cellSource",
   hsn_code: "hsnCode",
   bill_of_entry_no: "billOfEntryNo",
-  country_of_origin: "countryOfOrigin",
+  // Bare country_of_origin is the cell's customs import origin (India +
+  // IMPORTED only) — distinct from specs.country_of_origin below, which is
+  // the battery's manufacturing origin set in the Specifications step.
+  country_of_origin: "cellCountryOfOrigin",
   customs_date: "customsDate",
-  domestic_value_add: "domesticValueAdd",
+  // Backend reports the estimator-mode DVA shortfall under domestic_value_add,
+  // but the frontend's equivalent check lives on salePrice (see batch-form-schema.ts).
+  domestic_value_add: "salePrice",
   pli_compliant: "pliCompliant",
   dva_source: "dvaSource",
-  audited_dva: "auditedDva",
+  audited_domestic_value_add: "auditedDva",
   battery_category: "batteryCategory",
   carbon_footprint: "carbonFootprint",
   expected_lifetime_cycles: "expectedLifetime",

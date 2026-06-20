@@ -103,6 +103,24 @@ type DatasheetParseResult struct {
 	Confidence       float64 `json:"confidence"`
 	Method           string  `json:"method"` // "regex" or "llm"
 	ProcessingTimeMs int     `json:"processing_time_ms,omitempty"`
+
+	// FieldSources records, for a tracked subset of fields (see trackedProvenanceFields),
+	// which extraction stage produced the value: "regex", "llm", or "missing". Powers the
+	// frontend's per-field confidence preview. Keep in sync with the field list consumed by
+	// apps/battery-web/components/batches/batch-form-steps/ai-field-preview-table.tsx.
+	FieldSources map[string]string `json:"field_sources,omitempty"`
+}
+
+// trackedProvenanceFields are the JSON-tagged field names for which FieldSources is populated.
+// This is deliberately a subset of DatasheetParseResult — only the fields the frontend's AI
+// preview table and applyPdfResult actually surface, not all ~50 struct fields.
+var trackedProvenanceFields = []string{
+	"model_name", "chemistry", "capacity", "voltage", "weight",
+	"manufacturer", "manufacturer_address", "manufacturer_email", "country_of_origin",
+	"ce_marking", "carbon_footprint", "carbon_performance_class", "notified_body_number",
+	"eu_representative", "eu_representative_email", "eu_representative_address",
+	"removable_and_replaceable", "expected_lifetime_cycles", "warranty_months",
+	"bis_number", "epr_number", "hsn_code", "hazardous_declaration", "certifications",
 }
 
 // NLCreateResult is the structured output from natural language
@@ -227,6 +245,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.ProcessingTimeMs = int(time.Since(start).Milliseconds())
+		regexResult.FieldSources = buildFieldSources(regexResult, nil)
 		s.setCachedResult(textHash, regexResult)
 		return regexResult, nil
 	}
@@ -235,6 +254,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 	if s.groqAPIKey == "" {
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
+		regexResult.FieldSources = buildFieldSources(regexResult, nil)
 		s.setCachedResult(textHash, regexResult)
 		return regexResult, nil
 	}
@@ -243,6 +263,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 	if err != nil {
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
+		regexResult.FieldSources = buildFieldSources(regexResult, nil)
 		s.setCachedResult(textHash, regexResult)
 		return regexResult, nil
 	}
@@ -698,6 +719,85 @@ func (s *AIService) calculateConfidence(r *DatasheetParseResult) float64 {
 	return coreScore + secScore + compScore
 }
 
+// fieldNonEmpty reports whether the named tracked field (see trackedProvenanceFields) has a
+// non-empty/non-zero value on r. r may be nil, in which case it always reports false.
+func fieldNonEmpty(r *DatasheetParseResult, field string) bool {
+	if r == nil {
+		return false
+	}
+	switch field {
+	case "model_name":
+		return r.ModelName != ""
+	case "chemistry":
+		return r.Chemistry != ""
+	case "capacity":
+		return r.Capacity != ""
+	case "voltage":
+		return r.Voltage != ""
+	case "weight":
+		return r.Weight != ""
+	case "manufacturer":
+		return r.Manufacturer != ""
+	case "manufacturer_address":
+		return r.ManufacturerAddress != ""
+	case "manufacturer_email":
+		return r.ManufacturerEmail != ""
+	case "country_of_origin":
+		return r.CountryOfOrigin != ""
+	case "ce_marking":
+		return r.CEMarking
+	case "carbon_footprint":
+		return r.CarbonFootprint != ""
+	case "carbon_performance_class":
+		return r.CarbonPerformanceClass != ""
+	case "notified_body_number":
+		return r.NotifiedBodyNumber != ""
+	case "eu_representative":
+		return r.EURepresentative != ""
+	case "eu_representative_email":
+		return r.EURepresentativeEmail != ""
+	case "eu_representative_address":
+		return r.EURepresentativeAddress != ""
+	case "removable_and_replaceable":
+		return r.RemovableAndReplaceable
+	case "expected_lifetime_cycles":
+		return r.ExpectedLifetimeCycles != ""
+	case "warranty_months":
+		return r.WarrantyMonths != ""
+	case "bis_number":
+		return r.BISNumber != ""
+	case "epr_number":
+		return r.EPRNumber != ""
+	case "hsn_code":
+		return r.HSNCode != ""
+	case "hazardous_declaration":
+		return r.HazardousDeclaration != ""
+	case "certifications":
+		return len(r.Certifications) > 0
+	default:
+		return false
+	}
+}
+
+// buildFieldSources records, per tracked field, which extraction stage produced the final
+// value: "llm" if the LLM result has it (LLM always wins on merge, see prefer() below),
+// "regex" if only the regex pass found it, or "missing" if neither did. llm may be nil for
+// the regex-only paths (high regex confidence, no Groq key configured, or LLM call failed).
+func buildFieldSources(regex, llm *DatasheetParseResult) map[string]string {
+	sources := make(map[string]string, len(trackedProvenanceFields))
+	for _, field := range trackedProvenanceFields {
+		switch {
+		case fieldNonEmpty(llm, field):
+			sources[field] = "llm"
+		case fieldNonEmpty(regex, field):
+			sources[field] = "regex"
+		default:
+			sources[field] = "missing"
+		}
+	}
+	return sources
+}
+
 func (s *AIService) mergeResults(regex, llm *DatasheetParseResult) *DatasheetParseResult {
 	merged := *regex
 
@@ -787,6 +887,8 @@ func (s *AIService) mergeResults(regex, llm *DatasheetParseResult) *DatasheetPar
 			merged.MaterialComposition[k] = v
 		}
 	}
+
+	merged.FieldSources = buildFieldSources(regex, llm)
 
 	return &merged
 }

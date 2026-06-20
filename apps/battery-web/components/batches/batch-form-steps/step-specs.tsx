@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Activity } from "lucide-react";
+import { AiBadge, aiFieldClass } from "@/components/batches/batch-form-steps/ai-badge";
+import { SettingsBadge } from "@/components/batches/batch-form-steps/settings-badge";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
 
 const materialKeyLabels = [
@@ -21,7 +23,14 @@ const materialKeyLabels = [
   { key: "manganese" as const, label: "Manganese" },
 ];
 
-export function StepSpecs() {
+interface StepSpecsProps {
+  aiFilledFields?: Set<string>;
+  settingsFilledFields?: Set<string>;
+}
+
+export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsProps = {}) {
+  const filledByAi = aiFilledFields ?? new Set<string>();
+  const filledBySettings = settingsFilledFields ?? new Set<string>();
   const {
     register,
     formState: { errors },
@@ -99,28 +108,30 @@ export function StepSpecs() {
       {/* Capacity & Voltage */}
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="capacity">
+          <Label htmlFor="capacity" className="flex items-center gap-1.5">
             Rated Capacity <span className="text-red-500">*</span>
+            {filledByAi.has("capacity") && <AiBadge />}
           </Label>
           <Input
             id="capacity"
             {...register("capacity")}
             placeholder="e.g. 5000mAh"
-            className={errors.capacity ? "border-red-500" : ""}
+            className={`${errors.capacity ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("capacity"))}`}
           />
           {errors.capacity && (
             <p className="text-xs text-red-500">{errors.capacity.message}</p>
           )}
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="voltage">
+          <Label htmlFor="voltage" className="flex items-center gap-1.5">
             Voltage <span className="text-red-500">*</span>
+            {filledByAi.has("voltage") && <AiBadge />}
           </Label>
           <Input
             id="voltage"
             {...register("voltage")}
             placeholder="e.g. 3.7V"
-            className={errors.voltage ? "border-red-500" : ""}
+            className={`${errors.voltage ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("voltage"))}`}
           />
           {errors.voltage && (
             <p className="text-xs text-red-500">{errors.voltage.message}</p>
@@ -131,17 +142,25 @@ export function StepSpecs() {
       {/* Weight & Country */}
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="weight">Weight</Label>
-          <Input id="weight" {...register("weight")} placeholder="e.g. 500g" />
+          <Label htmlFor="weight" className="flex items-center gap-1.5">
+            Weight
+            {filledByAi.has("weight") && <AiBadge />}
+          </Label>
+          <Input id="weight" {...register("weight")} placeholder="e.g. 500g" className={aiFieldClass(filledByAi.has("weight"))} />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="countryOfOrigin">Country of Origin</Label>
+          <Label htmlFor="countryOfOrigin" className="flex items-center gap-1.5">
+            Country of Origin
+            {filledByAi.has("countryOfOrigin") && <AiBadge />}
+            {filledBySettings.has("countryOfOrigin") && <SettingsBadge />}
+          </Label>
           <Input
             id="countryOfOrigin"
             {...register("countryOfOrigin")}
             maxLength={2}
             placeholder={isIndiaMode ? "IN" : "e.g. DE"}
             title="ISO 3166-1 alpha-2 country code (2 characters)"
+            className={aiFieldClass(filledByAi.has("countryOfOrigin"))}
           />
         </div>
       </div>

@@ -96,9 +96,7 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 
 // GetDashboardStats retrieves statistics for the dashboard
 func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
-	stats := &models.DashboardStats{
-		QuotaLimit: 5000, // Hardcoded for MVP
-	}
+	stats := &models.DashboardStats{}
 
 	// Total passports for this tenant
 	err := r.db.Pool.QueryRow(ctx, `
@@ -111,6 +109,16 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 	}
 
 	stats.QuotaUsed = stats.TotalPassports
+
+	// Quota balance is the tenant's real remaining activation credits (topped up
+	// via billing). The dashboard's "limit" is used + remaining, not a fixed
+	// plan ceiling — there is no separate plan-tier cap tracked today.
+	balance, err := r.GetQuotaBalance(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get quota balance: %w", err)
+	}
+	stats.QuotaBalance = balance
+	stats.QuotaLimit = stats.TotalPassports + balance
 
 	// Total batches
 	err = r.db.Pool.QueryRow(ctx, `

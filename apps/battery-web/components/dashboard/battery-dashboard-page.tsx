@@ -56,6 +56,7 @@ interface DashboardStats {
   total_batches: number;
   quota_used: number;
   quota_limit: number;
+  quota_balance: number;
   passports_this_week: number;
   batches_by_status?: Record<string, number>;
 }
@@ -342,7 +343,9 @@ export default function DashboardPage() {
   const quotaLimit = stats?.quota_limit ?? 0;
   const quotaPercent =
     quotaLimit > 0 ? Math.round((quotaUsed / quotaLimit) * 100) : 0;
-  const isOverLimit = quotaLimit > 0 && quotaUsed > quotaLimit;
+  // Quota balance can't go negative (activation is blocked server-side at 0),
+  // so "out of quota" is the real signal — used > limit never happens.
+  const isOverLimit = (stats?.quota_balance ?? 0) <= 0 && quotaLimit > 0;
 
   // First-run: account has no batches yet — show getting-started guidance
   const isFirstRun = (stats?.total_batches ?? 0) === 0;
@@ -602,7 +605,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-1 text-xs text-red-500">
                   <AlertCircle className="h-3 w-3" />
-                  Over by {(quotaUsed - quotaLimit).toLocaleString()}
+                  Out of quota
                 </div>
                 <Link
                   href={billingHref}
