@@ -158,9 +158,21 @@ func (h *Handler) GetBatchCompliance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse gaps from JSONB for structured response.
+	// Prefer a live evaluation so DRAFT batches (which may have no persisted
+	// compliance run yet) report the same authoritative gaps the activation gate
+	// enforces — otherwise the UI's activation checklist understates what's
+	// actually required. Fall back to the stored result if the engine isn't wired.
+	score := batch.ComplianceScore
 	var gaps []map[string]interface{}
-	if len(batch.ComplianceGaps) > 0 {
+	if h.batchService != nil {
+		if tenant, terr := h.repo.GetTenant(r.Context(), tenantID); terr == nil {
+			if result, cerr := h.batchService.EvaluateBatchCompliance(batch, tenant); cerr == nil {
+				score = result.Score
+				_ = json.Unmarshal(result.GapsJSON(), &gaps)
+			}
+		}
+	}
+	if gaps == nil && len(batch.ComplianceGaps) > 0 {
 		_ = json.Unmarshal(batch.ComplianceGaps, &gaps)
 	}
 	if gaps == nil {
@@ -172,7 +184,7 @@ func (h *Handler) GetBatchCompliance(w http.ResponseWriter, r *http.Request) {
 		"batch_name":       batch.BatchName,
 		"product_type":     batch.ProductType,
 		"market_region":    batch.MarketRegion,
-		"compliance_score": batch.ComplianceScore,
+		"compliance_score": score,
 		"compliance_gaps":  gaps,
 		"gap_count":        len(gaps),
 		"status":           batch.Status,
