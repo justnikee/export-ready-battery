@@ -77,6 +77,9 @@ export default function BatchesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  // Tenant-wide status counts for the stat cards — independent of the current
+  // page/filter, so the cards reflect ALL batches, not just what's on screen.
+  const [statusBreakdown, setStatusBreakdown] = useState<Record<string, number>>({});
   const [batchToArchive, setBatchToArchive] = useState<Batch | null>(null);
   const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
 
@@ -105,6 +108,14 @@ export default function BatchesPage() {
         setBatches(response.data.batches || []);
         setTotalCount(response.data.total || 0);
         setTotalPages(response.data.total_pages || 1);
+        // Refresh tenant-wide status counts on the default view and after
+        // mutations (which reset to page 1). Best-effort — never blocks the list.
+        if (page === 1) {
+          api
+            .get<{ batch_status_breakdown?: Record<string, number> }>("/analytics/overview")
+            .then((res) => setStatusBreakdown(res.data?.batch_status_breakdown || {}))
+            .catch(() => {});
+        }
       } catch (error: unknown) {
         toast.error("Failed to load batches");
       } finally {
@@ -204,7 +215,7 @@ export default function BatchesPage() {
             </div>
             <div>
               <p className="text-2xl text-emerald-500">
-                {batches.filter((b) => b.status === "ACTIVE").length}
+                {statusBreakdown.ACTIVE ?? batches.filter((b) => b.status === "ACTIVE").length}
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
                 Active
@@ -216,22 +227,22 @@ export default function BatchesPage() {
             </div>
             <div>
               <p className="text-2xl text-muted-foreground">
-                {batches.filter((b) => b.status !== "ACTIVE").length}
+                {statusBreakdown.DRAFT ?? batches.filter((b) => b.status === "DRAFT").length}
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
                 Drafts
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
-              <ShieldCheck className="h-5 w-5 text-emerald-500" />
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
+              <Archive className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-2xl text-emerald-500">
-                {batches.filter((b) => getComplianceStatus(b).status === "READY").length}
+              <p className="text-2xl text-muted-foreground">
+                {statusBreakdown.ARCHIVED ?? 0}
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                Compliance Ready
+                Archived
               </p>
             </div>
           </div>
