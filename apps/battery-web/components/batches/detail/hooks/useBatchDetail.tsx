@@ -15,6 +15,11 @@ import {
   autoVerifyBatch,
 } from "@/lib/api/registry";
 import { useAuth } from "@/context/auth-context";
+import {
+  getActivationBlockers,
+  mergeActivationBlockers,
+  formatBlockerLabel,
+} from "@/lib/activation-blockers";
 import { getApiErrorMessage, toApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { dashboardPathFromPathname } from "@/lib/routes";
@@ -484,7 +489,9 @@ export function useBatchDetail(batchId: string, pathname: string) {
 
   const handleActivateBatch = useCallback(async () => {
     if (!batch) return;
-    const preflight = getActivationBlockers(batch, user);
+    // Same merged view as the checklist, so the preflight can't pass while the
+    // backend gate would reject.
+    const preflight = mergeActivationBlockers(getActivationBlockers(batch, user), complianceGaps);
     if (preflight.blocking.length > 0) {
       toast.error(
         <div className="space-y-2">
@@ -565,7 +572,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
     } finally {
       setActivating(false);
     }
-  }, [batch, batchId, user, refreshUser, router, billingHref, fetchBatch]);
+  }, [batch, batchId, user, refreshUser, router, billingHref, fetchBatch, complianceGaps]);
 
   const handleArchiveBatch = useCallback(async () => {
     if (!batch) return;
@@ -699,179 +706,18 @@ export function useBatchDetail(batchId: string, pathname: string) {
     [anchors],
   );
 
-  // ───────────────────────────────────────────────────────────────
-  // Activation blockers logic
-  // ───────────────────────────────────────────────────────────────
-
-  const getActivationBlockers = useCallback(
-    (batchRecord: Batch, currentUser: typeof user): ActivationBlockers => {
-      const blocking: string[] = [];
-      const warnings: string[] = [];
-      const region = batchRecord.market_region as MarketRegion;
-
-      // Shared requirements
-      if (!batchRecord.model_name?.trim()) blocking.push("model_name");
-      if (!batchRecord.manufacturing_start_date)
-        blocking.push("manufacturing_start_date");
-      if (!batchRecord.manufacturing_end_date)
-        blocking.push("manufacturing_end_date");
-
-      // Battery-specific requirements
-      if (!batchRecord.specs?.chemistry?.trim())
-        blocking.push("specs.chemistry");
-      if (!batchRecord.specs?.capacity?.trim())
-        blocking.push("specs.capacity");
-
-      if (region === "INDIA" || region === "GLOBAL") {
-        if (!batchRecord.specs.cell_source) blocking.push("cell_source");
-
-        const certs = batchRecord.specs?.certifications || [];
-        if (!certs.includes("AIS-156"))
-          blocking.push("specs.certifications: AIS-156");
-        if (!certs.includes("AIS-038"))
-          blocking.push("specs.certifications: AIS-038");
-
-        if (!currentUser?.epr_registration_number?.trim())
-          blocking.push("tenant.epr_registration_number");
-        if (!currentUser?.bis_r_number?.trim())
-          blocking.push("tenant.bis_r_number");
-        if (!currentUser?.iec_code?.trim())
-          blocking.push("tenant.iec_code");
-        if (!currentUser?.morth_manufacturer_code?.trim())
-          blocking.push("tenant.morth_manufacturer_code");
-
-        if (batchRecord.specs.cell_source === "IMPORTED") {
-          if (!batchRecord.specs.bill_of_entry_no?.trim())
-            blocking.push("bill_of_entry_no");
-          if (!batchRecord.specs.country_of_origin?.trim())
-            blocking.push("country_of_origin");
-          if (!batchRecord.specs.customs_date) blocking.push("customs_date");
-        }
-
-        if (
-          batchRecord.specs.cell_source === "DOMESTIC" &&
-          (batchRecord.domestic_value_add ?? 0) <= 0
-        ) {
-          blocking.push("domestic_value_add");
-        }
-
-        if (
-          batchRecord.pli_compliant &&
-          (batchRecord.domestic_value_add ?? 0) < 50
-        ) {
-          warnings.push(
-            `PLI requires >=50% DVA (current: ${batchRecord.domestic_value_add ?? 0}%)`,
-          );
-        }
-      }
-
-      if (region === "EU" || region === "GLOBAL") {
-        const validCategories = ["EV", "LMT", "INDUSTRIAL", "PORTABLE", "SLI"];
-        if (
-          !batchRecord.specs?.battery_category ||
-          !validCategories.includes(batchRecord.specs.battery_category)
-        ) {
-          blocking.push("specs.battery_category");
-        }
-
-        if (!currentUser?.company_name?.trim())
-          blocking.push("tenant.company_name");
-        if (!currentUser?.address?.trim()) blocking.push("tenant.address");
-        if (!currentUser?.eu_authorized_representative_name?.trim()) {
-          blocking.push("tenant.eu_authorized_representative_name");
-        }
-        if (!currentUser?.eu_authorized_representative_address?.trim()) {
-          blocking.push("tenant.eu_authorized_representative_address");
-        }
-        if (!currentUser?.eu_contact_email?.trim()) {
-          blocking.push("tenant.eu_contact_email");
-        }
-
-        if (
-          !batchRecord.carbon_footprint_result ||
-          Object.keys(batchRecord.carbon_footprint_result).length === 0
-        ) {
-          blocking.push("carbon_footprint_result");
-        }
-
-        const materialComposition = batchRecord.specs?.material_composition;
-        if (
-          !materialComposition ||
-          !Object.values(materialComposition).some((value) =>
-            typeof value === "number" ? value > 0 : parseFloat(String(value)) > 0,
-          )
-        ) {
-          blocking.push("specs.material_composition");
-        }
-
-        if (!batchRecord.specs?.hazardous_substances?.declaration?.trim()) {
-          blocking.push("specs.hazardous_substances.declaration");
-        }
-
-        if (
-          !batchRecord.specs?.expected_lifetime_cycles ||
-          batchRecord.specs.expected_lifetime_cycles <= 0
-        ) {
-          blocking.push("specs.expected_lifetime_cycles");
-        }
-
-        if (
-          !batchRecord.specs?.warranty_months ||
-          batchRecord.specs.warranty_months <= 0
-        ) {
-          blocking.push("specs.warranty_months");
-        }
-
-        const recycledKeys = [
-          "recycled_cobalt",
-          "recycled_lithium",
-          "recycled_nickel",
-          "recycled_lead",
-        ] as const;
-        for (const key of recycledKeys) {
-          const baseKey = key.replace(
-            "recycled_",
-            "",
-          ) as keyof typeof materialComposition;
-          if (
-            materialComposition &&
-            typeof materialComposition === "object" &&
-            baseKey in materialComposition
-          ) {
-            const baseVal =
-              parseFloat(
-                String(
-                  (materialComposition as Record<string, unknown>)[baseKey],
-                ),
-              ) || 0;
-            const recycledVal =
-              parseFloat(
-                String(
-                  (materialComposition as Record<string, unknown>)[key],
-                ),
-              ) || 0;
-            if (baseVal > 0 && recycledVal === 0) {
-              warnings.push(
-                `Recycled ${baseKey} content not declared (required from Aug 2028)`,
-              );
-            }
-          }
-        }
-      }
-
-      return { blocking, warnings };
-    },
-    [],
-  );
 
   // ───────────────────────────────────────────────────────────────
   // Computed values
   // ───────────────────────────────────────────────────────────────
 
   const isDraft = batch?.status !== "ACTIVE" && batch?.status !== "ARCHIVED";
+  // Merge the instant client-side heuristic with the authoritative backend gaps
+  // (GET /compliance now evaluates live, even for drafts) so the activation
+  // checklist reflects exactly what the backend gate will enforce.
   const activationResult =
     batch && isDraft
-      ? getActivationBlockers(batch, user)
+      ? mergeActivationBlockers(getActivationBlockers(batch, user), complianceGaps)
       : { blocking: [], warnings: [] };
 
   const region = (batch?.market_region || "GLOBAL") as MarketRegion;
@@ -962,60 +808,3 @@ export function useBatchDetail(batchId: string, pathname: string) {
   };
 }
 
-// ───────────────────────────────────────────────────────────────
-// Static helpers
-// ───────────────────────────────────────────────────────────────
-
-export function formatBlockerLabel(key: string): string {
-  const map: Record<string, string> = {
-    model_name: "Model name",
-    "specs.chemistry": "Battery chemistry",
-    "specs.capacity": "Rated capacity",
-    "specs.manufacturer": "Manufacturer",
-    "specs.country_of_origin": "Country of origin",
-    manufacturing_start_date: "Manufacturing start date",
-    manufacturing_end_date: "Manufacturing end date",
-    cell_source: "Cell source (IMPORTED/DOMESTIC)",
-    "specs.certifications: AIS-156": "AIS-156 certification",
-    "specs.certifications: AIS-038": "AIS-038 certification",
-    "tenant.epr_registration_number":
-      "EPR registration (Settings -> Compliance)",
-    "tenant.bis_r_number": "BIS R-number (Settings -> Compliance)",
-    "tenant.iec_code": "IEC code (Settings -> Compliance)",
-    "tenant.morth_manufacturer_code":
-      "MoRTH code (Settings -> Compliance)",
-    bill_of_entry_no: "Bill of entry number",
-    country_of_origin: "Cell country of origin",
-    customs_date: "Import date",
-    domestic_value_add: "Domestic value-add percentage",
-    "specs.battery_category": "EU battery category",
-    "tenant.company_name": "Company name (Settings -> Profile)",
-    "tenant.address": "Company address (Settings -> Profile)",
-    "tenant.eu_authorized_representative_name":
-      "EU representative name (Settings -> Compliance)",
-    "tenant.eu_authorized_representative_address":
-      "EU representative address (Settings -> Compliance)",
-    "tenant.eu_contact_email": "EU contact email (Settings -> Compliance)",
-    carbon_footprint_result:
-      "Carbon footprint (use Carbon Calculator tab)",
-    "specs.material_composition":
-      "Material composition (at least one non-zero %)",
-    "specs.hazardous_substances.declaration":
-      "Hazardous substances declaration",
-    "specs.expected_lifetime_cycles": "Expected lifetime cycles",
-    "specs.warranty_months": "Warranty months",
-  };
-  return (
-    map[key] ||
-    key
-      .replace(/[._]/g, " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase())
-  );
-}
-
-export function normalizeGapField(field: string): string {
-  return field
-    .replace(/^batch\./, "")
-    .replace(/^specs\./, "specs.")
-    .replace(/\[(.*?)\]/, ": $1");
-}

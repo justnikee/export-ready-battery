@@ -27,10 +27,9 @@ export interface PassportsResponse {
   has_more?: boolean;
 }
 
-export interface ActivationBlockers {
-  blocking: string[];
-  warnings: string[];
-}
+// Single source of truth lives in lib/activation-blockers; re-exported here for
+// the detail-page modules that import it from ./types.
+export type { ActivationBlockers } from "@/lib/activation-blockers";
 
 export type CertExpiryStatus = "valid" | "warning" | "expired" | "unset";
 
