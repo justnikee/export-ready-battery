@@ -72,11 +72,15 @@ export function completionPctFromChecks(checks: CompletionCheck[]): number {
   return Math.round((checks.filter((c) => c.filled).length / checks.length) * 100);
 }
 
-/** Human-readable band label for a completion percentage. */
+/**
+ * Human-readable band label for a form-completeness percentage. Deliberately
+ * does NOT claim "export ready" — completeness here means form fields filled,
+ * which is distinct from activation readiness (see lib/activation-blockers).
+ */
 export function completionBandLabel(pct: number): string {
-  if (pct >= 100) return "Complete — export passport ready";
-  if (pct >= 75) return "Good — almost ready";
-  if (pct >= 50) return "Fair — keep going";
+  if (pct >= 100) return "All fields filled — ready to create";
+  if (pct >= 75) return "Almost there";
+  if (pct >= 50) return "Halfway — keep going";
   if (pct > 0) return "Getting started";
   return "Not started";
 }
