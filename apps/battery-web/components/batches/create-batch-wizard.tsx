@@ -8,13 +8,13 @@ import { useAuth } from "@/context/auth-context";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet as Dialog,
-  SheetContent as DialogContent,
-  SheetDescription as DialogDescription,
-  SheetFooter as DialogFooter,
-  SheetHeader as DialogHeader,
-  SheetTitle as DialogTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { WizardStepRail } from "@/components/batches/wizard/wizard-step-rail";
+import { WizardSummaryPanel } from "@/components/batches/wizard/wizard-summary-panel";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { PlusCircle, ChevronLeft, ChevronRight, Check } from "lucide-react";
@@ -81,6 +81,16 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const [step, setStep] = useState(0);
   const [currentDraftId, setCurrentDraftId] = useState<string>("");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  // Briefly true right after a draft write, to pulse the "Saved" indicator
+  // once rather than animate it forever.
+  const [saveFlash, setSaveFlash] = useState(false);
+  const saveFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flagSaved = useCallback(() => {
+    setLastSavedAt(new Date().toISOString());
+    setSaveFlash(true);
+    if (saveFlashTimer.current) clearTimeout(saveFlashTimer.current);
+    saveFlashTimer.current = setTimeout(() => setSaveFlash(false), 1500);
+  }, []);
   const [pendingAiMode, setPendingAiMode] = useState<"pdf" | "nl" | undefined>(undefined);
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
   const [settingsFilledFields, setSettingsFilledFields] = useState<Set<string>>(new Set());
@@ -91,6 +101,15 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       fields.forEach((f) => next.add(f));
       return next;
     });
+    // Fade the AI highlight after 60s so it reads as "spot-check this now",
+    // not a permanent marker. Matches the redesign spec.
+    setTimeout(() => {
+      setAiFilledFields((prev) => {
+        const next = new Set(prev);
+        fields.forEach((f) => next.delete(f));
+        return next;
+      });
+    }, 60_000);
   }, []);
 
   // Templates
@@ -244,13 +263,11 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     if (!wizardOpen || !user || !currentDraftId) return;
     const subscription = watch((value) => {
       if (isDirty) {
-        scheduleDraftSave(user.tenant_id, currentDraftId, value as BatchFormData, step, () =>
-          setLastSavedAt(new Date().toISOString())
-        );
+        scheduleDraftSave(user.tenant_id, currentDraftId, value as BatchFormData, step, flagSaved);
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, isDirty, user, wizardOpen, step, currentDraftId]);
+  }, [watch, isDirty, user, wizardOpen, step, currentDraftId, flagSaved]);
 
   // Re-fills euRepresentative*/eprNumber/bisNumber from the org profile.
   // Only touches fields that are currently empty, so it's safe to call again
@@ -494,7 +511,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       };
     }
 
-    reset({ ...watch(), ...updates });
+    // Reset to a clean baseline first so stale values from a previously-opened
+    // (but un-submitted) wizard session can't bleed into the new batch.
+    reset({
+      ...defaultBatchFormValues,
+      manufacturer: user?.company_name || "",
+      ...updates,
+    });
     toast.success(`Loaded "${template.name}" template (${template.market_region} market)`);
   };
 
@@ -625,7 +648,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     const base: (keyof BatchFormData)[][] = [
       ["batchName", "modelName", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer", "chemistry", "capacity", "voltage"],
       [], // Compliance step varies by market
-      ["templateName"],
+      [], // Review step has no step-gating fields; templateName is validated by zod only when saveAsTemplate is checked
     ];
     const fields = [...base[stepIdx]];
 
@@ -681,7 +704,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       return;
     }
     saveDraftSlot(user.tenant_id, currentDraftId, watch(), step);
-    setLastSavedAt(new Date().toISOString());
+    flagSaved();
     setWizardOpen(false);
     toast.success("Draft saved — resume it anytime from Create Batch");
   };
@@ -860,119 +883,142 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         onChoice={handleEntryChoice}
       />
       <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
-      <DialogContent className="sm:max-w-160 w-full h-full overflow-y-auto bg-background border-border text-foreground p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
-          <DialogTitle>Create New Batch</DialogTitle>
-          <DialogDescription>
-            Step {step + 1} of {STEPS.length}: {STEPS[step].label}
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Stepper */}
-        <div className="px-6 pt-4">
-          <div className="flex items-center justify-between">
-            {STEPS.map((s, idx) => (
-              <div key={s.id} className="flex items-center flex-1">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-                      idx < step
-                        ? "bg-foreground text-background"
-                        : idx === step
-                          ? "bg-muted text-foreground ring-2 ring-foreground ring-offset-2 ring-offset-background"
-                          : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {idx < step ? <Check className="h-4 w-4" /> : s.id + 1}
-                  </div>
-                  <span className={`text-[10px] mt-1 ${idx === step ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                    {s.label}
-                  </span>
+        <DialogContent className="flex flex-col w-screen h-screen max-w-none sm:max-w-none top-0 left-0 translate-x-0 translate-y-0 rounded-none border-0 p-0 gap-0 bg-background text-foreground">
+          <FormProvider {...methods}>
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              onKeyDown={(e) => {
+                // Only the Review step may submit. On earlier steps, swallow
+                // Enter so a keystroke in a field can't create the batch before
+                // the user reaches Review. Textareas keep their newline behavior.
+                if (
+                  e.key === "Enter" &&
+                  step < STEPS.length - 1 &&
+                  (e.target as HTMLElement).tagName !== "TEXTAREA"
+                ) {
+                  e.preventDefault();
+                }
+              }}
+              className="flex flex-col h-full min-h-0"
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-border px-6 h-14 shrink-0">
+                <div className="flex flex-col">
+                  <DialogTitle className="text-base">Create New Batch</DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Step {step + 1} of {STEPS.length}: {STEPS[step].label} — {STEPS[step].description}
+                  </DialogDescription>
                 </div>
-                {idx < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-2 ${idx < step ? "bg-foreground" : "bg-muted"}`} />
-                )}
               </div>
-            ))}
-          </div>
-        </div>
 
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-            <div className="grid gap-6 px-6 py-4 overflow-y-auto flex-1">
-              {/* Step Content */}
-              {step === 0 && (
-                <div className="space-y-8">
-                  <StepIdentity
-                    initialAiMode={pendingAiMode}
-                    aiFilledFields={aiFilledFields}
-                    onAiFill={handleAiFill}
-                    settingsFilledFields={settingsFilledFields}
-                  />
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-t border-border pt-6">
-                    Battery Specs
-                  </div>
-                  <StepSpecs aiFilledFields={aiFilledFields} settingsFilledFields={settingsFilledFields} />
+              {/* Body: rail · center · summary */}
+              <div className="flex flex-1 min-h-0">
+                {/* Left step rail (md+) */}
+                <div className="hidden md:block w-56 shrink-0 overflow-y-auto border-r border-border">
+                  <WizardStepRail steps={STEPS} current={step} onSelect={setStep} />
                 </div>
-              )}
-              {step === 1 && (
-                <StepCompliance
-                  isUploading={isUploading}
-                  uploadProgress={uploadProgress}
-                  onDocUpload={handleDocUpload}
-                  onCertificateUpload={handleCertificateUpload}
-                  iecError={iecError}
-                  user={user}
-                  aiFilledFields={aiFilledFields}
-                  settingsFilledFields={settingsFilledFields}
-                  primaryMarket={user?.data_visibility?.primary_market}
-                  onFillFromProfile={handleFillComplianceFromProfile}
-                />
-              )}
-              {step === 2 && <StepReview onJumpToStep={setStep} aiFilledFields={aiFilledFields} iecError={iecError} />}
-            </div>
 
-            <DialogFooter className="border-t border-border px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={goBack}
-                  disabled={step === 0 || isLoading}
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  {stepFieldCounts[step].label}
-                </span>
-                {lastSavedAt && (
-                  <span className="text-[10px] text-muted-foreground hidden sm:inline-flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Saved
+                {/* Center column */}
+                <div className="flex-1 min-w-0 overflow-y-auto">
+                  {/* Compact stepper (mobile) */}
+                  <div className="md:hidden flex items-center gap-2 overflow-x-auto border-b border-border px-4 py-3">
+                    {STEPS.map((s, idx) => (
+                      <div key={s.id} className="flex shrink-0 items-center gap-2">
+                        <span
+                          className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium ${
+                            idx < step
+                              ? "bg-foreground text-background"
+                              : idx === step
+                                ? "bg-background text-foreground ring-2 ring-foreground"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {idx < step ? <Check className="h-3.5 w-3.5" /> : idx + 1}
+                        </span>
+                        <span className={`text-xs ${idx === step ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                          {s.label}
+                        </span>
+                        {idx < STEPS.length - 1 && <span className="h-px w-4 bg-border" />}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mx-auto max-w-3xl px-6 py-8 md:px-10">
+                    {step === 0 && (
+                      <div className="space-y-8">
+                        <StepIdentity
+                          initialAiMode={pendingAiMode}
+                          aiFilledFields={aiFilledFields}
+                          onAiFill={handleAiFill}
+                          settingsFilledFields={settingsFilledFields}
+                        />
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium border-t border-border pt-6">
+                          Battery Specs
+                        </div>
+                        <StepSpecs aiFilledFields={aiFilledFields} settingsFilledFields={settingsFilledFields} />
+                      </div>
+                    )}
+                    {step === 1 && (
+                      <StepCompliance
+                        isUploading={isUploading}
+                        uploadProgress={uploadProgress}
+                        onDocUpload={handleDocUpload}
+                        onCertificateUpload={handleCertificateUpload}
+                        iecError={iecError}
+                        user={user}
+                        aiFilledFields={aiFilledFields}
+                        settingsFilledFields={settingsFilledFields}
+                        primaryMarket={user?.data_visibility?.primary_market}
+                        onFillFromProfile={handleFillComplianceFromProfile}
+                      />
+                    )}
+                    {step === 2 && <StepReview onJumpToStep={setStep} aiFilledFields={aiFilledFields} iecError={iecError} />}
+                  </div>
+                </div>
+
+                {/* Right summary panel (lg+) */}
+                <div className="hidden lg:block">
+                  <WizardSummaryPanel user={user} onJumpToStep={setStep} />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between border-t border-border px-6 py-4 shrink-0">
+                <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" onClick={goBack} disabled={step === 0 || isLoading}>
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    {stepFieldCounts[step].label}
                   </span>
-                )}
-              </div>
+                  {lastSavedAt && (
+                    <span className="text-[10px] text-muted-foreground hidden sm:inline-flex items-center gap-1">
+                      <span className={`h-1.5 w-1.5 rounded-full bg-emerald-500 ${saveFlash ? "animate-pulse" : ""}`} />
+                      {saveFlash ? "Saving…" : "Saved"}
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-3">
-                <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isLoading}>
-                  Save & Exit
-                </Button>
-                {step < STEPS.length - 1 ? (
-                  <Button type="button" onClick={goNext} disabled={isLoading}>
-                    Next: {STEPS[step + 1].label}
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                <div className="flex items-center gap-3">
+                  <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isLoading}>
+                    Save & Exit
                   </Button>
-                ) : (
-                  <Button type="submit" disabled={isLoading || iecError}>
-                    {isLoading ? "Creating..." : "Create Batch"}
-                  </Button>
-                )}
+                  {step < STEPS.length - 1 ? (
+                    <Button type="button" onClick={goNext} disabled={isLoading}>
+                      Next: {STEPS[step + 1].label}
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button type="submit" disabled={isLoading || iecError}>
+                      {isLoading ? "Creating..." : "Create Batch"}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </DialogFooter>
-          </form>
-        </FormProvider>
-      </DialogContent>
+            </form>
+          </FormProvider>
+        </DialogContent>
       </Dialog>
     </>
   );

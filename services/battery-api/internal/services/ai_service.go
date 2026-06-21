@@ -135,6 +135,11 @@ type NLCreateResult struct {
 	CustomerName    string `json:"customer_name,omitempty"`
 	Weight          string `json:"weight,omitempty"`
 	BatteryCategory string `json:"battery_category,omitempty"`
+	// India compliance hints — only set when the description clearly implies them.
+	HSNCode    string `json:"hsn_code,omitempty"`
+	CellSource string `json:"cell_source,omitempty"`
+	// EU compliance hints.
+	CarbonPerformanceClass string `json:"carbon_performance_class,omitempty"`
 }
 
 const (
@@ -286,11 +291,16 @@ func (s *AIService) CreateBatchFromNL(ctx context.Context, text, defaultMarket s
 
 Rules:
 - chemistry must be one of: LFP, NMC, NMC811, NMC622, NCA, LCO, LTO, LMO, Sodium-ion, Li-ion
-- market_region must be one of: INDIA, EU, GLOBAL
+- market_region must be one of: INDIA, EU
 - capacity should include units (e.g., "150Ah", "5000mAh")
 - voltage should include units (e.g., "48V", "3.7V")
 - quantity is the number of units requested
 - battery_category (for EU) should be one of: EV, LMT, INDUSTRIAL, PORTABLE, SLI
+- hsn_code (for India) is an 8-digit code starting with 8507 (e.g., "85076000"); only set if explicitly stated
+- cell_source (for India) must be one of: DOMESTIC, IMPORTED — infer from phrases like "domestic cells", "imported cells", "made in India"
+- carbon_performance_class (for EU) is a single letter A–G; only set if explicitly stated
+
+Only fill compliance fields (hsn_code, cell_source, carbon_performance_class) when the request clearly implies them; otherwise use null.
 
 User request: "%s"
 Default market (if not specified): %s
@@ -306,7 +316,10 @@ Respond with ONLY valid JSON in this exact format:
   "market_region": "string or null",
   "customer_name": "string or null",
   "weight": "string or null",
-  "battery_category": "string or null"
+  "battery_category": "string or null",
+  "hsn_code": "string or null",
+  "cell_source": "string or null",
+  "carbon_performance_class": "string or null"
 }`, text, defaultMarket)
 
 	response, err := s.callGroq(ctx, prompt)

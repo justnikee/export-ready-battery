@@ -314,12 +314,10 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
     markAiFilled(appliedKeys);
     setAiPopulatedFields(appliedKeys.map((k) => FIELD_LABELS[k] ?? k));
 
-    const r = result as unknown as Record<string, unknown>;
-    const appliedCount = Object.keys(result).filter(k =>
-      r[k] !== "" && r[k] !== false && r[k] !== null &&
-      k !== "confidence" && k !== "method" && k !== "processing_time_ms"
-    ).length;
-    toast.success(`Applied ${appliedCount} fields — review and adjust as needed`);
+    // Count only fields actually written to the form, not every non-empty key
+    // the parser returned (many parsed keys have no corresponding form field).
+    const appliedCount = appliedKeys.length;
+    toast.success(`Applied ${appliedCount} field${appliedCount === 1 ? "" : "s"} — review and adjust as needed`);
     setAiMode("none");
     setParsedResult(null);
     setEditedFieldValues({});
@@ -376,6 +374,21 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
       setValue("batteryCategory", result.battery_category, { shouldDirty: true });
       populated.push("Battery Category");
       appliedKeys.push("batteryCategory");
+    }
+    if (result.hsn_code) {
+      setValue("hsnCode", result.hsn_code, { shouldDirty: true });
+      populated.push("HSN Code");
+      appliedKeys.push("hsnCode");
+    }
+    if (result.cell_source === "DOMESTIC" || result.cell_source === "IMPORTED") {
+      setValue("cellSource", result.cell_source, { shouldDirty: true });
+      populated.push("Cell Source");
+      appliedKeys.push("cellSource");
+    }
+    if (result.carbon_performance_class) {
+      setValue("carbonPerformanceClass", result.carbon_performance_class, { shouldDirty: true });
+      populated.push("Carbon Class");
+      appliedKeys.push("carbonPerformanceClass");
     }
 
     markAiFilled(appliedKeys);
@@ -608,7 +621,7 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground/80">
-                  A text description only covers core identity & spec fields. For HSN codes, EU/India compliance fields, and certifications, upload a datasheet PDF instead.
+                  A text description covers core identity, specs, and a few compliance hints (HSN, cell source, carbon class) when you mention them. For full certifications and material data, upload a datasheet PDF instead.
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -658,6 +671,24 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
                     <div className="p-2.5 bg-background border border-border rounded">
                       <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Category</span>
                       <span className="text-foreground font-medium">{nlResult.battery_category}</span>
+                    </div>
+                  )}
+                  {nlResult.hsn_code && (
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">HSN Code</span>
+                      <span className="text-foreground font-medium">{nlResult.hsn_code}</span>
+                    </div>
+                  )}
+                  {nlResult.cell_source && (
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Cell Source</span>
+                      <span className="text-foreground font-medium">{nlResult.cell_source}</span>
+                    </div>
+                  )}
+                  {nlResult.carbon_performance_class && (
+                    <div className="p-2.5 bg-background border border-border rounded">
+                      <span className="text-muted-foreground block text-[10px] uppercase tracking-wider">Carbon Class</span>
+                      <span className="text-foreground font-medium">{nlResult.carbon_performance_class}</span>
                     </div>
                   )}
                 </div>
@@ -718,25 +749,15 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
           <Globe className="h-4 w-4 text-muted-foreground" />
           Target Market <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {([
             { value: "INDIA" as const, label: "India", sub: "Battery Aadhaar", icon: Flag },
             { value: "EU" as const, label: "EU Export", sub: "Battery Passport", icon: Leaf },
-            { value: "GLOBAL" as const, label: "Global", sub: "Both Markets", icon: Globe },
           ] as const).map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => {
-                setValue("marketRegion", opt.value, { shouldValidate: true });
-                if (opt.value === "INDIA") {
-                  setValue("certifications", ["AIS-156", "AIS-038"]);
-                } else if (opt.value === "EU") {
-                  setValue("certifications", ["CE"]);
-                } else {
-                  setValue("certifications", []);
-                }
-              }}
+              onClick={() => setValue("marketRegion", opt.value, { shouldValidate: true })}
               className={`p-3 border-2 text-center transition-all ${
                 marketRegion === opt.value
                   ? "border-foreground bg-accent text-foreground"

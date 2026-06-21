@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Globe,
   Leaf,
   Flag,
   Bot,
@@ -25,6 +24,7 @@ import {
 import type { Template } from "@/hooks/use-queries";
 import type { MarketRegion } from "@/components/batches/batch-form-schema";
 import { listDrafts, deleteDraftSlot, type DraftSlot } from "@/lib/batch-draft";
+import { batchCompletionPct } from "@/lib/batch-completion";
 
 // Keep in sync with STEPS in create-batch-wizard.tsx — used only to render a
 // human-readable "Step X of N" label for resumable drafts.
@@ -46,10 +46,9 @@ interface BatchEntryModalProps {
 const MARKET_OPTIONS = [
   { value: "INDIA" as const, label: "India", sub: "BIS · EPR · PLI · AIS-156", icon: Flag },
   { value: "EU" as const, label: "EU Export", sub: "Battery Reg. 2023/1542", icon: Leaf },
-  { value: "GLOBAL" as const, label: "Global", sub: "India + EU combined", icon: Globe },
 ];
 
-const TEMPLATE_MARKET_FILTERS = ["ALL", "INDIA", "EU", "GLOBAL"] as const;
+const TEMPLATE_MARKET_FILTERS = ["ALL", "INDIA", "EU"] as const;
 
 function draftAgeText(savedAt: string) {
   const mins = Math.max(1, Math.round((Date.now() - new Date(savedAt).getTime()) / 60000));
@@ -120,7 +119,7 @@ export function BatchEntryModal({
                 <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Select Market
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {MARKET_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
@@ -149,7 +148,7 @@ export function BatchEntryModal({
                   </div>
                   <div className="space-y-2">
                     {drafts.map((draft) => {
-                      const pct = Math.round(((draft.step + 1) / WIZARD_STEP_LABELS.length) * 100);
+                      const pct = batchCompletionPct(draft.data);
                       return (
                         <div
                           key={draft.id}

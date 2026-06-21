@@ -111,6 +111,11 @@ export interface NLCreateResult {
   customer_name: string | null;
   weight: string | null;
   battery_category: string | null;
+  // India compliance hints (optional — only present when implied by the text)
+  hsn_code?: string | null;
+  cell_source?: string | null;
+  // EU compliance hint
+  carbon_performance_class?: string | null;
 }
 
 export async function createBatchFromNL(

@@ -8,6 +8,8 @@ import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { AiBadge } from "@/components/batches/batch-form-steps/ai-badge";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
+import { batchCompletionChecks, completionBandLabel } from "@/lib/batch-completion";
+import { CompletionRing } from "@/components/batches/wizard/completion-ring";
 
 function Section({
   title,
@@ -93,48 +95,10 @@ function Row({
   return <div className={wrapperClass}>{content}</div>;
 }
 
-function CompletionRing({ pct }: { pct: number }) {
-  const radius = 26;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (pct / 100) * circumference;
-  const colorClass = pct >= 100 ? "text-emerald-500" : pct >= 50 ? "text-foreground" : "text-amber-500";
-
-  return (
-    <div className="relative h-16 w-16 shrink-0">
-      <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r={radius} fill="none" stroke="currentColor" strokeWidth="6" className="text-muted opacity-20" />
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className={`${colorClass} transition-all duration-300`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-foreground">
-        {pct}%
-      </div>
-    </div>
-  );
-}
-
 interface StepReviewProps {
   onJumpToStep: (step: number) => void;
   aiFilledFields?: Set<string>;
   iecError?: boolean;
-}
-
-function scoreBandLabel(pct: number): string {
-  if (pct >= 100) return "Complete — export passport ready";
-  if (pct >= 75) return "Good — almost ready";
-  if (pct >= 50) return "Fair — keep going";
-  if (pct > 0) return "Getting started";
-  return "Not started";
 }
 
 export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepReviewProps) {
@@ -171,39 +135,8 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
 
   // Batch-form completion ring — distinct from profileReadiness() (which tracks the
   // tenant's company-level certifications, not this batch's own field values).
-  const completionChecks: { label: string; filled: boolean; step: number }[] = (() => {
-    const checks: { label: string; filled: boolean; step: number }[] = [
-      { label: "Batch Name", filled: !!values.batchName, step: 0 },
-      { label: "Model Name", filled: !!values.modelName, step: 0 },
-      { label: "Manufacturer", filled: !!values.manufacturer, step: 0 },
-      { label: "Chemistry", filled: !!values.chemistry, step: 0 },
-      { label: "Capacity", filled: !!values.capacity, step: 0 },
-      { label: "Voltage", filled: !!values.voltage, step: 0 },
-      { label: "Weight", filled: !!values.weight, step: 0 },
-      { label: "Manufacturing Start Date", filled: !!values.manufacturingStartDate, step: 0 },
-      { label: "Manufacturing End Date", filled: !!values.manufacturingEndDate, step: 0 },
-    ];
-    if (isEUMode || values.marketRegion === "GLOBAL") {
-      checks.push(
-        { label: "Carbon Footprint", filled: !!values.carbonFootprint, step: 1 },
-        { label: "Carbon Class", filled: !!values.carbonPerformanceClass, step: 1 },
-        { label: "CE Marking", filled: values.ceMarking === true, step: 1 },
-        { label: "Notified Body", filled: !!values.notifiedBodyNumber, step: 1 },
-        { label: "EU Representative", filled: !!values.euRepresentative, step: 1 },
-        { label: "Lifetime", filled: !!values.expectedLifetime, step: 1 },
-        { label: "Warranty", filled: !!values.warrantyMonths, step: 1 }
-      );
-    }
-    if (isIndiaMode || values.marketRegion === "GLOBAL") {
-      checks.push(
-        { label: "HSN Code", filled: !!values.hsnCode, step: 1 },
-        { label: "Cell Source", filled: !!values.cellSource, step: 1 },
-        { label: "BIS Number", filled: !!values.bisNumber, step: 1 },
-        { label: "EPR Number", filled: !!values.eprNumber, step: 1 }
-      );
-    }
-    return checks;
-  })();
+  // Uses the shared helper so the entry-modal draft list scores identically.
+  const completionChecks = batchCompletionChecks(values);
 
   const completionFilledCount = completionChecks.filter((c) => c.filled).length;
   const completionPct =
@@ -249,7 +182,7 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
       <div className="flex items-center gap-4 p-3 border border-border rounded">
         <CompletionRing pct={completionPct} />
         <div className="flex-1">
-          <div className="text-sm font-medium text-foreground">{scoreBandLabel(completionPct)}</div>
+          <div className="text-sm font-medium text-foreground">{completionBandLabel(completionPct)}</div>
           <p className="text-xs text-muted-foreground">Batch profile completeness</p>
           {nextBestAction && (
             <button
