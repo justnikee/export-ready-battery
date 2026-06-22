@@ -77,9 +77,10 @@ export default function BatchesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  // Tenant-wide status counts for the stat cards — independent of the current
+  // Tenant-wide aggregates for the stat cards — independent of the current
   // page/filter, so the cards reflect ALL batches, not just what's on screen.
   const [statusBreakdown, setStatusBreakdown] = useState<Record<string, number>>({});
+  const [complianceReadyCount, setComplianceReadyCount] = useState<number | null>(null);
   const [batchToArchive, setBatchToArchive] = useState<Batch | null>(null);
   const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
 
@@ -112,8 +113,14 @@ export default function BatchesPage() {
         // mutations (which reset to page 1). Best-effort — never blocks the list.
         if (page === 1) {
           api
-            .get<{ batch_status_breakdown?: Record<string, number> }>("/analytics/overview")
-            .then((res) => setStatusBreakdown(res.data?.batch_status_breakdown || {}))
+            .get<{
+              batch_status_breakdown?: Record<string, number>;
+              compliance_ready_count?: number;
+            }>("/analytics/overview")
+            .then((res) => {
+              setStatusBreakdown(res.data?.batch_status_breakdown || {});
+              setComplianceReadyCount(res.data?.compliance_ready_count ?? null);
+            })
             .catch(() => {});
         }
       } catch (error: unknown) {
@@ -234,15 +241,15 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
-              <Archive className="h-5 w-5 text-muted-foreground" />
+          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+              <ShieldCheck className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <p className="text-2xl text-muted-foreground">
-                {statusBreakdown.ARCHIVED ?? 0}
+              <p className="text-2xl text-emerald-500">
+                {complianceReadyCount ?? batches.filter((b) => getComplianceStatus(b).status === "READY").length}
               </p>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                Archived
+                Compliance Ready
               </p>
             </div>
           </div>
