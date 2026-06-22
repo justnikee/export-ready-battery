@@ -107,7 +107,7 @@ describe("ComponentsTab", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Delete$/i }));
     await waitFor(() => {
-      expect(mockDelete).toHaveBeenCalledWith("/api/v1/components/comp-1");
+      expect(mockDelete).toHaveBeenCalledWith("/components/comp-1");
     });
   });
 });
