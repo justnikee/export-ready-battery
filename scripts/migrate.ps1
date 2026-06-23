@@ -1,11 +1,12 @@
 # PowerShell migration helper
-# Usage: .\scripts\migrate.ps1 [up|down|version|verify]
-# Requires: golang-migrate CLI installed
+# Usage: .\scripts\migrate.ps1 [up|down|version|verify|force]
+# Uses the repo-native Go migration runner so it works against pooled Postgres connections.
 # DB URL: reads from backend\.env (DATABASE_URL)
 
 param(
-    [ValidateSet("up", "down", "version", "verify")]
-    [string]$Action = "up"
+    [ValidateSet("up", "down", "version", "verify", "force")]
+    [string]$Action = "up",
+    [int]$Version = -1
 )
 
 # Load DATABASE_URL from backend/.env
@@ -23,25 +24,37 @@ if (-not $env:DATABASE_URL) {
     exit 1
 }
 
-# Resolve to absolute path and convert backslashes → forward slashes (golang-migrate parses as URI)
-$migrationsPath = (Resolve-Path (Join-Path $PSScriptRoot "..\backend\internal\db\migrations")).Path -replace '\\', '/'
-
 switch ($Action) {
     "up" {
         Write-Host "Applying all pending migrations..." -ForegroundColor Cyan
-        migrate -path $migrationsPath -database $env:DATABASE_URL -verbose up
+        Push-Location (Join-Path $PSScriptRoot "..\backend")
+        go run ./cmd/migration_runner up
+        Pop-Location
     }
     "down" {
         Write-Host "Rolling back last migration..." -ForegroundColor Yellow
-        migrate -path $migrationsPath -database $env:DATABASE_URL -verbose down 1
+        Push-Location (Join-Path $PSScriptRoot "..\backend")
+        go run ./cmd/migration_runner down
+        Pop-Location
     }
     "version" {
-        migrate -path $migrationsPath -database $env:DATABASE_URL version
+        Push-Location (Join-Path $PSScriptRoot "..\backend")
+        go run ./cmd/migration_runner version
+        Pop-Location
     }
     "verify" {
         Write-Host "Running schema verification..." -ForegroundColor Cyan
         Push-Location (Join-Path $PSScriptRoot "..\backend")
         go run ./cmd/migrate
+        Pop-Location
+    }
+    "force" {
+        if ($Version -lt 0) {
+            Write-Error "Provide -Version <n> when using force"
+            exit 1
+        }
+        Push-Location (Join-Path $PSScriptRoot "..\backend")
+        go run ./cmd/migration_runner force $Version
         Pop-Location
     }
 }

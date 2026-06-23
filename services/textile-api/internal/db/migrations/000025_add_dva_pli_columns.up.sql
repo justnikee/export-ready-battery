@@ -1,0 +1,11 @@
+-- Migration: Add missing DVA and PLI columns to batches
+-- DISABLED during Phase 0 cleanup: DVA/PLI are battery-only concepts and are no
+-- longer referenced by the textile-api code. Existing deployments that already
+-- applied this migration retain the columns; fresh deployments skip them.
+--
+-- ALTER TABLE public.batches
+--     ADD COLUMN IF NOT EXISTS dva_source TEXT,
+--     ADD COLUMN IF NOT EXISTS pli_certificate_url TEXT;
+--
+-- COMMENT ON COLUMN public.batches.dva_source IS 'Source/evidence for Domestic Value Add calculation';
+-- COMMENT ON COLUMN public.batches.pli_certificate_url IS 'URL to PLI (Production Linked Incentive) certificate';

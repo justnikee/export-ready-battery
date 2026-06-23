@@ -1,0 +1,813 @@
+package handlers
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"math/big"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/anvayalabs/textile-api/internal/auth"
+	"github.com/anvayalabs/textile-api/internal/models"
+	"github.com/anvayalabs/textile-api/internal/repository"
+	"github.com/anvayalabs/textile-api/internal/services"
+
+	"github.com/google/uuid"
+)
+
+// MagicLinkRepository defines the data access required for magic link operations.
+type MagicLinkRepository interface {
+	GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error)
+	VerifyPartnerAccess(ctx context.Context, email, partnerCode string) (*repository.VerificationResult, error)
+	ValidatePartnerCode(ctx context.Context, code string) (*repository.PartnerCode, error)
+	IncrementPartnerCodeUsage(ctx context.Context, codeID uuid.UUID, email string, passportID *uuid.UUID) error
+	CreateMagicLinkToken(ctx context.Context, req repository.CreateMagicLinkTokenRequest) error
+	GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*repository.MagicLinkTokenRecord, error)
+	MarkMagicTokenUsed(ctx context.Context, tokenHash string) error
+	// Phase 7: OTP methods
+	SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error
+	CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error
+	GetMagicLinkOTP(ctx context.Context, tokenHash string) (*repository.OTPRecord, error)
+	IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error
+	MarkOTPUsed(ctx context.Context, otpID uuid.UUID) error
+	RecordOTPResend(ctx context.Context, otpID uuid.UUID) error
+	ReplaceOTP(ctx context.Context, tokenHash, newOTPHash string) error
+}
+
+// MagicLinkHandler handles magic link authentication
+type MagicLinkHandler struct {
+	repo             MagicLinkRepository
+	lifecycleService *services.LifecycleService
+	rewardService    *services.RewardService
+	emailService     *services.EmailService
+	jwtSecret        string
+	baseURL          string
+}
+
+// NewMagicLinkHandler creates a new magic link handler
+func NewMagicLinkHandler(repo MagicLinkRepository, lifecycleService *services.LifecycleService, rewardService *services.RewardService, emailService *services.EmailService, jwtSecret, baseURL string) *MagicLinkHandler {
+	return &MagicLinkHandler{
+		repo:             repo,
+		lifecycleService: lifecycleService,
+		rewardService:    rewardService,
+		emailService:     emailService,
+		jwtSecret:        jwtSecret,
+		baseURL:          baseURL,
+	}
+}
+
+// RequestMagicLinkRequest is the request body for requesting a magic link
+type RequestMagicLinkRequest struct {
+	PassportID  string `json:"passport_id"`
+	Email       string `json:"email"`
+	Role        string `json:"role"`         // TECHNICIAN, RECYCLER, LOGISTICS
+	PartnerCode string `json:"partner_code"` // Optional: Required for unknown email domains (Tier B)
+	Action      string `json:"action"`       // Canonical action (ACTIVATE, SHIP, INSTALL, RECYCLE, CLOSE, RECALL)
+}
+
+// RequestMagicLink handles POST /api/v1/auth/magic-link
+// Generates a magic link token for external users to authenticate
+// Uses tiered verification:
+//   - Tier A: Email domain matches trusted partner → Auto-approve
+//   - Tier B: Unknown email + valid partner code → Approve
+//   - Rejected: Unknown email + no/invalid code → Reject
+func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Request) {
+	var req RequestMagicLinkRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate passport_id
+	if req.PassportID == "" {
+		respondError(w, http.StatusBadRequest, "passport_id is required")
+		return
+	}
+
+	passportUUID, err := uuid.Parse(req.PassportID)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport_id format")
+		return
+	}
+
+	// Validate email
+	if req.Email == "" || !strings.Contains(req.Email, "@") {
+		respondError(w, http.StatusBadRequest, "Valid email is required")
+		return
+	}
+
+	// Validate action
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
+		return
+	}
+	if !models.IsValidMagicLinkAction(req.Action) {
+		respondError(w, http.StatusBadRequest, "Invalid action")
+		return
+	}
+
+	// Verify passport exists
+	passport, err := h.repo.GetPassportByUUID(r.Context(), passportUUID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	// Ensure action is valid for current state (intent validation before persistence).
+	if !models.IsActionAllowedFrom(models.TransitionAction(req.Action), passport.Status, passport.ProductType) {
+		respondError(w, http.StatusConflict, "Action not allowed from current status")
+		return
+	}
+
+	// ===== TIERED PARTNER VERIFICATION =====
+	verification, err := h.repo.VerifyPartnerAccess(r.Context(), req.Email, req.PartnerCode)
+	if err != nil {
+		slog.Error("Partner verification error", "error", err)
+		respondError(w, http.StatusInternalServerError, "Verification failed")
+		return
+	}
+
+	if !verification.Allowed {
+		respondJSON(w, http.StatusForbidden, map[string]interface{}{
+			"success":       false,
+			"error":         verification.RejectReason,
+			"requires_code": true,
+			"hint":          "Your email domain is not pre-registered. Please provide a valid partner code from the manufacturer.",
+		})
+		return
+	}
+
+	// Role must be derived from verification (trusted partner or partner code)
+	role := verification.Role
+	if role == "" {
+		respondError(w, http.StatusForbidden, "Role not authorized for this partner")
+		return
+	}
+	if !models.IsValidPartnerRole(role) {
+		respondError(w, http.StatusForbidden, "Invalid partner role")
+		return
+	}
+
+	// Log verification tier
+	slog.Info("Partner verified", "email", req.Email, "tier", verification.Tier, "company", verification.CompanyName, "role", role)
+
+	// If Tier B, increment code usage
+	if verification.Tier == "B" && req.PartnerCode != "" {
+		code, _ := h.repo.ValidatePartnerCode(r.Context(), req.PartnerCode)
+		if code != nil {
+			_ = h.repo.IncrementPartnerCodeUsage(r.Context(), code.ID, req.Email, &passportUUID)
+		}
+	}
+
+	// Generate magic link token (1-hour one-time-use).
+	tokenTTL := time.Hour
+	token, err := auth.GenerateMagicToken(req.PassportID, req.Email, role, req.Action, h.jwtSecret, tokenTTL)
+	if err != nil {
+		slog.Error("Failed to generate magic token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate magic link")
+		return
+	}
+
+	// Store token in database for tracking/revocation
+	err = h.repo.CreateMagicLinkToken(r.Context(), repository.CreateMagicLinkTokenRequest{
+		PassportID: passportUUID,
+		Email:      req.Email,
+		Role:       role,
+		Action:     req.Action,
+		TokenHash:  token.TokenHash,
+		ExpiresAt:  token.ExpiresAt,
+	})
+	if err != nil {
+		slog.Error("Failed to store magic link token", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to store magic link token")
+		return
+	}
+
+	// Phase 7: Flag high-risk actions to require OTP on transition
+	action := models.TransitionAction(req.Action)
+	if action == models.ActionCollect {
+		if otpErr := h.repo.SetRequiresOTP(r.Context(), token.TokenHash, true); otpErr != nil {
+			slog.Warn("Failed to set requires_otp flag", "error", otpErr)
+		}
+	}
+	magicLink := fmt.Sprintf("%s/p/%s/action?token=%s", h.baseURL, req.PassportID, token.Token)
+
+	// Send email with magic link
+	if h.emailService != nil && h.emailService.IsEnabled() {
+		if err := h.emailService.SendMagicLink(req.Email, req.PassportID, token.Token, role, req.Action); err != nil {
+			slog.Warn("Failed to send magic link email", "error", err)
+			// Continue anyway - we'll return the link for testing
+		} else {
+			slog.Info("Magic link email sent", "email", req.Email, "tier", verification.Tier)
+		}
+	} else {
+		// Fallback: Log to console for development
+		slog.Info("Magic link generated (dev mode)", "email", req.Email, "role", role, "tier", verification.Tier, "link", magicLink)
+	}
+
+	response := map[string]interface{}{
+		"success":      true,
+		"message":      fmt.Sprintf("Magic link sent to %s", req.Email),
+		"expires_at":   token.ExpiresAt,
+		"verified_via": verification.Tier,
+		"company":      verification.CompanyName,
+		"role":         role,
+	}
+
+	// Include link in response for development/testing (when email is disabled)
+	if h.emailService == nil || !h.emailService.IsEnabled() {
+		response["link"] = magicLink
+		response["dev_mode"] = true
+	}
+
+	respondJSON(w, http.StatusOK, response)
+}
+
+// MagicTransitionRequest is the request body for applying an action with a magic link
+type MagicTransitionRequest struct {
+	Action   string          `json:"action"`
+	Evidence models.Evidence `json:"evidence,omitempty"`
+}
+
+// TransitionWithMagicLink handles POST /api/v1/passport/{uuid}/transition
+// Authenticates via magic link token and applies a lifecycle action
+func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *http.Request) {
+	// Extract passport UUID from path
+	// URL format: /api/v1/passport/{uuid}/transition
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportIDStr := pathParts[4]
+
+	passportID, err := uuid.Parse(passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Extract token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		respondError(w, http.StatusUnauthorized, "Authorization header required. Use: Bearer <magic_link_token>")
+		return
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Validate magic link token
+	claims, err := auth.ValidateMagicTokenForPassport(tokenString, h.jwtSecret, passportIDStr)
+	if err != nil {
+		slog.Error("Magic token validation failed", "error", err)
+		respondError(w, http.StatusUnauthorized, "Invalid or expired magic link")
+		return
+	}
+
+	tokenHash := auth.HashToken(tokenString)
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		// Enhanced error logging with full context
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		slog.Error("Failed to fetch magic link token from database",
+			"error", err,
+			"token_hash_prefix", tokenPrefix,
+			"passport_id", passportID,
+			"endpoint", "TransitionWithMagicLink",
+			"remote_addr", r.RemoteAddr,
+		)
+		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
+		return
+	}
+	if record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.PassportID != passportID {
+		respondError(w, http.StatusUnauthorized, "Magic link not valid for this passport")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+	if !strings.EqualFold(record.Role, claims.Role) {
+		respondError(w, http.StatusForbidden, "Role not permitted by magic link token")
+		return
+	}
+
+	// ===== PHASE 7: OTP GATE =====
+	// RECYCLE and RECALL actions require a one-time OTP challenge.
+	if record.RequiresOTP {
+		otp, issued, otpErr := h.ensureActiveOTP(r.Context(), tokenHash, record.Email, record.Action)
+		if otpErr != nil {
+			slog.Error("OTP issue failed", "error", otpErr)
+			respondError(w, http.StatusInternalServerError, "Failed to issue OTP")
+			return
+		}
+		response := map[string]interface{}{
+			"status":  "otp_required",
+			"message": "A 6-digit OTP has been sent to your email. Please confirm via /confirm-otp.",
+		}
+		if !issued {
+			response["message"] = "An active 6-digit OTP is already pending. Check your email or use resend after the cooldown."
+		}
+		if (h.emailService == nil || !h.emailService.IsEnabled()) && issued && otp != "" {
+			response["otp_dev"] = otp
+		}
+		respondJSON(w, http.StatusAccepted, response)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	for key := range raw {
+		if strings.Contains(strings.ToLower(key), "status") {
+			respondError(w, http.StatusBadRequest, "status fields are not allowed; use action")
+			return
+		}
+		if strings.EqualFold(key, "metadata") {
+			respondError(w, http.StatusBadRequest, "metadata is not allowed; use evidence")
+			return
+		}
+	}
+
+	var req MagicTransitionRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.Action == "" {
+		respondError(w, http.StatusBadRequest, "action is required")
+		return
+	}
+
+	if claims.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
+	}
+	if record.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
+	}
+	if !models.IsValidPartnerRole(claims.Role) {
+		respondError(w, http.StatusForbidden, "Invalid partner role")
+		return
+	}
+
+	if !strings.EqualFold(record.Action, claims.Action) {
+		respondError(w, http.StatusForbidden, "Action not permitted by magic link token")
+		return
+	}
+	if claims.Action != req.Action {
+		respondError(w, http.StatusForbidden, "Action not permitted by magic link token")
+		return
+	}
+
+	// Perform the transition using lifecycle service
+	passport, err := h.repo.GetPassportByUUID(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	currentOwnerIdentifier := ""
+	if definition, ok := models.GetTransitionDefinition(models.TransitionAction(req.Action), passport.ProductType); ok {
+		if definition.To == models.PassportStatusInService || definition.To == models.PassportStatusShipped {
+			currentOwnerIdentifier = claims.Email
+		}
+	}
+
+
+
+	actorContext := models.ActorContext{
+		ActorType: models.ActorTypePartner,
+		ActorID:   claims.Email,
+		ActorRole: models.ActorRole(claims.Role),
+		Source:    models.ActionSourceMagicLink,
+	}
+
+	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:             passportID,
+		Action:                 req.Action,
+		ActorContext:           actorContext,
+		IPAddress:              r.RemoteAddr,
+		CurrentOwnerIdentifier: currentOwnerIdentifier,
+		Evidence:               req.Evidence,
+		MagicLinkTokenHash:     tokenHash,
+	})
+
+	if err != nil {
+		if result == nil {
+			respondError(w, http.StatusInternalServerError, "Internal error during transition")
+			return
+		}
+		switch {
+		case errors.Is(err, services.ErrMissingActorContext):
+			respondError(w, http.StatusUnauthorized, result.Error)
+		case errors.Is(err, services.ErrInvalidActorContext), errors.Is(err, services.ErrRoleNotAllowed):
+			respondError(w, http.StatusForbidden, result.Error)
+		case errors.Is(err, services.ErrInvalidEvidence):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrMagicLinkTokenInvalid):
+			respondError(w, http.StatusUnauthorized, result.Error)
+		case errors.Is(err, services.ErrUnknownAction):
+			respondError(w, http.StatusBadRequest, result.Error)
+		case errors.Is(err, services.ErrActionNotAllowed):
+			respondError(w, http.StatusConflict, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
+		return
+	}
+
+	// Owner updates are handled inside lifecycle service when CurrentOwnerIdentifier is provided
+
+	// ===== REWARD TRIGGER =====
+	// Award points based on the transition (non-blocking)
+	pointsAwarded := 0
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":         true,
+		"previous_status": result.PreviousStatus,
+		"new_status":      result.NewStatus,
+		"action":          result.Action,
+		"actor":           claims.Email,
+		"role":            claims.Role,
+		"event_id":        result.EventID,
+		"points_awarded":  pointsAwarded,
+	})
+}
+
+// GetPassportForAction handles GET /api/v1/passport/{uuid}/action-info
+// Returns passport info and allowed actions for the action page
+func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.Request) {
+	// Extract passport UUID from path
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	passportIDStr := pathParts[4]
+
+	passportID, err := uuid.Parse(passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID")
+		return
+	}
+
+	// Validate token from query param or header
+	tokenString := r.URL.Query().Get("token")
+	if tokenString == "" {
+		authHeader := r.Header.Get("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+	}
+
+	if tokenString == "" {
+		respondError(w, http.StatusUnauthorized, "Token required")
+		return
+	}
+
+	claims, err := auth.ValidateMagicTokenForPassport(tokenString, h.jwtSecret, passportIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid or expired magic link")
+		return
+	}
+	if claims.Action == "" {
+		respondError(w, http.StatusUnauthorized, "Magic link action missing or invalid")
+		return
+	}
+
+	tokenHash := auth.HashToken(tokenString)
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil {
+		// Enhanced error logging for diagnostics
+		tokenPrefix := tokenHash
+		if len(tokenHash) > 8 {
+			tokenPrefix = tokenHash[:8]
+		}
+		slog.Error("Failed to fetch magic link token from database",
+			"error", err,
+			"token_hash_prefix", tokenPrefix,
+			"passport_id", passportID,
+			"endpoint", "GetPassportForAction",
+			"remote_addr", r.RemoteAddr,
+		)
+		respondError(w, http.StatusInternalServerError, "Failed to validate magic link")
+		return
+	}
+	if record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.PassportID != passportID {
+		respondError(w, http.StatusUnauthorized, "Magic link not valid for this passport")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+	if !strings.EqualFold(record.Role, claims.Role) || !strings.EqualFold(record.Action, claims.Action) {
+		respondError(w, http.StatusForbidden, "Magic link scope mismatch")
+		return
+	}
+
+	// Get passport details
+	passport, err := h.repo.GetPassportByUUID(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	// Build the list of actions the token holder is permitted to perform.
+	allowedForToken := []string{}
+	for _, action := range models.GetAllowedActionsForRole(passport.Status, models.ActorRole(claims.Role), passport.ProductType) {
+		if string(action) == claims.Action {
+			allowedForToken = append(allowedForToken, string(action))
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"passport": map[string]interface{}{
+			"uuid":          passport.UUID,
+			"serial_number": passport.SerialNumber,
+			"status":        passport.Status,
+			"product_type":  passport.ProductType,
+		},
+		"actor": map[string]interface{}{
+			"email": claims.Email,
+			"role":  claims.Role,
+		},
+		"allowed_actions": allowedForToken,
+	})
+}
+
+// ============================================================================
+// Phase 7 — OTP helpers and handlers
+// ============================================================================
+
+// generateOTPCode returns a random 6-digit string.
+func generateOTPCode() (string, error) {
+	max := big.NewInt(1_000_000)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+// hashOTP returns HMAC-SHA256(otp, secret) encoded as hex.
+func hashOTP(otp, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(otp))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// issueOrGetOTP generates a new OTP, stores its hash, and sends it via email.
+// It replaces any existing unused OTP for the same tokenHash.
+func (h *MagicLinkHandler) issueOrGetOTP(ctx context.Context, tokenHash, email, action string) (string, error) {
+	otp, err := generateOTPCode()
+	if err != nil {
+		return "", fmt.Errorf("generate otp: %w", err)
+	}
+	otpHash := hashOTP(otp, h.jwtSecret)
+	if err := h.repo.ReplaceOTP(ctx, tokenHash, otpHash); err != nil {
+		return "", fmt.Errorf("store otp: %w", err)
+	}
+	if h.emailService != nil {
+		if err := h.emailService.SendMagicLinkOTP(email, action, otp); err != nil {
+			return "", fmt.Errorf("send otp email: %w", err)
+		}
+	} else {
+		slog.Info("OTP issued (dev mode)", "email", email, "action", action, "otp", otp)
+	}
+	return otp, nil
+}
+
+// ensureActiveOTP reuses an existing active OTP challenge when possible to avoid
+// reissuing a fresh OTP on every repeated transition request.
+func (h *MagicLinkHandler) ensureActiveOTP(ctx context.Context, tokenHash, email, action string) (string, bool, error) {
+	otpRec, err := h.repo.GetMagicLinkOTP(ctx, tokenHash)
+	if err != nil {
+		return "", false, fmt.Errorf("fetch active otp: %w", err)
+	}
+
+	if otpRec != nil && time.Since(otpRec.CreatedAt) <= 10*time.Minute {
+		return "", false, nil
+	}
+
+	otp, err := h.issueOrGetOTP(ctx, tokenHash, email, action)
+	if err != nil {
+		return "", false, err
+	}
+
+	return otp, true, nil
+}
+
+// ConfirmOTPRequest is the body for POST /api/v1/magic-links/{token}/confirm-otp
+type ConfirmOTPRequest struct {
+	OTP string `json:"otp"`
+}
+
+// ConfirmOTP handles POST /api/v1/magic-links/{token}/confirm-otp
+// Validates the OTP and, if correct, applies the pending lifecycle transition.
+func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	tokenString := pathParts[4]
+	tokenHash := auth.HashToken(tokenString)
+
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil || record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.UsedAt != nil {
+		respondError(w, http.StatusUnauthorized, "Magic link already used")
+		return
+	}
+	if time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link expired")
+		return
+	}
+
+	var req ConfirmOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.OTP == "" {
+		respondError(w, http.StatusBadRequest, "otp is required")
+		return
+	}
+
+	otpRec, err := h.repo.GetMagicLinkOTP(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch OTP")
+		return
+	}
+	if otpRec == nil {
+		respondError(w, http.StatusBadRequest, "No active OTP found. Request a new one.")
+		return
+	}
+	if time.Since(otpRec.CreatedAt) > 10*time.Minute {
+		respondError(w, http.StatusUnauthorized, "OTP expired. Request a new one.")
+		return
+	}
+	if otpRec.AttemptCount >= otpRec.MaxAttempts {
+		respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+			"error": "OTP locked due to too many failed attempts",
+		})
+		return
+	}
+
+	expected := hashOTP(req.OTP, h.jwtSecret)
+	if !hmac.Equal([]byte(expected), []byte(otpRec.OTPHash)) {
+		_ = h.repo.IncrementOTPAttempt(r.Context(), otpRec.ID)
+		remaining := otpRec.MaxAttempts - otpRec.AttemptCount - 1
+		if remaining <= 0 {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "OTP locked due to too many failed attempts",
+			})
+			return
+		}
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"error":              "Invalid OTP",
+			"attempts_remaining": remaining,
+		})
+		return
+	}
+
+	if err := h.repo.MarkOTPUsed(r.Context(), otpRec.ID); err != nil {
+		slog.Error("Failed to mark OTP used", "error", err)
+	}
+
+	passengerContext := models.ActorContext{
+		ActorType: models.ActorTypePartner,
+		ActorID:   record.Email,
+		ActorRole: models.ActorRole(record.Role),
+		Source:    models.ActionSourceMagicLink,
+	}
+
+	result, err := h.lifecycleService.ApplyTransition(r.Context(), services.TransitionRequest{
+		PassportID:         record.PassportID,
+		Action:             record.Action,
+		ActorContext:       passengerContext,
+		IPAddress:          r.RemoteAddr,
+		MagicLinkTokenHash: tokenHash,
+	})
+	if err != nil {
+		if result == nil {
+			respondError(w, http.StatusInternalServerError, "Internal error during transition")
+			return
+		}
+		switch {
+		case errors.Is(err, services.ErrActionNotAllowed):
+			respondError(w, http.StatusConflict, result.Error)
+		default:
+			respondError(w, http.StatusBadRequest, result.Error)
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success":      true,
+		"passport_id":  record.PassportID,
+		"action":       record.Action,
+		"new_status":   result.NewStatus,
+		"otp_verified": true,
+	})
+}
+
+// ResendOTP handles POST /api/v1/magic-links/{token}/resend-otp
+// Issues a new OTP (within resend limits) and sends it via email.
+func (h *MagicLinkHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(r.URL.Path, "/")
+	if len(pathParts) < 5 {
+		respondError(w, http.StatusBadRequest, "Invalid URL path")
+		return
+	}
+	tokenString := pathParts[4]
+	tokenHash := auth.HashToken(tokenString)
+
+	record, err := h.repo.GetMagicLinkTokenByHash(r.Context(), tokenHash)
+	if err != nil || record == nil {
+		respondError(w, http.StatusUnauthorized, "Magic link not recognized")
+		return
+	}
+	if record.UsedAt != nil || time.Now().After(record.ExpiresAt) {
+		respondError(w, http.StatusUnauthorized, "Magic link invalid or expired")
+		return
+	}
+
+	otpRec, err := h.repo.GetMagicLinkOTP(r.Context(), tokenHash)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch OTP state")
+		return
+	}
+
+	if otpRec != nil {
+		if otpRec.ResendCount >= otpRec.MaxResends {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "Maximum OTP resend limit reached",
+			})
+			return
+		}
+		if otpRec.LastResentAt != nil && time.Since(*otpRec.LastResentAt) < 60*time.Second {
+			respondJSON(w, http.StatusTooManyRequests, map[string]interface{}{
+				"error": "Please wait 60 seconds before requesting another OTP",
+			})
+			return
+		}
+	}
+
+	otp, err := h.issueOrGetOTP(r.Context(), tokenHash, record.Email, record.Action)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to generate OTP")
+		return
+	}
+	if otpRec != nil {
+		_ = h.repo.RecordOTPResend(r.Context(), otpRec.ID)
+	}
+	if h.emailService == nil || !h.emailService.IsEnabled() {
+		slog.Info("OTP resent (dev mode)", "email", record.Email, "otp", otp)
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"message": "OTP resent to your email",
+	}
+	if h.emailService == nil || !h.emailService.IsEnabled() {
+		response["otp_dev"] = otp
+	}
+	respondJSON(w, http.StatusOK, response)
+}

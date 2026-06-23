@@ -1,0 +1,30 @@
+{
+  "navigation": {
+    "overview": "Übersicht",
+    "batches": "Chargen",
+    "analytics": "Analytik",
+    "partners": "Partner",
+    "exports": "Exporte",
+    "mass_balance": "Massenbilanzen",
+    "dgft_claims": "DGFT-Ansprüche",
+    "billing": "Abrechnung",
+    "developer": "Entwickler",
+    "team": "Team",
+    "settings": "Einstellungen"
+  },
+  "topbar": {
+    "dashboard": "Dashboard",
+    "passports": "Pässe",
+    "tokens": "API-Tokens",
+    "onboarding": "Onboarding",
+    "quotaLow": "Niedriges Kontingent",
+    "quotaRemaining": "Verbleibend",
+    "logout": "Abmelden",
+    "profileSettings": "Profileinstellungen"
+  },
+  "common": {
+    "createBatch": "Charge erstellen",
+    "uploadCSV": "CSV hochladen",
+    "search": "Suchen..."
+  }
+}

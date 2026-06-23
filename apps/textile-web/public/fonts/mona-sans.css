@@ -1,0 +1,9 @@
+/* Mona Sans variable font - downloaded from GitHub */
+/* If this fails to load, fallback to system fonts */
+@font-face {
+  font-family: 'Mona Sans';
+  src: url('https://github.githubassets.com/static/fonts/mona-sans/MonaSans.woff2') format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}

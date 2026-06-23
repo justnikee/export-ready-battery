@@ -1,0 +1,185 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* Anviora Editorial Color System — warm neutral, single accent */
+  --color-paper: #faf6f0;
+  --color-paper-soft: #f1e7d9;
+  --color-ink: #2a2521;
+  --color-ink-secondary: #4e443c;
+  --color-ink-mute: #7c7066;
+  --color-ink-mute-2: #9d9188;
+  --color-hairline: #e7dccb;
+
+  --color-accent: #157a5b;
+  --color-accent-deep: #0f5a43;
+  --color-accent-soft: #e8f4ee;
+
+  --color-charcoal: #1e1a16;
+  --color-charcoal-panel: #2a2420;
+
+  /* CrewAI-style dark landing palette (ExportReady re-skin) */
+  --color-crew-navy: #0a0a0f;
+  --color-crew-navy-light: #13131a;
+  --color-crew-navy-panel: #1c1c26;
+  --color-crew-coral: #157a5b;
+  --color-crew-coral-light: #1d9670;
+  --color-crew-coral-soft: #e8f4ee;
+  --color-crew-ink: #0f0f0f;
+  --color-crew-muted: #6b7280;
+  --color-crew-muted-2: #9ca3af;
+  --color-crew-border: #e5e7eb;
+  --color-crew-border-dark: #272730;
+  --color-crew-paper: #ffffff;
+  --color-crew-paper-soft: #f9fafb;
+  --color-crew-green: #22c55e;
+  --color-crew-green-soft: #dcfce7;
+  --color-crew-amber: #f59e0b;
+  --color-crew-amber-soft: #fef3c7;
+
+  /* Aliases for legacy classnames shared with battery/textile/admin pages */
+  --color-canvas: var(--color-paper);
+  --color-canvas-soft: var(--color-paper-soft);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: var(--color-paper);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: #faf6f0;
+    color: #2a2521;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: rgba(21, 122, 91, 0.16);
+    color: #2a2521;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Editorial display headline */
+  .display-xl {
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    color: #2a2521;
+  }
+
+  .display-lg {
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #2a2521;
+  }
+
+  /* Section eyebrow */
+  .eyebrow {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: #157a5b;
+  }
+
+  /* Gradient text accent (used on product pages) */
+  .gradient-text {
+    background: linear-gradient(135deg, #157a5b 0%, #0f5a43 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Arrow nudge on CTA hover */
+  .cta-arrow {
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+  .group:hover .cta-arrow,
+  a:hover > .cta-arrow,
+  button:hover > .cta-arrow {
+    transform: translateX(3px);
+  }
+
+  /* Code window syntax tokens */
+  .tok-kw  { color: #f0a868; }
+  .tok-str { color: #a8c9a0; }
+  .tok-num { color: #e8b88a; }
+  .tok-key { color: #9cb8d4; }
+  .tok-cmt { color: #8a7d6f; }
+  .tok-flag { color: #d4826a; }
+
+  /* Seamless marquee */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-33.333%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  @keyframes marquee-slow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee-slow {
+    animation: marquee-slow 40s linear infinite;
+  }
+
+  /* Card glow border effect */
+  .glow-card {
+    position: relative;
+    --glow-x: 50%;
+    --glow-y: 50%;
+  }
+
+  .glow-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    opacity: 0;
+    background: radial-gradient(
+      180px circle at var(--glow-x) var(--glow-y),
+      rgba(21, 122, 91, 0.55),
+      rgba(21, 122, 91, 0.2) 45%,
+      transparent 72%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    transition: opacity 0.18s ease;
+  }
+
+  .glow-card:hover::before {
+    opacity: 1;
+  }
+}

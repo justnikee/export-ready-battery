@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Batch Creation — UX Redesign Mockup</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111114;
+    --surface2: #18181c;
+    --border: #2a2a32;
+    --border-light: #3a3a44;
+    --text: #e8e8f0;
+    --muted: #6b6b7a;
+    --accent: #7c6ef5;
+    --accent-dim: rgba(124,110,245,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --india: #ff9933;
+    --india-dim: rgba(255,153,51,0.12);
+    --eu: #003f7f;
+    --eu-bright: #4a90d9;
+    --eu-dim: rgba(74,144,217,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar {
+    width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0;
+  }
+  .sidebar-logo {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    padding: 0 20px 20px; border-bottom: 1px solid var(--border); letter-spacing: -.3px;
+  }
+  .sidebar-logo span { color: var(--accent); }
+  .sidebar-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    padding: 8px 12px; border-radius: 6px; color: var(--muted);
+    cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;
+    transition: background .15s, color .15s;
+  }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent); }
+  .nav-item:hover:not(.active) { background: var(--surface2); color: var(--text); }
+  .nav-icon { font-size: 15px; }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; background: var(--surface); flex-shrink: 0;
+  }
+  .topbar-title { font-size: 15px; font-weight: 600; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 6px; font-size: 13px;
+    font-weight: 500; cursor: pointer; border: none; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text); }
+  .btn-ghost { background: transparent; color: var(--muted); border: none; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-success { background: var(--green); color: #fff; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* TABS / SCENES */
+  .scene { display: none; }
+  .scene.active { display: flex; flex-direction: column; gap: 16px; }
+
+  /* TABS BAR */
+  .tabs-bar {
+    display: flex; gap: 4px; background: var(--surface);
+    border-bottom: 1px solid var(--border); padding: 0 24px;
+  }
+  .tab {
+    padding: 12px 16px; font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--muted); border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-badge {
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 10px; padding: 1px 5px; border-radius: 10px; margin-left: 4px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+
+  /* OVERLAY */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; width: 540px; max-height: 88vh;
+    overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  }
+  .modal-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .close-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; padding: 4px;
+  }
+  .close-btn:hover { color: var(--text); }
+
+  /* SHEET (wizard) */
+  .sheet {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; justify-content: flex-end;
+    pointer-events: none; opacity: 0; transition: opacity .2s;
+  }
+  .sheet.open { pointer-events: all; opacity: 1; }
+  .sheet-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,.6);
+  }
+  .sheet-panel {
+    position: relative; width: 560px; max-width: 96vw;
+    background: var(--surface); height: 100vh;
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform .25s ease;
+    box-shadow: -16px 0 40px rgba(0,0,0,.4);
+  }
+  .sheet.open .sheet-panel { transform: translateX(0); }
+  .sheet-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between; flex-shrink: 0;
+  }
+  .sheet-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .sheet-footer {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  /* STEPPER */
+  .stepper { display: flex; align-items: center; gap: 0; margin: 16px 0; }
+  .step-node {
+    display: flex; flex-direction: column; align-items: center; flex: 1;
+    position: relative;
+  }
+  .step-circle {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; z-index: 1;
+    background: var(--surface2); border: 2px solid var(--border);
+    color: var(--muted);
+  }
+  .step-circle.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .step-circle.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .step-label { font-size: 10px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .step-label.active { color: var(--accent); font-weight: 600; }
+  .step-connector { flex: 1; height: 2px; background: var(--border); margin-top: -14px; position: relative; z-index: 0; }
+  .step-connector.done { background: var(--accent); }
+
+  /* FORM ELEMENTS */
+  .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .form-label .req { color: var(--red); margin-left: 2px; }
+  .form-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; color: var(--text);
+    font-size: 13px; outline: none; width: 100%;
+    transition: border-color .15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input.ai-filled { border-left: 3px solid var(--amber); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; color: var(--text);
+    font-size: 13px; outline: none; width: 100%; cursor: pointer;
+  }
+
+  /* MARKET CARDS */
+  .market-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .market-card {
+    border: 2px solid var(--border); border-radius: 8px; padding: 14px 12px;
+    cursor: pointer; transition: all .15s; text-align: center;
+  }
+  .market-card:hover { border-color: var(--border-light); background: var(--surface2); }
+  .market-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .market-flag { font-size: 24px; display: block; margin-bottom: 6px; }
+  .market-name { font-size: 12px; font-weight: 600; }
+  .market-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* PATH PICKER */
+  .path-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .path-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 16px 14px;
+    cursor: pointer; transition: all .15s;
+  }
+  .path-card:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .path-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .path-icon { font-size: 22px; margin-bottom: 8px; }
+  .path-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .path-sub { font-size: 11px; color: var(--muted); }
+
+  /* DRAFT LIST */
+  .draft-item {
+    border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; background: var(--surface2);
+  }
+  .draft-name { font-size: 13px; font-weight: 500; }
+  .draft-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .draft-progress { display: flex; align-items: center; gap: 6px; }
+  .progress-bar { width: 80px; height: 4px; background: var(--border); border-radius: 2px; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  /* TEMPLATE CARDS */
+  .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tpl-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    cursor: pointer; transition: all .15s;
+  }
+  .tpl-card:hover { border-color: var(--accent); }
+  .tpl-market-badge {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 10px; margin-bottom: 8px;
+  }
+  .badge-india { background: var(--india-dim); color: var(--india); }
+  .badge-eu { background: var(--eu-dim); color: var(--eu-bright); }
+  .tpl-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .tpl-specs { font-size: 11px; color: var(--muted); }
+  .tpl-footer { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .tpl-age { font-size: 10px; color: var(--muted); }
+
+  /* AI PREVIEW TABLE */
+  .ai-preview-table { width: 100%; border-collapse: collapse; }
+  .ai-preview-table th {
+    text-align: left; font-size: 11px; font-weight: 600; color: var(--muted);
+    padding: 6px 8px; border-bottom: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .ai-preview-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+  .ai-preview-table tr:last-child td { border-bottom: none; }
+  .conf-bar { display: flex; align-items: center; gap: 6px; }
+  .conf-bg { width: 60px; height: 5px; background: var(--border); border-radius: 3px; }
+  .conf-fill { height: 100%; border-radius: 3px; }
+  .conf-high { background: var(--green); }
+  .conf-med { background: var(--amber); }
+  .conf-low { background: var(--red); }
+  .conf-pct { font-size: 10px; color: var(--muted); width: 32px; }
+  .field-status { font-size: 16px; }
+
+  /* COMPLIANCE ACCORDION */
+  .accordion-section {
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 10px;
+  }
+  .accordion-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; cursor: pointer; background: var(--surface2);
+    transition: background .15s;
+  }
+  .accordion-header:hover { background: var(--surface); }
+  .accordion-title-row { display: flex; align-items: center; gap: 8px; }
+  .accordion-icon { font-size: 14px; }
+  .accordion-title { font-size: 13px; font-weight: 600; }
+  .accordion-completion { font-size: 11px; color: var(--muted); }
+  .accordion-completion.done { color: var(--green); }
+  .accordion-completion.warn { color: var(--amber); }
+  .accordion-chevron { color: var(--muted); transition: transform .2s; font-size: 12px; }
+  .accordion-chevron.open { transform: rotate(180deg); }
+  .accordion-body { padding: 14px; display: none; background: var(--surface); }
+  .accordion-body.open { display: block; }
+
+  /* AI ASSIST STRIP */
+  .ai-strip {
+    background: linear-gradient(90deg, var(--accent-dim), transparent);
+    border: 1px solid var(--accent); border-radius: 8px;
+    padding: 10px 14px; display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 16px;
+  }
+  .ai-strip-left { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .ai-sparkle { font-size: 16px; }
+  .ai-strip-actions { display: flex; gap: 6px; }
+
+  /* REVIEW */
+  .review-score {
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px; padding: 20px;
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px;
+  }
+  .score-ring { width: 80px; height: 80px; position: relative; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+  .review-section { margin-bottom: 14px; }
+  .review-section-title { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .review-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    transition: background .1s;
+  }
+  .review-row:hover { background: var(--surface2); }
+  .review-label { color: var(--muted); font-size: 12px; }
+  .review-value { font-size: 12px; font-weight: 500; }
+  .review-empty { font-style: italic; color: var(--muted); font-weight: 400; }
+  .review-tip { font-size: 10px; color: var(--amber); margin-top: 2px; }
+
+  /* SAVED INDICATOR */
+  .save-indicator {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--green);
+  }
+  .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  /* PILL TAG */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    background: var(--accent-dim); color: var(--accent);
+  }
+
+  /* BATCH LIST (background) */
+  .batch-list-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 8px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .batch-list-item:hover { border-color: var(--border-light); }
+  .batch-name { font-size: 14px; font-weight: 600; }
+  .batch-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .batch-status {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+  }
+  .status-active { background: var(--green-dim); color: var(--green); }
+  .status-draft { background: var(--amber-dim); color: var(--amber); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 10px; margin-top: 18px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* AI field badge */
+  .ai-badge {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    background: var(--amber-dim); color: var(--amber);
+    margin-left: 4px; vertical-align: middle;
+  }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* HINT */
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* NOTIFICATION */
+  .notif {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px;
+  }
+  .notif-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .notif-title { font-size: 13px; font-weight: 600; }
+  .notif-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .notif-amber { background: var(--amber-dim); border-color: rgba(245,158,11,.3); }
+  .notif-green { background: var(--green-dim); border-color: rgba(34,197,94,.3); }
+  .notif-purple { background: var(--accent-dim); border-color: rgba(124,110,245,.3); }
+
+  /* SCENE NAVIGATOR */
+  .scene-nav {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 99px; padding: 8px 16px;
+    display: flex; gap: 6px; align-items: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5); z-index: 300;
+    font-size: 12px; color: var(--muted);
+  }
+  .scene-btn {
+    padding: 5px 12px; border-radius: 99px; cursor: pointer;
+    border: none; font-size: 12px; font-weight: 500;
+    background: transparent; color: var(--muted); transition: all .15s;
+  }
+  .scene-btn:hover { background: var(--surface2); color: var(--text); }
+  .scene-btn.active { background: var(--accent); color: #fff; }
+
+  /* TOOLTIP */
+  .tip-label {
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 10px; color: var(--muted); padding: 2px 6px; border-radius: 4px;
+    display: inline-block; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== SCENE NAV ===================== -->
+<div class="scene-nav">
+  <span style="color:var(--muted);margin-right:4px">Scene:</span>
+  <button class="scene-btn active" onclick="showScene(0)">1 Entry Modal</button>
+  <button class="scene-btn" onclick="showScene(1)">2 AI Preview</button>
+  <button class="scene-btn" onclick="showScene(2)">3 Template Picker</button>
+  <button class="scene-btn" onclick="showScene(3)">4 Wizard Core</button>
+  <button class="scene-btn" onclick="showScene(4)">5 Compliance</button>
+  <button class="scene-btn" onclick="showScene(5)">6 Review</button>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">Export<span>Ready</span></div>
+    <div class="sidebar-nav">
+      <div class="nav-item"><span class="nav-icon">▦</span> Dashboard</div>
+      <div class="nav-item active"><span class="nav-icon">⬡</span> Batches</div>
+      <div class="nav-item"><span class="nav-icon">📋</span> Templates</div>
+      <div class="nav-item"><span class="nav-icon">✓</span> Compliance</div>
+      <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <span class="topbar-title">Battery Batches</span>
+      <button class="btn btn-primary" onclick="openEntryModal()">＋ Create Batch</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <div class="tab active">All Batches <span class="tab-badge">12</span></div>
+      <div class="tab">Drafts <span class="tab-badge">2</span></div>
+      <div class="tab">Templates <span class="tab-badge">4</span></div>
+    </div>
+
+    <!-- Content area -->
+    <div class="content">
+      <!-- Background batch list (always visible) -->
+      <div style="margin-bottom:80px">
+        <div class="batch-list-item">
+          <div>
+            <div class="batch-name">BT-LFP-2500-001</div>
+            <div class="batch-meta">India · LFP · 2500mAh · Created 2d ago</div>
+          </div>
+          <span class="batch-status status-active">Active</span>
+        </div>
+        <div class="batch-list-item">
+          <div>
+            <div class="batch-name">NMC-EU-Pack-22</div>
+            <div class="batch-meta">EU · NMC · 3.7V · Created 1w ago</div>
+          </div>
+          <span class="batch-status status-active">Active</span>
+        </div>
+        <div class="batch-list-item">
+          <div>
+            <div class="batch-name">BT-LFP-DRAFT</div>
+            <div class="batch-meta">India · LFP · Started 3h ago</div>
+          </div>
+          <span class="batch-status status-draft">Draft</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENE 0: ENTRY MODAL ===================== -->
+<div class="overlay" id="scene-0">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Create New Batch</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Battery passport for your product line</div>
+      </div>
+      <button class="close-btn" onclick="closeScene()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Market selection -->
+      <div class="section-label">Select Market</div>
+      <div class="market-grid">
+        <div class="market-card selected" onclick="selectMarket(this,'India')">
+          <span class="market-flag">🇮🇳</span>
+          <div class="market-name">India</div>
+          <div class="market-sub">BIS · EPR · PLI · AIS-156</div>
+        </div>
+        <div class="market-card" onclick="selectMarket(this,'EU')">
+          <span class="market-flag">🇪🇺</span>
+          <div class="market-name">EU</div>
+          <div class="market-sub">Battery Reg. 2023/1542</div>
+        </div>
+        <div class="market-card" onclick="selectMarket(this,'Global')">
+          <span class="market-flag">🌍</span>
+          <div class="market-name">Global</div>
+          <div class="market-sub">India + EU combined</div>
+        </div>
+      </div>
+
+      <!-- Saved Drafts -->
+      <div class="section-label">Resume a Draft</div>
+      <div class="draft-item">
+        <div>
+          <div class="draft-name">BT-LFP-2500 — India — Step 2</div>
+          <div class="draft-meta">Last saved 3h ago</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="draft-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div>
+            <span style="font-size:10px;color:var(--muted)">72%</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-outline" onclick="openWizard(3)">Resume</button>
+            <button class="btn btn-sm btn-ghost">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="draft-item">
+        <div>
+          <div class="draft-name">NMC EU Pack — EU — Step 1</div>
+          <div class="draft-meta">Last saved 2d ago</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="draft-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:21%"></div></div>
+            <span style="font-size:10px;color:var(--muted)">21%</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-outline">Resume</button>
+            <button class="btn btn-sm btn-ghost">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start path -->
+      <div class="section-label">Start From</div>
+      <div class="path-grid">
+        <div class="path-card" onclick="showScene(1)">
+          <div class="path-icon">🤖</div>
+          <div class="path-title">AI Fill</div>
+          <div class="path-sub">Upload a datasheet PDF or describe in plain text — AI fills the form</div>
+        </div>
+        <div class="path-card" onclick="showScene(2)">
+          <div class="path-icon">📋</div>
+          <div class="path-title">From Template</div>
+          <div class="path-sub">Pick one of your saved templates and customise it</div>
+        </div>
+        <div class="path-card" onclick="openWizard(0)">
+          <div class="path-icon">✏️</div>
+          <div class="path-title">Start Blank</div>
+          <div class="path-sub">Fill in every field manually from scratch</div>
+        </div>
+        <div class="path-card">
+          <div class="path-icon">⧉</div>
+          <div class="path-title">Clone a Batch</div>
+          <div class="path-sub">Duplicate an existing batch and change only what differs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENE 1: AI PREVIEW ===================== -->
+<div class="overlay" id="scene-1">
+  <div class="modal" style="width:580px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">🤖 AI — Datasheet Extracted</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">
+          23 fields found &nbsp;·&nbsp; <span style="color:var(--green)">Overall confidence: 87%</span>
+          &nbsp;·&nbsp; <span style="font-size:10px;color:var(--muted)">via Llama 3.3-70b</span>
+        </div>
+      </div>
+      <button class="close-btn" onclick="closeScene()">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:14px">
+      <div class="notif notif-purple" style="margin-bottom:14px">
+        <span class="notif-icon">ℹ</span>
+        <div>
+          <div class="notif-title">Review before applying</div>
+          <div class="notif-sub">Amber fields have low confidence — check them before proceeding. You can edit inline.</div>
+        </div>
+      </div>
+      <table class="ai-preview-table">
+        <thead>
+          <tr>
+            <th style="width:20px"></th>
+            <th>Field</th>
+            <th>Extracted value</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Model name</td>
+            <td><strong>BT-LFP-2500</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:96%"></div></div><span class="conf-pct">96%</span></div></td>
+          </tr>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Chemistry</td>
+            <td><strong>LFP</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:99%"></div></div><span class="conf-pct">99%</span></div></td>
+          </tr>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Capacity</td>
+            <td><strong>2500 mAh</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:88%"></div></div><span class="conf-pct">88%</span></div></td>
+          </tr>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Voltage</td>
+            <td><strong>3.2 V</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:95%"></div></div><span class="conf-pct">95%</span></div></td>
+          </tr>
+          <tr style="background:var(--amber-dim)">
+            <td class="field-status">⚠️</td>
+            <td style="color:var(--muted)">HSN Code</td>
+            <td><input class="form-input" style="padding:3px 6px;font-size:12px;width:120px" value="8507.60" /></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-med" style="width:62%"></div></div><span class="conf-pct" style="color:var(--amber)">62%</span></div></td>
+          </tr>
+          <tr style="background:var(--amber-dim)">
+            <td class="field-status">⚠️</td>
+            <td style="color:var(--muted)">Country of origin</td>
+            <td><input class="form-input" style="padding:3px 6px;font-size:12px;width:120px" value="CN" /></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-med" style="width:58%"></div></div><span class="conf-pct" style="color:var(--amber)">58%</span></div></td>
+          </tr>
+          <tr style="background:var(--red-dim)">
+            <td class="field-status">❌</td>
+            <td style="color:var(--muted)">Manufacturer email</td>
+            <td><input class="form-input" style="padding:3px 6px;font-size:12px;width:180px" placeholder="Not found — enter manually" /></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-low" style="width:0%"></div></div><span class="conf-pct" style="color:var(--red)">0%</span></div></td>
+          </tr>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Weight</td>
+            <td><strong>48 g</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:91%"></div></div><span class="conf-pct">91%</span></div></td>
+          </tr>
+          <tr>
+            <td class="field-status">✅</td>
+            <td style="color:var(--muted)">Cycle life</td>
+            <td><strong>2000 cycles</strong></td>
+            <td><div class="conf-bar"><div class="conf-bg"><div class="conf-fill conf-high" style="width:84%"></div></div><span class="conf-pct">84%</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">+ 14 more fields (all ≥ 80% confidence)</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeScene()">Cancel</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm">Review field by field</button>
+        <button class="btn btn-primary" onclick="openWizard(1)">Apply All → Open Step 2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENE 2: TEMPLATE PICKER ===================== -->
+<div class="overlay" id="scene-2">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <div class="modal-title">📋 Choose a Template</div>
+      <button class="close-btn" onclick="closeScene()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+        <input class="form-input" placeholder="Search templates…" style="flex:1" />
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm btn-outline" style="border-color:var(--india);color:var(--india)">🇮🇳 India</button>
+          <button class="btn btn-sm btn-outline">🇪🇺 EU</button>
+          <button class="btn btn-sm btn-outline" style="background:var(--surface2)">All</button>
+        </div>
+      </div>
+      <div class="tpl-grid">
+        <div class="tpl-card" style="border-color:var(--accent)">
+          <span class="tpl-market-badge badge-india">🇮🇳 India</span>
+          <div class="tpl-name">LFP EV Pack</div>
+          <div class="tpl-specs">2500 mAh · LFP · Domestic · PLI</div>
+          <div class="tpl-footer">
+            <span class="tpl-age">Used 2d ago</span>
+            <button class="btn btn-sm btn-primary" onclick="openWizard(0)">Use →</button>
+          </div>
+        </div>
+        <div class="tpl-card">
+          <span class="tpl-market-badge badge-eu">🇪🇺 EU</span>
+          <div class="tpl-name">NMC Industrial</div>
+          <div class="tpl-specs">180 Wh · NMC · 3.7V · CE</div>
+          <div class="tpl-footer">
+            <span class="tpl-age">Used 1w ago</span>
+            <button class="btn btn-sm btn-outline">Use →</button>
+          </div>
+        </div>
+        <div class="tpl-card">
+          <span class="tpl-market-badge badge-india">🇮🇳 India</span>
+          <div class="tpl-name">LTO Stationary</div>
+          <div class="tpl-specs">100 Ah · LTO · Imported</div>
+          <div class="tpl-footer">
+            <span class="tpl-age">Used 3w ago</span>
+            <button class="btn btn-sm btn-outline">Use →</button>
+          </div>
+        </div>
+        <div class="tpl-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100px;cursor:pointer" onclick="openWizard(0)">
+          <div style="font-size:22px;margin-bottom:6px">＋</div>
+          <div style="font-size:12px;color:var(--muted)">Blank template</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== WIZARD (shared sheet) ===================== -->
+<div class="sheet" id="wizard-sheet">
+  <div class="sheet-backdrop" onclick="closeWizard()"></div>
+  <div class="sheet-panel">
+    <div class="sheet-header">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700">Create New Batch</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="wizard-step-desc">Step 1 of 3: Core Details</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-sm btn-ghost" id="save-tpl-btn">💾 Save as Template</button>
+        <button class="close-btn" onclick="closeWizard()">✕</button>
+      </div>
+    </div>
+
+    <!-- Stepper -->
+    <div style="padding: 12px 24px; border-bottom: 1px solid var(--border);">
+      <div class="stepper" id="wizard-stepper">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+    <!-- Step bodies -->
+    <div class="sheet-body">
+
+      <!-- SCENE 3: Core Step -->
+      <div id="ws-0" class="scene">
+        <!-- AI strip -->
+        <div class="ai-strip">
+          <div class="ai-strip-left">
+            <span class="ai-sparkle">✨</span>
+            <span>AI can fill this step — drop a PDF or type a description</span>
+          </div>
+          <div class="ai-strip-actions">
+            <button class="btn btn-sm btn-outline" onclick="showScene(1); closeWizard()">Upload PDF</button>
+            <button class="btn btn-sm btn-ghost">Type</button>
+          </div>
+        </div>
+
+        <div class="section-label">Batch Identity</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Batch name <span class="req">*</span></label>
+            <input class="form-input" placeholder="e.g. BT-LFP-2500-Q1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model name <span class="req">*</span></label>
+            <input class="form-input ai-filled" value="BT-LFP-2500" />
+            <span class="ai-badge">AI</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Mfg start date <span class="req">*</span></label>
+            <input class="form-input" type="date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mfg end date <span class="req">*</span></label>
+            <input class="form-input" type="date" />
+          </div>
+        </div>
+
+        <div class="section-label">Battery Specs</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Chemistry <span class="req">*</span></label>
+            <select class="form-select">
+              <option selected>LFP</option>
+              <option>NMC</option>
+              <option>NCA</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Capacity <span class="req">*</span></label>
+            <input class="form-input ai-filled" value="2500 mAh" />
+            <span class="ai-badge">AI</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Voltage <span class="req">*</span></label>
+            <input class="form-input ai-filled" value="3.2 V" />
+            <span class="ai-badge">AI</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight</label>
+            <input class="form-input ai-filled" value="48 g" />
+            <span class="ai-badge">AI</span>
+          </div>
+        </div>
+
+        <!-- Manufacturer accordion -->
+        <div class="accordion-section" style="margin-top:6px">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title-row">
+              <span class="accordion-icon">🏭</span>
+              <span class="accordion-title">Manufacturer Info</span>
+              <span class="pill">Pre-filled from profile ✓</span>
+            </div>
+            <span class="accordion-chevron">▼</span>
+          </div>
+          <div class="accordion-body">
+            <div class="form-group">
+              <label class="form-label">Manufacturer name</label>
+              <input class="form-input" value="Acme Battery Co." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Address</label>
+              <input class="form-input" value="12 Industrial Park, Pune 411001" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" value="compliance@acme-battery.in" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 4: Compliance Step -->
+      <div id="ws-1" class="scene">
+        <!-- AI strip -->
+        <div class="ai-strip">
+          <div class="ai-strip-left">
+            <span class="ai-sparkle">✨</span>
+            <span>AI assist for compliance</span>
+          </div>
+          <div class="ai-strip-actions">
+            <button class="btn btn-sm btn-outline">Fill from profile</button>
+            <button class="btn btn-sm btn-ghost">Check compliance</button>
+          </div>
+        </div>
+
+        <!-- Section 1: HSN & Cell Source -->
+        <div class="accordion-section">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title-row">
+              <span class="accordion-icon">🏷</span>
+              <span class="accordion-title">Classification & Cell Source</span>
+            </div>
+            <span class="accordion-completion warn">1 / 3 complete</span>
+          </div>
+          <div class="accordion-body open">
+            <div class="form-group">
+              <label class="form-label">HSN Code <span class="req">*</span></label>
+              <input class="form-input ai-filled" value="8507.60" />
+              <span class="ai-badge">AI</span>
+              <div class="hint">Must start with 8507 for Li-ion batteries</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cell source <span class="req">*</span></label>
+              <select class="form-select">
+                <option>DOMESTIC</option>
+                <option>IMPORTED</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Battery category</label>
+              <select class="form-select">
+                <option>-- Select --</option>
+                <option>EV</option>
+                <option>Industrial</option>
+                <option>Consumer</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: DVA -->
+        <div class="accordion-section">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title-row">
+              <span class="accordion-icon">📊</span>
+              <span class="accordion-title">Domestic Value Add (DVA)</span>
+            </div>
+            <span class="accordion-completion warn">0 / 2 complete</span>
+          </div>
+          <div class="accordion-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sale price (INR)</label>
+                <input class="form-input" placeholder="e.g. 8500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Import cost (INR)</label>
+                <input class="form-input" placeholder="e.g. 3200" />
+              </div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px">
+              <div style="color:var(--muted)">DVA Calculator</div>
+              <div style="font-size:18px;font-weight:700;margin-top:4px;color:var(--green)">62.3% <span style="font-size:12px;color:var(--green)">✓ PLI eligible</span></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">(₹8500 − ₹3200) ÷ ₹8500 = 62.35%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Certifications -->
+        <div class="accordion-section">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title-row">
+              <span class="accordion-icon">🛡</span>
+              <span class="accordion-title">Certifications & Registrations</span>
+            </div>
+            <span class="accordion-completion done">3 / 3 complete ✓</span>
+          </div>
+          <div class="accordion-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">BIS R-number</label>
+                <input class="form-input" value="R-41071234" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">EPR registration</label>
+                <input class="form-input" value="EPR-BATT-2024-001" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Documents -->
+        <div class="accordion-section">
+          <div class="accordion-header" onclick="toggleAccordion(this)">
+            <div class="accordion-title-row">
+              <span class="accordion-icon">📄</span>
+              <span class="accordion-title">Test Documents & Certificates</span>
+            </div>
+            <span class="accordion-completion" style="color:var(--muted)">Optional</span>
+          </div>
+          <div class="accordion-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">AIS-156 test date</label>
+                <input class="form-input" type="date" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">BIS cert. issue date</label>
+                <input class="form-input" type="date" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Upload CA certificate</label>
+              <div style="border:1px dashed var(--border);border-radius:6px;padding:16px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer">
+                Drag & drop PDF or click to browse
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 5: Review Step -->
+      <div id="ws-2" class="scene">
+        <!-- Completion Score -->
+        <div style="display:flex;align-items:center;gap:20px;border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;background:var(--green-dim)">
+          <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--border)" stroke-width="6"/>
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--green)" stroke-width="6"
+                stroke-dasharray="188.4" stroke-dashoffset="40" stroke-linecap="round"
+                transform="rotate(-90 36 36)"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">78%</div>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--green)">Good — passport ready</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Adding carbon footprint would raise score to 91%</div>
+            <button class="btn btn-sm btn-ghost" style="margin-top:6px;padding:3px 0;font-size:11px;color:var(--accent)">→ Add missing fields</button>
+          </div>
+        </div>
+
+        <!-- Profile Readiness -->
+        <div class="notif notif-green" style="margin-bottom:14px">
+          <span class="notif-icon">🛡</span>
+          <div style="width:100%">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="notif-title">Profile readiness (3/3)</div>
+              <span style="font-size:10px;color:var(--green)">All good ✓</span>
+            </div>
+            <div class="notif-sub">EPR, BIS, and IEC code are verified</div>
+          </div>
+        </div>
+
+        <!-- Review Rows — clickable -->
+        <div class="review-section">
+          <div class="review-section-title">Core Details</div>
+          <div class="review-row" onclick="goWizardStep(0)">
+            <span class="review-label">Batch name</span>
+            <span class="review-value">BT-LFP-2500-Q1-2024</span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(0)">
+            <span class="review-label">Model</span>
+            <span class="review-value">BT-LFP-2500 <span class="ai-badge">AI</span></span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(0)">
+            <span class="review-label">Chemistry</span>
+            <span class="review-value">LFP</span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(0)">
+            <span class="review-label">Capacity</span>
+            <span class="review-value">2500 mAh <span class="ai-badge">AI</span></span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(0)">
+            <span class="review-label">Manufacturing dates</span>
+            <span class="review-value">Jan 2024 – Mar 2024</span>
+          </div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">India Compliance</div>
+          <div class="review-row" onclick="goWizardStep(1)">
+            <span class="review-label">HSN Code</span>
+            <span class="review-value">85076000 <span class="ai-badge">AI</span></span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(1)">
+            <span class="review-label">Cell source</span>
+            <span class="review-value">DOMESTIC</span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(1)">
+            <span class="review-label">DVA</span>
+            <span class="review-value" style="color:var(--green)">62.3% — PLI eligible ✓</span>
+          </div>
+          <div class="review-row" onclick="goWizardStep(1)" style="background:var(--amber-dim);border-radius:6px">
+            <div>
+              <span class="review-label">Carbon footprint</span>
+              <div class="review-tip">⚠ Not filled — adds 13% to passport score</div>
+            </div>
+            <span class="review-empty">— Add now →</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sheet-body -->
+
+    <div class="sheet-footer">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-outline" id="wizard-back" onclick="wizardBack()">← Back</button>
+        <div class="save-indicator" id="save-indicator">
+          <div class="save-dot"></div>
+          <span>Saved</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="closeWizard()">Save & Exit</button>
+        <button class="btn btn-primary" id="wizard-next" onclick="wizardNext()">
+          Next: Compliance →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Scene management ──
+  let currentScene = -1;
+  const SCENE_COUNT = 6;
+
+  function showScene(n) {
+    // Close all overlays
+    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
+    // Map scene index to overlay ID
+    const overlayMap = { 0: 'scene-0', 1: 'scene-1', 2: 'scene-2' };
+    if (overlayMap[n]) {
+      document.getElementById(overlayMap[n]).classList.add('open');
+    }
+    // Update nav
+    document.querySelectorAll('.scene-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === n);
+    });
+    currentScene = n;
+  }
+
+  function closeScene() {
+    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
+    document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+    currentScene = -1;
+  }
+
+  function openEntryModal() { showScene(0); }
+
+  // ── Wizard ──
+  let wizardStep = 0;
+  const WIZARD_STEPS = [
+    { label: 'Core', desc: 'Batch identity & specs' },
+    { label: 'Compliance', desc: 'India compliance fields' },
+    { label: 'Review', desc: 'Verify & submit' },
+  ];
+
+  function buildStepper() {
+    const el = document.getElementById('wizard-stepper');
+    el.innerHTML = '';
+    WIZARD_STEPS.forEach((s, i) => {
+      // node
+      const node = document.createElement('div');
+      node.className = 'step-node';
+      const circle = document.createElement('div');
+      circle.className = 'step-circle' + (i < wizardStep ? ' done' : i === wizardStep ? ' active' : '');
+      circle.textContent = i < wizardStep ? '✓' : (i + 1);
+      const label = document.createElement('div');
+      label.className = 'step-label' + (i === wizardStep ? ' active' : '');
+      label.textContent = s.label;
+      node.appendChild(circle);
+      node.appendChild(label);
+      el.appendChild(node);
+      // connector
+      if (i < WIZARD_STEPS.length - 1) {
+        const conn = document.createElement('div');
+        conn.className = 'step-connector' + (i < wizardStep ? ' done' : '');
+        el.appendChild(conn);
+      }
+    });
+  }
+
+  function showWizardStep(n) {
+    document.querySelectorAll('[id^="ws-"]').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById('ws-' + n);
+    if (el) el.classList.add('active');
+    document.getElementById('wizard-step-desc').textContent =
+      `Step ${n+1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[n].label} — ${WIZARD_STEPS[n].desc}`;
+    const nextBtn = document.getElementById('wizard-next');
+    const backBtn = document.getElementById('wizard-back');
+    if (n === WIZARD_STEPS.length - 1) {
+      nextBtn.textContent = '✓ Create Batch';
+      nextBtn.className = 'btn btn-success';
+    } else {
+      nextBtn.textContent = `Next: ${WIZARD_STEPS[n+1].label} →`;
+      nextBtn.className = 'btn btn-primary';
+    }
+    backBtn.style.visibility = n === 0 ? 'hidden' : 'visible';
+    buildStepper();
+    // update nav bar
+    const sceneMap = [3, 4, 5];
+    document.querySelectorAll('.scene-btn').forEach((b, i) => {
+      b.classList.toggle('active', i === sceneMap[n]);
+    });
+  }
+
+  function openWizard(step) {
+    closeScene();
+    wizardStep = step || 0;
+    document.getElementById('wizard-sheet').classList.add('open');
+    showWizardStep(wizardStep);
+  }
+
+  function closeWizard() {
+    document.getElementById('wizard-sheet').classList.remove('open');
+    document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+  }
+
+  function wizardNext() {
+    if (wizardStep < WIZARD_STEPS.length - 1) {
+      wizardStep++;
+      showWizardStep(wizardStep);
+    } else {
+      // "submit"
+      closeWizard();
+      alert('🎉 Batch created successfully!\n\nIn the real app, you\'d be redirected to the batch detail page with activation checklist.');
+    }
+  }
+
+  function wizardBack() {
+    if (wizardStep > 0) {
+      wizardStep--;
+      showWizardStep(wizardStep);
+    }
+  }
+
+  function goWizardStep(n) {
+    wizardStep = n;
+    showWizardStep(wizardStep);
+  }
+
+  // ── Accordion ──
+  function toggleAccordion(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.accordion-chevron');
+    body.classList.toggle('open');
+    chevron.classList.toggle('open');
+  }
+
+  // ── Market select ──
+  function selectMarket(card, market) {
+    document.querySelectorAll('.market-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  }
+
+  // ── Scene nav wiring ──
+  // Scenes 3,4,5 open the wizard at the appropriate step
+  document.querySelectorAll('.scene-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      if (i === 3) openWizard(0);
+      else if (i === 4) openWizard(1);
+      else if (i === 5) openWizard(2);
+    });
+  });
+
+  // Animated "saved" indicator
+  setInterval(() => {
+    const ind = document.getElementById('save-indicator');
+    if (ind) {
+      ind.style.opacity = '1';
+      setTimeout(() => { ind.style.opacity = '.4'; }, 800);
+    }
+  }, 5000);
+</script>
+</body>
+</html>

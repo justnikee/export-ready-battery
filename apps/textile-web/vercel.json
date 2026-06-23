@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@anvaya/textile-web...",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "echo 'pnpm install handled in buildCommand'",
+  "rewrites": [
+    {
+      "source": "/api/textile/:path*",
+      "destination": "https://textile-api.yourdomain.com/api/:path*"
+    },
+    {
+      "source": "/api/platform/:path*",
+      "destination": "https://api.yourdomain.com/api/:path*"
+    }
+  ]
+}

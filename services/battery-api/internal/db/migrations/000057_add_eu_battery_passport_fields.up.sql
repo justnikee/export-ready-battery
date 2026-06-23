@@ -1,0 +1,38 @@
+-- Migration: Add EU Battery Regulation 2023/1542 compliance fields
+-- Covers Annex XIII gaps: CE marking, notified body, carbon performance class,
+-- removability, Declaration of Conformity, and battery passport ID.
+
+-- ============================================================================
+-- BATCH-LEVEL EU COMPLIANCE FIELDS
+-- ============================================================================
+
+ALTER TABLE public.batches
+    ADD COLUMN IF NOT EXISTS ce_marking BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS notified_body_number VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS carbon_performance_class VARCHAR(5)
+        CHECK (carbon_performance_class IN ('A', 'B', 'C', 'D', 'E')),
+    ADD COLUMN IF NOT EXISTS removable_and_replaceable BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS declaration_of_conformity_path TEXT;
+
+COMMENT ON COLUMN public.batches.ce_marking IS 'CE marking status per EU Battery Regulation Art 16';
+COMMENT ON COLUMN public.batches.notified_body_number IS 'EU conformity assessment body ID (e.g. 0123) per Art 18';
+COMMENT ON COLUMN public.batches.carbon_performance_class IS 'Carbon footprint class A-E per Art 7(4); mandatory labelling from Aug 2025 (EV) / Feb 2026 (industrial)';
+COMMENT ON COLUMN public.batches.removable_and_replaceable IS 'Whether battery is removable/replaceable per Art 11';
+COMMENT ON COLUMN public.batches.declaration_of_conformity_path IS 'URL/path to signed EU Declaration of Conformity PDF per Art 18';
+
+-- ============================================================================
+-- PASSPORT-LEVEL EU BATTERY PASSPORT ID + CIRCULARITY STATUS
+-- ============================================================================
+
+ALTER TABLE public.passports
+    ADD COLUMN IF NOT EXISTS battery_passport_id VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS circularity_status VARCHAR(50) DEFAULT 'ORIGINAL'
+        CHECK (circularity_status IN ('ORIGINAL', 'REPURPOSED', 'REUSED', 'REMANUFACTURED', 'WASTE'));
+
+-- Battery Passport ID must be unique per EU Implementing Regulation 2024/1715
+CREATE UNIQUE INDEX IF NOT EXISTS idx_passports_battery_passport_id
+    ON public.passports(battery_passport_id)
+    WHERE battery_passport_id IS NOT NULL;
+
+COMMENT ON COLUMN public.passports.battery_passport_id IS 'EU Battery Passport unique identifier per Implementing Reg 2024/1715; distinct from serial number/BPAN';
+COMMENT ON COLUMN public.passports.circularity_status IS 'Battery condition per EU Art 14 / Annex XIII(4c): original, repurposed, re-used, remanufactured, waste';

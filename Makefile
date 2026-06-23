@@ -1,65 +1,125 @@
-.PHONY: run build test clean deps migrate-up migrate-down migrate-create migrate-force migrate-verify
+.PHONY: dev build test migrate-up lint format clean deps
 
-# Load .env file for database URL (from backend for consistency)
-include backend/.env
+# Load .env file if present
+-include .env
 export
 
-# Run the server
-run:
-	go run backend/cmd/server/main.go
+# ---------------------------------------------------------------------------
+# Development
+# ---------------------------------------------------------------------------
 
-# Build the binary
-build:
-	cd backend && go build -o ../bin/server ./cmd/server
-
-# Run tests
-test:
-	cd backend && go test -v ./...
-
-# Clean build artifacts
-clean:
-	rm -rf bin/
-	cd backend && go clean
-
-# Download dependencies
-deps:
-	cd backend && go mod download && go mod tidy
-
-# Run with hot reload (requires air: go install github.com/air-verse/air@latest)
+# Run all Next.js apps in dev mode (Go services must be started separately)
 dev:
-	cd backend && air
+	pnpm run dev
 
-# ============================================
-# Database Migrations (golang-migrate)
-# Install: go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-# ============================================
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
 
-# Run all pending migrations
+# Build all Next.js apps via Turbo
+build-frontend:
+	pnpm run build
+
+# Build all Go services
+build-backend:
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    echo "Building $$svc..."; \
+	    (cd "$$svc" && go build ./...); \
+	  fi \
+	done
+
+# Build everything
+build: build-frontend build-backend
+
+# ---------------------------------------------------------------------------
+# Test
+# ---------------------------------------------------------------------------
+
+# Run frontend tests via Turbo
+test-frontend:
+	pnpm run test
+
+# Run backend tests in all services
+test-backend:
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    echo "Testing $$svc..."; \
+	    (cd "$$svc" && go test ./...); \
+	  fi \
+	done
+
+# Run all tests
+test: test-frontend test-backend
+
+# ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+
+# Run database migrations (battery-api is the canonical migration source)
 migrate-up:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose up
+	cd services/battery-api && go run ./cmd/migration_runner up
 
-# Rollback the last migration
-migrate-down:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down 1
+# Apply clean baseline schema to battery Supabase (for new/empty databases)
+schema-battery:
+	cd services/battery-api && go run ./cmd/apply_schema internal/db/schema_clean.sql
 
-# Rollback ALL migrations (use with caution!)
-migrate-reset:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" -verbose down -all
+# Apply clean baseline schema to textile Supabase (for new/empty databases)
+schema-textile:
+	cd services/textile-api && go run ./cmd/apply_schema internal/db/schema_clean.sql
 
-# Show current migration version
-migrate-version:
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" version
+# Reset + reapply schema to battery Supabase (DANGER: drops all data)
+schema-reset-battery:
+	cd services/battery-api && go run ./cmd/apply_schema internal/db/schema_reset.sql
 
-# Force set migration version (use when stuck)
-migrate-force:
-	@read -p "Enter version to force: " version; \
-	migrate -path ./backend/internal/db/migrations -database "$(DATABASE_URL)" force $$version
+# Reset + reapply schema to textile Supabase (DANGER: drops all data)
+schema-reset-textile:
+	cd services/textile-api && go run ./cmd/apply_schema internal/db/schema_reset.sql
 
-# Create a new migration file
-migrate-create:
-	@read -p "Enter migration name: " name; \
-	migrate create -ext sql -dir ./backend/internal/db/migrations -seq $$name
+# ---------------------------------------------------------------------------
+# Lint & Format
+# ---------------------------------------------------------------------------
 
-# Verify schema matches expected tables/columns
-migrate-verify:
-	cd backend && go run ./cmd/migrate
+lint:
+	pnpm run lint
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    echo "Linting $$svc..."; \
+	    (cd "$$svc" && golangci-lint run ./... || true); \
+	  fi \
+	done
+
+format:
+	pnpm exec prettier --write "apps/**/*.{ts,tsx,md,json}" "packages/**/*.{ts,tsx,md,json}"
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    echo "Formatting $$svc..."; \
+	    (cd "$$svc" && gofmt -w .); \
+	  fi \
+	done
+
+# ---------------------------------------------------------------------------
+# Clean
+# ---------------------------------------------------------------------------
+
+clean:
+	pnpm run clean 2>/dev/null || true
+	rm -rf bin/
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    (cd "$$svc" && go clean); \
+	  fi \
+	done
+
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+
+deps:
+	pnpm install
+	@for svc in services/*; do \
+	  if [ -f "$$svc/go.mod" ]; then \
+	    echo "Tidying $$svc..."; \
+	    (cd "$$svc" && go mod download && go mod tidy); \
+	  fi \
+	done

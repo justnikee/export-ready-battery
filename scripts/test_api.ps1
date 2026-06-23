@@ -1,9 +1,9 @@
-# test_api.ps1 - Test the ExportReady Battery API
+# test_api.ps1 - Test the AnvayaLabs Battery API
 # Run with: powershell -ExecutionPolicy Bypass -File .\scripts\test_api.ps1
 
 $baseUrl = "http://localhost:8080/api/v1"
 
-Write-Host "🧪 Testing ExportReady Battery API" -ForegroundColor Cyan
+Write-Host "🧪 Testing AnvayaLabs Battery API" -ForegroundColor Cyan
 Write-Host "=================================" -ForegroundColor Cyan
 
 # 1. Health Check

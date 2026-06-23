@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_batches_gtin;
+ALTER TABLE batches DROP COLUMN IF EXISTS gtin;
