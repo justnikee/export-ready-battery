@@ -2,6 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd ../.. && pnpm install && pnpm turbo run build --filter=@anvaya/battery-web...",
   "outputDirectory": ".next",
-  "framework": "nextjs",
-  "installCommand": "echo 'pnpm install handled in buildCommand'"
+  "framework": "nextjs"
 }
