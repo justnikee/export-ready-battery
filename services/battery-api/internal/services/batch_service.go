@@ -102,3 +102,11 @@ func (s *BatchService) RunComplianceCheck(ctx context.Context, productType model
 func (s *BatchService) ValidateActivation(batch *models.Batch, tenant *models.Tenant) ActivationComplianceResult {
 	return validateActivationWithRegistry(batch, tenant, s.complianceRegistry)
 }
+
+// EvaluateBatchCompliance runs the market-specific compliance registry against a
+// batch + tenant and returns the structured result (score + gaps) WITHOUT saving.
+// Lets read paths (e.g. GET /batches/{id}/compliance) report authoritative gaps
+// for drafts that have not had a compliance run persisted yet.
+func (s *BatchService) EvaluateBatchCompliance(batch *models.Batch, tenant *models.Tenant) (compliance.Result, error) {
+	return s.complianceRegistry.ValidateBatch(batch.ProductType, batch.MarketRegion, batch, tenant)
+}

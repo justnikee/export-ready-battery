@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -255,6 +256,19 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 
 	jwtProductType := models.ProductType(middleware.GetProductType(r.Context()))
 
+	// Default market for rows that omit market_region. Derive it from the
+	// tenant's primary market (matching the creation wizard) rather than GLOBAL,
+	// which is no longer offered for new batches. "both"/unset -> INDIA.
+	defaultMarket := models.MarketRegionIndia
+	if tenant, terr := h.repo.GetTenant(r.Context(), tenantID); terr == nil && len(tenant.DataVisibility) > 0 {
+		var dv struct {
+			PrimaryMarket string `json:"primary_market"`
+		}
+		if json.Unmarshal(tenant.DataVisibility, &dv) == nil && dv.PrimaryMarket == "eu" {
+			defaultMarket = models.MarketRegionEU
+		}
+	}
+
 	// Parse multipart form (32MB max memory before disk)
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		respondError(w, http.StatusBadRequest, "Failed to parse multipart form")
@@ -384,7 +398,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 
 		marketRegion := models.MarketRegion(get(marketRegionIdx, marketRegionIdx >= 0))
 		if marketRegion == "" {
-			marketRegion = models.MarketRegionGlobal
+			marketRegion = defaultMarket
 		}
 		if !marketRegion.IsValid() {
 			errors = append(errors, importError{Row: rowNum, Message: fmt.Sprintf("Invalid market_region: %s", marketRegion)})

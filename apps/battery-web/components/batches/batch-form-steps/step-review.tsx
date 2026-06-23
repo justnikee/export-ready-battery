@@ -3,13 +3,19 @@
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, FileCheck, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Save, FileCheck, AlertTriangle, ShieldCheck, CircleDot } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { AiBadge } from "@/components/batches/batch-form-steps/ai-badge";
 import type { BatchFormData } from "@/components/batches/batch-form-schema";
 import { batchCompletionChecks, completionBandLabel } from "@/lib/batch-completion";
 import { CompletionRing } from "@/components/batches/wizard/completion-ring";
+import {
+  getActivationBlockers,
+  formatBlockerLabel,
+  isProfileBlocker,
+  type ActivationBatchInput,
+} from "@/lib/activation-blockers";
 
 function Section({
   title,
@@ -116,22 +122,53 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
   const isIndiaMode = values.marketRegion === "INDIA";
   const hasErrors = Object.keys(errors).length > 0;
 
-  // Profile readiness for selected market
-  const profileReadiness = () => {
-    if (!user) return null
-    const items: { label: string; ready: boolean }[] = []
-    if (isIndiaMode || values.marketRegion === "GLOBAL") {
-      items.push({ label: "EPR Registration", ready: !!user.epr_registration_number?.trim() && (user.epr_status === "PENDING" || user.epr_status === "VERIFIED") })
-      items.push({ label: "BIS Certification", ready: !!user.bis_r_number?.trim() && (user.bis_status === "PENDING" || user.bis_status === "VERIFIED") })
-      items.push({ label: "IEC Code", ready: !!user.iec_code?.trim() })
+  // Activation readiness — runs the SAME gate the detail page and backend use
+  // (lib/activation-blockers), but against this form, so the user sees what will
+  // block activation BEFORE creating the draft instead of discovering it later.
+  const activationInput: ActivationBatchInput = (() => {
+    let dva = 0;
+    if (values.cellSource === "DOMESTIC") {
+      if (values.dvaSource === "AUDITED") {
+        dva = parseFloat(values.auditedDva) || 0;
+      } else {
+        const sale = parseFloat(values.salePrice) || 0;
+        const imp = parseFloat(values.importCost) || 0;
+        dva = sale > 0 ? Math.max(0, ((sale - imp) / sale) * 100) : 0;
+      }
     }
-    if (isEUMode || values.marketRegion === "GLOBAL") {
-      items.push({ label: "EU Representative", ready: !!user.eu_authorized_representative_name?.trim() && !!user.eu_contact_email?.trim() })
-    }
-    const readyCount = items.filter((i) => i.ready).length
-    return { items, readyCount, total: items.length }
-  }
-  const readiness = profileReadiness()
+    return {
+      model_name: values.modelName,
+      market_region: values.marketRegion,
+      manufacturing_start_date: values.manufacturingStartDate || null,
+      manufacturing_end_date: values.manufacturingEndDate || null,
+      pli_compliant: values.pliCompliant,
+      domestic_value_add: dva,
+      carbon_footprint_result: null, // produced after creation via the Carbon Calculator
+      specs: {
+        chemistry: values.chemistry,
+        capacity: values.capacity,
+        cell_source: values.cellSource || undefined,
+        certifications: values.certifications,
+        battery_category: values.batteryCategory || undefined,
+        bill_of_entry_no: values.billOfEntryNo,
+        country_of_origin:
+          values.cellSource === "IMPORTED" ? values.cellCountryOfOrigin : values.countryOfOrigin,
+        customs_date: values.customsDate,
+        bis_certificate_issue_date: values.bisCertificateIssueDate,
+        un38_3_test_date: values.un383TestDate,
+        iec_62133_test_date: values.iec62133TestDate,
+        msds_issue_date: values.msdsIssueDate,
+        material_composition: values.materialComposition,
+        hazardous_substances: { declaration: values.hazardousDeclaration },
+        expected_lifetime_cycles: values.expectedLifetime ? parseInt(values.expectedLifetime) : 0,
+        warranty_months: values.warrantyMonths ? parseInt(values.warrantyMonths) : 0,
+      },
+    };
+  })();
+  const activation = getActivationBlockers(activationInput, user);
+  const activationDataBlockers = activation.blocking.filter((b) => !isProfileBlocker(b));
+  const activationProfileBlockers = activation.blocking.filter((b) => isProfileBlocker(b));
+  const canActivateNow = activation.blocking.length === 0;
 
   // Batch-form completion ring — distinct from profileReadiness() (which tracks the
   // tenant's company-level certifications, not this batch's own field values).
@@ -196,34 +233,92 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
         </div>
       </div>
 
-      {/* Profile Readiness for Selected Market */}
-      {readiness && readiness.total > 0 && (
-        <div className={`p-3 border rounded text-sm ${readiness.readyCount === readiness.total ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-amber-500/10 border-amber-500/20 text-amber-300'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-4 w-4 shrink-0" />
-            <span className="font-medium">Profile Readiness ({readiness.readyCount}/{readiness.total})</span>
-            <Link href="/dashboard/settings?tab=compliance" className="text-xs underline hover:text-foreground ml-auto">
-              Update in Settings
-            </Link>
-          </div>
-          <div className="w-full bg-muted rounded-full h-1.5 mb-2">
-            <div
-              className={`h-1.5 rounded-full transition-all ${readiness.readyCount === readiness.total ? 'bg-emerald-500' : 'bg-amber-400'}`}
-              style={{ width: `${(readiness.readyCount / readiness.total) * 100}%` }}
-            />
-          </div>
-          {readiness.items.some((i) => !i.ready) && (
-            <ul className="text-xs space-y-0.5">
-              {readiness.items.filter((i) => !i.ready).map((item) => (
-                <li key={item.label} className="flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {item.label} — required for activation
-                </li>
-              ))}
-            </ul>
+      {/* Activation readiness — what it takes to ACTIVATE this batch after creating it */}
+      <div className="border border-border rounded">
+        <div className="flex items-start gap-3 p-3">
+          {canActivateNow ? (
+            <ShieldCheck className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
           )}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-foreground">
+              {canActivateNow
+                ? "Ready to activate right after creating"
+                : `${activation.blocking.length} item${activation.blocking.length > 1 ? "s" : ""} needed before activation`}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Creating saves this as a <span className="font-medium text-foreground">draft</span>. To
+              generate passports &amp; exports you&apos;ll <span className="font-medium text-foreground">activate</span> it
+              — which uses <span className="font-medium text-foreground">1 activation credit</span> and requires the items below.
+            </p>
+          </div>
         </div>
-      )}
+
+        {!canActivateNow && (
+          <div className="border-t border-border px-3 py-2.5 space-y-3">
+            {activationDataBlockers.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Complete on this batch
+                </div>
+                <ul className="space-y-0.5">
+                  {activationDataBlockers.map((b) => (
+                    <li key={b} className="flex items-center gap-1.5 text-xs text-foreground">
+                      <CircleDot className="h-3 w-3 shrink-0 text-amber-500" />
+                      {formatBlockerLabel(b)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {activationProfileBlockers.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Complete once in Settings
+                  </div>
+                  <Link
+                    href="/dashboard/settings?tab=compliance"
+                    className="text-[10px] text-muted-foreground underline hover:text-foreground"
+                  >
+                    Open Settings
+                  </Link>
+                </div>
+                <ul className="space-y-0.5">
+                  {activationProfileBlockers.map((b) => (
+                    <li key={b} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <CircleDot className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      {formatBlockerLabel(b)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* What happens next */}
+        <div className="border-t border-border px-3 py-2.5">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1.5">
+            What happens after you create
+          </div>
+          <ol className="space-y-1 text-xs text-muted-foreground">
+            <li className="flex items-center gap-2">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-foreground">1</span>
+              Saved as a draft batch (no credit used)
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-foreground">2</span>
+              Add passports &amp; clear any items above
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-foreground">3</span>
+              Activate (uses 1 credit) → labels, passports &amp; reports unlock
+            </li>
+          </ol>
+        </div>
+      </div>
 
       {/* Identity Summary */}
       <Section title="Identity" onJump={() => onJumpToStep(0)}>

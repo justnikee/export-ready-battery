@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { Batch, ComplianceGap } from "@/lib/types";
 import type { ActivationBlockers, DetailTab } from "./types";
-import { formatBlockerLabel, normalizeGapField } from "./hooks/useBatchDetail";
+import { formatBlockerLabel, normalizeGapField } from "@/lib/activation-blockers";
 import { DashboardPanel } from "./DashboardPanel";
 
 interface ActivationChecklistProps {

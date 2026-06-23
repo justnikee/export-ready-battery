@@ -24,7 +24,7 @@ import { ComplianceScoreRing } from "../sections/ComplianceScoreRing";
 import { CertificateStatus } from "../sections/CertificateStatus";
 import { BlockchainAnchors } from "../sections/BlockchainAnchors";
 import { CarbonCalculator } from "@/components/batches/carbon-calculator";
-import { normalizeGapField } from "../hooks/useBatchDetail";
+import { normalizeGapField } from "@/lib/activation-blockers";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import type { Batch, ComplianceGap, CertificateAnchor } from "@/lib/types";

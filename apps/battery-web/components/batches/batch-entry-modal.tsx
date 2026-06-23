@@ -139,12 +139,17 @@ export function BatchEntryModal({
                 </div>
               </div>
 
-              {/* Resume a draft */}
+              {/* Continue an in-progress (not yet created) batch form */}
               {drafts.length > 0 && (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <History className="h-3.5 w-3.5" />
-                    Resume a Draft
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <History className="h-3.5 w-3.5" />
+                      Continue where you left off
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/80">
+                      Unsubmitted forms saved on this device — not created batches yet.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     {drafts.map((draft) => {

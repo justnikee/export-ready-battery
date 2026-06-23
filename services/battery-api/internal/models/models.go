@@ -1383,6 +1383,7 @@ type AnalyticsOverview struct {
 	CertificateExpiry     []CertExpirySummary    `json:"certificate_expiry"`
 	CarbonDistribution    []CarbonClassCount     `json:"carbon_distribution"`
 	BatchStatusBreakdown  map[string]int         `json:"batch_status_breakdown"`
+	ComplianceReadyCount  int                    `json:"compliance_ready_count"`
 	MarketRegionSplit     []RegionCount          `json:"market_region_split"`
 	SupplierDocStatus     map[string]int         `json:"supplier_document_status"`
 	DGFTClaimFunnel       []StatusCount          `json:"dgft_claim_funnel"`

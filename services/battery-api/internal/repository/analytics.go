@@ -44,6 +44,13 @@ func (r *Repository) GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUI
 		return nil, fmt.Errorf("batch status breakdown failed: %w", err)
 	}
 
+	// 4b. Compliance-ready batch count (score >= 95 and no blocking gaps)
+	readyCount, err := r.complianceReadyCount(ctx, tenantID, productType)
+	if err != nil {
+		return nil, fmt.Errorf("compliance ready count failed: %w", err)
+	}
+	overview.ComplianceReadyCount = readyCount
+
 	// 5. Market region split
 	regions, err := r.marketRegionSplit(ctx, tenantID, productType)
 	if err != nil {
@@ -206,6 +213,24 @@ func (r *Repository) batchStatusBreakdown(ctx context.Context, tenantID uuid.UUI
 		out[status] = count
 	}
 	return rows.Err()
+}
+
+// complianceReadyCount returns how many batches are export-ready: compliance
+// score >= 95 with no blocking (ERROR-severity) gaps. Mirrors the per-batch
+// "READY" status shown in the batches list so the stat card is tenant-wide and
+// filter-independent.
+func (r *Repository) complianceReadyCount(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (int, error) {
+	query := `
+		SELECT COUNT(*) FROM public.batches
+		WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2)
+		  AND compliance_score >= 95
+		  AND NOT COALESCE(compliance_gaps @> '[{"severity":"ERROR"}]'::jsonb, false)
+	`
+	var count int
+	if err := r.db.Pool.QueryRow(ctx, query, tenantID, productType).Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r *Repository) marketRegionSplit(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) ([]models.RegionCount, error) {

@@ -11,7 +11,7 @@ import { clsx } from "clsx";
 
 import { useBatchDetail } from "./detail/hooks/useBatchDetail";
 import { BatchHeader } from "./detail/BatchHeader";
-import { BatchReadinessBar } from "./detail/BatchReadinessBar";
+import { BatchStatusCard } from "./detail/BatchStatusCard";
 import { BatchActions } from "./detail/BatchActions";
 import { ActivationChecklist } from "./detail/ActivationChecklist";
 import { OverviewTab } from "./detail/tabs/OverviewTab";
@@ -177,9 +177,10 @@ export default function BatchDetailsPage() {
           </div>
         </div>
 
-        {/* ── EXPORT READINESS ── */}
-        <BatchReadinessBar
+        {/* ── STATUS: lifecycle stage + next action + export-readiness signals ── */}
+        <BatchStatusCard
           batch={batch}
+          activationBlockerCount={activationResult.blocking.length}
           passportCount={passportCount}
           complianceScore={complianceScore}
           region={region}
