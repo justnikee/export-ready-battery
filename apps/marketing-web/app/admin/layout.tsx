@@ -1,37 +1,13 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FileText, LayoutDashboard, LogOut, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/login/actions";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login?redirect=/admin/blog");
-      return;
-    }
-    // Optional: verify token with backend
-    setLoading(false);
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex bg-[#0a0a0a] text-foreground">
       <aside className="w-64 border-r border-border bg-[#0a0a0a] flex flex-col">
@@ -61,19 +37,16 @@ export default function AdminLayout({
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-border">
+        <form action={signOut} className="p-4 border-t border-border">
           <Button
+            type="submit"
             variant="ghost"
             className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/10"
-            onClick={() => {
-              localStorage.removeItem("token");
-              router.push("/");
-            }}
           >
             <LogOut className="mr-2 h-4 w-4" />
             Log Out
           </Button>
-        </div>
+        </form>
       </aside>
 
       <main className="flex-1 overflow-y-auto">{children}</main>

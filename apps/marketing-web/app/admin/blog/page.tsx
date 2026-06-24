@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Plus, Edit, Eye } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Plus, Edit, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -9,11 +9,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
+import { getAllPostsForAdmin } from "@/lib/blog";
 
-const posts: any[] = [];
+export default async function BlogListPage() {
+  const posts = await getAllPostsForAdmin();
 
-export default function BlogListPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -48,7 +49,7 @@ export default function BlogListPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              posts.map((post: any) => (
+              posts.map((post) => (
                 <TableRow key={post.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -57,17 +58,17 @@ export default function BlogListPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={post.status === 'published' ? 'default' : post.status === 'draft' ? 'secondary' : 'outline'}>
+                    <Badge variant={post.status === "published" ? "default" : post.status === "draft" ? "secondary" : "outline"}>
                       {post.status}
                     </Badge>
                   </TableCell>
                   <TableCell>{post.author}</TableCell>
                   <TableCell>
-                    {post.published_at ? new Date(post.published_at).toLocaleDateString() : '-'}
+                    {post.published_at ? new Date(post.published_at).toLocaleDateString() : "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {post.status === 'published' && (
+                      {post.status === "published" && (
                         <Link href={`/blog/${post.slug}`} target="_blank">
                           <Button variant="ghost" size="icon">
                             <Eye className="h-4 w-4" />

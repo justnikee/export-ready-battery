@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 import { Metadata } from "next";
 import Image from "next/image";
+import { getPublishedPosts } from "@/lib/blog";
 
 export const metadata: Metadata = {
   title: "The Anviora Blog | Battery Passport & Compliance Insights",
@@ -17,20 +18,9 @@ export const metadata: Metadata = {
     "Latest news, updates, and expert insights on battery regulation, compliance, and sustainability.",
 };
 
-interface Post {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  cover_image: string | null;
-  category: string | null;
-  published_at: string | null;
-}
+export default async function BlogIndexPage() {
+  const posts = await getPublishedPosts();
 
-// Static placeholder — blog posts are fetched client-side in production
-const posts: Post[] = [];
-
-export default function BlogIndexPage() {
   return (
     <div className="container py-12 max-w-6xl mx-auto space-y-12">
       <div className="text-center space-y-4">
