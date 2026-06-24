@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "The Anviora Blog | Battery Passport & Compliance Insights",
   description:
     "Latest news, updates, and expert insights on battery regulation, compliance, and sustainability.",
+  alternates: { canonical: "/blog" },
 };
 
 export default async function BlogIndexPage() {

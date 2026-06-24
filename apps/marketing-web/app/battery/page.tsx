@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Anviora Battery — Digital Product Passports for Battery Manufacturers",
   description:
     "Generate EU-compliant Battery Passports, track BIS certificates, and verify every cell from factory to recycler. Built for Indian battery exporters.",
+  alternates: { canonical: "/battery" },
 };
 
 export default function BatteryPage() {

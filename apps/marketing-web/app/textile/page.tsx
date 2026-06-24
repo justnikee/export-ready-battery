@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Anviora Textile — Digital Product Passports for Textile Exporters",
   description:
     "Track fiber composition, manage sustainability certifications, and generate EU-compliant textile DPPs. From Tirupur to Europe.",
+  alternates: { canonical: "/textile" },
 };
 
 export default function TextilePage() {

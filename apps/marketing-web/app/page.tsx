@@ -10,6 +10,11 @@ import Backbone from "@/components/sections/backbone";
 import Business from "@/components/sections/business";
 import NewsCTA from "@/components/sections/news-cta";
 import Footer from "@/components/sections/footer";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function Home() {
   return (

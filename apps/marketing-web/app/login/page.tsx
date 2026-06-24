@@ -2,6 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "./actions";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function LoginPage({
   searchParams,

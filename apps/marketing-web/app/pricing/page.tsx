@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Pricing — Plans for Every Scale | Anviora",
   description:
     "Simple, transparent pricing for Indian battery and textile exporters. Free for starters. ₹4,999/month for growing teams. Enterprise plans available.",
+  alternates: { canonical: "/pricing" },
 };
 
 export default function PricingPage() {

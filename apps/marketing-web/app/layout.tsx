@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Toaster } from "sonner";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,6 +26,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Anviora — Digital Product Passports for Indian Battery & Textile Exporters",
   description:
     "Automate EU Battery Passport generation, certificate tracking, QR-code verification, and compliance gaps. Built for Indian manufacturers exporting to Europe.",
@@ -45,6 +47,8 @@ export const metadata: Metadata = {
       "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
     type: "website",
     locale: "en_IN",
+    siteName: SITE_NAME,
+    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
@@ -58,6 +62,15 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description:
+    "Digital Product Passport platform for Indian battery and textile exporters, automating EU compliance, certificate tracking, and QR-code verification.",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -68,6 +81,10 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         {children}
         <Toaster position="top-right" richColors />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </body>
     </html>
   );

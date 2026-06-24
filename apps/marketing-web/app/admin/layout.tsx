@@ -2,6 +2,11 @@ import Link from "next/link";
 import { FileText, LayoutDashboard, LogOut, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/login/actions";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default function AdminLayout({
   children,
