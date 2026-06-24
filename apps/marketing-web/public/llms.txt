@@ -1,0 +1,16 @@
+# Anviora
+
+> Digital Product Passport platform for Indian battery and textile exporters. Automates EU Battery Passport generation, certificate tracking, QR-code verification, and compliance gap detection for manufacturers exporting to Europe.
+
+## Products
+
+- [Battery](/battery): Generate EU-compliant Battery Passports, track BIS certificates, and verify every cell from factory to recycler.
+- [Textile](/textile): Track fiber composition, manage sustainability certifications, and generate EU-compliant textile Digital Product Passports.
+
+## Pricing
+
+- [Pricing](/pricing): Plans for every scale, including a free tier and MSME discount support via the DGFT TRACE scheme.
+
+## Resources
+
+- [Blog](/blog): Insights on battery and textile compliance, EU Battery Regulation, and export requirements for Indian manufacturers.
