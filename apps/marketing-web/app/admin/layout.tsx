@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { FileText, Folder, LayoutDashboard, LogOut, PenTool, Tag } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ExternalLink, FileText, Folder, LogOut, PenTool, Tag } from "lucide-react";
 import { signOut } from "@/app/login/actions";
 import type { Metadata } from "next";
 
@@ -8,67 +7,61 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const navItems = [
+  { href: "/admin", label: "Posts", icon: FileText },
+  { href: "/admin/categories", label: "Categories", icon: Folder },
+  { href: "/admin/tags", label: "Tags", icon: Tag },
+];
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex bg-[#0a0a0a] text-foreground">
-      <aside className="w-64 border-r border-border bg-[#0a0a0a] flex flex-col">
-        <div className="p-6">
-          <Link href="/admin/blog" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <PenTool className="h-4 w-4 text-white" />
+    <div className="min-h-screen bg-[#f0f0f1] text-[#1d2327]">
+      <div className="flex h-8 items-center justify-between bg-[#1d2327] px-4 text-xs text-[#a7aaad]">
+        <span>Anviora Admin</span>
+        <Link href="/" target="_blank" className="flex items-center gap-1 hover:text-white transition-colors">
+          View Site <ExternalLink className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="flex">
+        <aside className="w-56 min-h-[calc(100vh-2rem)] bg-[#1d2327] flex flex-col">
+          <Link href="/admin" className="flex items-center gap-2 px-4 py-5">
+            <div className="h-7 w-7 rounded bg-(--color-accent) flex items-center justify-center">
+              <PenTool className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="text-white text-lg">Admin Console</span>
+            <span className="text-white text-sm font-medium">Blog Admin</span>
           </Link>
-        </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <Link
-            href="/admin/blog"
-            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
-          >
-            <FileText className="h-5 w-5" />
-            <span>Blog Posts</span>
-          </Link>
-          <Link
-            href="/admin/blog/categories"
-            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
-          >
-            <Folder className="h-5 w-5" />
-            <span>Categories</span>
-          </Link>
-          <Link
-            href="/admin/blog/tags"
-            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
-          >
-            <Tag className="h-5 w-5" />
-            <span>Tags</span>
-          </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
-          >
-            <LayoutDashboard className="h-5 w-5" />
-            <span>Back to Site</span>
-          </Link>
-        </nav>
+          <nav className="flex-1 px-2 space-y-0.5">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 px-3 py-2 text-sm text-[#a7aaad] hover:bg-white/5 hover:text-white rounded-sm transition-colors"
+              >
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
 
-        <form action={signOut} className="p-4 border-t border-border">
-          <Button
-            type="submit"
-            variant="ghost"
-            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/10"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Log Out
-          </Button>
-        </form>
-      </aside>
+          <form action={signOut} className="p-2 border-t border-white/10">
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 px-3 py-2 text-sm text-[#a7aaad] hover:bg-white/5 hover:text-white rounded-sm transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Log Out
+            </button>
+          </form>
+        </aside>
 
-      <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-8">{children}</main>
+      </div>
     </div>
   );
 }

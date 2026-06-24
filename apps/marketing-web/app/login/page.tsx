@@ -14,23 +14,23 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; redirect?: string }>;
 }) {
   const params = await searchParams;
-  const redirectTo = params.redirect || "/admin/blog";
+  const redirectTo = params.redirect || "/admin";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f0f0f1] px-4">
       <form
         action={signIn}
-        className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-8"
+        className="w-full max-w-sm space-y-6 rounded-sm border border-[#c3c4c7] bg-white p-8"
       >
         <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-white">Admin Login</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-medium text-[#1d2327]">Admin Login</h1>
+          <p className="text-sm text-[#646970]">
             Sign in to manage blog content.
           </p>
         </div>
 
         {params.error && (
-          <p className="rounded-md border border-red-900/40 bg-red-950/40 px-3 py-2 text-sm text-red-400">
+          <p className="rounded-sm border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {params.error}
           </p>
         )}

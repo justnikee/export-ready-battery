@@ -1,3 +1,4 @@
+import sanitizeHtml from "sanitize-html";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import type { BlogFormData, BlogPost, Category, Tag } from "@/lib/types";
 
@@ -169,8 +170,22 @@ export function slugify(title: string): string {
     .replace(/-+/g, "-");
 }
 
-export function estimateReadingMinutes(content: string): number {
-  const words = content.trim().split(/\s+/).filter(Boolean).length;
+export function sanitizePostHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: [
+      "p", "br", "strong", "em", "u", "s", "a", "ul", "ol", "li",
+      "blockquote", "code", "pre", "h2", "h3", "h4", "img",
+    ],
+    allowedAttributes: {
+      a: ["href", "target", "rel"],
+      img: ["src", "alt"],
+    },
+  });
+}
+
+export function estimateReadingMinutes(html: string): number {
+  const text = html.replace(/<[^>]*>/g, " ");
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
 

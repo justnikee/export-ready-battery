@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { uploadCoverImage } from "@/app/admin/blog/upload-action";
+import { uploadCoverImage } from "@/app/admin/upload-action";
 
 export function CoverImageField({ defaultValue }: { defaultValue?: string }) {
   const [url, setUrl] = useState(defaultValue ?? "");

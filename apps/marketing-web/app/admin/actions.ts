@@ -37,13 +37,13 @@ function readForm(formData: FormData): PostFormInput {
 export async function createPost(formData: FormData) {
   const status = formData.get("status") === "published" ? "published" : "draft";
   await savePost(null, readForm(formData), status);
-  redirect("/admin/blog");
+  redirect("/admin");
 }
 
 export async function updatePost(id: string, formData: FormData) {
   const status = formData.get("status") === "published" ? "published" : "draft";
   await savePost(id, readForm(formData), status);
-  redirect("/admin/blog");
+  redirect("/admin");
 }
 
 async function savePost(
@@ -99,7 +99,7 @@ async function savePost(
     );
   }
 
-  revalidatePath("/admin/blog");
+  revalidatePath("/admin");
   revalidatePath("/blog");
 }
 
@@ -111,6 +111,6 @@ export async function deletePost(id: string) {
     throw new Error(`Failed to delete post: ${error.message}`);
   }
 
-  revalidatePath("/admin/blog");
+  revalidatePath("/admin");
   revalidatePath("/blog");
 }
