@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getPostById } from "@/lib/blog";
+import { CoverImageField } from "@/components/admin/cover-image-field";
+import { MultiSelectChips } from "@/components/admin/multi-select-chips";
+import { getAllCategories, getAllTags, getPostById } from "@/lib/blog";
 import { deletePost, updatePost } from "@/app/admin/blog/actions";
 
 export default async function EditPostPage({
@@ -12,7 +14,11 @@ export default async function EditPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = await getPostById(id);
+  const [post, categories, tags] = await Promise.all([
+    getPostById(id),
+    getAllCategories(),
+    getAllTags(),
+  ]);
 
   if (!post) {
     notFound();
@@ -55,24 +61,25 @@ export default async function EditPostPage({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input id="category" name="category" defaultValue={post.category ?? ""} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags (comma separated)</Label>
-            <Input id="tags" name="tags" defaultValue={(post.tags ?? []).join(", ")} />
-          </div>
+        <CoverImageField defaultValue={post.cover_image ?? ""} />
+
+        <div className="space-y-2">
+          <Label>Categories</Label>
+          <MultiSelectChips
+            name="category_ids"
+            options={categories.map((c) => ({ id: c.id, label: c.name }))}
+            defaultSelected={post.categories.map((c) => c.id)}
+            emptyMessage="No categories yet — add some in Admin → Categories."
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cover_image">Cover Image URL</Label>
-          <Input
-            id="cover_image"
-            name="cover_image"
-            type="url"
-            defaultValue={post.cover_image ?? ""}
+          <Label>Tags</Label>
+          <MultiSelectChips
+            name="tag_ids"
+            options={tags.map((t) => ({ id: t.id, label: t.name }))}
+            defaultSelected={post.tags.map((t) => t.id)}
+            emptyMessage="No tags yet — add some in Admin → Tags."
           />
         </div>
 
@@ -91,6 +98,17 @@ export default async function EditPostPage({
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          <input
+            id="noindex"
+            name="noindex"
+            type="checkbox"
+            className="h-4 w-4"
+            defaultChecked={post.noindex}
+          />
+          <Label htmlFor="noindex">Hide from search engines (noindex)</Label>
+        </div>
+
         <div className="flex gap-3 pt-2">
           <Button type="submit" name="status" value="draft">
             Save as Draft
@@ -101,10 +119,7 @@ export default async function EditPostPage({
         </div>
       </form>
 
-      <form
-        action={deletePostWithId}
-        className="border-t border-border pt-4"
-      >
+      <form action={deletePostWithId} className="border-t border-border pt-4">
         <Button type="submit" variant="destructive">
           Delete Post
         </Button>

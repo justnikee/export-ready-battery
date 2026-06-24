@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileText, LayoutDashboard, LogOut, PenTool } from "lucide-react";
+import { FileText, Folder, LayoutDashboard, LogOut, PenTool, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/login/actions";
 import type { Metadata } from "next";
@@ -32,6 +32,20 @@ export default function AdminLayout({
           >
             <FileText className="h-5 w-5" />
             <span>Blog Posts</span>
+          </Link>
+          <Link
+            href="/admin/blog/categories"
+            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
+          >
+            <Folder className="h-5 w-5" />
+            <span>Categories</span>
+          </Link>
+          <Link
+            href="/admin/blog/tags"
+            className="flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-white hover:bg-primary/90 rounded-md transition-colors"
+          >
+            <Tag className="h-5 w-5" />
+            <span>Tags</span>
           </Link>
           <Link
             href="/"

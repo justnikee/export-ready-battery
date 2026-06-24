@@ -12,10 +12,11 @@ interface PostFormInput {
   excerpt: string;
   content: string;
   cover_image: string;
-  category: string;
   seo_title: string;
   seo_description: string;
-  tags: string;
+  noindex: boolean;
+  categoryIds: string[];
+  tagIds: string[];
 }
 
 function readForm(formData: FormData): PostFormInput {
@@ -25,10 +26,11 @@ function readForm(formData: FormData): PostFormInput {
     excerpt: String(formData.get("excerpt") ?? "").trim(),
     content: String(formData.get("content") ?? "").trim(),
     cover_image: String(formData.get("cover_image") ?? "").trim(),
-    category: String(formData.get("category") ?? "").trim(),
     seo_title: String(formData.get("seo_title") ?? "").trim(),
     seo_description: String(formData.get("seo_description") ?? "").trim(),
-    tags: String(formData.get("tags") ?? "").trim(),
+    noindex: formData.get("noindex") === "on",
+    categoryIds: formData.getAll("category_ids").map(String),
+    tagIds: formData.getAll("tag_ids").map(String),
   };
 }
 
@@ -62,13 +64,10 @@ async function savePost(
     excerpt: input.excerpt || null,
     content: input.content,
     cover_image: input.cover_image || null,
-    category: input.category || null,
     seo_title: input.seo_title || null,
     seo_description: input.seo_description || null,
+    noindex: input.noindex,
     reading_time_minutes: estimateReadingMinutes(input.content),
-    tags: input.tags
-      ? input.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
-      : [],
     status,
     author: userData.user?.email ?? "Unknown",
     author_id: userData.user?.id ?? null,
@@ -76,12 +75,28 @@ async function savePost(
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = id
-    ? await supabase.from("posts").update(record).eq("id", id)
-    : await supabase.from("posts").insert(record);
+  const { data: saved, error } = id
+    ? await supabase.from("posts").update(record).eq("id", id).select("id").single()
+    : await supabase.from("posts").insert(record).select("id").single();
 
   if (error) {
     throw new Error(`Failed to save post: ${error.message}`);
+  }
+
+  const postId = saved.id;
+
+  await supabase.from("post_categories").delete().eq("post_id", postId);
+  if (input.categoryIds.length > 0) {
+    await supabase.from("post_categories").insert(
+      input.categoryIds.map((categoryId) => ({ post_id: postId, category_id: categoryId })),
+    );
+  }
+
+  await supabase.from("post_tags").delete().eq("post_id", postId);
+  if (input.tagIds.length > 0) {
+    await supabase.from("post_tags").insert(
+      input.tagIds.map((tagId) => ({ post_id: postId, tag_id: tagId })),
+    );
   }
 
   revalidatePath("/admin/blog");

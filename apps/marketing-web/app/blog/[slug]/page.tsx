@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
-import { Badge } from "@/components/ui/badge";
 import { getPublishedPostBySlug } from "@/lib/blog";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import type { Metadata } from "next";
@@ -22,6 +22,7 @@ export async function generateMetadata({
     title: post.seo_title || post.title,
     description: post.seo_description || post.excerpt || undefined,
     alternates: { canonical: `/blog/${post.slug}` },
+    robots: post.noindex ? { index: false, follow: false } : undefined,
     openGraph: post.cover_image
       ? { images: [{ url: post.cover_image }] }
       : undefined,
@@ -54,52 +55,71 @@ export default async function BlogPostPage({
   };
 
   return (
-    <article className="container py-12 max-w-3xl mx-auto space-y-8">
+    <article className="max-w-2xl mx-auto px-6 py-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <header className="space-y-4">
-        {post.category && <Badge variant="secondary">{post.category}</Badge>}
-        <h1 className="text-4xl font-extrabold tracking-tight">{post.title}</h1>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{post.author}</span>
-          {post.published_at && (
-            <>
-              <span>&middot;</span>
-              <span>
-                {new Date(post.published_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            </>
-          )}
-          {post.reading_time_minutes && (
-            <>
-              <span>&middot;</span>
-              <span>{post.reading_time_minutes} min read</span>
-            </>
-          )}
-        </div>
+
+      <header className="mb-10 space-y-4">
+        {post.categories.length > 0 && (
+          <p className="flex flex-wrap gap-3">
+            {post.categories.map((category) => (
+              <Link
+                key={category.id}
+                href={`/blog/category/${category.slug}`}
+                className="eyebrow text-xs hover:underline"
+              >
+                {category.name}
+              </Link>
+            ))}
+          </p>
+        )}
+        <h1 className="font-serif text-4xl sm:text-5xl text-ink display-lg">
+          {post.title}
+        </h1>
+        <p className="text-ink-mute-2 text-sm">
+          {post.author}
+          {post.published_at &&
+            ` · ${new Date(post.published_at).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}`}
+          {post.reading_time_minutes && ` · ${post.reading_time_minutes} min read`}
+        </p>
       </header>
 
       {post.cover_image && (
-        <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted relative">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-paper-soft mb-10">
           <Image
             src={post.cover_image}
             alt={post.title}
             fill
             sizes="(min-width: 768px) 768px, 100vw"
             className="object-cover"
+            unoptimized
           />
         </div>
       )}
 
-      <div className="prose prose-neutral max-w-none">
+      <div className="prose prose-editorial max-w-none">
         <ReactMarkdown>{post.content}</ReactMarkdown>
       </div>
+
+      {post.tags.length > 0 && (
+        <footer className="mt-12 pt-6 border-t border-hairline flex flex-wrap gap-2">
+          {post.tags.map((tag) => (
+            <Link
+              key={tag.id}
+              href={`/blog/tag/${tag.slug}`}
+              className="rounded-full border border-hairline px-3 py-1 text-xs text-ink-mute hover:border-accent hover:text-accent transition-colors"
+            >
+              #{tag.name}
+            </Link>
+          ))}
+        </footer>
+      )}
     </article>
   );
 }

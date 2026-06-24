@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
-import { getPublishedPosts } from "@/lib/blog";
+import { getAllCategories, getAllTags, getPublishedPosts } from "@/lib/blog";
 
 const staticRoutes = ["", "/battery", "/textile", "/pricing", "/request-access", "/blog"];
 
@@ -11,8 +11,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
+  let categories: Awaited<ReturnType<typeof getAllCategories>> = [];
+  let tags: Awaited<ReturnType<typeof getAllTags>> = [];
   try {
-    posts = await getPublishedPosts();
+    [posts, categories, tags] = await Promise.all([
+      getPublishedPosts(),
+      getAllCategories(),
+      getAllTags(),
+    ]);
   } catch {
     // Supabase not configured yet — sitemap still serves the static routes.
   }
@@ -22,5 +28,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: post.updated_at ? new Date(post.updated_at) : undefined,
   }));
 
-  return [...staticEntries, ...postEntries];
+  const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
+    url: `${SITE_URL}/blog/category/${category.slug}`,
+  }));
+
+  const tagEntries: MetadataRoute.Sitemap = tags.map((tag) => ({
+    url: `${SITE_URL}/blog/tag/${tag.slug}`,
+  }));
+
+  return [...staticEntries, ...postEntries, ...categoryEntries, ...tagEntries];
 }

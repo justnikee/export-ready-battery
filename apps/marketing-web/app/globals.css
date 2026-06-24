@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -181,5 +182,30 @@
 
   .glow-card:hover::before {
     opacity: 1;
+  }
+
+  /* Editorial prose — used on blog post bodies */
+  .prose-editorial {
+    --tw-prose-body: #4e443c;
+    --tw-prose-headings: #2a2521;
+    --tw-prose-lead: #4e443c;
+    --tw-prose-links: #157a5b;
+    --tw-prose-bold: #2a2521;
+    --tw-prose-counters: #9d9188;
+    --tw-prose-bullets: #e7dccb;
+    --tw-prose-hr: #e7dccb;
+    --tw-prose-quotes: #2a2521;
+    --tw-prose-quote-borders: #e7dccb;
+    --tw-prose-code: #2a2521;
+    --tw-prose-pre-bg: #2a2420;
+    --tw-prose-pre-code: #faf6f0;
+    --tw-prose-th-borders: #e7dccb;
+    --tw-prose-td-borders: #e7dccb;
+  }
+
+  .prose-editorial :where(h1, h2, h3, h4) {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 }

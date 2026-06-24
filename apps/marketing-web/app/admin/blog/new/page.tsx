@@ -2,9 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CoverImageField } from "@/components/admin/cover-image-field";
+import { MultiSelectChips } from "@/components/admin/multi-select-chips";
+import { getAllCategories, getAllTags } from "@/lib/blog";
 import { createPost } from "@/app/admin/blog/actions";
 
-export default function NewPostPage() {
+export default async function NewPostPage() {
+  const [categories, tags] = await Promise.all([getAllCategories(), getAllTags()]);
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -33,20 +38,24 @@ export default function NewPostPage() {
           <Textarea id="content" name="content" rows={14} required />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Input id="category" name="category" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tags">Tags (comma separated)</Label>
-            <Input id="tags" name="tags" placeholder="compliance, eu, batteries" />
-          </div>
+        <CoverImageField />
+
+        <div className="space-y-2">
+          <Label>Categories</Label>
+          <MultiSelectChips
+            name="category_ids"
+            options={categories.map((c) => ({ id: c.id, label: c.name }))}
+            emptyMessage="No categories yet — add some in Admin → Categories."
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cover_image">Cover Image URL</Label>
-          <Input id="cover_image" name="cover_image" type="url" />
+          <Label>Tags</Label>
+          <MultiSelectChips
+            name="tag_ids"
+            options={tags.map((t) => ({ id: t.id, label: t.name }))}
+            emptyMessage="No tags yet — add some in Admin → Tags."
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -58,6 +67,11 @@ export default function NewPostPage() {
             <Label htmlFor="seo_description">SEO Description</Label>
             <Input id="seo_description" name="seo_description" />
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input id="noindex" name="noindex" type="checkbox" className="h-4 w-4" />
+          <Label htmlFor="noindex">Hide from search engines (noindex)</Label>
         </div>
 
         <div className="flex gap-3 pt-2">
