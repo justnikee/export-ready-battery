@@ -21,7 +21,7 @@ export default function SiteHeader() {
     <header className="fixed top-0 left-0 right-0 z-50">
       <div
         className="overflow-hidden transition-all duration-300"
-        style={{ maxHeight: collapsed ? 0 : 60, opacity: collapsed ? 0 : 1 }}
+        style={{ maxHeight: collapsed ? 0 : 120, opacity: collapsed ? 0 : 1 }}
       >
         <AnnouncementBar onClose={() => setShowBar(false)} />
       </div>

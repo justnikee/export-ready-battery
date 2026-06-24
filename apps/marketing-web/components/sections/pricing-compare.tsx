@@ -39,11 +39,12 @@ export default function PricingCompare() {
           Feature Comparison
         </motion.h2>
 
+        <p className="sm:hidden text-[12px] text-[#64748d] mb-2">Swipe to see all plans →</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-[#e3e8ee]">
-                <th className="text-left text-[13px] font-medium text-[#0d253d] py-3 pr-4">
+                <th className="sticky left-0 bg-white text-left text-[13px] font-medium text-[#0d253d] py-3 pr-4">
                   Feature
                 </th>
                 <th className="text-center text-[13px] font-medium text-[#0d253d] py-3 px-4 w-[140px]">
@@ -63,7 +64,7 @@ export default function PricingCompare() {
                   key={row.feature}
                   className="border-b border-[#e3e8ee] hover:bg-[#f6f9fc] transition-colors"
                 >
-                  <td className="text-[13px] text-[#0d253d] py-3 pr-4">
+                  <td className="sticky left-0 bg-white text-[13px] text-[#0d253d] py-3 pr-4">
                     {row.feature}
                   </td>
                   <td className="text-center py-3 px-4">

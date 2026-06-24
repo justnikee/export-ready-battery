@@ -160,9 +160,9 @@ export default function Hero() {
                   <span className="w-[46px]" />
                 </div>
 
-                <div className="grid grid-cols-[180px_1fr]">
+                <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr]">
                   {/* Sidebar */}
-                  <div className="border-r border-crew-border px-3 py-4 bg-crew-paper-soft">
+                  <div className="hidden sm:block border-r border-crew-border px-3 py-4 bg-crew-paper-soft">
                     <div className="flex items-center gap-1.5 px-2 mb-5">
                       <span
                         className="w-3.5 h-3.5 rounded-[4px] bg-crew-coral"

@@ -21,7 +21,7 @@ export default function AnnouncementBar({ onClose }: { onClose?: () => void }) {
         <rect width="100%" height="100%" filter="url(#grain)" />
       </svg>
 
-      <span className="relative inline-flex items-center gap-2">
+      <span className="relative inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
         <span className="font-semibold">NEW:</span>
         <span>EU Battery Passport mandatory — 18 Feb 2027.</span>
         <a
