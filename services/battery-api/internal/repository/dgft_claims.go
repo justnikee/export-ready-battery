@@ -132,7 +132,7 @@ func (r *Repository) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID
 	return nil
 }
 
-func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) {
 	where := "tenant_id = $1"
 	args := []any{tenantID}
 	argIdx := 2
@@ -145,6 +145,11 @@ func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.U
 	if status != "" {
 		where += fmt.Sprintf(" AND status = $%d", argIdx)
 		args = append(args, status)
+		argIdx++
+	}
+	if search != "" {
+		where += fmt.Sprintf(" AND (hsn_code ILIKE $%d OR destination_country ILIKE $%d OR dgft_reference_no ILIKE $%d)", argIdx, argIdx, argIdx)
+		args = append(args, "%"+search+"%")
 		argIdx++
 	}
 

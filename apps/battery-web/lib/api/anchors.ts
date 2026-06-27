@@ -32,6 +32,29 @@ export async function getCertificateAnchors(
   return (response.data.anchors as CertificateAnchor[]) || [];
 }
 
+export interface CertificateAnchorWithBatch extends CertificateAnchor {
+  batch_name: string;
+}
+
+export interface TenantAnchorFilters {
+  certType?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getTenantCertificateAnchors(
+  filters: TenantAnchorFilters = {},
+): Promise<CertificateAnchorWithBatch[]> {
+  const params = new URLSearchParams();
+  if (filters.certType) params.set("cert_type", filters.certType);
+  if (filters.status) params.set("status", filters.status);
+  params.set("limit", String(filters.limit ?? 100));
+  params.set("offset", String(filters.offset ?? 0));
+  const response = await api.get(`/anchors?${params.toString()}`);
+  return (response.data.anchors as CertificateAnchorWithBatch[]) || [];
+}
+
 /**
  * Compute SHA-256 hash of a file in the browser using Web Crypto API.
  */

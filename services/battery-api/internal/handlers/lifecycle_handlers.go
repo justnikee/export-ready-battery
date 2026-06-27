@@ -317,6 +317,65 @@ func (h *LifecycleHandler) TransitionPassport(w http.ResponseWriter, r *http.Req
 	respondJSON(w, http.StatusOK, result)
 }
 
+// UndoTransitionRequest is the body for POST /api/v1/passports/{uuid}/undo-transition
+type UndoTransitionRequest struct {
+	AdminNote string `json:"admin_note"`
+}
+
+// UndoTransition handles POST /api/v1/passports/{uuid}/undo-transition
+// @Summary Undo the most recent lifecycle transition
+// @Description Admin-only, and only within 30 minutes of the transition being undone.
+// @Tags passports
+func (h *LifecycleHandler) UndoTransition(w http.ResponseWriter, r *http.Request) {
+	passportID, ok := h.requireOwnedPassportID(w, r)
+	if !ok {
+		return
+	}
+
+	var req UndoTransitionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	email := middleware.GetEmail(r.Context())
+	if email == "" {
+		respondError(w, http.StatusUnauthorized, "missing actor context")
+		return
+	}
+	internalRole, status, err := h.resolveInternalActorRole(r.Context())
+	if err != nil {
+		respondError(w, status, err.Error())
+		return
+	}
+
+	actorContext := models.ActorContext{
+		ActorType: models.ActorTypeUser,
+		ActorID:   email,
+		ActorRole: internalRole,
+		Source:    models.ActionSourceInternal,
+	}
+
+	result, err := h.service.UndoTransition(r.Context(), passportID, actorContext, req.AdminNote)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrUndoNotAdmin):
+			respondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, services.ErrUndoNoteRequired):
+			respondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, services.ErrUndoNoTransition):
+			respondError(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, services.ErrUndoWindowExpired), errors.Is(err, services.ErrUndoStatusChanged):
+			respondError(w, http.StatusConflict, err.Error())
+		default:
+			respondError(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, result)
+}
+
 // BulkLifecycleTransitionRequest represents a bulk lifecycle action request
 type BulkLifecycleTransitionRequest struct {
 	// PassportIDs is an explicit list of passport UUIDs to transition.
@@ -637,7 +696,6 @@ type TransferPassportRequest struct {
 // SOHUpdateRequest represents a state-of-health update request
 type SOHUpdateRequest struct {
 	StateOfHealth float64 `json:"state_of_health"`
-	Actor         string  `json:"actor,omitempty"`
 }
 
 type RepairEventRequest struct {
@@ -830,13 +888,9 @@ func (h *LifecycleHandler) UpdateStateOfHealth(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	actor := req.Actor
+	actor := middleware.GetEmail(r.Context())
 	if actor == "" {
-		if userEmail, ok := r.Context().Value("user_email").(string); ok {
-			actor = userEmail
-		} else {
-			actor = "system"
-		}
+		actor = "system"
 	}
 
 	if err := h.service.UpdateStateOfHealth(r.Context(), passportID, req.StateOfHealth, actor, "USER", "INTERNAL", getRequestIP(r)); err != nil {

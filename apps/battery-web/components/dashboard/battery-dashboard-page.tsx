@@ -8,8 +8,6 @@ import { formatDistanceToNow, format, parseISO } from "date-fns";
 import {
   Zap,
   AlertCircle,
-  QrCode,
-  FolderPlus,
   MoreHorizontal,
   ArrowRight,
   Trash2,
@@ -31,6 +29,9 @@ import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { ComplianceScoreCard } from "@/components/dashboard/ComplianceScoreCard";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getProductConfigByType } from "@/lib/products";
+import { ActionQueue, buildActionItems } from "@/components/dashboard/ActionQueue";
+import { RegulatoryDeadlines } from "@/components/dashboard/RegulatoryDeadlines";
+import { EPRObligationCard } from "@/components/dashboard/EPRObligationCard";
 
 const ProductionChart = dynamic(
   () =>
@@ -46,10 +47,6 @@ const BatchStatusChart = dynamic(
     ),
   { ssr: false },
 );
-const ScanMap = dynamic(
-  () => import("@/components/dashboard/ScanMap").then((mod) => mod.ScanMap),
-  { ssr: false },
-);
 
 interface DashboardStats {
   total_passports: number;
@@ -59,32 +56,6 @@ interface DashboardStats {
   quota_balance: number;
   passports_this_week: number;
   batches_by_status?: Record<string, number>;
-}
-
-interface ScanFeedItem {
-  id?: string;
-  batch_name?: string;
-  city?: string;
-  country?: string;
-  latitude?: number;
-  longitude?: number;
-  scanned_at: string;
-}
-
-interface ScanLocation {
-  city: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  scanned_at: string;
-}
-
-interface ActivityItem {
-  id: string;
-  type: "SCAN" | "BATCH";
-  title: string;
-  location: string;
-  time: string;
 }
 
 interface ChartPoint {
@@ -114,10 +85,6 @@ interface RecentBatchesResponse {
     status: string;
     market_region: string;
   }>;
-}
-
-interface ScansResponse {
-  scans?: ScanFeedItem[];
 }
 
 function getComplianceBadge(status: string | undefined) {
@@ -157,8 +124,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [batches, setBatches] = useState<BatchChartData[]>([]);
   const [recentBatches, setRecentBatches] = useState<RecentBatch[]>([]);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [scanLocations, setScanLocations] = useState<ScanLocation[]>([]);
+  const [staleDraftBatchCount, setStaleDraftBatchCount] = useState(0);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [batchToDelete, setBatchToDelete] = useState<string | null>(null);
@@ -167,6 +133,10 @@ export default function DashboardPage() {
   const complianceHref = dashboardPathFromPathname(pathname, "compliance");
   const billingHref = dashboardPathFromPathname(pathname, "billing");
   const teamHref = dashboardPathFromPathname(pathname, "team");
+  const lifecycleHref = dashboardPathFromPathname(pathname, "lifecycle");
+  const dgftClaimsHref = dashboardPathFromPathname(pathname, "dgft-claims");
+  const regulatoryHref = dashboardPathFromPathname(pathname, "regulatory");
+  const fleetHref = dashboardPathFromPathname(pathname, "fleet");
   const productConfig = getProductConfigByType(user?.product_type);
   const dashboardConfig = productConfig.dashboard;
 
@@ -203,6 +173,12 @@ export default function DashboardPage() {
         return settingsHref;
       case "team":
         return teamHref;
+      case "lifecycle":
+        return lifecycleHref;
+      case "dgft-claims":
+        return dgftClaimsHref;
+      case "fleet":
+        return fleetHref;
       default:
         return batchesHref;
     }
@@ -223,17 +199,17 @@ export default function DashboardPage() {
         api.get<RecentBatchesResponse>(`/batches/recent?limit=5`),
       ]);
 
-      // Fetch scans separately — non-critical, shouldn't break dashboard
-      let scansRes: { data: ScansResponse } = { data: { scans: [] } };
-      try {
-        scansRes = await api.get<ScansResponse>(`/scans/feed?limit=20`);
-      } catch (scanError) {
-        console.warn("Scan feed unavailable:", scanError);
-      }
-
       setStats(statsRes.data);
       const allBatches = batchesRes.data.batches || [];
       setBatches(allBatches);
+      const now = Date.now();
+      setStaleDraftBatchCount(
+        allBatches.filter((b) => {
+          if (b.status !== "DRAFT") return false;
+          const daysSinceCreated = (now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24);
+          return daysSinceCreated > 7;
+        }).length,
+      );
 
       // Chart Data
       const sortedAsc = [...allBatches].sort(
@@ -287,39 +263,6 @@ export default function DashboardPage() {
           }),
         })),
       );
-
-      // Store scan locations for the map
-      const scans = scansRes.data.scans || [];
-      setScanLocations(
-        scans.map((s) => ({
-          city: s.city || "Unknown",
-          country: s.country || "Unknown",
-          latitude: s.latitude ?? 0,
-          longitude: s.longitude ?? 0,
-          scanned_at: s.scanned_at,
-        })),
-      );
-
-      // Audit Log
-      const scanEvents: ActivityItem[] = scans.map((s) => ({
-        id: `scan-${s.id || Math.random()}`,
-        type: "SCAN",
-        title: `QR Scan: ${s.batch_name}`,
-        location: `${s.city || "Unknown"}, ${s.country || "Unknown"}`,
-        time: formatDistanceToNow(new Date(s.scanned_at), { addSuffix: true }),
-      }));
-      const batchEvents: ActivityItem[] = recent
-        .slice(0, 3)
-        .map((b) => ({
-          id: `batch-${b.id}`,
-          type: "BATCH",
-          title: `Batch Created: ${b.name || "Batch"}`,
-          location: b.market_region === "INDIA" ? "Local" : "EU Export",
-          time: formatDistanceToNow(new Date(b.created_at), {
-            addSuffix: true,
-          }),
-        }));
-      setActivities([...scanEvents, ...batchEvents].slice(0, 5));
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
       toast.error("Failed to load dashboard data. Please refresh the page.");
@@ -363,6 +306,22 @@ export default function DashboardPage() {
       const s = user?.[statusField]?.toUpperCase();
       return s === "PENDING" || s === "VERIFIED";
     }) ?? false;
+
+  // Action Queue inputs — staleDraftBatchCount comes from state (computed in
+  // fetchDashboardData, not here, since Date.now() must stay out of render).
+  const pendingCertCount =
+    dashboardConfig.compliance?.items.filter(
+      ({ statusField }) => user?.[statusField]?.toUpperCase() === "PENDING",
+    ).length ?? 0;
+  const actionItems = buildActionItems({
+    quotaBalance: stats?.quota_balance ?? 0,
+    quotaLimit: quotaLimit,
+    staleDraftBatchCount,
+    pendingCertCount,
+    billingHref,
+    batchesHref,
+    complianceSettingsHref: `${settingsHref}?tab=compliance`,
+  });
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -452,6 +411,14 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Section 2: Action Queue */}
+        <div className="relative bg-transparent border border-border rounded-none p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+            Needs Your Attention
+          </p>
+          <ActionQueue items={actionItems} />
+        </div>
 
         {dashboardConfig.compliance ? (
           <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -642,7 +609,7 @@ export default function DashboardPage() {
         {/* Section 5: Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Production Overview */}
-          <div className="relative lg:col-span-3 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
+          <div className="relative lg:col-span-2 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
               <h3 className="text-base font-medium text-foreground">
                 {dashboardConfig.trendTitle}
               </h3>
@@ -669,6 +636,9 @@ export default function DashboardPage() {
               />
             </div>
           </div>
+
+          {/* EPR Obligation */}
+          <EPRObligationCard complianceHref={complianceHref} />
         </div>
 
         {/* Section 6: Recent Batches + Audit Log */}
@@ -823,61 +793,8 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {/* Audit Log */}
-          <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
-              <h3 className="text-base font-medium text-foreground">
-                Audit Log
-              </h3>
-            </div>
-            <div className="divide-y divide-border">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="px-6 py-4 flex items-start gap-3 hover:bg-accent"
-                >
-                  <div
-                    className={`p-2 ${activity.type === "SCAN" ? "bg-emerald-500/10" : "bg-blue-500/10"}`}
-                  >
-                    {activity.type === "SCAN" ? (
-                      <QrCode className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <FolderPlus className="h-4 w-4 text-blue-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">
-                      {activity.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.location}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {activity.time}
-                  </span>
-                </div>
-              ))}
-              {activities.length === 0 && (
-                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
-                  No recent activity
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 7: Global Scan Activity */}
-        <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-medium text-foreground">
-                Global Scan Activity
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time QR code scans worldwide
-              </p>
-            </div>
-          </div>
-          <ScanMap scans={scanLocations} height={400} />
+          {/* Regulatory Deadlines */}
+          <RegulatoryDeadlines regulatoryHref={regulatoryHref} />
         </div>
       </div>
       {/* Confirmation Dialogs */}

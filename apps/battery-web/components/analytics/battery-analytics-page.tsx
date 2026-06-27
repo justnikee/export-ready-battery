@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/auth-context";
 import api from "@/lib/api";
+import { subscribeScanFeedStream } from "@/lib/scan-feed-stream";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScanStatsCard } from "@/components/analytics/ScanStatsCard";
 import { DeviceChart } from "@/components/analytics/DeviceChart";
@@ -23,10 +25,16 @@ import {
   AlertTriangle,
   Landmark,
   Package,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+
+const ScanMap = dynamic(
+  () => import("@/components/dashboard/ScanMap").then((mod) => mod.ScanMap),
+  { ssr: false },
+);
 
 interface ScanFeedItem {
   city: string;
@@ -34,6 +42,8 @@ interface ScanFeedItem {
   device_type: string;
   scanned_at: string;
   serial_number: string;
+  latitude?: number;
+  longitude?: number;
   batch_name: string;
 }
 
@@ -83,6 +93,37 @@ function toStatusItems(record: Record<string, number>): { name: string; value: n
   return Object.entries(record).map(([name, value]) => ({ name, value }));
 }
 
+// Single source of truth for the country/device/today breakdown — used by
+// both the initial fetch and each incremental update from the live SSE
+// stream, so the two can't compute it differently.
+function computeScanAggregates(scans: ScanFeedItem[]) {
+  const countryMap = new Map<string, number>();
+  const deviceMap = new Map<string, number>();
+  const today = new Date().toDateString();
+  let todayCount = 0;
+
+  scans.forEach((scan) => {
+    const country = scan.country || "Unknown";
+    countryMap.set(country, (countryMap.get(country) || 0) + 1);
+    const device = scan.device_type || "Unknown";
+    deviceMap.set(device, (deviceMap.get(device) || 0) + 1);
+    if (new Date(scan.scanned_at).toDateString() === today) {
+      todayCount++;
+    }
+  });
+
+  const countryBreakdown = Array.from(countryMap.entries())
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const deviceBreakdown = Array.from(deviceMap.entries())
+    .map(([device, count]) => ({ device, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { countryBreakdown, deviceBreakdown, todayScans: todayCount };
+}
+
 export default function AnalyticsPage() {
   const { user } = useAuth();
   const [scanLoading, setScanLoading] = useState(true);
@@ -115,37 +156,15 @@ export default function AnalyticsPage() {
     try {
       const response = await api.get(`/scans/feed?limit=50`);
       const scans: ScanFeedItem[] = response.data.scans || [];
-
-      const countryMap = new Map<string, number>();
-      const deviceMap = new Map<string, number>();
-      const today = new Date().toDateString();
-      let todayCount = 0;
-
-      scans.forEach((scan) => {
-        const country = scan.country || "Unknown";
-        countryMap.set(country, (countryMap.get(country) || 0) + 1);
-        const device = scan.device_type || "Unknown";
-        deviceMap.set(device, (deviceMap.get(device) || 0) + 1);
-        if (new Date(scan.scanned_at).toDateString() === today) {
-          todayCount++;
-        }
-      });
-
-      const countryBreakdown = Array.from(countryMap.entries())
-        .map(([country, count]) => ({ country, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-      const deviceBreakdown = Array.from(deviceMap.entries())
-        .map(([device, count]) => ({ device, count }))
-        .sort((a, b) => b.count - a.count);
+      const totalScans = response.data.total ?? response.data.total_count ?? scans.length;
+      const { countryBreakdown, deviceBreakdown, todayScans } = computeScanAggregates(scans);
 
       setScanData({
         scans,
-        totalScans: scans.length,
+        totalScans,
         countryBreakdown,
         deviceBreakdown,
-        todayScans: todayCount,
+        todayScans,
       });
     } catch {
       toast.error("Failed to load scan analytics");
@@ -186,12 +205,33 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchScanAnalytics();
     fetchComplianceAnalytics();
+    // Compliance analytics has no live-feed concept — keep it on a periodic refresh.
     const interval = setInterval(() => {
-      fetchScanAnalytics();
-      fetchComplianceAnalytics();
+      if (document.visibilityState === 'visible') {
+        fetchComplianceAnalytics();
+      }
     }, 30000);
     return () => clearInterval(interval);
   }, [fetchScanAnalytics, fetchComplianceAnalytics]);
+
+  // Live scan feed via SSE — replaces polling GET /scans/feed every 30s.
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = subscribeScanFeedStream((scan) => {
+      setScanData((prev) => {
+        const scans = [scan, ...prev.scans].slice(0, 50);
+        const { countryBreakdown, deviceBreakdown, todayScans } = computeScanAggregates(scans);
+        return {
+          scans,
+          totalScans: prev.totalScans + 1,
+          countryBreakdown,
+          deviceBreakdown,
+          todayScans,
+        };
+      });
+    });
+    return unsubscribe;
+  }, [user]);
 
   const uniqueCountries = scanData.countryBreakdown.length;
 
@@ -294,6 +334,27 @@ export default function AnalyticsPage() {
                         No scan data available yet
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-transparent border-border">
+                  <CardHeader>
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-emerald-500" />
+                      Global Scan Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScanMap
+                      scans={scanData.scans.map((s) => ({
+                        city: s.city || "Unknown",
+                        country: s.country || "Unknown",
+                        latitude: s.latitude ?? 0,
+                        longitude: s.longitude ?? 0,
+                        scanned_at: s.scanned_at,
+                      }))}
+                      height={320}
+                    />
                   </CardContent>
                 </Card>
 

@@ -697,6 +697,40 @@ func (r *Repository) ApplyLifecycleTransition(ctx context.Context, params models
 	return nil
 }
 
+// UndoLifecycleTransition reverts a passport to fromStatus's prior status
+// (toStatus) and appends a REVERSE_TRANSITION audit event — it never
+// deletes or mutates the event being reversed, preserving the full hash
+// chain. The status update is guarded by the same optimistic-concurrency
+// check as ApplyLifecycleTransition (WHERE status = fromStatus).
+func (r *Repository) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
+	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to begin undo transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := insertPassportEvent(ctx, tx, event); err != nil {
+		return err
+	}
+
+	tag, err := tx.Exec(ctx, `
+		UPDATE public.passports
+		SET status = $1
+		WHERE uuid = $2 AND status = $3 AND deleted_at IS NULL
+	`, toStatus, passportID, fromStatus)
+	if err != nil {
+		return fmt.Errorf("failed to revert passport status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("concurrent modification: passport %s status changed before undo could be applied", passportID)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit undo transaction: %w", err)
+	}
+	return nil
+}
+
 // UpdatePassportLifecycle updates lifecycle-specific fields
 func (r *Repository) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error {
 	query := `UPDATE public.passports 

@@ -42,6 +42,14 @@ func (c *chainTestRepo) GetPassportEvents(ctx context.Context, passportID uuid.U
 	return c.events[passportID], nil
 }
 
+func (c *chainTestRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
+	if err := c.fakeLifecycleRepo.UndoLifecycleTransition(ctx, passportID, fromStatus, toStatus, event); err != nil {
+		return err
+	}
+	c.events[passportID] = append(c.events[passportID], event)
+	return nil
+}
+
 // ============================================================================
 // Actor helpers
 // ============================================================================

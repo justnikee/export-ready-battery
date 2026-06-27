@@ -49,6 +49,9 @@ type Handler struct {
 
 	// Storage service for cloud file uploads (Supabase Storage)
 	storageService *services.StorageService
+
+	// Per-IP, per-passport hourly cap on public scan recording
+	scanRateLimiter *scanRateLimiter
 }
 
 // Option is a functional option for configuring a Handler.
@@ -122,6 +125,7 @@ func New(database *db.DB, baseURL string, geoDBPath string, razorpayKeyID, razor
 		dataAccessService: dataAccessService,
 		regulatorAPIKey:   regulatorAPIKey,
 		vcCryptoService:   vcCryptoService,
+		scanRateLimiter:   newScanRateLimiter(),
 	}
 
 	for _, opt := range opts {

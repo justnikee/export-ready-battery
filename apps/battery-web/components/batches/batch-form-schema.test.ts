@@ -29,7 +29,8 @@ interface FixtureCase {
   cellSource?: string;
   hsnCode?: string;
   salePrice?: number;
-  importCost?: number;
+  cellCostDomestic?: number;
+  cellCostImported?: number;
   pliCompliant?: boolean;
   dvaSource?: string;
   auditedDva?: number | null;
@@ -53,7 +54,8 @@ function buildFormData(tc: FixtureCase): BatchFormData {
     ...(tc.cellSource !== undefined && { cellSource: tc.cellSource as BatchFormData["cellSource"] }),
     ...(tc.hsnCode !== undefined && { hsnCode: tc.hsnCode }),
     ...(tc.salePrice !== undefined && { salePrice: String(tc.salePrice) }),
-    ...(tc.importCost !== undefined && { importCost: String(tc.importCost) }),
+    ...(tc.cellCostDomestic !== undefined && { cellCostDomestic: String(tc.cellCostDomestic) }),
+    ...(tc.cellCostImported !== undefined && { cellCostImported: String(tc.cellCostImported) }),
     ...(tc.pliCompliant !== undefined && { pliCompliant: tc.pliCompliant }),
     ...(tc.dvaSource !== undefined && { dvaSource: tc.dvaSource as BatchFormData["dvaSource"] }),
     ...(tc.auditedDva !== undefined && { auditedDva: tc.auditedDva === null ? "" : String(tc.auditedDva) }),

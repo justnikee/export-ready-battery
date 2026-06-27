@@ -47,6 +47,7 @@ type LifecycleRepository interface {
 	GetBatchMarketRegion(ctx context.Context, batchID uuid.UUID) (models.MarketRegion, error)
 	GetBatchTenantID(ctx context.Context, batchID uuid.UUID) (uuid.UUID, error)
 	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
+	UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error
 	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
 	UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, ownerIdentifier string) error
@@ -962,6 +963,126 @@ func (s *LifecycleService) CreateLifecycleEvents(ctx context.Context, passports 
 		return err
 	}
 	return s.repo.CreatePassportEventBatch(ctx, events)
+}
+
+// UndoTransitionWindow is how long after a lifecycle transition an admin can
+// still undo it — past this window the transition is considered final.
+const UndoTransitionWindow = 30 * time.Minute
+
+// ErrUndoNotAdmin is returned when a non-admin actor attempts to undo a transition.
+var ErrUndoNotAdmin = errors.New("only an admin can undo a lifecycle transition")
+
+// ErrUndoWindowExpired is returned when the 30-minute undo grace period has passed.
+var ErrUndoWindowExpired = errors.New("undo window has expired")
+
+// ErrUndoNoteRequired is returned when no admin note was supplied.
+var ErrUndoNoteRequired = errors.New("admin_note is required to undo a transition")
+
+// ErrUndoNoTransition is returned when the passport has no transition to undo.
+var ErrUndoNoTransition = errors.New("no lifecycle transition found to undo")
+
+// ErrUndoStatusChanged is returned when the passport's status no longer
+// matches what the last transition produced — something else has happened
+// to it since, so an automatic undo could silently clobber that.
+var ErrUndoStatusChanged = errors.New("passport status has changed since the last transition; cannot safely undo")
+
+// UndoTransition reverses the most recent lifecycle transition for a
+// passport, provided it happened within UndoTransitionWindow and the actor
+// is an admin. It never deletes or mutates the original event — it appends
+// a new REVERSE_TRANSITION event chained off the latest event's hash,
+// preserving full audit history exactly as it happened.
+func (s *LifecycleService) UndoTransition(ctx context.Context, passportID uuid.UUID, actorCtx models.ActorContext, adminNote string) (*TransitionResult, error) {
+	if actorCtx.ActorRole != models.ActorRoleAdmin {
+		return nil, ErrUndoNotAdmin
+	}
+	if strings.TrimSpace(adminNote) == "" {
+		return nil, ErrUndoNoteRequired
+	}
+
+	passport, err := s.repo.GetPassportByUUID(ctx, passportID)
+	if err != nil {
+		return nil, err
+	}
+
+	events, err := s.repo.GetPassportEvents(ctx, passportID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load passport events: %w", err)
+	}
+
+	// Find the most recent transition event — skip SCANNED/etc., which carry no Action.
+	var lastTransition *models.PassportEvent
+	for i := len(events) - 1; i >= 0; i-- {
+		if events[i].Action != "" {
+			lastTransition = events[i]
+			break
+		}
+	}
+	if lastTransition == nil {
+		return nil, ErrUndoNoTransition
+	}
+	if time.Since(lastTransition.CreatedAt) > UndoTransitionWindow {
+		return nil, ErrUndoWindowExpired
+	}
+	if lastTransition.StatusTo != passport.Status {
+		return nil, ErrUndoStatusChanged
+	}
+
+	previousHash := events[len(events)-1].Hash
+	now := time.Now()
+	restoredStatus := lastTransition.StatusFrom
+
+	event := &models.PassportEvent{
+		ID:         uuid.New(),
+		PassportID: passportID,
+		EventType:  models.PassportEventReverseTransition,
+		Actor:      actorCtx.ActorID,
+		ActorType:  string(actorCtx.ActorType),
+		ActorRole:  actorCtx.ActorRole,
+		ActorID:    actorCtx.ActorID,
+		Source:     string(actorCtx.Source),
+		StatusFrom: passport.Status,
+		StatusTo:   restoredStatus,
+		Metadata: map[string]interface{}{
+			"admin_note":        adminNote,
+			"reversed_event_id": lastTransition.ID.String(),
+			"reversed_action":   string(lastTransition.Action),
+		},
+		CreatedAt:    now,
+		PreviousHash: previousHash,
+	}
+
+	hashData := EventHashData{
+		ID:           event.ID,
+		PassportID:   event.PassportID,
+		EventType:    event.EventType,
+		Action:       string(event.Action),
+		Actor:        event.Actor,
+		ActorType:    event.ActorType,
+		ActorRole:    string(event.ActorRole),
+		ActorID:      event.ActorID,
+		Source:       event.Source,
+		StatusFrom:   event.StatusFrom,
+		StatusTo:     event.StatusTo,
+		IPAddress:    event.IPAddress,
+		Metadata:     event.Metadata,
+		CreatedAt:    event.CreatedAt,
+		PreviousHash: previousHash,
+	}
+	if hash, err := GenerateEventHash(hashData); err == nil {
+		event.Hash = hash
+	}
+
+	if err := s.repo.UndoLifecycleTransition(ctx, passportID, passport.Status, restoredStatus, event); err != nil {
+		return nil, fmt.Errorf("failed to undo transition: %w", err)
+	}
+
+	return &TransitionResult{
+		Success:        true,
+		PreviousStatus: passport.Status,
+		NewStatus:      restoredStatus,
+		Action:         string(lastTransition.Action),
+		EventID:        event.ID,
+	}, nil
 }
 
 // VerifyPassportAuditChain verifies the integrity of a passport's event chain

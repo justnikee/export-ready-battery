@@ -10,12 +10,15 @@ import {
   Shield,
   Link2,
   Lock,
+  PackageSearch,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DownloadsTabProps {
   isDraft: boolean;
   isEU: boolean;
+  isIndia: boolean;
   isGlobal: boolean;
   hasCarbonFootprint: boolean;
   onPrintLabels: () => void;
@@ -25,6 +28,8 @@ interface DownloadsTabProps {
   onDownloadComplianceReport: () => void;
   onExportComplianceDeclaration: () => void;
   onExportDueDiligence: () => void;
+  onExportEPCIS: () => void;
+  onExportDVAReport: () => void;
 }
 
 function DownloadCard({
@@ -86,6 +91,7 @@ function Section({
 export function DownloadsTab({
   isDraft,
   isEU,
+  isIndia,
   isGlobal,
   hasCarbonFootprint,
   onPrintLabels,
@@ -95,6 +101,8 @@ export function DownloadsTab({
   onDownloadComplianceReport,
   onExportComplianceDeclaration,
   onExportDueDiligence,
+  onExportEPCIS,
+  onExportDVAReport,
 }: DownloadsTabProps) {
   const draftLock = "Activate batch to unlock downloads";
 
@@ -181,6 +189,28 @@ export function DownloadsTab({
           description="Full audit trail for this batch"
           onClick={onExportAuditCSV}
         />
+        {(isEU || isGlobal) && (
+          <DownloadCard
+            icon={<PackageSearch className="h-4 w-4 text-blue-500" />}
+            label="EPCIS Events"
+            format="JSON-LD"
+            description="GS1 EPCIS 2.0 traceability document — required by some EU buyers per shipment"
+            onClick={onExportEPCIS}
+            disabled={isDraft}
+            disabledReason={draftLock}
+          />
+        )}
+        {(isIndia || isGlobal) && (
+          <DownloadCard
+            icon={<Calculator className="h-4 w-4 text-violet-500" />}
+            label="DVA Calculation"
+            format="PDF"
+            description="CA-ready PLI DVA calculation breakdown and compliance status"
+            onClick={onExportDVAReport}
+            disabled={isDraft}
+            disabledReason={draftLock}
+          />
+        )}
       </Section>
     </div>
   );

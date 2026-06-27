@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   Loader2,
   ChevronDown,
+  Link2,
 } from "lucide-react";
 import {
   listCertificates,
@@ -38,8 +39,10 @@ import {
 } from "@/lib/api/compliance";
 import { useAuth } from "@/context/auth-context";
 import { dashboardPathFromPathname } from "@/lib/routes";
+import AnchorsTab from "@/components/settings/compliance-anchors-tab";
+import { CertExpiryBanner } from "@/components/settings/CertExpiryBanner";
 
-type Tab = "overview" | "certificates" | "bis" | "export" | "eu";
+type Tab = "overview" | "certificates" | "bis" | "export" | "eu" | "anchors";
 
 // ============================================================================
 // MAIN PAGE
@@ -62,6 +65,7 @@ export default function CompliancePage() {
     { id: "bis", label: "BIS Tracker", icon: Shield },
     { id: "export", label: "CPCB Export", icon: FileSpreadsheet },
     { id: "eu", label: "EU Regulation", icon: CheckCircle2 },
+    { id: "anchors", label: "Blockchain Anchors", icon: Link2 },
   ];
 
   return (
@@ -70,7 +74,7 @@ export default function CompliancePage() {
         {/* Page Header */}
         <div>
           <h1 className="text-2xl text-foreground tracking-tight">
-            India Compliance Hub
+            India Compliance
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             BIS, EPR &amp; PLI compliance tracking for Indian battery
@@ -99,6 +103,9 @@ export default function CompliancePage() {
             </div>
           </div>
         )}
+
+        {/* Certificate Expiry Warning */}
+        <CertExpiryBanner />
 
         {/* India Compliance Readiness */}
         <div className="relative bg-transparent border border-border p-5"><div className="flex items-center justify-between mb-4">
@@ -200,6 +207,7 @@ export default function CompliancePage() {
         {activeTab === "bis" && <BISTrackerTab />}
         {activeTab === "export" && <ExportTab />}
         {activeTab === "eu" && <EURegulationTab />}
+        {activeTab === "anchors" && <AnchorsTab />}
       </div>
     </div>
   );

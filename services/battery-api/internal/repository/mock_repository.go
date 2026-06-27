@@ -270,6 +270,14 @@ func (m *MockRepository) GetOutboundWebhookByID(ctx context.Context, id, tenantI
 	return args.Get(0).(*models.OutboundWebhook), args.Error(1)
 }
 
+func (m *MockRepository) GetOutboundWebhookByIDAny(ctx context.Context, id uuid.UUID) (*models.OutboundWebhook, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.OutboundWebhook), args.Error(1)
+}
+
 func (m *MockRepository) GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error) {
 	args := m.Called(ctx, tenantID, eventType)
 	if args.Get(0) == nil {
@@ -291,6 +299,40 @@ func (m *MockRepository) UpdateWebhookLastTriggered(ctx context.Context, id uuid
 func (m *MockRepository) DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error {
 	args := m.Called(ctx, id, tenantID)
 	return args.Error(0)
+}
+
+func (m *MockRepository) CreateWebhookDelivery(ctx context.Context, d *models.WebhookDelivery) error {
+	args := m.Called(ctx, d)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateWebhookDeliveryResult(ctx context.Context, id uuid.UUID, responseStatus *int, responseBody string, deliveredAt *time.Time, retryCount int, errorMessage string) error {
+	args := m.Called(ctx, id, responseStatus, responseBody, deliveredAt, retryCount, errorMessage)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetWebhookDeliveriesByWebhook(ctx context.Context, webhookID uuid.UUID, limit int) ([]*models.WebhookDelivery, error) {
+	args := m.Called(ctx, webhookID, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.WebhookDelivery), args.Error(1)
+}
+
+func (m *MockRepository) GetWebhookDeliveryByID(ctx context.Context, id uuid.UUID) (*models.WebhookDelivery, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.WebhookDelivery), args.Error(1)
+}
+
+func (m *MockRepository) GetFailedDeliveriesForRetry(ctx context.Context, maxRetries, limit int) ([]*models.WebhookDelivery, error) {
+	args := m.Called(ctx, maxRetries, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.WebhookDelivery), args.Error(1)
 }
 
 func (m *MockRepository) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error {
@@ -527,6 +569,11 @@ func (m *MockRepository) ApplyLifecycleTransition(ctx context.Context, params mo
 	return args.Error(0)
 }
 
+func (m *MockRepository) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
+	args := m.Called(ctx, passportID, fromStatus, toStatus, event)
+	return args.Error(0)
+}
+
 func (m *MockRepository) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error {
 	args := m.Called(ctx, passport)
 	return args.Error(0)
@@ -677,6 +724,14 @@ func (m *MockRepository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, li
 	return args.Get(0).([]*models.ScanFeedItem), args.Error(1)
 }
 
+func (m *MockRepository) GetScanFeedSince(ctx context.Context, tenantID uuid.UUID, since time.Time, limit int) ([]*models.ScanFeedItem, error) {
+	args := m.Called(ctx, tenantID, since, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.ScanFeedItem), args.Error(1)
+}
+
 func (m *MockRepository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
 	args := m.Called(ctx, tenantID)
 	if args.Get(0) == nil {
@@ -699,6 +754,46 @@ func (m *MockRepository) GetAnalyticsOverview(ctx context.Context, tenantID uuid
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.AnalyticsOverview), args.Error(1)
+}
+
+func (m *MockRepository) GetFleetStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*FleetStats, error) {
+	args := m.Called(ctx, tenantID, productType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*FleetStats), args.Error(1)
+}
+
+func (m *MockRepository) GetWorstHealthPassports(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit int) ([]FleetPassportHealth, error) {
+	args := m.Called(ctx, tenantID, productType, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]FleetPassportHealth), args.Error(1)
+}
+
+func (m *MockRepository) GetFleetLifecycleEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]FleetLifecycleEvent, error) {
+	args := m.Called(ctx, tenantID, productType, since, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]FleetLifecycleEvent), args.Error(1)
+}
+
+func (m *MockRepository) GetFleetGeoLocations(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) ([]FleetGeoLocation, error) {
+	args := m.Called(ctx, tenantID, productType)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]FleetGeoLocation), args.Error(1)
+}
+
+func (m *MockRepository) GetFleetThermalEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]FleetThermalEvent, error) {
+	args := m.Called(ctx, tenantID, productType, since, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]FleetThermalEvent), args.Error(1)
 }
 
 // ============================================================================
@@ -1188,6 +1283,14 @@ func (m *MockRepository) GetCertificateAnchorsByBatch(ctx context.Context, batch
 	return args.Get(0).([]*models.CertificateAnchor), args.Error(1)
 }
 
+func (m *MockRepository) GetCertificateAnchorsByTenant(ctx context.Context, tenantID uuid.UUID, certType, status string, limit, offset int) ([]*CertificateAnchorWithBatch, error) {
+	args := m.Called(ctx, tenantID, certType, status, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*CertificateAnchorWithBatch), args.Error(1)
+}
+
 func (m *MockRepository) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
@@ -1460,8 +1563,8 @@ func (m *MockRepository) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.
 	return args.Error(0)
 }
 
-func (m *MockRepository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
-	args := m.Called(ctx, tenantID, schemeType, status, page, pageSize)
+func (m *MockRepository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+	args := m.Called(ctx, tenantID, schemeType, status, search, page, pageSize)
 	if args.Get(0) == nil {
 		return nil, args.Int(1), args.Error(2)
 	}

@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { WebhooksSection } from "@/components/developer/WebhooksSection";
 
 interface APIKey {
   id: string;
@@ -789,6 +790,9 @@ export default function DeveloperPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Webhooks */}
+        <WebhooksSection />
 
         {/* External API Documentation Link */}
         <Card className="bg-popover border-border">

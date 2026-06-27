@@ -75,6 +75,18 @@ func (f *fakeLifecycleRepo) ApplyLifecycleTransition(ctx context.Context, params
 	return nil
 }
 
+func (f *fakeLifecycleRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
+	passport, ok := f.passports[passportID]
+	if !ok {
+		return errors.New("passport not found")
+	}
+	if passport.Status != fromStatus {
+		return errors.New("concurrent modification: passport status changed before undo could be applied")
+	}
+	passport.Status = toStatus
+	return nil
+}
+
 func (f *fakeLifecycleRepo) UpdatePassportStatus(ctx context.Context, passportID uuid.UUID, status string) error {
 	passport, ok := f.passports[passportID]
 	if !ok {

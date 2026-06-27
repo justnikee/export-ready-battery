@@ -138,6 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const routes = productRoutes(user?.product_type);
     await authApi.logout(); // revokes JTI server-side, clears localStorage + cookie
     clearProductCookies();
+    // Defense in depth: dispatch's pending-scan cache is sessionStorage-scoped
+    // now, but clear any leftover localStorage entry from before that change
+    // (and sessionStorage, in case logout happens without closing the tab).
+    localStorage.removeItem("dispatch_pending_items");
+    sessionStorage.removeItem("dispatch_pending_items");
     setUser(null);
     router.push(routes.login);
   };

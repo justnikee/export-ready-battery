@@ -131,10 +131,16 @@ func (f *fakeTeamRepo) GetFactorsByCategory(ctx context.Context, category string
 func (f *fakeTeamRepo) CreateOutboundWebhook(ctx context.Context, wh *models.OutboundWebhook) error { return nil }
 func (f *fakeTeamRepo) ListOutboundWebhooks(ctx context.Context, tenantID uuid.UUID) ([]*models.OutboundWebhook, error) { return nil, nil }
 func (f *fakeTeamRepo) GetOutboundWebhookByID(ctx context.Context, id, tenantID uuid.UUID) (*models.OutboundWebhook, error) { return nil, nil }
+func (f *fakeTeamRepo) GetOutboundWebhookByIDAny(ctx context.Context, id uuid.UUID) (*models.OutboundWebhook, error) { return nil, nil }
 func (f *fakeTeamRepo) GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error) { return nil, nil }
 func (f *fakeTeamRepo) IncrementWebhookFailure(ctx context.Context, id uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) UpdateWebhookLastTriggered(ctx context.Context, id uuid.UUID, at time.Time) error { return nil }
 func (f *fakeTeamRepo) DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
+func (f *fakeTeamRepo) CreateWebhookDelivery(ctx context.Context, d *models.WebhookDelivery) error { return nil }
+func (f *fakeTeamRepo) UpdateWebhookDeliveryResult(ctx context.Context, id uuid.UUID, responseStatus *int, responseBody string, deliveredAt *time.Time, retryCount int, errorMessage string) error { return nil }
+func (f *fakeTeamRepo) GetWebhookDeliveriesByWebhook(ctx context.Context, webhookID uuid.UUID, limit int) ([]*models.WebhookDelivery, error) { return nil, nil }
+func (f *fakeTeamRepo) GetWebhookDeliveryByID(ctx context.Context, id uuid.UUID) (*models.WebhookDelivery, error) { return nil, nil }
+func (f *fakeTeamRepo) GetFailedDeliveriesForRetry(ctx context.Context, maxRetries, limit int) ([]*models.WebhookDelivery, error) { return nil, nil }
 func (f *fakeTeamRepo) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error { return nil }
 func (f *fakeTeamRepo) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) { return nil, nil }
 func (f *fakeTeamRepo) ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error) { return nil, 0, nil }
@@ -198,6 +204,7 @@ func (f *fakeTeamRepo) FindDuplicateSerials(ctx context.Context, serials []strin
 func (f *fakeTeamRepo) GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error { return nil }
 func (f *fakeTeamRepo) ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error { return nil }
+func (f *fakeTeamRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error { return nil }
 func (f *fakeTeamRepo) UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error { return nil }
 func (f *fakeTeamRepo) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error { return nil }
 func (f *fakeTeamRepo) GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error) { return nil, nil }
@@ -223,6 +230,7 @@ func (f *fakeTeamRepo) GetRewardHistory(ctx context.Context, tenantID uuid.UUID,
 func (f *fakeTeamRepo) CreateScanEvent(ctx context.Context, event *models.ScanEvent) error { return nil }
 func (f *fakeTeamRepo) GetLastScanTime(ctx context.Context, passportID uuid.UUID) (*time.Time, error) { return nil, nil }
 func (f *fakeTeamRepo) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error) { return nil, nil }
+func (f *fakeTeamRepo) GetScanFeedSince(ctx context.Context, tenantID uuid.UUID, since time.Time, limit int) ([]*models.ScanFeedItem, error) { return nil, nil }
 func (f *fakeTeamRepo) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) { return nil, nil }
 func (f *fakeTeamRepo) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchSummary, error) { return nil, nil }
 func (f *fakeTeamRepo) GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error) {
@@ -231,6 +239,21 @@ func (f *fakeTeamRepo) GetAnalyticsOverview(ctx context.Context, tenantID uuid.U
 		SupplierDocStatus:      make(map[string]int),
 		AlertSeverityBreakdown: make(map[string]int),
 	}, nil
+}
+func (f *fakeTeamRepo) GetFleetStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*repository.FleetStats, error) {
+	return &repository.FleetStats{}, nil
+}
+func (f *fakeTeamRepo) GetWorstHealthPassports(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit int) ([]repository.FleetPassportHealth, error) {
+	return nil, nil
+}
+func (f *fakeTeamRepo) GetFleetLifecycleEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]repository.FleetLifecycleEvent, error) {
+	return nil, nil
+}
+func (f *fakeTeamRepo) GetFleetGeoLocations(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) ([]repository.FleetGeoLocation, error) {
+	return nil, nil
+}
+func (f *fakeTeamRepo) GetFleetThermalEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]repository.FleetThermalEvent, error) {
+	return nil, nil
 }
 func (f *fakeTeamRepo) CreateRegistryVerification(ctx context.Context, v *models.RegistryVerification) error { return nil }
 func (f *fakeTeamRepo) GetRegistryVerificationsByBatch(ctx context.Context, batchID uuid.UUID) ([]models.RegistryVerification, error) { return nil, nil }
@@ -335,6 +358,7 @@ func (f *fakeTeamRepo) ListPassportDocuments(ctx context.Context, passportID, te
 
 func (f *fakeTeamRepo) CreateCertificateAnchor(ctx context.Context, anchor *models.CertificateAnchor) error { return nil }
 func (f *fakeTeamRepo) GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error) { return nil, nil }
+func (f *fakeTeamRepo) GetCertificateAnchorsByTenant(ctx context.Context, tenantID uuid.UUID, certType, status string, limit, offset int) ([]*repository.CertificateAnchorWithBatch, error) { return nil, nil }
 func (f *fakeTeamRepo) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error { return nil }
 
@@ -775,7 +799,7 @@ func (f *fakeTeamRepo) CreateDGFTClaim(ctx context.Context, claim *models.DGFTCl
 func (f *fakeTeamRepo) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
 func (f *fakeTeamRepo) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
-func (f *fakeTeamRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) { return nil, 0, nil }
+func (f *fakeTeamRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) { return nil, 0, nil }
 func (f *fakeTeamRepo) SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) AddDGFTClaimDocument(ctx context.Context, id, tenantID uuid.UUID, doc models.DGFTClaimDocument) error { return nil }
 

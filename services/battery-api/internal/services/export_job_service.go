@@ -335,6 +335,8 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 		data, contentType, err = s.generateAuditCSV(ctx, job.BatchID)
 	case models.ExportJobTypeAuditPDF:
 		data, contentType, err = s.generateAuditPDF(ctx, job.BatchID, batch, tenant)
+	case models.ExportJobTypeEPCIS:
+		data, contentType, err = s.generateEPCIS(ctx, job.BatchID, passports)
 	default:
 		err = fmt.Errorf("unknown job type: %s", job.JobType)
 	}
@@ -627,4 +629,66 @@ func (s *ExportJobService) generateAuditCSV(ctx context.Context, batchID uuid.UU
 func (s *ExportJobService) generateAuditPDF(ctx context.Context, batchID uuid.UUID, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
 	data, err := s.auditExportService.ExportAuditTrailPDF(ctx, batchID, batch, tenant)
 	return data, "application/pdf", err
+}
+
+// generateEPCIS builds one combined GS1 EPCIS 2.0 JSON-LD document covering
+// every passport in the batch — the EU buyer per-shipment requirement
+// (one file per batch shipment, not one file per passport).
+func (s *ExportJobService) generateEPCIS(ctx context.Context, batchID uuid.UUID, passports []*models.Passport) ([]byte, string, error) {
+	eventsByPassport, err := s.getEventsByPassportForBatch(ctx, batchID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	doc := BuildBulkEPCISDocument(passports, eventsByPassport)
+	data, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal EPCIS document: %w", err)
+	}
+	return data, "application/ld+json", nil
+}
+
+// getEventsByPassportForBatch fetches every passport_events row for the
+// batch, grouped by passport_id, in the structured *models.PassportEvent
+// shape the EPCIS builder needs (distinct from AuditExportService's
+// flattened AuditEventRow, which is shaped for CSV/PDF columns instead).
+func (s *ExportJobService) getEventsByPassportForBatch(ctx context.Context, batchID uuid.UUID) (map[uuid.UUID][]*models.PassportEvent, error) {
+	query := `SELECT e.id, e.passport_id, e.event_type, COALESCE(e.action, ''), e.actor,
+	                 COALESCE(e.actor_type, ''), COALESCE(e.actor_role, ''), COALESCE(e.actor_identifier, ''), COALESCE(e.source, ''),
+	                 COALESCE(e.status_from, ''), COALESCE(e.status_to, ''), COALESCE(e.ip_address, ''),
+	                 e.metadata, e.created_at, COALESCE(e.hash, ''), COALESCE(e.previous_hash, '')
+	          FROM public.passport_events e
+	          JOIN public.passports p ON p.uuid = e.passport_id
+	          WHERE p.batch_id = $1
+	          ORDER BY e.passport_id, e.created_at ASC, e.id ASC`
+
+	rows, err := s.db.Query(ctx, query, batchID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get batch events: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID][]*models.PassportEvent)
+	for rows.Next() {
+		event := &models.PassportEvent{}
+		var metadataJSON []byte
+		if err := rows.Scan(
+			&event.ID, &event.PassportID, &event.EventType, &event.Action, &event.Actor,
+			&event.ActorType, &event.ActorRole, &event.ActorID, &event.Source,
+			&event.StatusFrom, &event.StatusTo, &event.IPAddress,
+			&metadataJSON, &event.CreatedAt, &event.Hash, &event.PreviousHash,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
+		}
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &event.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal event metadata: %w", err)
+			}
+		}
+		result[event.PassportID] = append(result[event.PassportID], event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating batch events: %w", err)
+	}
+	return result, nil
 }

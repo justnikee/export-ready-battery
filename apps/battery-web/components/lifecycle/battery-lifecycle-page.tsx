@@ -206,39 +206,6 @@ const MAINTENANCE_ENDPOINTS: Record<MaintenanceAction, string> = {
 
 const PAGE_SIZE = 50;
 
-type DashboardActorRole = "ADMIN" | "INTERNAL_OPERATOR" | null;
-
-function resolveDashboardActorRole(role?: string): DashboardActorRole {
-  switch ((role || "").toUpperCase()) {
-    case "OWNER":
-    case "ADMIN":
-      return "ADMIN";
-    case "MEMBER":
-      return "INTERNAL_OPERATOR";
-    default:
-      return null;
-  }
-}
-
-function getAllowedLifecycleActions(
-  status: string,
-  role: DashboardActorRole,
-): string[] {
-  if (!role) return [];
-
-  switch (status) {
-    case "CREATED":
-      return ["ACTIVATE"];
-    case "ACTIVE":
-      return role === "ADMIN" ? ["SHIP", "RECALL"] : ["SHIP"];
-    case "SHIPPED":
-    case "IN_SERVICE":
-      return role === "ADMIN" ? ["RECALL"] : [];
-    default:
-      return [];
-  }
-}
-
 function SoHBar({ value }: { value: number }) {
   const color =
     value >= 80
@@ -307,7 +274,7 @@ function LifecycleTableSkeleton() {
 export default function LifecyclePage() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const dashboardRole = resolveDashboardActorRole(user?.role);
+  const isAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
 
   // Data
   const [passports, setPassports] = useState<PassportSummary[]>([]);
@@ -358,6 +325,12 @@ export default function LifecyclePage() {
     action: string;
   } | null>(null);
   const [rowEvidence, setRowEvidence] = useState<Record<string, string>>({});
+
+  // Undo last transition (admin-only, 30-minute grace window — enforced server-side)
+  const [undoTarget, setUndoTarget] = useState<PassportSummary | null>(null);
+  const [undoNote, setUndoNote] = useState("");
+  const [undoing, setUndoing] = useState(false);
+
   const [maintenanceAction, setMaintenanceAction] = useState<{
     passport: PassportSummary;
     action: MaintenanceAction;
@@ -503,25 +476,49 @@ export default function LifecyclePage() {
     return () => controller.abort();
   }, [fetchPassports]);
 
+  // Allowed actions per status come from the backend (the same source the
+  // bulk select-all flow already used below) rather than a duplicated local
+  // state machine, so role/status rules never drift between the two.
   useEffect(() => {
     if (passports.length === 0) {
       setAllowedActionsByPassport({});
       return;
     }
 
-    const nextAllowedActions = passports.reduce<Record<string, string[]>>(
-      (accumulator, passport) => {
-        accumulator[passport.uuid] = getAllowedLifecycleActions(
-          passport.status,
-          dashboardRole,
-        );
-        return accumulator;
-      },
-      {},
-    );
+    const controller = new AbortController();
+    const uniqueStatuses = Array.from(new Set(passports.map((p) => p.status)));
 
-    setAllowedActionsByPassport(nextAllowedActions);
-  }, [dashboardRole, passports]);
+    Promise.all(
+      uniqueStatuses.map((status) =>
+        api
+          .get<BulkAllowedActionsResponse>(
+            `/passports/bulk/allowed-actions?status=${encodeURIComponent(status)}`,
+            { signal: controller.signal },
+          )
+          .then((res): [string, string[]] => [status, res.data.allowed_actions || []])
+          .catch((err): [string, string[]] => {
+            if (axios.isCancel(err)) throw err;
+            return [status, []];
+          }),
+      ),
+    )
+      .then((entries) => {
+        const actionsByStatus = new Map(entries);
+        const nextAllowedActions = passports.reduce<Record<string, string[]>>(
+          (accumulator, passport) => {
+            accumulator[passport.uuid] = actionsByStatus.get(passport.status) || [];
+            return accumulator;
+          },
+          {},
+        );
+        setAllowedActionsByPassport(nextAllowedActions);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+      });
+
+    return () => controller.abort();
+  }, [passports]);
 
   useEffect(() => {
     if (!selectAllMode) {
@@ -867,6 +864,32 @@ export default function LifecyclePage() {
       toast.error(apiErr?.response?.data?.error || "Transition failed");
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // ─── Undo last transition ──────────────────────────────────────────────
+  const handleUndoTransition = async () => {
+    if (!undoTarget) return;
+    if (!undoNote.trim()) {
+      toast.error("Admin note is required");
+      return;
+    }
+    setUndoing(true);
+    try {
+      await api.post(`/passports/${undoTarget.uuid}/undo-transition`, {
+        admin_note: undoNote.trim(),
+      });
+      toast.success(
+        `Undid last transition for ${undoTarget.serial_number || undoTarget.uuid.slice(0, 8)}`,
+      );
+      setUndoTarget(null);
+      setUndoNote("");
+      fetchPassports();
+    } catch (error: unknown) {
+      const apiErr = error as { response?: { data?: { error?: string } } };
+      toast.error(apiErr?.response?.data?.error || "Failed to undo transition");
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -1239,6 +1262,18 @@ export default function LifecyclePage() {
                                   <Search className="h-3.5 w-3.5" />
                                   View events
                                 </DropdownMenuItem>
+                                {isAdmin && p.status !== "CREATED" && (
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      setUndoTarget(p);
+                                      setUndoNote("");
+                                    }}
+                                    className="flex items-center gap-2 text-amber-600 focus:text-amber-600"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Undo last transition
+                                  </DropdownMenuItem>
+                                )}
                                 {p.status === "IN_SERVICE" && (
                                   <>
                                     <DropdownMenuSeparator />
@@ -1681,6 +1716,69 @@ export default function LifecyclePage() {
                 <ArrowRight className="h-4 w-4" />
               )}
               Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!undoTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUndoTarget(null);
+            setUndoNote("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Undo last transition:{" "}
+              {undoTarget?.serial_number || undoTarget?.uuid.slice(0, 12)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              This reverts the passport to its status before the most recent
+              transition. Only allowed within 30 minutes of that transition.
+              The original event is kept — a new REVERSE_TRANSITION audit
+              event is appended, not a deletion.
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Admin Note <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={2}
+                maxLength={500}
+                placeholder="Why is this being undone? (required, max 500 chars)"
+                value={undoNote}
+                onChange={(e) => setUndoNote(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setUndoTarget(null);
+                setUndoNote("");
+              }}
+              className="px-3 py-1.5 text-sm border border-border hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUndoTransition}
+              disabled={undoing || !undoNote.trim()}
+              className="px-3 py-1.5 text-sm bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {undoing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              Undo Transition
             </button>
           </DialogFooter>
         </DialogContent>

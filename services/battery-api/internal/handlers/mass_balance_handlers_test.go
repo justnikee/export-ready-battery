@@ -163,6 +163,29 @@ func TestCreateMassBalanceLedger_Success(t *testing.T) {
 	}
 }
 
+func TestCreateMassBalanceLedger_Manganese_Success(t *testing.T) {
+	repo := newFakeMassBalanceRepo()
+	tenantID := uuid.New()
+	repo.seedTenant(&models.Tenant{ID: tenantID})
+
+	handler := newTeamHandler(repo)
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"material_type": "manganese",
+		"incoming_kg":   500,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/mass-balance/ledgers", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = setAuthContext(req, tenantID, "user@example.com", models.ProductTypeBattery)
+
+	rr := httptest.NewRecorder()
+	handler.CreateMassBalanceLedger(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for manganese ledger, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestCreateMassBalanceLedger_InvalidMaterial(t *testing.T) {
 	repo := newFakeMassBalanceRepo()
 	tenantID := uuid.New()

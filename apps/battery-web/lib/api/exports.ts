@@ -5,7 +5,7 @@ export interface ExportJob {
     id: string;
     batch_id: string;
     batch_name: string;
-    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF';
+    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF' | 'EPCIS';
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
     passport_count: number;
     file_size_bytes?: number;
@@ -26,7 +26,7 @@ export interface ExportJobListResponse {
 
 export interface CreateExportJobRequest {
     batch_id: string;
-    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF';
+    job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF' | 'EPCIS';
 }
 
 // Create a new async export job
@@ -76,6 +76,7 @@ export const formatJobType = (type: ExportJob['job_type']): string => {
         case 'COMPLIANCE_DECLARATION': return 'Carbon Declaration (PDF)';
         case 'AUDIT_CSV': return 'Audit Trail (CSV)';
         case 'AUDIT_PDF': return 'Audit Trail (PDF)';
+        case 'EPCIS': return 'EPCIS 2.0 (JSON-LD)';
         default: return type;
     }
 };

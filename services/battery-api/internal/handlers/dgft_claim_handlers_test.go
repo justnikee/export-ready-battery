@@ -48,7 +48,7 @@ func (f *fakeDGFTRepo) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.U
 }
 func (f *fakeDGFTRepo) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
 func (f *fakeDGFTRepo) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
-func (f *fakeDGFTRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+func (f *fakeDGFTRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) {
 	return nil, 0, nil
 }
 func (f *fakeDGFTRepo) SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }

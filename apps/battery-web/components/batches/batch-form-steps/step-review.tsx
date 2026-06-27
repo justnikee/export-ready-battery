@@ -7,7 +7,7 @@ import { Save, FileCheck, AlertTriangle, ShieldCheck, CircleDot } from "lucide-r
 import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { AiBadge } from "@/components/batches/batch-form-steps/ai-badge";
-import type { BatchFormData } from "@/components/batches/batch-form-schema";
+import { calculateEstimatedDVA, type BatchFormData } from "@/components/batches/batch-form-schema";
 import { batchCompletionChecks, completionBandLabel } from "@/lib/batch-completion";
 import { CompletionRing } from "@/components/batches/wizard/completion-ring";
 import {
@@ -131,9 +131,7 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
       if (values.dvaSource === "AUDITED") {
         dva = parseFloat(values.auditedDva) || 0;
       } else {
-        const sale = parseFloat(values.salePrice) || 0;
-        const imp = parseFloat(values.importCost) || 0;
-        dva = sale > 0 ? Math.max(0, ((sale - imp) / sale) * 100) : 0;
+        dva = calculateEstimatedDVA(values);
       }
     }
     return {
@@ -368,10 +366,10 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
               <Row label="Import Date" value={values.customsDate} onClick={() => onJumpToStep(1)} />
             </>
           )}
-          {values.cellSource !== "IMPORTED" && values.dvaSource === "ESTIMATED" && values.salePrice && values.importCost && (
+          {values.cellSource !== "IMPORTED" && values.dvaSource === "ESTIMATED" && values.salePrice && (
             <Row
               label="Estimated DVA"
-              value={`${Math.max(0, ((parseFloat(values.salePrice) - parseFloat(values.importCost)) / parseFloat(values.salePrice)) * 100).toFixed(1)}%`}
+              value={`${calculateEstimatedDVA(values).toFixed(1)}%`}
               onClick={() => onJumpToStep(1)}
             />
           )}

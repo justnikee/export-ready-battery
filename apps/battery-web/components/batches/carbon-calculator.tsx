@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Calculator, Leaf, Save, ChevronDown, ChevronUp, Factory, Truck, Atom, Zap, Info } from "lucide-react"
+import { Calculator, Leaf, Save, ChevronDown, ChevronUp, Factory, Truck, Atom, Zap, Info, History } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 // Types matching backend CarbonInput / CarbonResult
@@ -50,12 +50,44 @@ interface CarbonResult {
 }
 
 interface CarbonCalculatorProps {
- batchId: string
+ // Omit batchId to run standalone (e.g. /dashboard/carbon-calculator): shows a
+ // batch picker for "Apply to Batch" instead of saving straight to one batch,
+ // plus a session history of recent calculations.
+ batchId?: string
  chemistry?: string
  capacity?: string
  weight?: string
  existingResult?: CarbonResult | null
  onResultSaved?: () => void
+}
+
+interface BatchOption {
+ id: string
+ batch_name: string
+}
+
+const HISTORY_STORAGE_KEY = "carbon-calculator-history"
+const HISTORY_LIMIT = 5
+
+interface HistoryEntry {
+ input: CarbonInput
+ result: CarbonResult
+ calculatedAt: string
+}
+
+function loadHistory(): HistoryEntry[] {
+ if (typeof window === "undefined") return []
+ try {
+ const raw = window.sessionStorage.getItem(HISTORY_STORAGE_KEY)
+ return raw ? JSON.parse(raw) : []
+ } catch {
+ return []
+ }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+ if (typeof window === "undefined") return
+ window.sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries))
 }
 
 const CHEMISTRIES = [
@@ -74,28 +106,73 @@ const TRANSPORT_MODES = [
  { value: "AIR", label: "Air freight" },
 ]
 
+// Every country here must have a seeded ENERGY_MIX factor in the backend
+// (services/battery-api/internal/db/migrations/000031 and 000042) — the
+// calculator falls back to a GLOBAL average for anything else, but keeping
+// this list backend-backed means the displayed factor is always country-specific.
 const COUNTRIES = [
+ // Asia-Pacific battery manufacturing hubs
  { value: "CN", label: "🇨🇳 China" },
  { value: "IN", label: "🇮🇳 India" },
  { value: "KR", label: "🇰🇷 South Korea" },
  { value: "JP", label: "🇯🇵 Japan" },
+ { value: "VN", label: "🇻🇳 Vietnam" },
+ { value: "MY", label: "🇲🇾 Malaysia" },
+ { value: "ID", label: "🇮🇩 Indonesia" },
+ { value: "TH", label: "🇹🇭 Thailand" },
+ { value: "TW", label: "🇹🇼 Taiwan" },
+ { value: "AU", label: "🇦🇺 Australia" },
+ // Europe
  { value: "DE", label: "🇩🇪 Germany" },
+ { value: "GB", label: "🇬🇧 United Kingdom" },
+ { value: "FR", label: "🇫🇷 France" },
+ { value: "IT", label: "🇮🇹 Italy" },
+ { value: "ES", label: "🇪🇸 Spain" },
+ { value: "NL", label: "🇳🇱 Netherlands" },
+ { value: "BE", label: "🇧🇪 Belgium" },
+ { value: "AT", label: "🇦🇹 Austria" },
+ { value: "PT", label: "🇵🇹 Portugal" },
  { value: "PL", label: "🇵🇱 Poland" },
  { value: "HU", label: "🇭🇺 Hungary" },
+ { value: "CZ", label: "🇨🇿 Czech Republic" },
+ { value: "RO", label: "🇷🇴 Romania" },
+ { value: "SK", label: "🇸🇰 Slovakia" },
+ { value: "FI", label: "🇫🇮 Finland" },
+ { value: "DK", label: "🇩🇰 Denmark" },
+ { value: "NO", label: "🇳🇴 Norway" },
  { value: "SE", label: "🇸🇪 Sweden" },
+ { value: "CH", label: "🇨🇭 Switzerland" },
+ // Americas & rest of world
  { value: "US", label: "🇺🇸 United States" },
- { value: "FR", label: "🇫🇷 France" },
- { value: "GB", label: "🇬🇧 United Kingdom" },
+ { value: "MX", label: "🇲🇽 Mexico" },
+ { value: "BR", label: "🇧🇷 Brazil" },
+ { value: "ZA", label: "🇿🇦 South Africa" },
+ { value: "TR", label: "🇹🇷 Turkey" },
 ]
 
+// Nominal cell voltage by chemistry, used to convert Ah capacity to kWh.
+// 3.7V (generic Li-ion) is wrong for LFP (3.2V) and others — overstates
+// LFP carbon footprint by ~15% since kWh is the input to the carbon model.
+const NOMINAL_VOLTAGE_BY_CHEMISTRY: Record<string, number> = {
+ LFP: 3.2,
+ SODIUM: 3.1,
+ NMC_622: 3.6,
+ NMC_811: 3.65,
+ NCA: 3.65,
+ LCO: 3.7,
+}
+
 // Helper to parse a capacity string like "50 Ah" or "3.7 kWh" into kWh
-function parseCapacity(raw?: string): number {
+function parseCapacity(raw?: string, chemistry?: string): number {
  if (!raw) return 0
  const num = parseFloat(raw)
  if (isNaN(num)) return 0
  const lower = raw.toLowerCase()
  if (lower.includes("kwh")) return num
- if (lower.includes("ah")) return num * 3.7 / 1000 // very rough conversion
+ if (lower.includes("ah")) {
+ const voltage = NOMINAL_VOLTAGE_BY_CHEMISTRY[chemistry?.toUpperCase() ?? ""] ?? 3.6
+ return (num * voltage) / 1000
+ }
  return num
 }
 
@@ -109,16 +186,29 @@ function parseWeight(raw?: string): number {
 }
 
 export function CarbonCalculator({ batchId, chemistry, capacity, weight, existingResult, onResultSaved }: CarbonCalculatorProps) {
+ const standalone = !batchId
  const [expanded, setExpanded] = useState(!existingResult)
  const [calculating, setCalculating] = useState(false)
  const [saving, setSaving] = useState(false)
  const [result, setResult] = useState<CarbonResult | null>(existingResult || null)
  const [showFactors, setShowFactors] = useState(false)
+ const [history, setHistory] = useState<HistoryEntry[]>(() => (standalone ? loadHistory() : []))
+
+ // Standalone mode only: batch picker for "Apply to Batch"
+ const [batches, setBatches] = useState<BatchOption[]>([])
+ const [selectedBatchId, setSelectedBatchId] = useState("")
+
+ useEffect(() => {
+ if (!standalone) return
+ api.get<{ batches: BatchOption[] }>("/batches?status=ACTIVE&limit=200")
+ .then(res => setBatches(res.data.batches || []))
+ .catch(() => setBatches([]))
+ }, [standalone])
 
  // Form state — pre-fill from batch specs where possible
  const [form, setForm] = useState<CarbonInput>({
  chemistry: chemistry || "LFP",
- capacity_kwh: parseCapacity(capacity) || 50,
+ capacity_kwh: parseCapacity(capacity, chemistry) || 50,
  cell_source_country: "CN",
  factory_country: "IN",
  assembly_energy_kwh: 25,
@@ -139,6 +229,14 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  toast.success("Carbon footprint calculated", {
  description: `${response.data.total_kg_co2e.toFixed(1)} kg CO₂e total (${response.data.per_kwh_kg_co2e.toFixed(1)} kg/kWh)`,
  })
+ if (standalone) {
+ const next = [
+ { input: form, result: response.data, calculatedAt: new Date().toISOString() },
+ ...history,
+ ].slice(0, HISTORY_LIMIT)
+ setHistory(next)
+ saveHistory(next)
+ }
  } catch (error: unknown) {
  const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Calculation failed"
  toast.error(msg)
@@ -149,9 +247,14 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
  const handleSaveToBatch = async () => {
  if (!result) return
+ const targetBatchId = batchId || selectedBatchId
+ if (!targetBatchId) {
+ toast.error("Select a batch first")
+ return
+ }
  setSaving(true)
  try {
- await api.post(`/batches/${batchId}/carbon`, result)
+ await api.post(`/batches/${targetBatchId}/carbon`, result)
  toast.success("Carbon footprint saved to batch", {
  description: `Class ${result.carbon_class} · This result will be used for EU compliance declarations.`,
  })
@@ -162,6 +265,12 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  } finally {
  setSaving(false)
  }
+ }
+
+ const handleLoadHistoryEntry = (entry: HistoryEntry) => {
+ setForm(entry.input)
+ setResult(entry.result)
+ setExpanded(true)
  }
 
  // Breakdown bar chart data
@@ -175,6 +284,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  const maxBreakdownValue = breakdownItems.length > 0 ? Math.max(...breakdownItems.map(i => i.value)) : 1
 
  return (
+ <>
  <Card className="bg-transparent border-border border-l-4 border-l-emerald-500">
  <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
  <div className="flex items-center justify-between">
@@ -430,10 +540,25 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  </div>
  )}
 
- {/* Save to Batch */}
+ {/* Save / Apply to Batch */}
+ {standalone && (
+ <div className="space-y-2">
+ <Label className="text-xs uppercase tracking-wider text-muted-foreground">Apply to Batch</Label>
+ <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
+ <SelectTrigger className="bg-background border-border">
+ <SelectValue placeholder="Select a batch..." />
+ </SelectTrigger>
+ <SelectContent>
+ {batches.map(b => (
+ <SelectItem key={b.id} value={b.id}>{b.batch_name}</SelectItem>
+ ))}
+ </SelectContent>
+ </Select>
+ </div>
+ )}
  <Button
  onClick={handleSaveToBatch}
- disabled={saving}
+ disabled={saving || (standalone && !selectedBatchId)}
  className="w-full bg-blue-600 hover:bg-blue-500/100 text-white"
  >
  {saving ? (
@@ -444,7 +569,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  ) : (
  <>
  <Save className="mr-2 h-4 w-4" />
- Save Result to Batch
+ {standalone ? "Apply to Batch" : "Save Result to Batch"}
  </>
  )}
  </Button>
@@ -453,5 +578,38 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  </CardContent>
  )}
  </Card>
+
+ {standalone && history.length > 0 && (
+ <Card className="bg-transparent border-border">
+ <CardHeader className="pb-3">
+ <CardTitle className="flex items-center gap-2 text-sm text-foreground">
+ <History className="h-4 w-4 text-muted-foreground" />
+ Recent Calculations (this session)
+ </CardTitle>
+ </CardHeader>
+ <CardContent className="space-y-2">
+ {history.map((entry, i) => (
+ <button
+ key={i}
+ onClick={() => handleLoadHistoryEntry(entry)}
+ className="w-full flex items-center justify-between p-3 bg-background border border-border hover:border-emerald-500/40 transition-colors text-left"
+ >
+ <div className="text-xs text-foreground">
+ {entry.input.chemistry} · {entry.input.capacity_kwh} kWh · {entry.input.cell_source_country} → {entry.input.factory_country}
+ </div>
+ <div className="flex items-center gap-3 shrink-0">
+ <Badge className="bg-emerald-100 text-emerald-500 border-emerald-200 text-[10px]">
+ Class {entry.result.carbon_class}
+ </Badge>
+ <span className="text-[10px] text-muted-foreground">
+ {new Date(entry.calculatedAt).toLocaleTimeString()}
+ </span>
+ </div>
+ </button>
+ ))}
+ </CardContent>
+ </Card>
+ )}
+ </>
  )
 }

@@ -76,8 +76,44 @@ type EPCISSource struct {
 	Source string `json:"source"`
 }
 
-// BuildEPCISDocument creates a GS1 EPCIS 2.0 JSON-LD document from passport events.
+// BuildEPCISDocument creates a GS1 EPCIS 2.0 JSON-LD document from a single
+// passport's events.
 func BuildEPCISDocument(passportID uuid.UUID, passport *models.Passport, events []*models.PassportEvent) *EPCISDocument {
+	return &EPCISDocument{
+		Context:       epcisContext,
+		Type:          "EPCISDocument",
+		SchemaVersion: "2.0",
+		CreationDate:  time.Now().UTC(),
+		EPCISBody: EPCISBody{
+			EventList: buildEPCISEvents(passport, events),
+		},
+	}
+}
+
+// BuildBulkEPCISDocument creates a single GS1 EPCIS 2.0 JSON-LD document
+// covering every passport in eventsByPassport — the EU buyer requirement for
+// one combined file per batch shipment rather than one file per passport.
+func BuildBulkEPCISDocument(passports []*models.Passport, eventsByPassport map[uuid.UUID][]*models.PassportEvent) *EPCISDocument {
+	var allEvents []EPCISEvent
+	for _, passport := range passports {
+		allEvents = append(allEvents, buildEPCISEvents(passport, eventsByPassport[passport.UUID])...)
+	}
+
+	return &EPCISDocument{
+		Context:       epcisContext,
+		Type:          "EPCISDocument",
+		SchemaVersion: "2.0",
+		CreationDate:  time.Now().UTC(),
+		EPCISBody: EPCISBody{
+			EventList: allEvents,
+		},
+	}
+}
+
+// buildEPCISEvents converts one passport's lifecycle events into EPCIS
+// events, scoped to that passport's own EPC ID. Shared by both the
+// single-passport and bulk document builders.
+func buildEPCISEvents(passport *models.Passport, events []*models.PassportEvent) []EPCISEvent {
 	epcID := fmt.Sprintf("urn:epc:id:giai:%s", passport.SerialNumber)
 
 	var epcisEvents []EPCISEvent
@@ -136,15 +172,7 @@ func BuildEPCISDocument(passportID uuid.UUID, passport *models.Passport, events 
 		epcisEvents = append(epcisEvents, event)
 	}
 
-	return &EPCISDocument{
-		Context:       epcisContext,
-		Type:          "EPCISDocument",
-		SchemaVersion: "2.0",
-		CreationDate:  time.Now().UTC(),
-		EPCISBody: EPCISBody{
-			EventList: epcisEvents,
-		},
-	}
+	return epcisEvents
 }
 
 // buildDisposition maps a StatusTo value to a GS1 CBV disposition URN.

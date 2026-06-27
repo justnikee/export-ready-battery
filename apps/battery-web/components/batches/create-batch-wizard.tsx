@@ -243,8 +243,17 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       if (data.dvaSource === "AUDITED") {
         payload.audited_domestic_value_add = parseFloat(data.auditedDva) || 0;
       } else {
-        (payload.specs as Record<string, unknown>).sale_price_inr = parseFloat(data.salePrice) || 0;
-        (payload.specs as Record<string, unknown>).import_cost_inr = parseFloat(data.importCost) || 0;
+        const specs = payload.specs as Record<string, unknown>;
+        specs.sale_price_inr = parseFloat(data.salePrice) || 0;
+        specs.cell_cost_imported_inr = parseFloat(data.cellCostImported) || 0;
+        specs.cell_cost_domestic_inr = parseFloat(data.cellCostDomestic) || 0;
+        specs.bms_cost_imported_inr = parseFloat(data.bmsCostImported) || 0;
+        specs.bms_cost_domestic_inr = parseFloat(data.bmsCostDomestic) || 0;
+        specs.casing_cost_imported_inr = parseFloat(data.casingCostImported) || 0;
+        specs.casing_cost_domestic_inr = parseFloat(data.casingCostDomestic) || 0;
+        specs.labour_overhead_cost_inr = parseFloat(data.labourOverheadCost) || 0;
+        // The backend recomputes domestic_value_add from the breakdown above
+        // server-side — never trust a client-computed % for a PLI-audit number.
         payload.domestic_value_add = 0;
       }
       payload.cell_source = data.cellSource || undefined;
@@ -386,7 +395,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     control,
     name: [
       "batchName", "marketRegion", "cellSource", "hsnCode", "billOfEntryNo",
-      "cellCountryOfOrigin", "customsDate", "salePrice", "importCost",
+      "cellCountryOfOrigin", "customsDate", "salePrice",
+      "cellCostImported", "cellCostDomestic", "bmsCostImported", "bmsCostDomestic",
+      "casingCostImported", "casingCostDomestic", "labourOverheadCost",
       "dvaSource", "auditedDva", "pliCompliant", "batteryCategory",
       "carbonFootprint", "expectedLifetime", "warrantyMonths",
       "manufacturingStartDate", "manufacturingEndDate",
@@ -488,7 +499,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     if (specs.bis_number) updates.bisNumber = specs.bis_number as string;
     if (specs.epr_number) updates.eprNumber = specs.epr_number as string;
     if (specs.sale_price_inr) updates.salePrice = (specs.sale_price_inr as number).toString();
-    if (specs.import_cost_inr) updates.importCost = (specs.import_cost_inr as number).toString();
+    if (specs.cell_cost_imported_inr) updates.cellCostImported = (specs.cell_cost_imported_inr as number).toString();
+    if (specs.cell_cost_domestic_inr) updates.cellCostDomestic = (specs.cell_cost_domestic_inr as number).toString();
+    if (specs.bms_cost_imported_inr) updates.bmsCostImported = (specs.bms_cost_imported_inr as number).toString();
+    if (specs.bms_cost_domestic_inr) updates.bmsCostDomestic = (specs.bms_cost_domestic_inr as number).toString();
+    if (specs.casing_cost_imported_inr) updates.casingCostImported = (specs.casing_cost_imported_inr as number).toString();
+    if (specs.casing_cost_domestic_inr) updates.casingCostDomestic = (specs.casing_cost_domestic_inr as number).toString();
+    if (specs.labour_overhead_cost_inr) updates.labourOverheadCost = (specs.labour_overhead_cost_inr as number).toString();
     if (specs.pli_compliant !== undefined) updates.pliCompliant = specs.pli_compliant as boolean;
     if (specs.dva_source) updates.dvaSource = specs.dva_source as "ESTIMATED" | "AUDITED";
     if (specs.audited_domestic_value_add !== undefined) updates.auditedDva = (specs.audited_domestic_value_add as number).toString();
@@ -605,9 +622,12 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
       setUploadProgress(70);
-      const { data: { publicUrl } } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
+      // Signed (not public) URL — compliance-docs holds BIS/EPR/PLI certs and
+      // must not be readable by anyone with just the URL.
+      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
+      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
       setUploadProgress(100);
-      setValue("uploadedFileUrl", publicUrl, { shouldValidate: true, shouldDirty: true });
+      setValue("uploadedFileUrl", signedData.signedUrl, { shouldValidate: true, shouldDirty: true });
       toast.success("Certificate uploaded successfully");
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -630,9 +650,10 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
       setUploadProgress(70);
-      const { data: { publicUrl } } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
+      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
+      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
       setUploadProgress(100);
-      setValue("docUploadUrl", publicUrl);
+      setValue("docUploadUrl", signedData.signedUrl);
       toast.success("Declaration of Conformity uploaded");
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -662,7 +683,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
           if (dvaSource === "AUDITED") {
             fields.push("auditedDva", "uploadedFileUrl");
           } else {
-            fields.push("salePrice", "importCost");
+            fields.push(
+              "salePrice",
+              "cellCostImported", "cellCostDomestic",
+              "bmsCostImported", "bmsCostDomestic",
+              "casingCostImported", "casingCostDomestic",
+              "labourOverheadCost",
+            );
           }
         }
       }

@@ -79,15 +79,13 @@ export default function MassBalancePage() {
   }, [ledgers, search]);
 
   const summary = useMemo(() => {
-    const totals: Record<
+    const totals = {} as Record<
       MaterialType,
       { incoming: number; allocated: number; balance: number }
-    > = {
-      cobalt: { incoming: 0, allocated: 0, balance: 0 },
-      lithium: { incoming: 0, allocated: 0, balance: 0 },
-      nickel: { incoming: 0, allocated: 0, balance: 0 },
-      lead: { incoming: 0, allocated: 0, balance: 0 },
-    };
+    >;
+    for (const mt of Object.keys(MATERIAL_TYPE_LABELS) as MaterialType[]) {
+      totals[mt] = { incoming: 0, allocated: 0, balance: 0 };
+    }
     for (const l of ledgers) {
       totals[l.material_type].incoming += l.incoming_kg;
       totals[l.material_type].allocated += l.allocated_kg;
@@ -198,14 +196,14 @@ export default function MassBalancePage() {
           />
         </div>
         <Select
-          value={materialFilter}
-          onValueChange={(v) => setMaterialFilter(v as MaterialType | "")}
+          value={materialFilter || "all"}
+          onValueChange={(v) => setMaterialFilter(v === "all" ? "" : (v as MaterialType))}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Materials" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value=" ">All Materials</SelectItem>
+            <SelectItem value="all">All Materials</SelectItem>
             {(Object.keys(MATERIAL_TYPE_LABELS) as MaterialType[]).map((mt) => (
               <SelectItem key={mt} value={mt}>
                 {MATERIAL_TYPE_LABELS[mt]}

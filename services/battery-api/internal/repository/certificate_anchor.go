@@ -45,6 +45,50 @@ func (r *Repository) GetCertificateAnchorsByBatch(ctx context.Context, batchID u
 	return scanCertificateAnchors(rows)
 }
 
+// CertificateAnchorWithBatch is a tenant-wide anchor row joined with its
+// batch name, for the cross-batch Certificate Anchors browser.
+type CertificateAnchorWithBatch struct {
+	models.CertificateAnchor
+	BatchName string `json:"batch_name"`
+}
+
+// GetCertificateAnchorsByTenant returns anchors across all of a tenant's
+// batches, optionally filtered by cert_type and/or status, most recent first.
+func (r *Repository) GetCertificateAnchorsByTenant(ctx context.Context, tenantID uuid.UUID, certType, status string, limit, offset int) ([]*CertificateAnchorWithBatch, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	query := `SELECT a.id, a.batch_id, a.tenant_id, a.cert_type, a.file_url, a.file_hash,
+			  a.ots_proof, a.bitcoin_tx_id, a.status, a.anchored_at, a.created_at, b.batch_name
+		  FROM public.certificate_anchors a
+		  JOIN public.batches b ON b.id = a.batch_id
+		  WHERE a.tenant_id = $1
+		    AND ($2 = '' OR a.cert_type = $2)
+		    AND ($3 = '' OR a.status = $3)
+		  ORDER BY a.created_at DESC
+		  LIMIT $4 OFFSET $5`
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, certType, status, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tenant certificate anchors: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*CertificateAnchorWithBatch
+	for rows.Next() {
+		var a CertificateAnchorWithBatch
+		if err := rows.Scan(
+			&a.ID, &a.BatchID, &a.TenantID, &a.CertType,
+			&a.FileURL, &a.FileHash, &a.OTSProof,
+			&a.BitcoinTxID, &a.Status, &a.AnchoredAt, &a.CreatedAt, &a.BatchName,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan tenant certificate anchor: %w", err)
+		}
+		results = append(results, &a)
+	}
+	return results, rows.Err()
+}
+
 // GetAnchorsNeedingUpgrade returns all anchors with status 'anchored' that need
 // to be upgraded to full Bitcoin confirmation.
 func (r *Repository) GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -11,6 +12,54 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// scanRateLimiter caps how many scans a single IP can record against a single
+// passport per hour, independent of the generic per-IP API rate limit, to stop
+// scan-count inflation attacks against one passport without tripping global
+// abuse thresholds.
+type scanRateLimiter struct {
+	mu        sync.Mutex
+	hits      map[string][]time.Time
+	lastSweep time.Time
+}
+
+func newScanRateLimiter() *scanRateLimiter {
+	return &scanRateLimiter{hits: make(map[string][]time.Time), lastSweep: time.Now()}
+}
+
+// allow reports whether another scan is allowed for key (IP:passportID),
+// recording it if so.
+func (l *scanRateLimiter) allow(key string, maxPerHour int) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	now := time.Now()
+	cutoff := now.Add(-time.Hour)
+
+	recent := l.hits[key][:0]
+	for _, t := range l.hits[key] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+
+	allowed := len(recent) < maxPerHour
+	if allowed {
+		recent = append(recent, now)
+	}
+	l.hits[key] = recent
+
+	if now.Sub(l.lastSweep) > 10*time.Minute {
+		for k, times := range l.hits {
+			if len(times) == 0 {
+				delete(l.hits, k)
+			}
+		}
+		l.lastSweep = now
+	}
+
+	return allowed
+}
 
 // RecordScanRequest is the request body for recording a scan
 type RecordScanRequest struct {
@@ -32,6 +81,16 @@ func (h *Handler) RecordScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clientIP := services.GetClientIP(
+		r.RemoteAddr,
+		r.Header.Get("X-Forwarded-For"),
+		r.Header.Get("X-Real-IP"),
+	)
+	if !h.scanRateLimiter.allow(clientIP+":"+passportID.String(), 10) {
+		respondError(w, http.StatusTooManyRequests, "Too many scans recorded for this item. Please try again later.")
+		return
+	}
+
 	// Verify passport exists
 	_, err = h.repo.GetPassport(r.Context(), passportID)
 	if err != nil {
@@ -49,13 +108,6 @@ func (h *Handler) RecordScan(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	// Get client IP
-	clientIP := services.GetClientIP(
-		r.RemoteAddr,
-		r.Header.Get("X-Forwarded-For"),
-		r.Header.Get("X-Real-IP"),
-	)
 
 	// GeoIP lookup
 	geoResult := h.geoService.Lookup(clientIP)

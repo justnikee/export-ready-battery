@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
 import {
   Scan,
   Trash2,
@@ -38,6 +39,8 @@ export default function DispatchPage() {
   const router = useRouter();
   const pathname = usePathname();
   const exitHref = dashboardPathFromPathname(pathname);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [shipmentReference, setShipmentReference] = useState("");
@@ -109,16 +112,21 @@ export default function DispatchPage() {
     }
   };
 
-  // Safety Net #1: LocalStorage Persistence
+  // Safety Net #1: sessionStorage persistence (clears when the tab closes,
+  // unlike localStorage, so a shared/kiosk machine doesn't leak pending scans
+  // to the next person who opens the dispatch page).
   useEffect(() => {
     // Restore pending items on mount (crash recovery)
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        const savedAt = typeof parsed?.savedAt === "number" ? parsed.savedAt : 0;
+        const items = Array.isArray(parsed?.items) ? parsed.items : [];
+        const isStale = Date.now() - savedAt > 24 * 60 * 60 * 1000;
+        if (items.length > 0 && !isStale) {
           // Restore timestamps as Date objects
-          const restored = parsed.map((item) => ({
+          const restored = items.map((item: ScannedItem) => ({
             ...item,
             timestamp: new Date(item.timestamp),
           }));
@@ -129,20 +137,25 @@ export default function DispatchPage() {
               description: "Your scans were safely restored",
             },
           );
+        } else if (isStale) {
+          sessionStorage.removeItem(STORAGE_KEY);
         }
       } catch (e) {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
       }
     }
     setIsInitialized(true);
   }, []);
 
-  // Persist to localStorage whenever items change
+  // Persist to sessionStorage whenever items change
   useEffect(() => {
     if (scannedItems.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(scannedItems));
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ items: scannedItems, savedAt: Date.now() }),
+      );
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }, [scannedItems]);
 
@@ -198,6 +211,24 @@ export default function DispatchPage() {
     setScannedItems((prev) => prev.filter((item) => item.id !== idToRemove));
   };
 
+  // Admin-only, 30-minute grace window enforced server-side per passport —
+  // this just fires the per-passport undo for everything just dispatched.
+  const handleUndoDispatch = async (passportIds: string[]) => {
+    const results = await Promise.allSettled(
+      passportIds.map((id) =>
+        api.post(`/passports/${id}/undo-transition`, {
+          admin_note: "Undone via dispatch screen's Undo action",
+        }),
+      ),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    if (failed === 0) {
+      toast.success(`Dispatch undone for ${passportIds.length} unit${passportIds.length !== 1 ? "s" : ""}`);
+    } else {
+      toast.error(`${failed} of ${passportIds.length} could not be undone — they may be outside the 30-minute window`);
+    }
+  };
+
   const handleConfirmDispatch = async () => {
     if (scannedItems.length === 0) return;
     if (!shipmentReference.trim()) {
@@ -245,11 +276,19 @@ export default function DispatchPage() {
 
       if (failedCount === 0) {
         // Complete success
-        toast.success(`Successfully dispatched ${successCount} units!`);
+        toast.success(`Successfully dispatched ${successCount} units!`, {
+          duration: 15000,
+          action: isAdmin
+            ? {
+                label: "Undo",
+                onClick: () => handleUndoDispatch(passportIds),
+              }
+            : undefined,
+        });
         setScannedItems([]);
         setShipmentReference("");
         setShipmentDate("");
-        localStorage.removeItem(STORAGE_KEY); // Clear storage on success
+        sessionStorage.removeItem(STORAGE_KEY); // Clear storage on success
       } else {
         // Partial failure: Keep only failed items
         const failedIds = new Set(result.failed_ids || []);

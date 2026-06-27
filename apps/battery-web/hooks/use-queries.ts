@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Batch } from '@/lib/types'
+import { getFleetStats, getFleetWorstHealth, getFleetEvents, getFleetGeo, getFleetThermalEvents } from '@/lib/api/fleet'
 
 // Query keys factory for consistent cache management
 export const queryKeys = {
-    batches: (tenantId: string, productType?: string) => ['batches', tenantId, productType] as const,
+    batches: (tenantId: string, productType?: string, page?: number, limit?: number) =>
+        ['batches', tenantId, productType, page, limit] as const,
     batch: (id: string) => ['batch', id] as const,
     dashboardStats: (tenantId: string) => ['dashboardStats', tenantId] as const,
     templates: (tenantId: string, productType?: string) => ['templates', tenantId, productType] as const,
@@ -15,24 +17,31 @@ export const queryKeys = {
     supplierRisk: (id: string) => ['supplierRisk', id] as const,
     ddAssessments: (id: string) => ['ddAssessments', id] as const,
     correctiveActions: () => ['correctiveActions'] as const,
+    suppliers: () => ['suppliers'] as const,
+    supplierDDStats: (supplierIds: string[]) => ['supplierDDStats', supplierIds] as const,
 }
 
-// Batches hooks
-export function useBatches(tenantId: string | undefined, productType?: string) {
+// Batches hooks. Backend paginates server-side (page/limit, default limit 50,
+// max 200) and already orders by created_at desc, so no client-side re-sort.
+export function useBatches(tenantId: string | undefined, options?: { page?: number; limit?: number; productType?: string }) {
+    const page = options?.page ?? 1
+    const limit = options?.limit ?? 50
     return useQuery({
-        queryKey: queryKeys.batches(tenantId || '', productType),
+        queryKey: queryKeys.batches(tenantId || '', options?.productType, page, limit),
         queryFn: async () => {
-            const params = new URLSearchParams({ tenant_id: tenantId || '' })
-            if (productType) {
-                params.append('product_type', productType)
+            const params = new URLSearchParams({
+                tenant_id: tenantId || '',
+                page: String(page),
+                limit: String(limit),
+            })
+            if (options?.productType) {
+                params.append('product_type', options.productType)
             }
             const response = await api.get(`/batches?${params.toString()}`)
-            const batches = (response.data.batches || []) as Batch[]
-            return batches.sort((a, b) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )
+            return response.data as { batches: Batch[]; total: number; total_pages: number; has_more: boolean }
         },
         enabled: !!tenantId,
+        staleTime: 60_000,
     })
 }
 
@@ -44,6 +53,63 @@ export function useBatch(id: string) {
             return response.data
         },
         enabled: !!id,
+        staleTime: 60_000,
+    })
+}
+
+// Active EU/GLOBAL batches — the dataset the EU Compliance Hub's Carbon and
+// Overview tabs both need (carbon class distribution, Declaration of
+// Conformity status). One shared query so both tabs hit cache, not the API.
+export function useEuActiveBatches() {
+    return useQuery({
+        queryKey: ['euActiveBatches'],
+        queryFn: async () => {
+            const response = await api.get('/batches?limit=200&status=ACTIVE')
+            const batches = (response.data.batches || []) as Batch[]
+            return batches.filter((b) => b.market_region === 'EU' || b.market_region === 'GLOBAL')
+        },
+        staleTime: 60_000,
+    })
+}
+
+// Fleet Health hooks
+export function useFleetStats() {
+    return useQuery({
+        queryKey: ['fleetStats'],
+        queryFn: getFleetStats,
+        staleTime: 60_000,
+    })
+}
+
+export function useFleetWorstHealth(limit = 20) {
+    return useQuery({
+        queryKey: ['fleetWorstHealth', limit],
+        queryFn: () => getFleetWorstHealth(limit),
+        staleTime: 60_000,
+    })
+}
+
+export function useFleetEvents(days = 30) {
+    return useQuery({
+        queryKey: ['fleetEvents', days],
+        queryFn: () => getFleetEvents(days),
+        staleTime: 60_000,
+    })
+}
+
+export function useFleetGeo() {
+    return useQuery({
+        queryKey: ['fleetGeo'],
+        queryFn: getFleetGeo,
+        staleTime: 60_000,
+    })
+}
+
+export function useFleetThermalEvents(days = 30, limit = 20) {
+    return useQuery({
+        queryKey: ['fleetThermalEvents', days, limit],
+        queryFn: () => getFleetThermalEvents(days, limit),
+        staleTime: 60_000,
     })
 }
 
@@ -56,6 +122,7 @@ export function useDashboardStats(tenantId: string | undefined) {
             return response.data
         },
         enabled: !!tenantId,
+        staleTime: 5 * 60_000,
     })
 }
 
@@ -81,6 +148,7 @@ export function useTemplates(tenantId: string | undefined, productType?: string)
             return response.data.templates || []
         },
         enabled: !!tenantId,
+        staleTime: 10 * 60_000,
     })
 }
 
@@ -92,6 +160,7 @@ export function useBillingBalance() {
             const response = await api.get('/billing/balance')
             return response.data
         },
+        staleTime: 10 * 60_000,
     })
 }
 
@@ -102,6 +171,7 @@ export function useBillingPackages() {
             const response = await api.get('/billing/packages')
             return response.data.packages || []
         },
+        staleTime: 10 * 60_000,
     })
 }
 
@@ -113,6 +183,7 @@ export function useApiKeys() {
             const response = await api.get('/api-keys')
             return response.data.api_keys || []
         },
+        staleTime: 10 * 60_000,
     })
 }
 
@@ -221,6 +292,95 @@ export interface CorrectiveAction {
     created_at: string;
 }
 
+export interface Supplier {
+    id: string;
+    email: string;
+    company_name: string;
+    contact_phone?: string;
+    country?: string;
+    status: "invited" | "active" | "blocked";
+    invited_at: string;
+    accepted_at?: string;
+}
+
+export function useSuppliers() {
+    return useQuery({
+        queryKey: queryKeys.suppliers(),
+        queryFn: async () => {
+            const response = await api.get('/suppliers')
+            return (response.data.suppliers || []) as Supplier[]
+        },
+        staleTime: 60_000,
+    })
+}
+
+// The 5-step OECD due diligence framework — see oecd-wizard-dialog.tsx, the
+// canonical place these step keys are defined and walked interactively.
+const OECD_STEP_COUNT = 5
+
+export interface SupplierDDStats {
+    totalSuppliers: number;
+    avgRiskScore: number | null;
+    /** Average % of the 5 OECD steps completed, across all suppliers. */
+    avgStepCompletionPct: number | null;
+    /** % of suppliers that have completed all 5 OECD steps. */
+    suppliersFullyCompletePct: number | null;
+    openCorrectiveActionsCount: number;
+}
+
+// Aggregates risk + DD-assessment data across every supplier. There's no
+// backend aggregate endpoint for this, so it's a client-side Promise.all over
+// the per-supplier endpoints — fine at the supplier counts this product
+// expects (tens, not thousands); revisit with a real backend aggregate if
+// that assumption stops holding.
+export function useSupplierDDStats() {
+    const { data: suppliers = [] } = useSuppliers()
+    const supplierIds = suppliers.map((s) => s.id)
+
+    return useQuery({
+        queryKey: queryKeys.supplierDDStats(supplierIds),
+        queryFn: async (): Promise<SupplierDDStats> => {
+            const [openActionsRes, perSupplier] = await Promise.all([
+                api.get('/corrective-actions?status=open').catch(() => ({ data: [] as CorrectiveAction[] })),
+                Promise.all(
+                    supplierIds.map((id) =>
+                        Promise.all([
+                            api.get(`/suppliers/${id}/risk-profile`)
+                                .then((r) => r.data?.overall_score as number | undefined)
+                                .catch(() => undefined),
+                            api.get(`/suppliers/${id}/dd-assessments`)
+                                .then((r) => (Array.isArray(r.data) ? r.data : []) as DueDiligenceAssessment[])
+                                .catch(() => [] as DueDiligenceAssessment[]),
+                        ]),
+                    ),
+                ),
+            ])
+
+            const scores = perSupplier.map(([score]) => score).filter((s): s is number => typeof s === 'number')
+            const avgRiskScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+
+            const completedCounts = perSupplier.map(([, assessments]) => assessments.filter((a) => a.status === 'complete').length)
+            const totalSteps = supplierIds.length * OECD_STEP_COUNT
+            const avgStepCompletionPct = totalSteps > 0
+                ? Math.round((completedCounts.reduce((a, b) => a + b, 0) / totalSteps) * 100)
+                : null
+            const fullyCompleteCount = completedCounts.filter((c) => c === OECD_STEP_COUNT).length
+            const suppliersFullyCompletePct = supplierIds.length > 0
+                ? Math.round((fullyCompleteCount / supplierIds.length) * 100)
+                : null
+
+            return {
+                totalSuppliers: supplierIds.length,
+                avgRiskScore,
+                avgStepCompletionPct,
+                suppliersFullyCompletePct,
+                openCorrectiveActionsCount: (openActionsRes.data || []).length,
+            }
+        },
+        staleTime: 60_000,
+    })
+}
+
 export function useSupplierRisk(supplierId: string | undefined) {
     return useQuery({
         queryKey: queryKeys.supplierRisk(supplierId || ''),
@@ -229,6 +389,7 @@ export function useSupplierRisk(supplierId: string | undefined) {
             return response.data as SupplierRiskProfile
         },
         enabled: !!supplierId,
+        staleTime: 60_000,
     })
 }
 
@@ -240,17 +401,20 @@ export function useDueDiligenceAssessments(supplierId: string | undefined) {
             return (response.data || []) as DueDiligenceAssessment[]
         },
         enabled: !!supplierId,
+        staleTime: 60_000,
     })
 }
 
 export function useCorrectiveActions(status?: string) {
+    const normalizedStatus = status ?? 'all'
     return useQuery({
-        queryKey: queryKeys.correctiveActions(),
+        queryKey: ['correctiveActions', normalizedStatus],
         queryFn: async () => {
             const params = status ? `?status=${status}` : ''
             const response = await api.get(`/corrective-actions${params}`)
             return (response.data || []) as CorrectiveAction[]
         },
+        staleTime: 60_000,
     })
 }
 
@@ -332,6 +496,7 @@ export function useSupplierCMRTReports(supplierId: string | undefined) {
             return response.data
         },
         enabled: !!supplierId,
+        staleTime: 60_000,
     })
 }
 

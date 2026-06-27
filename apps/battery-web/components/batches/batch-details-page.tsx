@@ -13,6 +13,7 @@ import { useBatchDetail } from "./detail/hooks/useBatchDetail";
 import { BatchHeader } from "./detail/BatchHeader";
 import { BatchStatusCard } from "./detail/BatchStatusCard";
 import { BatchActions } from "./detail/BatchActions";
+import { SaveAsTemplateDialog } from "./detail/SaveAsTemplateDialog";
 import { ActivationChecklist } from "./detail/ActivationChecklist";
 import { OverviewTab } from "./detail/tabs/OverviewTab";
 import { PassportsTab } from "./detail/tabs/PassportsTab";
@@ -83,6 +84,8 @@ export default function BatchDetailsPage() {
     handleExportAuditCSV,
     handleExportDueDiligence,
     handleExportComplianceDeclaration,
+    handleExportEPCIS,
+    handleExportDVAReport,
     handleDownloadComplianceReport,
     handleActivateBatch,
     handleArchiveBatch,
@@ -98,6 +101,7 @@ export default function BatchDetailsPage() {
 
   // Tab state stays local for now
   const [activeTab, setActiveTab] = useState<LegacyTab>("overview");
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   // Keyboard shortcuts for tab navigation
   useEffect(() => {
@@ -171,8 +175,11 @@ export default function BatchDetailsPage() {
               onDownloadComplianceReport={handleDownloadComplianceReport}
               onExportComplianceDeclaration={handleExportComplianceDeclaration}
               onExportDueDiligence={handleExportDueDiligence}
+              onExportEPCIS={handleExportEPCIS}
+              onExportDVAReport={handleExportDVAReport}
               onArchive={() => setConfirmArchive(true)}
               onDeleteDraft={() => setConfirmDelete(true)}
+              onSaveAsTemplate={() => setSaveTemplateOpen(true)}
             />
           </div>
         </div>
@@ -289,6 +296,7 @@ export default function BatchDetailsPage() {
               <DownloadsTab
                 isDraft={isDraft}
                 isEU={isEU}
+                isIndia={isIndia}
                 isGlobal={isGlobal}
                 hasCarbonFootprint={
                   !!batch.carbon_footprint_result &&
@@ -301,6 +309,8 @@ export default function BatchDetailsPage() {
                 onDownloadComplianceReport={handleDownloadComplianceReport}
                 onExportComplianceDeclaration={handleExportComplianceDeclaration}
                 onExportDueDiligence={handleExportDueDiligence}
+                onExportEPCIS={handleExportEPCIS}
+                onExportDVAReport={handleExportDVAReport}
               />
             )}
 
@@ -326,6 +336,12 @@ export default function BatchDetailsPage() {
           passportCount={passportCount}
           onDownload={handleDownloadLabels}
           productType={batch?.product_type}
+        />
+
+        <SaveAsTemplateDialog
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+          batch={batch}
         />
 
         <ConfirmDialog

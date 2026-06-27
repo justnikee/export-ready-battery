@@ -50,6 +50,13 @@ func newMockCarbonFactorRepo() *mockCarbonFactorRepo {
 					Unit:        "kgCO2e/kWh",
 					Source:      "IEA 2024",
 				},
+				"GLOBAL": {
+					Category:    "ENERGY_MIX",
+					Subcategory: "GLOBAL",
+					FactorValue: 0.482,
+					Unit:        "kgCO2e/kWh",
+					Source:      "IEA 2024",
+				},
 			},
 			"TRANSPORT": {
 				"SHIP": {
@@ -194,4 +201,28 @@ func TestCalculateCarbon_PerKWh_Calculation(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.InDelta(t, result.TotalKgCO2e/100.0, result.PerKWhKgCO2e, 0.001)
+}
+
+// A country with no seeded ENERGY_MIX entry must fall back to GLOBAL rather
+// than hard-failing the whole calculation.
+func TestCalculateCarbon_UnseededCountry_FallsBackToGlobal(t *testing.T) {
+	svc := NewCarbonCalculatorService(newMockCarbonFactorRepo())
+
+	result, err := svc.CalculateCarbon(context.Background(), CarbonInput{
+		Chemistry:           "NMC",
+		CapacityKWh:         50.0,
+		CellSourceCountry:   "ZZ", // not seeded
+		FactoryCountry:      "ZZ", // not seeded
+		AssemblyEnergyKWh:   10.0,
+		TransportMode:       "SHIP",
+		TransportDistanceKm: 5000.0,
+		BatteryWeightKg:     400.0,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	// Cell energy = GLOBAL(0.482) * (50 * 0.15) = 0.482 * 7.5 = 3.615
+	assert.InDelta(t, 3.615, result.Breakdown.CellEnergy, 0.001)
+	// Assembly = GLOBAL(0.482) * 10 = 4.82
+	assert.InDelta(t, 4.82, result.Breakdown.Assembly, 0.001)
 }

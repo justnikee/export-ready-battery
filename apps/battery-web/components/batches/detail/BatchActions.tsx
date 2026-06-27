@@ -19,8 +19,10 @@ import {
   Shield,
   Archive,
   Trash2,
-  Link2,
   Download,
+  LayoutTemplate,
+  PackageSearch,
+  Calculator,
 } from "lucide-react";
 import type { Batch } from "@/lib/types";
 
@@ -34,8 +36,11 @@ interface BatchActionsProps {
   onDownloadComplianceReport: () => void;
   onExportComplianceDeclaration: () => void;
   onExportDueDiligence: () => void;
+  onExportEPCIS: () => void;
+  onExportDVAReport: () => void;
   onArchive: () => void;
   onDeleteDraft: () => void;
+  onSaveAsTemplate: () => void;
 }
 
 export function BatchActions({
@@ -48,14 +53,19 @@ export function BatchActions({
   onDownloadComplianceReport,
   onExportComplianceDeclaration,
   onExportDueDiligence,
+  onExportEPCIS,
+  onExportDVAReport,
   onArchive,
   onDeleteDraft,
+  onSaveAsTemplate,
 }: BatchActionsProps) {
   const [open, setOpen] = useState(false);
   const isActive = batch.status === "ACTIVE";
   const isArchived = batch.status === "ARCHIVED";
   const isEUorGlobal =
     batch.market_region === "EU" || batch.market_region === "GLOBAL";
+  const isIndiaOrGlobal =
+    batch.market_region === "INDIA" || batch.market_region === "GLOBAL";
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -138,11 +148,43 @@ export function BatchActions({
                   <Shield className="mr-2 h-4 w-4" />
                   Due Diligence Report
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onExportEPCIS();
+                    setOpen(false);
+                  }}
+                >
+                  <PackageSearch className="mr-2 h-4 w-4" />
+                  Export EPCIS (GS1 2.0)
+                </DropdownMenuItem>
               </>
+            )}
+            {isIndiaOrGlobal && (
+              <DropdownMenuItem
+                onClick={() => {
+                  onExportDVAReport();
+                  setOpen(false);
+                }}
+              >
+                <Calculator className="mr-2 h-4 w-4" />
+                DVA Calculation Report
+              </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
           </>
         )}
+
+        {/* Templates */}
+        <DropdownMenuItem
+          onClick={() => {
+            onSaveAsTemplate();
+            setOpen(false);
+          }}
+        >
+          <LayoutTemplate className="mr-2 h-4 w-4" />
+          Save as Template
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
 
         {/* Audit */}
         <DropdownMenuItem

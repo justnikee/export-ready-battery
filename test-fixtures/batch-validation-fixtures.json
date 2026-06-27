@@ -8,7 +8,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "12345678",
       "salePrice": 1000,
-      "importCost": 400,
+      "cellCostDomestic": 600,
+      "cellCostImported": 400,
       "expectValid": false,
       "expectErrors": [{ "go": "hsn_code", "ts": "hsnCode" }]
     },
@@ -19,7 +20,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "85076000",
       "salePrice": 1000,
-      "importCost": 400,
+      "cellCostDomestic": 600,
+      "cellCostImported": 400,
       "expectValid": true
     },
     {
@@ -29,7 +31,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "850760",
       "salePrice": 1000,
-      "importCost": 400,
+      "cellCostDomestic": 600,
+      "cellCostImported": 400,
       "expectValid": false,
       "expectErrors": [{ "go": "hsn_code", "ts": "hsnCode" }]
     },
@@ -40,7 +43,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "85076000",
       "salePrice": 100,
-      "importCost": 100,
+      "cellCostDomestic": 0,
+      "cellCostImported": 100,
       "expectValid": false,
       "expectErrors": [{ "go": "domestic_value_add", "ts": "salePrice" }]
     },
@@ -51,7 +55,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "85076000",
       "salePrice": 100,
-      "importCost": 60,
+      "cellCostDomestic": 40,
+      "cellCostImported": 60,
       "pliCompliant": true,
       "expectValid": false,
       "expectErrors": [{ "go": "pli_compliant", "ts": "pliCompliant" }]
@@ -63,7 +68,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "85076000",
       "salePrice": 100,
-      "importCost": 50,
+      "cellCostDomestic": 50,
+      "cellCostImported": 50,
       "pliCompliant": true,
       "expectValid": true
     },
@@ -157,7 +163,8 @@
       "cellSource": "DOMESTIC",
       "hsnCode": "85076000",
       "salePrice": 1000,
-      "importCost": 400,
+      "cellCostDomestic": 600,
+      "cellCostImported": 400,
       "manufacturingStartDate": "2024-06-15",
       "manufacturingEndDate": "2024-06-10",
       "expectValid": false,

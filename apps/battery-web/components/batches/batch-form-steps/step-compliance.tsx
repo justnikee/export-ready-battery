@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { useFileDropzone } from "@/hooks/use-file-dropzone";
 import { AiBadge, aiFieldClass } from "@/components/batches/batch-form-steps/ai-badge";
 import { SettingsBadge } from "@/components/batches/batch-form-steps/settings-badge";
-import type { BatchFormData } from "@/components/batches/batch-form-schema";
+import { calculateEstimatedDVA, calculateImportedCostTotal, type BatchFormData } from "@/components/batches/batch-form-schema";
 
 interface StepComplianceProps {
   isUploading: boolean;
@@ -98,7 +98,13 @@ export function StepCompliance({
   const cellSource = watch("cellSource");
   const dvaSource = watch("dvaSource");
   const salePrice = watch("salePrice");
-  const importCost = watch("importCost");
+  const cellCostImported = watch("cellCostImported");
+  const cellCostDomestic = watch("cellCostDomestic");
+  const bmsCostImported = watch("bmsCostImported");
+  const bmsCostDomestic = watch("bmsCostDomestic");
+  const casingCostImported = watch("casingCostImported");
+  const casingCostDomestic = watch("casingCostDomestic");
+  const labourOverheadCost = watch("labourOverheadCost");
   const docUploadUrl = watch("docUploadUrl");
   const uploadedFileUrl = watch("uploadedFileUrl");
   const pliCompliant = watch("pliCompliant");
@@ -195,7 +201,10 @@ export function StepCompliance({
   const dvaFilled =
     dvaSource === "AUDITED"
       ? [auditedDva, uploadedFileUrl].filter(Boolean).length
-      : [salePrice, importCost].filter(Boolean).length;
+      : [
+          salePrice,
+          [cellCostImported, cellCostDomestic, bmsCostImported, bmsCostDomestic, casingCostImported, casingCostDomestic, labourOverheadCost].some(Boolean),
+        ].filter(Boolean).length;
   const customsFilled = [billOfEntryNo, cellCountryOfOrigin, customsDate].filter(Boolean).length;
 
   const euBlock = showEU && (
@@ -711,38 +720,90 @@ export function StepCompliance({
                       <div className="space-y-4 pt-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="flex items-center gap-2 text-sm text-foreground">
                           <Calculator className="h-4 w-4 text-muted-foreground" />
-                          Indicative DVA Estimator
+                          DVA Cost Breakdown Estimator
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="salePrice" className="text-foreground">Sale Price (₹)</Label>
-                            <Input id="salePrice" type="number" min="0" {...register("salePrice")} placeholder="0.00" className={`bg-transparent text-foreground ${errors.salePrice ? "border-red-500" : "border-border"}`} />
-                            {errors.salePrice && <p className="text-xs text-red-500 mt-0.5">{errors.salePrice.message}</p>}
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="importCost" className="text-foreground">Imp. Material Cost (₹)</Label>
-                            <Input id="importCost" type="number" min="0" {...register("importCost")} placeholder="0.00" className={`bg-transparent text-foreground ${errors.importCost ? "border-red-500" : "border-border"}`} />
-                            {errors.importCost && <p className="text-xs text-red-500 mt-0.5">{errors.importCost.message}</p>}
-                          </div>
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="salePrice" className="text-foreground">Ex-Factory Sale Price (₹)</Label>
+                          <Input id="salePrice" type="number" min="0" {...register("salePrice")} placeholder="0.00" className={`bg-transparent text-foreground max-w-xs ${errors.salePrice ? "border-red-500" : "border-border"}`} />
+                          {errors.salePrice && <p className="text-xs text-red-500 mt-0.5">{errors.salePrice.message}</p>}
                         </div>
-                        {salePrice && importCost && (
-                          <div className="space-y-2">
-                            <div className={`p-3 rounded border text-center text-sm ${
-                              ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100 >= 50
-                                ? "bg-muted/50 border-foreground/30 text-foreground"
-                                : "bg-red-500/10 border-red-500/30 text-red-400"
-                            }`}>
-                              Estimated DVA: {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100).toFixed(1)}%
-                              <span className="ml-1 opacity-80">
-                                {((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100 >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
-                              </span>
-                              <div className="mt-1 text-[10px] font-mono opacity-70">
-                                (₹{parseFloat(salePrice).toLocaleString()} − ₹{parseFloat(importCost).toLocaleString()}) ÷ ₹{parseFloat(salePrice).toLocaleString()} = {Math.max(0, ((parseFloat(salePrice) - parseFloat(importCost)) / parseFloat(salePrice)) * 100).toFixed(1)}%
-                              </div>
+
+                        {/* Component cost breakdown: imported vs domestic per the MHI PLI-ACC formula */}
+                        <div className="border border-border rounded">
+                          <div className="grid grid-cols-3 gap-2 px-3 py-2 bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+                            <span>Component</span>
+                            <span>Imported (₹)</span>
+                            <span>Domestic (₹)</span>
+                          </div>
+                          {(
+                            [
+                              { label: "Cell", importedField: "cellCostImported", domesticField: "cellCostDomestic" },
+                              { label: "BMS", importedField: "bmsCostImported", domesticField: "bmsCostDomestic" },
+                              { label: "Casing / Structural", importedField: "casingCostImported", domesticField: "casingCostDomestic" },
+                            ] as const
+                          ).map((row) => (
+                            <div key={row.label} className="grid grid-cols-3 gap-2 px-3 py-2 border-t border-border items-center">
+                              <span className="text-xs text-foreground">{row.label}</span>
+                              <Input
+                                type="number"
+                                min="0"
+                                {...register(row.importedField)}
+                                placeholder="0.00"
+                                className={`h-8 text-xs bg-transparent text-foreground ${errors[row.importedField] ? "border-red-500" : "border-border"}`}
+                              />
+                              <Input
+                                type="number"
+                                min="0"
+                                {...register(row.domesticField)}
+                                placeholder="0.00"
+                                className={`h-8 text-xs bg-transparent text-foreground ${errors[row.domesticField] ? "border-red-500" : "border-border"}`}
+                              />
                             </div>
+                          ))}
+                          <div className="grid grid-cols-3 gap-2 px-3 py-2 border-t border-border items-center">
+                            <span className="text-xs text-foreground">Labour &amp; Overhead</span>
+                            <span className="text-xs text-muted-foreground">— (domestic)</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              {...register("labourOverheadCost")}
+                              placeholder="0.00"
+                              className={`h-8 text-xs bg-transparent text-foreground ${errors.labourOverheadCost ? "border-red-500" : "border-border"}`}
+                            />
+                          </div>
+                        </div>
+
+                        {salePrice && (
+                          <div className="space-y-2">
+                            {(() => {
+                              const breakdown = {
+                                salePrice, cellCostImported, cellCostDomestic,
+                                bmsCostImported, bmsCostDomestic,
+                                casingCostImported, casingCostDomestic, labourOverheadCost,
+                              };
+                              const dva = calculateEstimatedDVA(breakdown);
+                              const importedTotal = calculateImportedCostTotal(breakdown);
+                              return (
+                                <div className={`p-3 rounded border text-center text-sm ${
+                                  dva >= 50
+                                    ? "bg-muted/50 border-foreground/30 text-foreground"
+                                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                                }`}>
+                                  Estimated DVA: {dva.toFixed(1)}%
+                                  <span className="ml-1 opacity-80">
+                                    {dva >= 50 ? "(Potentially Eligible)" : "(Ineligible)"}
+                                  </span>
+                                  <div className="mt-1 text-[10px] font-mono opacity-70">
+                                    Domestic (cell+BMS+casing+labour) ÷ Sale Price = {dva.toFixed(1)}%
+                                    {importedTotal > 0 && ` · ₹${importedTotal.toLocaleString()} imported`}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                             <div className="p-3 bg-muted/30 border border-border text-muted-foreground text-xs flex gap-2 items-start">
                               <Activity className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                              <span><strong className="text-foreground">Note:</strong> This is an estimated value based on raw material costs. Final PLI eligibility requires certification by a Chartered Accountant.</span>
+                              <span><strong className="text-foreground">Note:</strong> This estimate is based on the cost breakdown above and is recalculated server-side from the same numbers. Final PLI eligibility requires certification by a Chartered Accountant.</span>
                             </div>
                           </div>
                         )}

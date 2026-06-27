@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import {
   Leaf,
   Flag,
-  Bot,
+  Sparkles,
   LayoutTemplate,
   PenLine,
   History,
@@ -204,8 +204,11 @@ export function BatchEntryModal({
                   Start From
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="p-3 border border-border text-left">
-                    <Bot className="h-5 w-5 mb-1.5 text-muted-foreground" />
+                  <div className="relative p-3 border-2 border-emerald-500/40 bg-emerald-500/5 text-left sm:row-span-1">
+                    <span className="absolute -top-2 right-2 bg-emerald-500 text-white text-[9px] font-medium px-1.5 py-0.5 rounded-full">
+                      Fastest
+                    </span>
+                    <Sparkles className="h-5 w-5 mb-1.5 text-emerald-500" />
                     <div className="text-sm font-medium text-foreground">AI Fill</div>
                     <div className="text-[10px] text-muted-foreground mt-0.5 mb-2">
                       Upload a PDF for full extraction, or describe in words for a quick core-fields draft
@@ -214,8 +217,7 @@ export function BatchEntryModal({
                       <Button
                         type="button"
                         size="sm"
-                        variant="outline"
-                        className="flex-1 text-[11px] h-7"
+                        className="flex-1 text-[11px] h-7 bg-emerald-600 hover:bg-emerald-500 text-white"
                         onClick={() => onChoice({ type: "ai-pdf", market })}
                       >
                         Upload PDF
@@ -223,8 +225,7 @@ export function BatchEntryModal({
                       <Button
                         type="button"
                         size="sm"
-                        variant="outline"
-                        className="flex-1 text-[11px] h-7"
+                        className="flex-1 text-[11px] h-7 bg-emerald-600 hover:bg-emerald-500 text-white"
                         onClick={() => onChoice({ type: "ai-nl", market })}
                       >
                         Describe

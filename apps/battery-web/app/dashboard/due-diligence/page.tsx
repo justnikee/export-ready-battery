@@ -1,5 +1,5 @@
-import CorrectiveActionsDashboard from "@/components/due-diligence/corrective-actions-dashboard";
+import DueDiligencePage from "@/components/due-diligence/battery-due-diligence-page";
 
-export default function DueDiligencePage() {
-  return <CorrectiveActionsDashboard />;
+export default function Page() {
+  return <DueDiligencePage />;
 }

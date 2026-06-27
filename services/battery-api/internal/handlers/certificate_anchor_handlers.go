@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/jobs"
@@ -126,6 +127,43 @@ func (h *Handler) GetCertificateAnchors(w http.ResponseWriter, r *http.Request) 
 	}
 
 	anchors, err := h.repo.GetCertificateAnchorsByBatch(r.Context(), batchID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve anchors")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"anchors": anchors,
+	})
+}
+
+// GetTenantCertificateAnchors handles GET /api/v1/anchors — the cross-batch
+// Certificate Anchors browser, optionally filtered by cert_type and/or status.
+func (h *Handler) GetTenantCertificateAnchors(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	certType := r.URL.Query().Get("cert_type")
+	status := r.URL.Query().Get("status")
+
+	limit := 50
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	offset := 0
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	anchors, err := h.repo.GetCertificateAnchorsByTenant(r.Context(), tenantID, certType, status, limit, offset)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to retrieve anchors")
 		return

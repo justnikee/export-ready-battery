@@ -136,12 +136,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 				req.DomesticValueAdd = calculatedDVA
 			}
 		} else {
-			if req.Specs.SalePriceINR > 0 {
-				calculatedDVA = ((req.Specs.SalePriceINR - req.Specs.ImportCostINR) / req.Specs.SalePriceINR) * 100
-				if calculatedDVA < 0 {
-					calculatedDVA = 0
-				}
-			}
+			calculatedDVA = services.CalculateEstimatedDVA(req.Specs)
 			req.DomesticValueAdd = calculatedDVA
 		}
 
@@ -775,6 +770,56 @@ func (h *Handler) DownloadDueDiligenceReport(w http.ResponseWriter, r *http.Requ
 
 	// Set headers for file download
 	filename := fmt.Sprintf("%s_due_diligence_report.pdf", sanitizeBatchName(batch.BatchName))
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))
+
+	w.Write(pdfBytes)
+}
+
+// DownloadDVACalculationReport handles GET /api/v1/batches/{id}/dva-report
+func (h *Handler) DownloadDVACalculationReport(w http.ResponseWriter, r *http.Request) {
+	// SECURITY: Extract tenant ID from JWT context to prevent IDOR
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	idStr := r.PathValue("id")
+	batchID, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	if batch.MarketRegion != models.MarketRegionIndia && batch.MarketRegion != models.MarketRegionGlobal {
+		respondError(w, http.StatusBadRequest, "DVA calculation report only applies to India or Global market batches")
+		return
+	}
+
+	tenant, err := h.repo.GetTenant(r.Context(), batch.TenantID)
+	if err != nil {
+		slog.Error("Failed to get tenant", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant info")
+		return
+	}
+
+	pdfBytes, err := services.GenerateDVACalculationReport(batch, tenant)
+	if err != nil {
+		slog.Error("Failed to generate DVA calculation report PDF", "error", err, "batch_id", batchID)
+		respondError(w, http.StatusInternalServerError, "Failed to generate DVA calculation report PDF")
+		return
+	}
+
+	filename := fmt.Sprintf("%s_dva_calculation_report.pdf", sanitizeBatchName(batch.BatchName))
 	w.Header().Set("Content-Type", "application/pdf")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(pdfBytes)))

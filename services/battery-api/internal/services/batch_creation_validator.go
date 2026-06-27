@@ -11,6 +11,36 @@ import (
 	"github.com/google/uuid"
 )
 
+// CalculateEstimatedDVA computes the ESTIMATED-mode domestic value-add
+// percentage from a batch's cost breakdown. The single source of truth for
+// this formula — used by both batch-creation validation and the handler's
+// persisted DomesticValueAdd, so the two can't drift apart again.
+//
+// When per-component fields are populated it applies the MHI PLI-ACC
+// formula (domestic total ÷ sale price); otherwise it falls back to the
+// legacy two-field shortcut, still used by CSV bulk import, which doesn't
+// collect a per-row cost breakdown.
+func CalculateEstimatedDVA(s models.BatchSpec) float64 {
+	if s.SalePriceINR <= 0 {
+		return 0
+	}
+
+	domesticTotal := s.CellCostDomesticINR + s.BMSCostDomesticINR + s.CasingCostDomesticINR + s.LabourOverheadCostINR
+	importedTotal := s.CellCostImportedINR + s.BMSCostImportedINR + s.CasingCostImportedINR
+	hasBreakdown := domesticTotal > 0 || importedTotal > 0
+
+	var dva float64
+	if hasBreakdown {
+		dva = (domesticTotal / s.SalePriceINR) * 100
+	} else {
+		dva = ((s.SalePriceINR - s.ImportCostINR) / s.SalePriceINR) * 100
+	}
+	if dva < 0 {
+		return 0
+	}
+	return dva
+}
+
 // BatchCreationValidationResult is the output of batch creation validation.
 type BatchCreationValidationResult struct {
 	Valid  bool                   `json:"valid"`
@@ -163,13 +193,10 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 				addError("pli_certificate_url", "CA certificate upload is required for audited DVA mode")
 			}
 		} else {
-			// ESTIMATED: calculate DVA server-side from specs financial fields
-			if req.Specs.SalePriceINR > 0 {
-				calculatedDVA = ((req.Specs.SalePriceINR - req.Specs.ImportCostINR) / req.Specs.SalePriceINR) * 100
-				if calculatedDVA < 0 {
-					calculatedDVA = 0
-				}
-			}
+			// ESTIMATED: calculate DVA server-side from specs financial fields.
+			// Never trust a client-computed DVA % for a PLI-audit-relevant number —
+			// always recompute from the raw cost inputs.
+			calculatedDVA = CalculateEstimatedDVA(req.Specs)
 		}
 
 		// e. India Mode + IMPORTED: require customs declaration fields

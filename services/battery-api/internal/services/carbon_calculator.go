@@ -100,6 +100,18 @@ func NewCarbonCalculatorService(repo CarbonFactorRepository) *CarbonCalculatorSe
 	return &CarbonCalculatorService{repo: repo}
 }
 
+// getEnergyMixFactor looks up the grid emission factor for a country, falling
+// back to the seeded GLOBAL weighted average when the country has no
+// country-specific entry. Without this, selecting a country outside the
+// seeded list hard-fails the whole calculation instead of degrading gracefully.
+func (s *CarbonCalculatorService) getEnergyMixFactor(ctx context.Context, countryCode string) (*CarbonFactor, error) {
+	factor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ENERGY_MIX", countryCode)
+	if err == nil && factor != nil {
+		return factor, nil
+	}
+	return s.repo.GetFactorByCategoryAndSubcategory(ctx, "ENERGY_MIX", "GLOBAL")
+}
+
 // CalculateCarbon computes carbon footprint using JRC-aligned factors.
 // Algorithm:
 // 1. Fetch cell chemistry factor → cellCO2 = factor × capacityKWh
@@ -130,7 +142,7 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 	// 2. Fetch cell source country energy mix for cell manufacturing energy
 	// Note: We use a default cell manufacturing energy if not provided
 	// The cell energy is calculated based on the cell source country's grid
-	cellEnergyFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ENERGY_MIX", input.CellSourceCountry)
+	cellEnergyFactor, err := s.getEnergyMixFactor(ctx, input.CellSourceCountry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get energy mix factor for cell source country %s: %w", input.CellSourceCountry, err)
 	}
@@ -148,7 +160,7 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 
 	// 3. Fetch assembly energy mix and calculate assembly CO2
 	if input.AssemblyEnergyKWh > 0 {
-		assemblyEnergyFactor, err := s.repo.GetFactorByCategoryAndSubcategory(ctx, "ENERGY_MIX", input.FactoryCountry)
+		assemblyEnergyFactor, err := s.getEnergyMixFactor(ctx, input.FactoryCountry)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get energy mix factor for factory country %s: %w", input.FactoryCountry, err)
 		}

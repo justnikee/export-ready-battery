@@ -458,6 +458,67 @@ export function useBatchDetail(batchId: string, pathname: string) {
     }
   }, [batch, batchId]);
 
+  const handleExportEPCIS = useCallback(async () => {
+    if (!batch) return;
+    try {
+      toast.loading("Creating EPCIS export job...", { id: "epcis-export" });
+      const job = await createExportJob({
+        batch_id: batchId,
+        job_type: "EPCIS",
+      });
+      toast.success(
+        "EPCIS export job created! Go to Downloads to get the file when ready.",
+        {
+          id: "epcis-export",
+          description: `Job ID: ${job.id}`,
+          duration: 10000,
+          action: {
+            label: "View Downloads",
+            onClick: () => router.push(exportsHref),
+          },
+        },
+      );
+    } catch (error: unknown) {
+      const apiError = toApiError(error);
+      toast.error(
+        apiError.response?.data?.error || "Failed to create EPCIS export job",
+        { id: "epcis-export" },
+      );
+    }
+  }, [batch, batchId, router, exportsHref]);
+
+  const handleExportDVAReport = useCallback(async () => {
+    if (!batch) return;
+    try {
+      toast.loading("Generating DVA Calculation Report...", {
+        id: "dva-download",
+      });
+      const response = await api.get(`/batches/${batchId}/dva-report`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `${batch.batch_name}_dva_calculation_report.pdf`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("DVA Calculation Report downloaded!", {
+        id: "dva-download",
+      });
+    } catch (error: unknown) {
+      const msg = await getApiErrorMessage(
+        error,
+        "Failed to download DVA Calculation Report",
+      );
+      toast.error(msg, { id: "dva-download" });
+    }
+  }, [batch, batchId]);
+
   const handleDownloadComplianceReport = useCallback(async () => {
     if (!batch) return;
     try {
@@ -794,6 +855,8 @@ export function useBatchDetail(batchId: string, pathname: string) {
     handleExportAuditCSV,
     handleExportDueDiligence,
     handleExportComplianceDeclaration,
+    handleExportEPCIS,
+    handleExportDVAReport,
     handleDownloadComplianceReport,
     handleActivateBatch,
     handleArchiveBatch,

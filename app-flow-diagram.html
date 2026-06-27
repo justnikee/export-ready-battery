@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ExportReady Battery — App Flow</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#08080a;color:#e2e2f0;overflow-x:hidden}
+
+/* ── TOOLBAR ── */
+.toolbar{position:fixed;top:0;left:0;right:0;height:48px;background:#111114;border-bottom:1px solid #222230;display:flex;align-items:center;gap:8px;padding:0 16px;z-index:200;font-size:12px}
+.toolbar-title{font-weight:700;font-size:13px;color:#e2e2f0;margin-right:12px}
+.tb-btn{padding:5px 11px;border-radius:6px;border:1px solid #2a2a38;background:transparent;color:#8888a8;cursor:pointer;font-size:11px;font-weight:500;transition:all .15s}
+.tb-btn:hover,.tb-btn.active{background:#7c6ef520;border-color:#7c6ef5;color:#a89ef8}
+.zoom-lbl{color:#555568;font-size:11px;min-width:36px;text-align:center}
+.tb-sep{width:1px;height:20px;background:#222230;margin:0 4px}
+
+/* ── CANVAS ── */
+.canvas-wrap{margin-top:48px;overflow:auto;min-height:calc(100vh - 48px);cursor:grab;user-select:none}
+.canvas-wrap.dragging{cursor:grabbing}
+.canvas{position:relative;width:2600px;padding:60px 80px 120px}
+
+/* ── LANE BACKGROUNDS ── */
+.lane{position:absolute;border-radius:12px;opacity:.045}
+
+/* ── NODES ── */
+.node{position:absolute;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:500;line-height:1.4;cursor:pointer;transition:transform .12s,box-shadow .12s;z-index:10}
+.node:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.node-title{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.65;margin-bottom:3px}
+.node-label{font-size:13px;font-weight:600}
+.node-sub{font-size:10px;opacity:.65;margin-top:2px}
+
+/* colour themes */
+.n-entry   {background:#1a1a2a;border:1.5px solid #3a3a58;color:#c8c8e8}
+.n-auth    {background:#0f1f35;border:1.5px solid #1a4080;color:#7ab8f5}
+.n-onboard {background:#1a2210;border:1.5px solid #3a6020;color:#88d050}
+.n-dash    {background:#1a1428;border:1.5px solid #4a2890;color:#b890f8}
+.n-batch   {background:#1c1214;border:1.5px solid #6a2030;color:#f08090}
+.n-comply  {background:#161c10;border:1.5px solid #3a5828;color:#80c870}
+.n-account {background:#1c1610;border:1.5px solid #6a4818;color:#e0a050}
+.n-ai      {background:#0e1a20;border:1.5px solid #184858;color:#50c8d8}
+.n-public  {background:#181010;border:1.5px solid #503028;color:#d09080}
+.n-supplier{background:#121818;border:1.5px solid #285040;color:#60c0a0}
+.n-api     {background:#101018;border:1.5px solid #383858;color:#9090c8}
+.n-decision{background:#201808;border:2px solid #806020;color:#d0a830;border-radius:6px}
+
+/* ── SECTION HEADERS ── */
+.section-header{position:absolute;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.4;z-index:5}
+
+/* ── SVG ARROWS ── */
+svg.arrows{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6}
+.arrow-line{fill:none;stroke-width:1.5;stroke-dasharray:none}
+.arrow-default{stroke:#3a3a58}
+.arrow-auth   {stroke:#1a4080}
+.arrow-onboard{stroke:#3a6020}
+.arrow-dash   {stroke:#4a2890}
+.arrow-batch  {stroke:#6a2030}
+.arrow-comply {stroke:#3a5828}
+.arrow-account{stroke:#6a4818}
+.arrow-ai     {stroke:#184858}
+.arrow-public {stroke:#503028}
+.arrow-supplier{stroke:#285040}
+.arrow-cond   {stroke:#806020;stroke-dasharray:5 3}
+
+/* ── LEGEND ── */
+.legend{position:fixed;bottom:16px;right:16px;background:#111114;border:1px solid #222230;border-radius:8px;padding:12px 14px;z-index:200;font-size:11px}
+.legend-title{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#555568;margin-bottom:8px}
+.leg-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;color:#8888a8}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── TOOLTIP ── */
+.tip{position:fixed;background:#18182a;border:1px solid #2a2a48;border-radius:8px;padding:10px 13px;font-size:12px;color:#c8c8e8;pointer-events:none;z-index:500;max-width:260px;opacity:0;transition:opacity .15s;line-height:1.5}
+.tip.show{opacity:1}
+.tip-title{font-weight:700;margin-bottom:4px;color:#e2e2f0}
+
+/* ── MINI MAP ── */
+.minimap{position:fixed;bottom:16px;left:16px;background:#111114;border:1px solid #222230;border-radius:8px;overflow:hidden;z-index:200;width:160px;height:100px}
+.minimap canvas{width:160px;height:100px}
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="toolbar-title">⚡ ExportReady Battery — App Flow</span>
+  <div class="tb-sep"></div>
+  <button class="tb-btn active" id="btn-all" onclick="filterView('all')">All</button>
+  <button class="tb-btn" id="btn-auth" onclick="filterView('auth')">Auth</button>
+  <button class="tb-btn" id="btn-onboard" onclick="filterView('onboard')">Onboarding</button>
+  <button class="tb-btn" id="btn-dash" onclick="filterView('dash')">Dashboard</button>
+  <button class="tb-btn" id="btn-batch" onclick="filterView('batch')">Batches</button>
+  <button class="tb-btn" id="btn-comply" onclick="filterView('comply')">Compliance</button>
+  <button class="tb-btn" id="btn-ext" onclick="filterView('ext')">External</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="zoom(-0.15)">−</button>
+  <span class="zoom-lbl" id="zoom-lbl">100%</span>
+  <button class="tb-btn" onclick="zoom(0.15)">+</button>
+  <button class="tb-btn" onclick="resetZoom()">Reset</button>
+</div>
+
+<!-- Tooltip -->
+<div class="tip" id="tip"></div>
+
+<!-- Canvas -->
+<div class="canvas-wrap" id="wrap">
+<div class="canvas" id="canvas">
+
+<!-- SECTION LABELS -->
+<div class="section-header" style="left:80px;top:20px">ENTRY POINTS</div>
+<div class="section-header" style="left:400px;top:20px">AUTH LAYER</div>
+<div class="section-header" style="left:820px;top:20px">ONBOARDING (4 STEPS)</div>
+<div class="section-header" style="left:1280px;top:20px">DASHBOARD CORE</div>
+<div class="section-header" style="left:1640px;top:20px">PRODUCTION</div>
+<div class="section-header" style="left:1980px;top:20px">COMPLIANCE</div>
+<div class="section-header" style="left:2290px;top:20px">ACCOUNT</div>
+<div class="section-header" style="left:80px;top:660px">EXTERNAL PORTALS</div>
+<div class="section-header" style="left:80px;top:960px">BACKEND API + AI</div>
+
+<!-- Lane backgrounds -->
+<div class="lane" style="left:60px;top:40px;width:280px;height:600px;background:#3a3a80"></div>
+<div class="lane" style="left:360px;top:40px;width:400px;height:600px;background:#1a4080"></div>
+<div class="lane" style="left:780px;top:40px;width:440px;height:600px;background:#3a6020"></div>
+<div class="lane" style="left:1240px;top:40px;width:360px;height:600px;background:#4a2890"></div>
+<div class="lane" style="left:1620px;top:40px;width:330px;height:600px;background:#6a2030"></div>
+<div class="lane" style="left:1960px;top:40px;width:310px;height:600px;background:#3a5828"></div>
+<div class="lane" style="left:2280px;top:40px;width:240px;height:600px;background:#6a4818"></div>
+<div class="lane" style="left:60px;top:650px;width:660px;height:300px;background:#503028"></div>
+<div class="lane" style="left:60px;top:940px;width:2460px;height:220px;background:#184858"></div>
+
+<!-- ═══════════════════ ENTRY POINTS ═══════════════════ -->
+<div class="node n-entry" id="n-root" style="left:80px;top:80px;width:200px"
+  data-tip="Root page (/) — redirects based on auth state. If logged in → /dashboard. If not → /login."
+  data-groups="auth">
+  <div class="node-title">Entry</div>
+  <div class="node-label">/ (Root)</div>
+  <div class="node-sub">Redirect hub</div>
+</div>
+
+<div class="node n-entry" id="n-email-invite" style="left:80px;top:190px;width:200px"
+  data-tip="Email invitation link → /accept-invite. Validates token, creates session, routes to onboarding."
+  data-groups="auth">
+  <div class="node-title">Email</div>
+  <div class="node-label">Team Invite Link</div>
+  <div class="node-sub">/accept-invite</div>
+</div>
+
+<div class="node n-entry" id="n-qr" style="left:80px;top:300px;width:200px"
+  data-tip="QR code on physical battery label → /p/[uuid] — public Battery Passport page. No auth required."
+  data-groups="ext">
+  <div class="node-title">QR Code</div>
+  <div class="node-label">Battery Passport</div>
+  <div class="node-sub">/p/[uuid]</div>
+</div>
+
+<div class="node n-entry" id="n-supplier-invite" style="left:80px;top:400px;width:200px"
+  data-tip="Supplier receives email → /supplier/accept → logs in → /supplier/dashboard to upload compliance docs."
+  data-groups="ext">
+  <div class="node-title">Email</div>
+  <div class="node-label">Supplier Invite</div>
+  <div class="node-sub">/supplier/accept</div>
+</div>
+
+<div class="node n-entry" id="n-magic" style="left:80px;top:500px;width:200px"
+  data-tip="Magic link email → /auth/callback — exchanges token for session, redirects to dashboard."
+  data-groups="auth">
+  <div class="node-title">Email</div>
+  <div class="node-label">Magic Link</div>
+  <div class="node-sub">/auth/callback</div>
+</div>
+
+<!-- ═══════════════════ AUTH LAYER ═══════════════════ -->
+<div class="node n-auth" id="n-login" style="left:390px;top:80px;width:220px"
+  data-tip="Login form. POST /auth/login → JWT (in-memory) + HttpOnly refresh cookie. Then GET /auth/me for full profile."
+  data-groups="auth">
+  <div class="node-title">Auth</div>
+  <div class="node-label">Login</div>
+  <div class="node-sub">/login — email + password</div>
+</div>
+
+<div class="node n-auth" id="n-register" style="left:390px;top:190px;width:220px"
+  data-tip="Register form. POST /auth/register → sends verification email → user confirms → same login flow."
+  data-groups="auth">
+  <div class="node-title">Auth</div>
+  <div class="node-label">Register</div>
+  <div class="node-sub">/register — new account</div>
+</div>
+
+<div class="node n-auth" id="n-forgot" style="left:390px;top:300px;width:220px"
+  data-tip="Forgot password → POST /auth/forgot-password → email with reset link → /reset-password → new password."
+  data-groups="auth">
+  <div class="node-title">Auth</div>
+  <div class="node-label">Forgot Password</div>
+  <div class="node-sub">/forgot-password</div>
+</div>
+
+<div class="node n-auth" id="n-callback" style="left:390px;top:400px;width:220px"
+  data-tip="/auth/callback — Supabase callback for magic links and OAuth. Exchanges code for session tokens."
+  data-groups="auth">
+  <div class="node-title">Auth</div>
+  <div class="node-label">Auth Callback</div>
+  <div class="node-sub">/auth/callback</div>
+</div>
+
+<div class="node n-decision" id="n-auth-check" style="left:430px;top:510px;width:180px"
+  data-tip="AuthContext checks: (1) Does HttpOnly cookie exist? (2) refreshAccessToken() exchange. (3) GET /auth/me. (4) Is onboarding_completed?"
+  data-groups="auth onboard">
+  <div class="node-title">Guard</div>
+  <div class="node-label">Auth Check</div>
+  <div class="node-sub">onboarding_completed?</div>
+</div>
+
+<div class="node n-auth" id="n-session" style="left:620px;top:510px;width:160px"
+  data-tip="In-memory JWT access token + HttpOnly refresh cookie (Supabase). refreshAccessToken() runs on every fresh page load to restore session without re-login."
+  data-groups="auth">
+  <div class="node-title">Session</div>
+  <div class="node-label">Token Store</div>
+  <div class="node-sub">memory + HttpOnly</div>
+</div>
+
+<!-- ═══════════════════ ONBOARDING ═══════════════════ -->
+<div class="node n-onboard" id="n-ob1" style="left:810px;top:80px;width:200px"
+  data-tip="Step 1: Company Profile — company_name, address, support_email, website, logo_url. Zod-validated in real-time."
+  data-groups="onboard">
+  <div class="node-title">Onboarding Step 1</div>
+  <div class="node-label">Company Profile</div>
+  <div class="node-sub">Name, address, email, logo</div>
+</div>
+
+<div class="node n-onboard" id="n-ob2" style="left:810px;top:200px;width:200px"
+  data-tip="Step 2: Market Selection — India / EU / Global. Controls which compliance fields appear in Step 3 and in the batch wizard."
+  data-groups="onboard">
+  <div class="node-title">Onboarding Step 2</div>
+  <div class="node-label">Market Selection</div>
+  <div class="node-sub">India / EU / Global</div>
+</div>
+
+<div class="node n-onboard" id="n-ob3" style="left:810px;top:320px;width:200px"
+  data-tip="Step 3: Compliance Setup — India: EPR reg no, BIS R-number, IEC code, MORTH codes. EU: Representative name, address, email."
+  data-groups="onboard">
+  <div class="node-title">Onboarding Step 3</div>
+  <div class="node-label">Compliance Setup</div>
+  <div class="node-sub">EPR, BIS, IEC, EU rep</div>
+</div>
+
+<div class="node n-onboard" id="n-ob4" style="left:810px;top:440px;width:200px"
+  data-tip="Step 4: Review & Submit — PUT /auth/profile sets onboarding_completed=true. Redirects to /dashboard."
+  data-groups="onboard">
+  <div class="node-title">Onboarding Step 4</div>
+  <div class="node-label">Review & Submit</div>
+  <div class="node-sub">PUT /auth/profile</div>
+</div>
+
+<div class="node n-onboard" id="n-ob-check" style="left:1020px;top:440px;width:180px"
+  data-tip="useOnboardingReadiness hook checks profile completeness (EPR/BIS verified?). ProfileCompletenessBanner shows in dashboard if gaps remain."
+  data-groups="onboard dash">
+  <div class="node-title">Hook</div>
+  <div class="node-label">Readiness Check</div>
+  <div class="node-sub">useOnboardingReadiness</div>
+</div>
+
+<!-- ═══════════════════ DASHBOARD CORE ═══════════════════ -->
+<div class="node n-dash" id="n-layout" style="left:1270px;top:80px;width:220px"
+  data-tip="DashboardLayoutShell — guards auth + onboarding. Renders DashboardSidebar + DashboardTopBar + ProfileCompletenessBanner around every page."
+  data-groups="dash">
+  <div class="node-title">Layout</div>
+  <div class="node-label">Dashboard Layout</div>
+  <div class="node-sub">Auth guard + sidebar + topbar</div>
+</div>
+
+<div class="node n-dash" id="n-home" style="left:1270px;top:210px;width:220px"
+  data-tip="/dashboard home — StatsCards (total batches, passports, compliance score), BatchStatusChart, ProductionChart, ScanMap."
+  data-groups="dash">
+  <div class="node-title">Page</div>
+  <div class="node-label">Dashboard Home</div>
+  <div class="node-sub">Stats, charts, scan map</div>
+</div>
+
+<div class="node n-dash" id="n-analytics" style="left:1270px;top:330px;width:220px"
+  data-tip="/dashboard/analytics — deeper metrics: batch trends, compliance rates, scan geography, export volumes."
+  data-groups="dash">
+  <div class="node-title">Page</div>
+  <div class="node-label">Analytics</div>
+  <div class="node-sub">/dashboard/analytics</div>
+</div>
+
+<div class="node n-dash" id="n-sidebar" style="left:1270px;top:450px;width:220px"
+  data-tip="DashboardSidebar — 6 nav groups: Overview, Production, Compliance, Account, Developer, Admin. Collapsible. productConfig-driven."
+  data-groups="dash">
+  <div class="node-title">Component</div>
+  <div class="node-label">Sidebar Nav</div>
+  <div class="node-sub">6 groups, 16 routes</div>
+</div>
+
+<!-- ═══════════════════ PRODUCTION ═══════════════════ -->
+<div class="node n-batch" id="n-batches" style="left:1660px;top:60px;width:220px"
+  data-tip="/dashboard/batches — batch list with bulk actions. CreateBatchWizard (4-step sheet). BulkActionToolbar, BulkImportDialog."
+  data-groups="batch">
+  <div class="node-title">Production</div>
+  <div class="node-label">Batches</div>
+  <div class="node-sub">List + create wizard</div>
+</div>
+
+<div class="node n-batch" id="n-batch-detail" style="left:1660px;top:180px;width:220px"
+  data-tip="/dashboard/batches/[id] — full Battery Passport detail. 10 sections: QuickStats, CoreSpecs, MarketCompliance, MaterialComposition, ComplianceScoreRing, PLIFinancialCard, SustainabilityCard, BlockchainAnchors, CertificateStatus, ActivationChecklist."
+  data-groups="batch">
+  <div class="node-title">Production</div>
+  <div class="node-label">Batch Detail</div>
+  <div class="node-sub">10-section passport view</div>
+</div>
+
+<div class="node n-batch" id="n-lifecycle" style="left:1660px;top:300px;width:220px"
+  data-tip="/dashboard/lifecycle — battery lifecycle events: manufacturing → dispatch → end-of-life. Timeline view."
+  data-groups="batch">
+  <div class="node-title">Production</div>
+  <div class="node-label">Lifecycle</div>
+  <div class="node-sub">Timeline events</div>
+</div>
+
+<div class="node n-batch" id="n-templates" style="left:1660px;top:400px;width:220px"
+  data-tip="/dashboard/templates — saved batch templates. CRUD. Used in batch wizard Step 1 to pre-fill form fields."
+  data-groups="batch">
+  <div class="node-title">Production</div>
+  <div class="node-label">Templates</div>
+  <div class="node-sub">Saved batch templates</div>
+</div>
+
+<div class="node n-batch" id="n-dispatch" style="left:1660px;top:500px;width:220px"
+  data-tip="/dashboard/dispatch — manage shipment records linked to batches. Dispatch events trigger lifecycle updates."
+  data-groups="batch">
+  <div class="node-title">Production</div>
+  <div class="node-label">Dispatch</div>
+  <div class="node-sub">Shipment records</div>
+</div>
+
+<!-- ═══════════════════ COMPLIANCE ═══════════════════ -->
+<div class="node n-comply" id="n-compliance" style="left:2000px;top:60px;width:210px"
+  data-tip="/dashboard/compliance — compliance score across all batches. Per-batch gap analysis. EU Battery Regulation + India BIS/EPR status."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">Compliance Hub</div>
+  <div class="node-sub">Score + gap analysis</div>
+</div>
+
+<div class="node n-comply" id="n-due-diligence" style="left:2000px;top:170px;width:210px"
+  data-tip="/dashboard/due-diligence — supplier due diligence. Links to supplier portal. CMRT importer. Country risk scoring."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">Due Diligence</div>
+  <div class="node-sub">Supplier risk + CMRT</div>
+</div>
+
+<div class="node n-comply" id="n-regulatory" style="left:2000px;top:270px;width:210px"
+  data-tip="/dashboard/regulatory — regulatory calendar, upcoming deadlines, market-specific requirement tracker."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">Regulatory</div>
+  <div class="node-sub">Deadlines + requirements</div>
+</div>
+
+<div class="node n-comply" id="n-exports" style="left:2000px;top:365px;width:210px"
+  data-tip="/dashboard/exports — export Battery Passport data as PDF, XML, JSON. DGFT export documentation."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">Exports</div>
+  <div class="node-sub">PDF, XML, JSON export</div>
+</div>
+
+<div class="node n-comply" id="n-mass-balance" style="left:2000px;top:455px;width:210px"
+  data-tip="/dashboard/mass-balance — material mass balance across batches. EU Art. 8 recycled content tracking."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">Mass Balance</div>
+  <div class="node-sub">Recycled content EU Art. 8</div>
+</div>
+
+<div class="node n-comply" id="n-dgft" style="left:2000px;top:545px;width:210px"
+  data-tip="/dashboard/dgft-claims — India DGFT export incentive claims. Links duty drawback to batch export records."
+  data-groups="comply">
+  <div class="node-title">Compliance</div>
+  <div class="node-label">DGFT Claims</div>
+  <div class="node-sub">India export incentives</div>
+</div>
+
+<!-- ═══════════════════ ACCOUNT ═══════════════════ -->
+<div class="node n-account" id="n-team" style="left:2300px;top:80px;width:180px"
+  data-tip="/dashboard/team — invite team members (POST /team/invite). Role management. Invitees get email → /accept-invite."
+  data-groups="account">
+  <div class="node-title">Account</div>
+  <div class="node-label">Team</div>
+  <div class="node-sub">Invite + roles</div>
+</div>
+
+<div class="node n-account" id="n-partners" style="left:2300px;top:190px;width:180px"
+  data-tip="/dashboard/partners — manage supplier/partner relationships. Trigger supplier portal invites. View supplier doc status."
+  data-groups="account">
+  <div class="node-title">Account</div>
+  <div class="node-label">Partners</div>
+  <div class="node-sub">Supplier relationships</div>
+</div>
+
+<div class="node n-account" id="n-billing" style="left:2300px;top:300px;width:180px"
+  data-tip="/dashboard/billing — quota balance, billing packages. GET /billing/balance + /billing/packages."
+  data-groups="account">
+  <div class="node-title">Account</div>
+  <div class="node-label">Billing</div>
+  <div class="node-sub">Quota + packages</div>
+</div>
+
+<div class="node n-account" id="n-settings" style="left:2300px;top:400px;width:180px"
+  data-tip="/dashboard/settings — company profile, compliance certs (EPR, BIS, PLI upload), EU rep details, data visibility preferences."
+  data-groups="account">
+  <div class="node-title">Account</div>
+  <div class="node-label">Settings</div>
+  <div class="node-sub">Profile + compliance vault</div>
+</div>
+
+<div class="node n-account" id="n-developer" style="left:2300px;top:500px;width:180px"
+  data-tip="/dashboard/developer — API key management. /docs — full API reference, compliance docs, getting started guides."
+  data-groups="account">
+  <div class="node-title">Developer</div>
+  <div class="node-label">API Keys + Docs</div>
+  <div class="node-sub">REST API access</div>
+</div>
+
+<!-- ═══════════════════ EXTERNAL PORTALS ═══════════════════ -->
+<div class="node n-public" id="n-passport" style="left:80px;top:700px;width:240px"
+  data-tip="/p/[uuid] — public Battery Passport page. No auth. Fetches passport data by UUID (from QR code). Internationalized (EN, DE, FR, HI…). Magic link option for sensitive fields."
+  data-groups="ext">
+  <div class="node-title">Public Portal</div>
+  <div class="node-label">Battery Passport</div>
+  <div class="node-sub">/p/[uuid] — QR landing, i18n, no-auth</div>
+</div>
+
+<div class="node n-supplier" id="n-sup-login" style="left:370px;top:700px;width:200px"
+  data-tip="/supplier/login — supplier-specific login (separate auth flow, session scoped to supplier role)."
+  data-groups="ext">
+  <div class="node-title">Supplier Portal</div>
+  <div class="node-label">Supplier Login</div>
+  <div class="node-sub">/supplier/login</div>
+</div>
+
+<div class="node n-supplier" id="n-sup-dash" style="left:370px;top:820px;width:200px"
+  data-tip="/supplier/dashboard — supplier sees their uploaded docs (CMRT, test certs, etc.), status (pending/approved/rejected), and can upload new docs."
+  data-groups="ext">
+  <div class="node-title">Supplier Portal</div>
+  <div class="node-label">Supplier Dashboard</div>
+  <div class="node-sub">Upload + status tracking</div>
+</div>
+
+<div class="node n-public" id="n-passport-action" style="left:80px;top:820px;width:240px"
+  data-tip="/p/[uuid]/action — triggered from public passport. Request magic link for gated data. End-of-life action reporting."
+  data-groups="ext">
+  <div class="node-title">Public Portal</div>
+  <div class="node-label">Passport Action</div>
+  <div class="node-sub">Magic link + EOL reporting</div>
+</div>
+
+<!-- ═══════════════════ BACKEND API ═══════════════════ -->
+<div class="node n-api" id="n-api-auth" style="left:80px;top:1000px;width:200px"
+  data-tip="Go API: POST /auth/login, /auth/register, /auth/refresh, /auth/logout, GET /auth/me, PUT /auth/profile. JWT + Supabase HttpOnly cookie."
+  data-groups="auth">
+  <div class="node-title">API</div>
+  <div class="node-label">Auth Endpoints</div>
+  <div class="node-sub">/auth/* — Go + Supabase</div>
+</div>
+
+<div class="node n-api" id="n-api-batch" style="left:320px;top:1000px;width:200px"
+  data-tip="Go API: GET/POST /batches, GET /batches/[id], POST /batches/[id]/clone (planned). POST /batch/validate for real-time form validation."
+  data-groups="batch">
+  <div class="node-title">API</div>
+  <div class="node-label">Batch Endpoints</div>
+  <div class="node-sub">/batches/* — CRUD + validate</div>
+</div>
+
+<div class="node n-api" id="n-api-template" style="left:560px;top:1000px;width:200px"
+  data-tip="Go API: GET/POST/DELETE /templates. React Query caches with queryKeys.templates(tenantId, productType)."
+  data-groups="batch">
+  <div class="node-title">API</div>
+  <div class="node-label">Template Endpoints</div>
+  <div class="node-sub">/templates/* — React Query</div>
+</div>
+
+<div class="node n-ai" id="n-api-ai" style="left:800px;top:1000px;width:220px"
+  data-tip="Go API: POST /ai/parse-datasheet (Groq Llama-3.3-70b — regex first, LLM fallback, 40+ fields extracted). POST /ai/nl-create-batch (NL → 10 batch fields). Client SHA-256 cache (24h)."
+  data-groups="batch">
+  <div class="node-title">AI Service</div>
+  <div class="node-label">AI Endpoints</div>
+  <div class="node-sub">Groq Llama-3.3-70b — parse + NL</div>
+</div>
+
+<div class="node n-api" id="n-api-comply" style="left:1060px;top:1000px;width:220px"
+  data-tip="Go API: compliance registry (EU Reg 2023/1542, India BIS/EPR), CMRT importer, country risk calculator, RMI smelters lookup. POST /compliance/validate."
+  data-groups="comply">
+  <div class="node-title">API</div>
+  <div class="node-label">Compliance Engine</div>
+  <div class="node-sub">EU + India rules engine</div>
+</div>
+
+<div class="node n-api" id="n-api-supplier" style="left:1320px;top:1000px;width:200px"
+  data-tip="Go API: /supplier/* — supplier auth, document upload to Supabase Storage, status updates (pending→approved→rejected), reviewer notes."
+  data-groups="ext">
+  <div class="node-title">API</div>
+  <div class="node-label">Supplier Endpoints</div>
+  <div class="node-sub">/supplier/* — docs + status</div>
+</div>
+
+<div class="node n-api" id="n-api-blockchain" style="left:1560px;top:1000px;width:200px"
+  data-tip="Worker service: anchors batch hashes to blockchain. Runs as background job. BlockchainAnchors section shows anchor status + tx hash."
+  data-groups="batch">
+  <div class="node-title">Worker</div>
+  <div class="node-label">Blockchain Anchoring</div>
+  <div class="node-sub">Hash → chain tx</div>
+</div>
+
+<div class="node n-api" id="n-api-pdf" style="left:1800px;top:1000px;width:200px"
+  data-tip="Go API: PDF generation for Battery Passport export. cmd/test_pdf for testing. Exports as downloadable PDF via /exports."
+  data-groups="comply">
+  <div class="node-title">API</div>
+  <div class="node-label">PDF Generator</div>
+  <div class="node-sub">Passport → PDF</div>
+</div>
+
+<div class="node n-api" id="n-api-storage" style="left:2040px;top:1000px;width:200px"
+  data-tip="Supabase Storage: compliance-docs bucket (certificates, declarations of conformity, CA certificates). Accessed via signed URLs."
+  data-groups="comply">
+  <div class="node-title">Storage</div>
+  <div class="node-label">Supabase Storage</div>
+  <div class="node-sub">compliance-docs bucket</div>
+</div>
+
+<div class="node n-api" id="n-api-quota" style="left:2280px;top:1000px;width:190px"
+  data-tip="Quota system (migration 000008). Each batch creation deducts from tenant quota_balance. Billing packages replenish quota."
+  data-groups="account">
+  <div class="node-title">API</div>
+  <div class="node-label">Quota System</div>
+  <div class="node-sub">Deduct per batch create</div>
+</div>
+
+<!-- ══════════ ARROWS SVG ══════════ -->
+<svg class="arrows" id="arrows-svg"></svg>
+
+</div><!-- /canvas -->
+</div><!-- /wrap -->
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-title">Node Types</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#3a3a58"></div>Entry point</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#1a4080"></div>Auth / session</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#3a6020"></div>Onboarding</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#4a2890"></div>Dashboard core</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#6a2030"></div>Production / batches</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#3a5828"></div>Compliance</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#6a4818"></div>Account</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#503028"></div>External portals</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#184858"></div>Backend API / AI</div>
+</div>
+
+<script>
+// ── Arrow definitions [from-id, to-id, class] ──
+const ARROWS = [
+  // Entry → Auth
+  ['n-root','n-login','auth'],
+  ['n-email-invite','n-callback','auth'],
+  ['n-magic','n-callback','auth'],
+  ['n-qr','n-passport','public'],
+  ['n-supplier-invite','n-sup-login','supplier'],
+
+  // Auth internal
+  ['n-login','n-auth-check','auth'],
+  ['n-register','n-auth-check','auth'],
+  ['n-forgot','n-login','auth'],
+  ['n-callback','n-auth-check','auth'],
+  ['n-auth-check','n-session','auth'],
+
+  // Auth → Onboarding (conditional)
+  ['n-auth-check','n-ob1','onboard'],
+
+  // Onboarding steps
+  ['n-ob1','n-ob2','onboard'],
+  ['n-ob2','n-ob3','onboard'],
+  ['n-ob3','n-ob4','onboard'],
+  ['n-ob4','n-ob-check','onboard'],
+
+  // Onboarding → Dashboard
+  ['n-ob4','n-layout','dash'],
+  ['n-auth-check','n-layout','cond'],
+
+  // Dashboard layout → pages
+  ['n-layout','n-home','dash'],
+  ['n-layout','n-analytics','dash'],
+  ['n-layout','n-sidebar','dash'],
+  ['n-sidebar','n-batches','batch'],
+  ['n-sidebar','n-lifecycle','batch'],
+  ['n-sidebar','n-templates','batch'],
+  ['n-sidebar','n-dispatch','batch'],
+  ['n-sidebar','n-compliance','comply'],
+  ['n-sidebar','n-due-diligence','comply'],
+  ['n-sidebar','n-regulatory','comply'],
+  ['n-sidebar','n-exports','comply'],
+  ['n-sidebar','n-mass-balance','comply'],
+  ['n-sidebar','n-dgft','comply'],
+  ['n-sidebar','n-team','account'],
+  ['n-sidebar','n-partners','account'],
+  ['n-sidebar','n-billing','account'],
+  ['n-sidebar','n-settings','account'],
+  ['n-sidebar','n-developer','account'],
+
+  // Batches → detail
+  ['n-batches','n-batch-detail','batch'],
+  ['n-templates','n-batches','batch'],
+
+  // Team → invite flow
+  ['n-team','n-email-invite','account'],
+
+  // Partners → supplier
+  ['n-partners','n-sup-login','supplier'],
+  ['n-due-diligence','n-sup-dash','comply'],
+
+  // Supplier portal
+  ['n-sup-login','n-sup-dash','supplier'],
+
+  // Public passport
+  ['n-passport','n-passport-action','public'],
+
+  // API connections (from pages to API nodes)
+  ['n-login','n-api-auth','auth'],
+  ['n-ob4','n-api-auth','onboard'],
+  ['n-settings','n-api-auth','account'],
+  ['n-batches','n-api-batch','batch'],
+  ['n-batch-detail','n-api-batch','batch'],
+  ['n-batches','n-api-template','batch'],
+  ['n-batches','n-api-ai','ai'],
+  ['n-compliance','n-api-comply','comply'],
+  ['n-exports','n-api-pdf','comply'],
+  ['n-sup-dash','n-api-supplier','supplier'],
+  ['n-batch-detail','n-api-blockchain','batch'],
+  ['n-settings','n-api-storage','account'],
+  ['n-billing','n-api-quota','account'],
+
+  // Readiness hook
+  ['n-ob-check','n-layout','dash'],
+];
+
+// ── Get node centre ──
+function centre(id){
+  const el = document.getElementById(id);
+  if(!el) return null;
+  const r = el.getBoundingClientRect();
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+  // use offsetLeft/offsetTop for canvas-relative coords
+  return {
+    x: el.offsetLeft + el.offsetWidth/2,
+    y: el.offsetTop + el.offsetHeight/2,
+    w: el.offsetWidth,
+    h: el.offsetHeight,
+    left: el.offsetLeft,
+    right: el.offsetLeft + el.offsetWidth,
+    top: el.offsetTop,
+    bottom: el.offsetTop + el.offsetHeight,
+  };
+}
+
+function drawArrows(){
+  const svg = document.getElementById('arrows-svg');
+  svg.innerHTML = '';
+
+  // defs: arrowheads
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const colours = {
+    auth:'#1a4080', onboard:'#3a6020', dash:'#4a2890', batch:'#6a2030',
+    comply:'#3a5828', account:'#6a4818', ai:'#184858', public:'#503028',
+    supplier:'#285040', cond:'#806020', default:'#3a3a58',
+  };
+  Object.entries(colours).forEach(([k,col])=>{
+    const m = document.createElementNS('http://www.w3.org/2000/svg','marker');
+    m.setAttribute('id','ah-'+k);
+    m.setAttribute('markerWidth','8');
+    m.setAttribute('markerHeight','6');
+    m.setAttribute('refX','7');
+    m.setAttribute('refY','3');
+    m.setAttribute('orient','auto');
+    const p = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    p.setAttribute('points','0 0, 8 3, 0 6');
+    p.setAttribute('fill',col);
+    m.appendChild(p);
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  ARROWS.forEach(([fromId, toId, cls])=>{
+    const f = centre(fromId);
+    const t = centre(toId);
+    if(!f||!t) return;
+
+    // pick exit/entry edges to reduce overlap
+    let x1=f.right, y1=f.y, x2=t.left, y2=t.y;
+
+    // if target is above/below use top/bottom
+    const dx = t.x - f.x;
+    const dy = t.y - f.y;
+
+    if(Math.abs(dy) > Math.abs(dx)*1.5){
+      if(dy > 0){ x1=f.x; y1=f.bottom; x2=t.x; y2=t.top; }
+      else      { x1=f.x; y1=f.top;    x2=t.x; y2=t.bottom; }
+    } else if(dx < 0){
+      x1=f.left; y1=f.y; x2=t.right; y2=t.y;
+    }
+
+    // control points for cubic bezier
+    const midX = (x1+x2)/2;
+    const cx1 = x1 + Math.sign(x2-x1)*Math.min(60,Math.abs(x2-x1)*0.4);
+    const cy1 = y1;
+    const cx2 = x2 - Math.sign(x2-x1)*Math.min(60,Math.abs(x2-x1)*0.4);
+    const cy2 = y2;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`);
+    path.setAttribute('class','arrow-line arrow-'+(cls||'default'));
+    path.setAttribute('marker-end','url(#ah-'+(cls||'default')+')');
+    if(cls==='cond') path.setAttribute('stroke-dasharray','5 3');
+    svg.appendChild(path);
+  });
+}
+
+// ── Tooltip ──
+const tip = document.getElementById('tip');
+document.querySelectorAll('.node').forEach(n=>{
+  n.addEventListener('mouseenter',e=>{
+    const text = n.getAttribute('data-tip');
+    if(!text) return;
+    tip.innerHTML = `<div class="tip-title">${n.querySelector('.node-label').textContent}</div>${text}`;
+    tip.classList.add('show');
+  });
+  n.addEventListener('mousemove',e=>{
+    tip.style.left = (e.clientX+14)+'px';
+    tip.style.top  = (e.clientY+14)+'px';
+  });
+  n.addEventListener('mouseleave',()=>tip.classList.remove('show'));
+});
+
+// ── Filter ──
+const GROUP_MAP = {
+  auth:    ['auth'],
+  onboard: ['onboard'],
+  dash:    ['dash'],
+  batch:   ['batch'],
+  comply:  ['comply'],
+  ext:     ['ext','public','supplier'],
+  all:     null,
+};
+
+function filterView(key){
+  document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+key)?.classList.add('active');
+
+  const allowed = GROUP_MAP[key];
+  document.querySelectorAll('.node').forEach(n=>{
+    const groups = (n.getAttribute('data-groups')||'').split(' ');
+    if(!allowed || allowed.some(g=>groups.includes(g))){
+      n.style.opacity='1'; n.style.pointerEvents='auto';
+    } else {
+      n.style.opacity='0.08'; n.style.pointerEvents='none';
+    }
+  });
+}
+
+// ── Zoom ──
+let scale=1;
+const canvas = document.getElementById('canvas');
+function zoom(d){
+  scale = Math.max(0.3, Math.min(2, scale+d));
+  canvas.style.transform=`scale(${scale})`;
+  canvas.style.transformOrigin='top left';
+  document.getElementById('zoom-lbl').textContent=Math.round(scale*100)+'%';
+}
+function resetZoom(){ scale=1; canvas.style.transform=''; document.getElementById('zoom-lbl').textContent='100%'; }
+
+// ── Pan ──
+const wrap = document.getElementById('wrap');
+let panning=false, px=0, py=0, sx=0, sy=0;
+wrap.addEventListener('mousedown',e=>{
+  if(e.target.closest('.node')) return;
+  panning=true; px=e.clientX; py=e.clientY;
+  sx=wrap.scrollLeft; sy=wrap.scrollTop;
+  wrap.classList.add('dragging');
+});
+window.addEventListener('mousemove',e=>{
+  if(!panning) return;
+  wrap.scrollLeft = sx-(e.clientX-px);
+  wrap.scrollTop  = sy-(e.clientY-py);
+});
+window.addEventListener('mouseup',()=>{ panning=false; wrap.classList.remove('dragging'); });
+
+// ── Draw on load ──
+window.addEventListener('load',()=>{ setTimeout(drawArrows,100); });
+window.addEventListener('resize',drawArrows);
+</script>
+</body>
+</html>

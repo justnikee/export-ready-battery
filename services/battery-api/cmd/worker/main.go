@@ -60,6 +60,10 @@ func main() {
 	lifecycleService := services.NewLifecycleService(repo)
 	chainVerifier := NewChainVerifier(database.Pool, lifecycleService, logger)
 
+	// Setup webhook delivery retry sweep (runs every 5 minutes)
+	outboundWebhookService := services.NewOutboundWebhookService(repo)
+	webhookRetryWorker := NewWebhookRetryWorker(outboundWebhookService, logger)
+
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -84,6 +88,20 @@ func main() {
 				return
 			case <-ticker.C:
 				chainVerifier.RunOnce(ctx)
+			}
+		}
+	}()
+
+	// Start webhook delivery retry sweep on a 5-minute ticker
+	go func() {
+		ticker := time.NewTicker(WebhookRetryInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				webhookRetryWorker.RunOnce(ctx)
 			}
 		}
 	}()

@@ -339,6 +339,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/compliance", authMiddleware.Protect(http.HandlerFunc(h.GetBatchCompliance)))
 	mux.Handle("GET /api/v1/batches/{id}/eu-attribute-score", authMiddleware.Protect(http.HandlerFunc(h.GetBatchEUAttributeScore)))
 	mux.Handle("GET /api/v1/batches/{id}/due-diligence-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDueDiligenceReport)))
+	mux.Handle("GET /api/v1/batches/{id}/dva-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDVACalculationReport)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.DeleteBatch))))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ArchiveBatch))))
@@ -409,6 +410,7 @@ func main() {
 	// ============================================
 	mux.Handle("POST /api/v1/batches/{id}/anchors", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateCertificateAnchor))))
 	mux.Handle("GET /api/v1/batches/{id}/anchors", authMiddleware.Protect(http.HandlerFunc(h.GetCertificateAnchors)))
+	mux.Handle("GET /api/v1/anchors", authMiddleware.Protect(http.HandlerFunc(h.GetTenantCertificateAnchors)))
 	mux.Handle("POST /api/v1/jobs/upgrade-anchors", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpgradeCertificateAnchors))))
 
 	// ============================================
@@ -441,9 +443,19 @@ func main() {
 	mux.Handle("GET /api/v1/passports", authMiddleware.Protect(http.HandlerFunc(h.ListPassports)))
 
 	// ============================================
+	// FLEET HEALTH ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/fleet/stats", authMiddleware.Protect(http.HandlerFunc(h.GetFleetStats)))
+	mux.Handle("GET /api/v1/fleet/worst-health", authMiddleware.Protect(http.HandlerFunc(h.GetFleetWorstHealth)))
+	mux.Handle("GET /api/v1/fleet/events", authMiddleware.Protect(http.HandlerFunc(h.GetFleetEvents)))
+	mux.Handle("GET /api/v1/fleet/geo", authMiddleware.Protect(http.HandlerFunc(h.GetFleetGeo)))
+	mux.Handle("GET /api/v1/fleet/thermal-events", authMiddleware.Protect(http.HandlerFunc(h.GetFleetThermalEvents)))
+
+	// ============================================
 	// PASSPORT LIFECYCLE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.TransitionPassport))))
+	mux.Handle("POST /api/v1/passports/{uuid}/undo-transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.UndoTransition))))
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
 	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth))))
@@ -513,6 +525,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/batches/chart-data", authMiddleware.Protect(http.HandlerFunc(h.GetBatchesChartData)))
 	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+	mux.Handle("GET /api/v1/scans/feed/stream", authMiddleware.Protect(http.HandlerFunc(h.StreamScanFeed)))
 
 	// ============================================
 	// ANALYTICS ROUTES (Protected)
@@ -587,6 +600,8 @@ func main() {
 	mux.Handle("POST /api/v1/outbound-webhooks", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.CreateOutboundWebhook))))
 	mux.Handle("GET /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.ListOutboundWebhooks)))
 	mux.Handle("DELETE /api/v1/outbound-webhooks/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.DeleteOutboundWebhook))))
+	mux.Handle("GET /api/v1/webhooks/{id}/deliveries", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.GetWebhookDeliveries)))
+	mux.Handle("POST /api/v1/webhooks/deliveries/{id}/retry", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.RetryWebhookDelivery))))
 
 	// ============================================
 	// DOCUMENT UPLOAD ROUTES (Protected)

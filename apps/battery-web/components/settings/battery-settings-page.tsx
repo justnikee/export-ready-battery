@@ -10,7 +10,6 @@ import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCh
 import { toast } from "sonner"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
-import SuppliersTab from "@/components/settings/suppliers-tab"
 import { DocumentUpload } from "@/components/shared/document-upload"
 
 // Logo Upload Component
@@ -98,7 +97,13 @@ function LogoUpload({
 }
 
 // Certificate readiness helpers
+// "Valid" means fully verified — used for the compliance checklist's done state.
 function isCertValid(status?: string) {
+  return status === "VERIFIED"
+}
+// "Submitted" means something is on file (verified or awaiting review) — used to
+// decide whether the field needs the red "certificate required" warning at all.
+function isCertSubmitted(status?: string) {
   return status === "PENDING" || status === "VERIFIED"
 }
 
@@ -123,17 +128,21 @@ function getIndiaComplianceChecks(
       label: "EPR Number",
       done: !!eprNumber && isCertValid(certs.epr_status),
       required: !!eprNumber,
-      warning: eprNumber && !isCertValid(certs.epr_status)
+      warning: eprNumber && !isCertSubmitted(certs.epr_status)
         ? "Upload EPR certificate to activate batches"
-        : undefined,
+        : eprNumber && !isCertValid(certs.epr_status)
+          ? "EPR certificate pending verification"
+          : undefined,
     },
     {
       label: "BIS Number",
       done: !!bisNumber && isCertValid(certs.bis_status),
       required: !!bisNumber,
-      warning: bisNumber && !isCertValid(certs.bis_status)
+      warning: bisNumber && !isCertSubmitted(certs.bis_status)
         ? "Upload BIS certificate to activate batches"
-        : undefined,
+        : bisNumber && !isCertValid(certs.bis_status)
+          ? "BIS certificate pending verification"
+          : undefined,
     },
     {
       label: "IEC Code",
@@ -190,10 +199,10 @@ function getActivationBlockers(
   const eprNumber = String(formData.epr_registration_number || "").trim()
   const bisNumber = String(formData.bis_r_number || "").trim()
 
-  if (eprNumber && !isCertValid(certs.epr_status)) {
+  if (eprNumber && !isCertSubmitted(certs.epr_status)) {
     blockers.push("EPR certificate upload required")
   }
-  if (bisNumber && !isCertValid(certs.bis_status)) {
+  if (bisNumber && !isCertSubmitted(certs.bis_status)) {
     blockers.push("BIS certificate upload required")
   }
   return blockers
@@ -205,8 +214,9 @@ export default function SettingsPage() {
  const [loading, setLoading] = useState(false)
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers'>(
-  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers') || 'profile'
+ const [factoryCodeError, setFactoryCodeError] = useState(false)
+ const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>(
+  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens') || 'profile'
  )
 
  const [formData, setFormData] = useState({
@@ -230,6 +240,10 @@ export default function SettingsPage() {
  data_visibility: {} as Record<string, string>
  })
 
+ // Snapshot of formData as last loaded/saved — diffed against formData to
+ // detect unsaved changes without re-fetching from the server.
+ const [initialFormData, setInitialFormData] = useState(formData)
+
  // Certificate paths state
  const [certificatePaths, setCertificatePaths] = useState({
  epr_certificate_path: "",
@@ -242,7 +256,7 @@ export default function SettingsPage() {
 
  useEffect(() => {
  if (user) {
- setFormData({
+ const loaded = {
  company_name: user.company_name || "",
  address: user.address || "",
  support_email: user.support_email || "",
@@ -257,7 +271,9 @@ export default function SettingsPage() {
  eu_authorized_representative_address: user.eu_authorized_representative_address || "",
  eu_contact_email: user.eu_contact_email || "",
  data_visibility: user.data_visibility || {}
- })
+ }
+ setFormData(loaded)
+ setInitialFormData(loaded)
  setCertificatePaths({
  epr_certificate_path: user.epr_certificate_path || "",
  bis_certificate_path: user.bis_certificate_path || "",
@@ -273,6 +289,18 @@ export default function SettingsPage() {
  setLogoError(false)
  }, [formData.logo_url])
 
+ const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormData)
+
+ useEffect(() => {
+ if (!isDirty) return
+ const handler = (e: BeforeUnloadEvent) => {
+ e.preventDefault()
+ e.returnValue = ""
+ }
+ window.addEventListener("beforeunload", handler)
+ return () => window.removeEventListener("beforeunload", handler)
+ }, [isDirty])
+
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault()
  setLoading(true)
@@ -281,6 +309,7 @@ export default function SettingsPage() {
  try {
  await api.put("/auth/profile", formData)
  await refreshUser()
+ setInitialFormData(formData)
  setMessage({ type: 'success', text: "Organization profile updated successfully" })
  } catch (error) {
  setMessage({ type: 'error', text: "Failed to update profile. Please try again." })
@@ -310,7 +339,6 @@ export default function SettingsPage() {
  { id: 'compliance' as const, label: 'India Compliance' },
  { id: 'privacy' as const, label: 'Data Privacy' },
  { id: 'tokens' as const, label: 'API Tokens' },
- { id: 'suppliers' as const, label: 'Suppliers' },
  ].map(tab => (
  <button
  key={tab.id}
@@ -535,22 +563,22 @@ export default function SettingsPage() {
 
  <div className="p-6 grid gap-6 md:grid-cols-2">
  {/* EPR Registration Number */}
- <div className={`space-y-2 p-3 rounded border ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <div className={`space-y-2 p-3 rounded border ${formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
  <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  EPR Registration Number
- {formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) && (
+ {formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) && (
  <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
  <AlertTriangle className="h-3 w-3" />
  Certificate required
  </span>
  )}
- {formData.epr_registration_number?.trim() && isCertValid(certificatePaths.epr_status) && getFieldStatusBadge(certificatePaths.epr_status)}
+ {formData.epr_registration_number?.trim() && isCertSubmitted(certificatePaths.epr_status) && getFieldStatusBadge(certificatePaths.epr_status)}
  </label>
  <div className="relative">
  <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
  <input
  type="text"
- className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-emerald-500'}`}
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-emerald-500'}`}
  placeholder="EPR/B/2024/XXXX"
  value={formData.epr_registration_number}
  onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
@@ -566,16 +594,16 @@ export default function SettingsPage() {
  </div>
 
  {/* BIS R-Number */}
- <div className={`space-y-2 p-3 rounded border ${formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <div className={`space-y-2 p-3 rounded border ${formData.bis_r_number?.trim() && !isCertSubmitted(certificatePaths.bis_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
  <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  BIS R-Number (IS 16046)
- {formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) && (
+ {formData.bis_r_number?.trim() && !isCertSubmitted(certificatePaths.bis_status) && (
  <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
  <AlertTriangle className="h-3 w-3" />
  Certificate required
  </span>
  )}
- {formData.bis_r_number?.trim() && isCertValid(certificatePaths.bis_status) && getFieldStatusBadge(certificatePaths.bis_status)}
+ {formData.bis_r_number?.trim() && isCertSubmitted(certificatePaths.bis_status) && getFieldStatusBadge(certificatePaths.bis_status)}
  </label>
  <div className="relative">
  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
@@ -670,12 +698,24 @@ export default function SettingsPage() {
  <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
  <input
  type="text"
- className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 font-mono disabled:cursor-not-allowed disabled:opacity-50 ${factoryCodeError ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-orange-500'}`}
  placeholder='[{"code":"01","name":"Pune Plant"},{"code":"02","name":"Chennai Plant"}]'
  value={formData.morth_factory_codes}
- onChange={(e) => setFormData({ ...formData, morth_factory_codes: e.target.value })}
+ onChange={(e) => {
+ const val = e.target.value
+ try {
+ if (val.trim()) JSON.parse(val)
+ setFactoryCodeError(false)
+ } catch {
+ setFactoryCodeError(true)
+ }
+ setFormData({ ...formData, morth_factory_codes: val })
+ }}
  />
  </div>
+ {factoryCodeError && (
+ <p className="text-xs text-red-400">Invalid JSON format</p>
+ )}
  <p className="text-xs text-muted-foreground">JSON array of 2-char factory codes used in the BI section of BPAN. E.g. <code className="bg-muted px-1 rounded">&#91;&#123;&quot;code&quot;:&quot;01&quot;,&quot;name&quot;:&quot;Pune Plant&quot;&#125;&#93;</code></p>
  </div>
  </div>
@@ -683,8 +723,8 @@ export default function SettingsPage() {
  </div>
  </>)}
 
- {/* EU Compliance Contact Card */}
- {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
+ {/* EU Compliance Contact Card — Compliance tab only, not duplicated on Profile */}
+ {activeSettingsTab === 'compliance' && (
  <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-indigo-500/10 border border-indigo-100">
@@ -812,10 +852,14 @@ export default function SettingsPage() {
  {message.text}
  </p>
  )}
+ {!message && isDirty && (
+ <span className="text-amber-500 text-xs">Unsaved changes</span>
+ )}
  <div className="ml-auto">
  <button
  type="submit"
- disabled={loading}
+ disabled={loading || factoryCodeError}
+ title={factoryCodeError ? "Fix the invalid Factory Codes JSON before saving" : undefined}
  className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
  >
  {loading ? (
@@ -834,10 +878,6 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'tokens' && (
  <DataAccessTokens />
- )}
-
- {activeSettingsTab === 'suppliers' && (
- <SuppliersTab />
  )}
  </div>
  </div>

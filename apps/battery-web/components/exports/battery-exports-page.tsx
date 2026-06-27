@@ -12,16 +12,96 @@ import {
  FileArchive,
  FileText,
  FileSpreadsheet,
- Shield
+ Shield,
+ Plus,
+ PackageSearch
 } from 'lucide-react';
+import api from '@/lib/api';
 import {
  listExportJobs,
  refreshExportDownload,
+ createExportJob,
  formatFileSize,
  formatJobType,
  type ExportJob
 } from '@/lib/api/exports';
 import { getApiErrorMessage } from '@/lib/utils';
+
+interface BatchOption {
+ id: string;
+ batch_name: string;
+}
+
+function NewExportSection({ onCreated }: { onCreated: () => void }) {
+ const [batches, setBatches] = useState<BatchOption[]>([]);
+ const [selectedBatch, setSelectedBatch] = useState('');
+ const [creating, setCreating] = useState<'CSV' | 'LABELS_PDF' | null>(null);
+
+ useEffect(() => {
+ api.get('/batches?status=ACTIVE&limit=200')
+ .then((res) => {
+ const items = (res.data.batches || []) as BatchOption[];
+ setBatches(items);
+ if (items.length > 0) setSelectedBatch(items[0].id);
+ })
+ .catch(() => toast.error('Failed to load batches'));
+ }, []);
+
+ const handleCreate = async (jobType: 'CSV' | 'LABELS_PDF') => {
+ if (!selectedBatch) {
+ toast.error('Select a batch first');
+ return;
+ }
+ setCreating(jobType);
+ try {
+ await createExportJob({ batch_id: selectedBatch, job_type: jobType });
+ toast.success("Export started. You'll be able to download it below once it's ready.");
+ onCreated();
+ } catch (error: unknown) {
+ const msg = await getApiErrorMessage(error, 'Failed to start export');
+ toast.error(msg);
+ } finally {
+ setCreating(null);
+ }
+ };
+
+ return (
+ <div className="relative bg-transparent border border-border p-5">
+ <h3 className="text-base font-medium text-foreground mb-3">New Export</h3>
+ {batches.length === 0 ? (
+ <p className="text-sm text-muted-foreground">No active batches available to export yet.</p>
+ ) : (
+ <div className="flex flex-wrap items-center gap-3">
+ <select
+ value={selectedBatch}
+ onChange={(e) => setSelectedBatch(e.target.value)}
+ className="border border-border bg-background text-foreground px-3 py-2 text-sm"
+ >
+ {batches.map((b) => (
+ <option key={b.id} value={b.id}>{b.batch_name}</option>
+ ))}
+ </select>
+ <button
+ onClick={() => handleCreate('CSV')}
+ disabled={creating !== null}
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ >
+ {creating === 'CSV' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+ Export Batch Data (CSV)
+ </button>
+ <button
+ onClick={() => handleCreate('LABELS_PDF')}
+ disabled={creating !== null}
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ >
+ {creating === 'LABELS_PDF' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+ Export Batch QR Labels (PDF)
+ </button>
+ </div>
+ )}
+ </div>
+ );
+}
 
 export default function ExportsPage() {
  const [exports, setExports] = useState<ExportJob[]>([]);
@@ -115,6 +195,8 @@ export default function ExportsPage() {
  return <FileSpreadsheet className="w-5 h-5 text-emerald-500" />;
  case 'DUE_DILIGENCE':
  return <Shield className="w-5 h-5 text-indigo-500" />;
+ case 'EPCIS':
+ return <PackageSearch className="w-5 h-5 text-blue-500" />;
  default:
  return <FileText className="w-5 h-5 text-muted-foreground" />;
  }
@@ -139,8 +221,8 @@ export default function ExportsPage() {
  {/* Page Header */}
  <div className="flex items-center justify-between">
  <div>
- <h1 className="text-2xl text-foreground tracking-tight">Export History</h1>
- <p className="text-sm text-muted-foreground mt-1">View and download your previous exports</p>
+ <h1 className="text-2xl text-foreground tracking-tight">Downloads</h1>
+ <p className="text-sm text-muted-foreground mt-1">Start new exports and download your previous ones</p>
  </div>
  <button
  onClick={fetchExports}
@@ -151,6 +233,8 @@ export default function ExportsPage() {
  Refresh
  </button>
  </div>
+
+ <NewExportSection onCreated={fetchExports} />
 
  {/* Empty State */}
  {exports.length === 0 ? (

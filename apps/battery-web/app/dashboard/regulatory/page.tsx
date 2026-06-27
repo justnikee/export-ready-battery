@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/auth-context";
 import {
   getRegulatoryItems,
   getRegulatoryAlerts,
@@ -43,6 +44,8 @@ import {
 import { clsx } from "clsx";
 
 export default function RegulatoryDashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
   const [productFilter, setProductFilter] = useState<string>("");
   const [regionFilter, setRegionFilter] = useState<string>("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("");
@@ -70,7 +73,7 @@ export default function RegulatoryDashboardPage() {
   const sourcesQuery = useQuery({
     queryKey: ["regulatorySources"],
     queryFn: () => getRegulatorySources(),
-    enabled: activeTab === "sources",
+    enabled: activeTab === "sources" && isAdmin,
   });
 
   const markRead = useMutation({
@@ -148,7 +151,9 @@ export default function RegulatoryDashboardPage() {
           <TabsTrigger value="alerts" className="text-xs rounded-none">
             My Alerts {alerts.length > 0 && <span className="ml-1 text-[10px] text-red-500">({alerts.length})</span>}
           </TabsTrigger>
-          <TabsTrigger value="sources" className="text-xs rounded-none">Sources</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="sources" className="text-xs rounded-none">Sources</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="feed" className="mt-4 space-y-4">
@@ -389,78 +394,80 @@ export default function RegulatoryDashboardPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sources" className="mt-4 space-y-4">
-          <Card className="rounded-none">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs">Source</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Interval</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Last Fetched</TableHead>
-                    <TableHead className="text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sourcesQuery.isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        Loading...
-                      </TableCell>
+        {isAdmin && (
+          <TabsContent value="sources" className="mt-4 space-y-4">
+            <Card className="rounded-none">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs">Source</TableHead>
+                      <TableHead className="text-xs">Type</TableHead>
+                      <TableHead className="text-xs">Interval</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs">Last Fetched</TableHead>
+                      <TableHead className="text-xs">Actions</TableHead>
                     </TableRow>
-                  ) : sources.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        No sources configured.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    sources.map((source) => (
-                      <TableRow key={source.id}>
-                        <TableCell>
-                          <div className="text-xs font-medium">{source.name}</div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[240px]">{source.url}</div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground uppercase">{source.source_type}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{source.fetch_interval}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={clsx(
-                              "text-[10px] rounded-none",
-                              source.is_active ? "bg-green-50 text-green-700" : "bg-slate-50 text-slate-500",
-                            )}
-                          >
-                            {source.is_active ? "Active" : "Paused"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {source.last_fetched_at
-                            ? new Date(source.last_fetched_at).toLocaleString()
-                            : "Never"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[10px] rounded-none"
-                            onClick={() => forceFetch.mutate(source.id)}
-                            disabled={forceFetch.isPending || !source.is_active}
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            Fetch Now
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {sourcesQuery.isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                          Loading...
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    ) : sources.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                          No sources configured.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      sources.map((source) => (
+                        <TableRow key={source.id}>
+                          <TableCell>
+                            <div className="text-xs font-medium">{source.name}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[240px]">{source.url}</div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground uppercase">{source.source_type}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{source.fetch_interval}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={clsx(
+                                "text-[10px] rounded-none",
+                                source.is_active ? "bg-green-50 text-green-700" : "bg-slate-50 text-slate-500",
+                              )}
+                            >
+                              {source.is_active ? "Active" : "Paused"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {source.last_fetched_at
+                              ? new Date(source.last_fetched_at).toLocaleString()
+                              : "Never"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px] rounded-none"
+                              onClick={() => forceFetch.mutate(source.id)}
+                              disabled={forceFetch.isPending || !source.is_active}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Fetch Now
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
