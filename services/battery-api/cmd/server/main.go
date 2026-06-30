@@ -173,6 +173,7 @@ func main() {
 		auditExportService := services.NewAuditExportService(database.Pool)
 		exportJobService = services.NewExportJobService(
 			database.Pool,
+			repo,
 			storageService,
 			qrService,
 			pdfService,
@@ -281,6 +282,7 @@ func main() {
 	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
 	authMux.HandleFunc("POST /api/v1/auth/request-access", h.RequestAccess)
+	authMux.HandleFunc("POST /api/v1/leads/eu-buyer", h.CreateEUBuyerLead)
 	// Email verification (public, rate-limited)
 	authMux.HandleFunc("GET /api/v1/auth/verify-email", authHandler.VerifyEmail)
 	authMux.HandleFunc("POST /api/v1/auth/resend-verification", authHandler.ResendVerification)

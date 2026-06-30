@@ -23,6 +23,7 @@ import {
   LayoutTemplate,
   PackageSearch,
   Calculator,
+  Package,
 } from "lucide-react";
 import type { Batch } from "@/lib/types";
 
@@ -38,6 +39,7 @@ interface BatchActionsProps {
   onExportDueDiligence: () => void;
   onExportEPCIS: () => void;
   onExportDVAReport: () => void;
+  onExportPLIPacket: () => void;
   onArchive: () => void;
   onDeleteDraft: () => void;
   onSaveAsTemplate: () => void;
@@ -55,6 +57,7 @@ export function BatchActions({
   onExportDueDiligence,
   onExportEPCIS,
   onExportDVAReport,
+  onExportPLIPacket,
   onArchive,
   onDeleteDraft,
   onSaveAsTemplate,
@@ -168,6 +171,17 @@ export function BatchActions({
               >
                 <Calculator className="mr-2 h-4 w-4" />
                 DVA Calculation Report
+              </DropdownMenuItem>
+            )}
+            {isIndiaOrGlobal && (
+              <DropdownMenuItem
+                onClick={() => {
+                  onExportPLIPacket();
+                  setOpen(false);
+                }}
+              >
+                <Package className="mr-2 h-4 w-4" />
+                PLI Claim Packet
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />

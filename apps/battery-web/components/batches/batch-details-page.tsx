@@ -86,6 +86,7 @@ export default function BatchDetailsPage() {
     handleExportComplianceDeclaration,
     handleExportEPCIS,
     handleExportDVAReport,
+    handleExportPLIPacket,
     handleDownloadComplianceReport,
     handleActivateBatch,
     handleArchiveBatch,
@@ -177,6 +178,7 @@ export default function BatchDetailsPage() {
               onExportDueDiligence={handleExportDueDiligence}
               onExportEPCIS={handleExportEPCIS}
               onExportDVAReport={handleExportDVAReport}
+              onExportPLIPacket={handleExportPLIPacket}
               onArchive={() => setConfirmArchive(true)}
               onDeleteDraft={() => setConfirmDelete(true)}
               onSaveAsTemplate={() => setSaveTemplateOpen(true)}
@@ -311,6 +313,7 @@ export default function BatchDetailsPage() {
                 onExportDueDiligence={handleExportDueDiligence}
                 onExportEPCIS={handleExportEPCIS}
                 onExportDVAReport={handleExportDVAReport}
+                onExportPLIPacket={handleExportPLIPacket}
               />
             )}
 

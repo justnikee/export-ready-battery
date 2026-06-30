@@ -24,6 +24,7 @@ type fakeTeamRepo struct {
 	tenants        map[uuid.UUID]*models.Tenant
 	members        map[uuid.UUID]*models.TeamMember
 	membersByEmail map[string]*models.TeamMember
+	euBuyerLeads   []*models.EUBuyerLead
 }
 
 var _ repository.RepositoryInterface = (*fakeTeamRepo)(nil)
@@ -142,6 +143,10 @@ func (f *fakeTeamRepo) GetWebhookDeliveriesByWebhook(ctx context.Context, webhoo
 func (f *fakeTeamRepo) GetWebhookDeliveryByID(ctx context.Context, id uuid.UUID) (*models.WebhookDelivery, error) { return nil, nil }
 func (f *fakeTeamRepo) GetFailedDeliveriesForRetry(ctx context.Context, maxRetries, limit int) ([]*models.WebhookDelivery, error) { return nil, nil }
 func (f *fakeTeamRepo) CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error { return nil }
+func (f *fakeTeamRepo) CreateEUBuyerLead(ctx context.Context, lead *models.EUBuyerLead) error {
+	f.euBuyerLeads = append(f.euBuyerLeads, lead)
+	return nil
+}
 func (f *fakeTeamRepo) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) { return nil, nil }
 func (f *fakeTeamRepo) ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error) { return nil, 0, nil }
 func (f *fakeTeamRepo) UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error { return nil }
@@ -797,6 +802,7 @@ func (f *fakeTeamRepo) GetComponentTreeByBatch(ctx context.Context, batchID, ten
 func (f *fakeTeamRepo) ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error) { return nil, nil }
 func (f *fakeTeamRepo) CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
 func (f *fakeTeamRepo) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error) { return nil, nil }
+func (f *fakeTeamRepo) GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error) { return nil, nil }
 func (f *fakeTeamRepo) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
 func (f *fakeTeamRepo) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) { return nil, 0, nil }

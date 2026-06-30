@@ -12,6 +12,7 @@ import {
   Lock,
   PackageSearch,
   Calculator,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +31,7 @@ interface DownloadsTabProps {
   onExportDueDiligence: () => void;
   onExportEPCIS: () => void;
   onExportDVAReport: () => void;
+  onExportPLIPacket: () => void;
 }
 
 function DownloadCard({
@@ -103,6 +105,7 @@ export function DownloadsTab({
   onExportDueDiligence,
   onExportEPCIS,
   onExportDVAReport,
+  onExportPLIPacket,
 }: DownloadsTabProps) {
   const draftLock = "Activate batch to unlock downloads";
 
@@ -201,15 +204,26 @@ export function DownloadsTab({
           />
         )}
         {(isIndia || isGlobal) && (
-          <DownloadCard
-            icon={<Calculator className="h-4 w-4 text-violet-500" />}
-            label="DVA Calculation"
-            format="PDF"
-            description="CA-ready PLI DVA calculation breakdown and compliance status"
-            onClick={onExportDVAReport}
-            disabled={isDraft}
-            disabledReason={draftLock}
-          />
+          <>
+            <DownloadCard
+              icon={<Calculator className="h-4 w-4 text-violet-500" />}
+              label="DVA Calculation"
+              format="PDF"
+              description="CA-ready PLI DVA calculation breakdown and compliance status"
+              onClick={onExportDVAReport}
+              disabled={isDraft}
+              disabledReason={draftLock}
+            />
+            <DownloadCard
+              icon={<Archive className="h-4 w-4 text-amber-500" />}
+              label="PLI Claim Packet"
+              format="ZIP"
+              description="DVA report, compliance report, BIS/PLI certificates and DGFT claim bundled for MHI submission prep"
+              onClick={onExportPLIPacket}
+              disabled={isDraft}
+              disabledReason={draftLock}
+            />
+          </>
         )}
       </Section>
     </div>

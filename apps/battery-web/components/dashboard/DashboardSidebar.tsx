@@ -15,6 +15,8 @@ import { getProductConfigByType } from "@/lib/products";
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import NProgress from "nprogress";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { NAV_GROUP_LABEL_KEYS, NAV_ITEM_LABEL_KEYS } from "@/lib/i18n/nav-labels";
 
 interface DashboardSidebarProps {
   isOpen: boolean;
@@ -34,6 +36,11 @@ export function DashboardSidebar({
   const productConfig = getProductConfigByType(productType);
   const navGroups = productConfig.navGroups;
   const pathname = usePathname();
+  const { t } = useLocale();
+  const translateGroupLabel = (label: string) =>
+    NAV_GROUP_LABEL_KEYS[label] ? t(NAV_GROUP_LABEL_KEYS[label]) : label;
+  const translateItemName = (name: string) =>
+    NAV_ITEM_LABEL_KEYS[name] ? t(NAV_ITEM_LABEL_KEYS[name]) : name;
   const [devExpanded, setDevExpanded] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem("sidebar-dev-expanded");
@@ -130,7 +137,7 @@ export function DashboardSidebar({
                       isCollapsed && "md:hidden",
                     )}
                   >
-                    <span>{group.label}</span>
+                    <span>{translateGroupLabel(group.label)}</span>
                     {devExpanded ? (
                       <ChevronUp className="h-3.5 w-3.5" />
                     ) : (
@@ -144,7 +151,7 @@ export function DashboardSidebar({
                       isCollapsed && "md:hidden",
                     )}
                   >
-                    {group.label}
+                    {translateGroupLabel(group.label)}
                   </div>
                 )}
 
@@ -168,7 +175,7 @@ export function DashboardSidebar({
                             if (!active) NProgress.start();
                             onClose();
                           }}
-                          title={isCollapsed ? item.name : undefined}
+                          title={isCollapsed ? translateItemName(item.name) : undefined}
                           className={clsx(
                             "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200",
                             active
@@ -186,7 +193,7 @@ export function DashboardSidebar({
                             )}
                           />
                           <span className={clsx(isCollapsed && "md:hidden")}>
-                            {item.name}
+                            {translateItemName(item.name)}
                           </span>
                         </Link>
                       );

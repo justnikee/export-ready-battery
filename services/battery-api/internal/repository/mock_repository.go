@@ -340,6 +340,11 @@ func (m *MockRepository) CreateSignupRequest(ctx context.Context, req *models.Si
 	return args.Error(0)
 }
 
+func (m *MockRepository) CreateEUBuyerLead(ctx context.Context, lead *models.EUBuyerLead) error {
+	args := m.Called(ctx, lead)
+	return args.Error(0)
+}
+
 func (m *MockRepository) GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error) {
 	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
@@ -1547,6 +1552,14 @@ func (m *MockRepository) CreateDGFTClaim(ctx context.Context, claim *models.DGFT
 
 func (m *MockRepository) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error) {
 	args := m.Called(ctx, id, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DGFTClaim), args.Error(1)
+}
+
+func (m *MockRepository) GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error) {
+	args := m.Called(ctx, batchID, tenantID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

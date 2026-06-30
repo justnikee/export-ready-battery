@@ -55,6 +55,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { WebhooksSection } from "@/components/developer/WebhooksSection";
+import { TallySyncSection } from "@/components/developer/TallySyncSection";
 
 interface APIKey {
   id: string;
@@ -790,6 +791,9 @@ export default function DeveloperPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Tally ERP Sync */}
+        <TallySyncSection />
 
         {/* Webhooks */}
         <WebhooksSection />

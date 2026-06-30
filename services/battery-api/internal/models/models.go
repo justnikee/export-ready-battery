@@ -1126,6 +1126,21 @@ type SignupRequest struct {
 	CreatedAt        time.Time  `json:"created_at"`
 }
 
+// EUBuyerLead stores an EU buyer's interest in mandating ExportReady to
+// their Indian suppliers (STRAT-06: EU Buyer Landing Page). Distinct from
+// SignupRequest, which is the Indian manufacturer self-signup flow.
+type EUBuyerLead struct {
+	ID                uuid.UUID `json:"id"`
+	BuyerCompanyName  string    `json:"buyer_company_name"`
+	ContactName       string    `json:"contact_name"`
+	ContactEmail      string    `json:"contact_email"`
+	Country           string    `json:"country"`
+	IndianSuppliers   string    `json:"indian_suppliers,omitempty"`
+	Message           string    `json:"message,omitempty"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
 type PassportEvent struct {
 	ID           uuid.UUID              `json:"id"`
 	PassportID   uuid.UUID              `json:"passport_id"`
@@ -1738,6 +1753,7 @@ const (
 	ExportJobTypeAuditCSV              ExportJobType = "AUDIT_CSV"
 	ExportJobTypeAuditPDF              ExportJobType = "AUDIT_PDF"
 	ExportJobTypeEPCIS                 ExportJobType = "EPCIS"
+	ExportJobTypePLIPacket             ExportJobType = "PLI_PACKET"
 )
 
 // ExportJob represents an async background export job
@@ -1802,6 +1818,8 @@ func (e *ExportJob) GetFilename(batchName string) string {
 		return fmt.Sprintf("%s_audit_trail.pdf", sanitizedBatchName)
 	case ExportJobTypeEPCIS:
 		return fmt.Sprintf("%s_epcis.jsonld", sanitizedBatchName)
+	case ExportJobTypePLIPacket:
+		return fmt.Sprintf("%s_pli_claim_packet.zip", sanitizedBatchName)
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}

@@ -487,6 +487,35 @@ export function useBatchDetail(batchId: string, pathname: string) {
     }
   }, [batch, batchId, router, exportsHref]);
 
+  const handleExportPLIPacket = useCallback(async () => {
+    if (!batch) return;
+    try {
+      toast.loading("Creating PLI claim packet...", { id: "pli-packet-export" });
+      const job = await createExportJob({
+        batch_id: batchId,
+        job_type: "PLI_PACKET",
+      });
+      toast.success(
+        "PLI claim packet job created! Go to Downloads to get the file when ready.",
+        {
+          id: "pli-packet-export",
+          description: `Job ID: ${job.id}`,
+          duration: 10000,
+          action: {
+            label: "View Downloads",
+            onClick: () => router.push(exportsHref),
+          },
+        },
+      );
+    } catch (error: unknown) {
+      const apiError = toApiError(error);
+      toast.error(
+        apiError.response?.data?.error || "Failed to create PLI claim packet job",
+        { id: "pli-packet-export" },
+      );
+    }
+  }, [batch, batchId, router, exportsHref]);
+
   const handleExportDVAReport = useCallback(async () => {
     if (!batch) return;
     try {
@@ -856,6 +885,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
     handleExportDueDiligence,
     handleExportComplianceDeclaration,
     handleExportEPCIS,
+    handleExportPLIPacket,
     handleExportDVAReport,
     handleDownloadComplianceReport,
     handleActivateBatch,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,7 @@ import {
   deleteDraftSlot,
 } from "@/lib/batch-draft";
 import { BatchEntryModal, type EntryChoice } from "@/components/batches/batch-entry-modal";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { StepIdentity } from "@/components/batches/batch-form-steps/step-identity";
 import { StepSpecs } from "@/components/batches/batch-form-steps/step-specs";
 import { StepCompliance } from "@/components/batches/batch-form-steps/step-compliance";
@@ -71,10 +72,35 @@ function getStepForField(field: string): number {
   return 1;
 }
 
+// English step label/description → translation key, for STEPS below.
+// Kept as a lookup (rather than translating STEPS itself) so STEPS can stay
+// a plain module-level const — translation only happens at render time,
+// inside the component, where the locale hook is available.
+const STEP_LABEL_KEYS: Record<string, string> = {
+  Core: "wizard_step_core",
+  Compliance: "wizard_step_compliance",
+  Review: "wizard_step_review",
+};
+const STEP_DESC_KEYS: Record<string, string> = {
+  "Identity & specs": "wizard_step_core_desc",
+  "Market-specific rules": "wizard_step_compliance_desc",
+  "Verify & submit": "wizard_step_review_desc",
+};
+
 export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLocale();
+  const translatedSteps = useMemo(
+    () =>
+      STEPS.map((s) => ({
+        ...s,
+        label: STEP_LABEL_KEYS[s.label] ? t(STEP_LABEL_KEYS[s.label]) : s.label,
+        description: STEP_DESC_KEYS[s.description] ? t(STEP_DESC_KEYS[s.description]) : s.description,
+      })),
+    [t],
+  );
   const [entryOpen, setEntryOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -931,9 +957,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
               {/* Header */}
               <div className="flex items-center gap-3 border-b border-border px-6 h-14 shrink-0">
                 <div className="flex flex-col">
-                  <DialogTitle className="text-base">Create New Batch</DialogTitle>
+                  <DialogTitle className="text-base">{t("wizard_title")}</DialogTitle>
                   <DialogDescription className="text-xs">
-                    Step {step + 1} of {STEPS.length}: {STEPS[step].label} — {STEPS[step].description}
+                    Step {step + 1} of {STEPS.length}: {translatedSteps[step].label} — {translatedSteps[step].description}
                   </DialogDescription>
                 </div>
               </div>
@@ -942,14 +968,14 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
               <div className="flex flex-1 min-h-0">
                 {/* Left step rail (md+) */}
                 <div className="hidden md:block w-56 shrink-0 overflow-y-auto border-r border-border">
-                  <WizardStepRail steps={STEPS} current={step} onSelect={setStep} />
+                  <WizardStepRail steps={translatedSteps} current={step} onSelect={setStep} />
                 </div>
 
                 {/* Center column */}
                 <div className="flex-1 min-w-0 overflow-y-auto">
                   {/* Compact stepper (mobile) */}
                   <div className="md:hidden flex items-center gap-2 overflow-x-auto border-b border-border px-4 py-3">
-                    {STEPS.map((s, idx) => (
+                    {translatedSteps.map((s, idx) => (
                       <div key={s.id} className="flex shrink-0 items-center gap-2">
                         <span
                           className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium ${
@@ -1014,7 +1040,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                 <div className="flex items-center gap-3">
                   <Button type="button" variant="outline" onClick={goBack} disabled={step === 0 || isLoading}>
                     <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back
+                    {t("wizard_back")}
                   </Button>
                   <span className="text-xs text-muted-foreground hidden sm:inline">
                     {stepFieldCounts[step].label}
@@ -1029,16 +1055,16 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
                 <div className="flex items-center gap-3">
                   <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isLoading}>
-                    Save & Exit
+                    {t("wizard_save_exit")}
                   </Button>
                   {step < STEPS.length - 1 ? (
                     <Button type="button" onClick={goNext} disabled={isLoading}>
-                      Next: {STEPS[step + 1].label}
+                      {t("wizard_next")}: {translatedSteps[step + 1].label}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
                     <Button type="submit" disabled={isLoading || iecError}>
-                      {isLoading ? "Creating..." : "Create Batch"}
+                      {isLoading ? t("wizard_creating") : t("wizard_create_batch")}
                     </Button>
                   )}
                 </div>

@@ -34,6 +34,7 @@ func main() {
 	database := deps.Database
 
 	// Initialize services
+	repo := repository.New(database)
 	storageService := services.NewStorageService(logger)
 	qrService := services.NewQRService(cfg.BaseURL)
 	pdfService := services.NewPDFService(cfg.BaseURL)
@@ -43,6 +44,7 @@ func main() {
 
 	exportJobService := services.NewExportJobService(
 		database.Pool,
+		repo,
 		storageService,
 		qrService,
 		pdfService,
@@ -56,7 +58,6 @@ func main() {
 	worker := NewExportWorker(exportJobService, logger)
 
 	// Setup chain verifier (runs every 6 hours)
-	repo := repository.New(database)
 	lifecycleService := services.NewLifecycleService(repo)
 	chainVerifier := NewChainVerifier(database.Pool, lifecycleService, logger)
 

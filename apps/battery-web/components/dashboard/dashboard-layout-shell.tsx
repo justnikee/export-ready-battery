@@ -12,6 +12,7 @@ import { useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
 import { productRoutes } from "@/lib/routes";
+import { LocaleProvider } from "@/lib/i18n/locale-context";
 
 function LoadingBarWrapper() {
   return (
@@ -62,36 +63,38 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-sidebar text-foreground">
-      {/* Loading Bar */}
-      <LoadingBarWrapper />
+    <LocaleProvider>
+      <div className="min-h-screen bg-sidebar text-foreground">
+        {/* Loading Bar */}
+        <LoadingBarWrapper />
 
-      {/* Sidebar */}
-      <DashboardSidebar
-        isOpen={sidebar.isOpen}
-        onClose={() => sidebar.setIsOpen(false)}
-        isCollapsed={sidebar.isCollapsed}
-        onToggleCollapse={sidebar.toggleCollapse}
-        productType={user.product_type}
-      />
+        {/* Sidebar */}
+        <DashboardSidebar
+          isOpen={sidebar.isOpen}
+          onClose={() => sidebar.setIsOpen(false)}
+          isCollapsed={sidebar.isCollapsed}
+          onToggleCollapse={sidebar.toggleCollapse}
+          productType={user.product_type}
+        />
 
-      {/* Main Content Area */}
-      <div
-        className={clsx(
-          "min-h-screen flex flex-col transition-all duration-300",
-          sidebar.isCollapsed ? "md:ml-16" : "md:ml-60",
-        )}
-      >
-        {/* Top Bar */}
-        <DashboardTopBar onMenuClick={sidebar.toggleOpen} />
+        {/* Main Content Area */}
+        <div
+          className={clsx(
+            "min-h-screen flex flex-col transition-all duration-300",
+            sidebar.isCollapsed ? "md:ml-16" : "md:ml-60",
+          )}
+        >
+          {/* Top Bar */}
+          <DashboardTopBar onMenuClick={sidebar.toggleOpen} />
 
-        {/* Profile Completeness Banner */}
-        <ProfileCompletenessBanner />
+          {/* Profile Completeness Banner */}
+          <ProfileCompletenessBanner />
 
-        {/* Page Content */}
-        <main className="flex-1 w-full">{children}</main>
+          {/* Page Content */}
+          <main className="flex-1 w-full">{children}</main>
+        </div>
       </div>
-    </div>
+    </LocaleProvider>
   );
 }
 

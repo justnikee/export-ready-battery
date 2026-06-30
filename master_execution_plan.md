@@ -10,7 +10,7 @@
 | Phase | Status | Notes |
 |---|---|---|
 | PHASE 0 — Critical Bugs (17 items) | ✅ Done | All verified against current code first; 2 were already fixed, rest fixed for real. See inline `STATUS` notes per bug. |
-| PHASE 1 — Security (4 items) | ✅ Done, 1 manual step pending | SEC-01's code half is done; **someone still needs to flip the `compliance-docs` Supabase bucket to Private in the dashboard** — can't be done from code. |
+| PHASE 1 — Security (4 items) | ✅ Done | SEC-01's manual step (flip `compliance-docs` Supabase bucket to Private) confirmed done by the user 2026-06-28. All 4 items fully closed. |
 | PHASE 2 — Navigation Restructure | ✅ Done, adapted | Admin nav group preserved (plan would've deleted it), Webhooks move deferred (destination not built). **Fleet Health and EU Compliance placeholders are both now real pages — NEW-03 and NEW-04 are built.** |
 | PHASE 4.2 — Due Diligence rebuild | ✅ Done | Pulled forward from Phase 4 since Phase 2's Suppliers-tab removal needed it. Later refactored to share aggregation hooks with NEW-04. |
 | NEW-04 — EU Compliance Hub | ✅ Done | Pulled forward from Phase 5 — see its own `STATUS` note for the 6 places it deviates from the literal spec (all data-availability driven, not shortcuts). |
@@ -20,7 +20,7 @@
 | PHASE 3 — Dashboard Redesign | ✅ Done | All 5 sub-items (Action Queue, Regulatory Deadlines, Scan Map moved to Analytics, EPR Obligation card, quick-action fixes). See its own `STATUS` note for spec deviations. |
 | PHASE 5 — New Pages (NEW-01, 02, 05, 06, 07, 08) | ✅ Done | NEW-01 and NEW-08 turned out to be already built (plan was stale). NEW-02/05/06 were small-to-medium real gaps, fixed directly. NEW-07 was the big one: investigation found the existing webhook CRUD never actually persisted anything — fixed that prerequisite bug, then built the real async dispatch + retry + delivery log infra, with explicit user sign-off on scope first. See each item's own `STATUS` note. |
 | PHASE 6 — New Features (FEAT-01..08) | ✅ Done (7/8), 1 deliberately deferred | FEAT-07 was already done (PHASE 4.7). FEAT-03/04 backends were already mostly built — only small real gaps (a banner, a manganese entry) were missing. FEAT-01/02/05/06 each needed real backend work, done following the plan's intent rather than its literal code snippets where those snippets didn't fit this app's actual architecture (job system, audit-chain model, Bearer-token auth). FEAT-08 deferred on purpose — plan itself says "build when MoRTH releases API," and that API doesn't exist yet. See each item's own `STATUS` note. |
-| PHASE 7 — Strategic Features (STRAT-01..07) | ⬜ Not started | Business/product plays, some non-code (e.g. government filings). |
+| PHASE 7 — Strategic Features (STRAT-01..07) | ✅ Done (4/7) — 2 externally blocked, 1 needs scoping | STRAT-02/03/04/06 built and verified. STRAT-01 and STRAT-03's Zoho half need an external account (Meta WhatsApp / Zoho OAuth) before any code can start. STRAT-05 done as much as possible without the user (letter drafted, not sent — needs a confirmed addressee). STRAT-07 (CA/CS Portal) is sized like a new product line, not a feature — needs a scoping conversation, not code, first. See each item's own `STATUS` note. |
 
 Verification basis for everything marked done: backend `go build`/`go vet`/`go test ./...`, frontend `tsc --noEmit`/`vitest run` (232 tests), and `next build` (confirms new/changed routes compile and statically render). No authenticated browser click-through was done — no test login was available, and credential-hunting in env/scripts was correctly blocked rather than worked around.
 
@@ -40,7 +40,7 @@ ExportReady Battery is a multi-tenant SaaS compliance platform for Indian batter
 | Backend | Go 1.22, stdlib mux, pgx, structured slog | `services/battery-api/` |
 | Database | PostgreSQL (Supabase), JSONB BatchSpec | `services/battery-api/internal/db/` |
 | Auth | JWT (access + refresh), Google OAuth, Microsoft OAuth, Magic Link | `internal/auth/`, `middleware/auth.go` |
-| Storage | Supabase Storage (`compliance-docs` bucket — code fixed to use signed URLs; bucket itself still needs manual flip to Private, see SEC-01) | `services/storage_service.go` |
+| Storage | Supabase Storage (`compliance-docs` bucket — signed URLs + Private bucket, SEC-01 fully closed) | `services/storage_service.go` |
 | AI | Groq Llama-3.3-70b for datasheet parsing | `services/ai_service.go` |
 | Workers | Go goroutines: registry pool, anchor ticker (30m), Tally sync (5m), alerts (24h), reg-intel (6h) | `cmd/server/main.go` |
 | Payments | Razorpay | `services/razorpay_service.go` |
@@ -442,7 +442,7 @@ const response = await api.get(`/dgft-claims?search=${encodeURIComponent(searchT
 ---
 
 ### SEC-01 · Supabase Storage: make compliance-docs bucket private
-**STATUS (2026-06-27): ⚠️ Partially fixed — one manual step remains.** Backend (`storage_service.go`) and the post-activation passport-document flow (`UploadPassportDocument`/`GetPassportDocument`) already used `CreateSignedURLForBucket` correctly. The gap was specifically the batch-creation wizard's direct-to-Supabase upload (`create-batch-wizard.tsx`), which used `getPublicUrl()` — now uses `createSignedUrl()` (1hr) for both certificate and declaration uploads. **Still required, cannot be done from code:** flip the `compliance-docs` bucket to Private in the Supabase dashboard. Note the 1hr signed URL is stored as the long-lived value in batch specs and will go stale — a "refresh on view" endpoint (plan's step 4) is not yet built; flagging as a follow-up rather than guessing at every display call site.
+**STATUS (2026-06-28): ✅ Done.** Backend (`storage_service.go`) and the post-activation passport-document flow (`UploadPassportDocument`/`GetPassportDocument`) already used `CreateSignedURLForBucket` correctly. The gap was specifically the batch-creation wizard's direct-to-Supabase upload (`create-batch-wizard.tsx`), which used `getPublicUrl()` — now uses `createSignedUrl()` (1hr) for both certificate and declaration uploads. The manual step (flip `compliance-docs` to Private in the Supabase dashboard) has now been done by the user — confirmed 2026-06-28. Remaining follow-up, not blocking: the 1hr signed URL is stored as the long-lived value in batch specs and will go stale — a "refresh on view" endpoint (plan's step 4) is not yet built; flagging for later rather than guessing at every display call site.
 **Severity:** P1 SECURITY — BIS certs, EPR registrations, DVA audit reports are publicly accessible with just the URL  
 **Backend:** `services/battery-api/internal/services/storage_service.go`  
 **Frontend:** `apps/battery-web/components/batches/create-batch-wizard.tsx` lines 604–610  
@@ -1087,48 +1087,55 @@ These are revenue and moat-building features from the business strategy.
 ---
 
 ### STRAT-01 · WhatsApp Bot for Batch Status + QR Share
+**STATUS (2026-06-28): ⛔ Blocked on external dependency — not started.** Needs a Meta WhatsApp Business Cloud API account (app registration, phone number verification, business verification) before any code can be written. Nothing to build until that account exists.
 **Business case:** 70% of Indian factory managers use WhatsApp as primary communication. Drives adoption in tier-2/3 cities.  
 **Build:** WhatsApp Business Cloud API (Meta). Respond to QR code URLs with passport status, SoH, and location. Allow manager to type "Activate [serial]" to trigger transition.
 
 ---
 
 ### STRAT-02 · Vernacular UI (Hindi, Gujarati, Tamil)
-**Business case:** Opens non-English factory floor access (500+ small manufacturers)  
-**Build:** Use `next-intl`. Add locale files under `apps/battery-web/messages/hi.json`, `gu.json`, `ta.json`. Start with core batch creation flow + dashboard labels.
+**STATUS (2026-06-28): ✅ Done for dashboard nav + batch-creation wizard chrome.** The plan's literal instruction ("use next-intl") was stale — `next-intl` exists in this app but only covers 4 strings in the topbar (en/de only, no Indian languages). A separate, more complete homegrown system (`lib/i18n/`) already had full Hindi/Gujarati/Tamil/Telugu translations, but was only wired into the public passport-viewer page, not the dashboard. Extended that system instead of introducing a third i18n stack:
+- New `LocaleProvider`/`useLocale()` React Context (`lib/i18n/locale-context.tsx`), mounted in `dashboard-layout-shell.tsx`, with a language switcher in the dashboard topbar (persists choice in localStorage).
+- Translated dashboard sidebar nav (7 group labels + 23 item names, via `lib/i18n/nav-labels.ts` lookup) and the batch-creation wizard's chrome (step names/descriptions, Back/Save & Exit/Next/Create Batch buttons) into Hindi, Gujarati, and Tamil.
+- **Deliberately not translated:** the wizard's internal field-by-field labels (chemistry, material composition, HSN codes, hazardous-substance fields) — auto-translating compliance-specific technical terminology without native-speaker review risks real data-entry confusion. Translated only the navigation/orientation chrome (everyday words), not domain jargon.
+- **Recommend native-speaker review** of the Hindi/Gujarati/Tamil strings added before treating this as production-final — they're reasonable best-effort translations of common UI terms, not professionally verified.
+- Existing `messages/en.json`/`de.json` (next-intl, topbar only) left untouched — two i18n mechanisms now coexist for different surfaces; not unified (bigger refactor, not requested).
 
 ---
 
 ### STRAT-03 · Tally ERP Deep Integration (Zoho Books next)
-**Status:** Tally XML import + live sync BUILT. Zoho Books not built.  
-**Gaps to close:**
-- Tally staging review UI (show diff before applying)
-- Auto-reconcile GST invoice numbers with batch IDs
-- Zoho Books API integration (follow same pattern as Tally)
+**STATUS (2026-06-28): ✅ Staging review UI done. GST reconciliation scoped down. Zoho Books still blocked on external dependency.**
+- Backend (`sync-config`, `staging` list/apply/discard, manual `sync-trigger`, 5-min background ticker) was already fully built — confirmed by reading `tally/sync_handlers.go` and `main.go` route registration. The only real gap was the frontend: zero UI existed anywhere in the app for it.
+- Built `TallySyncSection.tsx` (mounted on the Developer page) — sync config form, manual "Sync Now", and a pending/applied/discarded staging review list with per-item Apply/Discard.
+- **"Auto-reconcile GST invoice numbers with batch IDs" scoped down:** no GST invoice number is captured anywhere today (not in the Tally XML parser, not on `tally_sync_staging`, not on `batches`) and there's no batch-side field to match against. Building a real automatic matcher would mean inventing a new data relationship from scratch — that's a feature-design decision, not a "gap to close." Did not build a fragile amount/date heuristic that could mislink GST records to the wrong batch. Flagging for a real scoping conversation if this is still wanted.
+- Zoho Books integration: needs a Zoho OAuth app registered first (external dependency, like STRAT-01). Not started.
 
 ---
 
 ### STRAT-04 · PLI Claim Packet Generator
-**Business case:** Zero PLI incentives claimed by any manufacturer. First to unlock PLI disbursements gets massive word-of-mouth.  
-**Build:** 
-- Compile: DVA calculation (with CA-uploaded stamp), batch compliance report, ARAI/iCAT cert linkage, BIS certificate, DGFT export data
-- Generate a single ZIP: CA-ready DVA statement + supporting docs
-- Template for submission to MHI portal
+**STATUS (2026-06-28): ✅ Done.** New `PLI_PACKET` export job type (same async pattern as EPCIS/QR_ZIP), triggered from the batch Downloads tab and the batch actions menu. The ZIP bundles, in order: a manifest cover sheet, the DVA Calculation Report PDF, the Compliance Report PDF, the latest DGFT export-incentive claim PDF for the batch (if one's been filed), and the tenant's uploaded BIS/PLI certificate files (fetched from their stored URLs; missing/expired links are skipped, not fatal).
+- **ARAI/iCAT cert linkage was never built and still isn't** — there's no ARAI/iCAT registry adapter or upload slot anywhere in the codebase (confirmed by grep; the plan's claim that this existed was simply wrong). Rather than fabricating a new registry integration, the manifest explicitly lists it as "Not tracked by ExportReady — attach manually before MHI submission" so the gap is visible, not silently missing.
+- "Template for submission to MHI portal" — built as an internal prep checklist (submission notes section in the manifest), explicitly labeled as *not* an official MHI form, since the actual current MHI PLI-ACC portal's exact requirements aren't something I can verify from this repo.
+- New backend: `ExportJobTypePLIPacket`, `generatePLIPacket`/`generateDGFTClaimPDF`/`fetchCertificateFile` in `export_job_service.go`, `GeneratePLIPacketManifest` in `pli_packet_manifest_pdf.go`, `GetLatestDGFTClaimByBatch` repo method. `ExportJobService` now takes a `repository.RepositoryInterface` (new constructor param, both call sites in `cmd/server` and `cmd/worker` updated).
 
 ---
 
 ### STRAT-05 · Battery Aadhaar Official Partner Application
+**STATUS (2026-06-28): ✅ Done — non-code, drafted, not sent.** This is real and active: MoRTH + Ministry of Heavy Industries + NITI Aayog + ARAI jointly published Draft Guidelines for a Battery Pack Aadhaar System (21-char BPAN, BMI/BDS/BI/BMCS/BCF/BDD structure), being taken forward via the AIS/AISC standardization route. Read the full draft guideline PDF and drafted a representation letter grounding ExportReady's existing capabilities in its specific sections (not just the plan's vague framing). No public submission portal or named contact exists in the document — the letter has a placeholder addressee flagged clearly as unconfirmed. **Action needed from the user:** confirm the real addressee (MoRTH EV cell or ARAI's AISC secretariat are the likely leads), decide whether to route through an industry body (IESA/SIAM/ACMA) instead of/alongside a direct letter, fill in company details, and actually send it — none of which I can do.
 **Business case:** Government endorsement creates the strongest moat in Indian compliance software  
 **Action (non-code):** File formal representation to MoRTH/NITI Aayog Battery Aadhaar working group. Offer free API integration when framework releases. ExportReady's existing BPAN infrastructure maps directly.
 
 ---
 
 ### STRAT-06 · EU Buyer Landing Page (pull-through acquisition)
+**STATUS (2026-06-28): ✅ Done.** Built in `apps/marketing-web` (not battery-web) at `/battery/for-eu-buyers` — that app already has the battery product's marketing section plus SEO/blog/GEO infrastructure from recent commits, and an existing precedent (`request-access`) for a public form posting directly to the battery-api backend. Includes: hero, a live "verify a passport" widget that calls the real public `GET /passports/{uuid}` endpoint (paste a QR-scanned link or UUID, see real status/CE marking/carbon class — not a mockup), and a mandate-request contact form. New backend: `eu_buyer_leads` table (migration 096), `EUBuyerLead` model, `CreateEUBuyerLead` handler at `POST /api/v1/leads/eu-buyer` (public, no auth — deliberately separate from `RequestAccess`, which requires GSTIN/IEC an EU buyer wouldn't have).
 **Business case:** When EU buyers mandate ExportReady to Indian suppliers, acquisition becomes inbound  
 **Build:** Public-facing page at `/for-eu-buyers` — "Require Digital Battery Passports from your Indian suppliers. ExportReady is used by leading Indian manufacturers." Include: QR verification demo, compliance status check, contact form for EU buyer mandates.
 
 ---
 
 ### STRAT-07 · CA/CS Partner Portal
+**STATUS (2026-06-28): ⏸ Not started — needs a scoping conversation, not just code.** Unlike STRAT-01/Zoho, this isn't blocked by a missing external account (Razorpay billing already exists) — it's a new product surface (CA role + multi-tenant CA-to-client data model + white-label billing) comparable in size to a phase, not a feature. Building it without aligning on the data model, pricing/contract mechanics, and white-label branding first risked guessing at decisions that are the user's to make. Flagging for a dedicated scoping discussion before any code.
 **Business case:** CA networks scaled Tally across India. 20 CAs × 10 clients each = 200 warm leads.  
 **Build:** White-label portal where CAs can upload and stamp DVA calculations, EPR filings, and compliance documents for their battery manufacturer clients. CA pays INR 999/month. Clients arrive on platform through CA.
 
@@ -1186,7 +1193,7 @@ These are revenue and moat-building features from the business strategy.
 - [ ] NAV · Hide Regulatory Sources tab from non-admin users (10 min)
 - [ ] NAV · Remove Suppliers tab from Settings (move to Due Diligence) (1 hr)
 
-**Phase 0 + Phase 1 status as of 2026-06-27: all 17 bugs + all 4 security items reviewed and fixed (or verified already correct). Backend `go build`/`go vet`/`go test ./...` and frontend `tsc --noEmit`/`vitest run` (232 tests) all pass. One manual action still required: flip the `compliance-docs` Supabase bucket to Private (SEC-01) — cannot be done from code. PHASE 2 onward (nav restructure, dashboard redesign, new pages, new features) not started.**
+**Status as of 2026-06-28: PHASES 0–6 fully done. PHASE 7 done (4/7) — STRAT-02/03/04/06 built; STRAT-01 and STRAT-03's Zoho half blocked on external accounts (Meta WhatsApp Business API, Zoho OAuth app); STRAT-05 done as far as possible without the user (letter drafted, not sent); STRAT-07 needs a scoping conversation before any code. Backend `go build`/`go vet`/`go test ./...` and frontend `tsc --noEmit`/`vitest run` (235 tests)/`next build` all pass. No manual actions outstanding. Two unchecked Quick Win Checklist items above (Sources tab role gate, Suppliers tab move) remain explicitly deferred per the user's own request, not forgotten.**
 
 ---
 

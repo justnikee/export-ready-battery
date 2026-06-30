@@ -77,6 +77,9 @@ type RepositoryInterface interface {
 	ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error)
 	UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error
 
+	// eu_buyer_leads.go
+	CreateEUBuyerLead(ctx context.Context, lead *models.EUBuyerLead) error
+
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)
 	BulkDeletePassports(ctx context.Context, passportIDs []uuid.UUID) (int64, error)
@@ -311,6 +314,7 @@ type RepositoryInterface interface {
 	ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error)
 	CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
 	GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error)
+	GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error)
 	UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
 	DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error
 	ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error)
