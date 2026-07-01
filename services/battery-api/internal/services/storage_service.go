@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -187,6 +188,44 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 	)
 
 	return fullURL, nil
+}
+
+// ExtractStoragePath recovers the object path within bucket from a previously
+// issued Supabase Storage URL (either a signed URL with a query-string token,
+// or a public URL). Signed URLs expire (see CreateSignedURLForBucket), so
+// callers that persist a URL long-term should instead persist the storage
+// path and re-derive a fresh signed URL on each read — this is the inverse
+// operation used to migrate/recover a path from an already-stored URL.
+// Returns ok=false if rawURL isn't a Supabase object URL for this bucket.
+func (s *StorageService) ExtractStoragePath(rawURL, bucket string) (string, bool) {
+	if rawURL == "" {
+		return "", false
+	}
+
+	for _, marker := range []string{
+		"/storage/v1/object/sign/" + bucket + "/",
+		"/storage/v1/object/public/" + bucket + "/",
+		"/storage/v1/object/" + bucket + "/",
+	} {
+		idx := strings.Index(rawURL, marker)
+		if idx == -1 {
+			continue
+		}
+		rest := rawURL[idx+len(marker):]
+		if q := strings.IndexByte(rest, '?'); q != -1 {
+			rest = rest[:q]
+		}
+		if rest == "" {
+			return "", false
+		}
+		decoded, err := url.PathUnescape(rest)
+		if err != nil {
+			return rest, true
+		}
+		return decoded, true
+	}
+
+	return "", false
 }
 
 // DeleteFile removes a file from the default bucket.

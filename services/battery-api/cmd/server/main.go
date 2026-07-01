@@ -328,6 +328,7 @@ func main() {
 	mux.Handle("POST /api/v1/batches/validate", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ValidateBatchCreation))))
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
+	mux.Handle("GET /api/v1/batches/{id}/document-url", authMiddleware.Protect(http.HandlerFunc(h.GetBatchDocumentURL)))
 	mux.Handle("POST /api/v1/batches/bulk-import", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.BulkImportBatches))))
 	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadCSV))))
 	mux.Handle("POST /api/v1/batches/{id}/validate", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ValidateCSV))))
@@ -633,6 +634,7 @@ func main() {
 	// PASSPORT ROUTES (Public - rate limited to prevent enumeration)
 	// ============================================
 	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
+	mux.Handle("GET /api/v1/passports/{uuid}/document-url", apiRateLimiter.Limit(http.HandlerFunc(h.GetPublicPassportDocumentURL)))
 	mux.Handle("POST /api/v1/passports/{uuid}/vc", authMiddleware.Protect(http.HandlerFunc(h.GenerateVCHandle)))
 	mux.Handle("GET /api/v1/did.json", http.HandlerFunc(h.GetDIDDocumentHandle))
 

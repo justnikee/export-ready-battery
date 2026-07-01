@@ -1,7 +1,9 @@
 "use client";
 
 import { Globe, Shield, User, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import type { Batch } from "@/lib/types";
+import { openBatchDocument } from "@/lib/document-url";
 import { DashboardPanel } from "../DashboardPanel";
 
 interface MarketComplianceProps {
@@ -148,14 +150,17 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
           <ComplianceRow
             label="DoC"
             value={
-              <a
-                href={batch.declaration_of_conformity_path}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                type="button"
+                onClick={() =>
+                  openBatchDocument(batch.id, "doc").catch(() =>
+                    toast.error("Failed to open document — please try again"),
+                  )
+                }
                 className="text-blue-500 hover:underline text-xs"
               >
                 View Document
-              </a>
+              </button>
             }
           />
         )}

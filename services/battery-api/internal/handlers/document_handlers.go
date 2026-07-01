@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -380,6 +381,134 @@ func (h *Handler) UploadPassportDocument(w http.ResponseWriter, r *http.Request)
 		"label":        label,
 		"uploaded_at":  doc.UploadedAt,
 	})
+}
+
+// batchDocumentTypes maps the `type` query param to the field on the batch
+// record that holds the (possibly stale, since these are 1-hour signed URLs
+// captured at upload time) document URL.
+var batchDocumentTypes = map[string]bool{
+	"pli": true, // PLI/CA certificate (audited DVA mode) — tenant-only
+	"doc": true, // Declaration of Conformity — public on the passport view too
+}
+
+// GetBatchDocumentURL handles GET /api/v1/batches/{id}/document-url?type=pli|doc
+// Re-signs a fresh, short-lived URL for a certificate/DoC captured during
+// batch creation, since the URL stored at upload time (from a client-side
+// createSignedUrl call) expires after 1 hour.
+func (h *Handler) GetBatchDocumentURL(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	idStr := r.PathValue("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid batch ID format")
+		return
+	}
+
+	docType := strings.ToLower(r.URL.Query().Get("type"))
+	if !batchDocumentTypes[docType] {
+		respondError(w, http.StatusBadRequest, "Invalid type. Must be 'pli' or 'doc'")
+		return
+	}
+
+	batch, err := h.repo.GetBatch(r.Context(), id, tenantID)
+	if err != nil {
+		if err.Error() == "batch not found" {
+			respondError(w, http.StatusNotFound, "Batch not found")
+			return
+		}
+		slog.Error("Failed to get batch for document-url", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get batch")
+		return
+	}
+
+	var storedURL string
+	if docType == "pli" {
+		storedURL = batch.Specs.PLICertificateURL
+	} else {
+		storedURL = batch.DeclarationOfConformityPath
+	}
+
+	freshURL, err := h.resolveFreshDocumentURL(r.Context(), storedURL)
+	if err != nil {
+		slog.Error("Failed to resolve document URL", "error", err, "batch_id", id, "type", docType)
+		respondError(w, http.StatusInternalServerError, "Failed to generate document URL")
+		return
+	}
+	if freshURL == "" {
+		respondError(w, http.StatusNotFound, "No document uploaded")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{"url": freshURL})
+}
+
+// GetPublicPassportDocumentURL handles GET /api/v1/passports/{uuid}/document-url?type=doc
+// Public/anonymous counterpart of GetBatchDocumentURL for the Declaration of
+// Conformity link shown on the public passport page. Route is rate-limited
+// the same way as GetPassport to prevent enumeration.
+func (h *Handler) GetPublicPassportDocumentURL(w http.ResponseWriter, r *http.Request) {
+	uuidStr := r.PathValue("uuid")
+	passportUUID, err := uuid.Parse(uuidStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport UUID format")
+		return
+	}
+
+	docType := strings.ToLower(r.URL.Query().Get("type"))
+	if docType != "doc" {
+		respondError(w, http.StatusBadRequest, "Invalid type. Must be 'doc'")
+		return
+	}
+
+	passportWithSpecs, err := h.repo.GetPassportWithSpecs(r.Context(), passportUUID)
+	if err != nil {
+		if err.Error() == "passport not found" {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+		slog.Error("Failed to get passport for document-url", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get passport")
+		return
+	}
+
+	freshURL, err := h.resolveFreshDocumentURL(r.Context(), passportWithSpecs.DeclarationOfConformityPath)
+	if err != nil {
+		slog.Error("Failed to resolve document URL", "error", err, "passport_uuid", passportUUID)
+		respondError(w, http.StatusInternalServerError, "Failed to generate document URL")
+		return
+	}
+	if freshURL == "" {
+		respondError(w, http.StatusNotFound, "No document uploaded")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{"url": freshURL})
+}
+
+// resolveFreshDocumentURL re-signs storedURL if it's a Supabase object URL in
+// the compliance-docs bucket, returning a new 1-hour signed URL. If storedURL
+// doesn't look like a compliance-docs object URL (e.g. a legacy/external
+// public URL), it's returned unchanged. Returns "" if storedURL is empty.
+func (h *Handler) resolveFreshDocumentURL(ctx context.Context, storedURL string) (string, error) {
+	if storedURL == "" {
+		return "", nil
+	}
+	if h.storageService == nil {
+		return storedURL, nil
+	}
+
+	storagePath, ok := h.storageService.ExtractStoragePath(storedURL, complianceDocsBucket)
+	if !ok {
+		return storedURL, nil
+	}
+
+	return h.storageService.CreateSignedURLForBucket(ctx, complianceDocsBucket, storagePath, 1*time.Hour)
 }
 
 // GetPassportDocument handles GET /api/v1/documents/{document_id}

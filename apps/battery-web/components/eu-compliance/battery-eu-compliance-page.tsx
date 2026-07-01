@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Globe, TrendingUp, Recycle, ShieldCheck, Calendar } from "lucide-react";
+import { Globe, TrendingUp, Recycle, ShieldCheck, Calendar, ClipboardCheck } from "lucide-react";
 import OverviewTab from "@/components/eu-compliance/overview-tab";
 import CarbonTab from "@/components/eu-compliance/carbon-tab";
 import RecycledContentTab from "@/components/eu-compliance/recycled-content-tab";
 import DueDiligenceTab from "@/components/eu-compliance/due-diligence-tab";
 import DeadlinesTab from "@/components/eu-compliance/deadlines-tab";
+import AttributesTab from "@/components/eu-compliance/attributes-tab";
 
-type Tab = "overview" | "carbon" | "recycled-content" | "due-diligence" | "deadlines";
+type Tab = "overview" | "attributes" | "carbon" | "recycled-content" | "due-diligence" | "deadlines";
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Overview", icon: Globe },
+  { id: "attributes", label: "Attribute Coverage", icon: ClipboardCheck },
   { id: "carbon", label: "Carbon (Art.7)", icon: TrendingUp },
   { id: "recycled-content", label: "Recycled Content (Art.8)", icon: Recycle },
   { id: "due-diligence", label: "Due Diligence (Art.11)", icon: ShieldCheck },
@@ -56,6 +58,7 @@ export default function EuCompliancePage() {
         </div>
 
         {activeTab === "overview" && <OverviewTab />}
+        {activeTab === "attributes" && <AttributesTab />}
         {activeTab === "carbon" && <CarbonTab />}
         {activeTab === "recycled-content" && <RecycledContentTab />}
         {activeTab === "due-diligence" && <DueDiligenceTab />}

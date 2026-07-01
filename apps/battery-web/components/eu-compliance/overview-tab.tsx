@@ -24,7 +24,7 @@ interface MarketReadiness {
 export default function OverviewTab() {
   const { user } = useAuth();
   const pathname = usePathname();
-  const settingsHref = dashboardPathFromPathname(pathname, "settings?tab=compliance");
+  const settingsHref = dashboardPathFromPathname(pathname, "settings?tab=eu-compliance");
   const [readiness, setReadiness] = useState<MarketReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const { data: euBatches = [] } = useEuActiveBatches();
@@ -127,7 +127,7 @@ export default function OverviewTab() {
         {!repComplete && (
           <div className="px-6 pb-5">
             <Link href={settingsHref} className="text-xs text-primary hover:underline">
-              Complete in Settings → India Compliance
+              Complete in Settings → EU Compliance
             </Link>
           </div>
         )}

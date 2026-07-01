@@ -202,7 +202,7 @@ export function WebhooksSection() {
 
   return (
     <>
-      <Card className="bg-popover border-border">
+      <Card id="webhooks" className="bg-popover border-border scroll-mt-20">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-foreground flex items-center gap-2">

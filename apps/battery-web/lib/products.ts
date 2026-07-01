@@ -23,6 +23,7 @@ import {
   Target,
   TrendingUp,
   Users,
+  Webhook,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -243,6 +244,7 @@ const BATTERY_CONFIG: ProductConfig = {
       collapsible: true,
       items: [
         { name: "API Keys", dashboardSubpath: "developer", icon: Key },
+        { name: "Webhooks", dashboardSubpath: "developer#webhooks", icon: Webhook },
         { name: "Downloads", dashboardSubpath: "exports", icon: FileDown },
         { name: "Docs", href: "/docs", icon: BookOpen },
       ],

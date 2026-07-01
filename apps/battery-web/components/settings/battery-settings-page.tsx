@@ -215,8 +215,8 @@ export default function SettingsPage() {
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
  const [factoryCodeError, setFactoryCodeError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens'>(
-  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens') || 'profile'
+ const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens'>(
+  (searchParams.get('tab') as 'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens') || 'profile'
  )
 
  const [formData, setFormData] = useState({
@@ -337,6 +337,7 @@ export default function SettingsPage() {
  {[
  { id: 'profile' as const, label: 'Profile' },
  { id: 'compliance' as const, label: 'India Compliance' },
+ { id: 'eu-compliance' as const, label: 'EU Compliance' },
  { id: 'privacy' as const, label: 'Data Privacy' },
  { id: 'tokens' as const, label: 'API Tokens' },
  ].map(tab => (
@@ -723,8 +724,8 @@ export default function SettingsPage() {
  </div>
  </>)}
 
- {/* EU Compliance Contact Card — Compliance tab only, not duplicated on Profile */}
- {activeSettingsTab === 'compliance' && (
+ {/* EU Authorized Representative Card — own tab, separate from India Compliance */}
+ {activeSettingsTab === 'eu-compliance' && (
  <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 bg-indigo-500/10 border border-indigo-100">
@@ -845,7 +846,7 @@ export default function SettingsPage() {
  )}
 
  {/* Save All Settings */}
- {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
+ {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance' || activeSettingsTab === 'eu-compliance') && (
  <div className="sticky bottom-0 bg-background border-t border-border -mx-6 px-6 py-4 mt-0 flex items-center justify-between">
  {message && (
  <p className={`text-sm ${message.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
