@@ -8,6 +8,16 @@ const apiOrigin = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
 ).replace("/api/v1", "");
 
+// Hostname/protocol of the API origin so next/image can serve logos/docs the
+// backend returns as absolute URLs (dev: http://localhost:8080).
+const apiUrl = (() => {
+  try {
+    return new URL(apiOrigin);
+  } catch {
+    return new URL("http://localhost:8080");
+  }
+})();
+
 /** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP */
 const contentSecurityPolicy = [
   // Only allow scripts from self and necessary CDNs (no unsafe-inline in prod)
@@ -72,6 +82,19 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
+  images: {
+    // Logos and compliance docs are served from Supabase public storage
+    // (<project>.supabase.co) and, in some deployments, directly from the API
+    // origin. Both must be allow-listed or next/image throws "unconfigured host".
+    remotePatterns: [
+      { protocol: "https", hostname: "**.supabase.co" },
+      {
+        protocol: apiUrl.protocol.replace(":", "") as "http" | "https",
+        hostname: apiUrl.hostname,
+        port: apiUrl.port || undefined,
+      },
+    ],
+  },
   async headers() {
     return [
       {

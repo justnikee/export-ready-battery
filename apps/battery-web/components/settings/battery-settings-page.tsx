@@ -6,11 +6,22 @@ import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight, Clock } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight, Clock, Lock, KeyRound } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
 import { DocumentUpload } from "@/components/shared/document-upload"
+
+type SettingsTabId = 'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens'
+
+const SETTINGS_TABS: { id: SettingsTabId; label: string; desc: string; icon: typeof Building2 }[] = [
+  { id: 'profile', label: 'Profile', desc: 'Company info & logo', icon: Building2 },
+  { id: 'compliance', label: 'India Compliance', desc: 'BIS, EPR, PLI & BPAN', icon: ShieldCheck },
+  { id: 'eu-compliance', label: 'EU Compliance', desc: 'Authorized representative', icon: Globe },
+  { id: 'privacy', label: 'Data Privacy', desc: 'Passport visibility rules', icon: Lock },
+  { id: 'tokens', label: 'API Tokens', desc: 'Programmatic data access', icon: KeyRound },
+]
 
 // Logo Upload Component
 function LogoUpload({
@@ -215,8 +226,8 @@ export default function SettingsPage() {
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
  const [factoryCodeError, setFactoryCodeError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens'>(
-  (searchParams.get('tab') as 'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens') || 'profile'
+ const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>(
+  (searchParams.get('tab') as SettingsTabId) || 'profile'
  )
 
  const [formData, setFormData] = useState({
@@ -324,42 +335,49 @@ export default function SettingsPage() {
  }
 
  return (
- <div className="min-h-screen bg-sidebar p-6">
- <div className="w-full mx-auto space-y-6">
+ <div className="min-h-screen bg-sidebar">
+ <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 space-y-8">
  {/* Page Header */}
  <div>
- <h1 className="text-2xl text-foreground tracking-tight">Organization Settings</h1>
- <p className="text-sm text-muted-foreground mt-1">Manage your company profile and compliance documents</p>
+ <h1 className="text-2xl font-semibold text-foreground tracking-tight">Organization Settings</h1>
+ <p className="text-sm text-muted-foreground mt-1">Manage your company profile, compliance documents, and data access.</p>
  </div>
 
- {/* Settings Tabs */}
- <div className="flex gap-1 bg-muted p-1">
- {[
- { id: 'profile' as const, label: 'Profile' },
- { id: 'compliance' as const, label: 'India Compliance' },
- { id: 'eu-compliance' as const, label: 'EU Compliance' },
- { id: 'privacy' as const, label: 'Data Privacy' },
- { id: 'tokens' as const, label: 'API Tokens' },
- ].map(tab => (
+ <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+ {/* Settings navigation */}
+ <nav className="h-max lg:sticky lg:top-6 flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+ {SETTINGS_TABS.map(tab => {
+ const Icon = tab.icon
+ const active = activeSettingsTab === tab.id
+ return (
  <button
  key={tab.id}
  type="button"
  onClick={() => setActiveSettingsTab(tab.id)}
- className={`flex-1 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
- activeSettingsTab === tab.id
- ? 'bg-transparent text-foreground shadow-none'
- : 'text-muted-foreground hover:text-foreground'
- }`}
+ aria-current={active ? 'page' : undefined}
+ className={cn(
+ "group flex shrink-0 items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors lg:w-full",
+ active
+ ? "bg-muted text-foreground shadow-sm ring-1 ring-border"
+ : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+ )}
  >
- {tab.label}
+ <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+ <span className="min-w-0">
+ <span className="block text-sm font-medium whitespace-nowrap">{tab.label}</span>
+ <span className="hidden lg:block text-xs text-muted-foreground">{tab.desc}</span>
+ </span>
  </button>
- ))}
- </div>
+ )
+ })}
+ </nav>
 
+ {/* Settings content */}
+ <div className="min-w-0 space-y-6">
  <form onSubmit={handleSubmit} className="space-y-6">
  {activeSettingsTab === 'profile' && (<>
  {/* Company Profile Card */}
- <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 rounded bg-blue-500/10">
  <Building2 className="h-5 w-5 text-blue-500" />
@@ -470,19 +488,20 @@ export default function SettingsPage() {
  </label>
  <div className="flex items-start gap-4">
  {/* Logo Preview */}
- <div className="relative h-20 w-20 rounded-md bg-background flex items-center justify-center overflow-hidden shrink-0">
+ <div className="relative h-24 w-24 rounded-lg border border-dashed border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
  {formData.logo_url && !logoError ? (
  <Image
  src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
  alt="Company logo"
  fill
- sizes="80px"
- className="object-contain"
+ sizes="96px"
+ className="object-contain p-1"
  onError={() => setLogoError(true)}
  />
  ) : null}
- <div className={`flex flex-col items-center justify-center text-muted-foreground ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
- <ImageIcon className="h-8 w-8" />
+ <div className={`flex flex-col items-center justify-center gap-1 text-muted-foreground ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
+ <ImageIcon className="h-7 w-7" />
+ <span className="text-[10px]">No logo</span>
  </div>
  </div>
 
@@ -505,7 +524,7 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'compliance' && (<>
  {/* India Compliance Vault Card */}
- <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 rounded bg-emerald-500/10">
  <ShieldCheck className="h-5 w-5 text-emerald-500" />
@@ -726,7 +745,7 @@ export default function SettingsPage() {
 
  {/* EU Authorized Representative Card — own tab, separate from India Compliance */}
  {activeSettingsTab === 'eu-compliance' && (
- <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
  <div className="p-2 rounded bg-indigo-500/10">
  <Globe className="h-5 w-5 text-indigo-600" />
@@ -847,7 +866,7 @@ export default function SettingsPage() {
 
  {/* Save All Settings */}
  {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance' || activeSettingsTab === 'eu-compliance') && (
- <div className="sticky bottom-0 bg-background border-t border-border -mx-6 px-6 py-4 mt-0 flex items-center justify-between">
+ <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-lg border border-border bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
  {message && (
  <p className={`text-sm ${message.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
  {message.text}
@@ -880,6 +899,8 @@ export default function SettingsPage() {
  {activeSettingsTab === 'tokens' && (
  <DataAccessTokens />
  )}
+ </div>
+ </div>
  </div>
  </div>
  )
