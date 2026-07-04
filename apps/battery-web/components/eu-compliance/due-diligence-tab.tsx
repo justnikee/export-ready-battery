@@ -15,7 +15,7 @@ export default function DueDiligenceTab() {
 
   if (suppliers.length === 0 && !loading) {
     return (
-      <div className="border border-border p-12 text-center space-y-3">
+      <div className="bg-muted rounded-md p-12 text-center space-y-3">
         <Users className="h-8 w-8 text-muted-foreground mx-auto" />
         <p className="text-sm text-muted-foreground">No suppliers invited yet.</p>
         <Link href={dueDiligenceHref} className="text-sm text-primary hover:underline">
@@ -28,14 +28,14 @@ export default function DueDiligenceTab() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="border border-border p-5 space-y-1">
+        <div className="bg-muted rounded-md p-5 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Users className="w-3.5 h-3.5" />
             Total Suppliers
           </div>
           <div className="text-2xl text-foreground">{loading ? "—" : suppliers.length}</div>
         </div>
-        <div className="border border-border p-5 space-y-1">
+        <div className="bg-muted rounded-md p-5 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="w-3.5 h-3.5" />
             DD Fully Complete
@@ -47,7 +47,7 @@ export default function DueDiligenceTab() {
           </div>
           <p className="text-[11px] text-muted-foreground">Suppliers with all 5 OECD steps complete</p>
         </div>
-        <div className="border border-border p-5 space-y-1">
+        <div className="bg-muted rounded-md p-5 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Wrench className="w-3.5 h-3.5" />
             Open Corrective Actions

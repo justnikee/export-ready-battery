@@ -1,0 +1,410 @@
+ExportReady Battery
+Full-Stack Audit Report
+Auth · Validation · API Contracts · Pagination · Caching · Loading States · User Education
+
+Prepared: July 4, 2026  |  Scope: apps/battery-web + services/battery-api  |  Auditor: Claude Opus
+
+1. Executive Summary
+The ExportReady Battery platform was audited across auth security, API contracts, frontend-backend validation parity, caching, pagination, loading states, and error handling. The overall verdict is structurally sound — the core architecture is correctly implemented. Seven concrete issues were found.
+
+Area
+Status
+Detail
+Auth & Session Security
+✅ SOLID
+In-memory JWT, HttpOnly cookie, JTI revocation, typed context keys
+Security Headers
+✅ SOLID
+Full OWASP set, route-aware CSP, HSTS (prod), tested in security_test.go
+Rate Limiting
+✅ SOLID
+Per-IP token bucket: auth 5/min, API 100/min, scan 10/hr per IP:UUID
+CORS
+✅ SOLID
+Allowlist-based, applied as outermost middleware wrapping entire mux
+Frontend ↔ Backend Validation
+✅ SOLID
+Zod schema mirrors Go BatchCreationValidator field-for-field (8 fields verified)
+TanStack Query Caching
+✅ SOLID
+staleTime on every hook: 60s lists, 5min dashboard, 10min static. Mutations invalidate
+Batch/Passport Pagination
+✅ SOLID
+Offset-based, limit ≤ 200 enforced, returns total_pages + has_more + total
+Error Boundary
+✅ SOLID
+dashboard/error.tsx with ErrorState + retry; sonner toasts on all mutations
+Fleet Loading State
+⚠️ BUG
+WorstHealthTable / LifecycleEventsTimeline receive [] during load → 'No data yet' flicker
+EU Overview Tab
+⚠️ ISSUE
+Uses useState+useEffect — no caching, re-fetches on every tab switch
+Dropdown limit=200
+⚠️ ISSUE
+4 batch selector components cap at 200 — truncates high-volume tenants
+User Education
+❌ GAP
+Zero in-app tooltips, product tour, or contextual help across all 19 pages
+Webhooks Nav Item
+❌ GAP
+Component built but no nav link exists to reach it
+SEC-01 Signed URLs
+❌ GAP
+1-hour signed URLs stored long-term in BatchSpec with no refresh endpoint
+
+2. Auth & Session Security
+The authentication architecture is correctly implemented across every dimension.
+2.1 Token Storage
+The access token (15-minute JWT, HS256) lives exclusively in JavaScript memory (let accessToken: string | null = null in lib/api.ts). Never written to localStorage or sessionStorage. Memory-only tokens are immune to XSS exfiltration. Correct.
+2.2 Refresh Token Cookie
+The 7-day refresh token is an HttpOnly cookie (invisible to document.cookie). Production: Secure=true + SameSite=Strict. Development: SameSite=Lax to avoid blocking top-level navigations on plain HTTP. This is the correct environment split.
+2.3 JTI Revocation
+On logout, the backend revokes the refresh token's JTI (JWT ID) in PostgreSQL. A stolen refresh token cannot be used after logout. Server-side session termination works correctly.
+2.4 Typed Context Keys
+The backend uses type ContextKey string rather than bare strings. This prevents accidental context value collision between middleware packages. JWT claims (tenant_id, email, role, product_type, supplier_id) are all typed and extracted via helper functions.
+2.5 Session Error Resilience
+In auth-context.tsx, session is cleared only on HTTP 401/403. Network errors (timeouts, 500s) leave tokens intact. This is correct — transient infra failures should not silently log users out.
+2.6 Three Axios Instances
+api — Authorization: Bearer header + 401 auto-refresh + redirect to login on failure. All authenticated dashboard calls.
+apiPublic — same auth headers, NO redirect on 401. Partner-facing pages that need auth but should not force redirect.
+apiAnonymous — no auth headers. Exclusively for /p/[uuid] public passport pages.
+Clean separation. No auth leakage between tiers.
+2.7 API Key Authentication
+Separate APIKeyAuth middleware for developer API keys. Keys are scoped (read/write), rate-limited per key, inject context values (api_key_id, api_key_scope, api_key_tenant_id, api_key_role). Correct architecture for a developer-facing API tier.
+
+3. Security Headers, CORS & Rate Limiting
+3.1 Security Headers (middleware/security.go)
+Applied as the outermost middleware — headers appear on all responses including error responses. Full OWASP baseline:
+X-Content-Type-Options: nosniff — prevents MIME sniffing attacks
+X-Frame-Options: DENY — prevents clickjacking
+Referrer-Policy: strict-origin-when-cross-origin — limits referrer leakage
+Permissions-Policy: camera, mic, geolocation, payment, USB all disabled
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+HSTS: 2-year max-age + includeSubDomains + preload (production only)
+Content-Security-Policy: apiCSP() for API routes (default-src none), docsCSP() for /docs (permits Swagger CDN)
+Tested in security_test.go. No gaps found.
+3.2 CORS
+Allowlist-based, no wildcard origins. Applied via corsMiddleware(cfg.CORSOrigins)(mux) in the main middleware chain.
+3.3 Rate Limiting
+authRateLimiter — 5 req/min (12s refill, 10-token bucket). Applied to /api/v1/auth/* to throttle brute-force.
+apiRateLimiter — ~100 req/min (600ms refill, 50-token bucket). Applied to public scan/passport routes.
+scanRateLimiter — 10 req/hour keyed by IP:passportUUID. Prevents automated scanning of individual passports.
+Background cleanup goroutine runs every 5 minutes to evict stale visitor entries (prevents memory growth).
+
+4. Validation — Frontend ↔ Backend Alignment
+The batch creation wizard's Zod schema (batch-form-schema.ts) and Go backend validator (services/batch_creation_validator.go) were compared field-by-field across all regulatory conditions.
+
+Field
+Frontend (Zod)
+Backend (Go)
+Match
+batch_name
+min(1) required
+non-empty required
+✅ Match
+battery_category (EU market)
+required if market=EU
+required if EU Art.3
+✅ Match
+cell_source (India market)
+required for India
+IMPORTED | DOMESTIC validated
+✅ Match
+hsn_code (India)
+8 digits, starts with 8507
+ValidateHSNCode() same rule
+✅ Match
+bill_of_entry_no (IMPORTED)
+required if IMPORTED
+required per Customs regs
+✅ Match
+country_of_origin (IMPORTED)
+2-letter ISO, required if IMPORTED
+required for imported cells
+✅ Match
+customs_date (IMPORTED)
+required if IMPORTED
+required if IMPORTED
+✅ Match
+PLI DVA >= 50%
+calculated DVA check in refine()
+CalculateEstimatedDVA() check
+✅ Match
+pli_certificate_url (audited DVA)
+required if audited mode
+CA cert required for audited DVA
+✅ Match
+
+4.1 Security Overrides (Cannot Be Bypassed by Frontend)
+Tenant isolation: jwtTenantID != req.TenantID → 403. The JWT claim always wins. Frontend sending a different tenant_id in the body is ignored and rejected.
+IMPORTED cell override: PLICompliant=false and DomesticValueAdd=0 are forced server-side for imported cells regardless of frontend payload. Prevents PLI fraud via payload manipulation.
+4.2 Backend 422 Error Surface
+Backend returns 422 Unprocessable Entity with field-level errors ({ field, message }) for validation failures. The frontend reads response.data.errors[] and displays per-field error messages in the wizard. No generic 'something went wrong' for validation failures — specific field guidance is shown.
+
+5. Frontend ↔ Backend API Contracts — All 19 Pages
+
+Route
+Purpose
+Backend
+Loading
+Notes
+/dashboard
+Stats, action queue, recent batches
+✅ Connected
+✅ Skeleton
+DashboardSkeleton covers all UI sections
+/dashboard/batches
+Create/manage battery batches
+✅ Connected
+✅ Guards
+Paginated. Server-side search + status filter
+/dashboard/lifecycle
+Passport lifecycle + bulk ops
+✅ Connected
+✅ Guards
+Paginated. Gmail-style cross-page select-all
+/dashboard/dispatch
+QR scan dispatch (ACTIVATE→SHIP)
+✅ Connected
+✅ Skeleton
+DispatchSkeleton. Custom SSE via fetch (auth)
+/dashboard/compliance
+India compliance hub
+✅ Connected
+✅ Spinner
+Loader2. EPR progress, cert vault, actions
+/dashboard/eu-compliance
+EU Battery Regulation hub
+✅ Connected
+⚠️ Mixed
+Tab shell: 0 loading state. Tabs inconsistent: carbon=TanStack Query, overview=useState
+/dashboard/due-diligence
+Supplier DD + corrective actions
+✅ Connected
+✅ Guards
+loading prop passed correctly to supplier list
+/dashboard/mass-balance
+Material mass balance ledger
+✅ Connected
+✅ Spinner
+Loader2, proper empty state with create CTA
+/dashboard/analytics
+Scan analytics + compliance metrics
+✅ Connected
+✅ Composite
+Composite isLoading from two hooks
+/dashboard/exports
+Export queue (EPCIS, CSV, PDF)
+✅ Connected
+⚠️ Partial
+Batch selector limit=200. No skeleton for job list
+/dashboard/dgft-claims
+DGFT incentive claims
+✅ Connected
+Not audited
+Recommend targeted review
+/dashboard/partners
+Partners, codes, webhooks
+✅ Connected
+⚠️ No nav
+WebhooksSection built, no nav link to reach it
+/dashboard/templates
+Batch templates + AI creation
+✅ Connected
+✅ Guards
+useTemplates hook, 10min staleTime
+/dashboard/regulatory
+Regulatory intel feed
+✅ Connected
+✅ Guards
+reg-intel worker (6h), frontend polls
+/dashboard/settings
+Profile, compliance config
+✅ Connected
+✅ Guards
+step=3 deep-link for compliance re-config
+/dashboard/billing
+Subscription + Razorpay
+✅ Connected
+Not audited
+Razorpay integration not audited
+/dashboard/team
+Team members + invitations
+✅ Connected
+Not audited
+Team invite flow not audited
+/dashboard/developer
+API keys, webhooks, Tally sync
+✅ Connected
+⚠️ Partial
+Device tokens via useState+useEffect. Sections exist but no separate nav items
+/dashboard/admin
+Internal admin (role-gated)
+✅ Connected
+Not audited
+RequireRole(admin) enforced on backend
+
+6. Caching & Pagination
+6.1 TanStack Query staleTime
+Hook
+staleTime
+Rationale
+useDashboardStats()
+5 minutes
+Aggregates are expensive to compute; 5 min refresh acceptable
+useBatches() / usePassports()
+60 seconds
+List data changes infrequently; background refetch keeps fresh
+useTemplates() / static data
+10 minutes
+Reference data rarely changes
+useSupplierDDStats()
+60 seconds
+N+1 Promise.all per supplier (acceptable at tens of suppliers)
+All mutation hooks
+—
+Invalidate relevant query keys on success — cache stays fresh after writes
+
+6.2 Pagination (Batch & Passport Lists)
+Backend enforces: limit <= 200, page > 0 (server-side bounds checks)
+Response envelope: { batches, count, total, page, limit, total_pages, has_more }
+Frontend: currentPage in useState, fetches on page change, derives totalPages from response
+Both batch list and lifecycle passport list implement this pattern identically
+Frontend and backend are in full alignment. No mismatches found.
+6.3 Dropdown Selector Limit=200 Issue
+Four components fetch with limit=200 for dropdown batch selectors — functional today but will truncate for tenants with >200 active batches:
+carbon-calculator.tsx — /batches?status=ACTIVE&limit=200
+battery-exports-page.tsx — /batches?status=ACTIVE&limit=200
+battery-lifecycle-page.tsx — /batches?limit=200
+battery-dashboard-page.tsx — /batches/chart-data?limit=200
+Fix: Replace static dropdown with debounced ?search= input + server-side search. The backend already supports search on ListBatches via the ?search= query param.
+
+7. Loading States — Detailed Findings
+7.1 Pages With Good Loading States
+Dashboard: DashboardSkeleton — full-fidelity skeleton covering stats row, charts, batch table, activity feed. Best in class.
+Dispatch: DispatchSkeleton — full-fidelity skeleton for the QR scan workflow.
+Mass Balance: Loader2 spinner centered in table while fetching; empty state with icon + description + create CTA.
+EU Carbon Tab: Loading text + empty state with clear CTA when no EU batches exist (uses TanStack Query).
+Analytics: Composite isLoading from scanLoading + complianceLoading.
+Supplier Due Diligence: loading prop passed from parent, skeleton rows in supplier list.
+7.2 Bug I-03: Fleet Page Empty-State Flicker
+battery-fleet-page.tsx fetches four hooks. Only useFleetStats isLoading is tracked. useFleetWorstHealth and useFleetEvents use empty array defaults:
+const { data: worstHealth = [] } = useFleetWorstHealth(20);  // isLoading not destructured
+const { data: events = [] } = useFleetEvents(30);  // isLoading not destructured
+During the load window, WorstHealthTable renders 'No IN_SERVICE passports with SoH data yet.' and LifecycleEventsTimeline renders 'No RECALL or RECYCLE events in the last 30 days.' — then both flicker to real data. Users cannot distinguish 'loading' from 'genuinely empty'.
+Fix: Destructure isLoading from both hooks; pass to child components; render Loader2 spinner while loading is true.
+7.3 Issue I-02: EU Overview Tab Not Using TanStack Query
+overview-tab.tsx fetches EU readiness via useState + useEffect + api.get(). Consequences: (a) no cache — fetch on every tab switch, (b) no background refetch, (c) no auto retry, (d) manual loading/error wiring. Three other EU tabs (carbon, recycled-content, due-diligence) use TanStack Query hooks correctly.
+Fix: Extract into useEuReadiness() hook with staleTime: 60000. Consistent with all other data-fetching in the app.
+
+8. Issues Prioritized for Opus 4.8
+
+#
+Severity
+Issue
+Detail & Fix
+I-01
+HIGH
+SEC-01: Signed URL Expiry
+BIS/EPR cert signed URLs (1-hour TTL from Supabase Storage) are stored permanently in BatchSpec JSONB. URLs expire after 1 hour; users see broken cert links after that. Fix: Build GET /api/v1/batches/{id}/document-url?cert_type=BIS endpoint that generates fresh signed URLs on demand. File: services/battery-api/internal/handlers/batch_handlers.go
+I-02
+HIGH
+EU Overview Tab: useState Instead of TanStack Query
+overview-tab.tsx uses useState+useEffect for EU readiness fetch — no caching, re-fetches on every tab switch. Fix: Create useEuReadiness() TanStack Query hook with staleTime: 60000. File: apps/battery-web/components/eu-compliance/overview-tab.tsx
+I-03
+MED
+Fleet Page: Empty-State Flicker
+WorstHealthTable and LifecycleEventsTimeline receive empty array during loading, showing 'No data yet' before real data arrives. Fix: Destructure isLoading from useFleetWorstHealth + useFleetEvents; show Loader2 spinner while loading. File: apps/battery-web/components/fleet/battery-fleet-page.tsx
+I-04
+MED
+Batch Selector limit=200 Truncation
+4 components use static limit=200 batch dropdowns. Tenants with >200 active batches will have truncated selectors. Fix: Replace with debounced ?search= param — backend ListBatches already supports it. Files: carbon-calculator.tsx, battery-exports-page.tsx, battery-lifecycle-page.tsx, battery-dashboard-page.tsx
+I-05
+MED
+Webhooks Nav Item Missing
+WebhooksSection component exists in developer page but no navigation link points to it. Fix: Add nav item in lib/products.ts Developer group pointing to /dashboard/developer#webhooks or build /dashboard/webhooks as a separate route.
+I-06
+MED
+EU Regulation Tab in India Compliance
+India compliance page retains an 'EU Regulation' tab that is now fully redundant since the dedicated EU Compliance Hub was built. Remove tab to reduce confusion. File: apps/battery-web/components/compliance/ (India compliance page)
+I-07
+LOW
+Fleet Stats: Dash During Load
+Stat cards show '—' dashes during isLoading rather than skeleton shimmer. Inconsistent with DashboardSkeleton approach. Add FleetSkeleton component. File: apps/battery-web/components/fleet/battery-fleet-page.tsx
+I-08
+LOW
+Telemetry Device Tokens: useEffect
+battery-telemetry-page.tsx fetches device tokens via useState+useEffect instead of TanStack Query. No retry or caching. File: apps/battery-web/components/telemetry/battery-telemetry-page.tsx
+
+9. User Education Strategy
+This is the largest gap in the product. ExportReady Battery has 19 pages covering deeply specialized domains. A compliance manager logging in for the first time has no mechanism to learn what any page does. The onboarding flow covers company setup but zero feature discovery.
+9.1 What Each Page Does — Plain-English Definitions
+These descriptions can be used verbatim in empty states, tooltips, and page sub-headers:
+
+Page
+Plain-English Explanation for Users
+Dashboard
+Your compliance command center. Shows active vs. drafted passports, upcoming filing deadlines, and EPR quota usage. Check here daily.
+Batches
+A batch is a production run — e.g. '500 LFP cells made in June 2026'. Create a batch to generate BPAN serial numbers and Digital Product Passports for each unit. This is your starting point before shipping to the EU.
+Lifecycle
+Manages the status of every battery passport from DRAFT → ACTIVE → SHIPPED → RETURNED → RECALLED → DECOMMISSIONED. Use to perform lifecycle transitions in bulk — e.g. mark 200 units as SHIPPED after a shipment.
+Dispatch
+Scan QR codes at the warehouse to activate and ship batteries in real-time. Each scan marks the passport ACTIVE then SHIPPED and creates an immutable audit event. Works offline-first via the mobile app.
+India Compliance
+Your India-side compliance dashboard. Tracks BIS R-number, EPR filing and quota, CPCB reconciliation, and PLI Domestic Value Add eligibility. All required before EU export.
+EU Compliance
+Tracks EU Battery Regulation 2023/1542 across: (1) Carbon footprint class (Art.7), (2) Recycled content (Art.8), (3) Supply chain due diligence (Art.11), (4) Battery attributes, (5) Phase-in deadlines. A DPP is legally required for EU market entry.
+Due Diligence
+EU Art.11 requires due diligence on cobalt, lithium, nickel, and manganese suppliers. Manages supplier questionnaires, risk scores, and corrective action plans for suppliers who fail screening.
+Mass Balance
+The EU requires recycled content tracking via Book & Claim. This ledger records incoming recycled material (e.g. 100 kg recycled cobalt) and allocates it to product batches to prove EU Art.8 compliance.
+Analytics
+Shows how often your Digital Product Passports are scanned and by whom (EU importers, regulators, consumers). Also tracks compliance pass-rate trends across batches over time.
+Exports
+Download compliance data in standard formats: GS1 EPCIS 2.0 JSON-LD for EU supply chain systems, CSV for internal records, or PDF reports for buyers and regulators.
+DGFT Claims
+Track DGFT export incentive claims: RoDTEP duty refunds, Duty Drawback, and Interest Equalization Scheme benefits. ExportReady auto-calculates eligible claim value from shipment data.
+Partners
+Give EU buyers read-only access to specific passport data via magic link — no account required. Manage outbound webhooks to receive real-time notifications when passport status changes.
+Templates
+Save common batch configurations as templates to avoid re-entering the same specs every run. Use the AI Batch Creator to paste a product datasheet and auto-populate the form.
+Regulatory
+Live feed of regulatory updates (BIS, CPCB, EU Commission), updated every 6 hours. Alerts you when a new rule or deadline affects your compliance posture.
+Fleet Health
+For batteries already in the field: tracks State of Health (SoH) from BMS telemetry, flags units below 80% SoH, shows the 20 worst performers. Enables proactive recalls before safety incidents.
+BMS Telemetry
+Register IoT device tokens and view incoming telemetry: charge cycles, temperature events, SoH degradation. Thermal events in the last 30 days are flagged. Data links to individual passport serials.
+Developer
+Generate API keys for programmatic access. View webhook delivery logs. Connect Tally ERP for automatic invoice reconciliation with batch shipment records.
+Settings
+Update company profile, compliance credentials (BIS R-number, EPR registration, IEC code, EU Authorized Rep), and team preferences.
+Billing
+Manage subscription and passport quota. Quota tracks how many Digital Product Passports you can issue per cycle. View invoices and payment history.
+
+9.2 Recommended Implementation (Priority Order)
+1. Page-Level Description Sub-Headers (Quick Win, 1–2 hours)
+EU Compliance already has a good sub-header: 'Carbon footprint (Art.7), recycled content (Art.8), supply chain due diligence (Art.11), and deadlines under EU Battery Regulation 2023/1542.' Adopt this pattern on all 19 pages using the §9.1 plain-English descriptions. The user sees this on every page load — zero interaction required.
+2. Empty States with Explanation + CTA (High ROI, 4–6 hours)
+Mass balance already does this correctly: icon + title + 1-2 sentence explanation + primary CTA button. Replicate this pattern on every page that can be empty. The user hits this exactly when they need guidance most.
+3. Contextual Tooltips on Jargon Terms (Medium, 4–8 hours)
+Terms like DVA, BPAN V2, JRC-aligned carbon class, Book & Claim, IEC code, and Art.11 are opaque to non-specialists. Wrap in shadcn/ui HoverCard or Tooltip with a 1-2 sentence plain-language definition. Existing Tooltip component is already in the design system.
+4. First-Run Feature Spotlight (Medium-term, 2–3 days)
+A feature spotlight shown once per feature (dismissed permanently via a DB flag per user) guiding users through: Batches → Lifecycle → India Compliance → EU Compliance → Dispatch. No third-party tour library needed — a simple modal with highlight overlay is sufficient.
+
+10. Performance Notes
+10.1 N+1 in Supplier Due Diligence
+useSupplierDDStats() performs Promise.all over each supplier to fetch per-supplier stats. 30 suppliers = 30 parallel requests. At current scale (tens of suppliers per tenant) this is acceptable on HTTP/2. Long-term fix: build /api/v1/suppliers/dd-summary returning all stats in one SQL GROUP BY query (documented in the hook's comments).
+10.2 SSE Dispatch Feed
+The dispatch QR scan feed uses a custom fetch-based SSE client (lib/scan-feed-stream.ts) rather than native EventSource. This is correct — native EventSource cannot set Authorization headers. The custom client handles reconnection and auth token refresh properly. No issues.
+10.3 Background Workers
+Registry sync pool — concurrent workers validating external certs (BIS, CPCB, EU NANDO, UN38.3)
+Anchor upgrade ticker — every 30 minutes (OpenTimestamps proof confirmation on Bitcoin)
+Tally sync ticker — every 5 minutes (imports invoices from Tally ERP XML)
+Regulatory intelligence — every 6 hours
+Daily alerts — every 24 hours (cert expiry, compliance deadline notifications)
+All workers use context-based cancellation tied to SIGTERM. Graceful shutdown has a 60-second write timeout. Correct for production SaaS.
+
+ExportReady Battery Full-Stack Audit  |  AnvayaLabs  |  July 4, 2026  |  CONFIDENTIAL

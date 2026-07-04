@@ -258,7 +258,7 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  {/* Sample CSV Download Link */}
  <button
  onClick={handleDownloadSample}
- className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-800 mt-3"
+ className="flex items-center gap-1 text-sm text-(--brand-link) hover:opacity-80 mt-3"
  >
  <Download className="h-4 w-4" />
  Download Sample CSV Template

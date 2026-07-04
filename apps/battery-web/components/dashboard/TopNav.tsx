@@ -106,10 +106,10 @@ export function TopNav() {
             <Link href={billingHref}>
               <div
                 className={clsx(
-                  "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border",
+                  "flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors",
                   isLowQuota
-                    ? "border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15"
-                    : "border-(--brand-border) bg-emerald-500/10 text-(--brand) hover:bg-emerald-500/15",
+                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/15"
+                    : "bg-emerald-500/10 text-(--brand) hover:bg-emerald-500/15",
                 )}
               >
                 <span

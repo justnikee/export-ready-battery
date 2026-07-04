@@ -337,7 +337,7 @@ export default function DispatchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-sidebar p-6 md:p-8">
       <div className="w-full mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -388,7 +388,7 @@ export default function DispatchPage() {
               />
 
               <Card
-                className={`relative p-6 bg-transparent border-2 transition-colors duration-300 shadow-none ${isFocused ? "border-amber-500" : "border-border"}`}
+                className={`relative p-6 transition-colors duration-300 shadow-none ${isFocused ? "bg-amber-500/5" : ""}`}
               >
                 {/* Targeting corners */}
                 <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-amber-500/40" />
@@ -425,7 +425,7 @@ export default function DispatchPage() {
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px] font-mono text-muted-foreground">
+                      <kbd className="px-1.5 py-0.5 bg-background rounded text-[10px] font-mono text-muted-foreground">
                         Enter
                       </kbd>
                       to submit scan
@@ -437,7 +437,7 @@ export default function DispatchPage() {
             </div>
 
             {/* Pending List */}
-            <div className="relative flex-1 flex flex-col bg-transparent border border-border p-5 min-h-[300px] shadow-none"><div className="flex items-center justify-between mb-4">
+            <div className="relative flex-1 flex flex-col bg-muted rounded-md p-5 min-h-[300px] shadow-none"><div className="flex items-center justify-between mb-4">
                 <h2 className=" text-lg text-foreground flex items-center gap-2">
                   <Package className="h-5 w-5 text-amber-500" />
                   Pending Scans
@@ -486,7 +486,7 @@ export default function DispatchPage() {
                           className={`w-8 h-8 flex items-center justify-center text-xs font-mono ${
                             item.failed
                               ? "bg-red-100 text-red-500"
-                              : "bg-amber-100 text-amber-500 border border-amber-500/20"
+                              : "bg-amber-100 text-amber-500"
                           }`}
                         >
                           {item.failed ? "!" : scannedItems.length - idx}
@@ -527,10 +527,10 @@ export default function DispatchPage() {
 
           {/* Right Col: Action Panel */}
           <div className="flex flex-col">
-            <Card className="p-6 flex flex-col gap-6 h-full bg-transparent border-border shadow-none">
+            <Card className="p-6 flex flex-col gap-6 h-full shadow-none">
               <div className="space-y-2">
                 <h2 className=" text-xl text-foreground flex items-center gap-2">
-                  <div className="w-8 h-8 bg-amber-100 border border-amber-500/20 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded bg-amber-100 flex items-center justify-center">
                     <Truck className="h-4 w-4 text-amber-500" />
                   </div>
                   Dispatch Details

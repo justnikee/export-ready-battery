@@ -61,7 +61,7 @@ export default function AttributesTab() {
 
   if (batches.length === 0) {
     return (
-      <div className="relative text-center py-12 bg-transparent border border-border">
+      <div className="relative text-center py-12 bg-muted rounded-md">
         <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
         <p className="text-muted-foreground">
           No EU/GLOBAL active batches found
@@ -94,7 +94,7 @@ export default function AttributesTab() {
 
       {/* Score Overview */}
       {scoreResult && (
-        <div className="relative bg-transparent border border-border p-6">
+        <div className="relative bg-muted rounded-md p-6">
           <div className="flex items-center gap-6 mb-4">
             <div
               className={`text-4xl ${
@@ -142,7 +142,7 @@ export default function AttributesTab() {
           return (
             <div
               key={cat}
-              className="relative bg-transparent border border-border"
+              className="relative bg-muted rounded-md"
             >
               <div className="px-5 py-3 border-b border-border flex items-center justify-between">
                 <h3 className="text-sm font-medium text-foreground">{cat}</h3>

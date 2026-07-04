@@ -202,7 +202,7 @@ export function WebhooksSection() {
 
   return (
     <>
-      <Card id="webhooks" className="bg-popover border-border scroll-mt-20">
+      <Card id="webhooks" className="scroll-mt-20">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-foreground flex items-center gap-2">
@@ -219,7 +219,7 @@ export function WebhooksSection() {
                 <Plus className="w-4 h-4 mr-1" /> Add Webhook
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-popover border-border">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle className="text-foreground">Register Webhook</DialogTitle>
                 <DialogDescription className="text-muted-foreground">
@@ -293,7 +293,7 @@ export function WebhooksSection() {
           ) : (
             <div className="space-y-3">
               {webhooks.map((wh) => (
-                <div key={wh.id} className="bg-muted border border-border">
+                <div key={wh.id} className="rounded-md bg-background">
                   <div className="flex items-center justify-between p-3">
                     <div className="min-w-0">
                       <code className="text-sm text-foreground font-mono break-all">{wh.url}</code>
@@ -356,7 +356,7 @@ export function WebhooksSection() {
 
       {/* Secret reveal dialog */}
       <Dialog open={!!revealedSecret} onOpenChange={(open) => !open && setRevealedSecret(null)}>
-        <DialogContent className="bg-popover border-border">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-foreground">Webhook Registered</DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -385,7 +385,7 @@ export function WebhooksSection() {
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="bg-popover border-border">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-foreground">Delete this webhook?</DialogTitle>
             <DialogDescription className="text-muted-foreground">

@@ -100,7 +100,7 @@ export function BatchStatusCard({
   }
 
   return (
-    <div className="border border-border bg-transparent p-4">
+    <div className="bg-muted rounded-md p-4">
       <BatchLifecycleTracker
         embedded
         status={batch.status}
@@ -117,10 +117,10 @@ export function BatchStatusCard({
             <div
               key={chip.id}
               className={clsx(
-                "inline-flex items-center gap-1.5 px-2 py-1 border text-[10px] font-medium uppercase tracking-wider transition-colors",
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider transition-colors",
                 chip.done
-                  ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-500"
-                  : "border-border bg-transparent text-muted-foreground",
+                  ? "bg-emerald-500/10 text-emerald-500"
+                  : "bg-background text-muted-foreground",
               )}
               title={chip.label}
             >

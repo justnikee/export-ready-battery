@@ -42,7 +42,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border">
+    <div className="bg-muted rounded-md relative"><div className="px-4 py-3 border-b border-border">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">
           {title}
         </h2>
@@ -156,7 +156,7 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-sidebar p-6 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Shield className="h-12 w-12 text-muted-foreground mx-auto" />
           <h1 className="text-xl font-semibold text-foreground">
@@ -171,7 +171,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -184,7 +184,7 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
+          <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 uppercase tracking-wider">
             {user?.role}
           </span>
         </div>
@@ -192,7 +192,7 @@ export default function AdminPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="border border-border bg-transparent p-4 relative"><div className="flex items-center gap-2">
+        <div className="bg-muted rounded-md p-4 relative"><div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
             <span className="text-xs text-muted-foreground uppercase tracking-wider">
               Pending Requests
@@ -222,7 +222,7 @@ export default function AdminPage() {
             {requests.map((req) => (
               <div
                 key={req.id}
-                className="border border-border p-3 relative"
+                className="bg-background rounded-md p-3 relative"
               ><div className="flex items-start justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
@@ -244,7 +244,7 @@ export default function AdminPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       size="sm"
-                      className="h-7 text-xs gap-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
+                      className="h-7 text-xs gap-1 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                       disabled={actionLoading === req.id}
                       onClick={() => handleApprove(req.id)}
                     >
@@ -258,7 +258,7 @@ export default function AdminPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs gap-1 border-red-500/20 text-red-500 hover:bg-red-500/10"
+                      className="h-7 text-xs gap-1 text-red-500 hover:bg-red-500/10"
                       disabled={actionLoading === req.id}
                       onClick={() => openReject(req.id)}
                     >
@@ -276,7 +276,7 @@ export default function AdminPage() {
       {/* System Jobs */}
       <Section title="System Jobs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="border border-border p-3 relative"><div className="flex items-center gap-2 mb-2">
+          <div className="bg-background rounded-md p-3 relative"><div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-medium text-foreground">
                 Daily Alert Scan
@@ -301,7 +301,7 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          <div className="border border-border p-3 relative"><div className="flex items-center gap-2 mb-2">
+          <div className="bg-background rounded-md p-3 relative"><div className="flex items-center gap-2 mb-2">
               <Anchor className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-foreground">
                 Upgrade Certificate Anchors

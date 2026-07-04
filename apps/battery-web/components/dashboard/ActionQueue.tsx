@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Package, Clock } from "lucide-react";
+import { AlertCircle, Package, Clock, ShieldAlert } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface ActionItem {
@@ -18,6 +18,9 @@ export interface ActionQueueInputs {
   staleDraftBatchCount: number;
   /** Compliance certs (EPR/BIS/PLI) submitted but awaiting verification. */
   pendingCertCount: number;
+  /** At least one compliance item is missing or rejected — genuinely needs the user to act. */
+  complianceSetupIncomplete: boolean;
+  complianceSetupMessage?: string;
   billingHref: string;
   batchesHref: string;
   complianceSettingsHref: string;
@@ -35,6 +38,24 @@ export function buildActionItems(input: ActionQueueInputs): ActionItem[] {
     });
   }
 
+  if (input.complianceSetupIncomplete) {
+    items.push({
+      icon: ShieldAlert,
+      message: input.complianceSetupMessage || "Compliance setup incomplete",
+      href: input.complianceSettingsHref,
+      severity: "warning",
+    });
+  }
+
+  if (input.pendingCertCount > 0) {
+    items.push({
+      icon: Clock,
+      message: `${input.pendingCertCount} compliance cert(s) awaiting verification`,
+      href: input.complianceSettingsHref,
+      severity: "info",
+    });
+  }
+
   if (input.staleDraftBatchCount > 0) {
     items.push({
       icon: Package,
@@ -44,42 +65,56 @@ export function buildActionItems(input: ActionQueueInputs): ActionItem[] {
     });
   }
 
-  if (input.pendingCertCount > 0) {
-    items.push({
-      icon: Clock,
-      message: `${input.pendingCertCount} compliance cert(s) awaiting verification`,
-      href: input.complianceSettingsHref,
-      severity: "warning",
-    });
-  }
-
   return items.slice(0, 4);
 }
 
-const SEVERITY_CLASSES: Record<ActionItem["severity"], string> = {
-  critical: "border-red-500/20 bg-red-500/5 text-red-600",
-  warning: "border-amber-500/20 bg-amber-500/5 text-amber-600",
-  info: "border-blue-500/20 bg-blue-500/5 text-blue-600",
+const SEVERITY_TEXT: Record<ActionItem["severity"], string> = {
+  critical: "text-red-600 dark:text-red-400",
+  warning: "text-amber-600 dark:text-amber-400",
+  info: "text-blue-600 dark:text-blue-400",
+};
+
+const STRIP_TONE: Record<ActionItem["severity"], string> = {
+  critical: "bg-red-500/10",
+  warning: "bg-amber-500/10",
+  info: "bg-blue-500/10",
 };
 
 export function ActionQueue({ items }: { items: ActionItem[] }) {
-  if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">✓ Nothing needs your attention today</p>;
-  }
+  if (items.length === 0) return null;
+
+  const worstSeverity = items.some((i) => i.severity === "critical")
+    ? "critical"
+    : items.some((i) => i.severity === "warning")
+      ? "warning"
+      : "info";
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div
+      className={`flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md px-4 py-2.5 ${STRIP_TONE[worstSeverity]}`}
+    >
+      <span
+        className={`text-[11px] font-semibold uppercase tracking-wider shrink-0 ${SEVERITY_TEXT[worstSeverity]}`}
+      >
+        Needs attention
+      </span>
       {items.map((item, i) => {
         const Icon = item.icon;
         return (
-          <Link
-            key={i}
-            href={item.href}
-            className={`flex items-center gap-3 p-3 border transition-opacity hover:opacity-80 ${SEVERITY_CLASSES[item.severity]}`}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="text-sm font-medium">{item.message}</span>
-          </Link>
+          <span key={i} className="flex items-center gap-x-5">
+            <Link
+              href={item.href}
+              className={`flex items-center gap-1.5 text-sm hover:underline underline-offset-2 ${SEVERITY_TEXT[item.severity]}`}
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              {item.message}
+            </Link>
+            {i < items.length - 1 && (
+              <span className="text-muted-foreground/40" aria-hidden="true">
+                &middot;
+              </span>
+            )}
+          </span>
         );
       })}
     </div>

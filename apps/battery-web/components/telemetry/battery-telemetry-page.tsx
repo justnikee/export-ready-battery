@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Radio, HeartPulse, AlertTriangle, Flame, Key } from "lucide-react";
-import api from "@/lib/api";
 import { dashboardPathFromPathname } from "@/lib/routes";
-import { useFleetStats, useFleetThermalEvents } from "@/hooks/use-queries";
+import { useFleetStats, useFleetThermalEvents, useDeviceTokens } from "@/hooks/use-queries";
 import { StatusDistributionChart } from "@/components/analytics/status-distribution-chart";
 import { ThermalEventsFeed } from "@/components/telemetry/ThermalEventsFeed";
-
-interface DeviceToken {
-  id: string;
-  name: string;
-  batch_id: string | null;
-  is_active: boolean;
-  last_used_at: string | null;
-}
 
 export default function TelemetryDashboardPage() {
   const pathname = usePathname();
@@ -25,23 +15,13 @@ export default function TelemetryDashboardPage() {
 
   const { data: stats, isLoading: statsLoading } = useFleetStats();
   const { data: thermalEvents = [], isLoading: eventsLoading } = useFleetThermalEvents(30, 20);
-
-  const [devices, setDevices] = useState<DeviceToken[]>([]);
-  const [devicesLoading, setDevicesLoading] = useState(true);
-
-  useEffect(() => {
-    api
-      .get("/device-tokens")
-      .then((res) => setDevices(res.data.tokens || []))
-      .catch(() => setDevices([]))
-      .finally(() => setDevicesLoading(false));
-  }, []);
+  const { data: devices = [], isLoading: devicesLoading } = useDeviceTokens();
 
   const soHDistribution = (stats?.soh_distribution || []).map((b) => ({ name: b.band, value: b.count }));
   const activeDeviceCount = devices.filter((d) => d.is_active).length;
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 space-y-6">
       <div>
         <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-2">
           <Radio className="h-6 w-6 text-blue-500" />
@@ -54,14 +34,14 @@ export default function TelemetryDashboardPage() {
 
       {/* Top cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted rounded-md p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Radio className="w-3.5 h-3.5" />
             Registered Devices
           </div>
           <div className="text-2xl font-medium">{devicesLoading ? "—" : activeDeviceCount}</div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted rounded-md p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <HeartPulse className="w-3.5 h-3.5" />
             Avg SoH
@@ -70,14 +50,14 @@ export default function TelemetryDashboardPage() {
             {statsLoading || stats?.avg_soh === null || stats?.avg_soh === undefined ? "—" : `${stats.avg_soh.toFixed(1)}%`}
           </div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted rounded-md p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <AlertTriangle className="w-3.5 h-3.5" />
             Below 80% SoH
           </div>
           <div className="text-2xl font-medium">{statsLoading ? "—" : stats?.below_80_count ?? 0}</div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted rounded-md p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Flame className="w-3.5 h-3.5" />
             Thermal Events (30d)
@@ -88,13 +68,13 @@ export default function TelemetryDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* SoH distribution */}
-        <div className="border border-border p-5">
+        <div className="bg-muted rounded-md p-5">
           <h3 className="text-sm font-medium text-foreground mb-3">SoH Distribution</h3>
           <StatusDistributionChart data={soHDistribution} emptyMessage="No SoH data yet" />
         </div>
 
         {/* Device tokens summary */}
-        <div className="border border-border p-5">
+        <div className="bg-muted rounded-md p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-foreground">Registered Devices</h3>
             <Link href={developerHref} className="text-xs text-primary hover:underline flex items-center gap-1">

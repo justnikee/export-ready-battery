@@ -16,7 +16,6 @@ import {
  Plus,
  PackageSearch
 } from 'lucide-react';
-import api from '@/lib/api';
 import {
  listExportJobs,
  refreshExportDownload,
@@ -26,26 +25,11 @@ import {
  type ExportJob
 } from '@/lib/api/exports';
 import { getApiErrorMessage } from '@/lib/utils';
-
-interface BatchOption {
- id: string;
- batch_name: string;
-}
+import { BatchCombobox } from '@/components/batches/batch-combobox';
 
 function NewExportSection({ onCreated }: { onCreated: () => void }) {
- const [batches, setBatches] = useState<BatchOption[]>([]);
  const [selectedBatch, setSelectedBatch] = useState('');
  const [creating, setCreating] = useState<'CSV' | 'LABELS_PDF' | null>(null);
-
- useEffect(() => {
- api.get('/batches?status=ACTIVE&limit=200')
- .then((res) => {
- const items = (res.data.batches || []) as BatchOption[];
- setBatches(items);
- if (items.length > 0) setSelectedBatch(items[0].id);
- })
- .catch(() => toast.error('Failed to load batches'));
- }, []);
 
  const handleCreate = async (jobType: 'CSV' | 'LABELS_PDF') => {
  if (!selectedBatch) {
@@ -66,25 +50,20 @@ function NewExportSection({ onCreated }: { onCreated: () => void }) {
  };
 
  return (
- <div className="relative bg-transparent border border-border p-5">
+ <div className="relative bg-muted rounded-md p-5">
  <h3 className="text-base font-medium text-foreground mb-3">New Export</h3>
- {batches.length === 0 ? (
- <p className="text-sm text-muted-foreground">No active batches available to export yet.</p>
- ) : (
  <div className="flex flex-wrap items-center gap-3">
- <select
+ <BatchCombobox
  value={selectedBatch}
- onChange={(e) => setSelectedBatch(e.target.value)}
- className="border border-border bg-background text-foreground px-3 py-2 text-sm"
- >
- {batches.map((b) => (
- <option key={b.id} value={b.id}>{b.batch_name}</option>
- ))}
- </select>
+ onChange={setSelectedBatch}
+ status="ACTIVE"
+ autoSelectFirst
+ placeholder="Select a batch..."
+ />
  <button
  onClick={() => handleCreate('CSV')}
  disabled={creating !== null}
- className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-background text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
  >
  {creating === 'CSV' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
  Export Batch Data (CSV)
@@ -92,13 +71,12 @@ function NewExportSection({ onCreated }: { onCreated: () => void }) {
  <button
  onClick={() => handleCreate('LABELS_PDF')}
  disabled={creating !== null}
- className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-background text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
  >
  {creating === 'LABELS_PDF' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
  Export Batch QR Labels (PDF)
  </button>
  </div>
- )}
  </div>
  );
 }
@@ -208,14 +186,14 @@ export default function ExportsPage() {
 
  if (loading && exports.length === 0) {
  return (
- <div className="min-h-screen bg-background flex items-center justify-center">
+ <div className="min-h-screen bg-sidebar flex items-center justify-center">
  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
  </div>
  );
  }
 
  return (
- <div className="min-h-screen bg-background p-6">
+ <div className="min-h-screen bg-sidebar p-6">
  <div className="w-full mx-auto space-y-6">
 
  {/* Page Header */}
@@ -238,18 +216,13 @@ export default function ExportsPage() {
 
  {/* Empty State */}
  {exports.length === 0 ? (
- <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
- <div className="p-4 bg-muted rounded-full mb-4">
- <FileArchive className="w-8 h-8 text-muted-foreground" />
- </div>
- <h3 className="text-lg font-medium text-foreground mb-1">No exports yet</h3>
- <p className="text-sm text-muted-foreground">Exports will appear here when you download large batches</p>
- </div>
+ <div className="relative bg-muted rounded-md p-6 text-center text-sm text-muted-foreground">
+ No exports yet — exports will appear here when you download large batches
  </div>
  ) : (
  /* Data Table */
- <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
- <thead className="bg-muted border-b border-border">
+ <div className="relative bg-muted rounded-md overflow-visible"><table className="w-full">
+ <thead className="bg-background">
  <tr>
  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Batch</th>
@@ -277,10 +250,10 @@ export default function ExportsPage() {
  <td className="px-4 py-4">
  <div className="flex items-center gap-2">
  {getStatusIcon(job.status)}
- <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
- job.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
- job.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
- 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+ <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
+ job.status === 'FAILED' ? 'bg-red-500/10 text-red-500' :
+ job.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500' :
+ 'bg-amber-500/10 text-amber-500'
  }`}>
  {job.status === 'COMPLETED' ? 'Completed' :
  job.status === 'FAILED' ? 'Failed' :
@@ -308,13 +281,13 @@ export default function ExportsPage() {
  </button>
  )}
  {job.status === 'PROCESSING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 border border-blue-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-blue-500 bg-blue-500/10">
  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
  Processing...
  </span>
  )}
  {job.status === 'PENDING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 border border-amber-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-amber-500 bg-amber-500/10">
  <Clock className="w-3 h-3 mr-1.5" />
  Queued
  </span>
@@ -327,7 +300,7 @@ export default function ExportsPage() {
 
  {/* Pagination */}
  {total > limit && (
- <div className="px-4 py-3 border-t border-border bg-muted flex items-center justify-between">
+ <div className="px-4 py-3 border-t border-border bg-background flex items-center justify-between">
  <p className="text-sm text-muted-foreground">
  Showing {page * limit + 1} to {Math.min((page + 1) * limit, total)} of {total} exports
  </p>
@@ -335,14 +308,14 @@ export default function ExportsPage() {
  <button
  onClick={() => setPage(p => Math.max(0, p - 1))}
  disabled={page === 0}
- className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium rounded-md bg-muted text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Previous
  </button>
  <button
  onClick={() => setPage(p => p + 1)}
  disabled={(page + 1) * limit >= total}
- className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium rounded-md bg-muted text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Next
  </button>

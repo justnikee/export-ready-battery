@@ -62,9 +62,9 @@ export default function RecycledContentTab() {
 
   return (
     <div className="space-y-6">
-      <div className="border border-border overflow-hidden">
+      <div className="bg-muted rounded-md overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-muted">
+          <thead className="bg-background">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Material</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Incoming (kg)</th>

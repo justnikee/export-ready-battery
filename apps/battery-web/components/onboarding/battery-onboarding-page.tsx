@@ -265,8 +265,8 @@ export function OnboardingPage() {
         description={steps[currentStep - 1].description}
       />
 
-      <motion.div className="bg-transparent border border-border rounded-none p-6 relative overflow-visible">
-        {/* Corner-dot decorations (dashboard card pattern) */}<AnimatePresence mode="wait" custom={direction}>
+      <motion.div className="bg-muted rounded-md p-6 relative overflow-visible">
+        <AnimatePresence mode="wait" custom={direction}>
           <AnimatedStep stepKey={currentStep} direction={direction}>
             {currentStep === 1 && (
               <StepCompanyProfile
@@ -349,7 +349,7 @@ export function OnboardingPage() {
           className="text-center text-muted-foreground text-sm"
         >
           Don&apos;t have these details?{" "}
-          <button type="button" onClick={handleNext} className="text-blue-500 hover:underline">
+          <button type="button" onClick={handleNext} className="text-(--brand-link) hover:underline">
             Skip for now
           </button>
         </motion.p>
@@ -359,7 +359,7 @@ export function OnboardingPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-none flex items-center gap-3"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-md flex items-center gap-3"
         >
           <span>⚠️</span>
           <span>{error}</span>

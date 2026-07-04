@@ -5,7 +5,7 @@ import { CarbonCalculator } from "@/components/batches/carbon-calculator";
 
 export default function CarbonCalculatorStandalonePage() {
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 space-y-6">
       <div>
         <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-2">
           <Leaf className="h-6 w-6 text-emerald-500" />

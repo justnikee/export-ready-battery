@@ -36,7 +36,7 @@ export default function DeadlinesTab() {
 
   if (deadlines.length === 0) {
     return (
-      <div className="border border-border p-12 text-center">
+      <div className="bg-muted rounded-md p-12 text-center">
         <p className="text-sm text-muted-foreground">No EU Battery Regulation deadlines found.</p>
       </div>
     );

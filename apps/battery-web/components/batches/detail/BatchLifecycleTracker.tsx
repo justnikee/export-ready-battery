@@ -71,7 +71,7 @@ export function BatchLifecycleTracker({
   }
 
   return (
-    <div className={embedded ? "" : "border border-border bg-transparent p-4"}>
+    <div className={embedded ? "" : "bg-muted rounded-md p-4"}>
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
         {stages.map((stage, i) => (
           <div key={stage.id} className="flex items-center gap-1 shrink-0">

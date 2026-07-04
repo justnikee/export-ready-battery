@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { BatchCombobox } from "@/components/batches/batch-combobox"
 import { toast } from "sonner"
 import { Calculator, Leaf, Save, ChevronDown, ChevronUp, Factory, Truck, Atom, Zap, Info, History } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -59,11 +60,6 @@ interface CarbonCalculatorProps {
  weight?: string
  existingResult?: CarbonResult | null
  onResultSaved?: () => void
-}
-
-interface BatchOption {
- id: string
- batch_name: string
 }
 
 const HISTORY_STORAGE_KEY = "carbon-calculator-history"
@@ -195,15 +191,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  const [history, setHistory] = useState<HistoryEntry[]>(() => (standalone ? loadHistory() : []))
 
  // Standalone mode only: batch picker for "Apply to Batch"
- const [batches, setBatches] = useState<BatchOption[]>([])
  const [selectedBatchId, setSelectedBatchId] = useState("")
-
- useEffect(() => {
- if (!standalone) return
- api.get<{ batches: BatchOption[] }>("/batches?status=ACTIVE&limit=200")
- .then(res => setBatches(res.data.batches || []))
- .catch(() => setBatches([]))
- }, [standalone])
 
  // Form state — pre-fill from batch specs where possible
  const [form, setForm] = useState<CarbonInput>({
@@ -285,7 +273,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
  return (
  <>
- <Card className="bg-transparent border-border border-l-4 border-l-emerald-500">
+ <Card className="border-l-4 border-l-emerald-500">
  <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
  <div className="flex items-center justify-between">
  <CardTitle className="flex items-center gap-3 text-foreground">
@@ -544,16 +532,13 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  {standalone && (
  <div className="space-y-2">
  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Apply to Batch</Label>
- <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
- <SelectTrigger className="bg-background border-border">
- <SelectValue placeholder="Select a batch..." />
- </SelectTrigger>
- <SelectContent>
- {batches.map(b => (
- <SelectItem key={b.id} value={b.id}>{b.batch_name}</SelectItem>
- ))}
- </SelectContent>
- </Select>
+ <BatchCombobox
+ value={selectedBatchId}
+ onChange={setSelectedBatchId}
+ status="ACTIVE"
+ placeholder="Select a batch..."
+ className="w-full"
+ />
  </div>
  )}
  <Button
@@ -580,7 +565,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  </Card>
 
  {standalone && history.length > 0 && (
- <Card className="bg-transparent border-border">
+ <Card>
  <CardHeader className="pb-3">
  <CardTitle className="flex items-center gap-2 text-sm text-foreground">
  <History className="h-4 w-4 text-muted-foreground" />

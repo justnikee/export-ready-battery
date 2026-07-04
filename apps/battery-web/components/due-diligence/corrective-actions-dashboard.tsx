@@ -200,7 +200,7 @@ export default function CorrectiveActionsDashboard({ supplierId }: CorrectiveAct
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-none overflow-hidden">
+      <div className="rounded-md overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

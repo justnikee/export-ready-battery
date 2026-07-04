@@ -89,7 +89,7 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
   };
 
   return (
-    <div className="border border-border rounded-none flex flex-col h-full bg-background">
+    <div className="rounded-md flex flex-col h-full bg-muted">
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Suppliers ({suppliers.length})</h2>
@@ -119,13 +119,13 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
               : "No suppliers match your search."}
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-background">
             {filtered.map((s) => (
               <button
                 key={s.id}
                 onClick={() => onSelect(s)}
                 className={`w-full text-left p-4 transition-colors ${
-                  selectedId === s.id ? "bg-muted" : "hover:bg-muted/50"
+                  selectedId === s.id ? "bg-background" : "hover:bg-background/50"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">

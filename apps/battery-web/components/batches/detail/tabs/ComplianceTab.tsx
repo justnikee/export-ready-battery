@@ -319,7 +319,7 @@ export function ComplianceTab({
   return (
     <div className="space-y-6">
       {/* Score + Gaps */}
-      <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
+      <div className="bg-background rounded-md relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Shield className="h-4 w-4 text-emerald-500" />
           <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
             Compliance Engine
@@ -409,7 +409,7 @@ export function ComplianceTab({
 
       {/* EU Attribute Score */}
       {(isEU || isGlobal) && (
-        <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <div className="bg-background rounded-md relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
             <FileCheck className="h-4 w-4 text-blue-500" />
             <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
               EU Battery Passport Attribute Coverage

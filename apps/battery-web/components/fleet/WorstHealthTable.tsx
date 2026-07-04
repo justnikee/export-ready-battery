@@ -17,7 +17,7 @@ export function WorstHealthTable({ passports, lifecycleHref }: { passports: Flee
   }
 
   return (
-    <div className="border border-border overflow-hidden">
+    <div className="bg-background rounded-md overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-muted">
           <tr>

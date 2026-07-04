@@ -124,7 +124,7 @@ export default function RegulatoryDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Regulatory Intelligence</h1>
@@ -146,18 +146,18 @@ export default function RegulatoryDashboardPage() {
       </div>
 
       <Tabs defaultValue="feed" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="rounded-none h-9">
-          <TabsTrigger value="feed" className="text-xs rounded-none">Feed</TabsTrigger>
-          <TabsTrigger value="alerts" className="text-xs rounded-none">
+        <TabsList className="h-9">
+          <TabsTrigger value="feed" className="text-xs">Feed</TabsTrigger>
+          <TabsTrigger value="alerts" className="text-xs">
             My Alerts {alerts.length > 0 && <span className="ml-1 text-[10px] text-red-500">({alerts.length})</span>}
           </TabsTrigger>
           {isAdmin && (
-            <TabsTrigger value="sources" className="text-xs rounded-none">Sources</TabsTrigger>
+            <TabsTrigger value="sources" className="text-xs">Sources</TabsTrigger>
           )}
         </TabsList>
 
         <TabsContent value="feed" className="mt-4 space-y-4">
-          <Card className="rounded-none">
+          <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
@@ -167,7 +167,7 @@ export default function RegulatoryDashboardPage() {
             <CardContent>
               <div className="flex flex-wrap gap-3">
                 <Select value={productFilter} onValueChange={setProductFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Product Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,7 +178,7 @@ export default function RegulatoryDashboardPage() {
                   </SelectContent>
                 </Select>
                 <Select value={regionFilter} onValueChange={setRegionFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Market Region" />
                   </SelectTrigger>
                   <SelectContent>
@@ -189,7 +189,7 @@ export default function RegulatoryDashboardPage() {
                   </SelectContent>
                 </Select>
                 <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Urgency" />
                   </SelectTrigger>
                   <SelectContent>
@@ -218,7 +218,7 @@ export default function RegulatoryDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-none">
+          <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -259,7 +259,7 @@ export default function RegulatoryDashboardPage() {
                                 </div>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {item.tags?.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="text-[9px] rounded-none px-1 py-0">
+                                    <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0">
                                       {tag}
                                     </Badge>
                                   ))}
@@ -310,7 +310,7 @@ export default function RegulatoryDashboardPage() {
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4 space-y-4">
-          <Card className="rounded-none">
+          <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -396,7 +396,7 @@ export default function RegulatoryDashboardPage() {
 
         {isAdmin && (
           <TabsContent value="sources" className="mt-4 space-y-4">
-            <Card className="rounded-none">
+            <Card>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -435,7 +435,7 @@ export default function RegulatoryDashboardPage() {
                             <Badge
                               variant="outline"
                               className={clsx(
-                                "text-[10px] rounded-none",
+                                "text-[10px]",
                                 source.is_active ? "bg-green-50 text-green-700" : "bg-slate-50 text-slate-500",
                               )}
                             >
@@ -451,7 +451,7 @@ export default function RegulatoryDashboardPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 text-[10px] rounded-none"
+                              className="h-7 text-[10px]"
                               onClick={() => forceFetch.mutate(source.id)}
                               disabled={forceFetch.isPending || !source.is_active}
                             >

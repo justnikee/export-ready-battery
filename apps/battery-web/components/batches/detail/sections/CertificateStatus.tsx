@@ -36,27 +36,23 @@ function CertCard({
 
   const statusConfig = {
     valid: {
-      border: "border-emerald-500/30",
       bg: "bg-emerald-500/5",
-      badge: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+      badge: "bg-emerald-500/10 text-emerald-500",
       label: daysRemaining ? `${daysRemaining}d left` : "Valid",
     },
     warning: {
-      border: "border-amber-500/30",
       bg: "bg-amber-500/5",
-      badge: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+      badge: "bg-amber-500/10 text-amber-500",
       label: daysRemaining ? `${daysRemaining}d left` : "Expiring soon",
     },
     expired: {
-      border: "border-red-500/30",
       bg: "bg-red-500/5",
-      badge: "bg-red-500/10 text-red-500 border-red-500/30",
+      badge: "bg-red-500/10 text-red-500",
       label: "Expired",
     },
     unset: {
-      border: "border-border",
-      bg: "bg-transparent",
-      badge: "bg-muted text-muted-foreground border-border",
+      bg: "bg-muted",
+      badge: "bg-muted text-muted-foreground",
       label: "Not uploaded",
     },
   };
@@ -65,7 +61,7 @@ function CertCard({
 
   return (
     <div
-      className={`p-3 border ${config.border} ${config.bg} flex items-center justify-between gap-3`}
+      className={`p-3 rounded-md ${config.bg} flex items-center justify-between gap-3`}
     >
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground truncate">

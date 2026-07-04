@@ -20,8 +20,8 @@ export function StatsCard({
   accentColor = "var(--brand)",
 }: StatsCardProps) {
   return (
-    <div className="relative bg-transparent border border-border rounded-none p-5 hover:border-(--border-prominent) transition-colors cursor-pointer overflow-visible">
-      {/* Corner squares */}<div className="flex items-center justify-between mb-3">
+    <div className="relative bg-muted rounded-md p-5 overflow-visible">
+      <div className="flex items-center justify-between mb-3">
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           {title}
         </span>

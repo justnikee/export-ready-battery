@@ -73,7 +73,7 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-none border border-amber-500/20 bg-amber-500/10"
+          className="p-4 rounded-md border border-amber-500/20 bg-amber-500/10"
         >
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
@@ -85,7 +85,7 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
               <button
                 type="button"
                 onClick={() => onEdit(3)}
-                className="text-sm text-blue-500 hover:underline inline-flex items-center gap-1"
+                className="text-sm text-(--brand-link) hover:underline inline-flex items-center gap-1"
               >
                 Go back to compliance setup
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -95,7 +95,7 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
         </motion.div>
       )}
 
-      <div className="space-y-4 bg-transparent border border-border rounded-none p-4">
+      <div className="space-y-4 bg-muted rounded-md p-4">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Company Name</p>
@@ -104,7 +104,7 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
           <button
             type="button"
             onClick={() => onEdit(1)}
-            className="text-blue-500 text-sm hover:underline"
+            className="text-(--brand-link) text-sm hover:underline"
           >
             Edit
           </button>

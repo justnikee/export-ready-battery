@@ -24,7 +24,7 @@ export default function EuCompliancePage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         <div>
           <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-2">

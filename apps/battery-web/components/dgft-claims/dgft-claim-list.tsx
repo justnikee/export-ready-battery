@@ -101,7 +101,7 @@ export default function DGFTClaimsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">DGFT Claims</h1>
@@ -155,7 +155,7 @@ export default function DGFTClaimsPage() {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : claims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-none">
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-muted rounded-md">
           <Landmark className="w-10 h-10 text-muted-foreground mb-3" />
           <h3 className="text-sm font-medium">No claims yet</h3>
           <p className="text-xs text-muted-foreground max-w-[300px] mt-1">
@@ -167,7 +167,7 @@ export default function DGFTClaimsPage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-none overflow-hidden">
+        <div className="bg-muted rounded-md overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

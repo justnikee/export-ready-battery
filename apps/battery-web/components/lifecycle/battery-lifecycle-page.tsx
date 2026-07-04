@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal";
+import { BatchCombobox } from "@/components/batches/batch-combobox";
 import {
   ArrowRight,
   Package,
@@ -53,11 +54,6 @@ interface PassportSummary {
   updated_at: string;
 }
 
-interface BatchOption {
-  id: string;
-  batch_name: string;
-  status: string;
-}
 
 interface BulkAllowedActionsResponse {
   allowed_actions: string[];
@@ -278,7 +274,6 @@ export default function LifecyclePage() {
 
   // Data
   const [passports, setPassports] = useState<PassportSummary[]>([]);
-  const [batches, setBatches] = useState<BatchOption[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [totalCount, setTotalCount] = useState(0);
   const [allowedActionsByPassport, setAllowedActionsByPassport] = useState<
@@ -418,29 +413,6 @@ export default function LifecyclePage() {
       toast.error("Failed to export EPCIS document");
     }
   };
-
-  // â”€â”€â”€ Fetch batches once for the dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  useEffect(() => {
-    if (!user?.tenant_id) return;
-    api
-      .get<{ batches: BatchOption[] }>(
-        `/batches?tenant_id=${user.tenant_id}&limit=200`,
-      )
-      .then((res) =>
-        setBatches(
-          (res.data.batches || [])
-            .filter((b: BatchOption) => b.status === "ACTIVE")
-            .map((b: BatchOption) => ({
-              id: b.id,
-              batch_name: b.batch_name,
-              status: b.status,
-            })),
-        ),
-      )
-      .catch(() => {
-        /* non-fatal */
-      });
-  }, [user?.tenant_id]);
 
   // â”€â”€â”€ Fetch passports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchPassports = useCallback(
@@ -957,7 +929,7 @@ export default function LifecyclePage() {
   }, [bulkAction, bulkActionOptions]);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-sidebar pb-24">
       <div className="mx-auto px-6 py-6 space-y-5">
         {/* â”€â”€ Header â”€â”€ */}
         <div className="flex items-start justify-between gap-4">
@@ -970,7 +942,7 @@ export default function LifecyclePage() {
           </div>
           <button
             onClick={() => fetchPassports()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-muted-foreground"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors text-muted-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
@@ -986,10 +958,10 @@ export default function LifecyclePage() {
               <button
                 key={status}
                 onClick={() => handleStatusFilter(status)}
-                className={`p-3 border text-left transition-all ${
+                className={`p-3 rounded-md text-left transition-all ${
                   isActive
-                    ? "border-foreground bg-muted ring-1 ring-foreground/20"
-                    : "border-border bg-transparent hover:bg-muted/50"
+                    ? "bg-muted ring-1 ring-foreground/20"
+                    : "bg-muted/50 hover:bg-muted"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
@@ -1021,23 +993,17 @@ export default function LifecyclePage() {
           </div>
 
           {/* Batch filter */}
-          <select
-            className="border border-border px-3 py-2 text-sm bg-background text-foreground min-w-45 focus:outline-none focus:ring-1 focus:ring-ring"
+          <BatchCombobox
             value={batchFilter}
-            onChange={(e) => handleBatchFilter(e.target.value)}
-          >
-            <option value="">All Batches</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.batch_name}
-              </option>
-            ))}
-          </select>
+            onChange={handleBatchFilter}
+            status="ACTIVE"
+            allOptionLabel="All Batches"
+          />
 
           {statusFilter !== "ALL" && (
             <button
               onClick={() => handleStatusFilter("ALL")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors text-foreground"
             >
               <span>Status: {statusFilter.replace(/_/g, " ")}</span>
               <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1053,7 +1019,7 @@ export default function LifecyclePage() {
         </div>
 
         {/* â”€â”€ Table â”€â”€ */}
-        <div className="relative bg-transparent border border-border overflow-visible">{loading ? (
+        <div className="relative bg-muted rounded-md overflow-visible">{loading ? (
             <LifecycleTableSkeleton />
           ) : passports.length === 0 ? (
             <div className="text-center py-16">
@@ -1120,7 +1086,7 @@ export default function LifecyclePage() {
               )}
               <div className="overflow-x-auto">
                 <table className="w-full min-w-175">
-                  <thead className="bg-muted/60 border-b border-border">
+                  <thead className="bg-background border-b border-border">
                     <tr>
                       <th className="px-4 py-3 text-left w-10">
                         <input
@@ -1351,7 +1317,7 @@ export default function LifecyclePage() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 rounded-md bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -1365,7 +1331,7 @@ export default function LifecyclePage() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 rounded-md bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -1376,7 +1342,7 @@ export default function LifecyclePage() {
 
       {/* â”€â”€ Sticky bulk selection footer â”€â”€ */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-background border border-border rounded-full shadow-xl">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-card rounded-full shadow-xl">
           <span className="text-sm font-medium text-foreground whitespace-nowrap">
             {effectiveCount.toLocaleString()} selected
           </span>
@@ -1514,7 +1480,7 @@ export default function LifecyclePage() {
             <button
               onClick={() => setShowBulkModal(false)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1701,7 +1667,7 @@ export default function LifecyclePage() {
             <button
               onClick={() => setRowAction(null)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1764,7 +1730,7 @@ export default function LifecyclePage() {
                 setUndoTarget(null);
                 setUndoNote("");
               }}
-              className="px-3 py-1.5 text-sm border border-border hover:bg-muted transition-colors"
+              className="px-3 py-1.5 text-sm rounded-md bg-muted hover:bg-accent transition-colors"
             >
               Cancel
             </button>
@@ -1857,7 +1823,7 @@ export default function LifecyclePage() {
                 setMaintenanceEvidence({});
               }}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1906,7 +1872,7 @@ export default function LifecyclePage() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="relative border border-border p-4 space-y-3"
+                  className="relative bg-muted rounded-md p-4 space-y-3"
                 ><div className="flex items-center justify-between gap-3">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />

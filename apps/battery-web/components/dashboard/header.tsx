@@ -84,10 +84,10 @@ export function Header() {
         {/* Quota Badge */}
         <Link href={billingHref}>
           <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors ${
               isLowQuota
-                ? "border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/15"
-                : "border-(--brand-border) bg-emerald-500/10 text-(--brand) hover:bg-emerald-500/15"
+                ? "bg-red-500/10 text-red-500 hover:bg-red-500/15"
+                : "bg-emerald-500/10 text-(--brand) hover:bg-emerald-500/15"
             }`}
           >
             <span

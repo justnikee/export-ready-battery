@@ -82,7 +82,8 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
     avgScore === null ? Shield : avgScore >= 80 ? CheckCircle : AlertTriangle;
 
   return (
-    <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible"><div className="flex items-center justify-between mb-3">
+    <div className="relative bg-muted rounded-md p-5 overflow-visible">
+      <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider code-label">
           Compliance
         </span>
@@ -90,7 +91,7 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
       </div>
 
       {loading ? (
-        <div className="h-8 bg-muted animate-pulse" />
+        <div className="h-8 bg-background animate-pulse" />
       ) : avgScore === null ? (
         <>
           <div className="text-2xl text-muted-foreground">—</div>
@@ -101,7 +102,7 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
       ) : (
         <>
           <div className={`text-2xl ${scoreColor}`}>{avgScore}%</div>
-          <div className="w-full bg-muted h-1.5 mt-2">
+          <div className="w-full bg-background h-1.5 mt-2">
             <div
               className={`h-1.5 ${barColor}`}
               style={{ width: `${avgScore}%` }}

@@ -32,7 +32,7 @@ export function PricingCard({
  actionLabel
 }: PricingCardProps) {
  return (
- <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-none ${isPopular ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-border'}`}>
+ <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isPopular ? 'bg-emerald-500/5 ring-2 ring-emerald-400/40' : ''}`}>
  {isPopular && (
  <div className="absolute top-0 right-0 bg-emerald-500/10 text-emerald-500 text-xs px-3 py-1 rounded-bl-xl border-l border-b border-emerald-200">
  MOST POPULAR

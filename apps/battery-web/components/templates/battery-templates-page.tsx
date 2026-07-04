@@ -65,10 +65,10 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 font-sans">
+    <div className="min-h-screen bg-sidebar p-6 font-sans">
       <div className="w-full mx-auto space-y-8">
         {/* Header */}
-        <div className="relative overflow-visible border border-border bg-transparent p-6"><div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="relative overflow-visible bg-muted rounded-md p-6"><div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl text-foreground tracking-tight">
                 Batch Templates
@@ -115,7 +115,7 @@ export default function TemplatesPage() {
           </div>
         ) : templates.length === 0 ? (
           /* Empty State */
-          <Card className="bg-transparent border-border">
+          <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="p-4 rounded-full bg-emerald-500/10 mb-4">
                 <Sparkles className="h-10 w-10 text-emerald-500" />

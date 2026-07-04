@@ -20,9 +20,11 @@ export function EPRObligationCard({ complianceHref }: { complianceHref: string }
   const certifiedKg = (obligation?.fulfilled_via_recycling_kg ?? 0) + (obligation?.fulfilled_via_refurbishment_kg ?? 0);
   const progressPct = requiredKg > 0 ? Math.min(100, (certifiedKg / requiredKg) * 100) : 0;
 
+  const isEmpty = !loading && (!obligation || requiredKg === 0);
+
   return (
-    <div className="relative bg-transparent border border-border rounded-none overflow-visible p-5">
-      <div className="flex items-center justify-between mb-3">
+    <div className="relative bg-muted rounded-md overflow-visible p-5">
+      <div className={`flex items-center justify-between ${isEmpty ? "mb-2" : "mb-3"}`}>
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           EPR Obligation
         </span>
@@ -30,24 +32,29 @@ export function EPRObligationCard({ complianceHref }: { complianceHref: string }
       </div>
       {loading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
-      ) : !obligation || requiredKg === 0 ? (
-        <div className="text-sm text-muted-foreground">No obligation data for this year</div>
+      ) : isEmpty ? (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-muted-foreground">No obligation set for this year</span>
+          <Link href={complianceHref} className="text-xs font-medium text-(--brand-link) hover:underline shrink-0">
+            Set up →
+          </Link>
+        </div>
       ) : (
         <>
           <div className="text-xs text-muted-foreground mb-2">
             {certifiedKg.toFixed(0)} / {requiredKg.toFixed(0)} kg certified
           </div>
-          <div className="w-full bg-muted h-1.5">
+          <div className="w-full bg-background h-1.5">
             <div
               className={`h-1.5 ${certifiedKg >= requiredKg ? "bg-emerald-500" : "bg-amber-500"}`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
+          <Link href={complianceHref} className="mt-3 inline-flex text-xs font-medium text-(--brand-link) hover:underline">
+            View Compliance →
+          </Link>
         </>
       )}
-      <Link href={complianceHref} className="mt-3 inline-flex text-xs font-medium text-blue-500 hover:underline">
-        View Compliance →
-      </Link>
     </div>
   );
 }

@@ -91,27 +91,27 @@ function getComplianceBadge(status: string | undefined) {
   const s = status?.toUpperCase();
   if (s === "VERIFIED") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20">
+      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-500 dark:text-emerald-400">
         Verified
       </span>
     );
   }
   if (s === "PENDING") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
+      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400">
         Pending
       </span>
     );
   }
   if (s === "REJECTED") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/20">
+      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-red-500/10 text-red-500 dark:text-red-400">
         Rejected
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border">
+    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-background text-muted-foreground">
       Not Uploaded
     </span>
   );
@@ -139,25 +139,6 @@ export default function DashboardPage() {
   const fleetHref = dashboardPathFromPathname(pathname, "fleet");
   const productConfig = getProductConfigByType(user?.product_type);
   const dashboardConfig = productConfig.dashboard;
-
-  const quickActionToneClasses = {
-    emerald: {
-      panel: "bg-emerald-100 dark:bg-emerald-500/10",
-      icon: "text-emerald-500",
-    },
-    blue: {
-      panel: "bg-blue-100 dark:bg-blue-500/10",
-      icon: "text-blue-500",
-    },
-    amber: {
-      panel: "bg-amber-100 dark:bg-amber-500/10",
-      icon: "text-amber-500",
-    },
-    indigo: {
-      panel: "bg-indigo-100 dark:bg-indigo-500/10",
-      icon: "text-indigo-600",
-    },
-  } as const;
 
   const quickActionHref = (
     route: (typeof dashboardConfig.quickActions)[number]["route"],
@@ -318,6 +299,8 @@ export default function DashboardPage() {
     quotaLimit: quotaLimit,
     staleDraftBatchCount,
     pendingCertCount,
+    complianceSetupIncomplete: !allSubmitted,
+    complianceSetupMessage: dashboardConfig.compliance?.ctaLabel,
     billingHref,
     batchesHref,
     complianceSettingsHref: `${settingsHref}?tab=compliance`,
@@ -354,7 +337,8 @@ export default function DashboardPage() {
 
         {/* First-run: getting-started checklist */}
         {isFirstRun && (
-          <div className="relative bg-transparent border border-border rounded-none p-5"><p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <div className="relative bg-muted rounded-md p-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
               Getting started
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -387,13 +371,13 @@ export default function DashboardPage() {
                 <Link
                   key={item.step}
                   href={item.href}
-                  className="group flex items-start gap-3 p-3 border border-border hover:border-foreground/30 hover:bg-accent/50 transition-colors"
+                  className="group flex items-start gap-3 p-3 bg-card hover:shadow-sm transition-shadow"
                 >
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center text-xs font-medium border ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center text-xs font-medium ${
                       item.done
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                        : "bg-muted text-muted-foreground border-border"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {item.done ? "✓" : item.step}
@@ -412,389 +396,356 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Section 2: Action Queue */}
-        <div className="relative bg-transparent border border-border rounded-none p-5">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
-            Needs Your Attention
-          </p>
-          <ActionQueue items={actionItems} />
-        </div>
+        {/* Section 2: Alert strip — one line, merges quota / compliance / stale-batch signals */}
+        <ActionQueue items={actionItems} />
 
-        {dashboardConfig.compliance ? (
-          <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="p-2 bg-muted">
-                  <Shield className="h-5 w-5 text-foreground" />
+        {/* Two-column layout: left = content that changes and drives action,
+            right = status rail you check but rarely act on */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* KPI row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Total Passports */}
+              <div className="relative bg-muted rounded-md p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    {dashboardConfig.totalEntitiesLabel}
+                  </span>
+                  <div className="w-5 h-5 bg-emerald-500/15 flex items-center justify-center">
+                    <div className="w-2 h-2 bg-emerald-500" />
+                  </div>
                 </div>
-                <span className="text-sm font-medium text-foreground">
-                  {dashboardConfig.compliance.title}
-                </span>
+                <div className="font-mono text-3xl text-foreground tracking-tight">
+                  {stats?.total_passports?.toLocaleString() || 0}
+                </div>
+                <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <span className="font-mono text-emerald-500">
+                    +{stats?.passports_this_week || 0}
+                  </span>{" "}
+                  this week
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-4 sm:ml-4">
-                {dashboardConfig.compliance.items.map(
-                  ({ label, statusField }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {label}
-                      </span>
-                      {getComplianceBadge(user?.[statusField])}
+
+              {/* Active Batches */}
+              <div className="relative bg-muted rounded-md p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    {dashboardConfig.activeCollectionsLabel}
+                  </span>
+                  <div className="w-5 h-5 bg-(--accent-purple)/15 flex items-center justify-center">
+                    <div className="w-2 h-2 bg-accent-purple" />
+                  </div>
+                </div>
+                <div className="font-mono text-3xl text-foreground">
+                  {processingCount}
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {dashboardConfig.activeCollectionsDescription}
+                </div>
+              </div>
+
+              {/* Passport Quota */}
+              <div className="relative bg-muted rounded-md p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    {dashboardConfig.quotaLabel}
+                  </span>
+                  <div className="w-5 h-5 bg-(--accent-orange)/15 flex items-center justify-center">
+                    <span className="font-mono text-[10px] text-accent-orange">
+                      {quotaPercent}%
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground mb-2">
+                  {quotaUsed.toLocaleString()} / {quotaLimit.toLocaleString()}
+                </div>
+                <div className="w-full bg-background h-1.5">
+                  <div
+                    className={`h-1.5 ${isOverLimit ? "bg-red-500" : "bg-emerald-500"}`}
+                    style={{ width: `${Math.min(quotaPercent, 100)}%` }}
+                  />
+                </div>
+                {isOverLimit && (
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-1 text-xs text-red-500">
+                      <AlertCircle className="h-3 w-3" />
+                      Out of quota
                     </div>
-                  ),
-                )}
-              </div>
-              <div className="sm:ml-auto shrink-0">
-                {allVerified ? (
-                  <span className="text-sm text-emerald-500 font-medium">
-                    ✓ {dashboardConfig.compliance.verifiedText}
-                  </span>
-                ) : allSubmitted ? (
-                  <span className="text-sm text-amber-500 font-medium">
-                    {dashboardConfig.compliance.pendingText}
-                  </span>
-                ) : (
-                  <Link
-                    href={`${settingsHref}?tab=compliance`}
-                    className="text-sm text-blue-500 hover:text-blue-500 font-medium hover:underline"
-                  >
-                    {dashboardConfig.compliance.ctaLabel} →
-                  </Link>
+                    <Link
+                      href={billingHref}
+                      className="text-xs text-(--brand-link) hover:underline font-medium"
+                    >
+                      Top Up →
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        ) : dashboardConfig.banner ? (
-          <div className="relative bg-transparent border border-border rounded-none p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-sm font-medium text-foreground">
-                  {dashboardConfig.banner.title}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {dashboardConfig.banner.description}
+
+            {/* Production Overview */}
+            <div className="relative bg-muted rounded-md overflow-visible">
+              <div className="px-6 py-4">
+                <h3 className="text-base font-medium text-foreground">
+                  {dashboardConfig.trendTitle}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {dashboardConfig.trendSubtitle}
                 </p>
               </div>
-              <Link
-                href={quickActionHref(dashboardConfig.banner.route)}
-                className="text-sm text-blue-500 hover:text-blue-500 font-medium hover:underline"
-              >
-                {dashboardConfig.banner.ctaLabel} →
-              </Link>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Section 3: Quick Actions Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {dashboardConfig.quickActions.map((action) => {
-            const Icon = action.icon;
-            const tone = quickActionToneClasses[action.tone];
-
-            return (
-              <Link
-                key={action.title}
-                href={quickActionHref(action.route)}
-                className="relative bg-transparent border border-border rounded-none p-4 hover:bg-accent transition-colors cursor-pointer group"
-              ><div
-                  className={`mb-3 flex h-10 w-10 items-center justify-center ${tone.panel}`}
-                >
-                  <Icon className={`h-5 w-5 ${tone.icon}`} />
-                </div>
-                <div className="text-sm font-medium text-foreground group-hover:text-muted-foreground">
-                  {action.title}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {action.description}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Section 4: Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Passports */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                {dashboardConfig.totalEntitiesLabel}
-              </span>
-              <div className="w-5 h-5 bg-emerald-500/15 flex items-center justify-center">
-                <div className="w-2 h-2 bg-emerald-500" />
+              <div className="px-6 pb-6">
+                <ProductionChart data={chartData} />
               </div>
             </div>
-            <div className="font-mono text-3xl text-foreground tracking-tight">
-              {stats?.total_passports?.toLocaleString() || 0}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <span className="font-mono text-emerald-500">
-                +{stats?.passports_this_week || 0}
-              </span>{" "}
-              this week
-            </div>
-          </div>
 
-          {/* Active Batches */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                {dashboardConfig.activeCollectionsLabel}
-              </span>
-              <div className="w-5 h-5 bg-(--accent-purple)/15 flex items-center justify-center">
-                <div className="w-2 h-2 bg-accent-purple" />
-              </div>
-            </div>
-            <div className="font-mono text-3xl text-foreground">
-              {processingCount}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              {dashboardConfig.activeCollectionsDescription}
-            </div>
-          </div>
-
-          {/* Passport Quota */}
-          <div className="relative bg-transparent border border-border rounded-none p-5 overflow-visible hover:border-(--border-prominent) transition-colors"><div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                {dashboardConfig.quotaLabel}
-              </span>
-              <div className="w-5 h-5 bg-(--accent-orange)/15 flex items-center justify-center">
-                <span className="font-mono text-[10px] text-accent-orange">
-                  {quotaPercent}%
-                </span>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground mb-2">
-              {quotaUsed.toLocaleString()} / {quotaLimit.toLocaleString()}
-            </div>
-            <div className="w-full bg-muted h-1.5">
-              <div
-                className={`h-1.5 ${isOverLimit ? "bg-red-500" : "bg-emerald-500"}`}
-                style={{ width: `${Math.min(quotaPercent, 100)}%` }}
-              />
-            </div>
-            {isOverLimit && (
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-1 text-xs text-red-500">
-                  <AlertCircle className="h-3 w-3" />
-                  Out of quota
-                </div>
+            {/* Recent Batches */}
+            <div className="relative bg-muted rounded-md overflow-visible">
+              <div className="px-6 py-4 flex items-center justify-between">
+                <h3 className="text-base font-medium text-foreground">
+                  {dashboardConfig.recentCollectionsLabel}
+                </h3>
                 <Link
-                  href={billingHref}
-                  className="text-xs text-blue-500 hover:underline font-medium"
+                  href={batchesHref}
+                  className="text-xs text-(--brand-link) hover:underline font-medium"
                 >
-                  Top Up →
+                  View All →
                 </Link>
               </div>
-            )}
-          </div>
-
-          {dashboardConfig.compliance ? (
-            <ComplianceScoreCard batches={batches} />
-          ) : dashboardConfig.workspaceCard && workspaceCardHref ? (
-            <div className="relative overflow-visible rounded-none border border-border bg-transparent p-5"><div className="mb-3 flex items-center justify-between">
-                <span className="code-label text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {dashboardConfig.workspaceCard.title}
-                </span>
-                <Shield className="h-4 w-4 text-blue-500" />
-              </div>
-              <p className="text-sm text-foreground">
-                {dashboardConfig.workspaceCard.description}
-              </p>
-              <Link
-                href={workspaceCardHref}
-                className="mt-4 inline-flex text-xs font-medium text-blue-500 hover:underline"
-              >
-                {dashboardConfig.workspaceCard.ctaLabel} →
-              </Link>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Section 5: Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Production Overview */}
-          <div className="relative lg:col-span-2 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
-              <h3 className="text-base font-medium text-foreground">
-                {dashboardConfig.trendTitle}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {dashboardConfig.trendSubtitle}
-              </p>
-            </div>
-            <div className="p-6">
-              <ProductionChart data={chartData} />
-            </div>
-          </div>
-
-          {/* Batch Status */}
-          <div className="relative bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border">
-              <h3 className="text-base font-medium text-foreground">
-                Batch Status
-              </h3>
-            </div>
-            <div className="p-6">
-              <BatchStatusChart
-                ready={readyCount}
-                processing={processingCount}
-                completed={completedCount}
-              />
-            </div>
-          </div>
-
-          {/* EPR Obligation */}
-          <EPRObligationCard complianceHref={complianceHref} />
-        </div>
-
-        {/* Section 6: Recent Batches + Audit Log */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Recent Batches */}
-          <div className="relative lg:col-span-2 bg-transparent border border-border rounded-none overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-base font-medium text-foreground">
-                {dashboardConfig.recentCollectionsLabel}
-              </h3>
-              <Link
-                href={batchesHref}
-                className="text-xs text-blue-500 hover:underline font-medium"
-              >
-                View All →
-              </Link>
-            </div>
-            <table className="w-full">
-              <thead className="bg-muted border-b border-border">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {dashboardConfig.collectionSingularLabel}
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Volume
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBatches.map((batch) => (
-                  <tr
-                    key={batch.id}
-                    className="border-b border-border hover:bg-accent"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={dashboardPathFromPathname(
-                          pathname,
-                          `batches/${batch.id}`,
-                        )}
-                        className="text-sm font-medium text-foreground hover:text-blue-500"
-                      >
-                        {batch.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {batch.units} units
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium border ${
-                          batch.status === "ACTIVE"
-                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                            : batch.status === "DRAFT"
-                              ? "bg-muted text-muted-foreground border-border"
-                              : "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                        }`}
-                      >
-                        {batch.status === "ACTIVE"
-                          ? "Active"
-                          : batch.status === "DRAFT"
-                            ? "Draft"
-                            : batch.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {batch.created_at}
-                    </td>
-                    <td className="px-4 py-3">
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <button aria-label="Batch actions" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="shadow-none min-w-40"
-                        >
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                dashboardPathFromPathname(
-                                  pathname,
-                                  `batches/${batch.id}`,
-                                ),
-                              )
-                            }
-                            className="cursor-pointer"
-                          >
-                            <ArrowRight className="mr-2 h-4 w-4" /> View Details
-                          </DropdownMenuItem>
-
-                          {batch.status !== "ACTIVE" && (
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                try {
-                                  await api.post(
-                                    `/batches/${batch.id}/activate`,
-                                  );
-                                  toast.success("Batch activated!");
-                                  fetchDashboardData();
-                                } catch (err: unknown) {
-                                  const apiError = err as {
-                                    response?: { data?: { error?: string } };
-                                  };
-                                  toast.error(
-                                    apiError.response?.data?.error ||
-                                      "Activation failed",
-                                  );
-                                }
-                              }}
-                              className="cursor-pointer text-emerald-500 hover:bg-emerald-500/15 focus:bg-emerald-500/15 focus:text-emerald-500"
-                            >
-                              <Zap className="mr-2 h-4 w-4" /> Activate
-                            </DropdownMenuItem>
-                          )}
-
-                          <DropdownMenuSeparator />
-
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setBatchToDelete(batch.id);
-                            }}
-                            className="cursor-pointer text-red-500 hover:bg-red-500/15 focus:bg-red-500/15 focus:text-red-500"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-                {recentBatches.length === 0 && (
+              <table className="w-full">
+                <thead className="bg-background/60">
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-8 text-center text-sm text-muted-foreground"
-                    >
-                      {dashboardConfig.recentEmptyState}
-                    </td>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      {dashboardConfig.collectionSingularLabel}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Volume
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentBatches.map((batch) => (
+                    <tr
+                      key={batch.id}
+                      className="hover:bg-background/60"
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={dashboardPathFromPathname(
+                            pathname,
+                            `batches/${batch.id}`,
+                          )}
+                          className="text-sm font-medium text-foreground hover:text-(--brand-link)"
+                        >
+                          {batch.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {batch.units} units
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium ${
+                            batch.status === "ACTIVE"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : batch.status === "DRAFT"
+                                ? "bg-background text-muted-foreground"
+                                : "bg-blue-500/10 text-blue-500"
+                          }`}
+                        >
+                          {batch.status === "ACTIVE"
+                            ? "Active"
+                            : batch.status === "DRAFT"
+                              ? "Draft"
+                              : batch.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {batch.created_at}
+                      </td>
+                      <td className="px-4 py-3">
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <button aria-label="Batch actions" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="shadow-none min-w-40"
+                          >
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(
+                                  dashboardPathFromPathname(
+                                    pathname,
+                                    `batches/${batch.id}`,
+                                  ),
+                                )
+                              }
+                              className="cursor-pointer"
+                            >
+                              <ArrowRight className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+
+                            {batch.status !== "ACTIVE" && (
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  try {
+                                    await api.post(
+                                      `/batches/${batch.id}/activate`,
+                                    );
+                                    toast.success("Batch activated!");
+                                    fetchDashboardData();
+                                  } catch (err: unknown) {
+                                    const apiError = err as {
+                                      response?: { data?: { error?: string } };
+                                    };
+                                    toast.error(
+                                      apiError.response?.data?.error ||
+                                        "Activation failed",
+                                    );
+                                  }
+                                }}
+                                className="cursor-pointer text-emerald-500 hover:bg-emerald-500/15 focus:bg-emerald-500/15 focus:text-emerald-500"
+                              >
+                                <Zap className="mr-2 h-4 w-4" /> Activate
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBatchToDelete(batch.id);
+                              }}
+                              className="cursor-pointer text-red-500 hover:bg-red-500/15 focus:bg-red-500/15 focus:text-red-500"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                  {recentBatches.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
+                      >
+                        {dashboardConfig.recentEmptyState}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Regulatory Deadlines */}
-          <RegulatoryDeadlines regulatoryHref={regulatoryHref} />
+          {/* Right column: status rail — checked, not acted on */}
+          <div className="flex flex-col gap-6">
+            {/* Compliance chips */}
+            {dashboardConfig.compliance ? (
+              <div className="relative bg-muted rounded-md p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield
+                    className={`h-4 w-4 ${allVerified ? "text-emerald-500" : "text-muted-foreground"}`}
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    {dashboardConfig.compliance.title}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2 mb-3">
+                  {dashboardConfig.compliance.items.map(
+                    ({ label, statusField }) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-xs text-muted-foreground">
+                          {label}
+                        </span>
+                        {getComplianceBadge(user?.[statusField])}
+                      </div>
+                    ),
+                  )}
+                </div>
+                <Link
+                  href={`${settingsHref}?tab=compliance`}
+                  className="text-xs font-medium text-(--brand-link) hover:underline"
+                >
+                  View compliance →
+                </Link>
+              </div>
+            ) : dashboardConfig.banner ? (
+              <div className="relative bg-muted rounded-md p-5">
+                <h3 className="text-sm font-medium text-foreground mb-1">
+                  {dashboardConfig.banner.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {dashboardConfig.banner.description}
+                </p>
+                <Link
+                  href={quickActionHref(dashboardConfig.banner.route)}
+                  className="text-xs font-medium text-(--brand-link) hover:underline"
+                >
+                  {dashboardConfig.banner.ctaLabel} →
+                </Link>
+              </div>
+            ) : null}
+
+            {dashboardConfig.compliance ? (
+              <ComplianceScoreCard batches={batches} />
+            ) : dashboardConfig.workspaceCard && workspaceCardHref ? (
+              <div className="relative overflow-visible rounded-md bg-muted p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="code-label text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {dashboardConfig.workspaceCard.title}
+                  </span>
+                  <Shield className="h-4 w-4 text-blue-500" />
+                </div>
+                <p className="text-sm text-foreground">
+                  {dashboardConfig.workspaceCard.description}
+                </p>
+                <Link
+                  href={workspaceCardHref}
+                  className="mt-4 inline-flex text-xs font-medium text-(--brand-link) hover:underline"
+                >
+                  {dashboardConfig.workspaceCard.ctaLabel} →
+                </Link>
+              </div>
+            ) : null}
+
+            {/* Batch Status */}
+            <div className="relative bg-muted rounded-md overflow-visible">
+              <div className="px-6 py-4">
+                <h3 className="text-base font-medium text-foreground">
+                  Batch Status
+                </h3>
+              </div>
+              <div className="px-6 pb-6">
+                <BatchStatusChart
+                  ready={readyCount}
+                  processing={processingCount}
+                  completed={completedCount}
+                />
+              </div>
+            </div>
+
+            {/* EPR Obligation */}
+            <EPRObligationCard complianceHref={complianceHref} />
+
+            {/* Regulatory Deadlines */}
+            <RegulatoryDeadlines regulatoryHref={regulatoryHref} />
+          </div>
         </div>
       </div>
       {/* Confirmation Dialogs */}

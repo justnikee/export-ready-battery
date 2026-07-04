@@ -1,41 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import api from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
-import { useEuActiveBatches } from "@/hooks/use-queries";
+import { useEuActiveBatches, useEuReadiness } from "@/hooks/use-queries";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import { CheckCircle2, AlertTriangle, XCircle, Globe, FileCheck, Loader2 } from "lucide-react";
-
-interface ComplianceGap {
-  field: string;
-  message: string;
-  severity: string;
-}
-
-interface MarketReadiness {
-  score: number;
-  valid: boolean;
-  gaps?: ComplianceGap[];
-}
 
 export default function OverviewTab() {
   const { user } = useAuth();
   const pathname = usePathname();
   const settingsHref = dashboardPathFromPathname(pathname, "settings?tab=eu-compliance");
-  const [readiness, setReadiness] = useState<MarketReadiness | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: readiness, isLoading: loading } = useEuReadiness();
   const { data: euBatches = [] } = useEuActiveBatches();
-
-  useEffect(() => {
-    api
-      .post("/auth/readiness", { primary_market: "eu" })
-      .then((res) => setReadiness(res.data?.eu ?? null))
-      .catch(() => setReadiness(null))
-      .finally(() => setLoading(false));
-  }, []);
 
   const repName = user?.eu_authorized_representative_name?.trim();
   const repAddress = user?.eu_authorized_representative_address?.trim();
@@ -47,7 +24,7 @@ export default function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* Readiness score */}
-      <div className="border border-border p-6">
+      <div className="bg-muted rounded-md p-6">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -95,9 +72,9 @@ export default function OverviewTab() {
       </div>
 
       {/* EU Authorized Representative */}
-      <div className="border border-border">
+      <div className="bg-muted rounded-md">
         <div className="border-b border-border px-6 py-4 flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 border border-indigo-100">
+          <div className="p-2 rounded bg-indigo-500/10">
             <Globe className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="flex-1">
@@ -134,7 +111,7 @@ export default function OverviewTab() {
       </div>
 
       {/* Declaration of Conformity */}
-      <div className="border border-border p-6">
+      <div className="bg-muted rounded-md p-6">
         <div className="flex items-center gap-3 mb-1">
           <FileCheck className="h-5 w-5 text-muted-foreground" />
           <h3 className="text-base font-medium text-foreground">Declaration of Conformity</h3>

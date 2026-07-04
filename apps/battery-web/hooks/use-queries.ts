@@ -72,6 +72,52 @@ export function useEuActiveBatches() {
     })
 }
 
+export interface ComplianceGap {
+    field: string;
+    message: string;
+    severity: string;
+}
+
+export interface MarketReadiness {
+    score: number;
+    valid: boolean;
+    gaps?: ComplianceGap[];
+}
+
+// EU readiness score for the EU Compliance Hub's Overview tab. Cached like every
+// other data hook so switching tabs doesn't re-hit /auth/readiness each time.
+export function useEuReadiness() {
+    return useQuery<MarketReadiness | null>({
+        queryKey: ['euReadiness'],
+        queryFn: async () => {
+            const response = await api.post('/auth/readiness', { primary_market: 'eu' })
+            return (response.data?.eu ?? null) as MarketReadiness | null
+        },
+        staleTime: 60_000,
+    })
+}
+
+export interface DeviceToken {
+    id: string;
+    name: string;
+    batch_id: string | null;
+    is_active: boolean;
+    last_used_at: string | null;
+}
+
+// Registered BMS device tokens for the Telemetry dashboard. TanStack Query so it
+// caches + retries like the fleet hooks alongside it, instead of a raw useEffect.
+export function useDeviceTokens() {
+    return useQuery<DeviceToken[]>({
+        queryKey: ['deviceTokens'],
+        queryFn: async () => {
+            const response = await api.get('/device-tokens')
+            return (response.data.tokens || []) as DeviceToken[]
+        },
+        staleTime: 60_000,
+    })
+}
+
 // Fleet Health hooks
 export function useFleetStats() {
     return useQuery({

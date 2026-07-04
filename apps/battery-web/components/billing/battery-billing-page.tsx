@@ -309,7 +309,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">

@@ -93,19 +93,19 @@ export function DVACalculator({ onApply, trigger }: DVACalculatorProps) {
  </div>
 
  {/* Result Card */}
- <div className={`rounded-xl border p-4 ${isEligible
- ? "bg-emerald-950/20 border-emerald-900/50"
- : "bg-red-950/20 border-red-900/50"
+ <div className={`rounded-xl p-4 ${isEligible
+ ? "bg-emerald-950/20"
+ : "bg-red-950/20"
  }`}>
  <div className="flex items-center justify-between mb-2">
  <span className="text-muted-foreground text-sm font-medium">Calculated DVA</span>
  {isEligible ? (
- <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-900">
+ <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full">
  <CheckCircle2 className="h-3 w-3" />
  PLI Eligible
  </span>
  ) : (
- <span className="flex items-center gap-1.5 text-xs font-medium text-red-400 bg-red-950/50 px-2 py-0.5 rounded-full border border-red-900">
+ <span className="flex items-center gap-1.5 text-xs font-medium text-red-400 bg-red-950/50 px-2.5 py-1 rounded-full">
  <XCircle className="h-3 w-3" />
  Low Value Add
  </span>

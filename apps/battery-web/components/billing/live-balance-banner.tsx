@@ -43,7 +43,7 @@ export function LiveBalanceBanner() {
 
   if (error) {
     return (
-      <Card className="bg-red-500/10 border-red-200">
+      <Card className="bg-red-500/10">
         <CardContent className="p-8 flex items-center gap-4 text-red-500">
           <AlertTriangle className="h-6 w-6" />
           <div>
@@ -59,7 +59,7 @@ export function LiveBalanceBanner() {
 
   return (
     <Card
-      className={`relative overflow-hidden ${isLow ? "border-red-200 bg-red-500/10" : "border-border bg-transparent"}`}
+      className={`relative overflow-hidden ${isLow ? "bg-red-500/10" : ""}`}
     >
       <CardContent className="p-8 flex items-center justify-between relative z-10">
         <div className="space-y-2">

@@ -31,7 +31,7 @@ export default function DueDiligencePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 space-y-6">
       <div>
         <h1 className="text-2xl text-foreground tracking-tight">Suppliers & Due Diligence</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -41,28 +41,28 @@ export default function DueDiligencePage() {
 
       {/* Top stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Users className="w-3.5 h-3.5" />
             Total Suppliers
           </div>
           <div className="text-2xl font-medium">{suppliers.length}</div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="w-3.5 h-3.5" />
             Avg Risk Score
           </div>
           <div className="text-2xl font-medium">{stats?.avgRiskScore ?? "—"}</div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Wrench className="w-3.5 h-3.5" />
             Open Corrective Actions
           </div>
           <div className="text-2xl font-medium">{stats?.openCorrectiveActionsCount ?? 0}</div>
         </div>
-        <div className="border border-border p-4 space-y-1">
+        <div className="bg-muted p-4 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ClipboardCheck className="w-3.5 h-3.5" />
             DD Completion
@@ -89,7 +89,7 @@ export default function DueDiligencePage() {
             onOpenCMRT={() => openCMRT(selectedSupplier)}
           />
         ) : (
-          <div className="border border-border rounded-none overflow-y-auto p-4">
+          <div className="rounded-md overflow-y-auto p-4 bg-muted">
             <CorrectiveActionsDashboard />
           </div>
         )}

@@ -112,7 +112,7 @@ export default function MassBalancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -135,8 +135,8 @@ export default function MassBalancePage() {
           return (
             <div
               key={mt}
-              className={`border rounded-none p-4 space-y-3 ${
-                hasData ? "bg-card" : "bg-muted/30"
+              className={`rounded-md p-4 space-y-3 ${
+                hasData ? "bg-muted" : "bg-muted/40"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -170,7 +170,7 @@ export default function MassBalancePage() {
               </div>
               {/* Mini bar */}
               {hasData && (
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full"
                     style={{
@@ -219,7 +219,7 @@ export default function MassBalancePage() {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredLedgers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-none">
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-muted rounded-md">
           <Scale className="w-10 h-10 text-muted-foreground mb-3" />
           <h3 className="text-sm font-medium">No ledgers yet</h3>
           <p className="text-xs text-muted-foreground max-w-[300px] mt-1">
@@ -232,7 +232,7 @@ export default function MassBalancePage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-none overflow-hidden">
+        <div className="bg-muted rounded-md overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

@@ -25,7 +25,7 @@ function SpecRow({
       {href ? (
         <a
           href={href}
-          className="text-sm text-foreground hover:text-blue-500 transition-colors"
+          className="text-sm text-foreground hover:text-(--brand-link) transition-colors"
         >
           {value}
         </a>

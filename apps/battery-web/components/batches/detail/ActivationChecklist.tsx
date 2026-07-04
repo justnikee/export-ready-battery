@@ -155,7 +155,7 @@ export function ActivationChecklist({
                 return (
                   <div
                     key={index}
-                    className="flex items-center justify-between gap-3 py-2 px-3 bg-red-500/5 border border-red-500/10"
+                    className="flex items-center justify-between gap-3 py-2 px-3 rounded-md bg-red-500/5"
                   >
                     <div className="flex items-center gap-2 text-sm text-red-500 min-w-0">
                       <span className="w-1.5 h-1.5 bg-red-500 shrink-0" />
@@ -168,7 +168,7 @@ export function ActivationChecklist({
                         size="sm"
                         variant="outline"
                         onClick={action.onClick}
-                        className="shrink-0 h-7 text-xs border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-500 gap-1"
+                        className="shrink-0 h-7 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-500 gap-1"
                       >
                         {action.icon}
                         {action.label}

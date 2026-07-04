@@ -146,7 +146,7 @@ export default function BatchDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* ── NEW HEADER ── */}
         <div className="flex items-start justify-between gap-4">
@@ -220,7 +220,7 @@ export default function BatchDetailsPage() {
         )}
 
         {/* ── TABS ── */}
-        <div className="relative bg-transparent border border-border">
+        <div className="relative bg-muted rounded-md">
           <div className="flex border-b border-border px-4">
             {[
               { id: "overview", label: "Overview" },

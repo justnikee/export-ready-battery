@@ -53,7 +53,7 @@ function StagingRow({
   busy: boolean;
 }) {
   return (
-    <div className="bg-muted border border-border p-3">
+    <div className="rounded-md bg-background p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -208,7 +208,7 @@ export function TallySyncSection() {
   };
 
   return (
-    <Card className="bg-popover border-border">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-foreground flex items-center gap-2">

@@ -78,7 +78,7 @@ function LogoUpload({
  type="button"
  onClick={() => fileInputRef.current?.click()}
  disabled={uploading}
- className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-border bg-transparent text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
+ className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-muted text-foreground hover:bg-accent transition-colors disabled:opacity-50"
  >
  {uploading ? (
  <>
@@ -324,7 +324,7 @@ export default function SettingsPage() {
  }
 
  return (
- <div className="min-h-screen bg-background p-6">
+ <div className="min-h-screen bg-sidebar p-6">
  <div className="w-full mx-auto space-y-6">
  {/* Page Header */}
  <div>
@@ -359,9 +359,9 @@ export default function SettingsPage() {
  <form onSubmit={handleSubmit} className="space-y-6">
  {activeSettingsTab === 'profile' && (<>
  {/* Company Profile Card */}
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-blue-500/10 border border-blue-100">
+ <div className="p-2 rounded bg-blue-500/10">
  <Building2 className="h-5 w-5 text-blue-500" />
  </div>
  <div>
@@ -470,7 +470,7 @@ export default function SettingsPage() {
  </label>
  <div className="flex items-start gap-4">
  {/* Logo Preview */}
- <div className="relative h-20 w-20 border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+ <div className="relative h-20 w-20 rounded-md bg-background flex items-center justify-center overflow-hidden shrink-0">
  {formData.logo_url && !logoError ? (
  <Image
  src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
@@ -505,9 +505,9 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'compliance' && (<>
  {/* India Compliance Vault Card */}
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-emerald-500/10 border border-emerald-100">
+ <div className="p-2 rounded bg-emerald-500/10">
  <ShieldCheck className="h-5 w-5 text-emerald-500" />
  </div>
  <div>
@@ -650,7 +650,7 @@ export default function SettingsPage() {
  <label className="text-sm font-medium leading-none text-foreground">
  PLI Scheme Certificate
  </label>
- <div className="p-3 border border-border bg-background">
+ <div className="p-3 rounded-md bg-background">
  <p className="text-xs text-muted-foreground mb-2">
  Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
  </p>
@@ -726,9 +726,9 @@ export default function SettingsPage() {
 
  {/* EU Authorized Representative Card — own tab, separate from India Compliance */}
  {activeSettingsTab === 'eu-compliance' && (
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted rounded-md overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-indigo-500/10 border border-indigo-100">
+ <div className="p-2 rounded bg-indigo-500/10">
  <Globe className="h-5 w-5 text-indigo-600" />
  </div>
  <div>

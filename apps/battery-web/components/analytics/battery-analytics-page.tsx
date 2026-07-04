@@ -239,20 +239,20 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-sidebar flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/10 border border-emerald-500/20">
+              <div className="p-2 rounded bg-emerald-500/10">
                 <BarChart3 className="h-5 w-5 text-emerald-500" />
               </div>
               Analytics
@@ -265,7 +265,7 @@ export default function AnalyticsPage() {
             onClick={refreshAll}
             disabled={refreshing}
             variant="outline"
-            className="border-border text-foreground hover:bg-muted"
+            className="text-foreground hover:bg-accent"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Refresh

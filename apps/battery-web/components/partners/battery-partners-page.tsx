@@ -208,7 +208,7 @@ export default function PartnersPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-background p-6 w-full mx-auto">
+      <div className="min-h-screen bg-sidebar p-6 w-full mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl text-foreground">Partner Management</h1>
@@ -222,7 +222,7 @@ export default function PartnersPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 flex items-center gap-3"
+            className="mb-6 p-4 rounded-md bg-red-500/10 flex items-center gap-3"
           >
             <AlertCircle className="h-5 w-5 text-red-500" />
             <p className="text-red-500">{error}</p>
@@ -239,7 +239,7 @@ export default function PartnersPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3"
+            className="mb-6 p-4 rounded-md bg-emerald-500/10 flex items-center gap-3"
           >
             <CheckCircle className="h-5 w-5 text-emerald-500" />
             <p className="text-emerald-500">{success}</p>
@@ -256,10 +256,10 @@ export default function PartnersPage() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab("trusted")}
-            className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
               activeTab === "trusted"
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
-                : "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                ? "bg-emerald-500/15 text-emerald-500"
+                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
             }`}
           >
             <Building2 className="h-4 w-4" />
@@ -267,10 +267,10 @@ export default function PartnersPage() {
           </button>
           <button
             onClick={() => setActiveTab("codes")}
-            className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
               activeTab === "codes"
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
-                : "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                ? "bg-emerald-500/15 text-emerald-500"
+                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
             }`}
           >
             <Key className="h-4 w-4" />
@@ -312,7 +312,7 @@ export default function PartnersPage() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                className="relative bg-transparent border border-border p-6 shadow-none"
+                className="relative bg-muted rounded-md p-6 shadow-none"
               ><h3 className="text-lg text-foreground mb-4">
                   Add Trusted Partner
                 </h3>
@@ -410,7 +410,7 @@ export default function PartnersPage() {
                   </button>
                   <button
                     onClick={() => setShowAddPartner(false)}
-                    className="px-4 py-2 bg-transparent border border-border hover:bg-accent text-foreground font-medium transition-colors"
+                    className="px-4 py-2 rounded-md bg-background hover:bg-accent text-foreground font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -433,9 +433,9 @@ export default function PartnersPage() {
                 {partners.map((partner) => (
                   <div
                     key={partner.id}
-                    className="relative bg-transparent border border-border p-4 flex items-center justify-between shadow-none"
+                    className="relative bg-background rounded-md p-4 flex items-center justify-between shadow-none"
                   ><div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-emerald-100 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded bg-emerald-100 flex items-center justify-center">
                         <Building2 className="h-5 w-5 text-emerald-500" />
                       </div>
                       <div>
@@ -493,7 +493,7 @@ export default function PartnersPage() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                className="relative bg-transparent border border-border p-6 shadow-none"
+                className="relative bg-muted rounded-md p-6 shadow-none"
               ><h3 className="text-lg text-foreground mb-4">
                   Create Partner Code
                 </h3>
@@ -593,7 +593,7 @@ export default function PartnersPage() {
                   </button>
                   <button
                     onClick={() => setShowAddCode(false)}
-                    className="px-4 py-2 bg-transparent border border-border hover:bg-accent text-foreground font-medium transition-colors"
+                    className="px-4 py-2 rounded-md bg-background hover:bg-accent text-foreground font-medium transition-colors"
                   >
                     Cancel
                   </button>

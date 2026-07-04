@@ -186,7 +186,7 @@ export default function BatchesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
@@ -207,7 +207,7 @@ export default function BatchesPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
+          <div className="relative bg-muted rounded-md p-4 flex items-center gap-4"><div className="w-10 h-10 bg-background flex items-center justify-center">
               <Package className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -217,7 +217,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+          <div className="relative bg-muted rounded-md p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
               <Zap className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
@@ -229,7 +229,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-muted flex items-center justify-center">
+          <div className="relative bg-muted rounded-md p-4 flex items-center gap-4"><div className="w-10 h-10 bg-background flex items-center justify-center">
               <Battery className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
@@ -241,7 +241,7 @@ export default function BatchesPage() {
               </p>
             </div>
           </div>
-          <div className="relative bg-transparent border border-border p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
+          <div className="relative bg-muted rounded-md p-4 flex items-center gap-4"><div className="w-10 h-10 bg-emerald-500/10 flex items-center justify-center">
               <ShieldCheck className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
@@ -256,7 +256,7 @@ export default function BatchesPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="relative flex items-center justify-between gap-4 bg-transparent p-4 border border-border"><div className="flex items-center gap-3 flex-1">
+        <div className="relative flex items-center justify-between gap-4 bg-muted rounded-md p-4"><div className="flex items-center gap-3 flex-1">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -271,7 +271,7 @@ export default function BatchesPage() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="border-border text-foreground hover:text-foreground hover:bg-accent h-9 text-sm"
+                  className="text-foreground hover:text-foreground hover:bg-accent h-9 text-sm"
                 >
                   <Filter className="h-4 w-4 mr-2" />
                   {filter === "ALL"
@@ -318,7 +318,7 @@ export default function BatchesPage() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="border-border text-foreground hover:text-foreground hover:bg-accent h-9 text-sm"
+                  className="text-foreground hover:text-foreground hover:bg-accent h-9 text-sm"
                 >
                   <ShieldCheck className="h-4 w-4 mr-2" />
                   {complianceFilter === "ALL"
@@ -370,7 +370,7 @@ export default function BatchesPage() {
         </div>
 
         {/* Table */}
-        <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
+        <div className="relative bg-muted rounded-md overflow-visible"><table className="w-full">
             <thead>
               <tr className="border-b border-border bg-background">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -465,7 +465,7 @@ export default function BatchesPage() {
                           {batch.batch_name}
                         </span>
                         <div className="flex items-center gap-2">
-                          <code className="text-xs text-muted-foreground font-mono bg-transparent border border-border px-1.5 py-0.5 rounded">
+                          <code className="text-xs text-muted-foreground font-mono bg-background px-1.5 py-0.5 rounded">
                             {batch.id.substring(0, 14)}...
                           </code>
                           <button
@@ -558,7 +558,7 @@ export default function BatchesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="bg-background border border-border shadow-none min-w-45"
+                          className="min-w-45"
                         >
                           <DropdownMenuLabel className="text-muted-foreground text-xs uppercase tracking-wider">
                             Actions
@@ -695,7 +695,7 @@ export default function BatchesPage() {
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="border-border text-foreground hover:bg-background disabled:opacity-50 h-8"
+                className="text-foreground hover:bg-background disabled:opacity-50 h-8"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
@@ -738,7 +738,7 @@ export default function BatchesPage() {
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="border-border text-foreground hover:bg-background disabled:opacity-50 h-8"
+                className="text-foreground hover:bg-background disabled:opacity-50 h-8"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />

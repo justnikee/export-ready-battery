@@ -63,7 +63,7 @@ export default function CompliancePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
         <div>
@@ -78,7 +78,7 @@ export default function CompliancePage() {
 
         {/* EPR Registration Banner */}
         {!eprRegistered && (
-          <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-3 p-4 rounded-md bg-amber-500/10">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
             <div>
               <p className="text-sm font-medium text-amber-800">
@@ -102,7 +102,7 @@ export default function CompliancePage() {
         <CertExpiryBanner />
 
         {/* India Compliance Readiness */}
-        <div className="relative bg-transparent border border-border p-5"><div className="flex items-center justify-between mb-4">
+        <div className="relative bg-muted rounded-md p-5"><div className="flex items-center justify-between mb-4">
             <h3 className="text-sm text-foreground">Compliance Readiness</h3>
             <Link
               href={settingsHref}
@@ -241,7 +241,7 @@ function OverviewTab() {
       {obligations.map((ob) => (
         <div
           key={ob.id}
-          className="relative bg-transparent border border-border p-6"
+          className="relative bg-muted rounded-md p-6"
         ><div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <h3 className="text-lg text-foreground">
@@ -447,8 +447,8 @@ function CertificatesTab() {
       ) : certificates.length === 0 ? (
         <EmptyState message="No certificates for this financial year" />
       ) : (
-        <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
-            <thead className="bg-muted border-b border-border">
+        <div className="relative bg-muted rounded-md overflow-visible"><table className="w-full">
+            <thead className="bg-background">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Certificate
@@ -559,7 +559,7 @@ function ExportTab() {
   };
 
   return (
-    <div className="relative bg-transparent border border-border p-8"><div className="max-w-lg mx-auto text-center space-y-6">
+    <div className="relative bg-muted rounded-md p-8"><div className="max-w-lg mx-auto text-center space-y-6">
         <div className="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <FileSpreadsheet className="w-8 h-8 text-emerald-500" />
         </div>
@@ -664,7 +664,7 @@ function CertificateForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative bg-transparent border border-border p-6 space-y-4"
+      className="relative bg-muted rounded-md p-6 space-y-4"
     ><h4 className="text-sm text-foreground">Add EPR Certificate</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
@@ -709,7 +709,7 @@ function CertificateForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border hover:bg-accent transition-colors"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-md hover:bg-accent transition-colors"
         >
           Cancel
         </button>
@@ -743,7 +743,7 @@ function BISTrackerTab() {
   return (
     <div className="space-y-6">
       {/* BIS Status Card */}
-      <div className="relative bg-transparent border border-border p-6"><h3 className="text-base text-foreground mb-4">
+      <div className="relative bg-muted rounded-md p-6"><h3 className="text-base text-foreground mb-4">
           BIS CRS Registration â€” IS 16046
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -758,14 +758,14 @@ function BISTrackerTab() {
               Certificate Status
             </p>
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                 bisStatus === "VERIFIED"
-                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                  ? "bg-emerald-500/10 text-emerald-500"
                   : bisStatus === "PENDING"
-                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                    ? "bg-amber-500/10 text-amber-500"
                     : bisStatus === "REJECTED"
-                      ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                      : "bg-muted text-muted-foreground border border-border"
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground"
               }`}
             >
               {bisStatus === "VERIFIED"
@@ -781,7 +781,7 @@ function BISTrackerTab() {
       </div>
 
       {/* BIS Requirements Checklist */}
-      <div className="relative bg-transparent border border-border"><div className="px-6 py-4 border-b border-border">
+      <div className="relative bg-muted rounded-md"><div className="px-6 py-4 border-b border-border">
           <h3 className="text-sm text-foreground">
             IS 16046 Requirements Checklist
           </h3>
@@ -1002,13 +1002,8 @@ function LoadingState() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
-        <div className="p-4 bg-muted rounded-full mb-4">
-          <Shield className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-1">No Data</h3>
-        <p className="text-sm text-muted-foreground">{message}</p>
-      </div>
+    <div className="relative bg-muted rounded-md p-6 text-center text-sm text-muted-foreground">
+      {message}
     </div>
   );
 }

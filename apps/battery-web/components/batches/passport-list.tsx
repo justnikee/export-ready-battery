@@ -76,7 +76,7 @@ export function PassportList({ passports }: PassportListProps) {
  <TableCell className="text-right">
  <Link
  href={`/p/${passport.uuid}`}
- className="inline-flex items-center text-blue-500 hover:underline"
+ className="inline-flex items-center text-(--brand-link) hover:underline"
  target="_blank"
  >
  View

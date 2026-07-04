@@ -46,7 +46,7 @@ export default function SupplierDetailPanel({ supplier, onOpenWizard, onOpenCMRT
   };
 
   return (
-    <div className="border border-border rounded-none h-full overflow-y-auto bg-background">
+    <div className="rounded-md h-full overflow-y-auto bg-muted">
       {/* Header */}
       <div className="p-4 border-b border-border space-y-2">
         <div className="flex items-center justify-between">

@@ -29,7 +29,7 @@ interface WizardSummaryPanelProps {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-foreground">
+    <span className="inline-flex items-center rounded-full bg-background px-2.5 py-1 text-[11px] text-foreground">
       {children}
     </span>
   );

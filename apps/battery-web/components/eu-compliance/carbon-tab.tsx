@@ -49,7 +49,7 @@ export default function CarbonTab() {
 
   if (euBatches.length === 0) {
     return (
-      <div className="border border-border p-12 text-center">
+      <div className="bg-muted rounded-md p-12 text-center">
         <p className="text-sm text-muted-foreground">No active EU/GLOBAL batches yet.</p>
       </div>
     );
@@ -58,12 +58,12 @@ export default function CarbonTab() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="border border-border p-5">
+        <div className="bg-muted rounded-md p-5">
           <h3 className="text-sm font-medium text-foreground mb-3">Carbon Class Distribution</h3>
           <StatusDistributionChart data={distribution} emptyMessage="No carbon class data" />
         </div>
 
-        <div className="border border-border p-5 space-y-4">
+        <div className="bg-muted rounded-md p-5 space-y-4">
           <div>
             <h3 className="text-sm font-medium text-foreground mb-1">Average Footprint</h3>
             <p className="text-2xl text-foreground">
@@ -76,7 +76,7 @@ export default function CarbonTab() {
             <div className="grid grid-cols-7 gap-1">
               {CARBON_CLASS_THRESHOLDS.map((t) => (
                 <div key={t.class} className="text-center">
-                  <div className="text-xs font-medium text-foreground border border-border py-1">{t.class}</div>
+                  <div className="text-xs font-medium text-foreground bg-background rounded py-1">{t.class}</div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
                     {t.maxKgCO2ePerKwh !== null ? `≤${t.maxKgCO2ePerKwh}` : ">150"}
                   </div>
