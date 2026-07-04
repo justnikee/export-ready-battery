@@ -1,21 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PricingCard } from "@/components/billing/pricing-card";
-import { LiveBalanceBanner } from "@/components/billing/live-balance-banner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowUpRight,
   ArrowDownRight,
   Receipt,
   Loader2,
-  CreditCard,
   Package,
+  Wallet,
+  TrendingDown,
+  Zap,
+  AlertTriangle,
+  Building2,
+  Mail,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 // Declare Razorpay type for TypeScript
 declare global {
@@ -185,11 +192,45 @@ export default function BillingPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [packages, setPackages] = useState<Package[]>(defaultPackages);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
 
-  useEffect(() => {
-    fetchTransactions();
-    fetchPackages();
-  }, []);
+  // All-time and month-to-date usage, derived from the same ledger the table
+  // renders — no separate endpoint needed. Purchases are positive quota_change,
+  // activations negative.
+  const usage = useMemo(() => {
+    let purchased = 0;
+    let used = 0;
+    let usedThisMonth = 0;
+    let activations = 0;
+    const now = new Date();
+    for (const tx of transactions) {
+      if (tx.quota_change > 0) {
+        purchased += tx.quota_change;
+      } else if (tx.quota_change < 0) {
+        used += -tx.quota_change;
+        activations += 1;
+        const d = new Date(tx.created_at);
+        if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+          usedThisMonth += -tx.quota_change;
+        }
+      }
+    }
+    return { purchased, used, usedThisMonth, activations };
+  }, [transactions]);
+
+  const fetchBalance = async () => {
+    try {
+      const response = await api.get<{ quota_balance?: number }>("/billing/balance");
+      if (typeof response.data?.quota_balance === "number") {
+        setBalance(response.data.quota_balance);
+      }
+    } catch {
+      // Non-fatal: overview falls back to the user's cached quota_balance.
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
 
   const fetchPackages = async () => {
     try {
@@ -219,10 +260,22 @@ export default function BillingPage() {
     }
   };
 
+  useEffect(() => {
+    fetchTransactions();
+    fetchPackages();
+    fetchBalance();
+    // Balance is bumped after a successful top-up (see handleBuyPackage) and by
+    // batch activations elsewhere in the app — both dispatch "quota-updated".
+    window.addEventListener("quota-updated", fetchBalance);
+    return () => window.removeEventListener("quota-updated", fetchBalance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleBuyPackage = async (pkg: Package) => {
     if (pkg.isEnterprise) {
-      window.location.href =
-        "mailto:sales@anvayalabs.com?subject=Enterprise License Inquiry";
+      window.location.assign(
+        "mailto:sales@anvayalabs.com?subject=Enterprise License Inquiry",
+      );
       return;
     }
 
@@ -308,91 +361,128 @@ export default function BillingPage() {
     return "text-amber-500";
   };
 
+  const quota = balance ?? user?.quota_balance ?? 0;
+  const isLow = quota <= 2;
+
   return (
-    <div className="min-h-screen bg-sidebar p-6">
-      <div className="w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-sidebar">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 space-y-8">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-3">
-              <div className="p-2 bg-amber-500/10 border border-amber-500/20">
-                <CreditCard className="h-5 w-5 text-amber-500" />
-              </div>
-              Production Capacity
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Purchase licenses to activate batches and generate compliant
-              labels.
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+            Billing &amp; Usage
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Your production quota, usage history, and license packages. Quota is
+            consumed when you activate a batch.
+          </p>
+        </div>
+
+        {/* Low-balance alert */}
+        {!loadingBalance && isLow && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+            <p className="flex-1 text-sm text-amber-600 dark:text-amber-300">
+              Your quota is running low. Top up below to keep activating batches
+              without interruption.
             </p>
+            <a
+              href="#packages"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-600"
+            >
+              <Zap className="h-4 w-4" />
+              Top up quota
+            </a>
+          </div>
+        )}
+
+        {/* Overview stat row */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={<Wallet className="h-4 w-4" />}
+            label="Current Balance"
+            value={loadingBalance ? null : `${quota}`}
+            hint="batches remaining"
+            tone={isLow ? "danger" : "success"}
+            emphasize
+          />
+          <StatCard
+            icon={<TrendingDown className="h-4 w-4" />}
+            label="Used This Month"
+            value={loadingTransactions ? null : `${usage.usedThisMonth}`}
+            hint="batches activated"
+          />
+          <StatCard
+            icon={<Zap className="h-4 w-4" />}
+            label="Batches Activated"
+            value={loadingTransactions ? null : `${usage.activations}`}
+            hint="recent history"
+          />
+          <StatCard
+            icon={<ArrowUpRight className="h-4 w-4" />}
+            label="Quota Purchased"
+            value={loadingTransactions ? null : `${usage.purchased}`}
+            hint="recent history"
+          />
+        </div>
+
+        {/* Billing account */}
+        <div className="rounded-lg border border-border bg-muted">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded bg-blue-500/10 p-2">
+                <Building2 className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-base font-medium text-foreground">
+                  Billing Account
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Details used for invoices and payment receipts
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/settings?tab=profile"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Manage
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid gap-4 px-6 py-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Company</p>
+              <p className="mt-0.5 text-sm text-foreground">
+                {user?.company_name || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Billing Email</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-foreground">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                {user?.support_email || user?.email || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Payment Method</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                Razorpay (secure checkout)
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Live Balance */}
-        <LiveBalanceBanner />
-
-        {/* Transaction History */}
-        <Card className="bg-transparent border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border">
-            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Receipt className="h-4 w-4" />
-              Transaction History
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {loadingTransactions ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : transactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No transactions yet. Purchase a license to get started.
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {transactions.slice(0, 10).map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                        {getTransactionIcon(tx.quota_change)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {tx.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(tx.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p
-                        className={`text-sm ${getTransactionColor(tx.quota_change)}`}
-                      >
-                        {tx.quota_change > 0 ? "+" : ""}
-                        {tx.quota_change} units
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pricing Grid */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
+        {/* License packages */}
+        <div id="packages" className="scroll-mt-6 space-y-4">
+          <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
               License Packages
             </h2>
           </div>
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid gap-6 lg:grid-cols-3">
             {packages.map((pkg) => (
               <PricingCard
                 key={pkg.id}
@@ -403,7 +493,151 @@ export default function BillingPage() {
               />
             ))}
           </div>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Payments are processed securely by Razorpay. Quota is credited
+            instantly on successful payment.
+          </p>
         </div>
+
+        {/* Transaction history */}
+        <div className="rounded-lg border border-border bg-muted">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-medium text-foreground">
+                Transaction History
+              </h2>
+            </div>
+            {!loadingTransactions && transactions.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {transactions.length} record{transactions.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+
+          {loadingTransactions ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <Receipt className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-3 text-sm font-medium text-foreground">
+                No transactions yet
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Purchase a license package above to get started.
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-112 divide-y divide-border overflow-y-auto">
+              {transactions.map((tx) => {
+                const isCredit = tx.quota_change > 0;
+                return (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between gap-4 px-6 py-3.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                          isCredit ? "bg-emerald-500/10" : "bg-amber-500/10",
+                        )}
+                      >
+                        {getTransactionIcon(tx.quota_change)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {tx.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(tx.created_at), "d MMM yyyy, h:mm a")}
+                          {" · "}
+                          {formatDistanceToNow(new Date(tx.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={cn(
+                          "hidden rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide sm:inline-block",
+                          isCredit
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-amber-500/10 text-amber-500",
+                        )}
+                      >
+                        {isCredit ? "Top-up" : "Usage"}
+                      </span>
+                      <p
+                        className={cn(
+                          "text-sm font-medium tabular-nums",
+                          getTransactionColor(tx.quota_change),
+                        )}
+                      >
+                        {isCredit ? "+" : ""}
+                        {tx.quota_change} units
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Compact overview metric used in the billing stat row.
+function StatCard({
+  icon,
+  label,
+  value,
+  hint,
+  tone = "default",
+  emphasize = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | null;
+  hint?: string;
+  tone?: "default" | "success" | "danger";
+  emphasize?: boolean;
+}) {
+  const valueTone =
+    tone === "danger"
+      ? "text-red-500"
+      : tone === "success"
+        ? "text-emerald-500"
+        : "text-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-muted p-4">
+      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        {value === null ? (
+          <div className="h-8 w-16 animate-pulse rounded bg-background" />
+        ) : (
+          <span
+            className={cn(
+              emphasize ? "text-3xl" : "text-2xl",
+              "font-semibold tabular-nums",
+              valueTone,
+            )}
+          >
+            {value}
+          </span>
+        )}
+        {hint && value !== null && (
+          <span className="text-xs text-muted-foreground">{hint}</span>
+        )}
       </div>
     </div>
   );
