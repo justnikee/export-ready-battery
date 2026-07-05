@@ -92,9 +92,10 @@ type Tenant struct {
 	CreatedAt    time.Time   `json:"created_at"`
 
 	// Quota System (Monetization)
-	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
-	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
-	Tier         string `json:"tier"`          // free, pro, enterprise
+	QuotaBalance          int        `json:"quota_balance"` // Passport activation slots available (debited per passport in ActivateBatch)
+	PlanType              string     `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
+	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
+	PlanStatus            string     `json:"plan_status"` // ACTIVE, EXPIRED, TRIAL
 
 	// Partner Access (Tier B Magic Link Verification)
 	PartnerAccessCode string `json:"partner_access_code,omitempty"` // Secret code for external partner verification
@@ -1130,15 +1131,15 @@ type SignupRequest struct {
 // their Indian suppliers (STRAT-06: EU Buyer Landing Page). Distinct from
 // SignupRequest, which is the Indian manufacturer self-signup flow.
 type EUBuyerLead struct {
-	ID                uuid.UUID `json:"id"`
-	BuyerCompanyName  string    `json:"buyer_company_name"`
-	ContactName       string    `json:"contact_name"`
-	ContactEmail      string    `json:"contact_email"`
-	Country           string    `json:"country"`
-	IndianSuppliers   string    `json:"indian_suppliers,omitempty"`
-	Message           string    `json:"message,omitempty"`
-	Status            string    `json:"status"`
-	CreatedAt         time.Time `json:"created_at"`
+	ID               uuid.UUID `json:"id"`
+	BuyerCompanyName string    `json:"buyer_company_name"`
+	ContactName      string    `json:"contact_name"`
+	ContactEmail     string    `json:"contact_email"`
+	Country          string    `json:"country"`
+	IndianSuppliers  string    `json:"indian_suppliers,omitempty"`
+	Message          string    `json:"message,omitempty"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type PassportEvent struct {

@@ -21,6 +21,7 @@ import {
   Mail,
   ShieldCheck,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -65,8 +66,9 @@ interface Package {
   id: string;
   title: string;
   price: string;
-  batchCount: number;
-  pricePerBatch: string;
+  /** Passport activation slots included (quota is metered per passport). */
+  quotaCount: number;
+  pricePerUnit: string;
   features: string[];
   description: string;
   isPopular?: boolean;
@@ -80,6 +82,7 @@ interface Transaction {
   description: string;
   quota_change: number; // Negative for usage, positive for top-up
   batch_id?: string;
+  payment_id?: string; // Present on Razorpay purchase transactions — GST invoice is downloadable for these
   created_at: string;
 }
 
@@ -90,9 +93,12 @@ interface ApiPackage {
   display_price?: string;
   price?: string;
   quota?: number;
-  batchCount?: number;
+  quotaCount?: number;
+  // `price_per_batch` is the backend's JSON field name (kept for API-contract
+  // stability — see Package struct in billing_handlers.go); it means "price per
+  // quota unit" i.e. per passport, not literally per batch.
   price_per_batch?: string;
-  pricePerBatch?: string;
+  pricePerUnit?: string;
   quota_units?: number;
   description: string;
   features?: string[];
@@ -116,56 +122,60 @@ interface OrderResponse {
   amount: number;
 }
 
-// Default packages as fallback
+// Default packages as fallback — mirrors services.Packages / GetPackages in
+// billing_handlers.go. Keep these two in sync; see PRICING_AND_PACKAGING_STRATEGY.md.
 const defaultPackages: Package[] = [
   {
     id: "starter",
     title: "Starter License",
-    price: "₹4,999",
-    batchCount: 10,
-    pricePerBatch: "₹499",
-    quota_units: 10,
+    price: "₹14,999",
+    quotaCount: 500,
+    pricePerUnit: "₹30",
+    quota_units: 500,
     description: "Perfect for pilot runs and small scale manufacturing.",
     features: [
-      "10 Batch Activations",
+      "500 Passport Activations / month",
+      "2 Team Seats",
       "Standard PDF Label Generation",
       "India Compliance (EPR/BIS)",
-      "Email Support",
+      "Email Support (48h SLA)",
       "Basic Analytics",
     ],
   },
   {
     id: "growth",
     title: "Growth License",
-    price: "₹19,999",
-    batchCount: 50,
-    pricePerBatch: "₹399",
-    quota_units: 50,
+    price: "₹44,999",
+    quotaCount: 5000,
+    pricePerUnit: "₹9",
+    quota_units: 5000,
     isPopular: true,
     description: "For high-volume production and export compliance.",
     features: [
       "Everything in Starter",
-      "50 Batch Activations",
+      "5,000 Passport Activations / month",
+      "10 Team Seats",
       "Priority Label Generation",
       "Importer Mode (China/Korea)",
-      "WhatsApp Priority Support",
+      "Priority Support (24h SLA) + Onboarding Call",
     ],
   },
   {
     id: "enterprise",
     title: "Enterprise License",
     price: "Custom",
-    batchCount: 200,
-    pricePerBatch: "Contact Us",
-    quota_units: 200,
+    quotaCount: 50000,
+    pricePerUnit: "Contact Us",
+    quota_units: 50000,
     isEnterprise: true,
     description: "Industrial scale solution for large manufacturers.",
     features: [
       "Everything in Growth",
-      "200+ Batch Activations",
+      "50,000+ Passport Activations / month",
+      "Up to 100 Team Seats",
       "Custom Label Formats",
-      "Dedicated Account Manager",
-      "API Access & Custom Integrations",
+      "Dedicated CSM + SLA Guarantees",
+      "SSO/SAML & Multi-Entity Support",
     ],
   },
 ];
@@ -176,8 +186,8 @@ function transformApiPackage(apiPkg: ApiPackage): Package {
     id: apiPkg.id,
     title: apiPkg.name || apiPkg.title || "Enterprise License",
     price: apiPkg.display_price || apiPkg.price || "Contact us",
-    batchCount: apiPkg.quota || apiPkg.batchCount || 0,
-    pricePerBatch: apiPkg.price_per_batch || apiPkg.pricePerBatch || "Custom",
+    quotaCount: apiPkg.quota || apiPkg.quotaCount || 0,
+    pricePerUnit: apiPkg.price_per_batch || apiPkg.pricePerUnit || "Custom",
     quota_units: apiPkg.quota || apiPkg.quota_units,
     description: apiPkg.description,
     features: apiPkg.features || [],
@@ -194,6 +204,7 @@ export default function BillingPage() {
   const [packages, setPackages] = useState<Package[]>(defaultPackages);
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
   // All-time and month-to-date usage, derived from the same ledger the table
   // renders — no separate endpoint needed. Purchases are positive quota_change,
@@ -361,6 +372,28 @@ export default function BillingPage() {
     return "text-amber-500";
   };
 
+  const downloadInvoice = async (paymentId: string) => {
+    setDownloadingInvoice(paymentId);
+    try {
+      const response = await api.get(
+        `/billing/invoices/${paymentId}/download`,
+        { responseType: "blob" },
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `invoice_${paymentId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(link.href);
+    } catch {
+      toast.error("Failed to download invoice");
+    } finally {
+      setDownloadingInvoice(null);
+    }
+  };
+
   const quota = balance ?? user?.quota_balance ?? 0;
   const isLow = quota <= 2;
 
@@ -374,7 +407,7 @@ export default function BillingPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Your production quota, usage history, and license packages. Quota is
-            consumed when you activate a batch.
+            consumed per passport when you activate a batch.
           </p>
         </div>
 
@@ -402,7 +435,7 @@ export default function BillingPage() {
             icon={<Wallet className="h-4 w-4" />}
             label="Current Balance"
             value={loadingBalance ? null : `${quota}`}
-            hint="batches remaining"
+            hint="passports remaining"
             tone={isLow ? "danger" : "success"}
             emphasize
           />
@@ -410,7 +443,7 @@ export default function BillingPage() {
             icon={<TrendingDown className="h-4 w-4" />}
             label="Used This Month"
             value={loadingTransactions ? null : `${usage.usedThisMonth}`}
-            hint="batches activated"
+            hint="passports activated"
           />
           <StatCard
             icon={<Zap className="h-4 w-4" />}
@@ -435,10 +468,10 @@ export default function BillingPage() {
               </div>
               <div>
                 <h2 className="text-base font-medium text-foreground">
-                  Billing Account
+                  Billing Contact
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Details used for invoices and payment receipts
+                  Company name and email shown on your invoices
                 </p>
               </div>
             </div>
@@ -446,7 +479,7 @@ export default function BillingPage() {
               href="/dashboard/settings?tab=profile"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              Manage
+              Edit in Profile
               <ExternalLink className="h-3 w-3" />
             </Link>
           </div>
@@ -581,6 +614,21 @@ export default function BillingPage() {
                         {isCredit ? "+" : ""}
                         {tx.quota_change} units
                       </p>
+                      {isCredit && tx.payment_id && (
+                        <button
+                          type="button"
+                          onClick={() => downloadInvoice(tx.payment_id!)}
+                          disabled={downloadingInvoice === tx.payment_id}
+                          title="Download GST invoice"
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                        >
+                          {downloadingInvoice === tx.payment_id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

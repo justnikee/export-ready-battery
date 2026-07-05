@@ -10,17 +10,23 @@ import (
 	"github.com/anvayalabs/battery-api/internal/events"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/services"
+	"io"
+	"strings"
 
 	"github.com/google/uuid"
 )
 
-// Package represents a billing package for quota purchase
+// Package represents a billing package for quota purchase. Quota is metered
+// per passport (see ActivateBatch), not per batch — `PricePerBatch`/`price_per_batch`
+// is a legacy field name kept for frontend API-contract stability; it means
+// "price per quota unit" (i.e. per passport).
 type Package struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
 	Price         int      `json:"price"`         // Price in paise (INR)
 	DisplayPrice  string   `json:"display_price"` // Formatted price string
-	Quota         int      `json:"quota"`         // Number of batch activations
+	Quota         int      `json:"quota"`         // Number of passport activation slots
 	PricePerBatch string   `json:"price_per_batch"`
 	Description   string   `json:"description"`
 	Features      []string `json:"features"`
@@ -34,51 +40,54 @@ func (h *Handler) GetPackages(w http.ResponseWriter, r *http.Request) {
 		{
 			ID:            "starter",
 			Name:          "Starter License",
-			Price:         499900, // ₹4,999 in paise
-			DisplayPrice:  "₹4,999",
-			Quota:         10,
-			PricePerBatch: "₹499",
+			Price:         1499900, // ₹14,999 in paise
+			DisplayPrice:  "₹14,999",
+			Quota:         500,
+			PricePerBatch: "₹30",
 			Description:   "Perfect for pilot runs and small scale manufacturing.",
 			Features: []string{
-				"10 Batch Activations",
+				"500 Passport Activations / month",
+				"2 Team Seats",
 				"Standard PDF Label Generation",
 				"India Compliance (EPR/BIS)",
-				"Email Support",
+				"Email Support (48h SLA)",
 				"Basic Analytics",
 			},
 		},
 		{
 			ID:            "growth",
 			Name:          "Growth License",
-			Price:         1999900, // ₹19,999 in paise
-			DisplayPrice:  "₹19,999",
-			Quota:         50,
-			PricePerBatch: "₹399",
+			Price:         4499900, // ₹44,999 in paise
+			DisplayPrice:  "₹44,999",
+			Quota:         5000,
+			PricePerBatch: "₹9",
 			Description:   "For high-volume production and export compliance.",
 			IsPopular:     true,
 			Features: []string{
 				"Everything in Starter",
-				"50 Batch Activations",
+				"5,000 Passport Activations / month",
+				"10 Team Seats",
 				"Priority Label Generation",
 				"Importer Mode (China/Korea)",
-				"WhatsApp Priority Support",
+				"Priority Support (24h SLA) + Onboarding Call",
 			},
 		},
 		{
 			ID:            "enterprise",
 			Name:          "Enterprise License",
-			Price:         0, // Custom pricing
+			Price:         0, // Custom pricing — direct sales, floor ~₹1,50,000/mo
 			DisplayPrice:  "Custom",
-			Quota:         200,
+			Quota:         50000,
 			PricePerBatch: "Contact Us",
 			Description:   "Industrial scale solution for large manufacturers.",
 			IsEnterprise:  true,
 			Features: []string{
 				"Everything in Growth",
-				"200+ Batch Activations",
+				"50,000+ Passport Activations / month",
+				"Up to 100 Team Seats",
 				"Custom Label Formats",
-				"Dedicated Account Manager",
-				"API Access & Custom Integrations",
+				"Dedicated CSM + SLA Guarantees",
+				"SSO/SAML & Multi-Entity Support",
 			},
 		},
 	}
@@ -196,11 +205,25 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	compliance := h.batchService.ValidateActivation(batch, tenant)
 	if !compliance.Valid {
 		respondJSON(w, http.StatusForbidden, map[string]interface{}{
-			"error":   "Compliance requirements missing or invalid. Activation blocked.",
-			"missing": compliance.Missing,
-			"errors":  compliance.Errors,
+			"error":    "Compliance requirements missing or invalid. Activation blocked.",
+			"missing":  compliance.Missing,
+			"errors":   compliance.Errors,
 			"warnings": compliance.Warnings,
 		})
+		return
+	}
+
+	// Count passports in the batch to meter by passport (R1)
+	passportCount, err := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if err != nil {
+		slog.Error("Failed to count passports for batch", "batch_id", batchID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to count passports in batch")
+		return
+	}
+
+	// A batch must have at least one passport to be activated
+	if passportCount == 0 {
+		respondError(w, http.StatusBadRequest, "Batch cannot be activated with zero passports. Please create passports first.")
 		return
 	}
 
@@ -212,13 +235,13 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if balance < 1 {
-		respondError(w, http.StatusPaymentRequired, "Insufficient quota. Please purchase more activation slots.")
+	if balance < passportCount {
+		respondError(w, http.StatusPaymentRequired, fmt.Sprintf("Insufficient quota. This batch requires %d passports, but you only have %d activation slots.", passportCount, balance))
 		return
 	}
 
 	// Deduct quota (atomic operation)
-	err = h.repo.DeductQuota(r.Context(), tenantID)
+	err = h.repo.DeductQuota(r.Context(), tenantID, passportCount)
 	if err != nil {
 		slog.Error("Failed to deduct quota", "error", err)
 		if err.Error() == "insufficient quota" {
@@ -234,7 +257,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to activate batch", "error", err)
 		// Try to refund quota if activation fails
-		_ = h.repo.AddQuota(r.Context(), tenantID, 1)
+		_ = h.repo.AddQuota(r.Context(), tenantID, passportCount)
 		respondError(w, http.StatusInternalServerError, "Failed to activate batch")
 		return
 	}
@@ -242,8 +265,8 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	// Log transaction
 	tx := &models.Transaction{
 		TenantID:    tenantID,
-		Description: fmt.Sprintf("Batch Activation: %s", batch.BatchName),
-		QuotaChange: -1,
+		Description: fmt.Sprintf("Batch Activation (%d Passports): %s", passportCount, batch.BatchName),
+		QuotaChange: -passportCount,
 		BatchID:     &batchID,
 	}
 	err = h.repo.CreateTransaction(r.Context(), tx)
@@ -277,7 +300,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message":       "Batch activated successfully",
 		"batch_id":      batchID,
-		"quota_balance": balance - 1,
+		"quota_balance": balance - passportCount,
 	})
 }
 
@@ -335,4 +358,55 @@ func (h *Handler) TopUpQuota(w http.ResponseWriter, r *http.Request) {
 		"amount_added":  req.Amount,
 		"quota_balance": newBalance,
 	})
+}
+
+// DownloadInvoice handles GET /api/v1/billing/invoices/{payment_id}/download
+func (h *Handler) DownloadInvoice(w http.ResponseWriter, r *http.Request) {
+	tenantID, err := parseTenantID(r)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant")
+		return
+	}
+
+	paymentID := r.PathValue("payment_id")
+	if paymentID == "" {
+		respondError(w, http.StatusBadRequest, "Payment ID is required")
+		return
+	}
+
+	// Fetch tenant details for invoice info
+	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+
+	// Fetch transaction details
+	tx, err := h.repo.GetTransactionByPaymentID(r.Context(), tenantID, paymentID)
+	if err != nil {
+		slog.Error("Invoice download: transaction not found", "payment_id", paymentID, "error", err)
+		respondError(w, http.StatusNotFound, "Transaction details not found for payment ID")
+		return
+	}
+
+	// Determine package
+	pkg := services.Packages["starter"] // default fallback
+	if strings.Contains(strings.ToLower(tx.Description), "growth") {
+		pkg = services.Packages["growth"]
+	}
+
+	// Generate PDF
+	buf, err := services.GenerateInvoicePDF(tenant, pkg, paymentID)
+	if err != nil {
+		slog.Error("Failed to generate invoice PDF", "payment_id", paymentID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to generate invoice PDF")
+		return
+	}
+
+	// Set headers for file download
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=invoice_%s.pdf", paymentID))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+
+	_, _ = io.Copy(w, buf)
 }

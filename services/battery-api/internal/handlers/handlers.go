@@ -215,7 +215,23 @@ func (h *Handler) checkIfOnboardingCompleted(w http.ResponseWriter, r *http.Requ
 		return false
 	}
 
+	if services.IsSubscriptionExpired(tenant.PlanStatus, tenant.SubscriptionExpiresAt) {
+		respondSubscriptionExpired(w)
+		return false
+	}
+
 	return true
+}
+
+// respondSubscriptionExpired writes the standard 402 for a lapsed subscription.
+// Shared by RequireOnboardingComplete (writes) and RequireFeature (Growth-feature
+// routes, including reads) so both gates return an identical error shape.
+func respondSubscriptionExpired(w http.ResponseWriter) {
+	respondJSON(w, http.StatusPaymentRequired, map[string]interface{}{
+		"error":       "subscription_expired",
+		"message":     "Your subscription has expired. Please upgrade or renew your plan.",
+		"upgrade_url": "/dashboard/billing",
+	})
 }
 
 // RequireOnboardingComplete returns middleware that blocks requests from tenants
@@ -227,6 +243,48 @@ func (h *Handler) RequireOnboardingComplete(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// RequireFeature returns middleware that blocks requests when the tenant's plan
+// does not include the given feature, or the tenant's subscription has expired.
+// Chain this AFTER authMiddleware.Protect. Returns 402 Payment Required — either
+// `subscription_expired` (renew) or `upgrade_required` (with required plan +
+// upgrade URL) — distinct from a 403 role denial.
+func (h *Handler) RequireFeature(feature services.Feature) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			tenantIDStr := middleware.GetTenantID(r.Context())
+			tenantID, err := uuid.Parse(tenantIDStr)
+			if err != nil {
+				respondError(w, http.StatusUnauthorized, "Unauthorized")
+				return
+			}
+			plan, planStatus, expiresAt, err := h.repo.GetTenantSubscriptionStatus(r.Context(), tenantID)
+			if err != nil {
+				slog.Error("Failed to load tenant plan for feature gate", "tenant_id", tenantIDStr, "feature", feature, "error", err)
+				respondError(w, http.StatusInternalServerError, "Failed to verify plan entitlement")
+				return
+			}
+			// Expiry applies regardless of plan: a lapsed Growth subscription must
+			// not retain indefinite access to Growth-only routes (including reads,
+			// which RequireOnboardingComplete never covers).
+			if services.IsSubscriptionExpired(planStatus, expiresAt) {
+				respondSubscriptionExpired(w)
+				return
+			}
+			if !services.PlanIncludes(plan, feature) {
+				respondJSON(w, http.StatusPaymentRequired, map[string]interface{}{
+					"error":         "upgrade_required",
+					"feature":       string(feature),
+					"required_plan": services.RequiredPlan(feature),
+					"current_plan":  services.NormalizePlan(plan),
+					"upgrade_url":   "/dashboard/billing",
+				})
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // RazorpayService returns the Razorpay service for webhook handler initialization

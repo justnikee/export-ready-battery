@@ -49,10 +49,11 @@ func NewAuthService(jwtSecret string, jwtExpiry, refreshExpiry time.Duration) *A
 
 // Claims represents JWT claims
 type Claims struct {
-	TenantID   string             `json:"tenant_id"`
-	SupplierID string             `json:"supplier_id,omitempty"`
-	Email      string             `json:"email"`
-	Role       string             `json:"role"` // RBAC: owner | operator | viewer | supplier
+	TenantID    string             `json:"tenant_id"`
+	UserID      string             `json:"user_id,omitempty"` // identity (users.id); scopes the refresh session
+	SupplierID  string             `json:"supplier_id,omitempty"`
+	Email       string             `json:"email"`
+	Role        string             `json:"role"` // RBAC: OWNER | ADMIN | MEMBER | VIEWER | supplier
 	ProductType models.ProductType `json:"product_type,omitempty"`
 	jwt.RegisteredClaims
 }
@@ -79,12 +80,13 @@ func normalizeClaimProductType(productType models.ProductType) models.ProductTyp
 	return productType
 }
 
-// GenerateToken generates a JWT access token with role embedded
-func (s *AuthService) GenerateToken(tenantID, email, role string, productType models.ProductType) (string, error) {
+// GenerateToken generates a JWT access token with identity + role embedded
+func (s *AuthService) GenerateToken(tenantID, userID, email, role string, productType models.ProductType) (string, error) {
 	claims := &Claims{
-		TenantID: tenantID,
-		Email:    email,
-		Role:     role,
+		TenantID:    tenantID,
+		UserID:      userID,
+		Email:       email,
+		Role:        role,
 		ProductType: normalizeClaimProductType(productType),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
@@ -100,10 +102,10 @@ func (s *AuthService) GenerateToken(tenantID, email, role string, productType mo
 // GenerateSupplierToken generates a JWT for a supplier scoped to their tenant.
 func (s *AuthService) GenerateSupplierToken(tenantID, supplierID, email string) (string, error) {
 	claims := &Claims{
-		TenantID:   tenantID,
-		SupplierID: supplierID,
-		Email:      email,
-		Role:       "supplier",
+		TenantID:    tenantID,
+		SupplierID:  supplierID,
+		Email:       email,
+		Role:        "supplier",
 		ProductType: models.ProductTypeBattery, // Suppliers don't choose product type
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.jwtExpiry)),
@@ -118,12 +120,13 @@ func (s *AuthService) GenerateSupplierToken(tenantID, supplierID, email string) 
 
 // GenerateRefreshToken generates a refresh token with a unique JTI for revocation.
 // Returns (tokenString, jti, error). Callers MUST persist the jti in the DB.
-func (s *AuthService) GenerateRefreshToken(tenantID, email, role string, productType models.ProductType) (string, string, error) {
+func (s *AuthService) GenerateRefreshToken(tenantID, userID, email, role string, productType models.ProductType) (string, string, error) {
 	jti := uuid.New().String()
 	claims := &Claims{
-		TenantID: tenantID,
-		Email:    email,
-		Role:     role,
+		TenantID:    tenantID,
+		UserID:      userID,
+		Email:       email,
+		Role:        role,
 		ProductType: normalizeClaimProductType(productType),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        jti,

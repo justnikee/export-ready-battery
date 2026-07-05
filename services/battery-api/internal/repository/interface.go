@@ -167,11 +167,16 @@ type RepositoryInterface interface {
 	GetTeamMembers(ctx context.Context, tenantID uuid.UUID) ([]*models.TeamMember, error)
 	GetTeamMemberByToken(ctx context.Context, token string) (*models.TeamMember, error)
 	GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.TeamMember, error)
+	// GetUserIDByEmail returns the identity (users.id) for an email, if one exists.
+	GetUserIDByEmail(ctx context.Context, email string) (uuid.UUID, error)
+	// GetTenantSubscriptionStatus returns plan type, plan status, and expiry in one query.
+	GetTenantSubscriptionStatus(ctx context.Context, tenantID uuid.UUID) (planType, planStatus string, expiresAt *time.Time, err error)
 	UpdateTeamMemberStatus(ctx context.Context, id uuid.UUID, status string, userID *uuid.UUID) error
 	UpdateTeamMemberRole(ctx context.Context, id uuid.UUID, role string) error
 	DeleteTeamMember(ctx context.Context, id uuid.UUID) error
 	GetTeamMemberByID(ctx context.Context, id uuid.UUID) (*models.TeamMember, error)
 	GetPendingInvitesByEmail(ctx context.Context, email string) ([]models.TeamMember, error)
+	CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error
 
 	// template.go
 	CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, productType models.ProductType, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error)
@@ -183,8 +188,9 @@ type RepositoryInterface interface {
 	CreateTenant(ctx context.Context, companyName string) (*models.Tenant, error)
 	GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error)
 	UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error)
-	DeductQuota(ctx context.Context, tenantID uuid.UUID) error
+	DeductQuota(ctx context.Context, tenantID uuid.UUID, count int) error
 	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
+	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 	GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (int, error)
 	UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error
 	UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUID, docType string, status string) error
@@ -198,6 +204,7 @@ type RepositoryInterface interface {
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
 	ListTransactions(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.Transaction, error)
 	TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error)
+	GetTransactionByPaymentID(ctx context.Context, tenantID uuid.UUID, paymentID string) (*models.Transaction, error)
 
 	// trusted_domain.go
 	CreateTrustedDomain(ctx context.Context, domain *models.TrustedDomain) error

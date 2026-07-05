@@ -9,7 +9,9 @@ import (
 	razorpay "github.com/razorpay/razorpay-go"
 )
 
-// QuotaPackage defines a purchasable quota package
+// QuotaPackage defines a purchasable quota package. QuotaUnits are passport
+// activation slots — ActivateBatch debits one unit per passport in the batch
+// (see billing_handlers.go), not one unit per batch regardless of size.
 type QuotaPackage struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -24,18 +26,18 @@ var Packages = map[string]QuotaPackage{
 	"starter": {
 		ID:          "starter",
 		Name:        "Starter License",
-		QuotaUnits:  10,
-		PricePaise:  499900, // ₹4,999
-		PriceINR:    4999,
-		Description: "10 Batch Activations",
+		QuotaUnits:  500,
+		PricePaise:  1499900, // ₹14,999
+		PriceINR:    14999,
+		Description: "500 Passport Activations",
 	},
 	"growth": {
 		ID:          "growth",
 		Name:        "Growth License",
-		QuotaUnits:  50,
-		PricePaise:  1999900, // ₹19,999
-		PriceINR:    19999,
-		Description: "50 Batch Activations",
+		QuotaUnits:  5000,
+		PricePaise:  4499900, // ₹44,999
+		PriceINR:    44999,
+		Description: "5,000 Passport Activations",
 	},
 }
 

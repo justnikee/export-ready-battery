@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"strings"
+	"time"
 
 	"github.com/anvayalabs/battery-api/internal/logger"
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -19,6 +21,7 @@ type WebhookHandler struct {
 	repo            interface {
 		AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
 		CreateTransaction(ctx context.Context, tx *models.Transaction) error
+		UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 	}
 }
 
@@ -26,6 +29,7 @@ type WebhookHandler struct {
 func NewWebhookHandler(razorpay *services.RazorpayService, repo interface {
 	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
+	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 }) *WebhookHandler {
 	return &WebhookHandler{
 		razorpayService: razorpay,
@@ -147,6 +151,15 @@ func (h *WebhookHandler) handlePaymentCaptured(w http.ResponseWriter, r *http.Re
 		// Return 500 so Razorpay will retry
 		http.Error(w, "Failed to update quota", http.StatusInternalServerError)
 		return
+	}
+
+	// Update subscription details (Phase 4 Billing Infrastructure)
+	planType := strings.ToUpper(pkg.ID)
+	expiresAt := time.Now().AddDate(0, 1, 0) // 30 days renewal
+	err = h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE")
+	if err != nil {
+		logger.Error("Failed to update tenant subscription details via webhook", "tenant_id", tenantIDStr, "error", err)
+		// Continue processing
 	}
 
 	// Log the transaction

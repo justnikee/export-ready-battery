@@ -7,8 +7,9 @@ import { Check, Zap, Loader2 } from "lucide-react"
 interface PricingCardProps {
  title: string
  price: string
- batchCount: number
- pricePerBatch: string
+ /** Passport activation slots included (quota is metered per passport, not per batch). */
+ quotaCount: number
+ pricePerUnit: string
  features: string[]
  description: string
  isPopular?: boolean
@@ -21,8 +22,8 @@ interface PricingCardProps {
 export function PricingCard({
  title,
  price,
- batchCount,
- pricePerBatch,
+ quotaCount,
+ pricePerUnit,
  features,
  description,
  isPopular = false,
@@ -52,7 +53,7 @@ export function PricingCard({
  <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-amber-500" />
  <span className="text-xs text-muted-foreground">
- <span className="text-foreground font-medium">{batchCount} batches</span> @ {pricePerBatch}/batch
+ <span className="text-foreground font-medium">{quotaCount} passports</span> @ {pricePerUnit}/passport
  </span>
  </div>
  )}
@@ -60,7 +61,7 @@ export function PricingCard({
  <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-emerald-500" />
  <span className="text-xs text-muted-foreground">
- <span className="text-foreground font-medium">200+ batches</span> @ Custom rates
+ <span className="text-foreground font-medium">{quotaCount.toLocaleString()}+ passports</span> from ₹1,50,000/mo
  </span>
  </div>
  )}

@@ -27,6 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { Feature } from "@/lib/entitlements";
 
 export type ProductSlug = "battery";
 export type ProductType = "BATTERY";
@@ -95,6 +96,8 @@ type NavItem = {
   href?: string;
   dashboardSubpath?: string;
   icon: LucideIcon;
+  /** If set, this nav item requires the given plan-gated feature. */
+  feature?: Feature;
 };
 
 type NavGroup = {
@@ -209,32 +212,32 @@ const BATTERY_CONFIG: ProductConfig = {
         { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
         { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },
         { name: "Templates", dashboardSubpath: "templates", icon: LayoutTemplate },
-        { name: "Fleet Health", dashboardSubpath: "fleet", icon: HeartPulse },
-        { name: "BMS Telemetry", dashboardSubpath: "telemetry", icon: Radio },
+        { name: "Fleet Health", dashboardSubpath: "fleet", icon: HeartPulse, feature: "fleet" },
+        { name: "BMS Telemetry", dashboardSubpath: "telemetry", icon: Radio, feature: "telemetry" },
       ],
     },
     {
       label: "Compliance",
       items: [
         { name: "India Compliance", dashboardSubpath: "compliance", icon: Shield },
-        { name: "EU Compliance", dashboardSubpath: "eu-compliance", icon: Globe },
+        { name: "EU Compliance", dashboardSubpath: "eu-compliance", icon: Globe, feature: "eu_compliance" },
         { name: "Carbon Calculator", dashboardSubpath: "carbon-calculator", icon: Calculator },
-        { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale },
-        { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark },
+        { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale, feature: "mass_balance" },
+        { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark, feature: "dgft_claims" },
       ],
     },
     {
       label: "Supply Chain",
       items: [
-        { name: "Suppliers & DD", dashboardSubpath: "due-diligence", icon: ClipboardCheck },
-        { name: "Regulatory", dashboardSubpath: "regulatory", icon: Newspaper },
+        { name: "Suppliers & DD", dashboardSubpath: "due-diligence", icon: ClipboardCheck, feature: "due_diligence" },
+        { name: "Regulatory", dashboardSubpath: "regulatory", icon: Newspaper, feature: "regulatory" },
       ],
     },
     {
       label: "Account",
       items: [
         { name: "Team", dashboardSubpath: "team", icon: Users },
-        { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
+        { name: "Partners", dashboardSubpath: "partners", icon: Building2, feature: "partners" },
         { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
         { name: "Settings", dashboardSubpath: "settings", icon: Settings },
       ],
@@ -243,8 +246,8 @@ const BATTERY_CONFIG: ProductConfig = {
       label: "Developer",
       collapsible: true,
       items: [
-        { name: "API Keys", dashboardSubpath: "developer", icon: Key },
-        { name: "Webhooks", dashboardSubpath: "developer#webhooks", icon: Webhook },
+        { name: "API Keys", dashboardSubpath: "developer", icon: Key, feature: "developer" },
+        { name: "Webhooks", dashboardSubpath: "developer#webhooks", icon: Webhook, feature: "developer" },
         { name: "Downloads", dashboardSubpath: "exports", icon: FileDown },
         { name: "Docs", href: "/docs", icon: BookOpen },
       ],

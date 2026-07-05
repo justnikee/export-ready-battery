@@ -14,6 +14,7 @@ import (
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/repository"
+	"github.com/anvayalabs/battery-api/internal/services"
 	"github.com/google/uuid"
 )
 
@@ -237,6 +238,9 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The compliance-docs bucket is private, so this "public" URL shape is only
+	// ever a canonical reference — stored as-is, and re-signed on every read
+	// (see resolveFreshBucketURL). Storing it directly would 404 in a browser.
 	publicURL := h.storageService.PublicURL(complianceDocsBucket, storagePath)
 
 	if err := h.repo.UpdateLogoURL(r.Context(), tenantID, publicURL); err != nil {
@@ -245,9 +249,17 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Sign it fresh for the immediate response, so the settings-page preview
+	// shows the logo right away without waiting for a subsequent /auth/me refresh.
+	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
+	if err != nil {
+		slog.Error("Failed to sign logo URL for response", "error", err, "tenant_id", tenantID)
+		signedURL = publicURL // best-effort fallback; /auth/me will still resolve it correctly
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":  true,
-		"logo_url": publicURL,
+		"logo_url": signedURL,
 		"message":  "Logo uploaded successfully",
 	})
 }
@@ -496,19 +508,28 @@ func (h *Handler) GetPublicPassportDocumentURL(w http.ResponseWriter, r *http.Re
 // doesn't look like a compliance-docs object URL (e.g. a legacy/external
 // public URL), it's returned unchanged. Returns "" if storedURL is empty.
 func (h *Handler) resolveFreshDocumentURL(ctx context.Context, storedURL string) (string, error) {
+	return resolveFreshBucketURL(ctx, h.storageService, storedURL)
+}
+
+// resolveFreshBucketURL is the storage-service-agnostic core of
+// resolveFreshDocumentURL, usable by handlers (like AuthHandler) that don't
+// embed a *Handler. The compliance-docs bucket is private — any URL naively
+// built as a "public" URL (e.g. the logo, uploaded via the same bucket) 404s
+// unless re-signed on every read. This is that re-signing, shared in one place.
+func resolveFreshBucketURL(ctx context.Context, storageService *services.StorageService, storedURL string) (string, error) {
 	if storedURL == "" {
 		return "", nil
 	}
-	if h.storageService == nil {
+	if storageService == nil {
 		return storedURL, nil
 	}
 
-	storagePath, ok := h.storageService.ExtractStoragePath(storedURL, complianceDocsBucket)
+	storagePath, ok := storageService.ExtractStoragePath(storedURL, complianceDocsBucket)
 	if !ok {
 		return storedURL, nil
 	}
 
-	return h.storageService.CreateSignedURLForBucket(ctx, complianceDocsBucket, storagePath, 1*time.Hour)
+	return storageService.CreateSignedURLForBucket(ctx, complianceDocsBucket, storagePath, 1*time.Hour)
 }
 
 // GetPassportDocument handles GET /api/v1/documents/{document_id}

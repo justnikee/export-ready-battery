@@ -24,6 +24,10 @@ func (r *scanFeedTestRepo) GetScanFeedSince(ctx context.Context, tenantID uuid.U
 	return r.items, r.err
 }
 
+func (r *scanFeedTestRepo) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error {
+	return nil
+}
+
 func newScanFeedTestHandler(repo *scanFeedTestRepo) *Handler {
 	h := newSupplierHandler(repo)
 	h.repo = repo

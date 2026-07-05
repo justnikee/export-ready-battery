@@ -38,7 +38,10 @@ const tenantSelectColumns = `
 	COALESCE(t.manufacturer_code, ''),
 	COALESCE(bp.morth_manufacturer_code, ''),
 	COALESCE(bp.morth_factory_codes, ''),
-	COALESCE(t.data_visibility, '{}'::jsonb)
+	COALESCE(t.data_visibility, '{}'::jsonb),
+	COALESCE(t.plan_type, 'STARTER'),
+	t.subscription_expires_at,
+	COALESCE(t.plan_status, 'ACTIVE')
 `
 
 const tenantProfileJoin = `
@@ -76,6 +79,9 @@ func scanTenant(row pgx.Row, tenant *models.Tenant) error {
 		&bp.MorthManufacturerCode,
 		&bp.MorthFactoryCodes,
 		&tenant.DataVisibility,
+		&tenant.PlanType,
+		&tenant.SubscriptionExpiresAt,
+		&tenant.PlanStatus,
 	)
 	if err != nil {
 		return err
@@ -121,6 +127,17 @@ func (r *Repository) CreateTenant(ctx context.Context, companyName string) (*mod
 	}
 
 	return tenant, nil
+}
+
+// GetTenantSubscriptionStatus returns the tenant's plan type, plan status, and
+// expiry in a single lean query — used by RequireFeature to evaluate both
+// "does the plan include this feature" and "has the subscription lapsed" gates
+// without a second round trip.
+func (r *Repository) GetTenantSubscriptionStatus(ctx context.Context, tenantID uuid.UUID) (planType, planStatus string, expiresAt *time.Time, err error) {
+	err = r.db.Pool.QueryRow(ctx,
+		`SELECT COALESCE(plan_type, 'STARTER'), COALESCE(plan_status, 'ACTIVE'), subscription_expires_at
+		 FROM public.tenants WHERE id = $1`, tenantID).Scan(&planType, &planStatus, &expiresAt)
+	return
 }
 
 // GetTenant retrieves a tenant by ID
@@ -259,16 +276,16 @@ func (r *Repository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, req 
 	return tenant, nil
 }
 
-// DeductQuota atomically decrements quota by 1 if balance > 0
-func (r *Repository) DeductQuota(ctx context.Context, tenantID uuid.UUID) error {
+// DeductQuota atomically decrements quota by the specified count if balance >= count
+func (r *Repository) DeductQuota(ctx context.Context, tenantID uuid.UUID, count int) error {
 	query := `
 		UPDATE public.tenants 
-		SET quota_balance = quota_balance - 1 
-		WHERE id = $1 AND quota_balance > 0
+		SET quota_balance = quota_balance - $2 
+		WHERE id = $1 AND quota_balance >= $2
 		RETURNING quota_balance`
 
 	var newBalance int
-	err := r.db.Pool.QueryRow(ctx, query, tenantID).Scan(&newBalance)
+	err := r.db.Pool.QueryRow(ctx, query, tenantID, count).Scan(&newBalance)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return fmt.Errorf("insufficient quota")
@@ -285,6 +302,18 @@ func (r *Repository) AddQuota(ctx context.Context, tenantID uuid.UUID, amount in
 	_, err := r.db.Pool.Exec(ctx, query, tenantID, amount)
 	if err != nil {
 		return fmt.Errorf("failed to add quota: %w", err)
+	}
+	return nil
+}
+
+// UpdateTenantSubscription updates a tenant's subscription details (plan type, expiry, and status)
+func (r *Repository) UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error {
+	query := `UPDATE public.tenants 
+	          SET plan_type = $2, subscription_expires_at = $3, plan_status = $4 
+	          WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, planType, expiresAt, planStatus)
+	if err != nil {
+		return fmt.Errorf("failed to update tenant subscription: %w", err)
 	}
 	return nil
 }

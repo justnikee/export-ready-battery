@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 import (
 	"context"
@@ -237,7 +237,7 @@ func (m *MockRepository) GetFactorByCategoryAndSubcategory(ctx context.Context, 
 	args := m.Called(ctx, category, subcategory)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
-}
+	}
 	return args.Get(0).(*models.CarbonFactor), args.Error(1)
 }
 
@@ -870,6 +870,11 @@ func (m *MockRepository) GetPendingInvitesByEmail(ctx context.Context, email str
 	return args.Get(0).([]models.TeamMember), args.Error(1)
 }
 
+func (m *MockRepository) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error {
+	args := m.Called(ctx, log)
+	return args.Error(0)
+}
+
 // ============================================================================
 // template.go
 // ============================================================================
@@ -931,13 +936,18 @@ func (m *MockRepository) UpdateTenantProfile(ctx context.Context, id uuid.UUID, 
 	return args.Get(0).(*models.Tenant), args.Error(1)
 }
 
-func (m *MockRepository) DeductQuota(ctx context.Context, tenantID uuid.UUID) error {
-	args := m.Called(ctx, tenantID)
+func (m *MockRepository) DeductQuota(ctx context.Context, tenantID uuid.UUID, count int) error {
+	args := m.Called(ctx, tenantID, count)
 	return args.Error(0)
 }
 
 func (m *MockRepository) AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error {
 	args := m.Called(ctx, tenantID, amount)
+	return args.Error(0)
+}
+
+func (m *MockRepository) UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error {
+	args := m.Called(ctx, tenantID, planType, expiresAt, planStatus)
 	return args.Error(0)
 }
 
@@ -967,6 +977,20 @@ func (m *MockRepository) GetTenantByEmail(ctx context.Context, email string) (*m
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.Tenant), args.Error(1)
+}
+
+func (m *MockRepository) GetUserIDByEmail(ctx context.Context, email string) (uuid.UUID, error) {
+	args := m.Called(ctx, email)
+	return args.Get(0).(uuid.UUID), args.Error(1)
+}
+
+func (m *MockRepository) GetTenantSubscriptionStatus(ctx context.Context, tenantID uuid.UUID) (string, string, *time.Time, error) {
+	args := m.Called(ctx, tenantID)
+	var expiresAt *time.Time
+	if args.Get(2) != nil {
+		expiresAt = args.Get(2).(*time.Time)
+	}
+	return args.String(0), args.String(1), expiresAt, args.Error(3)
 }
 
 func (m *MockRepository) NextSequence(ctx context.Context, prefix string) (int, error) {
@@ -1004,6 +1028,14 @@ func (m *MockRepository) ListTransactions(ctx context.Context, tenantID uuid.UUI
 func (m *MockRepository) TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error) {
 	args := m.Called(ctx, paymentID)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockRepository) GetTransactionByPaymentID(ctx context.Context, tenantID uuid.UUID, paymentID string) (*models.Transaction, error) {
+	args := m.Called(ctx, tenantID, paymentID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Transaction), args.Error(1)
 }
 
 // ============================================================================
@@ -1761,7 +1793,6 @@ func (m *MockRepository) UpdateSupplierDocumentStatus(ctx context.Context, id uu
 	return args.Error(0)
 }
 
-
 // ============================================================================
 // Due Diligence Engine Mocks (Phase B)
 // ============================================================================
@@ -1880,7 +1911,6 @@ func (m *MockRepository) GetSupplierRiskProfilesBySuppliers(ctx context.Context,
 	}
 	return args.Get(0).([]models.SupplierRiskProfile), args.Error(1)
 }
-
 
 // Regulatory sources mock methods
 

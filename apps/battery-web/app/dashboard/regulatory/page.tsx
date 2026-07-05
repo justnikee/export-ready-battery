@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FeatureGate } from "@/components/billing/feature-gate";
+import { isAdminRole } from "@/lib/rbac";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -45,7 +47,7 @@ import { clsx } from "clsx";
 
 export default function RegulatoryDashboardPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const isAdmin = isAdminRole(user?.role);
   const [productFilter, setProductFilter] = useState<string>("");
   const [regionFilter, setRegionFilter] = useState<string>("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("");
@@ -124,6 +126,7 @@ export default function RegulatoryDashboardPage() {
   };
 
   return (
+    <FeatureGate feature="regulatory">
     <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -470,5 +473,6 @@ export default function RegulatoryDashboardPage() {
         )}
       </Tabs>
     </div>
+    </FeatureGate>
   );
 }

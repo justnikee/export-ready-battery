@@ -14,6 +14,8 @@ type ContextKey string
 const (
 	// TenantIDKey is the context key for tenant ID
 	TenantIDKey ContextKey = "tenant_id"
+	// UserIDKey is the context key for the authenticated user (identity) ID
+	UserIDKey ContextKey = "user_id"
 	// SupplierIDKey is the context key for supplier ID
 	SupplierIDKey ContextKey = "supplier_id"
 	// EmailKey is the context key for email
@@ -69,6 +71,9 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, EmailKey, claims.Email)
 		ctx = context.WithValue(ctx, RoleKey, claims.Role)
 		ctx = context.WithValue(ctx, ProductTypeKey, string(claims.ProductType))
+		if claims.UserID != "" {
+			ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
+		}
 		if claims.SupplierID != "" {
 			ctx = context.WithValue(ctx, SupplierIDKey, claims.SupplierID)
 		}
@@ -121,6 +126,14 @@ func GetRole(ctx context.Context) string {
 	return ""
 }
 
+// GetUserID extracts the authenticated user (identity) ID from context.
+func GetUserID(ctx context.Context) string {
+	if id, ok := ctx.Value(UserIDKey).(string); ok {
+		return id
+	}
+	return ""
+}
+
 // GetProductType extracts the tenant product type from context.
 func GetProductType(ctx context.Context) string {
 	if productType, ok := ctx.Value(ProductTypeKey).(string); ok {
@@ -128,7 +141,6 @@ func GetProductType(ctx context.Context) string {
 	}
 	return ""
 }
-
 
 // GetSupplierID extracts supplier ID from context
 func GetSupplierID(ctx context.Context) string {

@@ -40,6 +40,10 @@ interface User {
   onboarding_completed?: boolean;
   // Product type — set after Phase 1 backend lands; defaults to BATTERY
   product_type?: string;
+  // Subscription plan + server-computed feature entitlements (UX gating only —
+  // the backend's RequireFeature middleware is the real gate). See lib/entitlements.ts.
+  plan_type?: string;
+  entitlements?: Record<string, boolean>;
   // Data Visibility Preferences
   data_visibility?: Record<string, string>;
 }

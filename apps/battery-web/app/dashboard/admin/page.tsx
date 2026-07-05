@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import { isAdminRole } from "@/lib/rbac";
 import {
   listSignupRequests,
   approveSignupRequest,
@@ -54,7 +55,7 @@ function Section({
 
 export default function AdminPage() {
   const { user } = useAuth();
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const isAdmin = isAdminRole(user?.role);
 
   const [requests, setRequests] = useState<SignupRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);

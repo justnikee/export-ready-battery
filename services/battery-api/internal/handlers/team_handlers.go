@@ -161,6 +161,21 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log audit event
+	actorEmail := middleware.GetEmail(r.Context())
+	auditLog := &models.TeamAuditLog{
+		ID:           uuid.New(),
+		TenantID:     tenantID,
+		ActorEmail:   actorEmail,
+		SubjectEmail: req.Email,
+		Action:       "INVITE",
+		NewRole:      &req.Role,
+		CreatedAt:    time.Now(),
+	}
+	if err := h.repo.CreateTeamAuditLog(r.Context(), auditLog); err != nil {
+		slog.Error("Failed to create team audit log for invite", "tenant_id", tenantID, "actor", actorEmail, "subject", req.Email, "error", err)
+	}
+
 	// Send invite email
 	if h.emailService != nil {
 		if err := h.emailService.SendTeamInvite(req.Email, tenant.CompanyName, token, req.Role, tenant.ProductType); err != nil {
@@ -211,10 +226,24 @@ func (h *Handler) RemoveTeamMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Revoke access (soft delete)
 	if err := h.repo.DeleteTeamMember(r.Context(), memberID); err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to remove team member")
 		return
+	}
+
+	// Log audit event
+	actorEmail := middleware.GetEmail(r.Context())
+	auditLog := &models.TeamAuditLog{
+		ID:           uuid.New(),
+		TenantID:     tenantID,
+		ActorEmail:   actorEmail,
+		SubjectEmail: member.Email,
+		Action:       "REMOVE",
+		OldRole:      &member.Role,
+		CreatedAt:    time.Now(),
+	}
+	if err := h.repo.CreateTeamAuditLog(r.Context(), auditLog); err != nil {
+		slog.Error("Failed to create team audit log for remove", "tenant_id", tenantID, "actor", actorEmail, "subject", member.Email, "error", err)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{
@@ -257,26 +286,34 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if tenant (user) with this email already exists
-	// We use QueryRow inside repository but expose via GetTenantByEmail
-	existingUser, _ := h.repo.GetTenantByEmail(r.Context(), member.Email)
-
-	var userID uuid.UUID
-	if existingUser != nil {
-		// User exists - link them to the team
-		userID = existingUser.ID
-		// Activate the team member
+	// If an identity already exists for this email, link the membership to it.
+	// Otherwise the invitee must register (which creates the user + activates the
+	// membership into this tenant — see Register's invite branch).
+	userID, uErr := h.repo.GetUserIDByEmail(r.Context(), member.Email)
+	if uErr == nil {
 		if err := h.repo.UpdateTeamMemberStatus(r.Context(), member.ID, models.TeamStatusActive, &userID); err != nil {
 			respondError(w, http.StatusInternalServerError, "Failed to accept invitation")
 			return
+		}
+
+		// Log audit event
+		auditLog := &models.TeamAuditLog{
+			ID:           uuid.New(),
+			TenantID:     member.TenantID,
+			ActorEmail:   member.Email,
+			SubjectEmail: member.Email,
+			Action:       "ACCEPT",
+			NewRole:      &member.Role,
+			CreatedAt:    time.Now(),
+		}
+		if err := h.repo.CreateTeamAuditLog(r.Context(), auditLog); err != nil {
+			slog.Error("Failed to create team audit log for accept invite", "tenant_id", member.TenantID, "actor", member.Email, "error", err)
 		}
 		respondJSON(w, http.StatusOK, map[string]string{
 			"message":       "Invitation accepted successfully",
 			"dashboard_url": fmt.Sprintf("/%s/dashboard", productSlug),
 		})
 	} else {
-		// New user - they need to register first
-		// For now, return a message directing them to register
 		respondJSON(w, http.StatusAccepted, map[string]interface{}{
 			"status":       "registration_required",
 			"message":      "Please complete registration to accept this invitation",
@@ -343,6 +380,22 @@ func (h *Handler) UpdateTeamMemberRole(w http.ResponseWriter, r *http.Request) {
 	if err := h.repo.UpdateTeamMemberRole(r.Context(), memberID, req.Role); err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to update role")
 		return
+	}
+
+	// Log audit event
+	actorEmail := middleware.GetEmail(r.Context())
+	auditLog := &models.TeamAuditLog{
+		ID:           uuid.New(),
+		TenantID:     tenantID,
+		ActorEmail:   actorEmail,
+		SubjectEmail: member.Email,
+		Action:       "ROLE_CHANGE",
+		OldRole:      &member.Role,
+		NewRole:      &req.Role,
+		CreatedAt:    time.Now(),
+	}
+	if err := h.repo.CreateTeamAuditLog(r.Context(), auditLog); err != nil {
+		slog.Error("Failed to create team audit log for role change", "tenant_id", tenantID, "actor", actorEmail, "subject", member.Email, "error", err)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{

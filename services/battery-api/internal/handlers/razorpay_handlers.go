@@ -10,6 +10,9 @@ import (
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
 
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -129,6 +132,15 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 		slog.Error("Failed to add quota", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update quota balance")
 		return
+	}
+
+	// Update subscription details (Phase 4 Billing Infrastructure)
+	planType := strings.ToUpper(pkg.ID)
+	expiresAt := time.Now().AddDate(0, 1, 0) // 30 days renewal
+	err = h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE")
+	if err != nil {
+		slog.Error("Failed to update tenant subscription details on purchase", "tenant_id", tenantID, "error", err)
+		// Non-critical, continue
 	}
 
 	// Log transaction. payment_id has a partial unique index, so a concurrent

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import axios from "axios";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { isAdminRole } from "@/lib/rbac";
 import {
   Dialog,
   DialogContent,
@@ -270,7 +271,7 @@ function LifecycleTableSkeleton() {
 export default function LifecyclePage() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const isAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
+  const isAdmin = isAdminRole(user?.role);
 
   // Data
   const [passports, setPassports] = useState<PassportSummary[]>([]);

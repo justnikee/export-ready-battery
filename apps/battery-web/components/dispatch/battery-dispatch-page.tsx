@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { isAdminRole } from "@/lib/rbac";
 import {
   Scan,
   Trash2,
@@ -40,7 +41,7 @@ export default function DispatchPage() {
   const pathname = usePathname();
   const exitHref = dashboardPathFromPathname(pathname);
   const { user } = useAuth();
-  const isAdmin = user?.role === "OWNER" || user?.role === "ADMIN";
+  const isAdmin = isAdminRole(user?.role);
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [shipmentReference, setShipmentReference] = useState("");
