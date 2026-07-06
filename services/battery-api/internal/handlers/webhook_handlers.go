@@ -20,6 +20,7 @@ type WebhookHandler struct {
 	razorpayService *services.RazorpayService
 	repo            interface {
 		AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
+		AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
 		CreateTransaction(ctx context.Context, tx *models.Transaction) error
 		UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 	}
@@ -28,6 +29,7 @@ type WebhookHandler struct {
 // NewWebhookHandler creates a new webhook handler
 func NewWebhookHandler(razorpay *services.RazorpayService, repo interface {
 	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
+	AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
 	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 }) *WebhookHandler {
@@ -140,33 +142,55 @@ func (h *WebhookHandler) handlePaymentCaptured(w http.ResponseWriter, r *http.Re
 		// Continue processing - Razorpay handles partial payments
 	}
 
-	// Add quota to tenant
-	err = h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits)
-	if err != nil {
-		logger.Error("Failed to add quota via webhook",
-			"tenant_id", tenantIDStr,
-			"quota", pkg.QuotaUnits,
-			"error", err,
-		)
-		// Return 500 so Razorpay will retry
-		http.Error(w, "Failed to update quota", http.StatusInternalServerError)
-		return
-	}
+	// Branch on package Kind — add-ons are pure top-ups and must NEVER touch
+	// plan_type/subscription_expires_at (mirrors VerifyRazorpayPayment; this
+	// webhook is a redundant confirmation path for the same purchase).
+	var quotaChange int
+	switch pkg.Kind {
+	case services.PackageKindSeatAddOn:
+		if err := h.repo.AddBonusSeats(r.Context(), tenantID, pkg.SeatBonus); err != nil {
+			logger.Error("Failed to add bonus seat via webhook", "tenant_id", tenantIDStr, "error", err)
+			http.Error(w, "Failed to update seat allowance", http.StatusInternalServerError)
+			return
+		}
+		quotaChange = 0
 
-	// Update subscription details (Phase 4 Billing Infrastructure)
-	planType := strings.ToUpper(pkg.ID)
-	expiresAt := time.Now().AddDate(0, 1, 0) // 30 days renewal
-	err = h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE")
-	if err != nil {
-		logger.Error("Failed to update tenant subscription details via webhook", "tenant_id", tenantIDStr, "error", err)
-		// Continue processing
+	case services.PackageKindQuotaAddOn:
+		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
+			logger.Error("Failed to add quota via webhook", "tenant_id", tenantIDStr, "quota", pkg.QuotaUnits, "error", err)
+			http.Error(w, "Failed to update quota", http.StatusInternalServerError)
+			return
+		}
+		quotaChange = pkg.QuotaUnits
+
+	default: // PackageKindTier
+		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
+			logger.Error("Failed to add quota via webhook", "tenant_id", tenantIDStr, "quota", pkg.QuotaUnits, "error", err)
+			// Return 500 so Razorpay will retry
+			http.Error(w, "Failed to update quota", http.StatusInternalServerError)
+			return
+		}
+		planType := pkg.PlanType
+		if planType == "" {
+			planType = strings.ToUpper(pkg.ID) // fallback for any SKU that forgot to set PlanType
+		}
+		cycleDays := pkg.BillingCycleDays
+		if cycleDays == 0 {
+			cycleDays = 30
+		}
+		expiresAt := time.Now().AddDate(0, 0, cycleDays)
+		if err := h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE"); err != nil {
+			logger.Error("Failed to update tenant subscription details via webhook", "tenant_id", tenantIDStr, "error", err)
+			// Continue processing
+		}
+		quotaChange = pkg.QuotaUnits
 	}
 
 	// Log the transaction
 	tx := &models.Transaction{
 		TenantID:    tenantID,
 		Description: "Razorpay Webhook: " + pkg.Name,
-		QuotaChange: pkg.QuotaUnits,
+		QuotaChange: quotaChange,
 	}
 	if err := h.repo.CreateTransaction(r.Context(), tx); err != nil {
 		logger.Error("Failed to log webhook transaction", "error", err)

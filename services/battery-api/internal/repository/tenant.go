@@ -41,7 +41,8 @@ const tenantSelectColumns = `
 	COALESCE(t.data_visibility, '{}'::jsonb),
 	COALESCE(t.plan_type, 'STARTER'),
 	t.subscription_expires_at,
-	COALESCE(t.plan_status, 'ACTIVE')
+	COALESCE(t.plan_status, 'ACTIVE'),
+	COALESCE(t.bonus_seats, 0)
 `
 
 const tenantProfileJoin = `
@@ -82,6 +83,7 @@ func scanTenant(row pgx.Row, tenant *models.Tenant) error {
 		&tenant.PlanType,
 		&tenant.SubscriptionExpiresAt,
 		&tenant.PlanStatus,
+		&tenant.BonusSeats,
 	)
 	if err != nil {
 		return err
@@ -302,6 +304,17 @@ func (r *Repository) AddQuota(ctx context.Context, tenantID uuid.UUID, amount in
 	_, err := r.db.Pool.Exec(ctx, query, tenantID, amount)
 	if err != nil {
 		return fmt.Errorf("failed to add quota: %w", err)
+	}
+	return nil
+}
+
+// AddBonusSeats credits permanent bonus team seats (see the "Extra Team Seat"
+// add-on). Unlike the plan tier's 30-day feature window, these don't expire.
+func (r *Repository) AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error {
+	query := `UPDATE public.tenants SET bonus_seats = bonus_seats + $2 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, tenantID, count)
+	if err != nil {
+		return fmt.Errorf("failed to add bonus seats: %w", err)
 	}
 	return nil
 }

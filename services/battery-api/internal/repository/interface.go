@@ -190,6 +190,7 @@ type RepositoryInterface interface {
 	UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error)
 	DeductQuota(ctx context.Context, tenantID uuid.UUID, count int) error
 	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
+	AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
 	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 	GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (int, error)
 	UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error

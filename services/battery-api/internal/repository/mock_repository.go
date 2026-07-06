@@ -946,6 +946,11 @@ func (m *MockRepository) AddQuota(ctx context.Context, tenantID uuid.UUID, amoun
 	return args.Error(0)
 }
 
+func (m *MockRepository) AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error {
+	args := m.Called(ctx, tenantID, count)
+	return args.Error(0)
+}
+
 func (m *MockRepository) UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error {
 	args := m.Called(ctx, tenantID, planType, expiresAt, planStatus)
 	return args.Error(0)

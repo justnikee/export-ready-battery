@@ -2,7 +2,7 @@
 
 **Scope:** Commercial model — tiers, feature-to-tier mapping, Indian-market pricing, trial, overage.
 **Companion doc:** `RBAC_AND_ENTITLEMENTS_PLAN.md` owns *how* access is enforced (roles, plan gates, quota middleware). This doc owns *what* each tier costs and includes.
-**Status:** Feature→tier map is ready to lock. R1 and R5 **fully resolved** (verified + closed 2026-07-05). R2 partially addressed. R3/R4 still open — see below.
+**Status:** Feature→tier map is ready to lock. R1 and R5 **fully resolved** (verified + closed 2026-07-05). R2 partially addressed — annual SKUs (§3) added 2026-07-06. R3/R4 still open. Overage & add-on packs **live as of 2026-07-06** (3 of 4 — API rate-limit boost needs a design decision, see §4).
 
 ---
 
@@ -16,7 +16,9 @@
 ✅ **Copy follow-up closed:** Razorpay package descriptions (`razorpay_service.go`, `billing_handlers.go`) now say "Passport Activations"; the frontend billing page and `PricingCard` (`battery-billing-page.tsx`, `pricing-card.tsx`) renamed `batchCount`→`quotaCount`/`pricePerBatch`→`pricePerUnit` and display "N passports @ ₹X/passport", "passports remaining", "passports activated". The backend JSON field `price_per_batch` was kept frozen for API-contract stability (comment added explaining it means "per quota unit").
 
 ### R2 — Prepaid wallet vs monthly subscription — ⚠️ PARTIALLY ADDRESSED
-Still **not** a true recurring subscription (no Razorpay Subscriptions API, no eNACH/UPI autopay mandate, nothing auto-charges). What **was** added: every successful one-time Razorpay purchase now also stamps `plan_type`, a 30-day `subscription_expires_at`, and `plan_status='ACTIVE'` on the tenant (migration `000100`, wired in `razorpay_handlers.go` + the webhook path). This gives a **time-boxed plan window** — a Growth purchase unlocks Growth features for 30 days, then silently lapses unless repurchased. It is a reasonable interim design, not full subscription billing.
+Still **not** a true recurring subscription (no Razorpay Subscriptions API, no eNACH/UPI autopay mandate, nothing auto-charges). What **was** added: every successful one-time Razorpay tier purchase now also stamps `plan_type`, a `subscription_expires_at`, and `plan_status='ACTIVE'` on the tenant (migration `000100`, wired in `razorpay_handlers.go` + the webhook path). This gives a **time-boxed plan window** — a Growth purchase unlocks Growth features for 30 days, then silently lapses unless repurchased. It is a reasonable interim design, not full subscription billing.
+
+✅ **Annual SKUs added (2026-07-06):** `starter-annual`/`growth-annual` use the same one-time-purchase mechanism, just bigger — pay the discounted annual total once, get 12× the monthly quota upfront, and a **365-day** plan window instead of 30 (`QuotaPackage.BillingCycleDays`, read by both `VerifyRazorpayPayment` and the webhook path instead of a hardcoded 30-day/SKU-derived plan type). Still not autopay: the tenant must manually repurchase at the end of the 365 days.
 
 ✅ **Enforcement gap closed (2026-07-05):** the expiry this sets was previously enforced only on write routes; Growth-feature **read** routes never checked it, so an expired tenant kept indefinite read access. Fixed — `RequireFeature` now checks `services.IsSubscriptionExpired(planStatus, expiresAt)` before the plan-inclusion check, on every Growth route. Still open: the actual recurring/auto-charge mechanism itself (that's the real R2 scope, unchanged).
 
@@ -71,42 +73,51 @@ Hybrid: flat monthly subscription unlocks **features** (India vs EU is a binary 
 
 ---
 
-## 3. Pricing tiers — ✅ LIVE in code as of 2026-07-05
+## 3. Pricing tiers — ✅ LIVE in code as of 2026-07-06 (monthly + annual)
 
 These numbers are no longer just proposed — `services.Packages` (`razorpay_service.go`) and `GetPackages` (`billing_handlers.go`) were updated to match, and the frontend billing page's fallback packages mirror them. Previously the live packages still had old placeholder numbers (₹4,999/10 units, ₹19,999/50 units) that didn't match this doc — that mismatch is what's fixed here.
 
-⚠️ **Framing caveat (ties to R2):** "issuances/mo" below describes the *target* recurring cadence. What's actually implemented today is a **one-time purchase** that credits the full quota amount to the wallet immediately (it does not expire or get consumed monthly) and separately stamps a 30-day Growth-*feature* window (see R2). A Starter purchase today is "pay ₹14,999 once, get 500 passport credits in your wallet, no expiry on the credits themselves" — not an auto-renewing monthly subscription. Real recurring billing is still R2's open scope.
+⚠️ **Framing caveat (ties to R2):** "issuances/mo" below describes the *target* recurring cadence. What's actually implemented is a **one-time purchase** — there is no Razorpay Subscriptions/autopay integration, so nothing auto-charges on renewal. Quota credits never expire on their own; a purchase separately stamps a plan-*feature* window (`plan_status`/`subscription_expires_at`) of **30 days for a monthly SKU or 365 days for an annual SKU** (see R2). Buying **Starter (Annual)** is "pay ₹1,43,988 once, get 6,000 passport credits (12× the monthly allowance) in your wallet immediately, and a 365-day Growth/Starter-feature window" — not an auto-renewing yearly subscription; the tenant must manually repurchase at renewal.
 
-### STARTER — ₹14,999 (500 passport credits)
-- 500 issuances included · overage: **hard block** (upgrade or top up to continue)
+### STARTER
+- **Monthly: ₹14,999/mo** (500 passport credits) · **Annual: ₹11,999/mo billed annually (₹1,43,988/yr, 6,000 credits upfront)** — `starter` / `starter-annual` SKUs
+- 500 issuances/mo included · overage: **hard block** (upgrade or top up to continue)
 - 2 seats (OWNER + 1 MEMBER) · email support (48h) · **India compliance only**
 - Target: small assemblers, 2W/3W makers, early exporters, PLI startups
 - Rationale: at/below consultant cost (₹2–5L/yr) — replaces the consultant; 11× cheaper than T-Systems entry; acquisition vehicle for Growth upgrade.
 
-### GROWTH — ₹44,999 (5,000 passport credits)
-- 5,000 issuances included · overage: **₹8/issuance soft** (billed month-end)
+### GROWTH
+- **Monthly: ₹44,999/mo** (5,000 passport credits) · **Annual: ₹35,999/mo billed annually (₹4,31,988/yr, 60,000 credits upfront)** — `growth` / `growth-annual` SKUs
+- 5,000 issuances/mo included · overage: **₹8/issuance soft** (billed month-end)
 - 10 seats · priority support (24h) · onboarding call · **full EU + India**
 - Target: mid-market (₹50–1,000 cr) actively pursuing EU export
 - Rationale: fits Indian SME software budget (₹3–6L/yr); 3.75× cheaper than T-Systems (€400 vs €1,499/mo); unlocks EU DPP, mass balance, DD, DGFT, fleet, API.
 
-### ENTERPRISE — from ₹1,50,000 · direct sales (Contact Sales, not self-serve)
+### ENTERPRISE — from ₹1,50,000 · direct sales, annual contract required (Contact Sales, not self-serve)
 - Custom quota (50,000–unlimited) · negotiated overage
 - Up to 100 seats · dedicated CSM · SLA · SSO/SAML · multi-entity
 - Target: Amara Raja, Exide Energy, Tata Agratas, OLA — direct sales, expect 25–30% negotiation from floor.
-- Note: floor ₹1.5L is ~parity-to-slightly-above T-Systems (₹1.35L); acceptable for global-procurement buyers.
+- Note: floor ₹1.5L is ~parity-to-slightly-above T-Systems (₹1.35L); acceptable for global-procurement buyers. No self-serve SKU — matches the existing Contact-Sales-only flow, unchanged by the annual-SKU work above.
 
 ### 14-DAY GROWTH TRIAL
 Full Growth features · 100 issuances · **no credit card**. Day 14 → **needs a defined landing tier (R3)**; all data preserved. **Not built yet** — no trial code path exists (see R3).
 
 ---
 
-## 4. Overage & add-on packs (pending R1)
-| Item | Starter | Growth | Enterprise |
-|---|---|---|---|
-| Extra 500 issuances | ₹6,000 (₹12 ea) | ₹4,000 (₹8 ea) | Custom (₹5–6 ea) |
-| Extra 5,000 issuances | N/A (→ Growth) | ₹35,000 (₹7 ea) | Custom |
-| Extra seat | ₹2,500/mo | ₹2,000/mo | In contract |
-| API rate-limit 2× | N/A | ₹5,000/mo | Custom/included |
+## 4. Overage & add-on packs — ✅ LIVE as of 2026-07-06 (3 of 4 items)
+
+These existed only on paper until 2026-07-06 — `GET /billing/packages` now returns an `add_ons` array (in addition to the 3 base tier `packages`), scoped to what the tenant's *current* plan can buy; `POST /billing/razorpay/order` + `/verify` handle the purchase using the same Razorpay flow as the base tiers. Each add-on is a pure top-up — buying one **never** changes `plan_type`/`subscription_expires_at` (only a base tier purchase does that). Guarded by two regression tests (`TestVerifyRazorpayPayment_AddOnDoesNotChangePlan`, `TestVerifyRazorpayPayment_SeatAddOn`).
+
+| Item | Starter | Growth | Enterprise | Status |
+|---|---|---|---|---|
+| Extra 500 issuances | ₹6,000 (₹12 ea) | ₹4,000 (₹8 ea) | Custom (₹5–6 ea) | ✅ live (`addon-passports-500-starter`/`-growth`) |
+| Extra 5,000 issuances | N/A (→ Growth) | ₹35,000 (₹7 ea) | Custom | ✅ live, Growth-only (`addon-passports-5000-growth`) |
+| Extra seat | ₹2,500/mo | ₹2,000/mo | In contract | ✅ live (`addon-seat-starter`/`-growth`) — see caveat below |
+| API rate-limit 2× | N/A | ₹5,000/mo | Custom/included | 🔴 **not built — needs a design decision, see below** |
+
+⚠️ **"Extra seat" caveat:** the doc prices this "/mo" (implying recurring), but the system has no recurring billing (R2). Implemented as a **permanent** bonus seat (like quota credits — a wallet-style credit that doesn't expire on its own), stored in `tenants.bonus_seats` and added to `models.GetSeatLimit(plan_type)` wherever seat limits are enforced. Enterprise isn't self-serve (existing "Contact Sales" flow), so no Enterprise SKU was created for any of these — matches how the base tiers already work.
+
+🔴 **API rate-limit 2× boost — not built, and doesn't map cleanly onto the existing code.** There's already a **per-API-key** `rate_limit_tier` ("starter": 100/100 req-hr, "production": 1000/500 req-hr) freely selectable at key-creation time by *any* tenant regardless of plan (`apikey.go`) — this already gives far more than a 2× boost, for free, on any plan. The pricing doc's "2× boost, Growth-only, ₹5,000/mo" doesn't correspond to this axis. Building it needs a decision: does "2×" mean doubling the general per-tenant API rate limiter (`middleware.NewAPIRateLimiter`), or restricting the existing "production" key tier to paying Growth+ tenants instead of leaving it free-for-all? Flagging rather than guessing since it risks conflicting with existing behavior.
 
 Benchmark: consultants charge ~₹400/document; ₹12/issuance at worst is dramatically cheaper.
 

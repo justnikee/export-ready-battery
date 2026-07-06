@@ -22,17 +22,13 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
         <div key={step.id} className="flex items-center">
           <motion.div
             initial={{ scale: 0.8 }}
-            animate={{
-              scale: currentStep >= step.id ? 1 : 0.8,
-              backgroundColor:
-                currentStep >= step.id ? "#10b981" : "#f4f4f5",
-            }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+            animate={{ scale: currentStep >= step.id ? 1 : 0.8 }}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 ${
               currentStep > step.id
                 ? "bg-emerald-500"
                 : currentStep === step.id
                   ? "bg-emerald-500 ring-2 ring-emerald-500/20"
-                  : "bg-muted"
+                  : "bg-muted border border-border"
             }`}
           >
             {currentStep > step.id ? (
@@ -45,7 +41,7 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
           </motion.div>
           {index < steps.length - 1 && (
             <div
-              className={`w-12 h-1 mx-1 rounded-full transition-colors ${
+              className={`w-12 h-1 mx-1 rounded-full transition-colors duration-300 ${
                 currentStep > step.id ? "bg-emerald-500" : "bg-muted"
               }`}
             />

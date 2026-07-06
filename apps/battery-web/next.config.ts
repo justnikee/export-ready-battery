@@ -30,8 +30,10 @@ const contentSecurityPolicy = [
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   // Fonts
   `font-src 'self' https://fonts.gstatic.com`,
-  // Images: self + data URIs for base64 QR codes
-  `img-src 'self' data: blob:`,
+  // Images: self + data URIs for base64 QR codes + Supabase storage (logo,
+  // compliance docs) loaded directly as <img> (e.g. the topbar/sidebar avatar,
+  // which isn't proxied through next/image's optimizer)
+  `img-src 'self' data: blob: https://*.supabase.co`,
   // API calls + websocket for HMR in dev + jsdelivr CDN for the scan activity world map
   isDev
     ? `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net ws://localhost:*`

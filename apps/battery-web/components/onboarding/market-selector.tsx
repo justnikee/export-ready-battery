@@ -46,7 +46,7 @@ export function MarketSelector({ value, onChange }: MarketSelectorProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onChange(market.id)}
-          className={`w-full p-4 rounded-none border text-left transition-all ${
+          className={`w-full p-4 rounded-lg border text-left transition-all ${
             value === market.id
               ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
               : "border-border bg-transparent hover:bg-accent"

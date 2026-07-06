@@ -22,78 +22,154 @@ import (
 // is a legacy field name kept for frontend API-contract stability; it means
 // "price per quota unit" (i.e. per passport).
 type Package struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Price         int      `json:"price"`         // Price in paise (INR)
-	DisplayPrice  string   `json:"display_price"` // Formatted price string
-	Quota         int      `json:"quota"`         // Number of passport activation slots
-	PricePerBatch string   `json:"price_per_batch"`
-	Description   string   `json:"description"`
-	Features      []string `json:"features"`
-	IsPopular     bool     `json:"is_popular,omitempty"`
-	IsEnterprise  bool     `json:"is_enterprise,omitempty"`
+	ID                   string   `json:"id"`
+	Name                 string   `json:"name"`
+	Price                int      `json:"price"`         // Price in paise (INR)
+	DisplayPrice         string   `json:"display_price"` // Formatted price string
+	Quota                int      `json:"quota"`         // Number of passport activation slots
+	PricePerBatch        string   `json:"price_per_batch"`
+	Description          string   `json:"description"`
+	Features             []string `json:"features"`
+	IsPopular            bool     `json:"is_popular,omitempty"`
+	IsEnterprise         bool     `json:"is_enterprise,omitempty"`
+	BillingCycleDays     int      `json:"billing_cycle_days,omitempty"`
+	MonthlyEquivalentINR int      `json:"monthly_equivalent_inr,omitempty"`
+}
+
+// tierDisplayMeta holds the display-only fields (feature bullets, popular/
+// enterprise flags) shared by a tier's monthly and annual SKU — these don't
+// live in services.Packages since they're presentation, not billing, data.
+type tierDisplayMeta struct {
+	name         string
+	pricePerUnit string
+	description  string
+	isPopular    bool
+	features     []string
+}
+
+var tierDisplayMetaBySKUPrefix = map[string]tierDisplayMeta{
+	"starter": {
+		name:         "Starter License",
+		pricePerUnit: "₹30",
+		description:  "Perfect for pilot runs and small scale manufacturing.",
+		features: []string{
+			"500 Passport Activations / month",
+			"2 Team Seats",
+			"Standard PDF Label Generation",
+			"India Compliance (EPR/BIS)",
+			"Email Support (48h SLA)",
+			"Basic Analytics",
+		},
+	},
+	"growth": {
+		name:         "Growth License",
+		pricePerUnit: "₹9",
+		description:  "For high-volume production and export compliance.",
+		isPopular:    true,
+		features: []string{
+			"Everything in Starter",
+			"5,000 Passport Activations / month",
+			"10 Team Seats",
+			"Priority Label Generation",
+			"Importer Mode (China/Korea)",
+			"Priority Support (24h SLA) + Onboarding Call",
+		},
+	},
+}
+
+// AddOn represents a purchasable top-up (extra quota or an extra seat) — see
+// PRICING_AND_PACKAGING_STRATEGY.md §4 "Overage & Add-On Packs". Unlike a
+// Package, buying one never changes plan_type/subscription_expires_at.
+type AddOn struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Kind         string `json:"kind"` // "quota_addon" | "seat_addon"
+	Price        int    `json:"price"`
+	DisplayPrice string `json:"display_price"`
+	Quota        int    `json:"quota,omitempty"`
+	SeatBonus    int    `json:"seat_bonus,omitempty"`
+	Description  string `json:"description"`
 }
 
 // GetPackages handles GET /api/v1/billing/packages
 func (h *Handler) GetPackages(w http.ResponseWriter, r *http.Request) {
-	packages := []Package{
-		{
-			ID:            "starter",
-			Name:          "Starter License",
-			Price:         1499900, // ₹14,999 in paise
-			DisplayPrice:  "₹14,999",
-			Quota:         500,
-			PricePerBatch: "₹30",
-			Description:   "Perfect for pilot runs and small scale manufacturing.",
-			Features: []string{
-				"500 Passport Activations / month",
-				"2 Team Seats",
-				"Standard PDF Label Generation",
-				"India Compliance (EPR/BIS)",
-				"Email Support (48h SLA)",
-				"Basic Analytics",
-			},
+	// Tier SKUs are derived from services.Packages (the single source of
+	// truth also used for order creation/verification) rather than kept as a
+	// separate hardcoded copy here — that duplication is exactly what caused
+	// prices to drift out of sync with the purchasable SKUs previously.
+	var packages []Package
+	for _, id := range []string{"starter", "starter-annual", "growth", "growth-annual"} {
+		pkg, ok := services.GetPackage(id)
+		if !ok {
+			continue
+		}
+		meta := tierDisplayMetaBySKUPrefix[strings.TrimSuffix(id, "-annual")]
+		packages = append(packages, Package{
+			ID:                   pkg.ID,
+			Name:                 meta.name,
+			Price:                int(pkg.PricePaise),
+			DisplayPrice:         fmt.Sprintf("₹%d", pkg.PriceINR),
+			Quota:                pkg.QuotaUnits,
+			PricePerBatch:        meta.pricePerUnit,
+			Description:          meta.description,
+			Features:             meta.features,
+			IsPopular:            meta.isPopular,
+			BillingCycleDays:     pkg.BillingCycleDays,
+			MonthlyEquivalentINR: pkg.MonthlyEquivalentINR,
+		})
+	}
+	packages = append(packages, Package{
+		ID:            "enterprise",
+		Name:          "Enterprise License",
+		Price:         0, // Custom pricing — direct sales, floor ~₹1,50,000/mo
+		DisplayPrice:  "Custom",
+		Quota:         50000,
+		PricePerBatch: "Contact Us",
+		Description:   "Industrial scale solution for large manufacturers.",
+		IsEnterprise:  true,
+		Features: []string{
+			"Everything in Growth",
+			"50,000+ Passport Activations / month",
+			"Up to 100 Team Seats",
+			"Custom Label Formats",
+			"Dedicated CSM + SLA Guarantees",
+			"SSO/SAML & Multi-Entity Support",
 		},
-		{
-			ID:            "growth",
-			Name:          "Growth License",
-			Price:         4499900, // ₹44,999 in paise
-			DisplayPrice:  "₹44,999",
-			Quota:         5000,
-			PricePerBatch: "₹9",
-			Description:   "For high-volume production and export compliance.",
-			IsPopular:     true,
-			Features: []string{
-				"Everything in Starter",
-				"5,000 Passport Activations / month",
-				"10 Team Seats",
-				"Priority Label Generation",
-				"Importer Mode (China/Korea)",
-				"Priority Support (24h SLA) + Onboarding Call",
-			},
-		},
-		{
-			ID:            "enterprise",
-			Name:          "Enterprise License",
-			Price:         0, // Custom pricing — direct sales, floor ~₹1,50,000/mo
-			DisplayPrice:  "Custom",
-			Quota:         50000,
-			PricePerBatch: "Contact Us",
-			Description:   "Industrial scale solution for large manufacturers.",
-			IsEnterprise:  true,
-			Features: []string{
-				"Everything in Growth",
-				"50,000+ Passport Activations / month",
-				"Up to 100 Team Seats",
-				"Custom Label Formats",
-				"Dedicated CSM + SLA Guarantees",
-				"SSO/SAML & Multi-Entity Support",
-			},
-		},
+	})
+
+	// Only show add-ons priced for the tenant's *current* plan (e.g. a Starter
+	// tenant sees the Starter-rate extra-500-passports pack, not Growth's
+	// cheaper one — CreateRazorpayOrder enforces this server-side regardless).
+	tenantPlan := services.PlanStarter
+	if tenantIDStr := middleware.GetTenantID(r.Context()); tenantIDStr != "" {
+		if tenantID, err := uuid.Parse(tenantIDStr); err == nil {
+			if plan, _, _, err := h.repo.GetTenantSubscriptionStatus(r.Context(), tenantID); err == nil {
+				tenantPlan = plan
+			}
+		}
+	}
+
+	var addOns []AddOn
+	for _, id := range services.AddOnPackageIDsForPlan(tenantPlan) {
+		pkg, ok := services.GetPackage(id)
+		if !ok {
+			continue
+		}
+		addOns = append(addOns, AddOn{
+			ID:           pkg.ID,
+			Name:         pkg.Name,
+			Kind:         string(pkg.Kind),
+			Price:        int(pkg.PricePaise),
+			DisplayPrice: fmt.Sprintf("₹%d", pkg.PriceINR),
+			Quota:        pkg.QuotaUnits,
+			SeatBonus:    pkg.SeatBonus,
+			Description:  pkg.Description,
+		})
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"packages": packages,
+		"add_ons":  addOns,
 	})
 }
 

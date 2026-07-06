@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { PricingCard } from "@/components/billing/pricing-card";
 import {
   ArrowUpRight,
@@ -22,8 +23,11 @@ import {
   ShieldCheck,
   ExternalLink,
   Download,
+  Plus,
+  Users,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
+import { getApiErrorMessage } from "@/lib/utils";
 
 // Declare Razorpay type for TypeScript
 declare global {
@@ -74,6 +78,24 @@ interface Package {
   isPopular?: boolean;
   isEnterprise?: boolean;
   quota_units?: number;
+  /** 30 for monthly tiers, 365 for annual — absent/0 for enterprise (custom). */
+  billingCycleDays?: number;
+  /** "/mo" comparison rate shown on annual cards, e.g. 11999 for ₹11,999/mo. */
+  monthlyEquivalentInr?: number;
+}
+
+// A purchasable top-up (extra quota or an extra seat) — see
+// PRICING_AND_PACKAGING_STRATEGY.md §4 "Overage & Add-On Packs". Unlike a
+// Package, buying one never changes the tenant's plan tier.
+interface AddOn {
+  id: string;
+  name: string;
+  kind: "quota_addon" | "seat_addon";
+  price: number;
+  display_price: string;
+  quota?: number;
+  seat_bonus?: number;
+  description: string;
 }
 
 interface Transaction {
@@ -106,10 +128,13 @@ interface ApiPackage {
   isPopular?: boolean;
   is_enterprise?: boolean;
   isEnterprise?: boolean;
+  billing_cycle_days?: number;
+  monthly_equivalent_inr?: number;
 }
 
 interface PackagesResponse {
   packages?: ApiPackage[];
+  add_ons?: AddOn[];
 }
 
 interface TransactionsResponse {
@@ -132,7 +157,27 @@ const defaultPackages: Package[] = [
     quotaCount: 500,
     pricePerUnit: "₹30",
     quota_units: 500,
+    billingCycleDays: 30,
     description: "Perfect for pilot runs and small scale manufacturing.",
+    features: [
+      "500 Passport Activations / month",
+      "2 Team Seats",
+      "Standard PDF Label Generation",
+      "India Compliance (EPR/BIS)",
+      "Email Support (48h SLA)",
+      "Basic Analytics",
+    ],
+  },
+  {
+    id: "starter-annual",
+    title: "Starter License",
+    price: "₹1,43,988",
+    quotaCount: 6000,
+    pricePerUnit: "₹30",
+    quota_units: 6000,
+    billingCycleDays: 365,
+    monthlyEquivalentInr: 11999,
+    description: "6,000 Passport Activations (500/mo, billed annually).",
     features: [
       "500 Passport Activations / month",
       "2 Team Seats",
@@ -149,8 +194,29 @@ const defaultPackages: Package[] = [
     quotaCount: 5000,
     pricePerUnit: "₹9",
     quota_units: 5000,
+    billingCycleDays: 30,
     isPopular: true,
     description: "For high-volume production and export compliance.",
+    features: [
+      "Everything in Starter",
+      "5,000 Passport Activations / month",
+      "10 Team Seats",
+      "Priority Label Generation",
+      "Importer Mode (China/Korea)",
+      "Priority Support (24h SLA) + Onboarding Call",
+    ],
+  },
+  {
+    id: "growth-annual",
+    title: "Growth License",
+    price: "₹4,31,988",
+    quotaCount: 60000,
+    pricePerUnit: "₹9",
+    quota_units: 60000,
+    billingCycleDays: 365,
+    monthlyEquivalentInr: 35999,
+    isPopular: true,
+    description: "60,000 Passport Activations (5,000/mo, billed annually).",
     features: [
       "Everything in Starter",
       "5,000 Passport Activations / month",
@@ -193,7 +259,17 @@ function transformApiPackage(apiPkg: ApiPackage): Package {
     features: apiPkg.features || [],
     isPopular: apiPkg.is_popular || apiPkg.isPopular,
     isEnterprise: apiPkg.is_enterprise || apiPkg.isEnterprise,
+    billingCycleDays: apiPkg.billing_cycle_days,
+    monthlyEquivalentInr: apiPkg.monthly_equivalent_inr,
   };
+}
+
+// A tier package is billed annually if its SKU id says so — the backend's
+// billing_cycle_days is the authoritative signal, but the fallback/default
+// packages array above doesn't round-trip through the API, so id is used as
+// a robust fallback for the same check.
+function isAnnual(pkg: Package): boolean {
+  return pkg.billingCycleDays === 365 || pkg.id.endsWith("-annual");
 }
 
 export default function BillingPage() {
@@ -202,6 +278,8 @@ export default function BillingPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [packages, setPackages] = useState<Package[]>(defaultPackages);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
@@ -251,9 +329,11 @@ export default function BillingPage() {
           response.data.packages.map(transformApiPackage);
         setPackages(transformedPackages);
       }
+      setAddOns(response.data.add_ons || []);
     } catch (error: unknown) {
       console.warn("Using default packages - API unavailable:", error);
-      // Keep using default packages
+      // Keep using default packages; add-ons have no offline fallback (they
+      // depend on the tenant's current plan, which we can't guess offline).
     }
   };
 
@@ -282,23 +362,21 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleBuyPackage = async (pkg: Package) => {
-    if (pkg.isEnterprise) {
-      window.location.assign(
-        "mailto:sales@anvayalabs.com?subject=Enterprise License Inquiry",
-      );
-      return;
-    }
-
-    setPurchasing(pkg.id);
+  // Shared 3-step Razorpay flow (create order → checkout → verify) used by
+  // both tier packages and add-ons — they differ only in the description
+  // shown at checkout and the success message once the purchase is verified.
+  const purchase = async (
+    packageId: string,
+    description: string,
+    buildSuccessMessage: (quotaAdded: number, seatsAdded: number) => string,
+  ) => {
+    setPurchasing(packageId);
 
     try {
       // Step 1: Create Razorpay order
       const orderResponse = await api.post<OrderResponse>(
         "/billing/razorpay/order",
-        {
-          package_id: pkg.id,
-        },
+        { package_id: packageId },
       );
 
       const { order_id, key_id, amount } = orderResponse.data;
@@ -309,29 +387,38 @@ export default function BillingPage() {
         amount: amount,
         currency: "INR",
         name: "Anviora Battery",
-        description: pkg.description,
+        description,
         order_id: order_id,
         handler: async function (response: RazorpayResponse) {
           // Step 3: Verify payment on backend
           try {
-            const verifyResponse = await api.post("/billing/razorpay/verify", {
+            const verifyResponse = await api.post<{
+              success: boolean;
+              quota_added?: number;
+              seats_added?: number;
+            }>("/billing/razorpay/verify", {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              package_id: pkg.id,
+              package_id: packageId,
             });
 
             if (verifyResponse.data.success) {
               toast.success(
-                `Payment successful! Added ${pkg.quota_units} quota units.`,
+                buildSuccessMessage(
+                  verifyResponse.data.quota_added || 0,
+                  verifyResponse.data.seats_added || 0,
+                ),
               );
               await refreshUser();
               // Dispatch event to update balance banner
               window.dispatchEvent(new Event("quota-updated"));
-              // Refresh transactions
+              // Refresh transactions + add-on eligibility (a tier purchase
+              // changes which add-ons are available at which price)
               fetchTransactions();
+              fetchPackages();
             }
-          } catch (error: unknown) {
+          } catch {
             toast.error("Payment verification failed. Please contact support.");
           }
         },
@@ -352,22 +439,57 @@ export default function BillingPage() {
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error: unknown) {
-      toast.error("Failed to initiate payment. Please try again.");
+      const message = await getApiErrorMessage(
+        error,
+        "Failed to initiate payment. Please try again.",
+      );
+      toast.error(message);
     } finally {
       setPurchasing(null);
     }
   };
 
-  const getTransactionIcon = (quotaChange: number) => {
+  const handleBuyPackage = (pkg: Package) => {
+    if (pkg.isEnterprise) {
+      window.location.assign(
+        "mailto:sales@anvayalabs.com?subject=Enterprise License Inquiry",
+      );
+      return;
+    }
+    purchase(
+      pkg.id,
+      pkg.description,
+      (quotaAdded) => `Payment successful! Added ${quotaAdded} quota units.`,
+    );
+  };
+
+  const handleBuyAddOn = (addOn: AddOn) => {
+    purchase(addOn.id, addOn.description, (quotaAdded, seatsAdded) =>
+      addOn.kind === "seat_addon"
+        ? `Payment successful! Added ${seatsAdded} team seat.`
+        : `Payment successful! Added ${quotaAdded} passport credits.`,
+    );
+  };
+
+  // A transaction with payment_id but quota_change === 0 is a seat add-on
+  // purchase — real money changed hands (and it's invoiceable) but no quota
+  // moved, so it's neither a credit nor usage; render it as neutral, not amber.
+  const getTransactionIcon = (quotaChange: number, hasPayment: boolean) => {
     if (quotaChange > 0) {
       return <ArrowUpRight className="h-4 w-4 text-emerald-500" />;
+    }
+    if (quotaChange === 0 && hasPayment) {
+      return <Plus className="h-4 w-4 text-blue-500" />;
     }
     return <ArrowDownRight className="h-4 w-4 text-amber-500" />;
   };
 
-  const getTransactionColor = (quotaChange: number) => {
+  const getTransactionColor = (quotaChange: number, hasPayment: boolean) => {
     if (quotaChange > 0) {
       return "text-emerald-500";
+    }
+    if (quotaChange === 0 && hasPayment) {
+      return "text-blue-500";
     }
     return "text-amber-500";
   };
@@ -396,6 +518,17 @@ export default function BillingPage() {
 
   const quota = balance ?? user?.quota_balance ?? 0;
   const isLow = quota <= 2;
+
+  // Enterprise has no monthly/annual variant (custom, annual contract only —
+  // see rbac_strategy_extracted.txt) so it's always shown regardless of toggle.
+  const hasAnnualOption = packages.some(isAnnual);
+  const displayPackages = useMemo(
+    () =>
+      packages.filter(
+        (pkg) => pkg.isEnterprise || isAnnual(pkg) === (billingCycle === "annual"),
+      ),
+    [packages, billingCycle],
+  );
 
   return (
     <div className="min-h-screen bg-sidebar">
@@ -509,14 +642,47 @@ export default function BillingPage() {
 
         {/* License packages */}
         <div id="packages" className="scroll-mt-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-              License Packages
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                License Packages
+              </h2>
+            </div>
+            {hasAnnualOption && (
+              <div className="inline-flex items-center rounded-lg border border-border bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("monthly")}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    billingCycle === "monthly"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("annual")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    billingCycle === "annual"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Annual
+                  <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-500">
+                    Save 20%
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
-            {packages.map((pkg) => (
+            {displayPackages.map((pkg) => (
               <PricingCard
                 key={pkg.id}
                 {...pkg}
@@ -528,10 +694,63 @@ export default function BillingPage() {
           </div>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Payments are processed securely by Razorpay. Quota is credited
-            instantly on successful payment.
+            {billingCycle === "annual"
+              ? "Annual licenses are a one-time purchase covering a full 365-day term — not auto-renewing recurring billing. Your full year's quota is credited instantly."
+              : "Payments are processed securely by Razorpay. Quota is credited instantly on successful payment."}
           </p>
         </div>
+
+        {/* Add-ons: extra quota / seats, priced for the tenant's current plan */}
+        {addOns.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+                Add-Ons
+              </h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {addOns.map((addOn) => (
+                <div
+                  key={addOn.id}
+                  className="flex flex-col justify-between rounded-lg border border-border bg-muted p-5"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {addOn.kind === "seat_addon" ? (
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <h3 className="text-sm font-medium text-foreground">
+                        {addOn.name}
+                      </h3>
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {addOn.description}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-lg font-semibold text-foreground">
+                      {addOn.display_price}
+                    </span>
+                    <Button
+                      size="sm"
+                      disabled={purchasing === addOn.id}
+                      onClick={() => handleBuyAddOn(addOn)}
+                    >
+                      {purchasing === addOn.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        "Add"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Transaction history */}
         <div className="rounded-lg border border-border bg-muted">
@@ -567,6 +786,8 @@ export default function BillingPage() {
             <div className="max-h-112 divide-y divide-border overflow-y-auto">
               {transactions.map((tx) => {
                 const isCredit = tx.quota_change > 0;
+                const hasPayment = !!tx.payment_id;
+                const isNeutralPurchase = tx.quota_change === 0 && hasPayment;
                 return (
                   <div
                     key={tx.id}
@@ -576,10 +797,14 @@ export default function BillingPage() {
                       <div
                         className={cn(
                           "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                          isCredit ? "bg-emerald-500/10" : "bg-amber-500/10",
+                          isCredit
+                            ? "bg-emerald-500/10"
+                            : isNeutralPurchase
+                              ? "bg-blue-500/10"
+                              : "bg-amber-500/10",
                         )}
                       >
-                        {getTransactionIcon(tx.quota_change)}
+                        {getTransactionIcon(tx.quota_change, hasPayment)}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">
@@ -600,21 +825,25 @@ export default function BillingPage() {
                           "hidden rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide sm:inline-block",
                           isCredit
                             ? "bg-emerald-500/10 text-emerald-500"
-                            : "bg-amber-500/10 text-amber-500",
+                            : isNeutralPurchase
+                              ? "bg-blue-500/10 text-blue-500"
+                              : "bg-amber-500/10 text-amber-500",
                         )}
                       >
-                        {isCredit ? "Top-up" : "Usage"}
+                        {isCredit ? "Top-up" : isNeutralPurchase ? "Purchase" : "Usage"}
                       </span>
-                      <p
-                        className={cn(
-                          "text-sm font-medium tabular-nums",
-                          getTransactionColor(tx.quota_change),
-                        )}
-                      >
-                        {isCredit ? "+" : ""}
-                        {tx.quota_change} units
-                      </p>
-                      {isCredit && tx.payment_id && (
+                      {!isNeutralPurchase && (
+                        <p
+                          className={cn(
+                            "text-sm font-medium tabular-nums",
+                            getTransactionColor(tx.quota_change, hasPayment),
+                          )}
+                        >
+                          {isCredit ? "+" : ""}
+                          {tx.quota_change} units
+                        </p>
+                      )}
+                      {tx.payment_id && (
                         <button
                           type="button"
                           onClick={() => downloadInvoice(tx.payment_id!)}

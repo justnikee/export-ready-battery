@@ -96,6 +96,7 @@ type Tenant struct {
 	PlanType              string     `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
 	PlanStatus            string     `json:"plan_status"` // ACTIVE, EXPIRED, TRIAL
+	BonusSeats            int        `json:"bonus_seats"` // Extra seats purchased beyond the plan's included seat count (see "Extra Team Seat" add-on)
 
 	// Partner Access (Tier B Magic Link Verification)
 	PartnerAccessCode string `json:"partner_access_code,omitempty"` // Secret code for external partner verification

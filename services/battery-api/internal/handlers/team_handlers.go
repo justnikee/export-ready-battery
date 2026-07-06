@@ -60,7 +60,7 @@ func (h *Handler) ListTeamMembers(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"members":    members,
 		"seat_count": activeCount,
-		"seat_limit": models.GetSeatLimit(tenant.PlanType),
+		"seat_limit": models.GetSeatLimit(tenant.PlanType) + tenant.BonusSeats,
 		"plan_type":  tenant.PlanType,
 	}
 
@@ -112,7 +112,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	seatLimit := models.GetSeatLimit(tenant.PlanType)
+	seatLimit := models.GetSeatLimit(tenant.PlanType) + tenant.BonusSeats
 	if currentCount >= seatLimit {
 		// Return structured 403 error for frontend handling
 		w.Header().Set("Content-Type", "application/json")

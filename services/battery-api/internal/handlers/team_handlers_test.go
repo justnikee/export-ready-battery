@@ -573,6 +573,9 @@ func (f *fakeTeamRepo) DeductQuota(ctx context.Context, tenantID uuid.UUID, coun
 func (f *fakeTeamRepo) AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error {
 	return nil
 }
+func (f *fakeTeamRepo) AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error {
+	return nil
+}
 func (f *fakeTeamRepo) UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error {
 	return nil
 }
