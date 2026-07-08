@@ -18,6 +18,14 @@ import (
 
 // CreateRazorpayOrder handles POST /api/v1/billing/razorpay/order
 func (h *Handler) CreateRazorpayOrder(w http.ResponseWriter, r *http.Request) {
+	// razorpayService is nil when RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET are unset
+	// (see handlers.New) — without this guard the call below panics.
+	if h.razorpayService == nil {
+		respondError(w, http.StatusServiceUnavailable,
+			"Payments are not configured on this server: RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not set")
+		return
+	}
+
 	var req struct {
 		PackageID string `json:"package_id"`
 	}
@@ -74,6 +82,13 @@ func (h *Handler) CreateRazorpayOrder(w http.ResponseWriter, r *http.Request) {
 
 // VerifyRazorpayPayment handles POST /api/v1/billing/razorpay/verify
 func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) {
+	// Same nil guard as CreateRazorpayOrder — unset keys must not panic.
+	if h.razorpayService == nil {
+		respondError(w, http.StatusServiceUnavailable,
+			"Payments are not configured on this server: RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not set")
+		return
+	}
+
 	var req services.VerifyPaymentRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

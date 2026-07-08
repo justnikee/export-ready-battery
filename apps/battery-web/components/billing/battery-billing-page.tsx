@@ -370,6 +370,18 @@ export default function BillingPage() {
     description: string,
     buildSuccessMessage: (quotaAdded: number, seatsAdded: number) => string,
   ) => {
+    // The checkout modal needs checkout.js from checkout.razorpay.com (loaded
+    // in app/layout.tsx, allowed by the CSP in next.config.ts). If it hasn't
+    // loaded — ad-blocker, offline, or a CSP regression — say exactly that
+    // before creating an order that could never be paid.
+    if (typeof window.Razorpay === "undefined") {
+      toast.error(
+        "Payment window can't open: the Razorpay checkout script didn't load. " +
+          "Disable ad-blockers for this page or check your connection, then reload and try again.",
+      );
+      return;
+    }
+
     setPurchasing(packageId);
 
     try {

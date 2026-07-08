@@ -11,9 +11,11 @@ const apiOrigin = (
 const contentSecurityPolicy = [
   // Only allow scripts from self and necessary CDNs (no unsafe-inline in prod)
   `default-src 'self'`,
-  // Scripts: self + Next.js runtime (requires 'unsafe-eval' in dev HMR only)
+  // Scripts: self + Razorpay checkout (needed in dev too — without it the
+  // billing page can't open the payment modal on localhost) + Next.js dev
+  // runtime (requires 'unsafe-eval' for HMR only)
   isDev
-    ? `script-src 'self' 'unsafe-eval' 'unsafe-inline'`
+    ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com`
     : `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com`,
   // Stylesheets: self + inline styles used by shadcn/ui
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
