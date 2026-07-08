@@ -78,7 +78,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
         <Link href={dashboardPathFromPathname(pathname, "billing")}>
           <div
             className={clsx(
-              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border",
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border",
               isLowQuota
                 ? "border-red-500/20 bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/15"
                 : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500/15",

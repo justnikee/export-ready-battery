@@ -102,9 +102,9 @@ export function ComplianceScoreCard({ batches }: ComplianceScoreCardProps) {
       ) : (
         <>
           <div className={`text-2xl ${scoreColor}`}>{avgScore}%</div>
-          <div className="w-full bg-background h-1.5 mt-2">
+          <div className="w-full rounded-full bg-background h-1.5 mt-2">
             <div
-              className={`h-1.5 ${barColor}`}
+              className={`h-1.5 rounded-full ${barColor}`}
               style={{ width: `${avgScore}%` }}
             />
           </div>

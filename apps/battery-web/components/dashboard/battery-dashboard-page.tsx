@@ -91,27 +91,27 @@ function getComplianceBadge(status: string | undefined) {
   const s = status?.toUpperCase();
   if (s === "VERIFIED") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-500 dark:text-emerald-400">
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-500 dark:text-emerald-400">
         Verified
       </span>
     );
   }
   if (s === "PENDING") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400">
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400">
         Pending
       </span>
     );
   }
   if (s === "REJECTED") {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-red-500/10 text-red-500 dark:text-red-400">
+      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-500/10 text-red-500 dark:text-red-400">
         Rejected
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-background text-muted-foreground">
+    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-background text-muted-foreground">
       Not Uploaded
     </span>
   );
@@ -328,7 +328,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href={batchesHref}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Zap className="h-4 w-4" />
             {dashboardConfig.primaryActionLabel}
@@ -412,8 +412,8 @@ export default function DashboardPage() {
                   <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                     {dashboardConfig.totalEntitiesLabel}
                   </span>
-                  <div className="w-5 h-5 bg-emerald-500/15 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-emerald-500" />
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                 </div>
                 <div className="font-mono text-3xl text-foreground tracking-tight">
@@ -433,8 +433,8 @@ export default function DashboardPage() {
                   <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                     {dashboardConfig.activeCollectionsLabel}
                   </span>
-                  <div className="w-5 h-5 bg-(--accent-purple)/15 flex items-center justify-center">
-                    <div className="w-2 h-2 bg-accent-purple" />
+                  <div className="w-5 h-5 rounded-full bg-(--accent-purple)/15 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-accent-purple animate-pulse" />
                   </div>
                 </div>
                 <div className="font-mono text-3xl text-foreground">
@@ -451,7 +451,7 @@ export default function DashboardPage() {
                   <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
                     {dashboardConfig.quotaLabel}
                   </span>
-                  <div className="w-5 h-5 bg-(--accent-orange)/15 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-(--accent-orange)/15 flex items-center justify-center">
                     <span className="font-mono text-[10px] text-accent-orange">
                       {quotaPercent}%
                     </span>
@@ -460,9 +460,9 @@ export default function DashboardPage() {
                 <div className="text-xs text-muted-foreground mb-2">
                   {quotaUsed.toLocaleString()} / {quotaLimit.toLocaleString()}
                 </div>
-                <div className="w-full bg-background h-1.5">
+                <div className="w-full rounded-full bg-background h-1.5">
                   <div
-                    className={`h-1.5 ${isOverLimit ? "bg-red-500" : "bg-emerald-500"}`}
+                    className={`h-1.5 rounded-full ${isOverLimit ? "bg-red-500" : "bg-emerald-500"}`}
                     style={{ width: `${Math.min(quotaPercent, 100)}%` }}
                   />
                 </div>

@@ -44,9 +44,9 @@ export function EPRObligationCard({ complianceHref }: { complianceHref: string }
           <div className="text-xs text-muted-foreground mb-2">
             {certifiedKg.toFixed(0)} / {requiredKg.toFixed(0)} kg certified
           </div>
-          <div className="w-full bg-background h-1.5">
+          <div className="w-full rounded-full bg-background h-1.5">
             <div
-              className={`h-1.5 ${certifiedKg >= requiredKg ? "bg-emerald-500" : "bg-amber-500"}`}
+              className={`h-1.5 rounded-full ${certifiedKg >= requiredKg ? "bg-emerald-500" : "bg-amber-500"}`}
               style={{ width: `${progressPct}%` }}
             />
           </div>
