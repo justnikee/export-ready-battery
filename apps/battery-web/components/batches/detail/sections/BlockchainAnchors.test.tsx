@@ -6,17 +6,25 @@ import type { CertificateAnchor } from "@/lib/types";
 const mockAnchors: CertificateAnchor[] = [
   {
     id: "anchor-1",
+    batch_id: "batch-123",
+    tenant_id: "tenant-1",
     cert_type: "BIS",
+    file_url: "https://example.com/certs/bis.pdf",
     file_hash: "abc123def456",
     status: "confirmed",
     anchored_at: "2024-01-15T10:00:00Z",
+    created_at: "2024-01-10T10:00:00Z",
     ots_proof: "proof-1",
   },
   {
     id: "anchor-2",
+    batch_id: "batch-123",
+    tenant_id: "tenant-1",
     cert_type: "UN38.3",
+    file_url: "https://example.com/certs/un383.pdf",
     file_hash: "xyz789uvw012",
     status: "pending",
+    created_at: "2024-01-10T10:00:00Z",
   },
 ];
 
