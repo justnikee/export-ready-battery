@@ -11,7 +11,7 @@ import { faqs } from "@/lib/pricing-faqs";
 export const metadata: Metadata = {
   title: "Pricing — Plans for Every Scale | Anviora",
   description:
-    "Simple, transparent pricing for Indian battery and textile exporters. Free for starters. ₹4,999/month for growing teams. Enterprise plans available.",
+    "Simple, transparent pricing for Indian battery exporters. Starter from ₹14,999/month, Growth from ₹44,999/month, Enterprise custom. One-time credit purchases, no subscription lock-in.",
   alternates: { canonical: "/pricing" },
 };
 

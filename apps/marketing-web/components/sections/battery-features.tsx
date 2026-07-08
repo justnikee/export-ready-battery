@@ -19,9 +19,9 @@ const features = [
       "BIS IS 16046, UN38.3, IEC 62133, MSDS — Anviora tracks every expiry on a visual timeline and warns you 30, 7, and 1 days out, by email and in-app.",
   },
   {
-    title: "Verify against the source.",
+    title: "Anchored to Bitcoin. Provable forever.",
     description:
-      "Anviora checks certificates against the BIS, CPCB and EU NANDO registries and records every result in an immutable, hash-chained audit trail. Optional blockchain anchoring available for extra assurance.",
+      "Every certificate hash is anchored to the Bitcoin blockchain via OpenTimestamps — a free, open protocol, no wallet or crypto knowledge required. Anyone can independently verify a certificate existed at a given time, permanently, without trusting Anviora's servers.",
   },
   {
     title: "Track every gram of recycled content.",
@@ -32,6 +32,26 @@ const features = [
     title: "File your DGFT claims automatically.",
     description:
       "Anviora turns the same data into RoDTEP, duty-drawback and interest-equalization claim documents — an export incentive that can reimburse up to 75% of your platform cost.",
+  },
+  {
+    title: "Know a battery's health, anywhere in the world.",
+    description:
+      "Fleet Health and BMS Telemetry monitoring track state-of-health, thermal events, and recall status across every unit you've shipped — so you catch a failing pack before your buyer's warranty claim does.",
+  },
+  {
+    title: "Vet your suppliers, not just your own paperwork.",
+    description:
+      "EU Article 11 due diligence isn't optional past August 2027. Anviora runs OECD-aligned supplier risk scoring and accepts CMRT (Conflict Minerals Reporting Template) uploads directly, so your supply-chain evidence is ready before an auditor asks for it.",
+  },
+  {
+    title: "A signed, portable record of every passport.",
+    description:
+      "Every battery passport can be issued as a W3C Verifiable Credential — cryptographically signed, machine-verifiable, and yours to hand to any buyer, regulator, or downstream system without re-entering data.",
+  },
+  {
+    title: "Built for how Indian manufacturers actually run finance.",
+    description:
+      "A native Tally sync pulls bills of materials, supplier invoices, and GST-linked transactions straight into Anviora — plus API keys and webhooks for teams who want to build their own integrations.",
   },
 ];
 

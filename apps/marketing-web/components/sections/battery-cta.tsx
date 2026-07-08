@@ -17,7 +17,7 @@ export default function BatteryCTA() {
             Ship your first compliant battery this month.
           </h2>
           <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">
-            14-day free trial. No setup fee. Cancel anytime.
+            No setup fee. No lock-in. Buy only the passport credits you need.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
             <a
@@ -28,10 +28,10 @@ export default function BatteryCTA() {
               <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
-              href="/request-access"
+              href="/pricing"
               className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
             >
-              Start free trial <ArrowRight size={14} className="cta-arrow" />
+              See pricing <ArrowRight size={14} className="cta-arrow" />
             </a>
           </div>
         </motion.div>

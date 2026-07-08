@@ -21,14 +21,14 @@ export default function PricingCTA() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
             <a
-              href="/contact"
+              href="/request-access"
               className="inline-flex items-center justify-center h-[34px] px-4 rounded-full text-sm font-medium text-white"
               style={{ background: "#533afd" }}
             >
               Contact Sales
             </a>
             <a
-              href="/demo"
+              href="/request-access"
               className="inline-flex items-center gap-1 text-sm font-medium text-[#533afd] hover:underline"
             >
               Book a Call <ArrowRight size={14} />

@@ -15,7 +15,7 @@ export default function PricingHero() {
             Plans for Every Scale.
           </h1>
           <p className="mt-4 text-[16px] sm:text-[18px] leading-[1.55] text-[#64748d]">
-            No hidden fees. No setup costs. Cancel anytime.
+            No hidden fees. No setup costs. No lock-in — buy only what you use.
           </p>
         </motion.div>
       </div>

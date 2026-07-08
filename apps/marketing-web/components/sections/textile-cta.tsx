@@ -29,7 +29,7 @@ export default function TextileCTA() {
               <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
-              href="/contact"
+              href="mailto:sales@anvayalabs.com"
               className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
             >
               Talk to us <ArrowRight size={14} className="cta-arrow" />
