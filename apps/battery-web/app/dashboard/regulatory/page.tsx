@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { FeatureGate } from "@/components/billing/feature-gate";
+import { isAdminRole } from "@/lib/rbac";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/auth-context";
 import {
   getRegulatoryItems,
   getRegulatoryAlerts,
@@ -43,6 +46,8 @@ import {
 import { clsx } from "clsx";
 
 export default function RegulatoryDashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = isAdminRole(user?.role);
   const [productFilter, setProductFilter] = useState<string>("");
   const [regionFilter, setRegionFilter] = useState<string>("");
   const [urgencyFilter, setUrgencyFilter] = useState<string>("");
@@ -70,7 +75,7 @@ export default function RegulatoryDashboardPage() {
   const sourcesQuery = useQuery({
     queryKey: ["regulatorySources"],
     queryFn: () => getRegulatorySources(),
-    enabled: activeTab === "sources",
+    enabled: activeTab === "sources" && isAdmin,
   });
 
   const markRead = useMutation({
@@ -121,7 +126,8 @@ export default function RegulatoryDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <FeatureGate feature="regulatory">
+    <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Regulatory Intelligence</h1>
@@ -143,16 +149,18 @@ export default function RegulatoryDashboardPage() {
       </div>
 
       <Tabs defaultValue="feed" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="rounded-none h-9">
-          <TabsTrigger value="feed" className="text-xs rounded-none">Feed</TabsTrigger>
-          <TabsTrigger value="alerts" className="text-xs rounded-none">
+        <TabsList className="h-9">
+          <TabsTrigger value="feed" className="text-xs">Feed</TabsTrigger>
+          <TabsTrigger value="alerts" className="text-xs">
             My Alerts {alerts.length > 0 && <span className="ml-1 text-[10px] text-red-500">({alerts.length})</span>}
           </TabsTrigger>
-          <TabsTrigger value="sources" className="text-xs rounded-none">Sources</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="sources" className="text-xs">Sources</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="feed" className="mt-4 space-y-4">
-          <Card className="rounded-none">
+          <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
@@ -162,7 +170,7 @@ export default function RegulatoryDashboardPage() {
             <CardContent>
               <div className="flex flex-wrap gap-3">
                 <Select value={productFilter} onValueChange={setProductFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Product Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -173,7 +181,7 @@ export default function RegulatoryDashboardPage() {
                   </SelectContent>
                 </Select>
                 <Select value={regionFilter} onValueChange={setRegionFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Market Region" />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,7 +192,7 @@ export default function RegulatoryDashboardPage() {
                   </SelectContent>
                 </Select>
                 <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs rounded-none">
+                  <SelectTrigger className="w-[140px] h-8 text-xs">
                     <SelectValue placeholder="Urgency" />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,7 +221,7 @@ export default function RegulatoryDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-none">
+          <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -254,7 +262,7 @@ export default function RegulatoryDashboardPage() {
                                 </div>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {item.tags?.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="text-[9px] rounded-none px-1 py-0">
+                                    <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0">
                                       {tag}
                                     </Badge>
                                   ))}
@@ -305,7 +313,7 @@ export default function RegulatoryDashboardPage() {
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4 space-y-4">
-          <Card className="rounded-none">
+          <Card>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -389,79 +397,82 @@ export default function RegulatoryDashboardPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sources" className="mt-4 space-y-4">
-          <Card className="rounded-none">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs">Source</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Interval</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs">Last Fetched</TableHead>
-                    <TableHead className="text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sourcesQuery.isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        Loading...
-                      </TableCell>
+        {isAdmin && (
+          <TabsContent value="sources" className="mt-4 space-y-4">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs">Source</TableHead>
+                      <TableHead className="text-xs">Type</TableHead>
+                      <TableHead className="text-xs">Interval</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs">Last Fetched</TableHead>
+                      <TableHead className="text-xs">Actions</TableHead>
                     </TableRow>
-                  ) : sources.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
-                        No sources configured.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    sources.map((source) => (
-                      <TableRow key={source.id}>
-                        <TableCell>
-                          <div className="text-xs font-medium">{source.name}</div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[240px]">{source.url}</div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground uppercase">{source.source_type}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{source.fetch_interval}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={clsx(
-                              "text-[10px] rounded-none",
-                              source.is_active ? "bg-green-50 text-green-700" : "bg-slate-50 text-slate-500",
-                            )}
-                          >
-                            {source.is_active ? "Active" : "Paused"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {source.last_fetched_at
-                            ? new Date(source.last_fetched_at).toLocaleString()
-                            : "Never"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[10px] rounded-none"
-                            onClick={() => forceFetch.mutate(source.id)}
-                            disabled={forceFetch.isPending || !source.is_active}
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            Fetch Now
-                          </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {sourcesQuery.isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                          Loading...
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    ) : sources.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                          No sources configured.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      sources.map((source) => (
+                        <TableRow key={source.id}>
+                          <TableCell>
+                            <div className="text-xs font-medium">{source.name}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[240px]">{source.url}</div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground uppercase">{source.source_type}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{source.fetch_interval}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={clsx(
+                                "text-[10px]",
+                                source.is_active ? "bg-green-50 text-green-700" : "bg-slate-50 text-slate-500",
+                              )}
+                            >
+                              {source.is_active ? "Active" : "Paused"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {source.last_fetched_at
+                              ? new Date(source.last_fetched_at).toLocaleString()
+                              : "Never"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px]"
+                              onClick={() => forceFetch.mutate(source.id)}
+                              disabled={forceFetch.isPending || !source.is_active}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Fetch Now
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
+    </FeatureGate>
   );
 }

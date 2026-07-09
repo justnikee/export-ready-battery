@@ -36,11 +36,18 @@ export function batchCompletionChecks(data: Partial<BatchFormData>): CompletionC
 
   if (showEU) {
     checks.push(
+      { label: "Battery Category", filled: !!data.batteryCategory, step: 0 },
+      {
+        label: "Material Composition",
+        filled: Object.values(data.materialComposition ?? {}).some((v) => parseFloat(String(v)) > 0),
+        step: 0,
+      },
       { label: "Carbon Footprint", filled: !!data.carbonFootprint, step: 1 },
       { label: "Carbon Class", filled: !!data.carbonPerformanceClass, step: 1 },
       { label: "CE Marking", filled: data.ceMarking === true, step: 1 },
       { label: "Notified Body", filled: !!data.notifiedBodyNumber, step: 1 },
       { label: "EU Representative", filled: !!data.euRepresentative, step: 1 },
+      { label: "Hazardous Substances Declaration", filled: !!data.hazardousDeclaration?.trim(), step: 1 },
       { label: "Lifetime", filled: !!data.expectedLifetime, step: 1 },
       { label: "Warranty", filled: !!data.warrantyMonths, step: 1 }
     );

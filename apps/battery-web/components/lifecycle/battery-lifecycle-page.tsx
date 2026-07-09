@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -7,6 +7,7 @@ import axios from "axios";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { isAdminRole } from "@/lib/rbac";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal";
+import { BatchCombobox } from "@/components/batches/batch-combobox";
 import {
   ArrowRight,
   Package,
@@ -53,11 +55,6 @@ interface PassportSummary {
   updated_at: string;
 }
 
-interface BatchOption {
-  id: string;
-  batch_name: string;
-  status: string;
-}
 
 interface BulkAllowedActionsResponse {
   allowed_actions: string[];
@@ -206,39 +203,6 @@ const MAINTENANCE_ENDPOINTS: Record<MaintenanceAction, string> = {
 
 const PAGE_SIZE = 50;
 
-type DashboardActorRole = "ADMIN" | "INTERNAL_OPERATOR" | null;
-
-function resolveDashboardActorRole(role?: string): DashboardActorRole {
-  switch ((role || "").toUpperCase()) {
-    case "OWNER":
-    case "ADMIN":
-      return "ADMIN";
-    case "MEMBER":
-      return "INTERNAL_OPERATOR";
-    default:
-      return null;
-  }
-}
-
-function getAllowedLifecycleActions(
-  status: string,
-  role: DashboardActorRole,
-): string[] {
-  if (!role) return [];
-
-  switch (status) {
-    case "CREATED":
-      return ["ACTIVATE"];
-    case "ACTIVE":
-      return role === "ADMIN" ? ["SHIP", "RECALL"] : ["SHIP"];
-    case "SHIPPED":
-    case "IN_SERVICE":
-      return role === "ADMIN" ? ["RECALL"] : [];
-    default:
-      return [];
-  }
-}
-
 function SoHBar({ value }: { value: number }) {
   const color =
     value >= 80
@@ -307,11 +271,10 @@ function LifecycleTableSkeleton() {
 export default function LifecyclePage() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const dashboardRole = resolveDashboardActorRole(user?.role);
+  const isAdmin = isAdminRole(user?.role);
 
   // Data
   const [passports, setPassports] = useState<PassportSummary[]>([]);
-  const [batches, setBatches] = useState<BatchOption[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [totalCount, setTotalCount] = useState(0);
   const [allowedActionsByPassport, setAllowedActionsByPassport] = useState<
@@ -358,6 +321,12 @@ export default function LifecyclePage() {
     action: string;
   } | null>(null);
   const [rowEvidence, setRowEvidence] = useState<Record<string, string>>({});
+
+  // Undo last transition (admin-only, 30-minute grace window — enforced server-side)
+  const [undoTarget, setUndoTarget] = useState<PassportSummary | null>(null);
+  const [undoNote, setUndoNote] = useState("");
+  const [undoing, setUndoing] = useState(false);
+
   const [maintenanceAction, setMaintenanceAction] = useState<{
     passport: PassportSummary;
     action: MaintenanceAction;
@@ -446,29 +415,6 @@ export default function LifecyclePage() {
     }
   };
 
-  // â”€â”€â”€ Fetch batches once for the dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  useEffect(() => {
-    if (!user?.tenant_id) return;
-    api
-      .get<{ batches: BatchOption[] }>(
-        `/batches?tenant_id=${user.tenant_id}&limit=200`,
-      )
-      .then((res) =>
-        setBatches(
-          (res.data.batches || [])
-            .filter((b: BatchOption) => b.status === "ACTIVE")
-            .map((b: BatchOption) => ({
-              id: b.id,
-              batch_name: b.batch_name,
-              status: b.status,
-            })),
-        ),
-      )
-      .catch(() => {
-        /* non-fatal */
-      });
-  }, [user?.tenant_id]);
-
   // â”€â”€â”€ Fetch passports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchPassports = useCallback(
     async (signal?: AbortSignal) => {
@@ -503,25 +449,49 @@ export default function LifecyclePage() {
     return () => controller.abort();
   }, [fetchPassports]);
 
+  // Allowed actions per status come from the backend (the same source the
+  // bulk select-all flow already used below) rather than a duplicated local
+  // state machine, so role/status rules never drift between the two.
   useEffect(() => {
     if (passports.length === 0) {
       setAllowedActionsByPassport({});
       return;
     }
 
-    const nextAllowedActions = passports.reduce<Record<string, string[]>>(
-      (accumulator, passport) => {
-        accumulator[passport.uuid] = getAllowedLifecycleActions(
-          passport.status,
-          dashboardRole,
-        );
-        return accumulator;
-      },
-      {},
-    );
+    const controller = new AbortController();
+    const uniqueStatuses = Array.from(new Set(passports.map((p) => p.status)));
 
-    setAllowedActionsByPassport(nextAllowedActions);
-  }, [dashboardRole, passports]);
+    Promise.all(
+      uniqueStatuses.map((status) =>
+        api
+          .get<BulkAllowedActionsResponse>(
+            `/passports/bulk/allowed-actions?status=${encodeURIComponent(status)}`,
+            { signal: controller.signal },
+          )
+          .then((res): [string, string[]] => [status, res.data.allowed_actions || []])
+          .catch((err): [string, string[]] => {
+            if (axios.isCancel(err)) throw err;
+            return [status, []];
+          }),
+      ),
+    )
+      .then((entries) => {
+        const actionsByStatus = new Map(entries);
+        const nextAllowedActions = passports.reduce<Record<string, string[]>>(
+          (accumulator, passport) => {
+            accumulator[passport.uuid] = actionsByStatus.get(passport.status) || [];
+            return accumulator;
+          },
+          {},
+        );
+        setAllowedActionsByPassport(nextAllowedActions);
+      })
+      .catch((err) => {
+        if (axios.isCancel(err)) return;
+      });
+
+    return () => controller.abort();
+  }, [passports]);
 
   useEffect(() => {
     if (!selectAllMode) {
@@ -870,6 +840,32 @@ export default function LifecyclePage() {
     }
   };
 
+  // ─── Undo last transition ──────────────────────────────────────────────
+  const handleUndoTransition = async () => {
+    if (!undoTarget) return;
+    if (!undoNote.trim()) {
+      toast.error("Admin note is required");
+      return;
+    }
+    setUndoing(true);
+    try {
+      await api.post(`/passports/${undoTarget.uuid}/undo-transition`, {
+        admin_note: undoNote.trim(),
+      });
+      toast.success(
+        `Undid last transition for ${undoTarget.serial_number || undoTarget.uuid.slice(0, 8)}`,
+      );
+      setUndoTarget(null);
+      setUndoNote("");
+      fetchPassports();
+    } catch (error: unknown) {
+      const apiErr = error as { response?: { data?: { error?: string } } };
+      toast.error(apiErr?.response?.data?.error || "Failed to undo transition");
+    } finally {
+      setUndoing(false);
+    }
+  };
+
   const handleMaintenanceEvent = async () => {
     if (!maintenanceAction) return;
 
@@ -934,7 +930,7 @@ export default function LifecyclePage() {
   }, [bulkAction, bulkActionOptions]);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-sidebar pb-24">
       <div className="mx-auto px-6 py-6 space-y-5">
         {/* â”€â”€ Header â”€â”€ */}
         <div className="flex items-start justify-between gap-4">
@@ -947,7 +943,7 @@ export default function LifecyclePage() {
           </div>
           <button
             onClick={() => fetchPassports()}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-muted-foreground"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors text-muted-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
@@ -963,10 +959,10 @@ export default function LifecyclePage() {
               <button
                 key={status}
                 onClick={() => handleStatusFilter(status)}
-                className={`p-3 border text-left transition-all ${
+                className={`p-3 rounded-md text-left transition-all ${
                   isActive
-                    ? "border-foreground bg-muted ring-1 ring-foreground/20"
-                    : "border-border bg-transparent hover:bg-muted/50"
+                    ? "bg-muted ring-1 ring-foreground/20"
+                    : "bg-muted/50 hover:bg-muted"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
@@ -998,23 +994,17 @@ export default function LifecyclePage() {
           </div>
 
           {/* Batch filter */}
-          <select
-            className="border border-border px-3 py-2 text-sm bg-background text-foreground min-w-45 focus:outline-none focus:ring-1 focus:ring-ring"
+          <BatchCombobox
             value={batchFilter}
-            onChange={(e) => handleBatchFilter(e.target.value)}
-          >
-            <option value="">All Batches</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.batch_name}
-              </option>
-            ))}
-          </select>
+            onChange={handleBatchFilter}
+            status="ACTIVE"
+            allOptionLabel="All Batches"
+          />
 
           {statusFilter !== "ALL" && (
             <button
               onClick={() => handleStatusFilter("ALL")}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border hover:bg-muted transition-colors text-foreground"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors text-foreground"
             >
               <span>Status: {statusFilter.replace(/_/g, " ")}</span>
               <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1030,7 +1020,7 @@ export default function LifecyclePage() {
         </div>
 
         {/* â”€â”€ Table â”€â”€ */}
-        <div className="relative bg-transparent border border-border overflow-visible">{loading ? (
+        <div className="relative bg-muted rounded-md overflow-visible">{loading ? (
             <LifecycleTableSkeleton />
           ) : passports.length === 0 ? (
             <div className="text-center py-16">
@@ -1097,7 +1087,7 @@ export default function LifecyclePage() {
               )}
               <div className="overflow-x-auto">
                 <table className="w-full min-w-175">
-                  <thead className="bg-muted/60 border-b border-border">
+                  <thead className="bg-background border-b border-border">
                     <tr>
                       <th className="px-4 py-3 text-left w-10">
                         <input
@@ -1239,6 +1229,18 @@ export default function LifecyclePage() {
                                   <Search className="h-3.5 w-3.5" />
                                   View events
                                 </DropdownMenuItem>
+                                {isAdmin && p.status !== "CREATED" && (
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      setUndoTarget(p);
+                                      setUndoNote("");
+                                    }}
+                                    className="flex items-center gap-2 text-amber-600 focus:text-amber-600"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Undo last transition
+                                  </DropdownMenuItem>
+                                )}
                                 {p.status === "IN_SERVICE" && (
                                   <>
                                     <DropdownMenuSeparator />
@@ -1316,7 +1318,7 @@ export default function LifecyclePage() {
             <button
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 rounded-md bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -1330,7 +1332,7 @@ export default function LifecyclePage() {
             <button
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="flex items-center gap-1 px-3 py-2 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1 px-3 py-2 rounded-md bg-muted hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -1341,7 +1343,7 @@ export default function LifecyclePage() {
 
       {/* â”€â”€ Sticky bulk selection footer â”€â”€ */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-background border border-border rounded-full shadow-xl">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-card rounded-full shadow-xl">
           <span className="text-sm font-medium text-foreground whitespace-nowrap">
             {effectiveCount.toLocaleString()} selected
           </span>
@@ -1479,7 +1481,7 @@ export default function LifecyclePage() {
             <button
               onClick={() => setShowBulkModal(false)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1666,7 +1668,7 @@ export default function LifecyclePage() {
             <button
               onClick={() => setRowAction(null)}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1681,6 +1683,69 @@ export default function LifecyclePage() {
                 <ArrowRight className="h-4 w-4" />
               )}
               Confirm
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!undoTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUndoTarget(null);
+            setUndoNote("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Undo last transition:{" "}
+              {undoTarget?.serial_number || undoTarget?.uuid.slice(0, 12)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              This reverts the passport to its status before the most recent
+              transition. Only allowed within 30 minutes of that transition.
+              The original event is kept — a new REVERSE_TRANSITION audit
+              event is appended, not a deletion.
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Admin Note <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={2}
+                maxLength={500}
+                placeholder="Why is this being undone? (required, max 500 chars)"
+                value={undoNote}
+                onChange={(e) => setUndoNote(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setUndoTarget(null);
+                setUndoNote("");
+              }}
+              className="px-3 py-1.5 text-sm rounded-md bg-muted hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUndoTransition}
+              disabled={undoing || !undoNote.trim()}
+              className="px-3 py-1.5 text-sm bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {undoing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              Undo Transition
             </button>
           </DialogFooter>
         </DialogContent>
@@ -1759,7 +1824,7 @@ export default function LifecyclePage() {
                 setMaintenanceEvidence({});
               }}
               disabled={processing}
-              className="px-4 py-2 text-sm border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm rounded-md bg-muted hover:bg-accent transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1808,7 +1873,7 @@ export default function LifecyclePage() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="relative border border-border p-4 space-y-3"
+                  className="relative bg-muted rounded-md p-4 space-y-3"
                 ><div className="flex items-center justify-between gap-3">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />

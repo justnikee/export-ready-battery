@@ -9,28 +9,28 @@ const buttonVariants = cva(
  {
  variants: {
  variant: {
- // Default — dark authority, 6px radius (design.md standard)
- default: "bg-primary text-primary-foreground rounded-sm hover:bg-primary/90",
+ // Default — dark authority, 8px radius
+ default: "bg-primary text-primary-foreground rounded-md hover:bg-primary/90",
  destructive:
- "bg-destructive text-white rounded-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
- // Outline — border-based, no hardcoded light colors
+ "bg-destructive text-white rounded-md hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+ // Outline — borderless, fill-based surface
  outline:
- "border border-border bg-card text-foreground rounded-sm hover:bg-accent hover:text-accent-foreground",
+ "bg-muted text-foreground rounded-md hover:bg-accent hover:text-accent-foreground",
  secondary:
- "bg-secondary text-secondary-foreground rounded-sm hover:bg-secondary/80",
+ "bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80",
  ghost:
- "rounded-sm hover:bg-accent hover:text-accent-foreground",
+ "rounded-md hover:bg-accent hover:text-accent-foreground",
  // Link — brand color
  link: "text-[var(--brand-link)] underline-offset-4 hover:underline",
  // Accent — brand green CTA (use sparingly per design.md)
  accent:
- "bg-[var(--brand)] text-[var(--brand-foreground)] rounded-sm hover:opacity-90",
- // Pill — primary CTA (design.md: 9999px, 8px 32px, border foreground)
+ "bg-[var(--brand)] text-[var(--brand-foreground)] rounded-md hover:opacity-90",
+ // Pill — primary CTA, borderless
  pill:
- "bg-primary text-primary-foreground rounded-full border border-foreground hover:bg-primary/90 dark:bg-[#0f0f0f] dark:text-[#fafafa] dark:border-[#fafafa]",
- // Pill muted — secondary pill CTA (design.md: border-border, opacity 0.8)
+ "bg-primary text-primary-foreground rounded-full hover:bg-primary/90 dark:bg-[#0f0f0f] dark:text-[#fafafa]",
+ // Pill muted — secondary pill CTA, borderless
  "pill-outline":
- "bg-primary text-primary-foreground rounded-full border border-border opacity-80 hover:opacity-100 dark:bg-[#0f0f0f] dark:text-[#fafafa]",
+ "bg-primary text-primary-foreground rounded-full opacity-80 hover:opacity-100 dark:bg-[#0f0f0f] dark:text-[#fafafa]",
  // Pill brand — emerald pill
  "pill-brand":
  "bg-[var(--brand)] text-[var(--brand-foreground)] rounded-full hover:opacity-90",

@@ -11,15 +11,15 @@ const variantClasses: Record<BannerVariant, string> = {
 };
 
 const titleClasses: Record<BannerVariant, string> = {
-  info: "text-blue-800",
-  success: "text-emerald-700",
-  warning: "text-amber-700",
+  info: "text-blue-400",
+  success: "text-emerald-400",
+  warning: "text-amber-400",
 };
 
 const textClasses: Record<BannerVariant, string> = {
-  info: "text-blue-600",
-  success: "text-emerald-700",
-  warning: "text-amber-700",
+  info: "text-blue-300",
+  success: "text-emerald-300",
+  warning: "text-amber-300",
 };
 
 interface InfoBannerProps {
@@ -30,7 +30,7 @@ interface InfoBannerProps {
 
 export function InfoBanner({ variant, title, children }: InfoBannerProps) {
   return (
-    <div className={`rounded-none p-4 border ${variantClasses[variant]}`}>
+    <div className={`rounded-lg p-4 border ${variantClasses[variant]}`}>
       {title && <p className={`text-sm font-medium mb-2 ${titleClasses[variant]}`}>{title}</p>}
       <div className={`text-xs space-y-1 ${textClasses[variant]}`}>{children}</div>
     </div>

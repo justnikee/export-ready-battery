@@ -1,15 +1,21 @@
 package services
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -27,6 +33,7 @@ const (
 // ExportJobService handles async export job operations
 type ExportJobService struct {
 	db                 *pgxpool.Pool
+	repo               repository.RepositoryInterface
 	storageService     *StorageService
 	qrService          *QRService
 	pdfService         *PDFService
@@ -39,6 +46,7 @@ type ExportJobService struct {
 // NewExportJobService creates a new export job service
 func NewExportJobService(
 	db *pgxpool.Pool,
+	repo repository.RepositoryInterface,
 	storageService *StorageService,
 	qrService *QRService,
 	pdfService *PDFService,
@@ -49,6 +57,7 @@ func NewExportJobService(
 ) *ExportJobService {
 	return &ExportJobService{
 		db:                 db,
+		repo:               repo,
 		storageService:     storageService,
 		qrService:          qrService,
 		pdfService:         pdfService,
@@ -335,6 +344,10 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 		data, contentType, err = s.generateAuditCSV(ctx, job.BatchID)
 	case models.ExportJobTypeAuditPDF:
 		data, contentType, err = s.generateAuditPDF(ctx, job.BatchID, batch, tenant)
+	case models.ExportJobTypeEPCIS:
+		data, contentType, err = s.generateEPCIS(ctx, job.BatchID, passports)
+	case models.ExportJobTypePLIPacket:
+		data, contentType, err = s.generatePLIPacket(ctx, job.BatchID, job.TenantID)
 	default:
 		err = fmt.Errorf("unknown job type: %s", job.JobType)
 	}
@@ -627,4 +640,272 @@ func (s *ExportJobService) generateAuditCSV(ctx context.Context, batchID uuid.UU
 func (s *ExportJobService) generateAuditPDF(ctx context.Context, batchID uuid.UUID, batch *models.Batch, tenant *models.Tenant) ([]byte, string, error) {
 	data, err := s.auditExportService.ExportAuditTrailPDF(ctx, batchID, batch, tenant)
 	return data, "application/pdf", err
+}
+
+// generateEPCIS builds one combined GS1 EPCIS 2.0 JSON-LD document covering
+// every passport in the batch — the EU buyer per-shipment requirement
+// (one file per batch shipment, not one file per passport).
+func (s *ExportJobService) generateEPCIS(ctx context.Context, batchID uuid.UUID, passports []*models.Passport) ([]byte, string, error) {
+	eventsByPassport, err := s.getEventsByPassportForBatch(ctx, batchID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	doc := BuildBulkEPCISDocument(passports, eventsByPassport)
+	data, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal EPCIS document: %w", err)
+	}
+	return data, "application/ld+json", nil
+}
+
+// getEventsByPassportForBatch fetches every passport_events row for the
+// batch, grouped by passport_id, in the structured *models.PassportEvent
+// shape the EPCIS builder needs (distinct from AuditExportService's
+// flattened AuditEventRow, which is shaped for CSV/PDF columns instead).
+func (s *ExportJobService) getEventsByPassportForBatch(ctx context.Context, batchID uuid.UUID) (map[uuid.UUID][]*models.PassportEvent, error) {
+	query := `SELECT e.id, e.passport_id, e.event_type, COALESCE(e.action, ''), e.actor,
+	                 COALESCE(e.actor_type, ''), COALESCE(e.actor_role, ''), COALESCE(e.actor_identifier, ''), COALESCE(e.source, ''),
+	                 COALESCE(e.status_from, ''), COALESCE(e.status_to, ''), COALESCE(e.ip_address, ''),
+	                 e.metadata, e.created_at, COALESCE(e.hash, ''), COALESCE(e.previous_hash, '')
+	          FROM public.passport_events e
+	          JOIN public.passports p ON p.uuid = e.passport_id
+	          WHERE p.batch_id = $1
+	          ORDER BY e.passport_id, e.created_at ASC, e.id ASC`
+
+	rows, err := s.db.Query(ctx, query, batchID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get batch events: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID][]*models.PassportEvent)
+	for rows.Next() {
+		event := &models.PassportEvent{}
+		var metadataJSON []byte
+		if err := rows.Scan(
+			&event.ID, &event.PassportID, &event.EventType, &event.Action, &event.Actor,
+			&event.ActorType, &event.ActorRole, &event.ActorID, &event.Source,
+			&event.StatusFrom, &event.StatusTo, &event.IPAddress,
+			&metadataJSON, &event.CreatedAt, &event.Hash, &event.PreviousHash,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
+		}
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &event.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal event metadata: %w", err)
+			}
+		}
+		result[event.PassportID] = append(result[event.PassportID], event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating batch events: %w", err)
+	}
+	return result, nil
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PLI claim packet (STRAT-04)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// generatePLIPacket assembles a single ZIP containing the DVA calculation
+// report, batch compliance report, the latest DGFT export-incentive claim
+// (if one has been filed against this batch), any uploaded BIS/PLI
+// certificate files, and a manifest cover sheet listing what's actually
+// included. Documents this platform doesn't track (e.g. ARAI/iCAT type
+// approval) are explicitly flagged as missing in the manifest rather than
+// silently absent.
+func (s *ExportJobService) generatePLIPacket(ctx context.Context, batchID, tenantID uuid.UUID) ([]byte, string, error) {
+	fullBatch, err := s.loadFullBatchForDocument(ctx, batchID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	fullTenant, err := s.loadTenantForDocument(ctx, tenantID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	profile, err := s.loadBatteryProfileForPLIPacket(ctx, tenantID)
+	if err != nil {
+		return nil, "", err
+	}
+	fullTenant.BatteryProfile = profile
+
+	type packetFile struct {
+		name string
+		data []byte
+	}
+	var files []packetFile
+	hasDVA := false
+	hasComplianceReport := false
+
+	if dvaBytes, err := GenerateDVACalculationReport(fullBatch, fullTenant); err == nil {
+		files = append(files, packetFile{"01_DVA_Calculation_Report.pdf", dvaBytes})
+		hasDVA = true
+	} else {
+		s.logger.Warn("PLI packet: DVA report generation failed", "batch_id", batchID, "error", err)
+	}
+
+	if crBytes, err := GenerateComplianceReport(fullBatch, fullTenant); err == nil {
+		files = append(files, packetFile{"02_Compliance_Report.pdf", crBytes})
+		hasComplianceReport = true
+	} else {
+		s.logger.Warn("PLI packet: compliance report generation failed", "batch_id", batchID, "error", err)
+	}
+
+	var dgftClaim *models.DGFTClaim
+	if s.repo != nil {
+		claim, err := s.repo.GetLatestDGFTClaimByBatch(ctx, batchID, tenantID)
+		if err != nil {
+			s.logger.Warn("PLI packet: failed to look up DGFT claim", "batch_id", batchID, "error", err)
+		} else if claim != nil {
+			dgftClaim = claim
+			if pdfBytes, err := s.generateDGFTClaimPDF(ctx, claim, fullTenant.CompanyName); err == nil {
+				files = append(files, packetFile{"03_DGFT_Claim.pdf", pdfBytes})
+			} else {
+				s.logger.Warn("PLI packet: DGFT claim PDF generation failed", "batch_id", batchID, "error", err)
+			}
+		}
+	}
+
+	if bisBytes, ok := s.fetchCertificateFile(ctx, profile.BISCertificatePath); ok {
+		files = append(files, packetFile{"04_BIS_Certificate" + certFileExt(profile.BISCertificatePath), bisBytes})
+	}
+	if pliBytes, ok := s.fetchCertificateFile(ctx, profile.PLICertificatePath); ok {
+		files = append(files, packetFile{"05_PLI_Certificate" + certFileExt(profile.PLICertificatePath), pliBytes})
+	}
+
+	manifest, err := GeneratePLIPacketManifest(PLIPacketManifestInput{
+		Batch:               fullBatch,
+		Tenant:              fullTenant,
+		HasDVAReport:        hasDVA,
+		HasComplianceReport: hasComplianceReport,
+		HasBISCertificate:   profile.BISCertificatePath != "",
+		HasPLICertificate:   profile.PLICertificatePath != "",
+		DGFTClaim:           dgftClaim,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate PLI packet manifest: %w", err)
+	}
+
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	writeZipEntry := func(name string, data []byte) error {
+		w, err := zipWriter.Create(name)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(data)
+		return err
+	}
+
+	if err := writeZipEntry("00_Manifest.pdf", manifest); err != nil {
+		return nil, "", fmt.Errorf("failed to write manifest to zip: %w", err)
+	}
+	for _, f := range files {
+		if err := writeZipEntry(f.name, f.data); err != nil {
+			return nil, "", fmt.Errorf("failed to write %s to zip: %w", f.name, err)
+		}
+	}
+	if err := zipWriter.Close(); err != nil {
+		return nil, "", fmt.Errorf("failed to finalize PLI packet zip: %w", err)
+	}
+
+	return buf.Bytes(), "application/zip", nil
+}
+
+// loadBatteryProfileForPLIPacket loads only the certificate paths needed by
+// the PLI packet — a dedicated, narrow query rather than overloading
+// loadTenantForDocument (which is shaped for the EU-specific generators).
+func (s *ExportJobService) loadBatteryProfileForPLIPacket(ctx context.Context, tenantID uuid.UUID) (*models.BatteryTenantProfile, error) {
+	query := `
+		SELECT COALESCE(bis_certificate_path, ''), COALESCE(pli_certificate_path, ''), COALESCE(epr_certificate_path, '')
+		FROM battery_tenant_profiles
+		WHERE tenant_id = $1`
+
+	profile := &models.BatteryTenantProfile{TenantID: tenantID}
+	err := s.db.QueryRow(ctx, query, tenantID).Scan(&profile.BISCertificatePath, &profile.PLICertificatePath, &profile.EPRCertificatePath)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return profile, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to load battery tenant profile: %w", err)
+	}
+	return profile, nil
+}
+
+// generateDGFTClaimPDF looks up the scheme config for a claim and renders its PDF.
+func (s *ExportJobService) generateDGFTClaimPDF(ctx context.Context, claim *models.DGFTClaim, tenantName string) ([]byte, error) {
+	schemes, err := s.repo.ListDGFTSchemeConfigs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list DGFT scheme configs: %w", err)
+	}
+	var scheme *models.DGFTSchemeConfig
+	for i := range schemes {
+		if schemes[i].SchemeType == claim.SchemeType {
+			scheme = &schemes[i]
+			break
+		}
+	}
+	if scheme == nil {
+		return nil, fmt.Errorf("scheme config not found for scheme type %q", claim.SchemeType)
+	}
+
+	buf, err := GenerateClaimPDF(claim, scheme, tenantName)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// fetchCertificateFile downloads an already-uploaded certificate from its
+// stored URL. Certificate paths on BatteryTenantProfile are stored as
+// ready-to-fetch URLs (see document_handlers.go's ViewDocument), which may be
+// public or a previously-issued signed URL that has since expired — a fetch
+// failure here is treated as "not available" rather than a fatal error, so
+// one stale certificate link doesn't block the rest of the packet.
+func (s *ExportJobService) fetchCertificateFile(ctx context.Context, fileURL string) ([]byte, bool) {
+	if fileURL == "" {
+		return nil, false
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
+	if err != nil {
+		return nil, false
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		s.logger.Warn("PLI packet: failed to fetch certificate file", "url", fileURL, "error", err)
+		return nil, false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Warn("PLI packet: certificate file fetch returned non-200", "url", fileURL, "status", resp.StatusCode)
+		return nil, false
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, false
+	}
+	return data, true
+}
+
+// certFileExt extracts a file extension from a certificate URL, stripping
+// any query string (signed URLs carry one), defaulting to .pdf.
+func certFileExt(fileURL string) string {
+	clean := fileURL
+	if idx := strings.IndexAny(clean, "?#"); idx >= 0 {
+		clean = clean[:idx]
+	}
+	ext := path.Ext(clean)
+	if ext == "" {
+		return ".pdf"
+	}
+	return ext
 }

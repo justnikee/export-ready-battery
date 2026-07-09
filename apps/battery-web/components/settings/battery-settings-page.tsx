@@ -6,12 +6,22 @@ import Image from "next/image"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
 import api, { getBaseUrl } from "@/lib/api"
-import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight, Clock } from "lucide-react"
+import { Building2, Globe, Mail, MapPin, Image as ImageIcon, ShieldCheck, FileCheck, FileText, Upload, CheckCircle, ExternalLink, Loader2, Hash, AlertTriangle, ArrowRight, Clock, Lock, KeyRound } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { DataAccessTokens } from "@/components/settings/data-access-tokens"
 import { DataVisibility } from "@/components/settings/data-visibility"
-import SuppliersTab from "@/components/settings/suppliers-tab"
 import { DocumentUpload } from "@/components/shared/document-upload"
+
+type SettingsTabId = 'profile' | 'compliance' | 'eu-compliance' | 'privacy' | 'tokens'
+
+const SETTINGS_TABS: { id: SettingsTabId; label: string; desc: string; icon: typeof Building2 }[] = [
+  { id: 'profile', label: 'Profile', desc: 'Company info & logo', icon: Building2 },
+  { id: 'compliance', label: 'India Compliance', desc: 'BIS, EPR, PLI & BPAN', icon: ShieldCheck },
+  { id: 'eu-compliance', label: 'EU Compliance', desc: 'Authorized representative', icon: Globe },
+  { id: 'privacy', label: 'Data Privacy', desc: 'Passport visibility rules', icon: Lock },
+  { id: 'tokens', label: 'API Tokens', desc: 'Programmatic data access', icon: KeyRound },
+]
 
 // Logo Upload Component
 function LogoUpload({
@@ -79,7 +89,7 @@ function LogoUpload({
  type="button"
  onClick={() => fileInputRef.current?.click()}
  disabled={uploading}
- className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-border bg-transparent text-foreground hover:bg-background hover:border-border transition-colors disabled:opacity-50"
+ className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-muted text-foreground hover:bg-accent transition-colors disabled:opacity-50"
  >
  {uploading ? (
  <>
@@ -98,7 +108,13 @@ function LogoUpload({
 }
 
 // Certificate readiness helpers
+// "Valid" means fully verified — used for the compliance checklist's done state.
 function isCertValid(status?: string) {
+  return status === "VERIFIED"
+}
+// "Submitted" means something is on file (verified or awaiting review) — used to
+// decide whether the field needs the red "certificate required" warning at all.
+function isCertSubmitted(status?: string) {
   return status === "PENDING" || status === "VERIFIED"
 }
 
@@ -123,17 +139,21 @@ function getIndiaComplianceChecks(
       label: "EPR Number",
       done: !!eprNumber && isCertValid(certs.epr_status),
       required: !!eprNumber,
-      warning: eprNumber && !isCertValid(certs.epr_status)
+      warning: eprNumber && !isCertSubmitted(certs.epr_status)
         ? "Upload EPR certificate to activate batches"
-        : undefined,
+        : eprNumber && !isCertValid(certs.epr_status)
+          ? "EPR certificate pending verification"
+          : undefined,
     },
     {
       label: "BIS Number",
       done: !!bisNumber && isCertValid(certs.bis_status),
       required: !!bisNumber,
-      warning: bisNumber && !isCertValid(certs.bis_status)
+      warning: bisNumber && !isCertSubmitted(certs.bis_status)
         ? "Upload BIS certificate to activate batches"
-        : undefined,
+        : bisNumber && !isCertValid(certs.bis_status)
+          ? "BIS certificate pending verification"
+          : undefined,
     },
     {
       label: "IEC Code",
@@ -190,10 +210,10 @@ function getActivationBlockers(
   const eprNumber = String(formData.epr_registration_number || "").trim()
   const bisNumber = String(formData.bis_r_number || "").trim()
 
-  if (eprNumber && !isCertValid(certs.epr_status)) {
+  if (eprNumber && !isCertSubmitted(certs.epr_status)) {
     blockers.push("EPR certificate upload required")
   }
-  if (bisNumber && !isCertValid(certs.bis_status)) {
+  if (bisNumber && !isCertSubmitted(certs.bis_status)) {
     blockers.push("BIS certificate upload required")
   }
   return blockers
@@ -205,8 +225,9 @@ export default function SettingsPage() {
  const [loading, setLoading] = useState(false)
  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
  const [logoError, setLogoError] = useState(false)
- const [activeSettingsTab, setActiveSettingsTab] = useState<'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers'>(
-  (searchParams.get('tab') as 'profile' | 'compliance' | 'privacy' | 'tokens' | 'suppliers') || 'profile'
+ const [factoryCodeError, setFactoryCodeError] = useState(false)
+ const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>(
+  (searchParams.get('tab') as SettingsTabId) || 'profile'
  )
 
  const [formData, setFormData] = useState({
@@ -230,6 +251,10 @@ export default function SettingsPage() {
  data_visibility: {} as Record<string, string>
  })
 
+ // Snapshot of formData as last loaded/saved — diffed against formData to
+ // detect unsaved changes without re-fetching from the server.
+ const [initialFormData, setInitialFormData] = useState(formData)
+
  // Certificate paths state
  const [certificatePaths, setCertificatePaths] = useState({
  epr_certificate_path: "",
@@ -242,7 +267,7 @@ export default function SettingsPage() {
 
  useEffect(() => {
  if (user) {
- setFormData({
+ const loaded = {
  company_name: user.company_name || "",
  address: user.address || "",
  support_email: user.support_email || "",
@@ -257,7 +282,9 @@ export default function SettingsPage() {
  eu_authorized_representative_address: user.eu_authorized_representative_address || "",
  eu_contact_email: user.eu_contact_email || "",
  data_visibility: user.data_visibility || {}
- })
+ }
+ setFormData(loaded)
+ setInitialFormData(loaded)
  setCertificatePaths({
  epr_certificate_path: user.epr_certificate_path || "",
  bis_certificate_path: user.bis_certificate_path || "",
@@ -273,6 +300,18 @@ export default function SettingsPage() {
  setLogoError(false)
  }, [formData.logo_url])
 
+ const isDirty = JSON.stringify(formData) !== JSON.stringify(initialFormData)
+
+ useEffect(() => {
+ if (!isDirty) return
+ const handler = (e: BeforeUnloadEvent) => {
+ e.preventDefault()
+ e.returnValue = ""
+ }
+ window.addEventListener("beforeunload", handler)
+ return () => window.removeEventListener("beforeunload", handler)
+ }, [isDirty])
+
  const handleSubmit = async (e: React.FormEvent) => {
  e.preventDefault()
  setLoading(true)
@@ -281,6 +320,7 @@ export default function SettingsPage() {
  try {
  await api.put("/auth/profile", formData)
  await refreshUser()
+ setInitialFormData(formData)
  setMessage({ type: 'success', text: "Organization profile updated successfully" })
  } catch (error) {
  setMessage({ type: 'error', text: "Failed to update profile. Please try again." })
@@ -295,44 +335,51 @@ export default function SettingsPage() {
  }
 
  return (
- <div className="min-h-screen bg-background p-6">
- <div className="w-full mx-auto space-y-6">
+ <div className="min-h-screen bg-sidebar">
+ <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 space-y-8">
  {/* Page Header */}
  <div>
- <h1 className="text-2xl text-foreground tracking-tight">Organization Settings</h1>
- <p className="text-sm text-muted-foreground mt-1">Manage your company profile and compliance documents</p>
+ <h1 className="text-2xl font-semibold text-foreground tracking-tight">Organization Settings</h1>
+ <p className="text-sm text-muted-foreground mt-1">Manage your company profile, compliance documents, and data access.</p>
  </div>
 
- {/* Settings Tabs */}
- <div className="flex gap-1 bg-muted p-1">
- {[
- { id: 'profile' as const, label: 'Profile' },
- { id: 'compliance' as const, label: 'India Compliance' },
- { id: 'privacy' as const, label: 'Data Privacy' },
- { id: 'tokens' as const, label: 'API Tokens' },
- { id: 'suppliers' as const, label: 'Suppliers' },
- ].map(tab => (
+ <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+ {/* Settings navigation */}
+ <nav className="h-max lg:sticky lg:top-6 flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+ {SETTINGS_TABS.map(tab => {
+ const Icon = tab.icon
+ const active = activeSettingsTab === tab.id
+ return (
  <button
  key={tab.id}
  type="button"
  onClick={() => setActiveSettingsTab(tab.id)}
- className={`flex-1 px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
- activeSettingsTab === tab.id
- ? 'bg-transparent text-foreground shadow-none'
- : 'text-muted-foreground hover:text-foreground'
- }`}
+ aria-current={active ? 'page' : undefined}
+ className={cn(
+ "group flex shrink-0 items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors lg:w-full",
+ active
+ ? "bg-muted text-foreground shadow-sm ring-1 ring-border"
+ : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+ )}
  >
- {tab.label}
+ <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+ <span className="min-w-0">
+ <span className="block text-sm font-medium whitespace-nowrap">{tab.label}</span>
+ <span className="hidden lg:block text-xs text-muted-foreground">{tab.desc}</span>
+ </span>
  </button>
- ))}
- </div>
+ )
+ })}
+ </nav>
 
+ {/* Settings content */}
+ <div className="min-w-0 space-y-6">
  <form onSubmit={handleSubmit} className="space-y-6">
  {activeSettingsTab === 'profile' && (<>
  {/* Company Profile Card */}
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-blue-500/10 border border-blue-100">
+ <div className="p-2 rounded bg-blue-500/10">
  <Building2 className="h-5 w-5 text-blue-500" />
  </div>
  <div>
@@ -441,19 +488,20 @@ export default function SettingsPage() {
  </label>
  <div className="flex items-start gap-4">
  {/* Logo Preview */}
- <div className="relative h-20 w-20 border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+ <div className="relative h-24 w-24 rounded-lg border border-dashed border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
  {formData.logo_url && !logoError ? (
  <Image
  src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
  alt="Company logo"
  fill
- sizes="80px"
- className="object-contain"
+ sizes="96px"
+ className="object-contain p-1"
  onError={() => setLogoError(true)}
  />
  ) : null}
- <div className={`flex flex-col items-center justify-center text-muted-foreground ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
- <ImageIcon className="h-8 w-8" />
+ <div className={`flex flex-col items-center justify-center gap-1 text-muted-foreground ${formData.logo_url && !logoError ? 'hidden' : ''}`}>
+ <ImageIcon className="h-7 w-7" />
+ <span className="text-[10px]">No logo</span>
  </div>
  </div>
 
@@ -476,9 +524,9 @@ export default function SettingsPage() {
 
  {activeSettingsTab === 'compliance' && (<>
  {/* India Compliance Vault Card */}
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-emerald-500/10 border border-emerald-100">
+ <div className="p-2 rounded bg-emerald-500/10">
  <ShieldCheck className="h-5 w-5 text-emerald-500" />
  </div>
  <div>
@@ -535,22 +583,22 @@ export default function SettingsPage() {
 
  <div className="p-6 grid gap-6 md:grid-cols-2">
  {/* EPR Registration Number */}
- <div className={`space-y-2 p-3 rounded border ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <div className={`space-y-2 p-3 rounded border ${formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
  <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  EPR Registration Number
- {formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) && (
+ {formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) && (
  <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
  <AlertTriangle className="h-3 w-3" />
  Certificate required
  </span>
  )}
- {formData.epr_registration_number?.trim() && isCertValid(certificatePaths.epr_status) && getFieldStatusBadge(certificatePaths.epr_status)}
+ {formData.epr_registration_number?.trim() && isCertSubmitted(certificatePaths.epr_status) && getFieldStatusBadge(certificatePaths.epr_status)}
  </label>
  <div className="relative">
  <FileCheck className="absolute left-3 top-2.5 h-4 w-4 text-emerald-500" />
  <input
  type="text"
- className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.epr_registration_number?.trim() && !isCertValid(certificatePaths.epr_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-emerald-500'}`}
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${formData.epr_registration_number?.trim() && !isCertSubmitted(certificatePaths.epr_status) ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-emerald-500'}`}
  placeholder="EPR/B/2024/XXXX"
  value={formData.epr_registration_number}
  onChange={(e) => setFormData({ ...formData, epr_registration_number: e.target.value })}
@@ -566,16 +614,16 @@ export default function SettingsPage() {
  </div>
 
  {/* BIS R-Number */}
- <div className={`space-y-2 p-3 rounded border ${formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
+ <div className={`space-y-2 p-3 rounded border ${formData.bis_r_number?.trim() && !isCertSubmitted(certificatePaths.bis_status) ? 'border-red-500/30 bg-red-500/5' : 'border-transparent'}`}>
  <label className="text-sm font-medium leading-none text-foreground flex items-center gap-2">
  BIS R-Number (IS 16046)
- {formData.bis_r_number?.trim() && !isCertValid(certificatePaths.bis_status) && (
+ {formData.bis_r_number?.trim() && !isCertSubmitted(certificatePaths.bis_status) && (
  <span className="inline-flex items-center gap-1 text-xs text-red-400 font-normal">
  <AlertTriangle className="h-3 w-3" />
  Certificate required
  </span>
  )}
- {formData.bis_r_number?.trim() && isCertValid(certificatePaths.bis_status) && getFieldStatusBadge(certificatePaths.bis_status)}
+ {formData.bis_r_number?.trim() && isCertSubmitted(certificatePaths.bis_status) && getFieldStatusBadge(certificatePaths.bis_status)}
  </label>
  <div className="relative">
  <ShieldCheck className="absolute left-3 top-2.5 h-4 w-4 text-blue-500" />
@@ -621,7 +669,7 @@ export default function SettingsPage() {
  <label className="text-sm font-medium leading-none text-foreground">
  PLI Scheme Certificate
  </label>
- <div className="p-3 border border-border bg-background">
+ <div className="p-3 rounded-md bg-background">
  <p className="text-xs text-muted-foreground mb-2">
  Upload your Production Linked Incentive (PLI) scheme eligibility certificate.
  </p>
@@ -670,12 +718,24 @@ export default function SettingsPage() {
  <Hash className="absolute left-3 top-2.5 h-4 w-4 text-orange-500" />
  <input
  type="text"
- className="flex h-9 w-full border border-border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 font-mono disabled:cursor-not-allowed disabled:opacity-50"
+ className={`flex h-9 w-full border bg-transparent px-3 py-1 pl-9 text-sm text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 font-mono disabled:cursor-not-allowed disabled:opacity-50 ${factoryCodeError ? 'border-red-400 focus-visible:ring-red-400' : 'border-border focus-visible:ring-orange-500'}`}
  placeholder='[{"code":"01","name":"Pune Plant"},{"code":"02","name":"Chennai Plant"}]'
  value={formData.morth_factory_codes}
- onChange={(e) => setFormData({ ...formData, morth_factory_codes: e.target.value })}
+ onChange={(e) => {
+ const val = e.target.value
+ try {
+ if (val.trim()) JSON.parse(val)
+ setFactoryCodeError(false)
+ } catch {
+ setFactoryCodeError(true)
+ }
+ setFormData({ ...formData, morth_factory_codes: val })
+ }}
  />
  </div>
+ {factoryCodeError && (
+ <p className="text-xs text-red-400">Invalid JSON format</p>
+ )}
  <p className="text-xs text-muted-foreground">JSON array of 2-char factory codes used in the BI section of BPAN. E.g. <code className="bg-muted px-1 rounded">&#91;&#123;&quot;code&quot;:&quot;01&quot;,&quot;name&quot;:&quot;Pune Plant&quot;&#125;&#93;</code></p>
  </div>
  </div>
@@ -683,11 +743,11 @@ export default function SettingsPage() {
  </div>
  </>)}
 
- {/* EU Compliance Contact Card */}
- {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
- <div className="relative bg-transparent border border-border overflow-visible"><div className="border-b border-border px-6 py-4">
+ {/* EU Authorized Representative Card — own tab, separate from India Compliance */}
+ {activeSettingsTab === 'eu-compliance' && (
+ <div className="relative bg-muted border border-border rounded-lg overflow-visible"><div className="border-b border-border px-6 py-4">
  <div className="flex items-center gap-3">
- <div className="p-2 bg-indigo-500/10 border border-indigo-100">
+ <div className="p-2 rounded bg-indigo-500/10">
  <Globe className="h-5 w-5 text-indigo-600" />
  </div>
  <div>
@@ -805,17 +865,21 @@ export default function SettingsPage() {
  )}
 
  {/* Save All Settings */}
- {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance') && (
- <div className="sticky bottom-0 bg-background border-t border-border -mx-6 px-6 py-4 mt-0 flex items-center justify-between">
+ {(activeSettingsTab === 'profile' || activeSettingsTab === 'compliance' || activeSettingsTab === 'eu-compliance') && (
+ <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-lg border border-border bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
  {message && (
  <p className={`text-sm ${message.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
  {message.text}
  </p>
  )}
+ {!message && isDirty && (
+ <span className="text-amber-500 text-xs">Unsaved changes</span>
+ )}
  <div className="ml-auto">
  <button
  type="submit"
- disabled={loading}
+ disabled={loading || factoryCodeError}
+ title={factoryCodeError ? "Fix the invalid Factory Codes JSON before saving" : undefined}
  className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
  >
  {loading ? (
@@ -835,10 +899,8 @@ export default function SettingsPage() {
  {activeSettingsTab === 'tokens' && (
  <DataAccessTokens />
  )}
-
- {activeSettingsTab === 'suppliers' && (
- <SuppliersTab />
- )}
+ </div>
+ </div>
  </div>
  </div>
  )

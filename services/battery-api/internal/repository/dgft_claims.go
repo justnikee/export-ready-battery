@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -95,6 +96,47 @@ func (r *Repository) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUI
 	return claim, nil
 }
 
+// GetLatestDGFTClaimByBatch returns the most recently created DGFT claim filed
+// against a batch, if any — used by the PLI claim packet generator to include
+// the export-incentive claim alongside the DVA/compliance documents.
+func (r *Repository) GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error) {
+	query := `SELECT id, tenant_id, batch_id, scheme_type, status, claim_period_start, claim_period_end,
+		hsn_code, destination_country, export_value_inr, export_quantity,
+		estimated_claim_amount, approved_claim_amount, documents, generated_files,
+		dgft_reference_no, notes, created_at, updated_at
+		FROM dgft_claims WHERE batch_id = $1 AND tenant_id = $2
+		ORDER BY created_at DESC LIMIT 1`
+
+	claim := &models.DGFTClaim{}
+	var docsRaw []byte
+	var approvedAmt *float64
+	var batchIDCol *uuid.UUID
+
+	err := r.db.Pool.QueryRow(ctx, query, batchID, tenantID).Scan(
+		&claim.ID, &claim.TenantID, &batchIDCol, &claim.SchemeType, &claim.Status,
+		&claim.ClaimPeriodStart, &claim.ClaimPeriodEnd,
+		&claim.HSNCode, &claim.DestinationCountry, &claim.ExportValueINR, &claim.ExportQuantity,
+		&claim.EstimatedClaimAmount, &approvedAmt, &docsRaw, &claim.GeneratedFiles,
+		&claim.DGFTReferenceNo, &claim.Notes, &claim.CreatedAt, &claim.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest dgft claim for batch: %w", err)
+	}
+
+	if batchIDCol != nil {
+		s := batchIDCol.String()
+		claim.BatchID = &s
+	}
+	claim.ApprovedClaimAmount = approvedAmt
+	if len(docsRaw) > 0 {
+		_ = json.Unmarshal(docsRaw, &claim.Documents)
+	}
+	return claim, nil
+}
+
 func (r *Repository) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error {
 	docs, err := json.Marshal(claim.Documents)
 	if err != nil {
@@ -132,7 +174,7 @@ func (r *Repository) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID
 	return nil
 }
 
-func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) {
 	where := "tenant_id = $1"
 	args := []any{tenantID}
 	argIdx := 2
@@ -145,6 +187,11 @@ func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.U
 	if status != "" {
 		where += fmt.Sprintf(" AND status = $%d", argIdx)
 		args = append(args, status)
+		argIdx++
+	}
+	if search != "" {
+		where += fmt.Sprintf(" AND (hsn_code ILIKE $%d OR destination_country ILIKE $%d OR dgft_reference_no ILIKE $%d)", argIdx, argIdx, argIdx)
+		args = append(args, "%"+search+"%")
 		argIdx++
 	}
 

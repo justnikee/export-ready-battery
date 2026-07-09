@@ -129,6 +129,16 @@ func (r *Repository) GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUI
 	return member, nil
 }
 
+// GetUserIDByEmail returns the identity (users.id) for an email, if one exists.
+func (r *Repository) GetUserIDByEmail(ctx context.Context, email string) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := r.db.Pool.QueryRow(ctx, `SELECT id FROM public.users WHERE email = $1`, email).Scan(&id)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	return id, nil
+}
+
 // UpdateTeamMemberStatus updates the status of a team member
 func (r *Repository) UpdateTeamMemberStatus(ctx context.Context, id uuid.UUID, status string, userID *uuid.UUID) error {
 	var query string
@@ -224,4 +234,25 @@ func (r *Repository) GetPendingInvitesByEmail(ctx context.Context, email string)
 	}
 
 	return invites, nil
+}
+
+// CreateTeamAuditLog inserts a new team action/change audit log entry.
+func (r *Repository) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error {
+	query := `INSERT INTO public.team_audit_log (id, tenant_id, actor_email, subject_email, action, old_role, new_role, created_at)
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+	_, err := r.db.Pool.Exec(ctx, query,
+		log.ID,
+		log.TenantID,
+		log.ActorEmail,
+		log.SubjectEmail,
+		log.Action,
+		log.OldRole,
+		log.NewRole,
+		log.CreatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create team audit log: %w", err)
+	}
+	return nil
 }

@@ -1,5 +1,10 @@
-import CorrectiveActionsDashboard from "@/components/due-diligence/corrective-actions-dashboard";
+import DueDiligencePage from "@/components/due-diligence/battery-due-diligence-page";
+import { FeatureGate } from "@/components/billing/feature-gate";
 
-export default function DueDiligencePage() {
-  return <CorrectiveActionsDashboard />;
+export default function Page() {
+  return (
+    <FeatureGate feature="due_diligence">
+      <DueDiligencePage />
+    </FeatureGate>
+  );
 }

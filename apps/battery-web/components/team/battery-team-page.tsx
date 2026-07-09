@@ -31,7 +31,7 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-sidebar flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
       </div>
     );
@@ -53,7 +53,7 @@ export default function TeamPage() {
   const usagePercent = (seat_count / seat_limit) * 100;
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
@@ -71,12 +71,12 @@ export default function TeamPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Plan Usage Card */}
-          <div className="md:col-span-2 bg-transparent border border-border p-6 relative overflow-visible"><div className="absolute top-0 right-0 p-4 opacity-5">
+          <div className="md:col-span-2 bg-muted rounded-md p-6 relative overflow-visible"><div className="absolute top-0 right-0 p-4 opacity-5">
               <Users className="h-32 w-32 text-foreground" />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-500/10 border border-amber-500/20">
+                <div className="p-2 rounded bg-amber-500/10">
                   <Crown className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
@@ -103,7 +103,7 @@ export default function TeamPage() {
               </div>
 
               {plan_type === "STARTER" && (
-                <div className="mt-4 flex items-center gap-2 text-sm text-blue-500 bg-blue-500/10 p-3 border border-blue-500/20">
+                <div className="mt-4 flex items-center gap-2 text-sm text-blue-500 bg-blue-500/10 rounded-md p-3">
                   <CheckCircle2 className="h-4 w-4 shrink-0" />
                   Upgrade to Growth to invite up to 10 members.
                 </div>
@@ -112,7 +112,7 @@ export default function TeamPage() {
           </div>
 
           {/* Total Members Card */}
-          <div className="relative bg-transparent border border-border p-6"><div className="flex items-center justify-between mb-3">
+          <div className="relative bg-muted rounded-md p-6"><div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total Members
               </span>
@@ -128,12 +128,12 @@ export default function TeamPage() {
         </div>
 
         {/* Team Members Table */}
-        <div className="relative bg-transparent border border-border overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="relative bg-muted rounded-md overflow-visible"><div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-base font-medium text-foreground">
                 Team Members
               </h3>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-foreground border border-border">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-background text-foreground">
                 {members.length} Users
               </span>
             </div>

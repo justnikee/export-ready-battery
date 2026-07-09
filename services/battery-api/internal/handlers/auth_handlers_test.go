@@ -304,9 +304,10 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	authService := newTestAuthService()
 
 	tenantID := uuid.New().String()
+	userID := uuid.New().String()
 	email := "test@example.com"
 
-	token, err := authService.GenerateToken(tenantID, email, "owner", models.ProductTypeBattery)
+	token, err := authService.GenerateToken(tenantID, userID, email, "OWNER", models.ProductTypeBattery)
 	if err != nil {
 		t.Fatalf("Failed to generate token: %v", err)
 	}
@@ -329,8 +330,11 @@ func TestAuthService_GenerateToken(t *testing.T) {
 	if claims.Email != email {
 		t.Errorf("Expected email %s, got %s", email, claims.Email)
 	}
-	if claims.Role != "owner" {
-		t.Errorf("Expected role 'owner', got %s", claims.Role)
+	if claims.Role != "OWNER" {
+		t.Errorf("Expected role 'OWNER', got %s", claims.Role)
+	}
+	if claims.UserID != userID {
+		t.Errorf("Expected user ID %s, got %s", userID, claims.UserID)
 	}
 	if claims.ProductType != models.ProductTypeBattery {
 		t.Errorf("Expected product type %s, got %s", models.ProductTypeBattery, claims.ProductType)
@@ -342,9 +346,10 @@ func TestAuthService_GenerateRefreshToken(t *testing.T) {
 	authService := newTestAuthService()
 
 	tenantID := uuid.New().String()
+	userID := uuid.New().String()
 	email := "test@example.com"
 
-	refreshToken, jti, err := authService.GenerateRefreshToken(tenantID, email, "owner", models.ProductTypeBattery)
+	refreshToken, jti, err := authService.GenerateRefreshToken(tenantID, userID, email, "OWNER", models.ProductTypeBattery)
 	if err != nil {
 		t.Fatalf("Failed to generate refresh token: %v", err)
 	}

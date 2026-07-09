@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   Loader2,
   ChevronDown,
+  Link2,
 } from "lucide-react";
 import {
   listCertificates,
@@ -32,14 +33,12 @@ import {
   type CreateEPRCertificateRequest,
   type EPRObligation,
 } from "@/lib/api/epr";
-import {
-  getComplianceDeadlines,
-  type ComplianceDeadline,
-} from "@/lib/api/compliance";
 import { useAuth } from "@/context/auth-context";
 import { dashboardPathFromPathname } from "@/lib/routes";
+import AnchorsTab from "@/components/settings/compliance-anchors-tab";
+import { CertExpiryBanner } from "@/components/settings/CertExpiryBanner";
 
-type Tab = "overview" | "certificates" | "bis" | "export" | "eu";
+type Tab = "overview" | "certificates" | "export" | "anchors";
 
 // ============================================================================
 // MAIN PAGE
@@ -59,18 +58,17 @@ export default function CompliancePage() {
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "overview", label: "EPR Obligations", icon: TrendingUp },
     { id: "certificates", label: "Certificate Ledger", icon: Shield },
-    { id: "bis", label: "BIS Tracker", icon: Shield },
     { id: "export", label: "CPCB Export", icon: FileSpreadsheet },
-    { id: "eu", label: "EU Regulation", icon: CheckCircle2 },
+    { id: "anchors", label: "Blockchain Anchors", icon: Link2 },
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
         <div>
           <h1 className="text-2xl text-foreground tracking-tight">
-            India Compliance Hub
+            India Compliance
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             BIS, EPR &amp; PLI compliance tracking for Indian battery
@@ -80,7 +78,7 @@ export default function CompliancePage() {
 
         {/* EPR Registration Banner */}
         {!eprRegistered && (
-          <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-3 p-4 rounded-md bg-amber-500/10">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
             <div>
               <p className="text-sm font-medium text-amber-800">
@@ -100,8 +98,11 @@ export default function CompliancePage() {
           </div>
         )}
 
+        {/* Certificate Expiry Warning */}
+        <CertExpiryBanner />
+
         {/* India Compliance Readiness */}
-        <div className="relative bg-transparent border border-border p-5"><div className="flex items-center justify-between mb-4">
+        <div className="relative bg-muted rounded-md p-5"><div className="flex items-center justify-between mb-4">
             <h3 className="text-sm text-foreground">Compliance Readiness</h3>
             <Link
               href={settingsHref}
@@ -197,9 +198,8 @@ export default function CompliancePage() {
         {/* Tab Content */}
         {activeTab === "overview" && <OverviewTab />}
         {activeTab === "certificates" && <CertificatesTab />}
-        {activeTab === "bis" && <BISTrackerTab />}
         {activeTab === "export" && <ExportTab />}
-        {activeTab === "eu" && <EURegulationTab />}
+        {activeTab === "anchors" && <AnchorsTab />}
       </div>
     </div>
   );
@@ -241,7 +241,7 @@ function OverviewTab() {
       {obligations.map((ob) => (
         <div
           key={ob.id}
-          className="relative bg-transparent border border-border p-6"
+          className="relative bg-muted rounded-md p-6"
         ><div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <h3 className="text-lg text-foreground">
@@ -392,7 +392,12 @@ function CertificatesTab() {
   const totalWeight = activeCerts.reduce((sum, c) => sum + c.weight_kg, 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* BIS CRS registration status — merged into this tab so certification
+          status and the EPR recycler ledger live in one place */}
+      <BISTrackerTab />
+
+      <div className="border-t border-border pt-6 space-y-4">
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -442,8 +447,8 @@ function CertificatesTab() {
       ) : certificates.length === 0 ? (
         <EmptyState message="No certificates for this financial year" />
       ) : (
-        <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
-            <thead className="bg-muted border-b border-border">
+        <div className="relative bg-muted rounded-md overflow-visible"><table className="w-full">
+            <thead className="bg-background">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Certificate
@@ -526,6 +531,7 @@ function CertificatesTab() {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -553,7 +559,7 @@ function ExportTab() {
   };
 
   return (
-    <div className="relative bg-transparent border border-border p-8"><div className="max-w-lg mx-auto text-center space-y-6">
+    <div className="relative bg-muted rounded-md p-8"><div className="max-w-lg mx-auto text-center space-y-6">
         <div className="p-4 bg-emerald-500/10 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
           <FileSpreadsheet className="w-8 h-8 text-emerald-500" />
         </div>
@@ -658,7 +664,7 @@ function CertificateForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative bg-transparent border border-border p-6 space-y-4"
+      className="relative bg-muted rounded-md p-6 space-y-4"
     ><h4 className="text-sm text-foreground">Add EPR Certificate</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
@@ -703,7 +709,7 @@ function CertificateForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground border border-border hover:bg-accent transition-colors"
+          className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-md hover:bg-accent transition-colors"
         >
           Cancel
         </button>
@@ -737,7 +743,7 @@ function BISTrackerTab() {
   return (
     <div className="space-y-6">
       {/* BIS Status Card */}
-      <div className="relative bg-transparent border border-border p-6"><h3 className="text-base text-foreground mb-4">
+      <div className="relative bg-muted rounded-md p-6"><h3 className="text-base text-foreground mb-4">
           BIS CRS Registration â€” IS 16046
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -752,14 +758,14 @@ function BISTrackerTab() {
               Certificate Status
             </p>
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                 bisStatus === "VERIFIED"
-                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                  ? "bg-emerald-500/10 text-emerald-500"
                   : bisStatus === "PENDING"
-                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                    ? "bg-amber-500/10 text-amber-500"
                     : bisStatus === "REJECTED"
-                      ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                      : "bg-muted text-muted-foreground border border-border"
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground"
               }`}
             >
               {bisStatus === "VERIFIED"
@@ -775,7 +781,7 @@ function BISTrackerTab() {
       </div>
 
       {/* BIS Requirements Checklist */}
-      <div className="relative bg-transparent border border-border"><div className="px-6 py-4 border-b border-border">
+      <div className="relative bg-muted rounded-md"><div className="px-6 py-4 border-b border-border">
           <h3 className="text-sm text-foreground">
             IS 16046 Requirements Checklist
           </h3>
@@ -932,245 +938,6 @@ function StatCard({
   );
 }
 
-// ============================================================================
-// EU REGULATION TAB
-// ============================================================================
-
-interface EUAttr {
-  id: string;
-  name: string;
-  category: string;
-  reg_ref: string;
-  filled: boolean;
-}
-
-interface EUScoreResult {
-  batch_id: string;
-  score: number;
-  filled: number;
-  total: number;
-  attributes: EUAttr[];
-}
-
-function EURegulationTab() {
-  const [batches, setBatches] = useState<
-    {
-      id: string;
-      batch_name: string;
-      model_name: string;
-      market_region: string;
-      status: string;
-    }[]
-  >([]);
-  const [selectedBatch, setSelectedBatch] = useState("");
-  const [scoreResult, setScoreResult] = useState<EUScoreResult | null>(null);
-  const [deadlines, setDeadlines] = useState<ComplianceDeadline[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [batchesRes, deadlinesRes] = await Promise.all([
-          api.get("/batches").catch(() => ({ data: { batches: [] } })),
-          getComplianceDeadlines("battery", "eu").catch(() => ({ deadlines: [], count: 0 })),
-        ]);
-        const allBatches = batchesRes.data.batches || [];
-        const euBatches = allBatches.filter(
-          (b: { market_region: string; status: string }) =>
-            (b.market_region === "EU" || b.market_region === "GLOBAL") &&
-            b.status === "ACTIVE",
-        );
-        setBatches(euBatches);
-        if (euBatches.length > 0) setSelectedBatch(euBatches[0].id);
-        setDeadlines(deadlinesRes.deadlines || []);
-      } catch {
-        console.warn("Failed to fetch EU regulation data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedBatch) return;
-    const fetchScore = async () => {
-      try {
-        const res = await api.get<EUScoreResult>(
-          `/batches/${selectedBatch}/eu-attribute-score`,
-        );
-        setScoreResult(res.data);
-      } catch {
-        setScoreResult(null);
-      }
-    };
-    fetchScore();
-  }, [selectedBatch]);
-
-  const categories = scoreResult?.attributes
-    ? Array.from(new Set(scoreResult.attributes.map((a) => a.category)))
-    : [];
-
-  const formatDeadlineDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (batches.length === 0) {
-    return (
-      <div className="relative text-center py-12 bg-transparent border border-border"><Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">
-          No EU/GLOBAL active batches found
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Create a batch with EU or GLOBAL market region to see EU compliance
-          data
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Batch Selector */}
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-foreground">Batch:</label>
-        <select
-          value={selectedBatch}
-          onChange={(e) => setSelectedBatch(e.target.value)}
-          className="border border-border px-3 py-2 text-sm flex-1 max-w-xs"
-        >
-          {batches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.batch_name || b.model_name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Score Overview */}
-      {scoreResult && (
-        <div className="relative bg-transparent border border-border p-6"><div className="flex items-center gap-6 mb-4">
-            <div
-              className={`text-4xl ${
-                scoreResult.score >= 80
-                  ? "text-emerald-500"
-                  : scoreResult.score >= 50
-                    ? "text-amber-500"
-                    : "text-red-500"
-              }`}
-            >
-              {Math.round(scoreResult.score)}%
-            </div>
-            <div>
-              <p className="text-foreground font-medium">
-                EU BatteryPass Attribute Coverage
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {scoreResult.filled} of {scoreResult.total} mandatory attributes
-                filled
-              </p>
-            </div>
-          </div>
-          <div className="w-full bg-muted rounded-full h-3">
-            <div
-              className={`h-3 rounded-full transition-all ${
-                scoreResult.score >= 80
-                  ? "bg-emerald-500"
-                  : scoreResult.score >= 50
-                    ? "bg-amber-500"
-                    : "bg-red-500"
-              }`}
-              style={{ width: `${scoreResult.score}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Attribute Checklist by Category */}
-      {scoreResult &&
-        categories.map((cat) => {
-          const attrs = scoreResult.attributes.filter(
-            (a) => a.category === cat,
-          );
-          const filledCount = attrs.filter((a) => a.filled).length;
-          return (
-            <div
-              key={cat}
-              className="relative bg-transparent border border-border"
-            ><div className="px-5 py-3 border-b border-border flex items-center justify-between">
-                <h3 className="text-sm font-medium text-foreground">{cat}</h3>
-                <span
-                  className={`text-xs font-medium ${filledCount === attrs.length ? "text-emerald-500" : "text-amber-500"}`}
-                >
-                  {filledCount}/{attrs.length}
-                </span>
-              </div>
-              <div className="divide-y divide-border">
-                {attrs.map((attr) => (
-                  <div
-                    key={attr.id}
-                    className="px-5 py-2.5 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      {attr.filled ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-400 shrink-0" />
-                      )}
-                      <span className="text-sm text-foreground">
-                        {attr.name}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {attr.reg_ref}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-
-      {/* EU Deadlines */}
-      <div className="relative bg-transparent border border-border p-5"><h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          EU Battery Regulation Deadlines
-        </h3>
-        <div className="space-y-3">
-          {deadlines.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Loading regulatory deadlines...</p>
-          ) : (
-            deadlines.map((d) => (
-              <div key={d.id} className="flex items-start gap-3">
-                <span className="text-xs text-foreground bg-muted px-2 py-1 rounded whitespace-nowrap">
-                  {formatDeadlineDate(d.deadline_date)}
-                </span>
-                <div>
-                  <span className="text-sm text-foreground font-medium">{d.label}</span>
-                  <p className="text-xs text-muted-foreground">{d.description}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: string }) {
   const map: Record<
     string,
@@ -1235,13 +1002,8 @@ function LoadingState() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
-        <div className="p-4 bg-muted rounded-full mb-4">
-          <Shield className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-1">No Data</h3>
-        <p className="text-sm text-muted-foreground">{message}</p>
-      </div>
+    <div className="relative bg-muted rounded-md p-6 text-center text-sm text-muted-foreground">
+      {message}
     </div>
   );
 }

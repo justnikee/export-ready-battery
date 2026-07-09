@@ -110,10 +110,11 @@ func (h *Handler) ListDGFTClaims(w http.ResponseWriter, r *http.Request) {
 
 	schemeType := r.URL.Query().Get("scheme_type")
 	status := r.URL.Query().Get("status")
+	search := r.URL.Query().Get("search")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 
-	claims, total, err := h.repo.ListDGFTClaimsByTenant(r.Context(), tenantID, schemeType, status, page, pageSize)
+	claims, total, err := h.repo.ListDGFTClaimsByTenant(r.Context(), tenantID, schemeType, status, search, page, pageSize)
 	if err != nil {
 		slog.Error("failed to list dgft claims", "error", err)
 		respondError(w, http.StatusInternalServerError, "failed to list claims")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm, useWatch, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +36,7 @@ import {
   deleteDraftSlot,
 } from "@/lib/batch-draft";
 import { BatchEntryModal, type EntryChoice } from "@/components/batches/batch-entry-modal";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { StepIdentity } from "@/components/batches/batch-form-steps/step-identity";
 import { StepSpecs } from "@/components/batches/batch-form-steps/step-specs";
 import { StepCompliance } from "@/components/batches/batch-form-steps/step-compliance";
@@ -71,10 +72,35 @@ function getStepForField(field: string): number {
   return 1;
 }
 
+// English step label/description → translation key, for STEPS below.
+// Kept as a lookup (rather than translating STEPS itself) so STEPS can stay
+// a plain module-level const — translation only happens at render time,
+// inside the component, where the locale hook is available.
+const STEP_LABEL_KEYS: Record<string, string> = {
+  Core: "wizard_step_core",
+  Compliance: "wizard_step_compliance",
+  Review: "wizard_step_review",
+};
+const STEP_DESC_KEYS: Record<string, string> = {
+  "Identity & specs": "wizard_step_core_desc",
+  "Market-specific rules": "wizard_step_compliance_desc",
+  "Verify & submit": "wizard_step_review_desc",
+};
+
 export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLocale();
+  const translatedSteps = useMemo(
+    () =>
+      STEPS.map((s) => ({
+        ...s,
+        label: STEP_LABEL_KEYS[s.label] ? t(STEP_LABEL_KEYS[s.label]) : s.label,
+        description: STEP_DESC_KEYS[s.description] ? t(STEP_DESC_KEYS[s.description]) : s.description,
+      })),
+    [t],
+  );
   const [entryOpen, setEntryOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -243,8 +269,17 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       if (data.dvaSource === "AUDITED") {
         payload.audited_domestic_value_add = parseFloat(data.auditedDva) || 0;
       } else {
-        (payload.specs as Record<string, unknown>).sale_price_inr = parseFloat(data.salePrice) || 0;
-        (payload.specs as Record<string, unknown>).import_cost_inr = parseFloat(data.importCost) || 0;
+        const specs = payload.specs as Record<string, unknown>;
+        specs.sale_price_inr = parseFloat(data.salePrice) || 0;
+        specs.cell_cost_imported_inr = parseFloat(data.cellCostImported) || 0;
+        specs.cell_cost_domestic_inr = parseFloat(data.cellCostDomestic) || 0;
+        specs.bms_cost_imported_inr = parseFloat(data.bmsCostImported) || 0;
+        specs.bms_cost_domestic_inr = parseFloat(data.bmsCostDomestic) || 0;
+        specs.casing_cost_imported_inr = parseFloat(data.casingCostImported) || 0;
+        specs.casing_cost_domestic_inr = parseFloat(data.casingCostDomestic) || 0;
+        specs.labour_overhead_cost_inr = parseFloat(data.labourOverheadCost) || 0;
+        // The backend recomputes domestic_value_add from the breakdown above
+        // server-side — never trust a client-computed % for a PLI-audit number.
         payload.domestic_value_add = 0;
       }
       payload.cell_source = data.cellSource || undefined;
@@ -386,7 +421,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     control,
     name: [
       "batchName", "marketRegion", "cellSource", "hsnCode", "billOfEntryNo",
-      "cellCountryOfOrigin", "customsDate", "salePrice", "importCost",
+      "cellCountryOfOrigin", "customsDate", "salePrice",
+      "cellCostImported", "cellCostDomestic", "bmsCostImported", "bmsCostDomestic",
+      "casingCostImported", "casingCostDomestic", "labourOverheadCost",
       "dvaSource", "auditedDva", "pliCompliant", "batteryCategory",
       "carbonFootprint", "expectedLifetime", "warrantyMonths",
       "manufacturingStartDate", "manufacturingEndDate",
@@ -488,7 +525,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     if (specs.bis_number) updates.bisNumber = specs.bis_number as string;
     if (specs.epr_number) updates.eprNumber = specs.epr_number as string;
     if (specs.sale_price_inr) updates.salePrice = (specs.sale_price_inr as number).toString();
-    if (specs.import_cost_inr) updates.importCost = (specs.import_cost_inr as number).toString();
+    if (specs.cell_cost_imported_inr) updates.cellCostImported = (specs.cell_cost_imported_inr as number).toString();
+    if (specs.cell_cost_domestic_inr) updates.cellCostDomestic = (specs.cell_cost_domestic_inr as number).toString();
+    if (specs.bms_cost_imported_inr) updates.bmsCostImported = (specs.bms_cost_imported_inr as number).toString();
+    if (specs.bms_cost_domestic_inr) updates.bmsCostDomestic = (specs.bms_cost_domestic_inr as number).toString();
+    if (specs.casing_cost_imported_inr) updates.casingCostImported = (specs.casing_cost_imported_inr as number).toString();
+    if (specs.casing_cost_domestic_inr) updates.casingCostDomestic = (specs.casing_cost_domestic_inr as number).toString();
+    if (specs.labour_overhead_cost_inr) updates.labourOverheadCost = (specs.labour_overhead_cost_inr as number).toString();
     if (specs.pli_compliant !== undefined) updates.pliCompliant = specs.pli_compliant as boolean;
     if (specs.dva_source) updates.dvaSource = specs.dva_source as "ESTIMATED" | "AUDITED";
     if (specs.audited_domestic_value_add !== undefined) updates.auditedDva = (specs.audited_domestic_value_add as number).toString();
@@ -605,9 +648,12 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
       setUploadProgress(70);
-      const { data: { publicUrl } } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
+      // Signed (not public) URL — compliance-docs holds BIS/EPR/PLI certs and
+      // must not be readable by anyone with just the URL.
+      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
+      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
       setUploadProgress(100);
-      setValue("uploadedFileUrl", publicUrl, { shouldValidate: true, shouldDirty: true });
+      setValue("uploadedFileUrl", signedData.signedUrl, { shouldValidate: true, shouldDirty: true });
       toast.success("Certificate uploaded successfully");
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -630,9 +676,10 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
       setUploadProgress(70);
-      const { data: { publicUrl } } = supabase.storage.from("compliance-docs").getPublicUrl(filePath);
+      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
+      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
       setUploadProgress(100);
-      setValue("docUploadUrl", publicUrl);
+      setValue("docUploadUrl", signedData.signedUrl);
       toast.success("Declaration of Conformity uploaded");
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -662,7 +709,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
           if (dvaSource === "AUDITED") {
             fields.push("auditedDva", "uploadedFileUrl");
           } else {
-            fields.push("salePrice", "importCost");
+            fields.push(
+              "salePrice",
+              "cellCostImported", "cellCostDomestic",
+              "bmsCostImported", "bmsCostDomestic",
+              "casingCostImported", "casingCostDomestic",
+              "labourOverheadCost",
+            );
           }
         }
       }
@@ -904,9 +957,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
               {/* Header */}
               <div className="flex items-center gap-3 border-b border-border px-6 h-14 shrink-0">
                 <div className="flex flex-col">
-                  <DialogTitle className="text-base">Create New Batch</DialogTitle>
+                  <DialogTitle className="text-base">{t("wizard_title")}</DialogTitle>
                   <DialogDescription className="text-xs">
-                    Step {step + 1} of {STEPS.length}: {STEPS[step].label} — {STEPS[step].description}
+                    Step {step + 1} of {STEPS.length}: {translatedSteps[step].label} — {translatedSteps[step].description}
                   </DialogDescription>
                 </div>
               </div>
@@ -915,14 +968,14 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
               <div className="flex flex-1 min-h-0">
                 {/* Left step rail (md+) */}
                 <div className="hidden md:block w-56 shrink-0 overflow-y-auto border-r border-border">
-                  <WizardStepRail steps={STEPS} current={step} onSelect={setStep} />
+                  <WizardStepRail steps={translatedSteps} current={step} onSelect={setStep} />
                 </div>
 
                 {/* Center column */}
                 <div className="flex-1 min-w-0 overflow-y-auto">
                   {/* Compact stepper (mobile) */}
                   <div className="md:hidden flex items-center gap-2 overflow-x-auto border-b border-border px-4 py-3">
-                    {STEPS.map((s, idx) => (
+                    {translatedSteps.map((s, idx) => (
                       <div key={s.id} className="flex shrink-0 items-center gap-2">
                         <span
                           className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium ${
@@ -987,7 +1040,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                 <div className="flex items-center gap-3">
                   <Button type="button" variant="outline" onClick={goBack} disabled={step === 0 || isLoading}>
                     <ChevronLeft className="mr-2 h-4 w-4" />
-                    Back
+                    {t("wizard_back")}
                   </Button>
                   <span className="text-xs text-muted-foreground hidden sm:inline">
                     {stepFieldCounts[step].label}
@@ -1002,16 +1055,16 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
                 <div className="flex items-center gap-3">
                   <Button type="button" variant="ghost" onClick={handleSaveAndExit} disabled={isLoading}>
-                    Save & Exit
+                    {t("wizard_save_exit")}
                   </Button>
                   {step < STEPS.length - 1 ? (
                     <Button type="button" onClick={goNext} disabled={isLoading}>
-                      Next: {STEPS[step + 1].label}
+                      {t("wizard_next")}: {translatedSteps[step + 1].label}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
                     <Button type="submit" disabled={isLoading || iecError}>
-                      {isLoading ? "Creating..." : "Create Batch"}
+                      {isLoading ? t("wizard_creating") : t("wizard_create_batch")}
                     </Button>
                   )}
                 </div>

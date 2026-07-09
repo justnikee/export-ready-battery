@@ -80,9 +80,9 @@ describe("StepCompliance", () => {
     await user.click(screen.getByText("Domestic Value Add"));
 
     formMethods.setValue("salePrice", "100");
-    formMethods.setValue("importCost", "100"); // DVA = 0% -> invalid
+    formMethods.setValue("cellCostImported", "100"); // all imported, 0 domestic -> DVA = 0% -> invalid
     await act(async () => {
-      await formMethods.trigger(["salePrice", "importCost"]);
+      await formMethods.trigger(["salePrice", "cellCostImported"]);
     });
 
     expect(
@@ -116,7 +116,8 @@ describe("StepCompliance", () => {
     await user.click(screen.getByText("Domestic Value Add"));
 
     formMethods.setValue("salePrice", "100");
-    formMethods.setValue("importCost", "60"); // DVA = 40% -> below the 50% PLI threshold
+    formMethods.setValue("cellCostDomestic", "40");
+    formMethods.setValue("cellCostImported", "60"); // DVA = 40% -> below the 50% PLI threshold
     formMethods.setValue("pliCompliant", true);
     await act(async () => {
       await formMethods.trigger(["pliCompliant"]);

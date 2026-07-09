@@ -13,6 +13,7 @@ import { useBatchDetail } from "./detail/hooks/useBatchDetail";
 import { BatchHeader } from "./detail/BatchHeader";
 import { BatchStatusCard } from "./detail/BatchStatusCard";
 import { BatchActions } from "./detail/BatchActions";
+import { SaveAsTemplateDialog } from "./detail/SaveAsTemplateDialog";
 import { ActivationChecklist } from "./detail/ActivationChecklist";
 import { OverviewTab } from "./detail/tabs/OverviewTab";
 import { PassportsTab } from "./detail/tabs/PassportsTab";
@@ -83,6 +84,9 @@ export default function BatchDetailsPage() {
     handleExportAuditCSV,
     handleExportDueDiligence,
     handleExportComplianceDeclaration,
+    handleExportEPCIS,
+    handleExportDVAReport,
+    handleExportPLIPacket,
     handleDownloadComplianceReport,
     handleActivateBatch,
     handleArchiveBatch,
@@ -98,6 +102,7 @@ export default function BatchDetailsPage() {
 
   // Tab state stays local for now
   const [activeTab, setActiveTab] = useState<LegacyTab>("overview");
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   // Keyboard shortcuts for tab navigation
   useEffect(() => {
@@ -141,7 +146,7 @@ export default function BatchDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* ── NEW HEADER ── */}
         <div className="flex items-start justify-between gap-4">
@@ -171,8 +176,12 @@ export default function BatchDetailsPage() {
               onDownloadComplianceReport={handleDownloadComplianceReport}
               onExportComplianceDeclaration={handleExportComplianceDeclaration}
               onExportDueDiligence={handleExportDueDiligence}
+              onExportEPCIS={handleExportEPCIS}
+              onExportDVAReport={handleExportDVAReport}
+              onExportPLIPacket={handleExportPLIPacket}
               onArchive={() => setConfirmArchive(true)}
               onDeleteDraft={() => setConfirmDelete(true)}
+              onSaveAsTemplate={() => setSaveTemplateOpen(true)}
             />
           </div>
         </div>
@@ -211,7 +220,7 @@ export default function BatchDetailsPage() {
         )}
 
         {/* ── TABS ── */}
-        <div className="relative bg-transparent border border-border">
+        <div className="relative bg-muted rounded-md">
           <div className="flex border-b border-border px-4">
             {[
               { id: "overview", label: "Overview" },
@@ -289,6 +298,7 @@ export default function BatchDetailsPage() {
               <DownloadsTab
                 isDraft={isDraft}
                 isEU={isEU}
+                isIndia={isIndia}
                 isGlobal={isGlobal}
                 hasCarbonFootprint={
                   !!batch.carbon_footprint_result &&
@@ -301,6 +311,9 @@ export default function BatchDetailsPage() {
                 onDownloadComplianceReport={handleDownloadComplianceReport}
                 onExportComplianceDeclaration={handleExportComplianceDeclaration}
                 onExportDueDiligence={handleExportDueDiligence}
+                onExportEPCIS={handleExportEPCIS}
+                onExportDVAReport={handleExportDVAReport}
+                onExportPLIPacket={handleExportPLIPacket}
               />
             )}
 
@@ -326,6 +339,12 @@ export default function BatchDetailsPage() {
           passportCount={passportCount}
           onDownload={handleDownloadLabels}
           productType={batch?.product_type}
+        />
+
+        <SaveAsTemplateDialog
+          open={saveTemplateOpen}
+          onOpenChange={setSaveTemplateOpen}
+          batch={batch}
         />
 
         <ConfirmDialog

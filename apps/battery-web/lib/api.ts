@@ -123,4 +123,16 @@ apiPublic.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// Anonymous API instance — never attaches the Authorization header, even if a
+// manufacturer happens to be logged in (e.g. scanning their own product's QR
+// code). Use this for truly public pages like /p/[uuid] so a logged-in viewer
+// doesn't get a privileged tier-aware response or pollute public scan analytics.
+export const apiAnonymous = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 30000,
+});
+
 export default api;

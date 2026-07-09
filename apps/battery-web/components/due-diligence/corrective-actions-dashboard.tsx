@@ -38,7 +38,13 @@ const ITEMS_PER_PAGE = 25;
 const SEVERITY_ORDER = { critical: 4, high: 3, medium: 2, low: 1 };
 const STATUS_ORDER = { open: 1, escalated: 2, remediated: 3, verified: 4, closed: 5 };
 
-export default function CorrectiveActionsDashboard() {
+interface CorrectiveActionsDashboardProps {
+  /** When set, scopes the list to one supplier and renders compactly without the page chrome. */
+  supplierId?: string;
+}
+
+export default function CorrectiveActionsDashboard({ supplierId }: CorrectiveActionsDashboardProps = {}) {
+  const embedded = !!supplierId;
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +56,9 @@ export default function CorrectiveActionsDashboard() {
 
   const filtered = useMemo(() => {
     let list = [...actions];
+    if (supplierId) {
+      list = list.filter((a) => a.supplier_id === supplierId);
+    }
     if (severityFilter !== "all") {
       list = list.filter((a) => a.severity === severityFilter);
     }
@@ -75,7 +84,7 @@ export default function CorrectiveActionsDashboard() {
       return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
     return list;
-  }, [actions, severityFilter, searchQuery]);
+  }, [actions, supplierId, severityFilter, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -121,31 +130,42 @@ export default function CorrectiveActionsDashboard() {
   const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <div className={embedded ? "space-y-3" : "min-h-screen bg-background p-6 w-full mx-auto space-y-6"}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Corrective Actions</h2>
-          <p className="text-sm text-muted-foreground">
-            Track and manage remediation tickets from OECD due diligence failures
-          </p>
+      {embedded ? (
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Corrective Actions</h3>
+          <Badge variant="secondary" className="text-xs">
+            {filtered.length} total
+          </Badge>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {filtered.length} total
-        </Badge>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Corrective Actions</h2>
+            <p className="text-sm text-muted-foreground">
+              Track and manage remediation tickets from OECD due diligence failures
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-sm">
+            {filtered.length} total
+          </Badge>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title, description, or supplier..."
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="pl-9"
-          />
-        </div>
+        {!embedded && (
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by title, description, or supplier..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              className="pl-9"
+            />
+          </div>
+        )}
         <div className="flex gap-2">
           <div className="relative">
             <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -180,12 +200,12 @@ export default function CorrectiveActionsDashboard() {
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-none overflow-hidden">
+      <div className="rounded-md overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[280px]">Title</TableHead>
-              <TableHead>Supplier</TableHead>
+              {!embedded && <TableHead>Supplier</TableHead>}
               <TableHead>Severity</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Due Date</TableHead>
@@ -195,13 +215,13 @@ export default function CorrectiveActionsDashboard() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                <TableCell colSpan={embedded ? 5 : 6} className="text-center py-8 text-sm text-muted-foreground">
                   Loading corrective actions...
                 </TableCell>
               </TableRow>
             ) : paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
+                <TableCell colSpan={embedded ? 5 : 6} className="text-center py-8 text-sm text-muted-foreground">
                   {actions.length === 0
                     ? "No corrective actions yet. They are auto-created when an OECD due diligence step fails."
                     : "No matching corrective actions for the current filters."}
@@ -219,9 +239,11 @@ export default function CorrectiveActionsDashboard() {
                       <div className="text-xs text-muted-foreground line-clamp-1">{ca.description}</div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground font-mono">
-                    {ca.supplier_id.slice(0, 8)}...
-                  </TableCell>
+                  {!embedded && (
+                    <TableCell className="text-sm text-muted-foreground font-mono">
+                      {ca.supplier_id.slice(0, 8)}...
+                    </TableCell>
+                  )}
                   <TableCell>{severityBadge(ca.severity)}</TableCell>
                   <TableCell>{statusBadge(ca.status)}</TableCell>
                   <TableCell>

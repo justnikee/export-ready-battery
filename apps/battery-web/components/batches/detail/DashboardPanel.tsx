@@ -9,7 +9,7 @@ interface DashboardPanelProps {
 
 export function DashboardPanel({ children, className = "", noPadding, id }: DashboardPanelProps) {
   return (
-    <div id={id} className={`border border-border bg-transparent relative ${noPadding ? "" : "p-4"} ${className}`}>{children}
+    <div id={id} className={`bg-background rounded-md relative ${noPadding ? "" : "p-4"} ${className}`}>{children}
     </div>
   );
 }

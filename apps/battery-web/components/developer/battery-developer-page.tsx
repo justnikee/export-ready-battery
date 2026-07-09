@@ -54,6 +54,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { WebhooksSection } from "@/components/developer/WebhooksSection";
+import { TallySyncSection } from "@/components/developer/TallySyncSection";
 
 interface APIKey {
   id: string;
@@ -242,7 +244,7 @@ export default function DeveloperPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -270,7 +272,7 @@ export default function DeveloperPage() {
                 Generate API Key
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-background border-border sm:max-w-md">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-foreground">
                   Generate API Key
@@ -405,7 +407,7 @@ export default function DeveloperPage() {
 
         {/* Key Reveal Dialog */}
         <Dialog open={showKeyReveal} onOpenChange={setShowKeyReveal}>
-          <DialogContent className="bg-background border-border sm:max-w-lg">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-foreground flex items-center gap-2">
                 <Key className="w-5 h-5 text-green-600" />
@@ -413,14 +415,14 @@ export default function DeveloperPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20">
+              <div className="flex items-center gap-2 p-3 rounded-md bg-amber-500/10">
                 <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                 <p className="text-amber-500 text-sm">
                   Copy this key now. It will only be shown once!
                 </p>
               </div>
               <div className="relative">
-                <code className="block w-full p-4 bg-muted border border-border font-mono text-sm text-green-700 break-all">
+                <code className="block w-full p-4 rounded-md bg-muted font-mono text-sm text-green-700 break-all">
                   {newKeyData?.key}
                 </code>
                 <Button
@@ -449,7 +451,7 @@ export default function DeveloperPage() {
         </Dialog>
 
         {/* API Keys List */}
-        <Card className="bg-popover border-border">
+        <Card>
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <Key className="w-5 h-5" />
@@ -477,7 +479,7 @@ export default function DeveloperPage() {
                 {apiKeys.map((key) => (
                   <div
                     key={key.id}
-                    className="flex items-center justify-between p-4 bg-muted border border-border"
+                    className="flex items-center justify-between p-4 rounded-md bg-background"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -545,7 +547,7 @@ export default function DeveloperPage() {
         </Card>
 
         {/* Quick Start */}
-        <div className="relative bg-transparent border border-border overflow-visible"><div className="px-6 py-4 border-b border-border">
+        <div className="relative bg-muted rounded-md overflow-visible"><div className="px-6 py-4 border-b border-border">
             <h3 className="text-sm font-medium text-foreground">Quick Start</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Example API request using your key
@@ -561,7 +563,7 @@ export default function DeveloperPage() {
         </div>
 
         {/* Device Token Management */}
-        <Card className="bg-popover border-border">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-foreground flex items-center gap-2">
@@ -660,7 +662,7 @@ export default function DeveloperPage() {
                 {deviceTokens.map((token) => (
                   <div
                     key={token.id}
-                    className="flex items-center justify-between p-3 bg-muted border border-border"
+                    className="flex items-center justify-between p-3 rounded-md bg-background"
                   >
                     <div className="flex items-center gap-3">
                       <Cpu className="h-4 w-4 text-teal-600" />
@@ -790,8 +792,14 @@ export default function DeveloperPage() {
           </AlertDialogContent>
         </AlertDialog>
 
+        {/* Tally ERP Sync */}
+        <TallySyncSection />
+
+        {/* Webhooks */}
+        <WebhooksSection />
+
         {/* External API Documentation Link */}
-        <Card className="bg-popover border-border">
+        <Card>
           <CardHeader>
             <CardTitle className="text-foreground">
               External API Endpoints
@@ -802,7 +810,7 @@ export default function DeveloperPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 text-sm">
-              <div className="p-3 bg-muted border border-border">
+              <div className="p-3 rounded-md bg-background">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-green-600 text-white">POST</Badge>
                   <code className="text-foreground">
@@ -817,7 +825,7 @@ export default function DeveloperPage() {
                 </div>
                 <p className="text-muted-foreground mt-1">Create a new batch</p>
               </div>
-              <div className="p-3 bg-muted border border-border">
+              <div className="p-3 rounded-md bg-background">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-green-600 text-white">POST</Badge>
                   <code className="text-foreground">
@@ -834,7 +842,7 @@ export default function DeveloperPage() {
                   Add passports via JSON (up to 500 per request)
                 </p>
               </div>
-              <div className="p-3 bg-muted border border-border">
+              <div className="p-3 rounded-md bg-background">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-blue-600 text-white">GET</Badge>
                   <code className="text-foreground">
@@ -851,7 +859,7 @@ export default function DeveloperPage() {
                   Download PDF labels for printing
                 </p>
               </div>
-              <div className="p-3 bg-muted border border-border">
+              <div className="p-3 rounded-md bg-background">
                 <div className="flex items-center gap-2 text-foreground font-medium">
                   <Badge className="bg-blue-600 text-white">GET</Badge>
                   <code className="text-foreground">

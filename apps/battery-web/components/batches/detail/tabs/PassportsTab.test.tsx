@@ -5,18 +5,18 @@ import type { Passport } from "@/lib/types";
 
 const mockPassports: Passport[] = [
   {
-    id: "p1",
+    uuid: "p1",
     serial_number: "SN001",
     batch_id: "batch-123",
-    qr_code: "qr1",
+    manufacture_date: "2024-01-01",
     created_at: "2024-01-01",
     status: "ACTIVE",
   },
   {
-    id: "p2",
+    uuid: "p2",
     serial_number: "SN002",
     batch_id: "batch-123",
-    qr_code: "qr2",
+    manufacture_date: "2024-01-01",
     created_at: "2024-01-01",
     status: "ACTIVE",
   },

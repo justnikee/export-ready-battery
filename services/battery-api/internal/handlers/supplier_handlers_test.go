@@ -491,3 +491,4 @@ func (f *fakeSupplierRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Conte
 func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeSupplierRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
+func (f *fakeSupplierRepo) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error { return nil }

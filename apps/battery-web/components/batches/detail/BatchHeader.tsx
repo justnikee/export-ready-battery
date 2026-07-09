@@ -33,7 +33,7 @@ function ProductChip({ batch }: { batch: Batch }) {
   const product = batch.product_type || "BATTERY";
   const chemistry = batch.specs?.chemistry || "Unknown";
   return (
-    <span className="text-xs font-medium px-2 py-1 bg-muted border border-border text-muted-foreground">
+    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
       {product}: {chemistry}
     </span>
   );
@@ -106,7 +106,7 @@ export function BatchHeader({
                 disabled={activating}
                 className={
                   hasBlockers
-                    ? "bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                    ? "bg-muted text-muted-foreground hover:bg-muted/80"
                     : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-none"
                 }
                 title={

@@ -3,30 +3,28 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+// Every href below points at a route that actually exists — /contact and
+// /docs were dead links (no such routes in app/); replaced with the real
+// lead-gen route or dropped rather than left pointing at nothing.
 const footerLinks = {
   Product: [
     { label: "Battery Passport", href: "/battery" },
     { label: "Textile DPP", href: "/textile" },
     { label: "Pricing", href: "/pricing" },
-    { label: "API Docs", href: "/docs" },
   ],
   Solutions: [
-    { label: "EU Battery Regulation", href: "/battery" },
-    { label: "India BWM Rules", href: "/battery" },
+    { label: "EU Battery Regulation", href: "/compliance/eu-battery-regulation" },
+    { label: "India BWM Rules", href: "/compliance/india-bwm-rules" },
     { label: "DGFT TRACE", href: "/battery" },
     { label: "Compliance Coverage", href: "/battery" },
   ],
   Resources: [
     { label: "Blog", href: "/blog" },
-    { label: "EU Battery Guide", href: "/battery" },
-    { label: "BWM Rules Checklist", href: "/battery" },
-    { label: "Help Center", href: "/docs" },
+    { label: "EU Battery Guide", href: "/compliance/eu-battery-regulation" },
+    { label: "BWM Rules Checklist", href: "/compliance/india-bwm-rules" },
   ],
   Company: [
-    { label: "About", href: "#" },
-    { label: "Contact", href: "/contact" },
-    { label: "Careers", href: "#" },
-    { label: "Press Kit", href: "#" },
+    { label: "Contact", href: "/request-access" },
   ],
 };
 
@@ -123,17 +121,6 @@ export default function Footer() {
         {/* Bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-7 text-[12.5px] text-white/50">
           <span>© 2026 Anviora. Built in India for Indian exporters. 🇮🇳</span>
-          <div className="flex items-center gap-6 mt-3 sm:mt-0">
-            <a href="#" className="hover:text-white transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              Terms
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              Security
-            </a>
-          </div>
         </div>
       </div>
     </footer>

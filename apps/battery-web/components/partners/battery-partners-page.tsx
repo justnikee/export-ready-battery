@@ -14,7 +14,6 @@ import {
   Copy,
   Calendar,
   Hash,
-  Radio,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import api from "@/lib/api";
@@ -53,9 +52,7 @@ interface PartnerCodePayload {
 const ROLES = ["TECHNICIAN", "RECYCLER", "LOGISTICS"];
 
 export default function PartnersPage() {
-  const [activeTab, setActiveTab] = useState<"trusted" | "codes" | "webhooks">(
-    "trusted",
-  );
+  const [activeTab, setActiveTab] = useState<"trusted" | "codes">("trusted");
   const [pendingDeletePartner, setPendingDeletePartner] = useState<
     string | null
   >(null);
@@ -90,25 +87,6 @@ export default function PartnersPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Webhook state
-  interface OutboundWebhook {
-    id: string;
-    url: string;
-    secret: string;
-    events: string[];
-    is_active: boolean;
-    created_at: string;
-  }
-  const [webhooks, setWebhooks] = useState<OutboundWebhook[]>([]);
-  const [loadingWebhooks, setLoadingWebhooks] = useState(true);
-  const [showAddWebhook, setShowAddWebhook] = useState(false);
-  const [newWebhookUrl, setNewWebhookUrl] = useState("");
-  const [newWebhookSecret, setNewWebhookSecret] = useState("");
-  const [newWebhookEvents, setNewWebhookEvents] = useState<string[]>([
-    "passport.shipped",
-    "passport.installed",
-  ]);
-
   // Fetch trusted partners
   const fetchPartners = useCallback(async () => {
     try {
@@ -133,22 +111,10 @@ export default function PartnersPage() {
     }
   }, []);
 
-  const fetchWebhooks = useCallback(async () => {
-    try {
-      const res = await api.get('/outbound-webhooks');
-      setWebhooks(res.data.webhooks || []);
-    } catch {
-      toast.error("Failed to load webhooks");
-    } finally {
-      setLoadingWebhooks(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchPartners();
     fetchCodes();
-    fetchWebhooks();
-  }, [fetchCodes, fetchPartners, fetchWebhooks]);
+  }, [fetchCodes, fetchPartners]);
 
   // Add trusted partner
   const handleAddPartner = async () => {
@@ -240,60 +206,9 @@ export default function PartnersPage() {
     setTimeout(() => setSuccess(""), 3000);
   };
 
-  // Webhook functions
-
-  const handleAddWebhook = async () => {
-    if (!newWebhookUrl.trim()) {
-      setError("Webhook URL is required");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
-    try {
-      await api.post('/outbound-webhooks', {
-        url: newWebhookUrl,
-        secret: newWebhookSecret,
-        events: newWebhookEvents,
-      });
-      setShowAddWebhook(false);
-      setNewWebhookUrl("");
-      setNewWebhookSecret("");
-      setNewWebhookEvents(["passport.shipped", "passport.installed"]);
-      fetchWebhooks();
-      setSuccess("Outbound webhook registered");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to register webhook";
-      setError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteWebhook = async (id: string) => {
-    try {
-      await api.delete(`/outbound-webhooks/${id}`);
-      fetchWebhooks();
-    } catch {
-      toast.error("Failed to delete webhook");
-    }
-  };
-
-  const WEBHOOK_EVENT_OPTIONS = [
-    "passport.shipped",
-    "passport.installed",
-    "passport.recalled",
-    "passport.recycled",
-    "passport.repaired",
-    "passport.replaced",
-    "telemetry.soh_update",
-    "telemetry.thermal_event",
-    "telemetry.second_life_threshold",
-  ];
-
   return (
     <>
-      <div className="min-h-screen bg-background p-6 w-full mx-auto">
+      <div className="min-h-screen bg-sidebar p-6 w-full mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl text-foreground">Partner Management</h1>
@@ -307,7 +222,7 @@ export default function PartnersPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 flex items-center gap-3"
+            className="mb-6 p-4 rounded-md bg-red-500/10 flex items-center gap-3"
           >
             <AlertCircle className="h-5 w-5 text-red-500" />
             <p className="text-red-500">{error}</p>
@@ -324,7 +239,7 @@ export default function PartnersPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3"
+            className="mb-6 p-4 rounded-md bg-emerald-500/10 flex items-center gap-3"
           >
             <CheckCircle className="h-5 w-5 text-emerald-500" />
             <p className="text-emerald-500">{success}</p>
@@ -341,36 +256,25 @@ export default function PartnersPage() {
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab("trusted")}
-            className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
               activeTab === "trusted"
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
-                : "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                ? "bg-emerald-500/15 text-emerald-500"
+                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
             }`}
           >
             <Building2 className="h-4 w-4" />
-            Trusted Partners (Tier A)
+            Partner Access (Tier A)
           </button>
           <button
             onClick={() => setActiveTab("codes")}
-            className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
               activeTab === "codes"
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
-                : "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                ? "bg-emerald-500/15 text-emerald-500"
+                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
             }`}
           >
             <Key className="h-4 w-4" />
             Partner Codes (Tier B)
-          </button>
-          <button
-            onClick={() => setActiveTab("webhooks")}
-            className={`px-4 py-2 font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "webhooks"
-                ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/20"
-                : "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-            }`}
-          >
-            <Radio className="h-4 w-4" />
-            Webhooks
           </button>
         </div>
 
@@ -384,9 +288,13 @@ export default function PartnersPage() {
             {/* Info Box */}
             <div className="bg-blue-500/10 border border-blue-500/20 p-4">
               <p className="text-blue-500 text-sm">
-                <strong>Tier A:</strong> Any email from trusted domains will be
-                automatically approved for magic link access. Add your
-                partners&apos; corporate email domains here.
+                <strong>Tier A — Email-domain trust:</strong> when someone with an
+                email at one of these domains requests a magic link (e.g. to view
+                a passport or upload a recycling certificate), they&apos;re
+                approved automatically — no manual review per person. Add a
+                partner&apos;s corporate email domain once, and every employee at
+                that company gets access without you having to invite each one
+                individually.
               </p>
             </div>
 
@@ -396,7 +304,7 @@ export default function PartnersPage() {
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500/100 text-white font-medium transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Add Trusted Partner
+              Add Partner Domain
             </button>
 
             {/* Add Partner Form */}
@@ -404,7 +312,7 @@ export default function PartnersPage() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                className="relative bg-transparent border border-border p-6 shadow-none"
+                className="relative bg-muted rounded-md p-6 shadow-none"
               ><h3 className="text-lg text-foreground mb-4">
                   Add Trusted Partner
                 </h3>
@@ -502,7 +410,7 @@ export default function PartnersPage() {
                   </button>
                   <button
                     onClick={() => setShowAddPartner(false)}
-                    className="px-4 py-2 bg-transparent border border-border hover:bg-accent text-foreground font-medium transition-colors"
+                    className="px-4 py-2 rounded-md bg-background hover:bg-accent text-foreground font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -525,9 +433,9 @@ export default function PartnersPage() {
                 {partners.map((partner) => (
                   <div
                     key={partner.id}
-                    className="relative bg-transparent border border-border p-4 flex items-center justify-between shadow-none"
+                    className="relative bg-background rounded-md p-4 flex items-center justify-between shadow-none"
                   ><div className="flex items-center gap-4">
-                      <div className="h-10 w-10 bg-emerald-100 flex items-center justify-center">
+                      <div className="h-10 w-10 rounded bg-emerald-100 flex items-center justify-center">
                         <Building2 className="h-5 w-5 text-emerald-500" />
                       </div>
                       <div>
@@ -562,9 +470,12 @@ export default function PartnersPage() {
             {/* Info Box */}
             <div className="bg-amber-500/10 border border-amber-500/20 p-4">
               <p className="text-amber-500 text-sm">
-                <strong>Tier B:</strong> Partner codes are shared secrets for
-                users without corporate email. Share these codes with freelance
-                mechanics, small recyclers, etc.
+                <strong>Tier B — Shared access codes:</strong> for people who
+                don&apos;t have a corporate email domain to trust — freelance
+                mechanics, small independent recyclers, one-person repair shops.
+                Generate a code here and share it with them directly; anyone who
+                enters it gets the same magic-link access Tier A partners get,
+                without needing an email-domain match.
               </p>
             </div>
 
@@ -582,7 +493,7 @@ export default function PartnersPage() {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
-                className="relative bg-transparent border border-border p-6 shadow-none"
+                className="relative bg-muted rounded-md p-6 shadow-none"
               ><h3 className="text-lg text-foreground mb-4">
                   Create Partner Code
                 </h3>
@@ -682,7 +593,7 @@ export default function PartnersPage() {
                   </button>
                   <button
                     onClick={() => setShowAddCode(false)}
-                    className="px-4 py-2 bg-transparent border border-border hover:bg-accent text-foreground font-medium transition-colors"
+                    className="px-4 py-2 rounded-md bg-background hover:bg-accent text-foreground font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -781,146 +692,6 @@ export default function PartnersPage() {
           </motion.div>
         )}
 
-        {/* Webhooks Tab */}
-        {activeTab === "webhooks" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg text-foreground">Outbound Webhooks</h2>
-                <p className="text-sm text-muted-foreground">
-                  Get notified when lifecycle events occur on your passports
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddWebhook(!showAddWebhook)}
-                className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2 text-sm font-medium"
-              >
-                <Plus className="h-4 w-4" />
-                Add Webhook
-              </button>
-            </div>
-
-            {showAddWebhook && (
-              <div className="relative bg-transparent border border-border p-6 space-y-4"><div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Webhook URL
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://your-server.com/webhook"
-                    value={newWebhookUrl}
-                    onChange={(e) => setNewWebhookUrl(e.target.value)}
-                    className="w-full px-3 py-2 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Signing Secret{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="HMAC-SHA256 secret for payload verification"
-                    value={newWebhookSecret}
-                    onChange={(e) => setNewWebhookSecret(e.target.value)}
-                    className="w-full px-3 py-2 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Events to subscribe
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {WEBHOOK_EVENT_OPTIONS.map((evt) => (
-                      <button
-                        key={evt}
-                        onClick={() => {
-                          setNewWebhookEvents((prev) =>
-                            prev.includes(evt)
-                              ? prev.filter((e) => e !== evt)
-                              : [...prev, evt],
-                          );
-                        }}
-                        className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
-                          newWebhookEvents.includes(evt)
-                            ? "bg-emerald-500/15 text-emerald-500 border-emerald-300"
-                            : "bg-transparent text-muted-foreground border-border hover:border-border"
-                        }`}
-                      >
-                        {evt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={() => setShowAddWebhook(false)}
-                    className="px-4 py-2 text-sm border border-border hover:bg-accent"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAddWebhook}
-                    disabled={submitting}
-                    className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 text-sm font-medium disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Register Webhook
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {loadingWebhooks ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : webhooks.length === 0 ? (
-              <div className="relative bg-transparent border border-border p-8 text-center"><Radio className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">
-                  No outbound webhooks configured
-                </p>
-                <p className="text-muted-foreground text-xs mt-1">
-                  Add a webhook to receive event notifications via HTTP POST
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {webhooks.map((wh) => (
-                  <div
-                    key={wh.id}
-                    className="relative bg-transparent border border-border p-4 flex items-center justify-between"
-                  ><div>
-                      <code className="text-sm text-foreground font-mono">
-                        {wh.url}
-                      </code>
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {wh.events.map((evt) => (
-                          <span
-                            key={evt}
-                            className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded"
-                          >
-                            {evt}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteWebhook(wh.id)}
-                      className="p-2 text-red-500 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
       </div>
 
       {/* Confirmation Dialogs */}

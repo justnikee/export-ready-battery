@@ -1,9 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { useAuth } from "@/context/auth-context";
+import { isAdminRole } from "@/lib/rbac";
 import {
   Scan,
   Trash2,
@@ -38,6 +40,8 @@ export default function DispatchPage() {
   const router = useRouter();
   const pathname = usePathname();
   const exitHref = dashboardPathFromPathname(pathname);
+  const { user } = useAuth();
+  const isAdmin = isAdminRole(user?.role);
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [shipmentReference, setShipmentReference] = useState("");
@@ -109,16 +113,21 @@ export default function DispatchPage() {
     }
   };
 
-  // Safety Net #1: LocalStorage Persistence
+  // Safety Net #1: sessionStorage persistence (clears when the tab closes,
+  // unlike localStorage, so a shared/kiosk machine doesn't leak pending scans
+  // to the next person who opens the dispatch page).
   useEffect(() => {
     // Restore pending items on mount (crash recovery)
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        const savedAt = typeof parsed?.savedAt === "number" ? parsed.savedAt : 0;
+        const items = Array.isArray(parsed?.items) ? parsed.items : [];
+        const isStale = Date.now() - savedAt > 24 * 60 * 60 * 1000;
+        if (items.length > 0 && !isStale) {
           // Restore timestamps as Date objects
-          const restored = parsed.map((item) => ({
+          const restored = items.map((item: ScannedItem) => ({
             ...item,
             timestamp: new Date(item.timestamp),
           }));
@@ -129,20 +138,25 @@ export default function DispatchPage() {
               description: "Your scans were safely restored",
             },
           );
+        } else if (isStale) {
+          sessionStorage.removeItem(STORAGE_KEY);
         }
       } catch (e) {
-        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
       }
     }
     setIsInitialized(true);
   }, []);
 
-  // Persist to localStorage whenever items change
+  // Persist to sessionStorage whenever items change
   useEffect(() => {
     if (scannedItems.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(scannedItems));
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ items: scannedItems, savedAt: Date.now() }),
+      );
     } else {
-      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
     }
   }, [scannedItems]);
 
@@ -198,6 +212,24 @@ export default function DispatchPage() {
     setScannedItems((prev) => prev.filter((item) => item.id !== idToRemove));
   };
 
+  // Admin-only, 30-minute grace window enforced server-side per passport —
+  // this just fires the per-passport undo for everything just dispatched.
+  const handleUndoDispatch = async (passportIds: string[]) => {
+    const results = await Promise.allSettled(
+      passportIds.map((id) =>
+        api.post(`/passports/${id}/undo-transition`, {
+          admin_note: "Undone via dispatch screen's Undo action",
+        }),
+      ),
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    if (failed === 0) {
+      toast.success(`Dispatch undone for ${passportIds.length} unit${passportIds.length !== 1 ? "s" : ""}`);
+    } else {
+      toast.error(`${failed} of ${passportIds.length} could not be undone — they may be outside the 30-minute window`);
+    }
+  };
+
   const handleConfirmDispatch = async () => {
     if (scannedItems.length === 0) return;
     if (!shipmentReference.trim()) {
@@ -245,11 +277,19 @@ export default function DispatchPage() {
 
       if (failedCount === 0) {
         // Complete success
-        toast.success(`Successfully dispatched ${successCount} units!`);
+        toast.success(`Successfully dispatched ${successCount} units!`, {
+          duration: 15000,
+          action: isAdmin
+            ? {
+                label: "Undo",
+                onClick: () => handleUndoDispatch(passportIds),
+              }
+            : undefined,
+        });
         setScannedItems([]);
         setShipmentReference("");
         setShipmentDate("");
-        localStorage.removeItem(STORAGE_KEY); // Clear storage on success
+        sessionStorage.removeItem(STORAGE_KEY); // Clear storage on success
       } else {
         // Partial failure: Keep only failed items
         const failedIds = new Set(result.failed_ids || []);
@@ -298,7 +338,7 @@ export default function DispatchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8">
+    <div className="min-h-screen bg-sidebar p-6 md:p-8">
       <div className="w-full mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -349,7 +389,7 @@ export default function DispatchPage() {
               />
 
               <Card
-                className={`relative p-6 bg-transparent border-2 transition-colors duration-300 shadow-none ${isFocused ? "border-amber-500" : "border-border"}`}
+                className={`relative p-6 transition-colors duration-300 shadow-none ${isFocused ? "bg-amber-500/5" : ""}`}
               >
                 {/* Targeting corners */}
                 <div className="absolute top-3 left-3 w-4 h-4 border-l-2 border-t-2 border-amber-500/40" />
@@ -386,7 +426,7 @@ export default function DispatchPage() {
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px] font-mono text-muted-foreground">
+                      <kbd className="px-1.5 py-0.5 bg-background rounded text-[10px] font-mono text-muted-foreground">
                         Enter
                       </kbd>
                       to submit scan
@@ -398,7 +438,7 @@ export default function DispatchPage() {
             </div>
 
             {/* Pending List */}
-            <div className="relative flex-1 flex flex-col bg-transparent border border-border p-5 min-h-[300px] shadow-none"><div className="flex items-center justify-between mb-4">
+            <div className="relative flex-1 flex flex-col bg-muted rounded-md p-5 min-h-[300px] shadow-none"><div className="flex items-center justify-between mb-4">
                 <h2 className=" text-lg text-foreground flex items-center gap-2">
                   <Package className="h-5 w-5 text-amber-500" />
                   Pending Scans
@@ -447,7 +487,7 @@ export default function DispatchPage() {
                           className={`w-8 h-8 flex items-center justify-center text-xs font-mono ${
                             item.failed
                               ? "bg-red-100 text-red-500"
-                              : "bg-amber-100 text-amber-500 border border-amber-500/20"
+                              : "bg-amber-100 text-amber-500"
                           }`}
                         >
                           {item.failed ? "!" : scannedItems.length - idx}
@@ -488,10 +528,10 @@ export default function DispatchPage() {
 
           {/* Right Col: Action Panel */}
           <div className="flex flex-col">
-            <Card className="p-6 flex flex-col gap-6 h-full bg-transparent border-border shadow-none">
+            <Card className="p-6 flex flex-col gap-6 h-full shadow-none">
               <div className="space-y-2">
                 <h2 className=" text-xl text-foreground flex items-center gap-2">
-                  <div className="w-8 h-8 bg-amber-100 border border-amber-500/20 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded bg-amber-100 flex items-center justify-center">
                     <Truck className="h-4 w-4 text-amber-500" />
                   </div>
                   Dispatch Details

@@ -1,7 +1,9 @@
 "use client";
 
 import { Globe, Shield, User, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import type { Batch } from "@/lib/types";
+import { openBatchDocument } from "@/lib/document-url";
 import { DashboardPanel } from "../DashboardPanel";
 
 interface MarketComplianceProps {
@@ -64,7 +66,7 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
                 {markets.map((m) => (
                   <span
                     key={m.code}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground border border-border"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[10px] uppercase tracking-wider text-muted-foreground"
                   >
                     <Globe className="h-2.5 w-2.5" />
                     {m.code}
@@ -103,7 +105,7 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
               <ComplianceRow
                 label="Carbon Class"
                 value={
-                  <span className="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border">
+                  <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
                     {batch.carbon_performance_class}
                   </span>
                 }
@@ -148,14 +150,17 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
           <ComplianceRow
             label="DoC"
             value={
-              <a
-                href={batch.declaration_of_conformity_path}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-500 hover:underline text-xs"
+              <button
+                type="button"
+                onClick={() =>
+                  openBatchDocument(batch.id, "doc").catch(() =>
+                    toast.error("Failed to open document — please try again"),
+                  )
+                }
+                className="text-(--brand-link) hover:underline text-xs"
               >
                 View Document
-              </a>
+              </button>
             }
           />
         )}
@@ -169,7 +174,7 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
               {norms.map((n) => (
                 <span
                   key={n}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground border border-border"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[10px] uppercase tracking-wider text-muted-foreground"
                 >
                   <Shield className="h-2.5 w-2.5" />
                   {n}
@@ -186,7 +191,7 @@ export function MarketCompliance({ batch }: MarketComplianceProps) {
                 {gs1.map((g) => (
                   <span
                     key={g}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted text-[10px] uppercase tracking-wider text-muted-foreground border border-border"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-[10px] uppercase tracking-wider text-muted-foreground"
                   >
                     {g}
                   </span>

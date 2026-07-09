@@ -38,7 +38,7 @@ export default function TextileHero() {
                 <ArrowRight size={15} className="cta-arrow" />
               </a>
               <a
-                href="#"
+                href="/request-access"
                 className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
               >
                 See a sample textile passport <ArrowRight size={14} className="cta-arrow" />

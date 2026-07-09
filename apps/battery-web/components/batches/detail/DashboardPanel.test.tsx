@@ -21,13 +21,13 @@ describe("DashboardPanel", () => {
     expect(container.firstChild).toHaveClass("custom-class");
   });
 
-  it("renders a bordered panel container", () => {
+  it("renders a filled panel container", () => {
     const { container } = render(
       <DashboardPanel>
         <p>Content</p>
       </DashboardPanel>,
     );
-    expect(container.firstChild).toHaveClass("border", "border-border");
+    expect(container.firstChild).toHaveClass("bg-background", "rounded-md");
   });
 
   it("applies the given id for anchor scrolling", () => {

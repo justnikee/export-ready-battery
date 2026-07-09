@@ -27,6 +27,7 @@ func validBillingBatch(tenantID uuid.UUID) *models.Batch {
 	return &models.Batch{
 		ID:                     uuid.New(),
 		TenantID:               tenantID,
+		ProductType:            models.ProductTypeBattery,
 		BatchName:              "Test Activation Batch",
 		ModelName:              "ER-200",
 		Status:                 models.BatchStatusDraft,
@@ -259,6 +260,7 @@ func TestActivateBatch_InsufficientQuota(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
 	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(0, nil)
 
 	rr := httptest.NewRecorder()
@@ -283,10 +285,12 @@ func TestActivateBatch_Success(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
 	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(5, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID).Return(nil)
+	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
 	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil)
 	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(nil)
+	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.Anything, mock.Anything).Return(nil).Once()
 
 	rr := httptest.NewRecorder()
 	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
@@ -304,6 +308,10 @@ func TestActivateBatch_Success(t *testing.T) {
 	if resp["quota_balance"] != float64(4) {
 		t.Errorf("expected quota_balance=4, got %v", resp["quota_balance"])
 	}
+
+	// Give the background compliance run goroutine a moment to execute
+	time.Sleep(50 * time.Millisecond)
+
 	mockRepo.AssertExpectations(t)
 }
 
@@ -320,8 +328,9 @@ func TestActivateBatch_QuotaRefundOnActivationFailure(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
 	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(3, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID).Return(nil)
+	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
 	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(errors.New("db error"))
 	mockRepo.On("AddQuota", mock.Anything, tenantID, 1).Return(nil) // quota refund
 
@@ -347,11 +356,13 @@ func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
+	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
 	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(2, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID).Return(nil)
+	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
 	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil)
 	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).
 		Return(errors.New("transaction log failed")) // non-fatal
+	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.Anything, mock.Anything).Return(nil).Once()
 
 	rr := httptest.NewRecorder()
 	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
@@ -360,5 +371,9 @@ func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200 (transaction failure is non-fatal), got %d: %s", rr.Code, rr.Body.String())
 	}
+
+	// Give the background compliance run goroutine a moment to execute
+	time.Sleep(50 * time.Millisecond)
+
 	mockRepo.AssertExpectations(t)
 }

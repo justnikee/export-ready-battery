@@ -110,6 +110,19 @@ func (f *fakeLifecycleRepo) GetPassportEvents(ctx context.Context, passportID uu
 	return f.events[passportID], nil
 }
 
+func (f *fakeLifecycleRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
+	passport, ok := f.passports[passportID]
+	if !ok {
+		return errors.New("passport not found")
+	}
+	if passport.Status != fromStatus {
+		return errors.New("concurrent modification: passport status changed before undo could be applied")
+	}
+	passport.Status = toStatus
+	f.events[passportID] = append(f.events[passportID], event)
+	return nil
+}
+
 func (f *fakeLifecycleRepo) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
 	f.events[event.PassportID] = append(f.events[event.PassportID], event)
 	return nil
@@ -285,6 +298,101 @@ func TestTransitionPassport_RejectsToStatus(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rr.Code)
+	}
+}
+
+// newLifecycleHandlerWithShipEvent builds a handler whose passport is
+// SHIPPED and already has the corresponding SHIP event recorded — the
+// precondition UndoTransition needs to find something to undo.
+func newLifecycleHandlerWithShipEvent(teamRole string, shipEventAge time.Duration) (*LifecycleHandler, uuid.UUID) {
+	repo := newFakeLifecycleRepo()
+	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
+	repo.passports[passportID] = &models.Passport{
+		UUID:      passportID,
+		BatchID:   batchID,
+		Status:    models.PassportStatusShipped,
+		CreatedAt: time.Now(),
+	}
+	repo.events[passportID] = append(repo.events[passportID], &models.PassportEvent{
+		ID:         uuid.New(),
+		PassportID: passportID,
+		EventType:  models.PassportEventShipped,
+		Action:     models.ActionShip,
+		Actor:      "operator@example.com",
+		ActorRole:  models.ActorRoleInternalOperator,
+		StatusFrom: models.PassportStatusActive,
+		StatusTo:   models.PassportStatusShipped,
+		CreatedAt:  time.Now().Add(-shipEventAge),
+		Hash:       "deadbeef",
+	})
+	service := services.NewLifecycleService(repo)
+	roleResolver := &fakeRoleResolver{role: teamRole}
+	return NewLifecycleHandler(service, roleResolver), passportID
+}
+
+func TestUndoTransition_Success(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithShipEvent("OWNER", time.Minute)
+
+	body := `{"admin_note":"reverting accidental shipment"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/undo-transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "owner@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UndoTransition(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestUndoTransition_RejectsNonAdminRole(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusShipped, "MEMBER")
+
+	body := `{"admin_note":"trying as non-admin"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/undo-transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "member@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UndoTransition(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestUndoTransition_RejectsMissingAdminNote(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusShipped, "OWNER")
+
+	body := `{"admin_note":""}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/undo-transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "owner@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UndoTransition(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestUndoTransition_RejectsWhenNoTransitionExists(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusCreated, "OWNER")
+
+	body := `{"admin_note":"nothing to undo"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/undo-transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "owner@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.UndoTransition(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 

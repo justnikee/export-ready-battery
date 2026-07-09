@@ -7,8 +7,9 @@ import { Check, Zap, Loader2 } from "lucide-react"
 interface PricingCardProps {
  title: string
  price: string
- batchCount: number
- pricePerBatch: string
+ /** Passport activation slots included (quota is metered per passport, not per batch). */
+ quotaCount: number
+ pricePerUnit: string
  features: string[]
  description: string
  isPopular?: boolean
@@ -16,23 +17,30 @@ interface PricingCardProps {
  onAction: () => void
  loading?: boolean
  actionLabel: string
+ /** 365 marks this as a one-time annual purchase (not recurring autopay). */
+ billingCycleDays?: number
+ /** "/mo" comparison rate for annual cards, e.g. 11999 for ₹11,999/mo. */
+ monthlyEquivalentInr?: number
 }
 
 export function PricingCard({
  title,
  price,
- batchCount,
- pricePerBatch,
+ quotaCount,
+ pricePerUnit,
  features,
  description,
  isPopular = false,
  isEnterprise = false,
  onAction,
  loading = false,
- actionLabel
+ actionLabel,
+ billingCycleDays,
+ monthlyEquivalentInr,
 }: PricingCardProps) {
+ const isAnnual = billingCycleDays === 365 && !!monthlyEquivalentInr
  return (
- <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-none ${isPopular ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-border'}`}>
+ <Card className={`relative flex flex-col h-full overflow-hidden transition-all duration-300 ${isPopular ? 'bg-emerald-500/5 ring-2 ring-emerald-400/40' : ''}`}>
  {isPopular && (
  <div className="absolute top-0 right-0 bg-emerald-500/10 text-emerald-500 text-xs px-3 py-1 rounded-bl-xl border-l border-b border-emerald-200">
  MOST POPULAR
@@ -45,14 +53,25 @@ export function PricingCard({
  {title}
  </h3>
  <div className="flex items-baseline gap-1">
- <span className="text-4xl text-foreground">{price}</span>
- {!isEnterprise && <span className="text-lg text-muted-foreground font-normal">/ license</span>}
+ <span className="text-4xl text-foreground">
+ {isAnnual ? `₹${monthlyEquivalentInr!.toLocaleString("en-IN")}` : price}
+ </span>
+ {!isEnterprise && (
+ <span className="text-lg text-muted-foreground font-normal">
+ {isAnnual ? "/mo" : "/ license"}
+ </span>
+ )}
  </div>
+ {isAnnual && (
+ <p className="text-xs text-muted-foreground">
+ Billed {price} once/year — not auto-renewing
+ </p>
+ )}
  {!isEnterprise && (
  <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-amber-500" />
  <span className="text-xs text-muted-foreground">
- <span className="text-foreground font-medium">{batchCount} batches</span> @ {pricePerBatch}/batch
+ <span className="text-foreground font-medium">{quotaCount} passports</span> @ {pricePerUnit}/passport
  </span>
  </div>
  )}
@@ -60,7 +79,7 @@ export function PricingCard({
  <div className="inline-flex items-center gap-2 px-2 py-1 bg-background border border-border mt-2">
  <Zap className="h-3 w-3 text-emerald-500" />
  <span className="text-xs text-muted-foreground">
- <span className="text-foreground font-medium">200+ batches</span> @ Custom rates
+ <span className="text-foreground font-medium">{quotaCount.toLocaleString()}+ passports</span> from ₹1,50,000/mo
  </span>
  </div>
  )}

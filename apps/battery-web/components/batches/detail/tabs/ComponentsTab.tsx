@@ -125,7 +125,7 @@ export function ComponentsTab({ batchId, isDraft }: ComponentsTabProps) {
 
       {/* Tree + Detail panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 border border-border rounded-lg p-4">
+        <div className="lg:col-span-2 bg-background rounded-md p-4">
           {loading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               Loading components...
@@ -140,7 +140,7 @@ export function ComponentsTab({ batchId, isDraft }: ComponentsTabProps) {
         </div>
 
         {/* Selection detail / actions */}
-        <div className="border border-border rounded-lg p-4">
+        <div className="bg-background rounded-md p-4">
           {selectedNode ? (
             <div className="space-y-4">
               <div>

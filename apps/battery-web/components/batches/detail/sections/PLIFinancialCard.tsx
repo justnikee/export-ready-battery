@@ -1,7 +1,9 @@
 "use client";
 
 import { IndianRupee, TrendingUp, FileCheck, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import type { Batch } from "@/lib/types";
+import { openBatchDocument } from "@/lib/document-url";
 import { DashboardPanel } from "../DashboardPanel";
 
 interface PLIFinancialCardProps {
@@ -97,7 +99,7 @@ export function PLIFinancialCard({ batch }: PLIFinancialCardProps) {
                 {dva}%
               </span>
               {dva >= 50 && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 uppercase">
+                <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 uppercase">
                   PLI Eligible
                 </span>
               )}
@@ -137,16 +139,19 @@ export function PLIFinancialCard({ batch }: PLIFinancialCardProps) {
             <span className="text-xs text-muted-foreground uppercase tracking-wider block mb-2">
               PLI Certificate
             </span>
-            <a
-              href={s.pli_certificate_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-400"
+            <button
+              type="button"
+              onClick={() =>
+                openBatchDocument(batch.id, "pli").catch(() =>
+                  toast.error("Failed to open certificate — please try again"),
+                )
+              }
+              className="inline-flex items-center gap-1.5 text-xs text-(--brand-link) hover:opacity-80"
             >
               <FileCheck className="h-3.5 w-3.5" />
               View Certificate
               <ExternalLink className="h-3 w-3" />
-            </a>
+            </button>
           </div>
         )}
       </div>

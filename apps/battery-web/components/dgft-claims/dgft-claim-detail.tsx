@@ -230,7 +230,7 @@ export default function DGFTClaimDetail({ claim, onClose, onUpdated }: DGFTClaim
           </div>
 
           {/* Summary grid */}
-          <div className="rounded-lg border border-border p-4">
+          <div className="rounded-md bg-muted p-4">
             <h4 className="text-sm font-medium mb-3">Claim Information</h4>
             <div className="grid grid-cols-2 gap-y-3 text-sm">
               <div className="text-muted-foreground">Scheme</div>
@@ -266,7 +266,7 @@ export default function DGFTClaimDetail({ claim, onClose, onUpdated }: DGFTClaim
           </div>
 
           {/* DGFT Reference */}
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-md bg-muted p-4 space-y-3">
             <h4 className="text-sm font-medium">DGFT Tracking</h4>
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-1.5">
@@ -285,7 +285,7 @@ export default function DGFTClaimDetail({ claim, onClose, onUpdated }: DGFTClaim
           </div>
 
           {/* Documents */}
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-md bg-muted p-4 space-y-3">
             <h4 className="text-sm font-medium">Documents</h4>
             <div className="text-sm text-muted-foreground">
               Upload supporting documents (shipping bill, eBRC, invoice, packing list) before submitting.
@@ -338,7 +338,7 @@ export default function DGFTClaimDetail({ claim, onClose, onUpdated }: DGFTClaim
           </div>
 
           {/* Generated files */}
-          <div className="rounded-lg border border-border p-4 space-y-3">
+          <div className="rounded-md bg-muted p-4 space-y-3">
             <h4 className="text-sm font-medium">Generated Files</h4>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={handleDownloadPDF} disabled={downloadingPDF}>

@@ -60,9 +60,19 @@ export default function DGFTClaimsPage() {
   const [pageSize] = useState(20);
   const [schemeFilter, setSchemeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<DGFTClaim | null>(null);
+
+  // Debounce the search box before it hits the server-side filter.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const fetchClaims = useCallback(async () => {
     setLoading(true);
@@ -70,6 +80,7 @@ export default function DGFTClaimsPage() {
       const params = new URLSearchParams();
       if (schemeFilter) params.set("scheme_type", schemeFilter);
       if (statusFilter) params.set("status", statusFilter);
+      if (search) params.set("search", search);
       params.set("page", String(page));
       params.set("page_size", String(pageSize));
 
@@ -81,26 +92,16 @@ export default function DGFTClaimsPage() {
     } finally {
       setLoading(false);
     }
-  }, [schemeFilter, statusFilter, page, pageSize]);
+  }, [schemeFilter, statusFilter, search, page, pageSize]);
 
   useEffect(() => {
     fetchClaims();
   }, [fetchClaims]);
 
-  const filteredClaims = claims.filter((c) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      c.scheme_type.toLowerCase().includes(q) ||
-      c.hsn_code?.toLowerCase().includes(q) ||
-      c.dgft_reference_no?.toLowerCase().includes(q)
-    );
-  });
-
   const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="min-h-screen bg-background p-6 w-full mx-auto space-y-6">
+    <div className="min-h-screen bg-sidebar p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">DGFT Claims</h1>
@@ -118,9 +119,9 @@ export default function DGFTClaimsPage() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by scheme, HSN, or reference..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by HSN, country, or reference..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -153,8 +154,8 @@ export default function DGFTClaimsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
-      ) : filteredClaims.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-border rounded-none">
+      ) : claims.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-muted rounded-md">
           <Landmark className="w-10 h-10 text-muted-foreground mb-3" />
           <h3 className="text-sm font-medium">No claims yet</h3>
           <p className="text-xs text-muted-foreground max-w-[300px] mt-1">
@@ -166,7 +167,7 @@ export default function DGFTClaimsPage() {
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-none overflow-hidden">
+        <div className="bg-muted rounded-md overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -180,7 +181,7 @@ export default function DGFTClaimsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClaims.map((claim) => (
+              {claims.map((claim) => (
                 <TableRow
                   key={claim.id}
                   className="cursor-pointer"

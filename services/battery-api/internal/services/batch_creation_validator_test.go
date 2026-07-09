@@ -103,6 +103,58 @@ func TestBatchCreationValidator(t *testing.T) {
 			wantValid: true,
 		},
 		{
+			// Cost breakdown sums to exactly 50% domestic value (300+100+50+50)/1000.
+			// Must take precedence over the legacy ImportCostINR shortcut (which
+			// would otherwise compute (1000-1000)/1000 = 0% and fail PLI).
+			name: "PLI via cost breakdown at exactly 50% — should pass",
+			req: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "TestBatch",
+				ProductType:  models.ProductTypeBattery,
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				HSNCode:      "85076000",
+				PLICompliant: true,
+				Specs: models.BatchSpec{
+					BatteryCategory:       models.BatteryCategoryEV,
+					SalePriceINR:          1000,
+					ImportCostINR:         1000, // legacy field present but must be ignored
+					CellCostDomesticINR:   300,
+					CellCostImportedINR:   200,
+					BMSCostDomesticINR:    100,
+					BMSCostImportedINR:    50,
+					CasingCostDomesticINR: 50,
+					LabourOverheadCostINR: 50,
+				},
+			},
+			tenant:    validTenant,
+			wantValid: true,
+		},
+		{
+			// Cost breakdown sums to 40% domestic value — below the 50% PLI floor.
+			name: "PLI via cost breakdown below 50% — should fail",
+			req: models.CreateBatchRequest{
+				TenantID:     tenantID,
+				BatchName:    "TestBatch",
+				ProductType:  models.ProductTypeBattery,
+				MarketRegion: models.MarketRegionIndia,
+				CellSource:   "DOMESTIC",
+				HSNCode:      "85076000",
+				PLICompliant: true,
+				Specs: models.BatchSpec{
+					BatteryCategory:       models.BatteryCategoryEV,
+					SalePriceINR:          1000,
+					CellCostDomesticINR:   250,
+					BMSCostDomesticINR:    80,
+					CasingCostDomesticINR: 40,
+					LabourOverheadCostINR: 30,
+				},
+			},
+			tenant:     validTenant,
+			wantValid:  false,
+			wantFields: []string{"pli_compliant"},
+		},
+		{
 			name: "Valid EU batch",
 			req: models.CreateBatchRequest{
 				TenantID:     tenantID,
@@ -329,7 +381,8 @@ func TestBatchCreationValidatorSharedFixtures(t *testing.T) {
 			CellSource             string   `json:"cellSource"`
 			HSNCode                string   `json:"hsnCode"`
 			SalePrice              float64  `json:"salePrice"`
-			ImportCost             float64  `json:"importCost"`
+			CellCostDomestic       float64  `json:"cellCostDomestic"`
+			CellCostImported       float64  `json:"cellCostImported"`
 			PLICompliant           bool     `json:"pliCompliant"`
 			DVASource              string   `json:"dvaSource"`
 			AuditedDva             *float64 `json:"auditedDva"`
@@ -387,9 +440,10 @@ func TestBatchCreationValidatorSharedFixtures(t *testing.T) {
 				ManufacturingStartDate:  tc.ManufacturingStartDate,
 				ManufacturingEndDate:    tc.ManufacturingEndDate,
 				Specs: models.BatchSpec{
-					BatteryCategory: batteryCategory,
-					SalePriceINR:    tc.SalePrice,
-					ImportCostINR:   tc.ImportCost,
+					BatteryCategory:     batteryCategory,
+					SalePriceINR:        tc.SalePrice,
+					CellCostDomesticINR: tc.CellCostDomestic,
+					CellCostImportedINR: tc.CellCostImported,
 				},
 			}
 

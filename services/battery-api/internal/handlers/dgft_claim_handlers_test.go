@@ -46,9 +46,17 @@ func (f *fakeDGFTRepo) GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.U
 	}
 	return nil, errors.New("claim not found")
 }
+func (f *fakeDGFTRepo) GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error) {
+	for _, c := range f.claims {
+		if c.BatchID != nil && *c.BatchID == batchID.String() {
+			return c, nil
+		}
+	}
+	return nil, nil
+}
 func (f *fakeDGFTRepo) UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error { return nil }
 func (f *fakeDGFTRepo) DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }
-func (f *fakeDGFTRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error) {
+func (f *fakeDGFTRepo) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error) {
 	return nil, 0, nil
 }
 func (f *fakeDGFTRepo) SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error { return nil }

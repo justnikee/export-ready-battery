@@ -2,7 +2,16 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { getAllCategories, getAllTags, getPublishedPosts } from "@/lib/blog";
 
-const staticRoutes = ["", "/battery", "/textile", "/pricing", "/request-access", "/blog"];
+const staticRoutes = [
+  "",
+  "/battery",
+  "/textile",
+  "/pricing",
+  "/request-access",
+  "/blog",
+  "/compliance/eu-battery-regulation",
+  "/compliance/india-bwm-rules",
+];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({

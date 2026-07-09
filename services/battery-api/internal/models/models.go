@@ -92,9 +92,11 @@ type Tenant struct {
 	CreatedAt    time.Time   `json:"created_at"`
 
 	// Quota System (Monetization)
-	QuotaBalance int    `json:"quota_balance"` // Batch activation slots available
-	PlanType     string `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
-	Tier         string `json:"tier"`          // free, pro, enterprise
+	QuotaBalance          int        `json:"quota_balance"` // Passport activation slots available (debited per passport in ActivateBatch)
+	PlanType              string     `json:"plan_type"`     // STARTER, GROWTH, ENTERPRISE
+	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at,omitempty"`
+	PlanStatus            string     `json:"plan_status"` // ACTIVE, EXPIRED, TRIAL
+	BonusSeats            int        `json:"bonus_seats"` // Extra seats purchased beyond the plan's included seat count (see "Extra Team Seat" add-on)
 
 	// Partner Access (Tier B Magic Link Verification)
 	PartnerAccessCode string `json:"partner_access_code,omitempty"` // Secret code for external partner verification
@@ -234,7 +236,18 @@ type BatchSpec struct {
 
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
-	ImportCostINR float64 `json:"import_cost_inr,omitempty"`
+	ImportCostINR float64 `json:"import_cost_inr,omitempty"` // legacy 2-field estimator (still used by CSV bulk import)
+
+	// DVA cost breakdown (MHI PLI-ACC formula) — used by the interactive batch
+	// wizard's estimator. When present, takes precedence over the legacy
+	// SalePriceINR/ImportCostINR shortcut in batch_creation_validator.go.
+	CellCostImportedINR   float64 `json:"cell_cost_imported_inr,omitempty"`
+	CellCostDomesticINR   float64 `json:"cell_cost_domestic_inr,omitempty"`
+	BMSCostImportedINR    float64 `json:"bms_cost_imported_inr,omitempty"`
+	BMSCostDomesticINR    float64 `json:"bms_cost_domestic_inr,omitempty"`
+	CasingCostImportedINR float64 `json:"casing_cost_imported_inr,omitempty"`
+	CasingCostDomesticINR float64 `json:"casing_cost_domestic_inr,omitempty"`
+	LabourOverheadCostINR float64 `json:"labour_overhead_cost_inr,omitempty"`
 
 	// India PLI/Compliance Fields (for Product SKU Templates)
 	CellSource       string  `json:"cell_source,omitempty"`        // IMPORTED or DOMESTIC
@@ -304,16 +317,16 @@ type CertificateAnchor struct {
 
 // DGFTSchemeConfig holds static configuration for Indian export incentive schemes.
 type DGFTSchemeConfig struct {
-	SchemeType         string   `db:"scheme_type" json:"scheme_type"`
-	Name               string   `db:"name" json:"name"`
-	Description        string   `db:"description" json:"description,omitempty"`
-	RequiredDocuments  []string `db:"required_documents" json:"required_documents,omitempty"`
-	CalculationMethod  string   `db:"calculation_method" json:"calculation_method"`
-	DefaultRate        float64  `db:"default_rate" json:"default_rate"`
-	IsActive           bool     `db:"is_active" json:"is_active"`
-	HelpURL            string   `db:"help_url" json:"help_url,omitempty"`
-	CreatedAt          time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt          time.Time `db:"updated_at" json:"updated_at"`
+	SchemeType        string    `db:"scheme_type" json:"scheme_type"`
+	Name              string    `db:"name" json:"name"`
+	Description       string    `db:"description" json:"description,omitempty"`
+	RequiredDocuments []string  `db:"required_documents" json:"required_documents,omitempty"`
+	CalculationMethod string    `db:"calculation_method" json:"calculation_method"`
+	DefaultRate       float64   `db:"default_rate" json:"default_rate"`
+	IsActive          bool      `db:"is_active" json:"is_active"`
+	HelpURL           string    `db:"help_url" json:"help_url,omitempty"`
+	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt         time.Time `db:"updated_at" json:"updated_at"`
 }
 
 // DGFTClaimDocument tracks a single supporting document inside a claim.
@@ -385,22 +398,22 @@ type Supplier struct {
 
 // SupplierDocument is a CoC, audit report, or provenance file uploaded by a supplier.
 type SupplierDocument struct {
-	ID           string     `db:"id" json:"id"`
-	SupplierID   string     `db:"supplier_id" json:"supplier_id"`
-	TenantID     string     `db:"tenant_id" json:"tenant_id"`
-	BatchID      *string    `db:"batch_id" json:"batch_id,omitempty"`
-	ComponentID  *string    `db:"component_id" json:"component_id,omitempty"`
-	DocType      string     `db:"doc_type" json:"doc_type"` // coc, audit_report, provenance, msds, test_report, other
-	FileURL      string     `db:"file_url" json:"file_url"`
-	FileName     string     `db:"file_name" json:"file_name,omitempty"`
-	FileSize     int        `db:"file_size" json:"file_size,omitempty"`
-	Status       string     `db:"status" json:"status"` // pending, approved, rejected
-	ReviewerNotes string    `db:"reviewer_notes" json:"reviewer_notes,omitempty"`
-	ReviewedBy   *string    `db:"reviewed_by" json:"reviewed_by,omitempty"`
-	ReviewedAt   *time.Time `db:"reviewed_at" json:"reviewed_at,omitempty"`
-	UploadedAt   time.Time  `db:"uploaded_at" json:"uploaded_at"`
-	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`
+	ID            string     `db:"id" json:"id"`
+	SupplierID    string     `db:"supplier_id" json:"supplier_id"`
+	TenantID      string     `db:"tenant_id" json:"tenant_id"`
+	BatchID       *string    `db:"batch_id" json:"batch_id,omitempty"`
+	ComponentID   *string    `db:"component_id" json:"component_id,omitempty"`
+	DocType       string     `db:"doc_type" json:"doc_type"` // coc, audit_report, provenance, msds, test_report, other
+	FileURL       string     `db:"file_url" json:"file_url"`
+	FileName      string     `db:"file_name" json:"file_name,omitempty"`
+	FileSize      int        `db:"file_size" json:"file_size,omitempty"`
+	Status        string     `db:"status" json:"status"` // pending, approved, rejected
+	ReviewerNotes string     `db:"reviewer_notes" json:"reviewer_notes,omitempty"`
+	ReviewedBy    *string    `db:"reviewed_by" json:"reviewed_by,omitempty"`
+	ReviewedAt    *time.Time `db:"reviewed_at" json:"reviewed_at,omitempty"`
+	UploadedAt    time.Time  `db:"uploaded_at" json:"uploaded_at"`
+	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time  `db:"updated_at" json:"updated_at"`
 }
 
 // ============================================================================
@@ -409,18 +422,18 @@ type SupplierDocument struct {
 
 // SupplierRiskProfile stores auto-computed + manual-override risk scores.
 type SupplierRiskProfile struct {
-	ID              string     `db:"id" json:"id"`
-	SupplierID      string     `db:"supplier_id" json:"supplier_id"`
-	TenantID        string     `db:"tenant_id" json:"tenant_id"`
-	OverallScore    int        `db:"overall_score" json:"overall_score"`
-	CountryRiskTier int        `db:"country_risk_tier" json:"country_risk_tier"`
-	MineralRiskFlags []string  `db:"mineral_risk_flags" json:"mineral_risk_flags"`
-	RMAPValid       *bool      `db:"rmap_valid" json:"rmap_valid,omitempty"`
-	LastAuditDate   *time.Time `db:"last_audit_date" json:"last_audit_date,omitempty"`
-	NextAuditDue    *time.Time `db:"next_audit_due" json:"next_audit_due,omitempty"`
-	ComputedAt      time.Time  `db:"computed_at" json:"computed_at"`
-	CreatedAt       time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt       time.Time  `db:"updated_at" json:"updated_at"`
+	ID               string     `db:"id" json:"id"`
+	SupplierID       string     `db:"supplier_id" json:"supplier_id"`
+	TenantID         string     `db:"tenant_id" json:"tenant_id"`
+	OverallScore     int        `db:"overall_score" json:"overall_score"`
+	CountryRiskTier  int        `db:"country_risk_tier" json:"country_risk_tier"`
+	MineralRiskFlags []string   `db:"mineral_risk_flags" json:"mineral_risk_flags"`
+	RMAPValid        *bool      `db:"rmap_valid" json:"rmap_valid,omitempty"`
+	LastAuditDate    *time.Time `db:"last_audit_date" json:"last_audit_date,omitempty"`
+	NextAuditDue     *time.Time `db:"next_audit_due" json:"next_audit_due,omitempty"`
+	ComputedAt       time.Time  `db:"computed_at" json:"computed_at"`
+	CreatedAt        time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time  `db:"updated_at" json:"updated_at"`
 }
 
 // DueDiligenceAssessment tracks OECD 5-step progress per supplier.
@@ -429,7 +442,7 @@ type DueDiligenceAssessment struct {
 	SupplierID   string     `db:"supplier_id" json:"supplier_id"`
 	TenantID     string     `db:"tenant_id" json:"tenant_id"`
 	BatchID      *string    `db:"batch_id" json:"batch_id,omitempty"`
-	Step         string     `db:"step" json:"step"` // policy, identify, assess, respond, audit
+	Step         string     `db:"step" json:"step"`     // policy, identify, assess, respond, audit
 	Status       string     `db:"status" json:"status"` // not_started, in_progress, complete, failed
 	EvidenceDocs []string   `db:"evidence_docs" json:"evidence_docs"`
 	CompletedBy  *string    `db:"completed_by" json:"completed_by,omitempty"`
@@ -461,27 +474,27 @@ type SupplierCMRTReport struct {
 
 // CMRTSmelter is a single smelter entry parsed from a CMRT report.
 type CMRTSmelter struct {
-	Name     string `json:"name"`
-	Country  string `json:"country"`
-	Mineral  string `json:"mineral"`
+	Name       string `json:"name"`
+	Country    string `json:"country"`
+	Mineral    string `json:"mineral"`
 	SmelterRef string `json:"smelter_ref,omitempty"`
-	RMIStatus string `json:"rmi_status,omitempty"` // conformant, active, no_longer_conformant, unknown
+	RMIStatus  string `json:"rmi_status,omitempty"` // conformant, active, no_longer_conformant, unknown
 }
 
 // CorrectiveAction tracks non-conformance remediation tickets.
 type CorrectiveAction struct {
-	ID            string     `db:"id" json:"id"`
-	SupplierID    string     `db:"supplier_id" json:"supplier_id"`
-	TenantID      string     `db:"tenant_id" json:"tenant_id"`
-	AssessmentID  *string    `db:"assessment_id" json:"assessment_id,omitempty"`
-	Title         string     `db:"title" json:"title"`
-	Description   string     `db:"description" json:"description"`
-	Severity      string     `db:"severity" json:"severity"` // low, medium, high, critical
-	Status        string     `db:"status" json:"status"` // open, remediated, verified, escalated, closed
-	DueDate       string     `db:"due_date" json:"due_date"` // YYYY-MM-DD
-	RemediatedAt  *time.Time `db:"remediated_at" json:"remediated_at,omitempty"`
-	VerifiedBy    *string    `db:"verified_by" json:"verified_by,omitempty"`
-	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
+	ID           string     `db:"id" json:"id"`
+	SupplierID   string     `db:"supplier_id" json:"supplier_id"`
+	TenantID     string     `db:"tenant_id" json:"tenant_id"`
+	AssessmentID *string    `db:"assessment_id" json:"assessment_id,omitempty"`
+	Title        string     `db:"title" json:"title"`
+	Description  string     `db:"description" json:"description"`
+	Severity     string     `db:"severity" json:"severity"` // low, medium, high, critical
+	Status       string     `db:"status" json:"status"`     // open, remediated, verified, escalated, closed
+	DueDate      string     `db:"due_date" json:"due_date"` // YYYY-MM-DD
+	RemediatedAt *time.Time `db:"remediated_at" json:"remediated_at,omitempty"`
+	VerifiedBy   *string    `db:"verified_by" json:"verified_by,omitempty"`
+	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
 }
 
 // CreateCorrectiveActionRequest is the body for POST /corrective-actions.
@@ -524,12 +537,12 @@ type SupplierLoginRequest struct {
 
 // SupplierLoginResponse returns the supplier JWT and profile.
 type SupplierLoginResponse struct {
-	Token       string    `json:"token"`
-	SupplierID  string    `json:"supplier_id"`
-	TenantID    string    `json:"tenant_id"`
-	Email       string    `json:"email"`
-	CompanyName string    `json:"company_name"`
-	ExpiresIn   int       `json:"expires_in"`
+	Token       string `json:"token"`
+	SupplierID  string `json:"supplier_id"`
+	TenantID    string `json:"tenant_id"`
+	Email       string `json:"email"`
+	CompanyName string `json:"company_name"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 // TenantAlert stores proactive compliance and expiry notifications for a tenant.
@@ -578,37 +591,37 @@ type HazardousSubstances struct {
 // Component represents a single item in a battery Bill of Materials (BOM).
 // The hierarchy is stored as a flat list with ParentID references.
 type Component struct {
-	ID                   string      `json:"id"`
-	Name                 string      `json:"name"`
-	ComponentType        string      `json:"component_type"`      // "cell", "module", "pack", "subsystem"
-	ParentID             *string     `json:"parent_id,omitempty"` // nil for top-level items
-	ModelNumber          string      `json:"model_number,omitempty"`
-	SerialNumber         string      `json:"serial_number,omitempty"`
-	LotNumber            string      `json:"lot_number,omitempty"`
-	DateOfManufacture    string      `json:"date_of_manufacture,omitempty"`
-	Manufacturer         string      `json:"manufacturer,omitempty"`
-	ManufacturerAddress  string      `json:"manufacturer_address,omitempty"`
-	CountryOfOrigin      string      `json:"country_of_origin,omitempty"`
-	Chemistry            string      `json:"chemistry,omitempty"` // e.g. "NMC811", "LFP"
-	CobaltPct            float64     `json:"cobalt_pct,omitempty"`
-	LithiumPct           float64     `json:"lithium_pct,omitempty"`
-	NickelPct            float64     `json:"nickel_pct,omitempty"`
-	ManganesePct         float64     `json:"manganese_pct,omitempty"`
-	GraphitePct          float64     `json:"graphite_pct,omitempty"`
-	LeadPct              float64     `json:"lead_pct,omitempty"`
-	RecycledCobaltPct    float64     `json:"recycled_cobalt_pct,omitempty"`
-	RecycledLithiumPct   float64     `json:"recycled_lithium_pct,omitempty"`
-	RecycledNickelPct    float64     `json:"recycled_nickel_pct,omitempty"`
-	RecycledLeadPct      float64     `json:"recycled_lead_pct,omitempty"`
-	WeightKg             float64     `json:"weight_kg,omitempty"`
-	Quantity             int         `json:"quantity,omitempty"`
-	CEMarking            bool        `json:"ce_marking,omitempty"`
-	BISNumber            string      `json:"bis_number,omitempty"`
-	HazardousLead        bool        `json:"hazardous_lead,omitempty"`
-	HazardousMercury     bool        `json:"hazardous_mercury,omitempty"`
-	HazardousCadmium     bool        `json:"hazardous_cadmium,omitempty"`
-	SupplierID           *string     `json:"supplier_id,omitempty"`
-	Children             []Component `json:"children,omitempty"`
+	ID                  string      `json:"id"`
+	Name                string      `json:"name"`
+	ComponentType       string      `json:"component_type"`      // "cell", "module", "pack", "subsystem"
+	ParentID            *string     `json:"parent_id,omitempty"` // nil for top-level items
+	ModelNumber         string      `json:"model_number,omitempty"`
+	SerialNumber        string      `json:"serial_number,omitempty"`
+	LotNumber           string      `json:"lot_number,omitempty"`
+	DateOfManufacture   string      `json:"date_of_manufacture,omitempty"`
+	Manufacturer        string      `json:"manufacturer,omitempty"`
+	ManufacturerAddress string      `json:"manufacturer_address,omitempty"`
+	CountryOfOrigin     string      `json:"country_of_origin,omitempty"`
+	Chemistry           string      `json:"chemistry,omitempty"` // e.g. "NMC811", "LFP"
+	CobaltPct           float64     `json:"cobalt_pct,omitempty"`
+	LithiumPct          float64     `json:"lithium_pct,omitempty"`
+	NickelPct           float64     `json:"nickel_pct,omitempty"`
+	ManganesePct        float64     `json:"manganese_pct,omitempty"`
+	GraphitePct         float64     `json:"graphite_pct,omitempty"`
+	LeadPct             float64     `json:"lead_pct,omitempty"`
+	RecycledCobaltPct   float64     `json:"recycled_cobalt_pct,omitempty"`
+	RecycledLithiumPct  float64     `json:"recycled_lithium_pct,omitempty"`
+	RecycledNickelPct   float64     `json:"recycled_nickel_pct,omitempty"`
+	RecycledLeadPct     float64     `json:"recycled_lead_pct,omitempty"`
+	WeightKg            float64     `json:"weight_kg,omitempty"`
+	Quantity            int         `json:"quantity,omitempty"`
+	CEMarking           bool        `json:"ce_marking,omitempty"`
+	BISNumber           string      `json:"bis_number,omitempty"`
+	HazardousLead       bool        `json:"hazardous_lead,omitempty"`
+	HazardousMercury    bool        `json:"hazardous_mercury,omitempty"`
+	HazardousCadmium    bool        `json:"hazardous_cadmium,omitempty"`
+	SupplierID          *string     `json:"supplier_id,omitempty"`
+	Children            []Component `json:"children,omitempty"`
 }
 
 // ============================================================================
@@ -1115,6 +1128,21 @@ type SignupRequest struct {
 	CreatedAt        time.Time  `json:"created_at"`
 }
 
+// EUBuyerLead stores an EU buyer's interest in mandating ExportReady to
+// their Indian suppliers (STRAT-06: EU Buyer Landing Page). Distinct from
+// SignupRequest, which is the Indian manufacturer self-signup flow.
+type EUBuyerLead struct {
+	ID               uuid.UUID `json:"id"`
+	BuyerCompanyName string    `json:"buyer_company_name"`
+	ContactName      string    `json:"contact_name"`
+	ContactEmail     string    `json:"contact_email"`
+	Country          string    `json:"country"`
+	IndianSuppliers  string    `json:"indian_suppliers,omitempty"`
+	Message          string    `json:"message,omitempty"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
 type PassportEvent struct {
 	ID           uuid.UUID              `json:"id"`
 	PassportID   uuid.UUID              `json:"passport_id"`
@@ -1171,6 +1199,10 @@ const (
 	PassportEventSOHUpdated    = "SOH_UPDATED"
 	PassportEventRepairLogged  = "REPAIR_LOGGED"
 	PassportEventReplaceLogged = "REPLACEMENT_LOGGED"
+	// PassportEventReverseTransition marks an admin-initiated undo of the
+	// most recent lifecycle transition, within the 30-minute grace window —
+	// a new chained event, never a mutation/deletion of the reversed one.
+	PassportEventReverseTransition = "REVERSE_TRANSITION"
 )
 
 // SoHHistoryEntry is one row in the soh_history table.
@@ -1379,15 +1411,15 @@ type DashboardStats struct {
 
 // AnalyticsOverview represents aggregated analytics data for the tenant dashboard.
 type AnalyticsOverview struct {
-	ComplianceTrend       []ComplianceTrendPoint `json:"compliance_trend"`
-	CertificateExpiry     []CertExpirySummary    `json:"certificate_expiry"`
-	CarbonDistribution    []CarbonClassCount     `json:"carbon_distribution"`
-	BatchStatusBreakdown  map[string]int         `json:"batch_status_breakdown"`
-	ComplianceReadyCount  int                    `json:"compliance_ready_count"`
-	MarketRegionSplit     []RegionCount          `json:"market_region_split"`
-	SupplierDocStatus     map[string]int         `json:"supplier_document_status"`
-	DGFTClaimFunnel       []StatusCount          `json:"dgft_claim_funnel"`
-	AlertSeverityBreakdown map[string]int        `json:"alert_severity_breakdown"`
+	ComplianceTrend        []ComplianceTrendPoint `json:"compliance_trend"`
+	CertificateExpiry      []CertExpirySummary    `json:"certificate_expiry"`
+	CarbonDistribution     []CarbonClassCount     `json:"carbon_distribution"`
+	BatchStatusBreakdown   map[string]int         `json:"batch_status_breakdown"`
+	ComplianceReadyCount   int                    `json:"compliance_ready_count"`
+	MarketRegionSplit      []RegionCount          `json:"market_region_split"`
+	SupplierDocStatus      map[string]int         `json:"supplier_document_status"`
+	DGFTClaimFunnel        []StatusCount          `json:"dgft_claim_funnel"`
+	AlertSeverityBreakdown map[string]int         `json:"alert_severity_breakdown"`
 }
 
 // ComplianceTrendPoint is a single data point in the compliance trend line.
@@ -1431,48 +1463,48 @@ type StatusCount struct {
 type RegistryType string
 
 const (
-	RegistryTypeBIS      RegistryType = "bis"
-	RegistryTypeCPCB     RegistryType = "cpcb"
-	RegistryTypeEUNANDO  RegistryType = "eu_nando"
-	RegistryTypeUN38_3   RegistryType = "un38_3"
-	RegistryTypeCustom   RegistryType = "custom"
+	RegistryTypeBIS     RegistryType = "bis"
+	RegistryTypeCPCB    RegistryType = "cpcb"
+	RegistryTypeEUNANDO RegistryType = "eu_nando"
+	RegistryTypeUN38_3  RegistryType = "un38_3"
+	RegistryTypeCustom  RegistryType = "custom"
 )
 
 // RegistryVerificationStatus is the outcome of a registry check.
 type RegistryVerificationStatus string
 
 const (
-	RegistryStatusPending     RegistryVerificationStatus = "pending"
-	RegistryStatusVerified    RegistryVerificationStatus = "verified"
-	RegistryStatusFailed      RegistryVerificationStatus = "failed"
-	RegistryStatusError       RegistryVerificationStatus = "error"
-	RegistryStatusNotFound    RegistryVerificationStatus = "not_found"
+	RegistryStatusPending  RegistryVerificationStatus = "pending"
+	RegistryStatusVerified RegistryVerificationStatus = "verified"
+	RegistryStatusFailed   RegistryVerificationStatus = "failed"
+	RegistryStatusError    RegistryVerificationStatus = "error"
+	RegistryStatusNotFound RegistryVerificationStatus = "not_found"
 )
 
 // TrustTier indicates the confidence level of the verification.
 type TrustTier string
 
 const (
-	TrustTierSelfDeclared  TrustTier = "self_declared"
-	TrustTierRegistry      TrustTier = "registry_verified"
-	TrustTierOfficialAPI   TrustTier = "official_api"
+	TrustTierSelfDeclared TrustTier = "self_declared"
+	TrustTierRegistry     TrustTier = "registry_verified"
+	TrustTierOfficialAPI  TrustTier = "official_api"
 )
 
 // RegistryVerification is a cached verification result from an external registry.
 type RegistryVerification struct {
-	ID            string     `json:"id"`
-	TenantID      string     `json:"tenant_id"`
-	BatchID       string     `json:"batch_id"`
-	RegistryType  string     `json:"registry_type"`
-	CertificateNo string     `json:"certificate_no,omitempty"`
-	Status        string     `json:"status"`
-	TrustTier     string     `json:"trust_tier"`
+	ID            string                  `json:"id"`
+	TenantID      string                  `json:"tenant_id"`
+	BatchID       string                  `json:"batch_id"`
+	RegistryType  string                  `json:"registry_type"`
+	CertificateNo string                  `json:"certificate_no,omitempty"`
+	Status        string                  `json:"status"`
+	TrustTier     string                  `json:"trust_tier"`
 	VerifiedData  *map[string]interface{} `json:"verified_data,omitempty"`
-	ErrorMessage  string     `json:"error_message,omitempty"`
-	VerifiedAt    *time.Time `json:"verified_at,omitempty"`
-	ExpiresAt     *time.Time `json:"expires_at,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ErrorMessage  string                  `json:"error_message,omitempty"`
+	VerifiedAt    *time.Time              `json:"verified_at,omitempty"`
+	ExpiresAt     *time.Time              `json:"expires_at,omitempty"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
 }
 
 // VerifyBatchRegistryRequest triggers a registry verification for a batch.
@@ -1483,28 +1515,28 @@ type VerifyBatchRegistryRequest struct {
 
 // BatchVerificationSummary is a lightweight view of all verifications for a batch.
 type BatchVerificationSummary struct {
-	BatchID       string                   `json:"batch_id"`
-	Verifications []RegistryVerification   `json:"verifications"`
-	OverallTrust  TrustTier                `json:"overall_trust"`
+	BatchID       string                 `json:"batch_id"`
+	Verifications []RegistryVerification `json:"verifications"`
+	OverallTrust  TrustTier              `json:"overall_trust"`
 }
 
 // RegistryJob tracks an async registry verification task.
 type RegistryJob struct {
-	ID             string     `json:"id"`
-	RegistryType   string     `json:"registry_type"`
-	CertificateNo  string     `json:"certificate_no"`
-	BatchID        string     `json:"batch_id"`
-	TenantID       string     `json:"tenant_id"`
-	Status         string     `json:"status"`
-	AttemptCount   int        `json:"attempt_count"`
-	MaxAttempts    int        `json:"max_attempts"`
-	NextAttemptAt  *time.Time `json:"next_attempt_at,omitempty"`
-	ResultStatus   string     `json:"result_status,omitempty"`
-	ResultTrustTier string    `json:"result_trust_tier,omitempty"`
-	ResultID       string     `json:"result_id,omitempty"`
-	ErrorMessage   string     `json:"error_message,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID              string     `json:"id"`
+	RegistryType    string     `json:"registry_type"`
+	CertificateNo   string     `json:"certificate_no"`
+	BatchID         string     `json:"batch_id"`
+	TenantID        string     `json:"tenant_id"`
+	Status          string     `json:"status"`
+	AttemptCount    int        `json:"attempt_count"`
+	MaxAttempts     int        `json:"max_attempts"`
+	NextAttemptAt   *time.Time `json:"next_attempt_at,omitempty"`
+	ResultStatus    string     `json:"result_status,omitempty"`
+	ResultTrustTier string     `json:"result_trust_tier,omitempty"`
+	ResultID        string     `json:"result_id,omitempty"`
+	ErrorMessage    string     `json:"error_message,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 // TenantCertVerificationJob is an async job that checks a tenant's compliance
@@ -1529,18 +1561,18 @@ type TenantCertVerificationJob struct {
 
 // RegistryAuditLog records every external registry call for compliance.
 type RegistryAuditLog struct {
-	ID               string     `json:"id"`
-	JobID            string     `json:"job_id,omitempty"`
-	RegistryType     string     `json:"registry_type"`
-	CertificateNo    string     `json:"certificate_no"`
-	RequestMethod    string     `json:"request_method,omitempty"`
-	RequestURL       string     `json:"request_url,omitempty"`
-	RequestPayload   *map[string]interface{} `json:"request_payload,omitempty"`
-	ResponseStatus   int        `json:"response_status,omitempty"`
-	ResponsePayload  *map[string]interface{} `json:"response_payload,omitempty"`
-	LatencyMs        int        `json:"latency_ms"`
-	ErrorMessage     string     `json:"error_message,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
+	ID              string                  `json:"id"`
+	JobID           string                  `json:"job_id,omitempty"`
+	RegistryType    string                  `json:"registry_type"`
+	CertificateNo   string                  `json:"certificate_no"`
+	RequestMethod   string                  `json:"request_method,omitempty"`
+	RequestURL      string                  `json:"request_url,omitempty"`
+	RequestPayload  *map[string]interface{} `json:"request_payload,omitempty"`
+	ResponseStatus  int                     `json:"response_status,omitempty"`
+	ResponsePayload *map[string]interface{} `json:"response_payload,omitempty"`
+	LatencyMs       int                     `json:"latency_ms"`
+	ErrorMessage    string                  `json:"error_message,omitempty"`
+	CreatedAt       time.Time               `json:"created_at"`
 }
 
 // BatchSummary represents a batch for the recent batches list
@@ -1722,6 +1754,8 @@ const (
 	ExportJobTypeComplianceDeclaration ExportJobType = "COMPLIANCE_DECLARATION"
 	ExportJobTypeAuditCSV              ExportJobType = "AUDIT_CSV"
 	ExportJobTypeAuditPDF              ExportJobType = "AUDIT_PDF"
+	ExportJobTypeEPCIS                 ExportJobType = "EPCIS"
+	ExportJobTypePLIPacket             ExportJobType = "PLI_PACKET"
 )
 
 // ExportJob represents an async background export job
@@ -1784,6 +1818,10 @@ func (e *ExportJob) GetFilename(batchName string) string {
 		return fmt.Sprintf("%s_audit_trail.csv", sanitizedBatchName)
 	case ExportJobTypeAuditPDF:
 		return fmt.Sprintf("%s_audit_trail.pdf", sanitizedBatchName)
+	case ExportJobTypeEPCIS:
+		return fmt.Sprintf("%s_epcis.jsonld", sanitizedBatchName)
+	case ExportJobTypePLIPacket:
+		return fmt.Sprintf("%s_pli_claim_packet.zip", sanitizedBatchName)
 	default:
 		return fmt.Sprintf("%s_export", sanitizedBatchName)
 	}
@@ -1878,6 +1916,29 @@ type WebhookPayload struct {
 	Data       map[string]interface{} `json:"data"`      // Event-specific payload
 }
 
+// WebhookDelivery is one logged attempt to deliver a webhook payload —
+// the audit trail surfaced on the Webhook Delivery Log UI, and the source
+// of truth the retry worker reads from to find failed deliveries to retry.
+type WebhookDelivery struct {
+	ID             uuid.UUID  `json:"id"`
+	WebhookID      uuid.UUID  `json:"webhook_id"`
+	EventType      string     `json:"event_type"`
+	Payload        []byte     `json:"payload"`
+	ResponseStatus *int       `json:"response_status,omitempty"`
+	ResponseBody   string     `json:"response_body,omitempty"`
+	DeliveredAt    *time.Time `json:"delivered_at,omitempty"`
+	RetryCount     int        `json:"retry_count"`
+	ErrorMessage   string     `json:"error_message,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+// Succeeded reports whether this delivery attempt's HTTP response was in the
+// 2xx range — the single definition of "delivered" used both by the
+// dashboard's status badge and the retry worker's selection query.
+func (d *WebhookDelivery) Succeeded() bool {
+	return d.ResponseStatus != nil && *d.ResponseStatus >= 200 && *d.ResponseStatus < 300
+}
+
 // ============================================================================
 // EU COMPLIANCE ATTRIBUTE SCORE (BatteryPass consortium 80-attribute mapping)
 // ============================================================================
@@ -1944,7 +2005,7 @@ type ComplianceDeadline struct {
 type MassBalanceLedger struct {
 	ID             uuid.UUID `json:"id"`
 	TenantID       uuid.UUID `json:"tenant_id"`
-	MaterialType   string    `json:"material_type"`   // cobalt, lithium, nickel, lead
+	MaterialType   string    `json:"material_type"`   // cobalt, lithium, nickel, lead, manganese
 	IncomingKg     float64   `json:"incoming_kg"`     // recycled material received
 	IncomingSource string    `json:"incoming_source"` // recycler EPR ID or ISCC cert
 	AllocatedKg    float64   `json:"allocated_kg"`    // material allocated to products
@@ -1961,11 +2022,10 @@ type MassBalanceAllocation struct {
 	LedgerID     uuid.UUID  `json:"ledger_id"`
 	BatchID      uuid.UUID  `json:"batch_id"`
 	PassportID   *uuid.UUID `json:"passport_id,omitempty"`
-	MaterialType string     `json:"material_type"` // cobalt, lithium, nickel, lead
+	MaterialType string     `json:"material_type"` // cobalt, lithium, nickel, lead, manganese
 	AllocatedKg  float64    `json:"allocated_kg"`
 	CreatedAt    time.Time  `json:"created_at"`
 }
-
 
 // ============================================================================
 // REGULATORY INTELLIGENCE (Phase E)
@@ -1984,13 +2044,13 @@ const (
 type RegulatorySource struct {
 	ID            uuid.UUID            `json:"id"`
 	Name          string               `json:"name"`
-	SourceType    RegulatorySourceType `json:"source_type"`              // rss, api, scraper
-	URL           string               `json:"url"`                      // RSS feed URL or page URL
-	Config        map[string]string    `json:"config,omitempty"`         // scraper selectors, api headers
-	FetchInterval string               `json:"fetch_interval"`           // cron-like, e.g. "6h"
-	IsActive      bool                 `json:"is_active"`                // paused sources are skipped
+	SourceType    RegulatorySourceType `json:"source_type"`      // rss, api, scraper
+	URL           string               `json:"url"`              // RSS feed URL or page URL
+	Config        map[string]string    `json:"config,omitempty"` // scraper selectors, api headers
+	FetchInterval string               `json:"fetch_interval"`   // cron-like, e.g. "6h"
+	IsActive      bool                 `json:"is_active"`        // paused sources are skipped
 	LastFetchedAt *time.Time           `json:"last_fetched_at,omitempty"`
-	LastETag      string               `json:"last_etag,omitempty"`      // HTTP conditional fetch
+	LastETag      string               `json:"last_etag,omitempty"` // HTTP conditional fetch
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
 }
@@ -1999,7 +2059,7 @@ type RegulatorySource struct {
 type RegulatoryItem struct {
 	ID           uuid.UUID  `json:"id"`
 	SourceID     uuid.UUID  `json:"source_id"`
-	ExternalID   string     `json:"external_id"`   // guid, link, or hash from source
+	ExternalID   string     `json:"external_id"` // guid, link, or hash from source
 	Title        string     `json:"title"`
 	Summary      string     `json:"summary,omitempty"`
 	URL          string     `json:"url,omitempty"`
@@ -2027,10 +2087,10 @@ type TenantRegulatoryAlert struct {
 	EmailedAt        *time.Time `json:"emailed_at,omitempty"`
 	CreatedAt        time.Time  `json:"created_at"`
 	// Join fields (populated by query)
-	Title        string    `json:"title,omitempty"`
-	Summary      string    `json:"summary,omitempty"`
-	Urgency      string    `json:"urgency,omitempty"`
+	Title        string     `json:"title,omitempty"`
+	Summary      string     `json:"summary,omitempty"`
+	Urgency      string     `json:"urgency,omitempty"`
 	Deadline     *time.Time `json:"deadline,omitempty"`
-	MarketRegion string    `json:"market_region,omitempty"`
-	ProductType  string    `json:"product_type,omitempty"`
+	MarketRegion string     `json:"market_region,omitempty"`
+	ProductType  string     `json:"product_type,omitempty"`
 }

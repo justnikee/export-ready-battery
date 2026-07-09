@@ -31,7 +31,7 @@ const faqs = [
   },
   {
     question: "Is there a setup fee or lock-in period?",
-    answer: "No setup fee. No lock-in. Cancel anytime. We offer a 14-day free trial on Growth plans so you can verify it works for your exact use case before paying.",
+    answer: "No setup fee, no lock-in. Every plan is a one-time credit purchase, not a recurring subscription — there's nothing to cancel. Request access for a live walkthrough and a sample passport before you buy, so you can verify it fits your use case first.",
   },
   {
     question: "Does this work with Tally?",

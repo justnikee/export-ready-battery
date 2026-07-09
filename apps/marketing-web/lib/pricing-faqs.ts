@@ -1,15 +1,15 @@
 export const faqs = [
   {
-    q: "Is there a free trial?",
-    a: "Yes. Growth plans include a 14-day free trial. No credit card required. Full access to all Growth features.",
+    q: "How do I try Anviora before I buy?",
+    a: "Request access and we'll walk you through a live sample battery passport — no credit card, no commitment. There's no separate trial tier: every plan is a one-time credit purchase that's fully functional from the moment you buy it, and credits are only used when you activate a batch.",
   },
   {
-    q: "What happens if I exceed my batch limit?",
-    a: "We'll notify you when you hit 80% of your limit. You can upgrade instantly or purchase additional batch packs.",
+    q: "What happens if I run low on passport credits?",
+    a: "We'll notify you when your balance gets low. You can buy an add-on credit pack anytime without changing your plan, or upgrade to a higher tier for a better per-passport rate.",
   },
   {
     q: "Can I switch plans?",
-    a: "Anytime. Upgrade takes effect immediately. Downgrade takes effect at the end of your billing cycle.",
+    a: "Yes — purchasing a higher tier takes effect immediately and adds its credits and seats to your account. Plans aren't recurring subscriptions, so there's nothing to downgrade or cancel: each purchase is a one-time, non-auto-renewing package that covers 30 days (or 365 for annual).",
   },
   {
     q: "Do you offer discounts for MSMEs?",

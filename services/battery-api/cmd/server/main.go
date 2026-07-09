@@ -132,7 +132,7 @@ func main() {
 		handlers.WithRegistryVerificationService(registryVerificationService),
 		handlers.WithStorageService(storageService),
 	)
-	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService)
+	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService, storageService)
 
 	// Initialize OAuth service and handler
 	oauthService := services.NewOAuthService(
@@ -144,6 +144,11 @@ func main() {
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuth(authService)
+	// feat wraps a handler with JWT auth + a plan-feature entitlement gate.
+	// Use for Growth/Enterprise-only surfaces so Starter tenants get a 402.
+	feat := func(f services.Feature, inner http.Handler) http.Handler {
+		return authMiddleware.Protect(h.RequireFeature(f)(inner))
+	}
 	apiKeyService := services.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyAuth(repo, apiKeyService)
 	authRateLimiter := middleware.NewAuthRateLimiter()
@@ -173,6 +178,7 @@ func main() {
 		auditExportService := services.NewAuditExportService(database.Pool)
 		exportJobService = services.NewExportJobService(
 			database.Pool,
+			repo,
 			storageService,
 			qrService,
 			pdfService,
@@ -281,6 +287,7 @@ func main() {
 	authMux.HandleFunc("POST /api/v1/auth/reset-password", authHandler.ResetPassword)
 	authMux.HandleFunc("POST /api/v1/auth/magic-link", magicLinkHandler.RequestMagicLink)
 	authMux.HandleFunc("POST /api/v1/auth/request-access", h.RequestAccess)
+	authMux.HandleFunc("POST /api/v1/leads/eu-buyer", h.CreateEUBuyerLead)
 	// Email verification (public, rate-limited)
 	authMux.HandleFunc("GET /api/v1/auth/verify-email", authHandler.VerifyEmail)
 	authMux.HandleFunc("POST /api/v1/auth/resend-verification", authHandler.ResendVerification)
@@ -318,14 +325,15 @@ func main() {
 	// ============================================
 	// BATCH ROUTES (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/admin/signup-requests/{id}/approve", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ApproveSignupRequest))))
-	mux.Handle("POST /api/v1/admin/signup-requests/{id}/reject", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.RejectSignupRequest))))
-	mux.Handle("GET /api/v1/admin/signup-requests", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ListSignupRequests))))
+	mux.Handle("POST /api/v1/admin/signup-requests/{id}/approve", authMiddleware.Protect(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.ApproveSignupRequest))))
+	mux.Handle("POST /api/v1/admin/signup-requests/{id}/reject", authMiddleware.Protect(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.RejectSignupRequest))))
+	mux.Handle("GET /api/v1/admin/signup-requests", authMiddleware.Protect(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.ListSignupRequests))))
 
 	mux.Handle("POST /api/v1/batches", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateBatch))))
 	mux.Handle("POST /api/v1/batches/validate", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ValidateBatchCreation))))
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))
 	mux.Handle("GET /api/v1/batches/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetBatch)))
+	mux.Handle("GET /api/v1/batches/{id}/document-url", authMiddleware.Protect(http.HandlerFunc(h.GetBatchDocumentURL)))
 	mux.Handle("POST /api/v1/batches/bulk-import", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.BulkImportBatches))))
 	mux.Handle("POST /api/v1/batches/{id}/upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadCSV))))
 	mux.Handle("POST /api/v1/batches/{id}/validate", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ValidateCSV))))
@@ -337,8 +345,9 @@ func main() {
 	mux.Handle("GET /api/v1/batches/{id}/compliance-declaration", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceDeclaration)))
 	mux.Handle("GET /api/v1/batches/{id}/compliance-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadComplianceReport)))
 	mux.Handle("GET /api/v1/batches/{id}/compliance", authMiddleware.Protect(http.HandlerFunc(h.GetBatchCompliance)))
-	mux.Handle("GET /api/v1/batches/{id}/eu-attribute-score", authMiddleware.Protect(http.HandlerFunc(h.GetBatchEUAttributeScore)))
+	mux.Handle("GET /api/v1/batches/{id}/eu-attribute-score", feat(services.FeatureEUCompliance, http.HandlerFunc(h.GetBatchEUAttributeScore)))
 	mux.Handle("GET /api/v1/batches/{id}/due-diligence-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDueDiligenceReport)))
+	mux.Handle("GET /api/v1/batches/{id}/dva-report", authMiddleware.Protect(http.HandlerFunc(h.DownloadDVACalculationReport)))
 	mux.Handle("GET /api/v1/batches/{id}/passports", authMiddleware.Protect(http.HandlerFunc(h.GetBatchPassports)))
 	mux.Handle("DELETE /api/v1/batches/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.DeleteBatch))))
 	mux.Handle("POST /api/v1/batches/{id}/archive", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ArchiveBatch))))
@@ -357,22 +366,22 @@ func main() {
 	// ============================================
 	// DGFT EXPORT INCENTIVE CLAIM ROUTES (Protected)
 	// ============================================
-	mux.Handle("GET /api/v1/dgft-claims/schemes", authMiddleware.Protect(http.HandlerFunc(h.ListDGFTSchemeConfigs)))
-	mux.Handle("POST /api/v1/dgft-claims", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateDGFTClaim))))
-	mux.Handle("GET /api/v1/dgft-claims", authMiddleware.Protect(http.HandlerFunc(h.ListDGFTClaims)))
-	mux.Handle("GET /api/v1/dgft-claims/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetDGFTClaim)))
-	mux.Handle("PUT /api/v1/dgft-claims/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateDGFTClaim))))
-	mux.Handle("DELETE /api/v1/dgft-claims/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.DeleteDGFTClaim))))
-	mux.Handle("POST /api/v1/dgft-claims/{id}/submit", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.SubmitDGFTClaim))))
-	mux.Handle("GET /api/v1/dgft-claims/{id}/export/pdf", authMiddleware.Protect(http.HandlerFunc(h.ExportClaimPDF)))
-	mux.Handle("GET /api/v1/dgft-claims/{id}/export/excel", authMiddleware.Protect(http.HandlerFunc(h.ExportClaimExcel)))
-	mux.Handle("POST /api/v1/dgft-claims/{id}/documents", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadDGFTClaimDocument))))
+	mux.Handle("GET /api/v1/dgft-claims/schemes", feat(services.FeatureDGFT, http.HandlerFunc(h.ListDGFTSchemeConfigs)))
+	mux.Handle("POST /api/v1/dgft-claims", feat(services.FeatureDGFT, h.RequireOnboardingComplete(http.HandlerFunc(h.CreateDGFTClaim))))
+	mux.Handle("GET /api/v1/dgft-claims", feat(services.FeatureDGFT, http.HandlerFunc(h.ListDGFTClaims)))
+	mux.Handle("GET /api/v1/dgft-claims/{id}", feat(services.FeatureDGFT, http.HandlerFunc(h.GetDGFTClaim)))
+	mux.Handle("PUT /api/v1/dgft-claims/{id}", feat(services.FeatureDGFT, h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateDGFTClaim))))
+	mux.Handle("DELETE /api/v1/dgft-claims/{id}", feat(services.FeatureDGFT, h.RequireOnboardingComplete(http.HandlerFunc(h.DeleteDGFTClaim))))
+	mux.Handle("POST /api/v1/dgft-claims/{id}/submit", feat(services.FeatureDGFT, h.RequireOnboardingComplete(http.HandlerFunc(h.SubmitDGFTClaim))))
+	mux.Handle("GET /api/v1/dgft-claims/{id}/export/pdf", feat(services.FeatureDGFT, http.HandlerFunc(h.ExportClaimPDF)))
+	mux.Handle("GET /api/v1/dgft-claims/{id}/export/excel", feat(services.FeatureDGFT, http.HandlerFunc(h.ExportClaimExcel)))
+	mux.Handle("POST /api/v1/dgft-claims/{id}/documents", feat(services.FeatureDGFT, h.RequireOnboardingComplete(http.HandlerFunc(h.UploadDGFTClaimDocument))))
 
 	// SUPPLIER PORTAL ROUTES
 	// Tenant-scoped management
-	mux.Handle("POST /api/v1/suppliers/invitations", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.InviteSupplier))))
-	mux.Handle("GET /api/v1/suppliers", authMiddleware.Protect(http.HandlerFunc(h.ListSuppliers)))
-	mux.Handle("PUT /api/v1/suppliers/{id}/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateSupplierStatus))))
+	mux.Handle("POST /api/v1/suppliers/invitations", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.InviteSupplier))))
+	mux.Handle("GET /api/v1/suppliers", feat(services.FeatureDueDiligence, http.HandlerFunc(h.ListSuppliers)))
+	mux.Handle("PUT /api/v1/suppliers/{id}/status", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateSupplierStatus))))
 	mux.Handle("GET /api/v1/supplier-documents", authMiddleware.Protect(http.HandlerFunc(h.ListTenantSupplierDocuments)))
 	mux.Handle("PUT /api/v1/supplier-documents/{id}/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.ReviewSupplierDocument))))
 	// Supplier auth (rate-limited like other auth endpoints)
@@ -386,16 +395,16 @@ func main() {
 	// ============================================
 	// DUE DILIGENCE ROUTES (Protected)
 	// ============================================
-	mux.Handle("GET /api/v1/suppliers/{id}/risk-profile", authMiddleware.Protect(http.HandlerFunc(h.GetSupplierRiskProfile)))
-	mux.Handle("POST /api/v1/suppliers/{id}/dd-assessments", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateDueDiligenceAssessment))))
-	mux.Handle("GET /api/v1/suppliers/{id}/dd-assessments", authMiddleware.Protect(http.HandlerFunc(h.ListDueDiligenceAssessments)))
-	mux.Handle("POST /api/v1/dd-assessments/{id}/transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.TransitionDueDiligenceAssessment))))
-	mux.Handle("POST /api/v1/dd-assessments/{id}/evidence", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadEvidence))))
-	mux.Handle("GET /api/v1/corrective-actions", authMiddleware.Protect(http.HandlerFunc(h.ListCorrectiveActions)))
-	mux.Handle("POST /api/v1/corrective-actions", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateCorrectiveAction))))
-	mux.Handle("PUT /api/v1/corrective-actions/{id}/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateCorrectiveActionStatus))))
-	mux.Handle("POST /api/v1/suppliers/{id}/cmrt-upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UploadCMRT))))
-	mux.Handle("GET /api/v1/suppliers/{id}/cmrt-reports", authMiddleware.Protect(http.HandlerFunc(h.ListCMRTReports)))
+	mux.Handle("GET /api/v1/suppliers/{id}/risk-profile", feat(services.FeatureDueDiligence, http.HandlerFunc(h.GetSupplierRiskProfile)))
+	mux.Handle("POST /api/v1/suppliers/{id}/dd-assessments", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.CreateDueDiligenceAssessment))))
+	mux.Handle("GET /api/v1/suppliers/{id}/dd-assessments", feat(services.FeatureDueDiligence, http.HandlerFunc(h.ListDueDiligenceAssessments)))
+	mux.Handle("POST /api/v1/dd-assessments/{id}/transition", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.TransitionDueDiligenceAssessment))))
+	mux.Handle("POST /api/v1/dd-assessments/{id}/evidence", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.UploadEvidence))))
+	mux.Handle("GET /api/v1/corrective-actions", feat(services.FeatureDueDiligence, http.HandlerFunc(h.ListCorrectiveActions)))
+	mux.Handle("POST /api/v1/corrective-actions", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.CreateCorrectiveAction))))
+	mux.Handle("PUT /api/v1/corrective-actions/{id}/status", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateCorrectiveActionStatus))))
+	mux.Handle("POST /api/v1/suppliers/{id}/cmrt-upload", feat(services.FeatureDueDiligence, h.RequireOnboardingComplete(http.HandlerFunc(h.UploadCMRT))))
+	mux.Handle("GET /api/v1/suppliers/{id}/cmrt-reports", feat(services.FeatureDueDiligence, http.HandlerFunc(h.ListCMRTReports)))
 
 	// ============================================
 	// REGISTRY VERIFICATION ROUTES (Protected)
@@ -409,6 +418,7 @@ func main() {
 	// ============================================
 	mux.Handle("POST /api/v1/batches/{id}/anchors", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateCertificateAnchor))))
 	mux.Handle("GET /api/v1/batches/{id}/anchors", authMiddleware.Protect(http.HandlerFunc(h.GetCertificateAnchors)))
+	mux.Handle("GET /api/v1/anchors", authMiddleware.Protect(http.HandlerFunc(h.GetTenantCertificateAnchors)))
 	mux.Handle("POST /api/v1/jobs/upgrade-anchors", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpgradeCertificateAnchors))))
 
 	// ============================================
@@ -423,27 +433,37 @@ func main() {
 	// ============================================
 	// MASS BALANCE (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/mass-balance/ledgers", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateMassBalanceLedger))))
-	mux.Handle("GET /api/v1/mass-balance/ledgers", authMiddleware.Protect(http.HandlerFunc(h.ListMassBalanceLedgers)))
-	mux.Handle("GET /api/v1/mass-balance/ledgers/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetMassBalanceLedger)))
-	mux.Handle("PATCH /api/v1/mass-balance/ledgers/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateMassBalanceLedger))))
-	mux.Handle("POST /api/v1/mass-balance/allocations", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateMassBalanceAllocation))))
-	mux.Handle("GET /api/v1/mass-balance/allocations", authMiddleware.Protect(http.HandlerFunc(h.ListMassBalanceAllocations)))
+	mux.Handle("POST /api/v1/mass-balance/ledgers", feat(services.FeatureMassBalance, h.RequireOnboardingComplete(http.HandlerFunc(h.CreateMassBalanceLedger))))
+	mux.Handle("GET /api/v1/mass-balance/ledgers", feat(services.FeatureMassBalance, http.HandlerFunc(h.ListMassBalanceLedgers)))
+	mux.Handle("GET /api/v1/mass-balance/ledgers/{id}", feat(services.FeatureMassBalance, http.HandlerFunc(h.GetMassBalanceLedger)))
+	mux.Handle("PATCH /api/v1/mass-balance/ledgers/{id}", feat(services.FeatureMassBalance, h.RequireOnboardingComplete(http.HandlerFunc(h.UpdateMassBalanceLedger))))
+	mux.Handle("POST /api/v1/mass-balance/allocations", feat(services.FeatureMassBalance, h.RequireOnboardingComplete(http.HandlerFunc(h.CreateMassBalanceAllocation))))
+	mux.Handle("GET /api/v1/mass-balance/allocations", feat(services.FeatureMassBalance, http.HandlerFunc(h.ListMassBalanceAllocations)))
 
 	// ============================================
 	// BULK OPERATIONS (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/bulk/status", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.BulkUpdateStatus))))
 	// RBAC: bulk delete requires owner or operator
-	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("owner", "operator")(http.HandlerFunc(h.BulkDeletePassports)))))
+	mux.Handle("POST /api/v1/passports/bulk/delete", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.BulkDeletePassports)))))
 	mux.Handle("POST /api/v1/passports/bulk/transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports))))
 	mux.Handle("GET /api/v1/passports/bulk/allowed-actions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetBulkAllowedActions)))
 	mux.Handle("GET /api/v1/passports", authMiddleware.Protect(http.HandlerFunc(h.ListPassports)))
 
 	// ============================================
+	// FLEET HEALTH ROUTES (Protected)
+	// ============================================
+	mux.Handle("GET /api/v1/fleet/stats", feat(services.FeatureFleet, http.HandlerFunc(h.GetFleetStats)))
+	mux.Handle("GET /api/v1/fleet/worst-health", feat(services.FeatureFleet, http.HandlerFunc(h.GetFleetWorstHealth)))
+	mux.Handle("GET /api/v1/fleet/events", feat(services.FeatureFleet, http.HandlerFunc(h.GetFleetEvents)))
+	mux.Handle("GET /api/v1/fleet/geo", feat(services.FeatureFleet, http.HandlerFunc(h.GetFleetGeo)))
+	mux.Handle("GET /api/v1/fleet/thermal-events", feat(services.FeatureFleet, http.HandlerFunc(h.GetFleetThermalEvents)))
+
+	// ============================================
 	// PASSPORT LIFECYCLE ROUTES (Protected)
 	// ============================================
 	mux.Handle("POST /api/v1/passports/{uuid}/transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.TransitionPassport))))
+	mux.Handle("POST /api/v1/passports/{uuid}/undo-transition", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.UndoTransition))))
 	mux.Handle("GET /api/v1/passports/{uuid}/transitions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetAllowedActions)))
 	mux.Handle("GET /api/v1/passports/{uuid}/events", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetPassportEvents)))
 	mux.Handle("POST /api/v1/passports/{uuid}/soh", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(lifecycleHandler.UpdateStateOfHealth))))
@@ -497,8 +517,8 @@ func main() {
 	mux.Handle("GET /api/v1/team", authMiddleware.Protect(http.HandlerFunc(h.ListTeamMembers)))
 	mux.Handle("POST /api/v1/team/invite", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.InviteUser))))
 	// RBAC: only owners can remove members or change roles
-	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("owner")(http.HandlerFunc(h.RemoveTeamMember)))))
-	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("owner")(http.HandlerFunc(h.UpdateTeamMemberRole)))))
+	mux.Handle("DELETE /api/v1/team/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("OWNER")(http.HandlerFunc(h.RemoveTeamMember)))))
+	mux.Handle("PUT /api/v1/team/{id}/role", authMiddleware.Protect(h.RequireOnboardingComplete(middleware.RequireRole("OWNER")(http.HandlerFunc(h.UpdateTeamMemberRole)))))
 	mux.HandleFunc("POST /api/v1/team/accept", h.AcceptInvite) // Public for invite links
 
 	// ============================================
@@ -513,6 +533,7 @@ func main() {
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/batches/chart-data", authMiddleware.Protect(http.HandlerFunc(h.GetBatchesChartData)))
 	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
+	mux.Handle("GET /api/v1/scans/feed/stream", authMiddleware.Protect(http.HandlerFunc(h.StreamScanFeed)))
 
 	// ============================================
 	// ANALYTICS ROUTES (Protected)
@@ -534,6 +555,7 @@ func main() {
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))
 	mux.Handle("POST /api/v1/billing/razorpay/order", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.CreateRazorpayOrder))))
 	mux.Handle("POST /api/v1/billing/razorpay/verify", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.VerifyRazorpayPayment))))
+	mux.Handle("GET /api/v1/billing/invoices/{payment_id}/download", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(h.DownloadInvoice))))
 
 	// ============================================
 	// CARBON CALCULATOR ROUTES (Protected)
@@ -565,14 +587,14 @@ func main() {
 	// ============================================
 	// DEVICE TOKEN MANAGEMENT (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/device-tokens", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.CreateDeviceToken))))
-	mux.Handle("GET /api/v1/device-tokens", authMiddleware.Protect(http.HandlerFunc(telemetryHandler.ListDeviceTokens)))
-	mux.Handle("DELETE /api/v1/device-tokens/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.RevokeDeviceToken))))
+	mux.Handle("POST /api/v1/device-tokens", feat(services.FeatureTelemetry, h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.CreateDeviceToken))))
+	mux.Handle("GET /api/v1/device-tokens", feat(services.FeatureTelemetry, http.HandlerFunc(telemetryHandler.ListDeviceTokens)))
+	mux.Handle("DELETE /api/v1/device-tokens/{id}", feat(services.FeatureTelemetry, h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.RevokeDeviceToken))))
 
 	// ============================================
 	// CSV SOH UPLOAD (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/telemetry/soh-upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.UploadSoHCSV))))
+	mux.Handle("POST /api/v1/telemetry/soh-upload", feat(services.FeatureTelemetry, h.RequireOnboardingComplete(http.HandlerFunc(telemetryHandler.UploadSoHCSV))))
 
 	// ============================================
 	// WEBHOOK ROUTES (Public - for payment providers)
@@ -584,9 +606,11 @@ func main() {
 	// OUTBOUND WEBHOOK MANAGEMENT (Protected)
 	// ============================================
 	outboundWHHandler := handlers.NewOutboundWebhookHandler(outboundWebhookService)
-	mux.Handle("POST /api/v1/outbound-webhooks", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.CreateOutboundWebhook))))
-	mux.Handle("GET /api/v1/outbound-webhooks", authMiddleware.Protect(http.HandlerFunc(outboundWHHandler.ListOutboundWebhooks)))
-	mux.Handle("DELETE /api/v1/outbound-webhooks/{id}", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.DeleteOutboundWebhook))))
+	mux.Handle("POST /api/v1/outbound-webhooks", feat(services.FeatureDeveloper, h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.CreateOutboundWebhook))))
+	mux.Handle("GET /api/v1/outbound-webhooks", feat(services.FeatureDeveloper, http.HandlerFunc(outboundWHHandler.ListOutboundWebhooks)))
+	mux.Handle("DELETE /api/v1/outbound-webhooks/{id}", feat(services.FeatureDeveloper, h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.DeleteOutboundWebhook))))
+	mux.Handle("GET /api/v1/webhooks/{id}/deliveries", feat(services.FeatureDeveloper, http.HandlerFunc(outboundWHHandler.GetWebhookDeliveries)))
+	mux.Handle("POST /api/v1/webhooks/deliveries/{id}/retry", feat(services.FeatureDeveloper, h.RequireOnboardingComplete(http.HandlerFunc(outboundWHHandler.RetryWebhookDelivery))))
 
 	// ============================================
 	// DOCUMENT UPLOAD ROUTES (Protected)
@@ -605,7 +629,7 @@ func main() {
 	// ADMIN ROUTES (Secret - for document verification)
 	// ============================================
 	// RBAC: only owners can trigger admin document verification
-	mux.Handle("POST /api/v1/admin/verify-doc", authMiddleware.Protect(middleware.RequireRole("owner")(http.HandlerFunc(h.AdminVerifyDocument))))
+	mux.Handle("POST /api/v1/admin/verify-doc", authMiddleware.Protect(middleware.RequireRole("OWNER")(http.HandlerFunc(h.AdminVerifyDocument))))
 
 	// ============================================
 	// SCAN ROUTES (Public - rate limited to prevent abuse)
@@ -616,6 +640,7 @@ func main() {
 	// PASSPORT ROUTES (Public - rate limited to prevent enumeration)
 	// ============================================
 	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
+	mux.Handle("GET /api/v1/passports/{uuid}/document-url", apiRateLimiter.Limit(http.HandlerFunc(h.GetPublicPassportDocumentURL)))
 	mux.Handle("POST /api/v1/passports/{uuid}/vc", authMiddleware.Protect(http.HandlerFunc(h.GenerateVCHandle)))
 	mux.Handle("GET /api/v1/did.json", http.HandlerFunc(h.GetDIDDocumentHandle))
 
@@ -633,21 +658,21 @@ func main() {
 	// ============================================
 	// API KEY MANAGEMENT (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/api-keys", authMiddleware.Protect(http.HandlerFunc(h.CreateAPIKey)))
-	mux.Handle("GET /api/v1/api-keys", authMiddleware.Protect(http.HandlerFunc(h.ListAPIKeys)))
-	mux.Handle("GET /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.GetAPIKey)))
-	mux.Handle("PATCH /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.UpdateAPIKey)))
-	mux.Handle("DELETE /api/v1/api-keys/{id}", authMiddleware.Protect(http.HandlerFunc(h.DeleteAPIKey)))
+	mux.Handle("POST /api/v1/api-keys", feat(services.FeatureDeveloper, http.HandlerFunc(h.CreateAPIKey)))
+	mux.Handle("GET /api/v1/api-keys", feat(services.FeatureDeveloper, http.HandlerFunc(h.ListAPIKeys)))
+	mux.Handle("GET /api/v1/api-keys/{id}", feat(services.FeatureDeveloper, http.HandlerFunc(h.GetAPIKey)))
+	mux.Handle("PATCH /api/v1/api-keys/{id}", feat(services.FeatureDeveloper, http.HandlerFunc(h.UpdateAPIKey)))
+	mux.Handle("DELETE /api/v1/api-keys/{id}", feat(services.FeatureDeveloper, http.HandlerFunc(h.DeleteAPIKey)))
 
 	// ============================================
 	// TRUSTED PARTNERS MANAGEMENT (Protected)
 	// ============================================
-	mux.Handle("POST /api/v1/partners/trusted", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreateTrustedPartner)))
-	mux.Handle("GET /api/v1/partners/trusted", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListTrustedPartners)))
-	mux.Handle("DELETE /api/v1/partners/trusted/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeleteTrustedPartner)))
-	mux.Handle("POST /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.CreatePartnerCode)))
-	mux.Handle("GET /api/v1/partners/codes", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.ListPartnerCodes)))
-	mux.Handle("DELETE /api/v1/partners/codes/{id}", authMiddleware.Protect(http.HandlerFunc(trustedPartnerHandler.DeactivatePartnerCode)))
+	mux.Handle("POST /api/v1/partners/trusted", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.CreateTrustedPartner)))
+	mux.Handle("GET /api/v1/partners/trusted", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.ListTrustedPartners)))
+	mux.Handle("DELETE /api/v1/partners/trusted/{id}", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.DeleteTrustedPartner)))
+	mux.Handle("POST /api/v1/partners/codes", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.CreatePartnerCode)))
+	mux.Handle("GET /api/v1/partners/codes", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.ListPartnerCodes)))
+	mux.Handle("DELETE /api/v1/partners/codes/{id}", feat(services.FeaturePartners, http.HandlerFunc(trustedPartnerHandler.DeactivatePartnerCode)))
 
 	// ============================================
 	// DATA ACCESS TOKENS (Protected - Tenant Admin)
@@ -688,27 +713,27 @@ func main() {
 	// Tally ERP integration
 	tallyHandler := tally.NewHandler(repo)
 	tallySyncHandler := tally.NewSyncHandler(repo)
-	mux.Handle("POST /api/v1/integrations/tally/import", authMiddleware.Protect(http.HandlerFunc(tallyHandler.Import)))
-	mux.Handle("GET /api/v1/integrations/tally/history", authMiddleware.Protect(http.HandlerFunc(tallyHandler.History)))
-	mux.Handle("GET /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetConfig)))
-	mux.Handle("POST /api/v1/integrations/tally/sync-config", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.SaveConfig)))
-	mux.Handle("GET /api/v1/integrations/tally/staging", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.GetStaging)))
-	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/apply", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.ApplyStaging)))
-	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/discard", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.DiscardStaging)))
-	mux.Handle("POST /api/v1/integrations/tally/sync-trigger", authMiddleware.Protect(http.HandlerFunc(tallySyncHandler.TriggerSync)))
+	mux.Handle("POST /api/v1/integrations/tally/import", feat(services.FeatureDeveloper, http.HandlerFunc(tallyHandler.Import)))
+	mux.Handle("GET /api/v1/integrations/tally/history", feat(services.FeatureDeveloper, http.HandlerFunc(tallyHandler.History)))
+	mux.Handle("GET /api/v1/integrations/tally/sync-config", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.GetConfig)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-config", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.SaveConfig)))
+	mux.Handle("GET /api/v1/integrations/tally/staging", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.GetStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/apply", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.ApplyStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/staging/{id}/discard", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.DiscardStaging)))
+	mux.Handle("POST /api/v1/integrations/tally/sync-trigger", feat(services.FeatureDeveloper, http.HandlerFunc(tallySyncHandler.TriggerSync)))
 
 	// ============================================
 	// REGULATORY INTELLIGENCE (Phase E)
 	// ============================================
-	mux.Handle("GET /api/v1/regulatory/sources", authMiddleware.Protect(http.HandlerFunc(h.ListRegulatorySources)))
-	mux.Handle("POST /api/v1/regulatory/sources", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.CreateRegulatorySource))))
-	mux.Handle("PUT /api/v1/regulatory/sources/{id}", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.UpdateRegulatorySource))))
-	mux.Handle("POST /api/v1/regulatory/sources/{id}/fetch", authMiddleware.Protect(middleware.RequireRole("owner", "admin")(http.HandlerFunc(h.ForceFetchRegulatorySource))))
-	mux.Handle("GET /api/v1/regulatory/items", authMiddleware.Protect(http.HandlerFunc(h.ListRegulatoryItems)))
-	mux.Handle("GET /api/v1/regulatory/alerts", authMiddleware.Protect(http.HandlerFunc(h.GetRegulatoryAlerts)))
-	mux.Handle("GET /api/v1/regulatory/alerts/unread-count", authMiddleware.Protect(http.HandlerFunc(h.GetRegulatoryAlertUnreadCount)))
-	mux.Handle("POST /api/v1/regulatory/alerts/{id}/read", authMiddleware.Protect(http.HandlerFunc(h.MarkRegulatoryAlertRead)))
-	mux.Handle("POST /api/v1/regulatory/alerts/{id}/dismiss", authMiddleware.Protect(http.HandlerFunc(h.DismissRegulatoryAlert)))
+	mux.Handle("GET /api/v1/regulatory/sources", feat(services.FeatureRegulatory, http.HandlerFunc(h.ListRegulatorySources)))
+	mux.Handle("POST /api/v1/regulatory/sources", feat(services.FeatureRegulatory, middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.CreateRegulatorySource))))
+	mux.Handle("PUT /api/v1/regulatory/sources/{id}", feat(services.FeatureRegulatory, middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.UpdateRegulatorySource))))
+	mux.Handle("POST /api/v1/regulatory/sources/{id}/fetch", feat(services.FeatureRegulatory, middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.ForceFetchRegulatorySource))))
+	mux.Handle("GET /api/v1/regulatory/items", feat(services.FeatureRegulatory, http.HandlerFunc(h.ListRegulatoryItems)))
+	mux.Handle("GET /api/v1/regulatory/alerts", feat(services.FeatureRegulatory, http.HandlerFunc(h.GetRegulatoryAlerts)))
+	mux.Handle("GET /api/v1/regulatory/alerts/unread-count", feat(services.FeatureRegulatory, http.HandlerFunc(h.GetRegulatoryAlertUnreadCount)))
+	mux.Handle("POST /api/v1/regulatory/alerts/{id}/read", feat(services.FeatureRegulatory, http.HandlerFunc(h.MarkRegulatoryAlertRead)))
+	mux.Handle("POST /api/v1/regulatory/alerts/{id}/dismiss", feat(services.FeatureRegulatory, http.HandlerFunc(h.DismissRegulatoryAlert)))
 
 	// Build handler chain: SecurityHeaders → MaxBytesReader → RecoverPanic → RequestLogger → CORS → mux
 	// MaxBytesReader prevents trivial large-body DoS (10 MB limit)

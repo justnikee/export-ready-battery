@@ -1,12 +1,13 @@
 import api from '../api';
 
-export type MaterialType = 'cobalt' | 'lithium' | 'nickel' | 'lead';
+export type MaterialType = 'cobalt' | 'lithium' | 'nickel' | 'lead' | 'manganese';
 
 export const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
   cobalt: 'Cobalt',
   lithium: 'Lithium',
   nickel: 'Nickel',
   lead: 'Lead',
+  manganese: 'Manganese',
 };
 
 export const MATERIAL_TYPE_COLORS: Record<MaterialType, string> = {
@@ -14,7 +15,21 @@ export const MATERIAL_TYPE_COLORS: Record<MaterialType, string> = {
   lithium: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
   nickel: 'bg-amber-500/10 text-amber-700 border-amber-200',
   lead: 'bg-slate-500/10 text-slate-700 border-slate-200',
+  manganese: 'bg-purple-500/10 text-purple-700 border-purple-200',
 };
+
+// EU Battery Regulation 2023/1542 Annex II minimum recycled-content
+// percentages, effective Aug 18, 2031. Partial, not a full Record: Annex II
+// only mandates a recycled-content minimum for cobalt/lead/lithium/nickel —
+// manganese has no such target, so it's deliberately absent here rather than
+// given a made-up number.
+export const RECYCLED_CONTENT_THRESHOLDS: Partial<Record<MaterialType, number>> = {
+  cobalt: 16,
+  lithium: 6,
+  nickel: 6,
+  lead: 85,
+};
+export const RECYCLED_CONTENT_DEADLINE = '2031-08-18';
 
 export interface MassBalanceLedger {
   id: string;

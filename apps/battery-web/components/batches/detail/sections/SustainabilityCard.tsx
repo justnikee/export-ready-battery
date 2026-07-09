@@ -93,19 +93,19 @@ export function SustainabilityCard({ batch }: SustainabilityCardProps) {
             </span>
             <div className="flex flex-wrap gap-2">
               {s.hazardous_substances.lead_present && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] uppercase border border-amber-500/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] uppercase">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   Lead Present
                 </span>
               )}
               {s.hazardous_substances.mercury_present && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] uppercase border border-amber-500/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] uppercase">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   Mercury Present
                 </span>
               )}
               {s.hazardous_substances.cadmium_present && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] uppercase border border-amber-500/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] uppercase">
                   <AlertTriangle className="h-2.5 w-2.5" />
                   Cadmium Present
                 </span>

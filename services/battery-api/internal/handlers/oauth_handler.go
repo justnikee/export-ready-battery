@@ -236,40 +236,39 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Find or create tenant
-	tenantID, companyName, err := h.findOrCreateTenant(r.Context(), profile, productType)
+	// Find or create the user identity + resolve their tenant and role.
+	tenantID, userID, companyName, role, err := h.findOrCreateUser(r.Context(), profile, productType)
 	if err != nil {
-		slog.Error("Failed to find/create tenant for OAuth", "provider", provider, "error", err)
+		slog.Error("Failed to find/create user for OAuth", "provider", provider, "error", err)
 		h.redirectWithError(w, r, "Failed to create account")
 		return
 	}
 
-	// Update last login
+	// Update last login (per-user)
 	h.db.Pool.Exec(r.Context(),
-		"UPDATE public.tenants SET last_login = $1 WHERE id = $2",
-		time.Now(), tenantID)
+		"UPDATE public.users SET last_login = $1 WHERE id = $2",
+		time.Now(), userID)
 
-	// Generate tokens (OAuth users are pre-verified owners)
-	const oauthRole = "owner"
-	token, err := h.authService.GenerateToken(tenantID.String(), profile.Email, oauthRole, productType)
+	// Generate tokens with identity + resolved role.
+	token, err := h.authService.GenerateToken(tenantID.String(), userID.String(), profile.Email, role, productType)
 	if err != nil {
 		slog.Error("Failed to generate token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
 
-	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), profile.Email, oauthRole, productType)
+	refreshToken, jti, err := h.authService.GenerateRefreshToken(tenantID.String(), userID.String(), profile.Email, role, productType)
 	if err != nil {
 		slog.Error("Failed to generate refresh token", "error", err)
 		h.redirectWithError(w, r, "Failed to generate authentication token")
 		return
 	}
 
-	// Persist JTI for refresh token revocation
+	// Persist JTI for refresh token revocation (per-user session)
 	expires := time.Now().Add(h.authService.GetRefreshExpiry())
 	h.db.Pool.Exec(r.Context(),
-		`UPDATE public.tenants SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
-		jti, expires, tenantID)
+		`UPDATE public.users SET refresh_token_jti = $1, refresh_token_expires = $2 WHERE id = $3`,
+		jti, expires, userID)
 
 	// Set the refresh token in an HttpOnly cookie (same helper used by Login/Refresh)
 	// This must be done BEFORE the redirect so the Set-Cookie header is sent
@@ -292,51 +291,77 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 }
 
 // findOrCreateTenant finds an existing tenant by email or creates a new one for OAuth users
-func (h *OAuthHandler) findOrCreateTenant(ctx context.Context, profile *services.OAuthProfile, productType models.ProductType) (uuid.UUID, string, error) {
-	// First, try to find existing tenant by email
-	var tenantID uuid.UUID
-	var companyName string
-	err := h.db.Pool.QueryRow(ctx,
-		"SELECT id, company_name FROM public.tenants WHERE email = $1",
-		profile.Email).Scan(&tenantID, &companyName)
-
-	if err == nil {
-		// Existing tenant found — update OAuth provider info if not set
+// findOrCreateUser ensures an OAuth login has a user identity, links any pending
+// invites, and resolves the tenant + role it should act as. Creates a fresh org
+// (OWNER) only when the user belongs to none.
+func (h *OAuthHandler) findOrCreateUser(ctx context.Context, profile *services.OAuthProfile, productType models.ProductType) (tenantID uuid.UUID, userID uuid.UUID, companyName string, role string, err error) {
+	// 1. Ensure a user identity exists.
+	uErr := h.db.Pool.QueryRow(ctx, "SELECT id FROM public.users WHERE email = $1", profile.Email).Scan(&userID)
+	switch {
+	case uErr == pgx.ErrNoRows:
+		userID = uuid.New()
+		if _, err = h.db.Pool.Exec(ctx,
+			`INSERT INTO public.users (id, email, oauth_provider, oauth_provider_id, email_verified, created_at)
+			 VALUES ($1, $2, $3, $4, true, $5)`,
+			userID, profile.Email, profile.Provider, profile.ProviderID, time.Now()); err != nil {
+			return uuid.UUID{}, uuid.UUID{}, "", "", fmt.Errorf("failed to create user: %w", err)
+		}
+	case uErr != nil:
+		return uuid.UUID{}, uuid.UUID{}, "", "", fmt.Errorf("failed to query user: %w", uErr)
+	default:
 		h.db.Pool.Exec(ctx,
-			`UPDATE public.tenants SET oauth_provider = $1, oauth_provider_id = $2 
+			`UPDATE public.users SET oauth_provider = $1, oauth_provider_id = $2, email_verified = true
 			 WHERE id = $3 AND oauth_provider IS NULL`,
-			profile.Provider, profile.ProviderID, tenantID)
-		return tenantID, companyName, nil
+			profile.Provider, profile.ProviderID, userID)
 	}
 
-	if err != pgx.ErrNoRows {
-		return uuid.UUID{}, "", fmt.Errorf("failed to query tenant: %w", err)
-	}
-
-	// New user — create tenant
-	// Use the name from OAuth as company_name fallback (user will complete in onboarding)
-	tenantID = uuid.New()
-	companyName = profile.Name // Could be user's display name; onboarding will ask for real company name
-
-	_, err = h.db.Pool.Exec(ctx,
-		`INSERT INTO public.tenants (id, company_name, email, product_type, oauth_provider, oauth_provider_id, email_verified, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, true, $7)`,
-		tenantID, companyName, profile.Email, productType, profile.Provider, profile.ProviderID, time.Now())
-	if err != nil {
-		return uuid.UUID{}, "", fmt.Errorf("failed to create tenant: %w", err)
-	}
-
-	// Check and link pending team invitations
-	pendingInvites, err := h.repo.GetPendingInvitesByEmail(ctx, profile.Email)
-	if err == nil {
-		for _, invite := range pendingInvites {
-			if err := h.repo.UpdateTeamMemberStatus(ctx, invite.ID, models.TeamStatusActive, &tenantID); err != nil {
-				slog.Warn("Failed to activate pending invite", "team_id", invite.TenantID, "error", err)
+	// 2. Link any pending invites to this user identity.
+	if invites, iErr := h.repo.GetPendingInvitesByEmail(ctx, profile.Email); iErr == nil {
+		for _, inv := range invites {
+			if e := h.repo.UpdateTeamMemberStatus(ctx, inv.ID, models.TeamStatusActive, &userID); e != nil {
+				slog.Warn("Failed to activate pending invite", "team_id", inv.TenantID, "error", e)
 			}
 		}
 	}
 
-	return tenantID, companyName, nil
+	// 3. Resolve an existing membership (OWNER-preferred).
+	err = h.db.Pool.QueryRow(ctx,
+		`SELECT tm.tenant_id, tm.role, t.company_name
+		   FROM team_members tm JOIN public.tenants t ON t.id = tm.tenant_id
+		  WHERE tm.user_id = $1 AND tm.status = 'ACTIVE'
+		  ORDER BY (tm.role = 'OWNER') DESC, tm.created_at ASC LIMIT 1`,
+		userID).Scan(&tenantID, &role, &companyName)
+	if err == nil {
+		return tenantID, userID, companyName, role, nil
+	}
+	if err != pgx.ErrNoRows {
+		return uuid.UUID{}, uuid.UUID{}, "", "", fmt.Errorf("failed to resolve membership: %w", err)
+	}
+
+	// 4. No org yet → create a tenant + OWNER membership for this user.
+	tenantID = uuid.New()
+	companyName = profile.Name // display name; onboarding collects the real company name
+	tx, txErr := h.db.Pool.Begin(ctx)
+	if txErr != nil {
+		return uuid.UUID{}, uuid.UUID{}, "", "", txErr
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx,
+		`INSERT INTO public.tenants (id, company_name, email, product_type, oauth_provider, oauth_provider_id, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		tenantID, companyName, profile.Email, productType, profile.Provider, profile.ProviderID, time.Now()); err != nil {
+		return uuid.UUID{}, uuid.UUID{}, "", "", fmt.Errorf("failed to create tenant: %w", err)
+	}
+	if _, err = tx.Exec(ctx,
+		`INSERT INTO team_members (id, tenant_id, email, role, status, user_id, created_at, accepted_at)
+		 VALUES ($1, $2, $3, 'OWNER', 'ACTIVE', $4, $5, $5)`,
+		uuid.New(), tenantID, profile.Email, userID, time.Now()); err != nil {
+		return uuid.UUID{}, uuid.UUID{}, "", "", fmt.Errorf("failed to create owner membership: %w", err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return uuid.UUID{}, uuid.UUID{}, "", "", err
+	}
+	return tenantID, userID, companyName, models.TeamRoleOwner, nil
 }
 
 // redirectWithError redirects to the frontend login page with an error message

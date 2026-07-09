@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { dashboardPathFromPathname } from "@/lib/routes";
@@ -15,6 +16,9 @@ import { getProductConfigByType } from "@/lib/products";
 import { clsx } from "clsx";
 import { useState, useEffect } from "react";
 import NProgress from "nprogress";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { NAV_GROUP_LABEL_KEYS, NAV_ITEM_LABEL_KEYS } from "@/lib/i18n/nav-labels";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 interface DashboardSidebarProps {
   isOpen: boolean;
@@ -34,6 +38,12 @@ export function DashboardSidebar({
   const productConfig = getProductConfigByType(productType);
   const navGroups = productConfig.navGroups;
   const pathname = usePathname();
+  const { t } = useLocale();
+  const { has } = useEntitlements();
+  const translateGroupLabel = (label: string) =>
+    NAV_GROUP_LABEL_KEYS[label] ? t(NAV_GROUP_LABEL_KEYS[label]) : label;
+  const translateItemName = (name: string) =>
+    NAV_ITEM_LABEL_KEYS[name] ? t(NAV_ITEM_LABEL_KEYS[name]) : name;
   const [devExpanded, setDevExpanded] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem("sidebar-dev-expanded");
@@ -130,7 +140,7 @@ export function DashboardSidebar({
                       isCollapsed && "md:hidden",
                     )}
                   >
-                    <span>{group.label}</span>
+                    <span>{translateGroupLabel(group.label)}</span>
                     {devExpanded ? (
                       <ChevronUp className="h-3.5 w-3.5" />
                     ) : (
@@ -144,7 +154,7 @@ export function DashboardSidebar({
                       isCollapsed && "md:hidden",
                     )}
                   >
-                    {group.label}
+                    {translateGroupLabel(group.label)}
                   </div>
                 )}
 
@@ -159,6 +169,7 @@ export function DashboardSidebar({
                           );
                       const Icon = item.icon;
                       const active = isActive(href);
+                      const locked = item.feature ? !has(item.feature) : false;
 
                       return (
                         <Link
@@ -168,26 +179,40 @@ export function DashboardSidebar({
                             if (!active) NProgress.start();
                             onClose();
                           }}
-                          title={isCollapsed ? item.name : undefined}
+                          title={isCollapsed ? translateItemName(item.name) : undefined}
                           className={clsx(
                             "group relative flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200",
                             active
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                             isCollapsed && "md:justify-center md:px-0",
+                            locked && "opacity-60",
                           )}
                         >
-                          <Icon
-                            className={clsx(
-                              "h-5 w-5 shrink-0 transition-colors",
-                              active
-                                ? "text-(--brand)"
-                                : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
-                            )}
-                          />
-                          <span className={clsx(isCollapsed && "md:hidden")}>
-                            {item.name}
+                          {locked ? (
+                            <Lock
+                              className={clsx(
+                                "h-5 w-5 shrink-0 transition-colors text-muted-foreground",
+                              )}
+                            />
+                          ) : (
+                            <Icon
+                              className={clsx(
+                                "h-5 w-5 shrink-0 transition-colors",
+                                active
+                                  ? "text-(--brand)"
+                                  : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
+                              )}
+                            />
+                          )}
+                          <span className={clsx(isCollapsed && "md:hidden", "flex-1")}>
+                            {translateItemName(item.name)}
                           </span>
+                          {locked && !isCollapsed && (
+                            <span className="hidden md:inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-400 leading-none">
+                              Growth
+                            </span>
+                          )}
                         </Link>
                       );
                     })}

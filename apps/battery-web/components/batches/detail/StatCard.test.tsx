@@ -31,7 +31,7 @@ describe("StatCard", () => {
     expect(screen.getByTestId("icon")).toBeInTheDocument();
   });
 
-  it("renders a bordered card container", () => {
+  it("renders a filled card container", () => {
     const { container } = render(
       <StatCard
         label="Test"
@@ -41,7 +41,7 @@ describe("StatCard", () => {
         iconBg="bg-blue-500/10"
       />,
     );
-    expect(container.firstChild).toHaveClass("border", "border-border");
+    expect(container.firstChild).toHaveClass("bg-background", "rounded-md");
   });
 
   it("applies monospace styling to label and value", () => {

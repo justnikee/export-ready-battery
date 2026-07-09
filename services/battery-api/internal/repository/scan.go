@@ -94,6 +94,56 @@ func (r *Repository) GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit 
 	return items, nil
 }
 
+// GetScanFeedSince retrieves scans recorded after the given timestamp, oldest
+// first — the incremental query the live SSE scan feed polls internally
+// (distinct from GetScanFeed, which returns the most-recent-N for the
+// initial page load).
+func (r *Repository) GetScanFeedSince(ctx context.Context, tenantID uuid.UUID, since time.Time, limit int) ([]*models.ScanFeedItem, error) {
+	query := `
+		SELECT
+			COALESCE(s.city, '') as city,
+			COALESCE(s.country, '') as country,
+			COALESCE(s.latitude, 0) as latitude,
+			COALESCE(s.longitude, 0) as longitude,
+			COALESCE(s.device_type, '') as device_type,
+			s.scanned_at,
+			p.serial_number,
+			b.batch_name
+		FROM public.scan_events s
+		JOIN public.passports p ON s.passport_id = p.uuid AND p.deleted_at IS NULL
+		JOIN public.batches b ON p.batch_id = b.id
+		WHERE b.tenant_id = $1 AND s.scanned_at > $2
+		ORDER BY s.scanned_at ASC
+		LIMIT $3
+	`
+
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, since, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scan feed since: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*models.ScanFeedItem
+	for rows.Next() {
+		item := &models.ScanFeedItem{}
+		if err := rows.Scan(
+			&item.City,
+			&item.Country,
+			&item.Latitude,
+			&item.Longitude,
+			&item.DeviceType,
+			&item.ScannedAt,
+			&item.SerialNumber,
+			&item.BatchName,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan feed item: %w", err)
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
 // GetDashboardStats retrieves statistics for the dashboard
 func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
 	stats := &models.DashboardStats{}

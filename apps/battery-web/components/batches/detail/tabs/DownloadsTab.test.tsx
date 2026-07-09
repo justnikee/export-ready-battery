@@ -5,6 +5,7 @@ import { DownloadsTab } from "./DownloadsTab";
 const defaultProps = {
   isDraft: false,
   isEU: false,
+  isIndia: false,
   isGlobal: false,
   hasCarbonFootprint: false,
   onPrintLabels: vi.fn(),
@@ -14,6 +15,9 @@ const defaultProps = {
   onDownloadComplianceReport: vi.fn(),
   onExportComplianceDeclaration: vi.fn(),
   onExportDueDiligence: vi.fn(),
+  onExportEPCIS: vi.fn(),
+  onExportDVAReport: vi.fn(),
+  onExportPLIPacket: vi.fn(),
 };
 
 describe("DownloadsTab", () => {
@@ -54,5 +58,18 @@ describe("DownloadsTab", () => {
     render(<DownloadsTab {...defaultProps} isGlobal={true} />);
     expect(screen.getByText("Carbon Declaration")).toBeInTheDocument();
     expect(screen.getByText("Due Diligence")).toBeInTheDocument();
+  });
+
+  it("shows DVA and PLI Claim Packet cards when isIndia is true", () => {
+    render(<DownloadsTab {...defaultProps} isIndia={true} />);
+    expect(screen.getByText("DVA Calculation")).toBeInTheDocument();
+    expect(screen.getByText("PLI Claim Packet")).toBeInTheDocument();
+  });
+
+  it("calls onExportPLIPacket when the PLI Claim Packet card is clicked", () => {
+    render(<DownloadsTab {...defaultProps} isIndia={true} />);
+    const btn = screen.getByRole("button", { name: /PLI Claim Packet/i });
+    fireEvent.click(btn);
+    expect(defaultProps.onExportPLIPacket).toHaveBeenCalled();
   });
 });

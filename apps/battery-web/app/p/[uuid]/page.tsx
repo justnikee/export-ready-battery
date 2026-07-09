@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ComponentProps } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import api from "@/lib/api";
+import { apiAnonymous } from "@/lib/api";
 import { CertificateView } from "@/components/passport/certificate-view";
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal";
 import { AlertCircle, Loader2, Download, Wrench, Globe } from "lucide-react";
@@ -51,7 +51,7 @@ export default function PublicPassportPage() {
   useEffect(() => {
     const fetchPassport = async () => {
       try {
-        const response = await api.get(`/passports/${params.uuid}`);
+        const response = await apiAnonymous.get(`/passports/${params.uuid}`);
         const data = response.data;
 
         // The API returns a tier-aware view (PublicPassportView, PartnerPassportView,
@@ -135,7 +135,7 @@ export default function PublicPassportPage() {
 
   const recordScan = async (passportId: string) => {
     try {
-      await api.post('/scans/record', { passport_id: passportId });
+      await apiAnonymous.post('/scans/record', { passport_id: passportId });
     } catch (e) {
       console.debug("Scan recording skipped", e);
     }
@@ -217,7 +217,7 @@ export default function PublicPassportPage() {
             </div>
             <div className="hidden sm:block">
               <p className="text-foreground text-sm tracking-tight">
-                ANVIORA
+                {process.env.NEXT_PUBLIC_BRAND_NAME ?? "ExportReady"}
               </p>
               <p className="text-muted-foreground text-xs">
                 {t("header_registry")}

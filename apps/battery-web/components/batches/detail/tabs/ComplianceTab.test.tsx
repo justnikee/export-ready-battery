@@ -10,6 +10,7 @@ const mockGetCertificateExpiry = (
   _validityMonths: number,
 ): CertExpiryResult => ({
   status: "valid",
+  expiryDate: "2027-01-15",
   daysRemaining: 365,
 });
 

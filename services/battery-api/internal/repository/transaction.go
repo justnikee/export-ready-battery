@@ -81,3 +81,28 @@ func (r *Repository) ListTransactions(ctx context.Context, tenantID uuid.UUID, l
 
 	return transactions, nil
 }
+
+// GetTransactionByPaymentID retrieves a specific transaction by payment ID.
+func (r *Repository) GetTransactionByPaymentID(ctx context.Context, tenantID uuid.UUID, paymentID string) (*models.Transaction, error) {
+	query := `
+		SELECT id, tenant_id, description, quota_change, batch_id, payment_id, created_at
+		FROM public.transactions
+		WHERE tenant_id = $1 AND payment_id = $2
+		LIMIT 1`
+
+	tx := &models.Transaction{}
+	err := r.db.Pool.QueryRow(ctx, query, tenantID, paymentID).Scan(
+		&tx.ID,
+		&tx.TenantID,
+		&tx.Description,
+		&tx.QuotaChange,
+		&tx.BatchID,
+		&tx.PaymentID,
+		&tx.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get transaction by payment id: %w", err)
+	}
+
+	return tx, nil
+}

@@ -45,7 +45,7 @@ export function CompliancePreview({ india, eu, markets, onGapClick }: Compliance
           : "bg-red-500/10 border-red-500/20";
 
     return (
-      <div className={`p-4 rounded-none border ${bgColor}`}>
+      <div className={`p-4 rounded-lg border ${bgColor}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-foreground">{label}</span>
           <span className={`text-lg font-bold ${scoreColor}`}>
@@ -53,7 +53,7 @@ export function CompliancePreview({ india, eu, markets, onGapClick }: Compliance
           </span>
         </div>
         {readiness.valid ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-700">
+          <div className="flex items-center gap-2 text-sm text-emerald-400">
             <CheckCircle2 className="w-4 h-4" />
             Ready for activation
           </div>
@@ -70,7 +70,7 @@ export function CompliancePreview({ india, eu, markets, onGapClick }: Compliance
                 ) : (
                   <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 )}
-                <span className={gap.severity === "ERROR" ? "text-red-700" : "text-amber-700"}>
+                <span className={gap.severity === "ERROR" ? "text-red-400" : "text-amber-400"}>
                   {gap.message}
                 </span>
               </li>

@@ -60,16 +60,25 @@ type RepositoryInterface interface {
 	CreateOutboundWebhook(ctx context.Context, wh *models.OutboundWebhook) error
 	ListOutboundWebhooks(ctx context.Context, tenantID uuid.UUID) ([]*models.OutboundWebhook, error)
 	GetOutboundWebhookByID(ctx context.Context, id, tenantID uuid.UUID) (*models.OutboundWebhook, error)
+	GetOutboundWebhookByIDAny(ctx context.Context, id uuid.UUID) (*models.OutboundWebhook, error)
 	GetWebhooksByEvent(ctx context.Context, tenantID uuid.UUID, eventType string) ([]*models.OutboundWebhook, error)
 	IncrementWebhookFailure(ctx context.Context, id uuid.UUID) error
 	UpdateWebhookLastTriggered(ctx context.Context, id uuid.UUID, at time.Time) error
 	DeleteOutboundWebhook(ctx context.Context, id, tenantID uuid.UUID) error
+	CreateWebhookDelivery(ctx context.Context, d *models.WebhookDelivery) error
+	UpdateWebhookDeliveryResult(ctx context.Context, id uuid.UUID, responseStatus *int, responseBody string, deliveredAt *time.Time, retryCount int, errorMessage string) error
+	GetWebhookDeliveriesByWebhook(ctx context.Context, webhookID uuid.UUID, limit int) ([]*models.WebhookDelivery, error)
+	GetWebhookDeliveryByID(ctx context.Context, id uuid.UUID) (*models.WebhookDelivery, error)
+	GetFailedDeliveriesForRetry(ctx context.Context, maxRetries, limit int) ([]*models.WebhookDelivery, error)
 
 	// signup_requests.go
 	CreateSignupRequest(ctx context.Context, req *models.SignupRequest) error
 	GetSignupRequestByEmail(ctx context.Context, email string) (*models.SignupRequest, error)
 	ListSignupRequests(ctx context.Context, status string, limit, offset int) ([]*models.SignupRequest, int, error)
 	UpdateSignupRequestStatus(ctx context.Context, id uuid.UUID, status, reason string, reviewedBy uuid.UUID) error
+
+	// eu_buyer_leads.go
+	CreateEUBuyerLead(ctx context.Context, lead *models.EUBuyerLead) error
 
 	// bulk.go
 	BulkUpdatePassportStatus(ctx context.Context, passportIDs []uuid.UUID, newStatus string) (int64, error)
@@ -112,6 +121,7 @@ type RepositoryInterface interface {
 	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
 	UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error
 	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
+	UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error
 	UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
 	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
@@ -137,11 +147,19 @@ type RepositoryInterface interface {
 	CreateScanEvent(ctx context.Context, event *models.ScanEvent) error
 	GetLastScanTime(ctx context.Context, passportID uuid.UUID) (*time.Time, error)
 	GetScanFeed(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.ScanFeedItem, error)
+	GetScanFeedSince(ctx context.Context, tenantID uuid.UUID, since time.Time, limit int) ([]*models.ScanFeedItem, error)
 	GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error)
 	GetRecentBatches(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchSummary, error)
 
 	// analytics.go
 	GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error)
+
+	// fleet.go
+	GetFleetStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*FleetStats, error)
+	GetWorstHealthPassports(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit int) ([]FleetPassportHealth, error)
+	GetFleetLifecycleEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]FleetLifecycleEvent, error)
+	GetFleetGeoLocations(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) ([]FleetGeoLocation, error)
+	GetFleetThermalEvents(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, since time.Time, limit int) ([]FleetThermalEvent, error)
 
 	// team_repository.go
 	CountTeamMembers(ctx context.Context, tenantID uuid.UUID) (int, error)
@@ -149,11 +167,16 @@ type RepositoryInterface interface {
 	GetTeamMembers(ctx context.Context, tenantID uuid.UUID) ([]*models.TeamMember, error)
 	GetTeamMemberByToken(ctx context.Context, token string) (*models.TeamMember, error)
 	GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.TeamMember, error)
+	// GetUserIDByEmail returns the identity (users.id) for an email, if one exists.
+	GetUserIDByEmail(ctx context.Context, email string) (uuid.UUID, error)
+	// GetTenantSubscriptionStatus returns plan type, plan status, and expiry in one query.
+	GetTenantSubscriptionStatus(ctx context.Context, tenantID uuid.UUID) (planType, planStatus string, expiresAt *time.Time, err error)
 	UpdateTeamMemberStatus(ctx context.Context, id uuid.UUID, status string, userID *uuid.UUID) error
 	UpdateTeamMemberRole(ctx context.Context, id uuid.UUID, role string) error
 	DeleteTeamMember(ctx context.Context, id uuid.UUID) error
 	GetTeamMemberByID(ctx context.Context, id uuid.UUID) (*models.TeamMember, error)
 	GetPendingInvitesByEmail(ctx context.Context, email string) ([]models.TeamMember, error)
+	CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error
 
 	// template.go
 	CreateTemplate(ctx context.Context, tenantID uuid.UUID, name string, productType models.ProductType, marketRegion models.MarketRegion, specs models.BatchSpec) (*models.Template, error)
@@ -165,8 +188,10 @@ type RepositoryInterface interface {
 	CreateTenant(ctx context.Context, companyName string) (*models.Tenant, error)
 	GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error)
 	UpdateTenantProfile(ctx context.Context, id uuid.UUID, req models.UpdateProfileRequest) (*models.Tenant, error)
-	DeductQuota(ctx context.Context, tenantID uuid.UUID) error
+	DeductQuota(ctx context.Context, tenantID uuid.UUID, count int) error
 	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
+	AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
+	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
 	GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (int, error)
 	UpdateCertificatePath(ctx context.Context, tenantID uuid.UUID, docType string, path string) error
 	UpdateDocumentStatus(ctx context.Context, tenantID uuid.UUID, docType string, status string) error
@@ -180,6 +205,7 @@ type RepositoryInterface interface {
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
 	ListTransactions(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.Transaction, error)
 	TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error)
+	GetTransactionByPaymentID(ctx context.Context, tenantID uuid.UUID, paymentID string) (*models.Transaction, error)
 
 	// trusted_domain.go
 	CreateTrustedDomain(ctx context.Context, domain *models.TrustedDomain) error
@@ -242,6 +268,7 @@ type RepositoryInterface interface {
 	// certificate_anchor.go
 	CreateCertificateAnchor(ctx context.Context, anchor *models.CertificateAnchor) error
 	GetCertificateAnchorsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.CertificateAnchor, error)
+	GetCertificateAnchorsByTenant(ctx context.Context, tenantID uuid.UUID, certType, status string, limit, offset int) ([]*CertificateAnchorWithBatch, error)
 	GetAnchorsNeedingUpgrade(ctx context.Context) ([]*models.CertificateAnchor, error)
 	UpdateCertificateAnchorStatus(ctx context.Context, id string, status string, otsProof, bitcoinTxID *string, anchoredAt *time.Time) error
 
@@ -295,9 +322,10 @@ type RepositoryInterface interface {
 	ListDGFTSchemeConfigs(ctx context.Context) ([]models.DGFTSchemeConfig, error)
 	CreateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
 	GetDGFTClaimByID(ctx context.Context, id, tenantID uuid.UUID) (*models.DGFTClaim, error)
+	GetLatestDGFTClaimByBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.DGFTClaim, error)
 	UpdateDGFTClaim(ctx context.Context, claim *models.DGFTClaim) error
 	DeleteDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error
-	ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status string, page, pageSize int) ([]models.DGFTClaim, int, error)
+	ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.UUID, schemeType, status, search string, page, pageSize int) ([]models.DGFTClaim, int, error)
 	SubmitDGFTClaim(ctx context.Context, id, tenantID uuid.UUID) error
 	AddDGFTClaimDocument(ctx context.Context, id, tenantID uuid.UUID, doc models.DGFTClaimDocument) error
 

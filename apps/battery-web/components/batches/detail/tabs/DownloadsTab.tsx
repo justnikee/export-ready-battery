@@ -10,12 +10,16 @@ import {
   Shield,
   Link2,
   Lock,
+  PackageSearch,
+  Calculator,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DownloadsTabProps {
   isDraft: boolean;
   isEU: boolean;
+  isIndia: boolean;
   isGlobal: boolean;
   hasCarbonFootprint: boolean;
   onPrintLabels: () => void;
@@ -25,6 +29,9 @@ interface DownloadsTabProps {
   onDownloadComplianceReport: () => void;
   onExportComplianceDeclaration: () => void;
   onExportDueDiligence: () => void;
+  onExportEPCIS: () => void;
+  onExportDVAReport: () => void;
+  onExportPLIPacket: () => void;
 }
 
 function DownloadCard({
@@ -45,16 +52,16 @@ function DownloadCard({
   disabledReason?: string;
 }) {
   return (
-    <div className="border border-border bg-transparent hover:border-foreground/30 transition-colors p-4 relative"><Button
+    <div className="bg-background rounded-md hover:shadow-sm transition-shadow p-4 relative"><Button
         variant="outline"
-        className="w-full justify-start gap-2 h-auto py-2.5 px-3 border-border text-foreground hover:bg-muted disabled:opacity-50"
+        className="w-full justify-start gap-2 h-auto py-2.5 px-3 text-foreground hover:bg-accent disabled:opacity-50"
         onClick={onClick}
         disabled={disabled}
         title={disabled ? disabledReason : undefined}
       >
         <span className="shrink-0">{icon}</span>
         <span className="text-sm font-medium truncate">{label}</span>
-        <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground ml-auto shrink-0 uppercase tracking-wider">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-background text-muted-foreground ml-auto shrink-0 uppercase tracking-wider">
           {format}
         </span>
         {disabled && <Lock className="h-3 w-3 text-muted-foreground shrink-0" />}
@@ -86,6 +93,7 @@ function Section({
 export function DownloadsTab({
   isDraft,
   isEU,
+  isIndia,
   isGlobal,
   hasCarbonFootprint,
   onPrintLabels,
@@ -95,6 +103,9 @@ export function DownloadsTab({
   onDownloadComplianceReport,
   onExportComplianceDeclaration,
   onExportDueDiligence,
+  onExportEPCIS,
+  onExportDVAReport,
+  onExportPLIPacket,
 }: DownloadsTabProps) {
   const draftLock = "Activate batch to unlock downloads";
 
@@ -181,6 +192,39 @@ export function DownloadsTab({
           description="Full audit trail for this batch"
           onClick={onExportAuditCSV}
         />
+        {(isEU || isGlobal) && (
+          <DownloadCard
+            icon={<PackageSearch className="h-4 w-4 text-blue-500" />}
+            label="EPCIS Events"
+            format="JSON-LD"
+            description="GS1 EPCIS 2.0 traceability document — required by some EU buyers per shipment"
+            onClick={onExportEPCIS}
+            disabled={isDraft}
+            disabledReason={draftLock}
+          />
+        )}
+        {(isIndia || isGlobal) && (
+          <>
+            <DownloadCard
+              icon={<Calculator className="h-4 w-4 text-violet-500" />}
+              label="DVA Calculation"
+              format="PDF"
+              description="CA-ready PLI DVA calculation breakdown and compliance status"
+              onClick={onExportDVAReport}
+              disabled={isDraft}
+              disabledReason={draftLock}
+            />
+            <DownloadCard
+              icon={<Archive className="h-4 w-4 text-amber-500" />}
+              label="PLI Claim Packet"
+              format="ZIP"
+              description="DVA report, compliance report, BIS/PLI certificates and DGFT claim bundled for MHI submission prep"
+              onClick={onExportPLIPacket}
+              disabled={isDraft}
+              disabledReason={draftLock}
+            />
+          </>
+        )}
       </Section>
     </div>
   );

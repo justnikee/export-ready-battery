@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -37,12 +38,21 @@ type createMassBalanceAllocationRequest struct {
 	AllocatedKg  float64    `json:"allocated_kg"`
 }
 
-var validMaterialTypes = map[string]bool{
-	"cobalt":  true,
-	"lithium": true,
-	"nickel":  true,
-	"lead":    true,
-}
+// massBalanceMaterialTypes is the single source of truth for which materials
+// can be tracked in the mass balance ledger — EU Battery Regulation Annex
+// XIII critical raw materials. Add new materials here only; the validation
+// map and error message both derive from this list.
+var massBalanceMaterialTypes = []string{"cobalt", "lithium", "nickel", "lead", "manganese"}
+
+var validMaterialTypes = func() map[string]bool {
+	m := make(map[string]bool, len(massBalanceMaterialTypes))
+	for _, t := range massBalanceMaterialTypes {
+		m[t] = true
+	}
+	return m
+}()
+
+var invalidMaterialTypeMessage = "material_type must be one of: " + strings.Join(massBalanceMaterialTypes, ", ")
 
 func validateMaterialType(m string) bool {
 	return validMaterialTypes[m]
@@ -68,7 +78,7 @@ func (h *Handler) CreateMassBalanceLedger(w http.ResponseWriter, r *http.Request
 	}
 
 	if !validateMaterialType(req.MaterialType) {
-		respondError(w, http.StatusBadRequest, "material_type must be cobalt, lithium, nickel, or lead")
+		respondError(w, http.StatusBadRequest, invalidMaterialTypeMessage)
 		return
 	}
 	if req.IncomingKg < 0 {
@@ -110,7 +120,7 @@ func (h *Handler) ListMassBalanceLedgers(w http.ResponseWriter, r *http.Request)
 
 	materialType := r.URL.Query().Get("material_type")
 	if materialType != "" && !validateMaterialType(materialType) {
-		respondError(w, http.StatusBadRequest, "material_type must be cobalt, lithium, nickel, or lead")
+		respondError(w, http.StatusBadRequest, invalidMaterialTypeMessage)
 		return
 	}
 
@@ -230,7 +240,7 @@ func (h *Handler) CreateMassBalanceAllocation(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if !validateMaterialType(req.MaterialType) {
-		respondError(w, http.StatusBadRequest, "material_type must be cobalt, lithium, nickel, or lead")
+		respondError(w, http.StatusBadRequest, invalidMaterialTypeMessage)
 		return
 	}
 	if req.AllocatedKg <= 0 {

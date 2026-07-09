@@ -14,7 +14,7 @@ export function BlockchainAnchors({
   anchorsLoading,
 }: BlockchainAnchorsProps) {
   return (
-    <div className="border border-border rounded-lg bg-transparent">
+    <div className="rounded-md bg-background">
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <Link2 className="h-4 w-4 text-emerald-500" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -38,7 +38,7 @@ export function BlockchainAnchors({
             {anchors.map((anchor) => (
               <div
                 key={anchor.id}
-                className="flex items-center justify-between p-3 bg-background border border-border rounded-md"
+                className="flex items-center justify-between p-3 bg-muted rounded-md"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -46,31 +46,25 @@ export function BlockchainAnchors({
                       {anchor.cert_type}
                     </span>
                     {anchor.status === "confirmed" && (
-                      <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[10px]">
+                      <Badge className="bg-emerald-500/10 text-emerald-500 text-[10px]">
                         <Link2 className="h-3 w-3 mr-1" />
                         Confirmed
                       </Badge>
                     )}
                     {anchor.status === "anchored" && (
-                      <Badge className="bg-teal-500/10 text-teal-500 border-teal-500/30 text-[10px]">
+                      <Badge className="bg-teal-500/10 text-teal-500 text-[10px]">
                         <Link2 className="h-3 w-3 mr-1" />
                         Anchored
                       </Badge>
                     )}
                     {anchor.status === "pending" && (
-                      <Badge
-                        variant="outline"
-                        className="text-amber-500 border-amber-500/30 text-[10px]"
-                      >
+                      <Badge className="bg-amber-500/10 text-amber-500 text-[10px]">
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                         Pending
                       </Badge>
                     )}
                     {anchor.status === "failed" && (
-                      <Badge
-                        variant="outline"
-                        className="text-red-500 border-red-500/30 text-[10px]"
-                      >
+                      <Badge className="bg-red-500/10 text-red-500 text-[10px]">
                         Failed
                       </Badge>
                     )}

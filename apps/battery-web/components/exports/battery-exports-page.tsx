@@ -12,16 +12,74 @@ import {
  FileArchive,
  FileText,
  FileSpreadsheet,
- Shield
+ Shield,
+ Plus,
+ PackageSearch
 } from 'lucide-react';
 import {
  listExportJobs,
  refreshExportDownload,
+ createExportJob,
  formatFileSize,
  formatJobType,
  type ExportJob
 } from '@/lib/api/exports';
 import { getApiErrorMessage } from '@/lib/utils';
+import { BatchCombobox } from '@/components/batches/batch-combobox';
+
+function NewExportSection({ onCreated }: { onCreated: () => void }) {
+ const [selectedBatch, setSelectedBatch] = useState('');
+ const [creating, setCreating] = useState<'CSV' | 'LABELS_PDF' | null>(null);
+
+ const handleCreate = async (jobType: 'CSV' | 'LABELS_PDF') => {
+ if (!selectedBatch) {
+ toast.error('Select a batch first');
+ return;
+ }
+ setCreating(jobType);
+ try {
+ await createExportJob({ batch_id: selectedBatch, job_type: jobType });
+ toast.success("Export started. You'll be able to download it below once it's ready.");
+ onCreated();
+ } catch (error: unknown) {
+ const msg = await getApiErrorMessage(error, 'Failed to start export');
+ toast.error(msg);
+ } finally {
+ setCreating(null);
+ }
+ };
+
+ return (
+ <div className="relative bg-muted rounded-md p-5">
+ <h3 className="text-base font-medium text-foreground mb-3">New Export</h3>
+ <div className="flex flex-wrap items-center gap-3">
+ <BatchCombobox
+ value={selectedBatch}
+ onChange={setSelectedBatch}
+ status="ACTIVE"
+ autoSelectFirst
+ placeholder="Select a batch..."
+ />
+ <button
+ onClick={() => handleCreate('CSV')}
+ disabled={creating !== null}
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-background text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ >
+ {creating === 'CSV' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+ Export Batch Data (CSV)
+ </button>
+ <button
+ onClick={() => handleCreate('LABELS_PDF')}
+ disabled={creating !== null}
+ className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-background text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
+ >
+ {creating === 'LABELS_PDF' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+ Export Batch QR Labels (PDF)
+ </button>
+ </div>
+ </div>
+ );
+}
 
 export default function ExportsPage() {
  const [exports, setExports] = useState<ExportJob[]>([]);
@@ -115,6 +173,8 @@ export default function ExportsPage() {
  return <FileSpreadsheet className="w-5 h-5 text-emerald-500" />;
  case 'DUE_DILIGENCE':
  return <Shield className="w-5 h-5 text-indigo-500" />;
+ case 'EPCIS':
+ return <PackageSearch className="w-5 h-5 text-blue-500" />;
  default:
  return <FileText className="w-5 h-5 text-muted-foreground" />;
  }
@@ -126,21 +186,21 @@ export default function ExportsPage() {
 
  if (loading && exports.length === 0) {
  return (
- <div className="min-h-screen bg-background flex items-center justify-center">
+ <div className="min-h-screen bg-sidebar flex items-center justify-center">
  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
  </div>
  );
  }
 
  return (
- <div className="min-h-screen bg-background p-6">
+ <div className="min-h-screen bg-sidebar p-6">
  <div className="w-full mx-auto space-y-6">
 
  {/* Page Header */}
  <div className="flex items-center justify-between">
  <div>
- <h1 className="text-2xl text-foreground tracking-tight">Export History</h1>
- <p className="text-sm text-muted-foreground mt-1">View and download your previous exports</p>
+ <h1 className="text-2xl text-foreground tracking-tight">Downloads</h1>
+ <p className="text-sm text-muted-foreground mt-1">Start new exports and download your previous ones</p>
  </div>
  <button
  onClick={fetchExports}
@@ -152,20 +212,17 @@ export default function ExportsPage() {
  </button>
  </div>
 
+ <NewExportSection onCreated={fetchExports} />
+
  {/* Empty State */}
  {exports.length === 0 ? (
- <div className="relative bg-transparent border border-border p-12"><div className="flex flex-col items-center justify-center text-center">
- <div className="p-4 bg-muted rounded-full mb-4">
- <FileArchive className="w-8 h-8 text-muted-foreground" />
- </div>
- <h3 className="text-lg font-medium text-foreground mb-1">No exports yet</h3>
- <p className="text-sm text-muted-foreground">Exports will appear here when you download large batches</p>
- </div>
+ <div className="relative bg-muted rounded-md p-6 text-center text-sm text-muted-foreground">
+ No exports yet — exports will appear here when you download large batches
  </div>
  ) : (
  /* Data Table */
- <div className="relative bg-transparent border border-border overflow-visible"><table className="w-full">
- <thead className="bg-muted border-b border-border">
+ <div className="relative bg-muted rounded-md overflow-visible"><table className="w-full">
+ <thead className="bg-background">
  <tr>
  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Batch</th>
@@ -193,10 +250,10 @@ export default function ExportsPage() {
  <td className="px-4 py-4">
  <div className="flex items-center gap-2">
  {getStatusIcon(job.status)}
- <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
- job.status === 'FAILED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
- job.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
- 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+ <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
+ job.status === 'FAILED' ? 'bg-red-500/10 text-red-500' :
+ job.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500' :
+ 'bg-amber-500/10 text-amber-500'
  }`}>
  {job.status === 'COMPLETED' ? 'Completed' :
  job.status === 'FAILED' ? 'Failed' :
@@ -224,13 +281,13 @@ export default function ExportsPage() {
  </button>
  )}
  {job.status === 'PROCESSING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-500 bg-blue-500/10 border border-blue-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-blue-500 bg-blue-500/10">
  <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
  Processing...
  </span>
  )}
  {job.status === 'PENDING' && (
- <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-amber-500 bg-amber-500/10 border border-amber-500/20">
+ <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-amber-500 bg-amber-500/10">
  <Clock className="w-3 h-3 mr-1.5" />
  Queued
  </span>
@@ -243,7 +300,7 @@ export default function ExportsPage() {
 
  {/* Pagination */}
  {total > limit && (
- <div className="px-4 py-3 border-t border-border bg-muted flex items-center justify-between">
+ <div className="px-4 py-3 border-t border-border bg-background flex items-center justify-between">
  <p className="text-sm text-muted-foreground">
  Showing {page * limit + 1} to {Math.min((page + 1) * limit, total)} of {total} exports
  </p>
@@ -251,14 +308,14 @@ export default function ExportsPage() {
  <button
  onClick={() => setPage(p => Math.max(0, p - 1))}
  disabled={page === 0}
- className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium rounded-md bg-muted text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Previous
  </button>
  <button
  onClick={() => setPage(p => p + 1)}
  disabled={(page + 1) * limit >= total}
- className="px-3 py-1.5 text-sm font-medium border border-border bg-transparent text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+ className="px-3 py-1.5 text-sm font-medium rounded-md bg-muted text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
  >
  Next
  </button>

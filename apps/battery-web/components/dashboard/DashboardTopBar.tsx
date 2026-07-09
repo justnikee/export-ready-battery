@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, LogOut, Settings } from "lucide-react";
+import { Menu, LogOut, Settings, Languages } from "lucide-react";
 import { AlertBell } from "./alert-bell";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -20,6 +20,7 @@ import { clsx } from "clsx";
 import { dashboardPathFromPathname, stripProductPrefix } from "@/lib/routes";
 import { getProductConfigByType, getPageTitles } from "@/lib/products";
 import { useTranslations } from "next-intl";
+import { useLocale, DASHBOARD_LOCALES } from "@/lib/i18n/locale-context";
 
 interface DashboardTopBarProps {
   onMenuClick: () => void;
@@ -27,6 +28,7 @@ interface DashboardTopBarProps {
 
 export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
   const t = useTranslations("topbar");
+  const { locale, setLocale } = useLocale();
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const unprefixedPathname = stripProductPrefix(pathname);
@@ -76,7 +78,7 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
         <Link href={dashboardPathFromPathname(pathname, "billing")}>
           <div
             className={clsx(
-              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border",
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors border",
               isLowQuota
                 ? "border-red-500/20 bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/15"
                 : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500/15",
@@ -95,6 +97,30 @@ export function DashboardTopBar({ onMenuClick }: DashboardTopBarProps) {
 
         {/* Alerts Bell */}
         <AlertBell />
+
+        {/* Language Switcher */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9" title="Language">
+              <Languages className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 rounded-none">
+            {DASHBOARD_LOCALES.map(({ code, label, flag }) => (
+              <DropdownMenuItem
+                key={code}
+                onClick={() => setLocale(code)}
+                className={clsx(
+                  "rounded-none focus:rounded-none cursor-pointer",
+                  locale === code && "bg-muted",
+                )}
+              >
+                <span className="mr-2">{flag}</span>
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Theme Toggle */}
         <ThemeToggle />

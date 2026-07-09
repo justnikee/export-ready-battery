@@ -15,30 +15,37 @@ func TestBatchSpec_JSONRoundTrip(t *testing.T) {
 	auditedDVA := 65.0
 
 	original := BatchSpec{
-		Chemistry:                "LFP",
-		NominalVoltage:           "48V",
-		Capacity:                 "150Ah",
-		Manufacturer:             "CATL",
-		ManufacturerEmail:        "compliance@catl.com",
-		Weight:                   "25kg",
-		Recyclable:               true,
-		CarbonFootprint:          "45 kg CO2e",
-		CountryOfOrigin:          "CN",
-		MaterialProfile:          "High-nickel NMC",
-		LotSize:                  "1000",
-		ProductionStage:          "Cell Assembly",
-		SalePriceINR:             50000,
-		ImportCostINR:            15000,
-		CellSource:               "IMPORTED",
-		DomesticValueAdd:         70.0,
-		HSNCode:                  "8507.60.00",
-		BISNumber:                "R-12345678",
-		EPRNumber:                "EPR-BAT-001",
-		BillOfEntryNo:            "BOE-2024-001",
-		CustomsDate:              "2024-01-15",
-		DVASource:                "AUDITED",
-		AuditedDomesticValueAdd:  &auditedDVA,
-		PLICertificateURL:        "https://example.com/cert.pdf",
+		Chemistry:               "LFP",
+		NominalVoltage:          "48V",
+		Capacity:                "150Ah",
+		Manufacturer:            "CATL",
+		ManufacturerEmail:       "compliance@catl.com",
+		Weight:                  "25kg",
+		Recyclable:              true,
+		CarbonFootprint:         "45 kg CO2e",
+		CountryOfOrigin:         "CN",
+		MaterialProfile:         "High-nickel NMC",
+		LotSize:                 "1000",
+		ProductionStage:         "Cell Assembly",
+		SalePriceINR:            50000,
+		ImportCostINR:           15000,
+		CellCostImportedINR:     8000,
+		CellCostDomesticINR:     12000,
+		BMSCostImportedINR:      2000,
+		BMSCostDomesticINR:      3000,
+		CasingCostImportedINR:   1000,
+		CasingCostDomesticINR:   1500,
+		LabourOverheadCostINR:   2500,
+		CellSource:              "IMPORTED",
+		DomesticValueAdd:        70.0,
+		HSNCode:                 "8507.60.00",
+		BISNumber:               "R-12345678",
+		EPRNumber:               "EPR-BAT-001",
+		BillOfEntryNo:           "BOE-2024-001",
+		CustomsDate:             "2024-01-15",
+		DVASource:               "AUDITED",
+		AuditedDomesticValueAdd: &auditedDVA,
+		PLICertificateURL:       "https://example.com/cert.pdf",
 		MaterialComposition: &MaterialComposition{
 			CobaltPct:          12.5,
 			LithiumPct:         8.0,
@@ -51,18 +58,18 @@ func TestBatchSpec_JSONRoundTrip(t *testing.T) {
 			RecycledNickelPct:  2.0,
 			RecycledLeadPct:    0,
 		},
-		Certifications:         []string{"CE", "UN38.3", "RoHS"},
+		Certifications:          []string{"CE", "UN38.3", "RoHS"},
 		BISCertificateIssueDate: "2024-01-15",
-		UN383TestDate:          "2024-03-20",
-		IEC62133TestDate:       "2024-02-10",
-		MSDSIssueDate:          "2024-01-01",
-		ManufacturerAddress:    "123 Industrial Road, Ningde, China",
-		EURepresentative:       "EU Rep GmbH",
-		EURepresentativeEmail:  "rep@eurep.de",
+		UN383TestDate:           "2024-03-20",
+		IEC62133TestDate:        "2024-02-10",
+		MSDSIssueDate:           "2024-01-01",
+		ManufacturerAddress:     "123 Industrial Road, Ningde, China",
+		EURepresentative:        "EU Rep GmbH",
+		EURepresentativeEmail:   "rep@eurep.de",
 		EURepresentativeAddress: "456 EU Street, Berlin, Germany",
-		ExpectedLifetimeCycles: &expectedLifetime,
-		WarrantyMonths:         &warrantyMonths,
-		RecycledContentPct:     &recycledContent,
+		ExpectedLifetimeCycles:  &expectedLifetime,
+		WarrantyMonths:          &warrantyMonths,
+		RecycledContentPct:      &recycledContent,
 		HazardousSubstances: &HazardousSubstances{
 			LeadPresent:    false,
 			MercuryPresent: false,
@@ -103,6 +110,13 @@ func TestBatchSpec_JSONRoundTrip(t *testing.T) {
 	assertEq(t, "ProductionStage", original.ProductionStage, roundTripped.ProductionStage)
 	assertEq(t, "SalePriceINR", original.SalePriceINR, roundTripped.SalePriceINR)
 	assertEq(t, "ImportCostINR", original.ImportCostINR, roundTripped.ImportCostINR)
+	assertEq(t, "CellCostImportedINR", original.CellCostImportedINR, roundTripped.CellCostImportedINR)
+	assertEq(t, "CellCostDomesticINR", original.CellCostDomesticINR, roundTripped.CellCostDomesticINR)
+	assertEq(t, "BMSCostImportedINR", original.BMSCostImportedINR, roundTripped.BMSCostImportedINR)
+	assertEq(t, "BMSCostDomesticINR", original.BMSCostDomesticINR, roundTripped.BMSCostDomesticINR)
+	assertEq(t, "CasingCostImportedINR", original.CasingCostImportedINR, roundTripped.CasingCostImportedINR)
+	assertEq(t, "CasingCostDomesticINR", original.CasingCostDomesticINR, roundTripped.CasingCostDomesticINR)
+	assertEq(t, "LabourOverheadCostINR", original.LabourOverheadCostINR, roundTripped.LabourOverheadCostINR)
 	assertEq(t, "CellSource", original.CellSource, roundTripped.CellSource)
 	assertEq(t, "DomesticValueAdd", original.DomesticValueAdd, roundTripped.DomesticValueAdd)
 	assertEq(t, "HSNCode", original.HSNCode, roundTripped.HSNCode)

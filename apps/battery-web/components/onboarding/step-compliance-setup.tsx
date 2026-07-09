@@ -81,12 +81,10 @@ export function StepComplianceSetup({
       )}
 
       {hasIndia && (
-        <>
-          <div className="mb-1">
-            <h3 className="text-sm text-emerald-500 uppercase tracking-wider">
-              🇮🇳 India Compliance (Recommended for activation)
-            </h3>
-          </div>
+        <div className="space-y-4 rounded-lg border border-border p-4">
+          <h3 className="text-sm text-emerald-500 uppercase tracking-wider">
+            🇮🇳 India Compliance (Recommended for activation)
+          </h3>
           <FormField
             label={
               <>
@@ -151,16 +149,14 @@ export function StepComplianceSetup({
             helperText="3-character MoRTH-registered code for BPAN serial numbers"
             error={errors?.morth_manufacturer_code}
           />
-        </>
+        </div>
       )}
 
       {hasEU && (
-        <>
-          <div className="mt-4 mb-1">
-            <h3 className="text-sm text-muted-foreground uppercase tracking-wider">
-              🇪🇺 EU Compliance (Recommended for activation)
-            </h3>
-          </div>
+        <div className="space-y-4 rounded-lg border border-border p-4">
+          <h3 className="text-sm text-blue-400 uppercase tracking-wider">
+            🇪🇺 EU Compliance (Recommended for activation)
+          </h3>
           <FormField
             label="EU Authorized Representative Name"
             icon={Building2}
@@ -186,9 +182,8 @@ export function StepComplianceSetup({
             placeholder="Street, City, Country"
             error={errors?.eu_authorized_representative_address}
           />
-        </>
+        </div>
       )}
-
     </div>
   );
 }

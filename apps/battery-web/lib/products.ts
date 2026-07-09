@@ -3,14 +3,18 @@ import {
   BookOpen,
   Box,
   Building2,
+  Calculator,
   ClipboardCheck,
   CreditCard,
   FileDown,
   Globe,
+  HeartPulse,
   Home,
   Key,
   Landmark,
   LayoutTemplate,
+  Newspaper,
+  Radio,
   Scale,
   Send,
   Settings,
@@ -18,11 +22,12 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-  Upload,
   Users,
+  Webhook,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { Feature } from "@/lib/entitlements";
 
 export type ProductSlug = "battery";
 export type ProductType = "BATTERY";
@@ -43,6 +48,7 @@ type DashboardRouteKey =
   | "dispatch"
   | "due-diligence"
   | "exports"
+  | "fleet"
   | "lifecycle"
   | "mass-balance"
   | "partners"
@@ -90,6 +96,8 @@ type NavItem = {
   href?: string;
   dashboardSubpath?: string;
   icon: LucideIcon;
+  /** If set, this nav item requires the given plan-gated feature. */
+  feature?: Feature;
 };
 
 type NavGroup = {
@@ -201,27 +209,35 @@ const BATTERY_CONFIG: ProductConfig = {
       label: "Production",
       items: [
         { name: "Batches", dashboardSubpath: "batches", icon: Box },
+        { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
         { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },
         { name: "Templates", dashboardSubpath: "templates", icon: LayoutTemplate },
-        { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
+        { name: "Fleet Health", dashboardSubpath: "fleet", icon: HeartPulse, feature: "fleet" },
+        { name: "BMS Telemetry", dashboardSubpath: "telemetry", icon: Radio, feature: "telemetry" },
       ],
     },
     {
       label: "Compliance",
       items: [
-        { name: "Compliance", dashboardSubpath: "compliance", icon: Shield },
-        { name: "Due Diligence", dashboardSubpath: "due-diligence", icon: ClipboardCheck },
-        { name: "Regulatory", dashboardSubpath: "regulatory", icon: Globe },
-        { name: "Exports", dashboardSubpath: "exports", icon: FileDown },
-        { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale },
-        { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark },
+        { name: "India Compliance", dashboardSubpath: "compliance", icon: Shield },
+        { name: "EU Compliance", dashboardSubpath: "eu-compliance", icon: Globe, feature: "eu_compliance" },
+        { name: "Carbon Calculator", dashboardSubpath: "carbon-calculator", icon: Calculator },
+        { name: "Mass Balance", dashboardSubpath: "mass-balance", icon: Scale, feature: "mass_balance" },
+        { name: "DGFT Claims", dashboardSubpath: "dgft-claims", icon: Landmark, feature: "dgft_claims" },
+      ],
+    },
+    {
+      label: "Supply Chain",
+      items: [
+        { name: "Suppliers & DD", dashboardSubpath: "due-diligence", icon: ClipboardCheck, feature: "due_diligence" },
+        { name: "Regulatory", dashboardSubpath: "regulatory", icon: Newspaper, feature: "regulatory" },
       ],
     },
     {
       label: "Account",
       items: [
         { name: "Team", dashboardSubpath: "team", icon: Users },
-        { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
+        { name: "Partners", dashboardSubpath: "partners", icon: Building2, feature: "partners" },
         { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
         { name: "Settings", dashboardSubpath: "settings", icon: Settings },
       ],
@@ -230,7 +246,9 @@ const BATTERY_CONFIG: ProductConfig = {
       label: "Developer",
       collapsible: true,
       items: [
-        { name: "API Keys", dashboardSubpath: "developer", icon: Key },
+        { name: "API Keys", dashboardSubpath: "developer", icon: Key, feature: "developer" },
+        { name: "Webhooks", dashboardSubpath: "developer#webhooks", icon: Webhook, feature: "developer" },
+        { name: "Downloads", dashboardSubpath: "exports", icon: FileDown },
         { name: "Docs", href: "/docs", icon: BookOpen },
       ],
     },
@@ -269,10 +287,10 @@ const BATTERY_CONFIG: ProductConfig = {
         tone: "emerald",
       },
       {
-        icon: Upload,
-        title: "Upload CSV",
-        description: "Bulk import serial numbers",
-        route: "batches",
+        icon: HeartPulse,
+        title: "Fleet Health",
+        description: "SoH and lifecycle status across your fleet",
+        route: "fleet",
         tone: "blue",
       },
       {
@@ -283,10 +301,10 @@ const BATTERY_CONFIG: ProductConfig = {
         tone: "amber",
       },
       {
-        icon: FileDown,
-        title: "CPCB Report",
-        description: "Generate CPCB Form 3 export",
-        route: "compliance",
+        icon: Landmark,
+        title: "DGFT Claims",
+        description: "Track export incentive claims",
+        route: "dgft-claims",
         tone: "indigo",
       },
     ],

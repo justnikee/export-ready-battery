@@ -4,6 +4,44 @@ export type MarketRegion = "INDIA" | "EU" | "GLOBAL";
 export type CellSource = "IMPORTED" | "DOMESTIC" | "";
 export type DvaSource = "ESTIMATED" | "AUDITED";
 
+export interface DVACostBreakdownInputs {
+  salePrice: string;
+  cellCostImported: string;
+  cellCostDomestic: string;
+  bmsCostImported: string;
+  bmsCostDomestic: string;
+  casingCostImported: string;
+  casingCostDomestic: string;
+  labourOverheadCost: string;
+}
+
+/**
+ * Estimated DVA % per the MHI PLI-ACC formula: domestic value added across
+ * cell/BMS/casing + labour (always domestic) divided by net selling price.
+ * Replaces the old (salePrice - importCost) / salePrice shortcut, which
+ * couldn't distinguish "where was each component sourced" — the thing a PLI
+ * audit actually checks.
+ */
+export function calculateEstimatedDVA(data: DVACostBreakdownInputs): number {
+  const salePrice = parseFloat(data.salePrice) || 0;
+  if (salePrice <= 0) return 0;
+  const domesticTotal =
+    (parseFloat(data.cellCostDomestic) || 0) +
+    (parseFloat(data.bmsCostDomestic) || 0) +
+    (parseFloat(data.casingCostDomestic) || 0) +
+    (parseFloat(data.labourOverheadCost) || 0);
+  return Math.max(0, Math.min(100, (domesticTotal / salePrice) * 100));
+}
+
+/** Total imported-component cost — shown alongside the domestic total for context. */
+export function calculateImportedCostTotal(data: DVACostBreakdownInputs): number {
+  return (
+    (parseFloat(data.cellCostImported) || 0) +
+    (parseFloat(data.bmsCostImported) || 0) +
+    (parseFloat(data.casingCostImported) || 0)
+  );
+}
+
 export const materialCompositionSchema = z.object({
   cobalt: z.string(),
   lithium: z.string(),
@@ -85,7 +123,16 @@ export const batchFormSchema = z
     pliCompliant: z.boolean(),
     hsnCode: z.string(),
     salePrice: z.string(),
-    importCost: z.string(),
+    // DVA cost breakdown (MHI PLI-ACC formula: domestic value / net selling
+    // price). Cell/BMS/casing each split imported vs domestic; labour &
+    // overhead is performed in India and so is domestic-only by definition.
+    cellCostImported: z.string(),
+    cellCostDomestic: z.string(),
+    bmsCostImported: z.string(),
+    bmsCostDomestic: z.string(),
+    casingCostImported: z.string(),
+    casingCostDomestic: z.string(),
+    labourOverheadCost: z.string(),
     cellSource: z.enum(["IMPORTED", "DOMESTIC", ""]),
     billOfEntryNo: z.string(),
     cellCountryOfOrigin: z.string().max(2),
@@ -144,7 +191,7 @@ export const batchFormSchema = z
       });
     }
 
-    // Numeric validation for salePrice, importCost
+    // Numeric validation for salePrice and the DVA cost breakdown
     const plainNumberRegex = /^\d+(\.\d+)?$/;
     if (data.salePrice && data.salePrice.trim() !== "" && !plainNumberRegex.test(data.salePrice)) {
       ctx.addIssue({
@@ -153,13 +200,26 @@ export const batchFormSchema = z
         path: ["salePrice"],
       });
     }
-    if (data.importCost && data.importCost.trim() !== "" && !plainNumberRegex.test(data.importCost)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Import cost must be a valid number",
-        path: ["importCost"],
-      });
-    }
+    (
+      [
+        ["cellCostImported", "Cell cost (imported)"],
+        ["cellCostDomestic", "Cell cost (domestic)"],
+        ["bmsCostImported", "BMS cost (imported)"],
+        ["bmsCostDomestic", "BMS cost (domestic)"],
+        ["casingCostImported", "Casing/structural cost (imported)"],
+        ["casingCostDomestic", "Casing/structural cost (domestic)"],
+        ["labourOverheadCost", "Labour & overhead cost"],
+      ] as const
+    ).forEach(([field, label]) => {
+      const value = data[field];
+      if (value && value.trim() !== "" && !plainNumberRegex.test(value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${label} must be a valid number`,
+          path: [field],
+        });
+      }
+    });
 
     // Carbon footprint numeric if provided
     if (data.carbonFootprint && data.carbonFootprint.trim() !== "" && !plainNumberRegex.test(data.carbonFootprint)) {
@@ -270,28 +330,37 @@ export const batchFormSchema = z
       }
     }
 
-    // India domestic: DVA must be > 0 if salePrice is provided
-    if (data.marketRegion === "INDIA" && data.cellSource === "DOMESTIC") {
+    // India domestic, estimator mode: DVA must be > 0 if salePrice is provided.
+    // (Audited mode supplies auditedDva directly — validated separately below
+    // — so these breakdown-based checks only apply to the estimator.)
+    if (
+      data.marketRegion === "INDIA" &&
+      data.cellSource === "DOMESTIC" &&
+      data.dvaSource === "ESTIMATED"
+    ) {
       const salePrice = parseFloat(data.salePrice) || 0;
-      const importCost = parseFloat(data.importCost) || 0;
       if (salePrice > 0) {
-        const dva = ((salePrice - importCost) / salePrice) * 100;
+        const dva = calculateEstimatedDVA(data);
         if (dva <= 0) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Domestic batches must have Domestic Value Add > 0%. Please check sale price and import cost.",
+            message: "Domestic batches must have Domestic Value Add > 0%. Please check the cost breakdown.",
             path: ["salePrice"],
           });
         }
       }
     }
 
-    // India PLI: DVA must be >= 50%
-    if (data.marketRegion === "INDIA" && data.pliCompliant && data.cellSource === "DOMESTIC") {
+    // India PLI, estimator mode: DVA must be >= 50%
+    if (
+      data.marketRegion === "INDIA" &&
+      data.pliCompliant &&
+      data.cellSource === "DOMESTIC" &&
+      data.dvaSource === "ESTIMATED"
+    ) {
       const salePrice = parseFloat(data.salePrice) || 0;
-      const importCost = parseFloat(data.importCost) || 0;
       if (salePrice > 0) {
-        const dva = ((salePrice - importCost) / salePrice) * 100;
+        const dva = calculateEstimatedDVA(data);
         if (dva < 50) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -410,7 +479,13 @@ export const defaultBatchFormValues: BatchFormData = {
   pliCompliant: false,
   hsnCode: "",
   salePrice: "",
-  importCost: "",
+  cellCostImported: "",
+  cellCostDomestic: "",
+  bmsCostImported: "",
+  bmsCostDomestic: "",
+  casingCostImported: "",
+  casingCostDomestic: "",
+  labourOverheadCost: "",
   cellSource: "DOMESTIC",
   billOfEntryNo: "",
   cellCountryOfOrigin: "",

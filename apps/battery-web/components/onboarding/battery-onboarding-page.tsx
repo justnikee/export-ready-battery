@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import api from "@/lib/api";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { productRoutes } from "@/lib/routes";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { getProductConfigByType, productTypeToSlug } from "@/lib/products";
 import { useOnboardingReadiness } from "@/hooks/use-onboarding-readiness";
 import { onboardingStep1Schema, onboardingStep3Schema } from "@/lib/validation/onboarding";
@@ -36,7 +37,6 @@ export function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [loading, setLoading] = useState(false);
   const [direction, setDirection] = useState(1);
-  const [error, setError] = useState<string | null>(null);
   const [step1Errors, setStep1Errors] = useState<Record<string, string>>({});
   const [step3Errors, setStep3Errors] = useState<Record<string, string>>({});
 
@@ -174,10 +174,9 @@ export function OnboardingPage() {
 
   const handleComplete = async () => {
     setLoading(true);
-    setError(null);
     const companyName = user?.company_name || formData.company_name;
     if (!companyName) {
-      setError("Company name is missing. Please refresh the page or contact support.");
+      toast.error("Company name is missing. Please refresh the page or contact support.");
       setLoading(false);
       return;
     }
@@ -211,7 +210,7 @@ export function OnboardingPage() {
       router.push(productRoutes(user?.product_type).dashboard);
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { error?: string } }; message?: string };
-      setError(
+      toast.error(
         apiError.response?.data?.error || apiError.message || "Failed to save profile. Please try again."
       );
     } finally {
@@ -240,8 +239,13 @@ export function OnboardingPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const { readiness, loading: readinessLoading } = useOnboardingReadiness(
-    {
+  // Memoized by value (not recreated every render) — the hook's effect depends
+  // on this object's identity, and an unstable identity here previously caused
+  // an infinite fetch loop: fetch succeeds -> setState -> re-render -> new
+  // object literal -> effect re-fires -> fetch again, every ~500ms forever,
+  // which is what was showing up as UI flicker on the review step.
+  const readinessDraft = useMemo(
+    () => ({
       primary_market: formData.primary_market,
       epr_registration_number: formData.epr_registration_number,
       bis_r_number: formData.bis_r_number,
@@ -250,7 +254,21 @@ export function OnboardingPage() {
       eu_authorized_representative_address: formData.eu_authorized_representative_address,
       eu_contact_email: formData.eu_contact_email,
       morth_manufacturer_code: formData.morth_manufacturer_code,
-    },
+    }),
+    [
+      formData.primary_market,
+      formData.epr_registration_number,
+      formData.bis_r_number,
+      formData.iec_code,
+      formData.eu_authorized_representative_name,
+      formData.eu_authorized_representative_address,
+      formData.eu_contact_email,
+      formData.morth_manufacturer_code,
+    ],
+  );
+
+  const { readiness, loading: readinessLoading } = useOnboardingReadiness(
+    readinessDraft,
     currentStep
   );
 
@@ -265,8 +283,8 @@ export function OnboardingPage() {
         description={steps[currentStep - 1].description}
       />
 
-      <motion.div className="bg-transparent border border-border rounded-none p-6 relative overflow-visible">
-        {/* Corner-dot decorations (dashboard card pattern) */}<AnimatePresence mode="wait" custom={direction}>
+      <motion.div className="bg-muted rounded-md p-6 relative overflow-visible">
+        <AnimatePresence mode="wait" custom={direction}>
           <AnimatedStep stepKey={currentStep} direction={direction}>
             {currentStep === 1 && (
               <StepCompanyProfile
@@ -349,24 +367,10 @@ export function OnboardingPage() {
           className="text-center text-muted-foreground text-sm"
         >
           Don&apos;t have these details?{" "}
-          <button type="button" onClick={handleNext} className="text-blue-500 hover:underline">
+          <button type="button" onClick={handleNext} className="text-(--brand-link) hover:underline">
             Skip for now
           </button>
         </motion.p>
-      )}
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-6 py-3 rounded-none flex items-center gap-3"
-        >
-          <span>⚠️</span>
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-2 hover:opacity-80">
-            ✕
-          </button>
-        </motion.div>
       )}
     </OnboardingShell>
   );

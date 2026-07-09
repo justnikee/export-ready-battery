@@ -127,9 +127,9 @@ function VerificationCard({
   };
 
   return (
-    <div className="border border-border bg-transparent relative p-4 space-y-3"><div className="flex items-start justify-between gap-3">
+    <div className="bg-background rounded-md relative p-4 space-y-3"><div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-muted border border-border">
+          <div className="p-1.5 rounded bg-muted">
             {meta.icon}
           </div>
           <div>
@@ -237,7 +237,7 @@ export function RegistryVerificationsTab({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border border-border bg-transparent relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
+      <div className="bg-background rounded-md relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Shield className="h-4 w-4 text-emerald-500" />
           <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
             External Registry Verification

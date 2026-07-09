@@ -19,8 +19,10 @@ import {
   Replace,
   ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
 import { createTranslator, type Locale } from "@/lib/i18n/i18n";
 import { resolvePassportTemplateConfig } from "@/lib/passport-template-config";
+import { openPublicPassportDocument } from "@/lib/document-url";
 import { TrustBadge, type TrustTier } from "./trust-badge";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -743,15 +745,18 @@ export function CertificateView({
                       <span className="text-muted-foreground text-xs">
                         {t("label_declaration")}
                       </span>
-                      <a
-                        href={declarationOfConformityPath}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openPublicPassportDocument(passport.uuid).catch(() =>
+                            toast.error("Failed to open document — please try again"),
+                          )
+                        }
                         className="text-xs text-blue-500 hover:underline flex items-center gap-1"
                       >
                         <ExternalLink className="h-3 w-3" />
                         View Document
-                      </a>
+                      </button>
                     </div>
                   )}
                 </div>
