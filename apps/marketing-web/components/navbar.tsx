@@ -31,11 +31,12 @@ const navItems: NavItem[] = [
     label: "Resources",
     children: [
       { label: "Blog", href: "/blog", desc: "Insights & updates" },
-      { label: "Documentation", href: "/docs", desc: "API & platform docs" },
-      { label: "EU Battery Guide", href: "/battery", desc: "Regulatory roadmap" },
+      { label: "About", href: "/about", desc: "Who we are & why we built this" },
+      { label: "EU Battery Guide", href: "/compliance/eu-battery-regulation", desc: "Regulatory roadmap" },
     ],
   },
   { label: "Pricing", href: "/pricing" },
+  { label: "About", href: "/about" },
 ];
 
 export default function Navbar({

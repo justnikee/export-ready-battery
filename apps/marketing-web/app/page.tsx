@@ -1,6 +1,7 @@
 import SiteHeader from "@/components/site-header";
 import Hero from "@/components/sections/hero";
 import LogoStrip from "@/components/sections/logo-strip";
+import PassportFlow from "@/components/sections/passport-flow";
 import ValueProp from "@/components/sections/value-prop";
 import ComplianceCliff from "@/components/sections/compliance-cliff";
 import Platform from "@/components/sections/platform";
@@ -24,6 +25,7 @@ export default function Home() {
       <SiteHeader />
       <Hero />
       <LogoStrip />
+      <PassportFlow />
       <ValueProp />
       <ComplianceCliff />
       <Platform />

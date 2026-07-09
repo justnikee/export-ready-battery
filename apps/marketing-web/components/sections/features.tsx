@@ -58,14 +58,14 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="relative bg-[#F8FAFC] py-24 lg:py-32">
+    <section className="relative bg-crew-paper-soft py-24 lg:py-32">
       <div className="max-w-[1280px] mx-auto px-6">
         <div className="text-center mb-16">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-xs font-medium tracking-[0.2em] uppercase text-[#4F46E5] mb-4"
+            className="text-xs font-medium tracking-[0.2em] uppercase text-[#157a5b] mb-4"
           >
             Platform Capabilities
           </motion.p>
@@ -74,7 +74,7 @@ export default function Features() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0F172A] tracking-[-0.02em]"
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold text-crew-ink tracking-[-0.02em]"
           >
             Everything You Need. Nothing You Don&apos;t.
           </motion.h2>
@@ -88,21 +88,21 @@ export default function Features() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.05 * i }}
-              className={`group relative rounded-2xl border border-[#E2E8F0] bg-white p-8 hover:border-[#4F46E5]/30 hover:shadow-lg hover:shadow-[#4F46E5]/5 transition-all duration-300 ${
+              className={`group relative rounded-2xl border border-crew-border bg-white p-8 hover:border-[#157a5b]/30 hover:shadow-lg hover:shadow-[#157a5b]/5 transition-all duration-300 ${
                 feature.large ? "md:col-span-2 lg:col-span-2" : ""
               }`}
             >
               {feature.large && (
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#4F46E5]/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#157a5b]/5 to-transparent pointer-events-none" />
               )}
               <div className="relative">
-                <div className="w-10 h-10 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-5 h-5 text-[#4F46E5]" />
+                <div className="w-10 h-10 rounded-lg bg-crew-paper-soft border border-crew-border flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <feature.icon className="w-5 h-5 text-[#157a5b]" />
                 </div>
-                <h3 className="text-lg font-semibold text-[#0F172A] mb-2">{feature.title}</h3>
-                <p className="text-[#64748B] leading-relaxed">{feature.body}</p>
+                <h3 className="text-lg font-semibold text-crew-ink mb-2">{feature.title}</h3>
+                <p className="text-crew-muted leading-relaxed">{feature.body}</p>
                 {feature.tag && (
-                  <span className="inline-block mt-4 px-3 py-1 rounded-full bg-[#4F46E5]/10 text-[#4F46E5] text-xs font-medium">
+                  <span className="inline-block mt-4 px-3 py-1 rounded-full bg-[#157a5b]/10 text-[#157a5b] text-xs font-medium">
                     {feature.tag}
                   </span>
                 )}

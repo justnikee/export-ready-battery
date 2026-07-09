@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { FileWarning, Ship, CalendarClock } from "lucide-react";
 import TextReveal from "@/components/text-reveal";
+import DeadlineCountdown from "@/components/deadline-countdown";
 
 const pains = [
   {
@@ -26,23 +27,40 @@ export default function ComplianceCliff() {
   return (
     <section className="py-20 lg:py-24 bg-crew-paper-soft">
       <div className="max-w-[1200px] mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-[640px] mb-14"
-        >
-          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
-            The compliance cliff
-          </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink">
-            <TextReveal as="span" className="block">
-              The rules changed. The paperwork didn&apos;t keep up.
-            </TextReveal>
-          </h2>
-        </motion.div>
+        {/* Countdown + headline row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-14 items-start">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
+              The compliance cliff
+            </div>
+            <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink">
+              <TextReveal as="span" className="block">
+                The rules changed. The paperwork didn&apos;t keep up.
+              </TextReveal>
+            </h2>
+            <p className="mt-5 text-[16px] leading-[1.6] text-[#131313] max-w-[480px]">
+              EU Battery Regulation 2023/1542 is law. Every battery sold in Europe
+              will need a digital passport. Most Indian manufacturers haven&apos;t started.
+            </p>
+          </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="p-6 sm:p-8 rounded-2xl bg-crew-paper border border-crew-border"
+          >
+            <DeadlineCountdown variant="block" />
+          </motion.div>
+        </div>
+
+        {/* Pain cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {pains.map((p, i) => (
             <motion.div
