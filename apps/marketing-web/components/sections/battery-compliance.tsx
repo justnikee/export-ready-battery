@@ -22,7 +22,7 @@ export default function BatteryCompliance() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+            <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink">
               February 2027. The deadline that won&apos;t move.
             </h2>
             <p className="mt-5 text-[16px] leading-[1.6] text-[#131313]">

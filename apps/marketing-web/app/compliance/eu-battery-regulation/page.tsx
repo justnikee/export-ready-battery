@@ -44,7 +44,7 @@ export default function EUBatteryRegulationPage() {
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             Compliance guide
           </div>
-          <h1 className="font-serif text-[clamp(32px,4.6vw,52px)] font-normal leading-[1.06] tracking-[-0.01em] text-crew-ink">
+          <h1 className="font-serif text-[clamp(32px,4.6vw,52px)] font-semibold leading-[1.06] tracking-[-0.02em] text-crew-ink">
             EU Battery Regulation 2023/1542, explained.
           </h1>
           <p className="mt-5 text-[16px] sm:text-[17px] leading-[1.6] text-[#131313] max-w-[640px]">
@@ -58,7 +58,7 @@ export default function EUBatteryRegulationPage() {
 
       <section className="py-[72px] bg-white">
         <div className="max-w-[1080px] mx-auto px-6">
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-normal tracking-[-0.01em] text-crew-ink mb-10">
+          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-crew-ink mb-10">
             The four requirements that matter most
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -70,7 +70,7 @@ export default function EUBatteryRegulationPage() {
                     {r.article}
                   </span>
                 </div>
-                <h3 className="font-serif text-[19px] font-normal tracking-[-0.01em] text-crew-ink mb-2">
+                <h3 className="font-serif text-[19px] font-semibold tracking-[-0.02em] text-crew-ink mb-2">
                   {r.title}
                 </h3>
                 <p className="text-[15px] leading-[1.6] text-[#131313]">{r.body}</p>
@@ -84,7 +84,7 @@ export default function EUBatteryRegulationPage() {
 
       <section className="py-[72px] bg-crew-paper-soft">
         <div className="max-w-[860px] mx-auto px-6 text-center">
-          <h2 className="font-serif text-[clamp(26px,3.4vw,36px)] font-normal tracking-[-0.01em] text-crew-ink mb-4">
+          <h2 className="font-serif text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-crew-ink mb-4">
             Anviora Battery generates the passport this regulation requires.
           </h2>
           <p className="text-[16px] leading-[1.6] text-[#131313] max-w-[560px] mx-auto mb-7">

@@ -40,7 +40,7 @@ export default function AboutMission() {
             <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
               Our mission
             </div>
-            <h2 className="font-serif text-[clamp(30px,4vw,48px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink mb-6">
+            <h2 className="font-serif text-[clamp(30px,4vw,48px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink mb-6">
               Give every Indian manufacturer the same regulatory firepower as a Fortune 500.
             </h2>
             <div className="grid gap-5 text-[16px] leading-[1.7] text-[#131313]">
@@ -48,7 +48,7 @@ export default function AboutMission() {
                 A 50-person factory in Pune shouldn&apos;t need to hire a compliance team
                 to export to Europe. But that&apos;s the reality for thousands of manufacturers
                 today — EU Battery Regulation 2023/1542 is 200+ pages of technical
-                requirements that change every quarter.
+                requirements, with delegated acts still being added.
               </p>
               <p>
                 We built Anviora to invert that. Upload your existing certificates — BIS,
@@ -75,7 +75,7 @@ export default function AboutMission() {
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 className="p-6 rounded-2xl border border-crew-border bg-crew-paper-soft"
               >
-                <div className="font-serif text-[clamp(22px,2.8vw,34px)] font-normal tracking-[-0.02em] text-crew-ink mb-1 leading-tight">
+                <div className="font-serif text-[clamp(22px,2.8vw,34px)] font-semibold tracking-[-0.02em] text-crew-ink mb-1 leading-tight">
                   {n.stat}
                 </div>
                 <div className="text-[14px] font-semibold text-crew-ink mb-2">{n.label}</div>

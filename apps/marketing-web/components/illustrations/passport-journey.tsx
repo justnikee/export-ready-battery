@@ -83,13 +83,14 @@ function TravelingDot({ delay }: { delay: number }) {
   return (
     <motion.div
       className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-crew-coral shadow-[0_0_8px_rgba(21,122,91,0.6)]"
-      style={{ left: 0 }}
+      // Animate `left` (container-relative), not transform x% — framer-motion
+      // transform percentages are relative to the dot's own 10px size.
       animate={{
-        x: ["0%", "100%"],
+        left: ["0%", "100%"],
         opacity: [0, 1, 1, 1, 0],
       }}
       transition={{
-        x: { duration: 2.4, delay, repeat: Infinity, ease: "linear" },
+        left: { duration: 2.4, delay, repeat: Infinity, ease: "linear" },
         opacity: {
           duration: 2.4,
           delay,

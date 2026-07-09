@@ -39,7 +39,7 @@ export default function AboutWhy() {
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             Why we built this
           </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink max-w-[680px]">
+          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink max-w-[680px]">
             Four things we kept seeing that nobody was fixing.
           </h2>
         </motion.div>
@@ -60,7 +60,7 @@ export default function AboutWhy() {
                 {m.num}
               </span>
               <div>
-                <h3 className="font-serif text-[22px] sm:text-[26px] font-normal tracking-[-0.01em] text-crew-ink mb-3 leading-snug">
+                <h3 className="font-serif text-[22px] sm:text-[26px] font-semibold tracking-[-0.02em] text-crew-ink mb-3 leading-snug">
                   {m.heading}
                 </h3>
                 <p className="text-[16px] leading-[1.65] text-[#131313]">{m.body}</p>

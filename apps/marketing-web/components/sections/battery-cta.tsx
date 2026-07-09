@@ -13,7 +13,7 @@ export default function BatteryCTA() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink">
             Ship your first compliant battery this month.
           </h2>
           <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">

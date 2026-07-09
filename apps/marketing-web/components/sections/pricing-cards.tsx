@@ -23,7 +23,7 @@ const plans = [
       monthlyEquivalentInr: "₹11,999",
     },
     features: [
-      "500 passport credits/mo (₹30/passport)",
+      "500 passport credits per purchase (₹30/passport)",
       "2 team seats",
       "India Compliance — BIS, EPR, PLI, AIS-156/038",
       "AI certificate & datasheet parsing",
@@ -46,7 +46,7 @@ const plans = [
       monthlyEquivalentInr: "₹35,999",
     },
     features: [
-      "5,000 passport credits/mo (₹9/passport)",
+      "5,000 passport credits per purchase (₹9/passport)",
       "10 team seats",
       "Everything in Starter, plus:",
       "EU Battery Regulation compliance (Art. 7/8/11/77)",
@@ -67,7 +67,7 @@ const plans = [
     seats: "Up to 100 team seats",
     isEnterprise: true,
     features: [
-      "50,000+ passport credits/mo, from ₹1,50,000/mo",
+      "50,000+ passport credits, from ₹1,50,000 per purchase",
       "Up to 100 team seats",
       "Everything in Growth, plus:",
       "Dedicated account manager",

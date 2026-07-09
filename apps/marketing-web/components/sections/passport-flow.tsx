@@ -15,7 +15,7 @@ import TextReveal from "@/components/text-reveal";
 
 export default function PassportFlow() {
   return (
-    <section id="how-it-works" className="py-20 lg:py-28 bg-crew-paper">
+    <section id="how-it-works" className="py-20 lg:py-28">
       <div className="max-w-[1200px] mx-auto px-6">
         {/* Header */}
         <motion.div
@@ -28,11 +28,11 @@ export default function PassportFlow() {
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             From factory floor to EU shelf
           </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink">
+          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink text-balance">
             <TextReveal as="span" className="block">
               Four steps. No consultants.
             </TextReveal>
-            <TextReveal as="span" className="block italic" delay={0.15}>
+            <TextReveal as="span" className="block text-crew-coral" delay={0.15}>
               No 200-page regulation PDFs.
             </TextReveal>
           </h2>
@@ -55,15 +55,15 @@ export default function PassportFlow() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="rounded-[28px] border border-crew-border bg-crew-paper-soft px-6 py-10 sm:px-10 sm:py-12"
+          className="rounded-[28px] bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)] px-6 py-10 sm:px-10 sm:py-12"
         >
           <PassportJourney />
         </motion.div>
 
         {/* Supporting stats */}
-        <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6">
+        <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { value: "4 sec", label: "to extract 100+ fields from a cert PDF" },
+            { value: "100+", label: "fields auto-extracted from your certificates" },
             { value: "10 sec", label: "for a buyer to scan and verify compliance" },
             { value: "₹0", label: "in consultants needed for initial setup" },
             { value: "1", label: "dataset satisfies India + EU regulators" },
@@ -74,12 +74,14 @@ export default function PassportFlow() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: 0.1 + i * 0.07 }}
-              className="text-center"
+              className="rounded-3xl bg-crew-coral-soft px-6 py-7"
             >
-              <div className="font-serif text-[clamp(28px,3.5vw,40px)] font-normal tracking-[-0.02em] text-crew-ink">
+              <div className="font-serif text-[clamp(28px,3.5vw,40px)] font-semibold tracking-[-0.02em] text-crew-coral">
                 {stat.value}
               </div>
-              <div className="mt-1 text-[13px] text-crew-muted leading-snug">{stat.label}</div>
+              <div className="mt-1.5 text-[13px] text-crew-ink/70 leading-snug text-pretty">
+                {stat.label}
+              </div>
             </motion.div>
           ))}
         </div>

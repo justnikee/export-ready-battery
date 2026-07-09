@@ -22,7 +22,7 @@ const tableRows = [
 
 export default function Hero() {
   return (
-    <section className="bg-crew-paper px-3 sm:px-5 lg:px-6 pt-[116px] pb-14">
+    <section className="px-3 sm:px-5 lg:px-6 pt-[116px] pb-14">
       {/* Rounded emerald panel */}
       <div className="relative overflow-hidden rounded-[28px] max-w-[1340px] mx-auto">
         {/* Base green gradient */}
@@ -89,11 +89,11 @@ export default function Hero() {
               <ArrowRight size={13} className="cta-arrow text-white/80" />
             </motion.a>
 
-            <h1 className="font-serif text-white text-[clamp(44px,7vw,82px)] font-normal leading-[1.02] tracking-[-0.01em] max-w-[860px]">
+            <h1 className="font-serif text-white text-[clamp(44px,7vw,82px)] font-semibold leading-[1.02] tracking-[-0.02em] max-w-[860px]">
               <TextReveal as="span" className="block">
                 Every product deserves
               </TextReveal>
-              <TextReveal as="span" className="block italic text-white/95" delay={0.18}>
+              <TextReveal as="span" className="block text-white/85" delay={0.18}>
                 a digital identity.
               </TextReveal>
             </h1>

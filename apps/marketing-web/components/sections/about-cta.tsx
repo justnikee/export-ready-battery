@@ -13,7 +13,7 @@ export default function AboutCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="font-serif text-[clamp(32px,5vw,58px)] font-normal tracking-[-0.015em] leading-[1.06] text-crew-ink mb-6">
+          <h2 className="font-serif text-[clamp(32px,5vw,58px)] font-semibold tracking-[-0.015em] leading-[1.06] text-crew-ink mb-6">
             If you&apos;re exporting batteries to Europe, we should talk.
           </h2>
           <p className="text-[17px] leading-[1.6] text-[#131313] mb-10 max-w-[520px] mx-auto">

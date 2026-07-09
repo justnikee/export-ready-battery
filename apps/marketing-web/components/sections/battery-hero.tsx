@@ -36,7 +36,7 @@ export default function BatteryHero() {
               Anviora Battery
             </div>
 
-            <h1 className="font-serif text-[clamp(36px,5vw,60px)] font-normal leading-[1.04] tracking-[-0.01em] text-crew-ink">
+            <h1 className="font-serif text-[clamp(36px,5vw,60px)] font-semibold leading-[1.04] tracking-[-0.02em] text-crew-ink">
               The identity layer for every battery you ship.
             </h1>
 
@@ -69,10 +69,10 @@ export default function BatteryHero() {
                 <ArrowRight size={15} className="cta-arrow" />
               </a>
               <a
-                href="/request-access"
+                href="/#how-it-works"
                 className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
               >
-                See a sample passport <ArrowRight size={14} className="cta-arrow" />
+                See how it works <ArrowRight size={14} className="cta-arrow" />
               </a>
             </motion.div>
 
@@ -100,12 +100,12 @@ export default function BatteryHero() {
             </motion.div>
           </motion.div>
 
-          {/* ── Right: animated passport card ── */}
+          {/* ── Right: animated passport card (below copy on mobile) ── */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="relative hidden lg:block"
+            className="relative mt-6 lg:mt-0"
           >
             <BatteryPassportCard />
           </motion.div>

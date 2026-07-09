@@ -22,8 +22,8 @@ const navItems: NavItem[] = [
   {
     label: "Solutions",
     children: [
-      { label: "EU Battery Regulation", href: "/battery", desc: "2023/1542 compliance" },
-      { label: "India BWM Rules", href: "/battery", desc: "Domestic compliance" },
+      { label: "EU Battery Regulation", href: "/compliance/eu-battery-regulation", desc: "2023/1542 compliance" },
+      { label: "India BWM Rules", href: "/compliance/india-bwm-rules", desc: "Domestic compliance" },
       { label: "DGFT TRACE", href: "/battery", desc: "Export incentive claims" },
     ],
   },
@@ -31,7 +31,6 @@ const navItems: NavItem[] = [
     label: "Resources",
     children: [
       { label: "Blog", href: "/blog", desc: "Insights & updates" },
-      { label: "About", href: "/about", desc: "Who we are & why we built this" },
       { label: "EU Battery Guide", href: "/compliance/eu-battery-regulation", desc: "Regulatory roadmap" },
     ],
   },
@@ -93,7 +92,7 @@ export default function Navbar({
       <nav
         ref={navRef}
         onMouseLeave={() => scheduleClose()}
-        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white transition-all duration-300`}
+        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white/80 backdrop-blur-md transition-all duration-300`}
       >
         <div
           className={`max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
@@ -103,7 +102,7 @@ export default function Navbar({
           {/* Left: Brand */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-serif italic shrink-0 text-crew-ink justify-self-start"
+            className="inline-flex items-center gap-2.5 font-semibold tracking-tight shrink-0 text-crew-ink justify-self-start"
             style={{ fontSize: "24px" }}
           >
             <span

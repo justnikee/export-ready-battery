@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import MotionProvider from "@/components/motion-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,14 +16,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  variable: "--font-instrument",
-  display: "swap",
-  weight: "400",
-  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -77,9 +70,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}>
+    <html lang="en" className={`${inter.variable} ${geistMono.variable} antialiased`}>
       <body className="font-sans antialiased">
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <Toaster position="top-right" richColors />
         <script
           type="application/ld+json"

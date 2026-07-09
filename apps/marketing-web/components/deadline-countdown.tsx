@@ -26,17 +26,16 @@ function DigitCell({
   label,
   large = false,
 }: {
-  value: number;
+  value: number | null;
   label: string;
   large?: boolean;
 }) {
-  const display = large ? String(value) : pad(value);
+  // value is null before mount — render a stable placeholder so the
+  // server HTML and first client render match (no hydration mismatch).
+  const display = value === null ? "––" : large ? String(value) : pad(value);
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div
-        className="relative overflow-hidden rounded-xl border border-crew-border bg-white/80 px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center"
-        style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-      >
+      <div className="relative overflow-hidden rounded-xl bg-paper px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
         <AnimatePresence mode="popLayout">
           <motion.span
             key={display}
@@ -75,9 +74,12 @@ export default function DeadlineCountdown({
   variant = "block",
   className = "",
 }: Props) {
-  const [time, setTime] = useState(getTimeLeft);
+  // null until mounted: the countdown depends on the client clock, so the
+  // prerendered HTML must not contain a computed value (hydration mismatch).
+  const [time, setTime] = useState<ReturnType<typeof getTimeLeft> | null>(null);
 
   useEffect(() => {
+    setTime(getTimeLeft());
     const id = setInterval(() => setTime(getTimeLeft()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -90,7 +92,9 @@ export default function DeadlineCountdown({
       >
         <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse shrink-0" />
         <span className="font-mono text-[12px] font-bold text-[#b91c1c] tabular-nums">
-          {time.days}d {pad(time.hours)}h {pad(time.minutes)}m {pad(time.seconds)}s
+          {time === null
+            ? "––d ––h ––m ––s"
+            : `${time.days}d ${pad(time.hours)}h ${pad(time.minutes)}m ${pad(time.seconds)}s`}
         </span>
         <span className="text-[11px] font-medium text-[#991b1b] hidden sm:inline">
           — EU DPP deadline
@@ -112,13 +116,13 @@ export default function DeadlineCountdown({
 
       {/* Digit row */}
       <div className="flex items-center gap-2 sm:gap-3">
-        <DigitCell value={time.days} label="Days" large />
+        <DigitCell value={time && time.days} label="Days" large />
         <Colon />
-        <DigitCell value={time.hours} label="Hours" />
+        <DigitCell value={time && time.hours} label="Hours" />
         <Colon />
-        <DigitCell value={time.minutes} label="Min" />
+        <DigitCell value={time && time.minutes} label="Min" />
         <Colon />
-        <DigitCell value={time.seconds} label="Sec" />
+        <DigitCell value={time && time.seconds} label="Sec" />
       </div>
 
       {/* Date line */}

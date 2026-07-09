@@ -16,7 +16,7 @@ export default function EUBuyerHero() {
             <ShieldCheck size={14} />
             For EU Buyers & Importers
           </div>
-          <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+          <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink">
             Require Digital Battery Passports from your Indian suppliers.
           </h1>
           <p className="mt-5 text-[16px] sm:text-[17px] leading-[1.6] text-[#131313] max-w-[600px] mx-auto">

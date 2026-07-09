@@ -28,7 +28,7 @@ export default function BatteryDual() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink text-center mb-10"
+          className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink text-center mb-10"
         >
           One data set. Two regulatory masters.
         </motion.h2>
@@ -40,7 +40,7 @@ export default function BatteryDual() {
             viewport={{ once: true }}
             className="bg-white border border-crew-border rounded-2xl p-6"
           >
-            <h3 className="font-serif text-[20px] font-normal tracking-[-0.01em] text-crew-ink mb-4">
+            <h3 className="font-serif text-[20px] font-semibold tracking-[-0.02em] text-crew-ink mb-4">
               India domestic
             </h3>
             <ul className="space-y-3">
@@ -63,7 +63,7 @@ export default function BatteryDual() {
             transition={{ delay: 0.1 }}
             className="bg-white border border-crew-border rounded-2xl p-6"
           >
-            <h3 className="font-serif text-[20px] font-normal tracking-[-0.01em] text-crew-ink mb-4">
+            <h3 className="font-serif text-[20px] font-semibold tracking-[-0.02em] text-crew-ink mb-4">
               European Union
             </h3>
             <ul className="space-y-3">

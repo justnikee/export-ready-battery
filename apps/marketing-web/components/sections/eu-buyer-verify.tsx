@@ -66,7 +66,7 @@ export default function EUBuyerVerify() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-normal leading-[1.1] tracking-[-0.01em] text-crew-ink text-center">
+          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink text-center">
             Verify a battery passport
           </h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#131313] text-center">

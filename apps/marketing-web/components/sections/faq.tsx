@@ -11,7 +11,7 @@ const faqs = [
   },
   {
     question: "Is my certificate data secure?",
-    answer: "Absolutely. We use AES-256 encryption at rest and TLS 1.3 in transit. Your data is stored in AWS Mumbai by default. We're GDPR-compliant and working toward ISO 27001 certification. Your certificates never leave Indian servers unless you explicitly choose EU storage.",
+    answer: "Yes. Your data is encrypted in transit and at rest, isolated per tenant, and every record carries an audit trail. Certificate hashes are anchored to the Bitcoin blockchain via OpenTimestamps, so any tampering is independently detectable. You control exactly which fields appear on public passport pages — buyers and regulators each see only their access tier.",
   },
   {
     question: "Do I need a compliance team to use Anviora?",
@@ -43,14 +43,14 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="relative bg-[#F8FAFC] py-24 lg:py-32">
+    <section id="faq" className="relative py-20 lg:py-28">
       <div className="max-w-[800px] mx-auto px-6">
         <div className="text-center mb-16">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-xs font-medium tracking-[0.2em] uppercase text-[#4F46E5] mb-4"
+            className="text-[13px] font-semibold tracking-[-0.01em] uppercase text-crew-coral mb-3"
           >
             Questions
           </motion.p>
@@ -59,9 +59,9 @@ export default function FAQ() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0F172A] tracking-[-0.02em]"
+            className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink"
           >
-            We&apos;ve Got Answers.
+            Questions, answered.
           </motion.h2>
         </div>
 
@@ -73,20 +73,20 @@ export default function FAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.05 * i }}
-              className="border-b border-[#E2E8F0]"
+              className="border-b border-crew-ink/8"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full flex items-center justify-between py-5 text-left group"
               >
-                <span className="text-lg font-medium text-[#0F172A] pr-8 group-hover:text-[#4F46E5] transition-colors">
+                <span className="text-lg font-medium text-crew-ink pr-8 group-hover:text-crew-coral transition-colors">
                   {faq.question}
                 </span>
-                <span className="shrink-0 w-8 h-8 rounded-lg bg-[#F1F5F9] flex items-center justify-center group-hover:bg-[#4F46E5]/10 transition-colors">
+                <span className="shrink-0 w-8 h-8 rounded-lg bg-white shadow-[0_1px_4px_rgba(26,32,26,0.08)] flex items-center justify-center group-hover:bg-crew-coral-soft transition-colors">
                   {openIndex === i ? (
-                    <Minus size={16} className="text-[#4F46E5]" />
+                    <Minus size={16} className="text-crew-coral" />
                   ) : (
-                    <Plus size={16} className="text-[#64748B]" />
+                    <Plus size={16} className="text-crew-muted" />
                   )}
                 </span>
               </button>
@@ -100,7 +100,7 @@ export default function FAQ() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <p className="pb-5 text-[#64748B] leading-relaxed">
+                    <p className="pb-5 text-crew-muted leading-relaxed">
                       {faq.answer}
                     </p>
                   </motion.div>

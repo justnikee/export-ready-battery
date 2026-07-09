@@ -50,7 +50,7 @@ export default function TextileFeatures() {
                 );
               }}
             >
-              <h3 className="font-serif text-[22px] font-normal leading-[1.2] tracking-[-0.01em] text-crew-ink mb-2">
+              <h3 className="font-serif text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-crew-ink mb-2">
                 {f.title}
               </h3>
               <p className="text-[15px] leading-[1.55] text-crew-muted">

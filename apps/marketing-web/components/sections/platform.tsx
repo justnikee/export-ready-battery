@@ -48,7 +48,7 @@ function FeatureRow({ eyebrow, title, body, bullets, cta, flip, children }: RowP
         <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
           {eyebrow}
         </div>
-        <h3 className="font-serif text-[clamp(28px,3.4vw,40px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink mb-5">
+        <h3 className="font-serif text-[clamp(28px,3.4vw,40px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink mb-5">
           <TextReveal as="span" className="block">
             {title}
           </TextReveal>
@@ -87,11 +87,11 @@ function FeatureRow({ eyebrow, title, body, bullets, cta, flip, children }: RowP
 }
 
 const visualCard =
-  "rounded-2xl border border-crew-border bg-crew-paper p-6 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.1),0_18px_36px_-18px_rgba(0,0,0,0.08)]";
+  "rounded-3xl bg-white p-6 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.1),0_18px_36px_-18px_rgba(0,0,0,0.08)]";
 
 export default function Platform() {
   return (
-    <section id="how-it-works" className="py-24 lg:py-32 bg-crew-paper">
+    <section id="platform" className="py-20 lg:py-28">
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="grid gap-28 lg:gap-36">
           {/* Row 1 — Collect / Discover */}

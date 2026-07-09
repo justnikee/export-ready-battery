@@ -71,7 +71,7 @@ export default function BatteryFeatures() {
             }`}
           >
             <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-              <h3 className="font-serif text-[clamp(24px,3vw,32px)] font-normal leading-[1.1] tracking-[-0.01em] text-crew-ink">
+              <h3 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink">
                 {f.title}
               </h3>
               <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">

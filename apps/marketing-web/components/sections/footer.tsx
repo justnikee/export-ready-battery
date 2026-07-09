@@ -55,7 +55,7 @@ export default function Footer() {
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 font-serif italic text-white"
+              className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-white"
               style={{ fontSize: "24px" }}
             >
               <span

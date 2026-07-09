@@ -13,7 +13,7 @@ export default function TextileChallenge() {
           className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
         >
           <div>
-            <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+            <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink">
               40 SKUs. 12 certificates. One audit.
             </h2>
             <p className="mt-5 text-[16px] leading-[1.6] text-[#131313]">

@@ -43,7 +43,7 @@ export default function AboutValues() {
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             How we think
           </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink">
+          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink">
             Principles, not promises.
           </h2>
         </motion.div>
@@ -59,7 +59,7 @@ export default function AboutValues() {
               className="p-6 rounded-2xl border border-crew-border bg-crew-paper-soft"
             >
               <div className="w-8 h-0.5 bg-crew-coral mb-4 rounded-full" />
-              <h3 className="font-serif text-[22px] font-normal tracking-[-0.01em] text-crew-ink mb-3 leading-snug">
+              <h3 className="font-serif text-[22px] font-semibold tracking-[-0.02em] text-crew-ink mb-3 leading-snug">
                 {v.title}
               </h3>
               <p className="text-[15px] leading-[1.65] text-[#131313]">{v.body}</p>

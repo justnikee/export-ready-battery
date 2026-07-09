@@ -29,11 +29,11 @@ export default function AboutHero() {
           </span>
         </motion.div>
 
-        <h1 className="font-serif text-[clamp(40px,7vw,84px)] font-normal leading-[1.01] tracking-[-0.015em] text-crew-ink">
+        <h1 className="font-serif text-[clamp(40px,7vw,84px)] font-semibold leading-[1.01] tracking-[-0.015em] text-crew-ink">
           <TextReveal as="span" className="block">
             We&apos;re building the identity layer
           </TextReveal>
-          <TextReveal as="span" className="block italic text-crew-coral" delay={0.18}>
+          <TextReveal as="span" className="block text-crew-coral" delay={0.18}>
             for Indian exports.
           </TextReveal>
         </h1>
