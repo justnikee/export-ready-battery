@@ -69,7 +69,7 @@ export default function EUBuyerMandateForm() {
 
   if (submitted) {
     return (
-      <section id="mandate-form" className="py-[72px] bg-crew-paper-soft">
+      <section id="mandate-form" className="py-[72px]">
         <div className="max-w-[520px] mx-auto px-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 mb-5">
             <CheckCircle className="w-7 h-7 text-crew-green" />
@@ -84,7 +84,7 @@ export default function EUBuyerMandateForm() {
   }
 
   return (
-    <section id="mandate-form" className="py-[72px] bg-crew-paper-soft">
+    <section id="mandate-form" className="py-[72px]">
       <div className="max-w-[560px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

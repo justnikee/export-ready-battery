@@ -9,13 +9,13 @@ export default function PricingFAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-[60px] bg-[#f6f9fc]">
+    <section className="py-[60px]">
       <div className="max-w-[720px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[24px] sm:text-[28px] font-light leading-[1.12] text-[#0d253d] text-center mb-8"
+          className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-[1.12] text-crew-ink text-center mb-8"
         >
           Frequently Asked Questions
         </motion.h2>
@@ -34,13 +34,13 @@ export default function PricingFAQ() {
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full flex items-center justify-between py-4 text-left"
               >
-                <span className="text-[14px] font-medium text-[#0d253d]">
+                <span className="text-[14px] font-medium text-crew-ink">
                   {faq.q}
                 </span>
                 {openIndex === i ? (
-                  <Minus size={16} className="text-[#533afd] shrink-0 ml-4" />
+                  <Minus size={16} className="text-[#157a5b] shrink-0 ml-4" />
                 ) : (
-                  <Plus size={16} className="text-[#533afd] shrink-0 ml-4" />
+                  <Plus size={16} className="text-[#157a5b] shrink-0 ml-4" />
                 )}
               </button>
               <AnimatePresence>
@@ -52,7 +52,7 @@ export default function PricingFAQ() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <p className="text-[13px] leading-[1.55] text-[#64748d] pb-4">
+                    <p className="text-[13px] leading-[1.55] text-crew-muted pb-4">
                       {faq.a}
                     </p>
                   </motion.div>

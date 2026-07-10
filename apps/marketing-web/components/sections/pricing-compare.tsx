@@ -26,37 +26,37 @@ const rows = [
 function Cell({ value }: { value: boolean | string }) {
   if (value === true) return <Check size={16} className="text-emerald-600 mx-auto" />;
   if (value === false) return <Minus size={16} className="text-[#e3e8ee] mx-auto" />;
-  return <span className="text-[13px] text-[#64748d]">{value}</span>;
+  return <span className="text-[13px] text-crew-muted">{value}</span>;
 }
 
 export default function PricingCompare() {
   return (
-    <section className="py-[60px] bg-white">
+    <section className="py-16">
       <div className="max-w-[1080px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[24px] sm:text-[28px] font-light leading-[1.12] text-[#0d253d] text-center mb-8"
+          className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-[1.12] text-crew-ink text-center mb-8"
         >
           Feature Comparison
         </motion.h2>
 
-        <p className="sm:hidden text-[12px] text-[#64748d] mb-2">Swipe to see all plans →</p>
+        <p className="sm:hidden text-[12px] text-crew-muted mb-2">Swipe to see all plans →</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-[#e3e8ee]">
-                <th className="sticky left-0 bg-white text-left text-[13px] font-medium text-[#0d253d] py-3 pr-4">
+                <th className="sticky left-0 bg-white text-left text-[13px] font-medium text-crew-ink py-3 pr-4">
                   Feature
                 </th>
-                <th className="text-center text-[13px] font-medium text-[#0d253d] py-3 px-4 w-[140px]">
+                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px]">
                   Starter
                 </th>
-                <th className="text-center text-[13px] font-medium text-[#0d253d] py-3 px-4 w-[140px] bg-[rgba(83,58,253,0.03)]">
+                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px] bg-[rgba(21,122,91,0.05)]">
                   Growth
                 </th>
-                <th className="text-center text-[13px] font-medium text-[#0d253d] py-3 px-4 w-[140px]">
+                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px]">
                   Enterprise
                 </th>
               </tr>
@@ -65,15 +65,15 @@ export default function PricingCompare() {
               {rows.map((row, i) => (
                 <tr
                   key={row.feature}
-                  className="border-b border-[#e3e8ee] hover:bg-[#f6f9fc] transition-colors"
+                  className="border-b border-crew-ink/8 hover:bg-paper transition-colors"
                 >
-                  <td className="sticky left-0 bg-white text-[13px] text-[#0d253d] py-3 pr-4">
+                  <td className="sticky left-0 bg-white text-[13px] text-crew-ink py-3 pr-4">
                     {row.feature}
                   </td>
                   <td className="text-center py-3 px-4">
                     <Cell value={row.starter} />
                   </td>
-                  <td className="text-center py-3 px-4 bg-[rgba(83,58,253,0.03)]">
+                  <td className="text-center py-3 px-4 bg-[rgba(21,122,91,0.05)]">
                     <Cell value={row.growth} />
                   </td>
                   <td className="text-center py-3 px-4">

@@ -31,7 +31,7 @@ const VALUES = [
 
 export default function AboutValues() {
   return (
-    <section className="py-24 lg:py-32 bg-crew-paper">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1200px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -56,7 +56,7 @@ export default function AboutValues() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.07 }}
-              className="p-6 rounded-2xl border border-crew-border bg-crew-paper-soft"
+              className="p-6 rounded-3xl bg-paper transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="w-8 h-0.5 bg-crew-coral mb-4 rounded-full" />
               <h3 className="font-serif text-[22px] font-semibold tracking-[-0.02em] text-crew-ink mb-3 leading-snug">

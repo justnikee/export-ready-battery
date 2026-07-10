@@ -27,7 +27,7 @@ const NUMBERS = [
 
 export default function AboutMission() {
   return (
-    <section className="py-24 lg:py-32 bg-crew-paper">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1200px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
           {/* Left: narrative */}
@@ -73,7 +73,7 @@ export default function AboutMission() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="p-6 rounded-2xl border border-crew-border bg-crew-paper-soft"
+                className="p-6 rounded-3xl bg-paper transition-transform duration-300 hover:-translate-y-1"
               >
                 <div className="font-serif text-[clamp(22px,2.8vw,34px)] font-semibold tracking-[-0.02em] text-crew-ink mb-1 leading-tight">
                   {n.stat}

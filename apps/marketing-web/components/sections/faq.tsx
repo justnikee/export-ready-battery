@@ -82,7 +82,7 @@ export default function FAQ() {
                 <span className="text-lg font-medium text-crew-ink pr-8 group-hover:text-crew-coral transition-colors">
                   {faq.question}
                 </span>
-                <span className="shrink-0 w-8 h-8 rounded-lg bg-white shadow-[0_1px_4px_rgba(26,32,26,0.08)] flex items-center justify-center group-hover:bg-crew-coral-soft transition-colors">
+                <span className="shrink-0 w-8 h-8 rounded-lg bg-paper flex items-center justify-center group-hover:bg-crew-coral-soft transition-colors">
                   {openIndex === i ? (
                     <Minus size={16} className="text-crew-coral" />
                   ) : (

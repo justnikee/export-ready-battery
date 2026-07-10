@@ -87,7 +87,7 @@ function FeatureRow({ eyebrow, title, body, bullets, cta, flip, children }: RowP
 }
 
 const visualCard =
-  "rounded-3xl bg-white p-6 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.1),0_18px_36px_-18px_rgba(0,0,0,0.08)]";
+  "rounded-3xl bg-paper p-6";
 
 export default function Platform() {
   return (
@@ -129,7 +129,7 @@ export default function Platform() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {parsedFields.map((f) => (
-                  <div key={f.label} className="px-3 py-2 rounded-lg bg-crew-paper-soft">
+                  <div key={f.label} className="px-3 py-2 rounded-lg bg-white">
                     <div className="text-[10px] uppercase tracking-wider text-crew-muted">
                       {f.label}
                     </div>
@@ -184,7 +184,7 @@ export default function Platform() {
                         {f.pct}%
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-crew-paper-soft overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-white overflow-hidden">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -206,7 +206,7 @@ export default function Platform() {
                         className={`inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold ${
                           c === "B"
                             ? "bg-crew-green text-white"
-                            : "bg-crew-paper-soft text-crew-muted"
+                            : "bg-white text-crew-muted"
                         }`}
                       >
                         {c}
@@ -235,7 +235,7 @@ export default function Platform() {
           >
             <div className={visualCard}>
               <div className="text-[13px] font-semibold text-crew-ink mb-4">Share passport — LFP-B4471</div>
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-crew-border bg-crew-paper-soft mb-4">
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-crew-border bg-white mb-4">
                 <span className="flex-1 text-[11.5px] font-medium text-crew-muted truncate">
                   portal.anviora.com/p/lfp-b4471
                 </span>

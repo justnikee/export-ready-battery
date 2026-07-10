@@ -134,7 +134,7 @@ export default function FeatureGrid() {
           {/* Cell 4 — BPAN + QR (white, QR visual) */}
           <motion.div
             {...cellReveal(0.2)}
-            className="lg:col-span-7 rounded-[28px] bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)] p-8 lg:p-10 flex flex-col sm:flex-row sm:items-center gap-8"
+            className="lg:col-span-7 rounded-[28px] bg-paper p-8 lg:p-10 flex flex-col sm:flex-row sm:items-center gap-8"
           >
             <div className="flex-1">
               <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-crew-coral-soft text-crew-coral mb-6">
@@ -148,7 +148,7 @@ export default function FeatureGrid() {
                 to a live, tiered-access passport page.
               </p>
             </div>
-            <div className="shrink-0 flex flex-col items-center gap-3 rounded-3xl bg-paper px-8 py-7">
+            <div className="shrink-0 flex flex-col items-center gap-3 rounded-3xl bg-white px-8 py-7">
               <span className="text-crew-ink">
                 <MiniQR size={96} />
               </span>

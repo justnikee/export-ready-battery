@@ -55,7 +55,7 @@ export default function ProductsSplit() {
                 className={`group flex flex-col p-8 lg:p-10 rounded-[28px] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,40,30,0.16)] ${
                   dark
                     ? "bg-gradient-to-br from-[#0e5a40] to-[#157a5b] text-white"
-                    : "bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)]"
+                    : "bg-paper"
                 }`}
               >
                 <div className="flex items-center justify-between mb-8">

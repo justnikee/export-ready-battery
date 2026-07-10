@@ -5,7 +5,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function EUBuyerHero() {
   return (
-    <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-[64px] overflow-hidden bg-crew-paper-soft">
+    <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-[64px] overflow-hidden">
       <div className="max-w-[800px] mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

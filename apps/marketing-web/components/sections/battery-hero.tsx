@@ -7,7 +7,7 @@ import BatteryPassportCard from "@/components/illustrations/battery-passport-car
 
 export default function BatteryHero() {
   return (
-    <section className="relative pt-[120px] pb-20 lg:pt-[152px] lg:pb-[96px] overflow-hidden bg-crew-paper-soft">
+    <section className="relative pt-[120px] pb-20 lg:pt-[152px] lg:pb-[96px] overflow-hidden">
       {/* Subtle background grain */}
       <svg
         aria-hidden="true"

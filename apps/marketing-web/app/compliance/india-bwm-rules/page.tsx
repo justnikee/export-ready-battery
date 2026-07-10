@@ -48,7 +48,7 @@ export default function IndiaBWMRulesPage() {
     <main className="relative min-h-screen bg-white">
       <Navbar />
 
-      <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-20 bg-crew-paper-soft">
+      <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-20">
         <div className="max-w-[860px] mx-auto px-6">
           <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
             Compliance guide
@@ -65,14 +65,14 @@ export default function IndiaBWMRulesPage() {
         </div>
       </section>
 
-      <section className="py-[72px] bg-white">
+      <section className="py-[72px]">
         <div className="max-w-[1080px] mx-auto px-6">
           <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-crew-ink mb-10">
             The four requirements that matter most
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {requirements.map((r) => (
-              <div key={r.tag} className="p-6 rounded-2xl bg-crew-paper-soft border border-crew-border">
+              <div key={r.tag} className="p-6 rounded-3xl bg-paper">
                 <div className="inline-flex items-center gap-2 mb-3">
                   <ShieldCheck size={16} className="text-crew-coral" />
                   <span className="text-[12px] font-semibold uppercase tracking-wider text-crew-coral">
@@ -89,12 +89,12 @@ export default function IndiaBWMRulesPage() {
         </div>
       </section>
 
-      <section className="py-[72px] bg-crew-paper-soft">
+      <section className="py-[72px]">
         <div className="max-w-[720px] mx-auto px-6">
           <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-crew-ink mb-8 text-center">
             What you'll need on file
           </h2>
-          <div className="bg-white border border-crew-border rounded-2xl p-6">
+          <div className="bg-white rounded-3xl p-6">
             <ul className="space-y-3">
               {checklist.map((item) => (
                 <li key={item} className="text-[15px] text-crew-muted flex items-start gap-2">
@@ -107,7 +107,7 @@ export default function IndiaBWMRulesPage() {
         </div>
       </section>
 
-      <section className="py-[72px] bg-white">
+      <section className="py-[72px]">
         <div className="max-w-[860px] mx-auto px-6 text-center">
           <h2 className="font-serif text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-crew-ink mb-4">
             Anviora Battery tracks every certificate against this checklist.

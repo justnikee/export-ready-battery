@@ -59,7 +59,7 @@ export default function EUBuyerVerify() {
   };
 
   return (
-    <section id="verify" className="py-[72px] bg-crew-paper">
+    <section id="verify" className="py-[72px]">
       <div className="max-w-[640px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -99,7 +99,7 @@ export default function EUBuyerVerify() {
           )}
 
           {result && (
-            <div className="mt-6 p-5 rounded-xl bg-white border border-crew-border">
+            <div className="mt-6 p-5 rounded-2xl bg-paper">
               <div className="flex items-center gap-2 text-crew-green">
                 <CheckCircle size={18} />
                 <span className="font-semibold text-sm">Passport verified</span>

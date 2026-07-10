@@ -49,13 +49,13 @@ const tiers = [
 
 export default function BatteryPassportData() {
   return (
-    <section className="py-[88px] bg-crew-paper-soft">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1080px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink text-center mb-10"
+          className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink text-center mb-12 text-balance"
         >
           What goes into a Battery Passport?
         </motion.h2>
@@ -68,38 +68,29 @@ export default function BatteryPassportData() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className={`glow-card bg-white border rounded-2xl p-6 transition-all duration-200 hover:shadow-[rgba(7,46,33,0.06)_0_1px_3px,rgba(21,122,91,0.12)_0_12px_32px] ${
-                tier.highlight
-                  ? "border-[rgba(21,122,91,0.3)] shadow-[rgba(21,122,91,0.08)_0_4px_20px]"
-                  : "border-crew-border"
+              className={`rounded-[28px] p-7 lg:p-8 transition-transform duration-300 hover:-translate-y-1 ${
+                tier.highlight ? "bg-crew-coral-soft" : "bg-paper"
               }`}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                e.currentTarget.style.setProperty(
-                  "--glow-x",
-                  `${e.clientX - rect.left}px`
-                );
-                e.currentTarget.style.setProperty(
-                  "--glow-y",
-                  `${e.clientY - rect.top}px`
-                );
-              }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-crew-coral-soft">
-                  <tier.icon size={16} className="text-crew-coral" />
+              <div className="flex items-center gap-3 mb-5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    tier.highlight ? "bg-white" : "bg-crew-coral-soft"
+                  }`}
+                >
+                  <tier.icon size={17} className="text-crew-coral" />
                 </div>
-                <h3 className="text-[15px] font-semibold text-crew-ink">
+                <h3 className="text-[16px] font-semibold text-crew-ink">
                   {tier.title}
                 </h3>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {tier.items.map((item) => (
                   <li
                     key={item}
-                    className="text-[13px] text-crew-muted flex items-start gap-2"
+                    className="text-[13.5px] text-crew-ink/70 flex items-start gap-2.5"
                   >
-                    <span className="w-1 h-1 rounded-full bg-crew-coral mt-1.5 shrink-0" />
+                    <span className="w-1 h-1 rounded-full bg-crew-coral mt-2 shrink-0" />
                     {item}
                   </li>
                 ))}

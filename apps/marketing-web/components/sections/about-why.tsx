@@ -27,7 +27,7 @@ const MOMENTS = [
 
 export default function AboutWhy() {
   return (
-    <section className="py-24 lg:py-32 bg-crew-paper-soft">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1000px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

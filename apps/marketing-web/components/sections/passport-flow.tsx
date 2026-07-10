@@ -55,7 +55,7 @@ export default function PassportFlow() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="rounded-[28px] bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)] px-6 py-10 sm:px-10 sm:py-12"
+          className="rounded-[28px] bg-paper px-6 py-10 sm:px-10 sm:py-12"
         >
           <PassportJourney />
         </motion.div>

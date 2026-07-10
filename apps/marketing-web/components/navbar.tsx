@@ -1,37 +1,107 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
+import {
+  Menu,
+  X,
+  ChevronDown,
+  BatteryCharging,
+  Shirt,
+  Tag,
+  ScrollText,
+  Landmark,
+  Coins,
+  Newspaper,
+  BookOpen,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
+
+interface NavChild {
+  label: string;
+  href: string;
+  desc: string;
+  icon: LucideIcon;
+  /** tinted icon chip: [bg class, icon color class] */
+  tone: [string, string];
+}
 
 interface NavItem {
   label: string;
   href?: string;
-  children?: { label: string; href: string; desc?: string }[];
+  children?: NavChild[];
 }
 
 const navItems: NavItem[] = [
   {
     label: "Products",
     children: [
-      { label: "Battery Passport", href: "/battery", desc: "EU 2023/1542 ready" },
-      { label: "Textile DPP", href: "/textile", desc: "Traceability & compliance" },
-      { label: "Pricing", href: "/pricing", desc: "Plans for every scale" },
+      {
+        label: "Battery Passport",
+        href: "/battery",
+        desc: "EU 2023/1542 passports, BIS & carbon compliance for battery exporters.",
+        icon: BatteryCharging,
+        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+      },
+      {
+        label: "Textile DPP",
+        href: "/textile",
+        desc: "Fiber-to-product traceability, ready before the ESPR mandate.",
+        icon: Shirt,
+        tone: ["bg-[#fdf3e3]", "text-[#b45309]"],
+      },
+      {
+        label: "Pricing",
+        href: "/pricing",
+        desc: "One-time credit packs — no subscriptions, no lock-in.",
+        icon: Tag,
+        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+      },
     ],
   },
   {
     label: "Solutions",
     children: [
-      { label: "EU Battery Regulation", href: "/compliance/eu-battery-regulation", desc: "2023/1542 compliance" },
-      { label: "India BWM Rules", href: "/compliance/india-bwm-rules", desc: "Domestic compliance" },
-      { label: "DGFT TRACE", href: "/battery", desc: "Export incentive claims" },
+      {
+        label: "EU Battery Regulation",
+        href: "/compliance/eu-battery-regulation",
+        desc: "Everything 2023/1542 requires, mapped article by article.",
+        icon: ScrollText,
+        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+      },
+      {
+        label: "India BWM Rules",
+        href: "/compliance/india-bwm-rules",
+        desc: "BIS, CPCB EPR and BWM 2022 obligations in one place.",
+        icon: Landmark,
+        tone: ["bg-[#fdf3e3]", "text-[#b45309]"],
+      },
+      {
+        label: "DGFT TRACE",
+        href: "/battery",
+        desc: "Auto-file export incentive claims from your passport data.",
+        icon: Coins,
+        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+      },
     ],
   },
   {
     label: "Resources",
     children: [
-      { label: "Blog", href: "/blog", desc: "Insights & updates" },
-      { label: "EU Battery Guide", href: "/compliance/eu-battery-regulation", desc: "Regulatory roadmap" },
+      {
+        label: "Blog",
+        href: "/blog",
+        desc: "Regulation updates and export playbooks for manufacturers.",
+        icon: Newspaper,
+        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+      },
+      {
+        label: "EU Battery Guide",
+        href: "/compliance/eu-battery-regulation",
+        desc: "The regulatory roadmap from CE marking to Feb 2027.",
+        icon: BookOpen,
+        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+      },
     ],
   },
   { label: "Pricing", href: "/pricing" },
@@ -127,7 +197,7 @@ export default function Navbar({
                   <a
                     key={item.label}
                     href={item.href}
-                    className="px-3 py-1.5 text-[16px] font-medium rounded-md text-crew-ink/70 hover:text-crew-ink transition-colors"
+                    className="px-3 py-1.5 text-[15px] font-medium rounded-full text-crew-ink/70 hover:text-crew-ink hover:bg-paper transition-colors"
                   >
                     {item.label}
                   </a>
@@ -141,9 +211,9 @@ export default function Navbar({
                   onMouseLeave={() => scheduleClose()}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[16px] font-medium rounded-md transition-colors ${
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[15px] font-medium rounded-full transition-colors ${
                       isOpen
-                        ? "text-crew-ink bg-crew-paper-soft"
+                        ? "text-crew-ink bg-paper"
                         : "text-crew-ink/70 hover:text-crew-ink"
                     }`}
                   >
@@ -156,32 +226,39 @@ export default function Navbar({
                     />
                   </button>
 
-                  {/* Dropdown */}
+                  {/* Mega dropdown */}
                   <div
-                    className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[220px] bg-crew-paper rounded-xl border border-crew-border shadow-[0_12px_40px_rgba(0,0,0,0.12)] py-2 z-50 transition-all duration-200 origin-top ${
+                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-3 z-50 transition-all duration-200 origin-top ${
                       isOpen
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-                        : "opacity-0 scale-[0.97] -translate-y-1 pointer-events-none"
+                        : "opacity-0 scale-[0.98] -translate-y-1 pointer-events-none"
                     }`}
                     onMouseEnter={cancelClose}
                     onMouseLeave={() => scheduleClose()}
                   >
-                    {item.children.map((child) => (
-                      <a
-                        key={child.label}
-                        href={child.href}
-                        className="block px-4 py-2.5 hover:bg-crew-paper-soft transition-colors"
-                      >
-                        <div className="text-[13px] font-medium text-crew-ink">
-                          {child.label}
-                        </div>
-                        {child.desc && (
-                          <div className="text-[11px] text-crew-muted mt-0.5">
-                            {child.desc}
-                          </div>
-                        )}
-                      </a>
-                    ))}
+                    <div className="w-[400px] rounded-3xl bg-white p-2.5 shadow-[0_24px_70px_rgba(15,40,30,0.16),0_4px_16px_rgba(15,40,30,0.06)]">
+                      {item.children.map((child) => (
+                        <a
+                          key={child.label}
+                          href={child.href}
+                          className="group flex items-start gap-3.5 p-3.5 rounded-2xl hover:bg-paper transition-colors"
+                        >
+                          <span
+                            className={`inline-flex items-center justify-center w-11 h-11 rounded-xl shrink-0 ${child.tone[0]} ${child.tone[1]}`}
+                          >
+                            <child.icon size={20} strokeWidth={1.8} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[14.5px] font-semibold text-crew-ink leading-tight">
+                              {child.label}
+                            </span>
+                            <span className="block text-[12.5px] leading-[1.45] text-crew-muted mt-1">
+                              {child.desc}
+                            </span>
+                          </span>
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               );
@@ -192,7 +269,7 @@ export default function Navbar({
           <div className="hidden md:flex items-center gap-4 justify-self-end text-[16px] font-medium">
             <a
               href="/request-access"
-              className="inline-flex items-center justify-center h-[38px] px-5 rounded-full text-[16px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
+              className="inline-flex items-center justify-center h-[38px] px-5 rounded-full text-[14.5px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
             >
               Request a Demo
             </a>
@@ -211,24 +288,36 @@ export default function Navbar({
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-crew-paper pt-20 px-6 md:hidden overflow-y-auto">
-          <div className="flex flex-col gap-2 text-[15px] font-medium text-crew-ink">
+        <div className="fixed inset-0 z-40 bg-white pt-20 px-5 md:hidden overflow-y-auto">
+          <div className="flex flex-col gap-1 pb-10">
             {navItems.map((item) => (
               <div key={item.label}>
                 {item.children ? (
                   <>
-                    <div className="py-2 text-[13px] font-semibold text-crew-muted uppercase tracking-wider">
+                    <div className="pt-5 pb-2 px-1 text-[12px] font-semibold text-crew-muted uppercase tracking-wider">
                       {item.label}
                     </div>
-                    <div className="pl-3 border-l border-crew-border ml-1 space-y-1">
+                    <div className="grid gap-1">
                       {item.children.map((child) => (
                         <a
                           key={child.label}
                           href={child.href}
                           onClick={() => setMobileOpen(false)}
-                          className="block py-2 text-[14px] text-crew-ink"
+                          className="flex items-start gap-3 p-3 rounded-2xl bg-paper"
                         >
-                          {child.label}
+                          <span
+                            className={`inline-flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${child.tone[0]} ${child.tone[1]}`}
+                          >
+                            <child.icon size={18} strokeWidth={1.8} />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[14px] font-semibold text-crew-ink leading-tight">
+                              {child.label}
+                            </span>
+                            <span className="block text-[12px] leading-[1.4] text-crew-muted mt-0.5">
+                              {child.desc}
+                            </span>
+                          </span>
                         </a>
                       ))}
                     </div>
@@ -237,7 +326,7 @@ export default function Navbar({
                   <a
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block py-2 border-b border-crew-border"
+                    className="block px-1 py-3 mt-2 text-[15px] font-semibold text-crew-ink"
                   >
                     {item.label}
                   </a>
@@ -246,7 +335,7 @@ export default function Navbar({
             ))}
             <a
               href="/request-access"
-              className="inline-flex items-center justify-center h-10 rounded-full text-white text-sm font-semibold mt-2 bg-crew-ink"
+              className="inline-flex items-center justify-center h-11 rounded-full text-white text-[14.5px] font-semibold mt-5 bg-crew-ink"
             >
               Request a Demo
             </a>

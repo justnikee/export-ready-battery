@@ -14,7 +14,7 @@ const timeline = [
 
 export default function BatteryCompliance() {
   return (
-    <section className="py-[88px] bg-crew-paper">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1080px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <motion.div
@@ -40,9 +40,9 @@ export default function BatteryCompliance() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="relative"
+            className="relative rounded-[28px] bg-paper p-7 lg:p-8"
           >
-            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-crew-border" />
+            <div className="absolute left-[35px] lg:left-[39px] top-10 bottom-10 w-px bg-crew-border" />
             {timeline.map((item) => (
               <div key={item.date} className="relative flex items-start gap-4 py-3">
                 <div

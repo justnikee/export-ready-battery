@@ -16,7 +16,6 @@ const footerLinks = {
     { label: "EU Battery Regulation", href: "/compliance/eu-battery-regulation" },
     { label: "India BWM Rules", href: "/compliance/india-bwm-rules" },
     { label: "DGFT TRACE", href: "/battery" },
-    { label: "Compliance Coverage", href: "/battery" },
   ],
   Resources: [
     { label: "Blog", href: "/blog" },
@@ -24,38 +23,22 @@ const footerLinks = {
     { label: "BWM Rules Checklist", href: "/compliance/india-bwm-rules" },
   ],
   Company: [
+    { label: "About", href: "/about" },
     { label: "Contact", href: "/request-access" },
   ],
 };
 
 export default function Footer() {
   return (
-    <footer className="relative pt-20 pb-10 overflow-hidden text-white"
-      style={{ background: "linear-gradient(180deg, #11251d 0%, #0a160f 100%)" }}
-    >
-      {/* Grain texture */}
-      <svg
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full opacity-[0.12] mix-blend-overlay pointer-events-none"
-      >
-        <filter id="footer-grain">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.75"
-            numOctaves="4"
-            stitchTiles="stitch"
-          />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#footer-grain)" />
-      </svg>
-
-      <div className="relative z-10 max-w-[1200px] mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr_1fr_1fr] gap-10 md:gap-8 mb-14">
+    <footer className="relative overflow-hidden bg-paper">
+      <div className="relative max-w-[1240px] mx-auto px-6 pt-16 lg:pt-20">
+        {/* Top: brand + link columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_2fr] gap-12 lg:gap-20 pb-14">
           {/* Brand + newsletter */}
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-white"
+              className="inline-flex items-center gap-2.5 font-semibold tracking-tight text-crew-ink"
               style={{ fontSize: "24px" }}
             >
               <span
@@ -64,30 +47,33 @@ export default function Footer() {
               />
               Anviora
             </Link>
-            <p className="max-w-[280px] mt-4 text-[14px] leading-[1.65] text-white/60">
-              The Digital Product Identity Platform — compliance and passports for Indian
-              battery and textile manufacturers selling at home and into Europe.
+            <p className="max-w-[320px] mt-4 text-[14px] leading-[1.65] text-crew-muted text-pretty">
+              Digital product passports and compliance for Indian battery and
+              textile manufacturers selling at home and into Europe.
             </p>
 
             <form
-              className="mt-6"
+              className="mt-7"
               onSubmit={(e) => {
                 e.preventDefault();
               }}
             >
-              <label htmlFor="newsletter" className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45 mb-2.5">
-                Subscribe to our newsletter
+              <label
+                htmlFor="newsletter"
+                className="block text-[12px] font-semibold text-crew-ink mb-2.5"
+              >
+                Regulation updates, monthly. No spam.
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 max-w-[340px]">
                 <input
                   id="newsletter"
                   type="email"
                   placeholder="you@company.com"
-                  className="flex-1 h-10 px-3.5 rounded-lg bg-white/[0.07] border border-white/15 text-white text-[14px] placeholder:text-white/40 focus:outline-none focus:border-crew-coral-light transition-colors"
+                  className="flex-1 h-11 px-4 rounded-full bg-white text-crew-ink text-[14px] placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/25 transition-shadow"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-crew-coral text-white hover:bg-crew-coral-light transition-colors"
+                  className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-crew-coral text-white hover:bg-crew-coral-light transition-colors shrink-0"
                   aria-label="Subscribe"
                 >
                   <ArrowRight size={16} />
@@ -97,31 +83,45 @@ export default function Footer() {
           </div>
 
           {/* Link columns */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category}>
-              <h4 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/45 mb-4">
-                {category}
-              </h4>
-              <ul className="space-y-2.5">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-[14px] text-white/65 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+            {Object.entries(footerLinks).map(([category, links]) => (
+              <div key={category}>
+                <h4 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-crew-muted mb-4">
+                  {category}
+                </h4>
+                <ul className="space-y-3">
+                  {links.map((link) => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="text-[14px] font-medium text-crew-ink/70 hover:text-crew-coral transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Bottom */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-7 text-[12.5px] text-white/50">
-          <span>© 2026 Anviora. Built in India for Indian exporters. 🇮🇳</span>
+        {/* Bottom bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-crew-ink/8 py-6 text-[13px] text-crew-muted">
+          <span>© 2026 Anviora · Built in India for Indian exporters 🇮🇳</span>
+          <span className="inline-flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-crew-coral" />
+            EU Battery Passport deadline — 18 Feb 2027
+          </span>
         </div>
+      </div>
+
+      {/* Watermark wordmark */}
+      <div
+        aria-hidden="true"
+        className="relative select-none pointer-events-none leading-none text-center font-semibold tracking-[-0.04em] text-crew-ink/5 text-[clamp(100px,18vw,230px)] -mb-[0.24em]"
+      >
+        Anviora
       </div>
     </footer>
   );

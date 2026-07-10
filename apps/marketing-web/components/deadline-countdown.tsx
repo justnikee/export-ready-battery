@@ -35,7 +35,7 @@ function DigitCell({
   const display = value === null ? "––" : large ? String(value) : pad(value);
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative overflow-hidden rounded-xl bg-paper px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
+      <div className="relative overflow-hidden rounded-xl bg-white px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
         <AnimatePresence mode="popLayout">
           <motion.span
             key={display}

@@ -85,19 +85,19 @@ export default function PricingCards() {
   const [annual, setAnnual] = useState(false);
 
   return (
-    <section className="py-10 bg-[#f6f9fc]">
+    <section className="py-10">
       <div className="max-w-[1080px] mx-auto px-6">
         {/* Toggle */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <span
-            className={`text-sm ${!annual ? "text-[#0d253d] font-medium" : "text-[#64748d]"}`}
+            className={`text-sm ${!annual ? "text-crew-ink font-medium" : "text-crew-muted"}`}
           >
             Monthly
           </span>
           <button
             onClick={() => setAnnual(!annual)}
             className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: annual ? "#533afd" : "#e3e8ee" }}
+            style={{ background: annual ? "#157a5b" : "#e3e8ee" }}
           >
             <div
               className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
@@ -105,7 +105,7 @@ export default function PricingCards() {
             />
           </button>
           <span
-            className={`text-sm ${annual ? "text-[#0d253d] font-medium" : "text-[#64748d]"}`}
+            className={`text-sm ${annual ? "text-crew-ink font-medium" : "text-crew-muted"}`}
           >
             Annual
           </span>
@@ -124,39 +124,37 @@ export default function PricingCards() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className={`relative flex flex-col bg-white border rounded-xl p-6 transition-all duration-200 ${
-                  plan.highlighted
-                    ? "border-[rgba(83,58,253,0.3)] shadow-[rgba(83,58,253,0.08)_0_4px_20px]"
-                    : "border-[#e3e8ee]"
+                className={`relative flex flex-col rounded-3xl p-7 transition-transform duration-300 hover:-translate-y-1 ${
+                  plan.highlighted ? "bg-crew-coral-soft" : "bg-paper"
                 }`}
               >
                 {plan.badge && (
                   <div className="absolute -top-3 left-6">
                     <span
                       className="text-[11px] font-medium text-white px-2.5 py-1 rounded-full"
-                      style={{ background: "#533afd" }}
+                      style={{ background: "#157a5b" }}
                     >
                       {plan.badge}
                     </span>
                   </div>
                 )}
 
-                <h3 className="text-[15px] font-medium text-[#0d253d]">
+                <h3 className="text-[15px] font-medium text-crew-ink">
                   {plan.name}
                 </h3>
-                <p className="text-[12px] text-[#64748d] mt-1">
+                <p className="text-[12px] text-crew-muted mt-1">
                   {plan.description}
                 </p>
 
                 <div className="mt-4 mb-2">
                   <span
-                    className="text-[32px] font-light text-[#0d253d]"
+                    className="text-[32px] font-semibold tracking-[-0.02em] text-crew-ink"
                     style={{ fontFeatureSettings: '"tnum"' }}
                   >
                     {plan.isEnterprise ? "Custom" : cycle!.price}
                   </span>
                   {!plan.isEnterprise && (
-                    <span className="text-[13px] text-[#64748d]">
+                    <span className="text-[13px] text-crew-muted">
                       {annual ? "/yr" : "/mo"}
                     </span>
                   )}
@@ -165,9 +163,9 @@ export default function PricingCards() {
                 {!plan.isEnterprise && (
                   <>
                     <div className="inline-flex items-center gap-1.5 mb-1">
-                      <Zap size={12} className="text-[#533afd]" />
-                      <span className="text-[12px] text-[#64748d]">
-                        <span className="text-[#0d253d] font-medium">
+                      <Zap size={12} className="text-[#157a5b]" />
+                      <span className="text-[12px] text-crew-muted">
+                        <span className="text-crew-ink font-medium">
                           {cycle!.quotaCount.toLocaleString("en-IN")} passports
                         </span>
                         {annual
@@ -189,9 +187,9 @@ export default function PricingCards() {
                   {plan.features.map((f) => (
                     <li
                       key={f}
-                      className="text-[13px] text-[#64748d] flex items-start gap-2"
+                      className="text-[13px] text-crew-muted flex items-start gap-2"
                     >
-                      <Check size={14} className="text-[#533afd] mt-0.5 shrink-0" />
+                      <Check size={14} className="text-[#157a5b] mt-0.5 shrink-0" />
                       {f}
                     </li>
                   ))}
@@ -202,9 +200,9 @@ export default function PricingCards() {
                   className={`inline-flex items-center justify-center w-full h-[34px] rounded-full text-sm font-medium transition-opacity hover:opacity-90 ${
                     plan.highlighted
                       ? "text-white"
-                      : "text-[#533afd] border border-[#533afd]"
+                      : "text-[#157a5b] border border-[#157a5b]"
                   }`}
-                  style={plan.highlighted ? { background: "#533afd" } : {}}
+                  style={plan.highlighted ? { background: "#157a5b" } : {}}
                 >
                   {plan.cta}
                   <ArrowRight size={14} className="ml-1" />

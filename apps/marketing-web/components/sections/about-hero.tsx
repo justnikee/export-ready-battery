@@ -5,7 +5,7 @@ import TextReveal from "@/components/text-reveal";
 
 export default function AboutHero() {
   return (
-    <section className="relative pt-[140px] pb-20 lg:pt-[180px] lg:pb-28 overflow-hidden bg-crew-paper-soft">
+    <section className="relative pt-[140px] pb-20 lg:pt-[180px] lg:pb-28 overflow-hidden">
       {/* Subtle radial glow */}
       <div
         aria-hidden="true"
@@ -21,7 +21,7 @@ export default function AboutHero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-crew-border bg-crew-paper mb-7"
+          className="inline-flex items-center gap-2 h-7 px-3 rounded-full bg-paper mb-7"
         >
           <span className="w-2 h-2 rounded-full bg-crew-coral" />
           <span className="text-[12px] font-semibold text-crew-muted uppercase tracking-[0.08em]">

@@ -54,7 +54,7 @@ export default function ComplianceCliff() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="p-6 sm:p-8 rounded-[28px] bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)]"
+            className="p-6 sm:p-8 rounded-[28px] bg-paper"
           >
             <DeadlineCountdown variant="block" />
           </motion.div>
@@ -69,7 +69,7 @@ export default function ComplianceCliff() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="p-7 rounded-3xl bg-white shadow-[0_2px_16px_rgba(26,32,26,0.05)]"
+              className="p-7 rounded-3xl bg-paper transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#fef2f2] text-[#dc2626] mb-5">
                 {p.icon}
