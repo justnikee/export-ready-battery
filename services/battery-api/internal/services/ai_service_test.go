@@ -1,9 +1,11 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
+	"github.com/anvayalabs/battery-api/internal/ai"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/stretchr/testify/assert"
@@ -70,7 +72,7 @@ func TestMergeResults_PopulatesFieldSources(t *testing.T) {
 }
 
 func TestParseDatasheet_RegexOnlyPathSetsFieldSources(t *testing.T) {
-	svc := NewAIService("", nil) // no Groq key -> forces the regex-only fallback path
+	svc := NewAIService(nil, nil) // no gateway -> forces the regex-only fallback path
 
 	text := `Model: AB-9000
 Chemistry: LiFePO4
@@ -92,7 +94,7 @@ UN38.3 certified`
 
 func TestParseDatasheet_L2CacheHit(t *testing.T) {
 	mockRepo := new(repository.MockRepository)
-	svc := NewAIService("", mockRepo)
+	svc := NewAIService(nil, mockRepo)
 
 	text := "Sample text for cache hit"
 	textHash := hashText(text)
@@ -111,7 +113,7 @@ func TestParseDatasheet_L2CacheHit(t *testing.T) {
 		Result:        resultBytes,
 		Method:        "llm",
 		Confidence:    0.95,
-		Model:         groqModel,
+		Model:         "llama-3.3-70b-versatile",
 	}
 
 	mockRepo.On("GetAIParseCache", mock.Anything, textHash, PromptVersion, TaskDatasheetParse).Return(cacheEntry, nil)
@@ -134,7 +136,7 @@ func TestParseDatasheet_L2CacheHit(t *testing.T) {
 
 func TestParseDatasheet_L2CacheMissAndWrite(t *testing.T) {
 	mockRepo := new(repository.MockRepository)
-	svc := NewAIService("", mockRepo) // Regex path (Groq empty)
+	svc := NewAIService(nil, mockRepo) // Regex path (gateway nil)
 
 	text := `Model: AB-9000
 Chemistry: LiFePO4
@@ -164,5 +166,65 @@ UN38.3 certified`
 	assert.Equal(t, "AB-9000", res.ModelName)
 
 	mockRepo.AssertExpectations(t)
+}
+
+// mockGatewayProvider is a mock for ai.Provider specifically for services testing
+type mockGatewayProvider struct {
+	name       string
+	configured bool
+	response   ai.Response
+	err        error
+}
+
+func (m *mockGatewayProvider) Name() string       { return m.name }
+func (m *mockGatewayProvider) IsConfigured() bool { return m.configured }
+func (m *mockGatewayProvider) Complete(_ context.Context, _ ai.Request) (ai.Response, error) {
+	return m.response, m.err
+}
+
+func TestParseDatasheet_LLMGatewaySuccess(t *testing.T) {
+	// Create mock provider that will succeed
+	mockProvider := &mockGatewayProvider{
+		name:       "groq",
+		configured: true,
+		response: ai.Response{
+			Text:     `{"model_name":"LLM-SUPER-MODEL","chemistry":"NMC"}`,
+			Provider: "groq",
+			Model:    "llama-3.3-70b-versatile",
+		},
+	}
+
+	gw := ai.NewTestGateway(mockProvider)
+	svc := NewAIService(gw, nil)
+
+	// Low regex confidence text to force LLM fallback
+	text := "Sample text that does not match regex"
+
+	res, err := svc.ParseDatasheet(t.Context(), text)
+	assert.NoError(t, err)
+	assert.Equal(t, "llm", res.Method)
+	assert.Equal(t, "LLM-SUPER-MODEL", res.ModelName)
+	assert.Equal(t, "NMC", res.Chemistry)
+}
+
+func TestCreateBatchFromNL_GatewaySuccess(t *testing.T) {
+	mockProvider := &mockGatewayProvider{
+		name:       "gemini",
+		configured: true,
+		response: ai.Response{
+			Text:     `{"batch_name":"NL-BATCH-1","model_name":"NL-MODEL","quantity":15}`,
+			Provider: "gemini",
+			Model:    "gemini-1.5-flash",
+		},
+	}
+
+	gw := ai.NewTestGateway(mockProvider)
+	svc := NewAIService(gw, nil)
+
+	res, err := svc.CreateBatchFromNL(t.Context(), "request text", "EU")
+	assert.NoError(t, err)
+	assert.Equal(t, "NL-BATCH-1", res.BatchName)
+	assert.Equal(t, "NL-MODEL", res.ModelName)
+	assert.Equal(t, 15, res.Quantity)
 }
 

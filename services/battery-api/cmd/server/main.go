@@ -21,6 +21,7 @@ import (
 	"github.com/anvayalabs/battery-api/internal/logger"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/ai"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/schema"
 	schemaSeeds "github.com/anvayalabs/battery-api/internal/schema/seeds"
@@ -567,7 +568,16 @@ func main() {
 	// ============================================
 	// AI / LLM ROUTES (Protected)
 	// ============================================
-	aiService := services.NewAIService(cfg.GroqAPIKey, repo)
+	aiCfg := ai.Load()
+	if cfg.GroqAPIKey != "" {
+		aiCfg.GroqAPIKey = cfg.GroqAPIKey
+	}
+	if cfg.GeminiAPIKey != "" {
+		aiCfg.GeminiAPIKey = cfg.GeminiAPIKey
+	}
+	aiGateway := ai.NewGateway(aiCfg)
+
+	aiService := services.NewAIService(aiGateway, repo)
 	aiHandler := handlers.NewAIHandler(aiService)
 	mux.Handle("POST /api/v1/ai/parse-datasheet", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheet))))
 	mux.Handle("POST /api/v1/ai/parse-datasheet-upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheetFromUpload))))
