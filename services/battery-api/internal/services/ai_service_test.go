@@ -1,9 +1,13 @@
 package services
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestBuildFieldSources_RegexOnly(t *testing.T) {
@@ -66,7 +70,7 @@ func TestMergeResults_PopulatesFieldSources(t *testing.T) {
 }
 
 func TestParseDatasheet_RegexOnlyPathSetsFieldSources(t *testing.T) {
-	svc := NewAIService("") // no Groq key -> forces the regex-only fallback path
+	svc := NewAIService("", nil) // no Groq key -> forces the regex-only fallback path
 
 	text := `Model: AB-9000
 Chemistry: LiFePO4
@@ -85,3 +89,80 @@ UN38.3 certified`
 	assert.Equal(t, "regex", result.FieldSources["chemistry"])
 	assert.Equal(t, "missing", result.FieldSources["hsn_code"])
 }
+
+func TestParseDatasheet_L2CacheHit(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	svc := NewAIService("", mockRepo)
+
+	text := "Sample text for cache hit"
+	textHash := hashText(text)
+
+	expectedResult := &DatasheetParseResult{
+		ModelName: "CACHED-MODEL",
+		Chemistry: "LFP",
+	}
+	resultBytes, err := json.Marshal(expectedResult)
+	assert.NoError(t, err)
+
+	cacheEntry := &models.AIParseCacheEntry{
+		TextHash:      textHash,
+		PromptVersion: PromptVersion,
+		Task:          TaskDatasheetParse,
+		Result:        resultBytes,
+		Method:        "llm",
+		Confidence:    0.95,
+		Model:         groqModel,
+	}
+
+	mockRepo.On("GetAIParseCache", mock.Anything, textHash, PromptVersion, TaskDatasheetParse).Return(cacheEntry, nil)
+
+	// Call ParseDatasheet which should check L1 (miss) -> L2 (hit) -> populate L1.
+	res, err := svc.ParseDatasheet(t.Context(), text)
+	assert.NoError(t, err)
+	assert.Equal(t, "CACHED-MODEL", res.ModelName)
+	assert.Equal(t, "LFP", res.Chemistry)
+	assert.Equal(t, "cached", res.Method) // Outer wrapper sets method to "cached" on hit
+
+	// A second call should hit L1 directly (no second L2 call).
+	res2, err := svc.ParseDatasheet(t.Context(), text)
+	assert.NoError(t, err)
+	assert.Equal(t, "CACHED-MODEL", res2.ModelName)
+	assert.Equal(t, "cached", res2.Method)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestParseDatasheet_L2CacheMissAndWrite(t *testing.T) {
+	mockRepo := new(repository.MockRepository)
+	svc := NewAIService("", mockRepo) // Regex path (Groq empty)
+
+	text := `Model: AB-9000
+Chemistry: LiFePO4
+Capacity: 150Ah
+Voltage: 48V
+Weight: 12.5 kg
+Manufacturer: Acme Battery Co
+CE marking
+UN38.3 certified`
+	textHash := hashText(text)
+
+	// Expect GetAIParseCache -> nil (miss)
+	mockRepo.On("GetAIParseCache", mock.Anything, textHash, PromptVersion, TaskDatasheetParse).Return(nil, nil)
+
+	// Expect SetAIParseCache to be called to save the regex result.
+	mockRepo.On("SetAIParseCache", mock.Anything, mock.MatchedBy(func(entry *models.AIParseCacheEntry) bool {
+		return entry.TextHash == textHash &&
+			entry.PromptVersion == PromptVersion &&
+			entry.Task == TaskDatasheetParse &&
+			entry.Method == "regex" &&
+			entry.Model == ""
+	})).Return(nil)
+
+	res, err := svc.ParseDatasheet(t.Context(), text)
+	assert.NoError(t, err)
+	assert.Equal(t, "regex", res.Method)
+	assert.Equal(t, "AB-9000", res.ModelName)
+
+	mockRepo.AssertExpectations(t)
+}
+

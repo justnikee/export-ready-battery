@@ -1363,3 +1363,12 @@ func (f *fakeTeamRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, a
 func (f *fakeTeamRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) {
 	return nil, nil
 }
+
+// AI parse cache stubs
+func (f *fakeTeamRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) {
+	return nil, nil
+}
+func (f *fakeTeamRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error {
+	return nil
+}
+

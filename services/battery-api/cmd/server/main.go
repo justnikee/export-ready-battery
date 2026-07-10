@@ -567,7 +567,7 @@ func main() {
 	// ============================================
 	// AI / LLM ROUTES (Protected)
 	// ============================================
-	aiService := services.NewAIService(cfg.GroqAPIKey)
+	aiService := services.NewAIService(cfg.GroqAPIKey, repo)
 	aiHandler := handlers.NewAIHandler(aiService)
 	mux.Handle("POST /api/v1/ai/parse-datasheet", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheet))))
 	mux.Handle("POST /api/v1/ai/parse-datasheet-upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheetFromUpload))))

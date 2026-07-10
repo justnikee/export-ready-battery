@@ -410,4 +410,8 @@ type RepositoryInterface interface {
 	MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error
 	MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error
 	ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error)
+
+	// ai_parse_cache.go
+	GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error)
+	SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error
 }

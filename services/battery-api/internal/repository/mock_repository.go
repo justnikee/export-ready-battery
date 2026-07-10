@@ -2023,3 +2023,21 @@ func (m *MockRepository) ListTenantsForRegulatoryItem(ctx context.Context, item 
 	}
 	return args.Get(0).([]uuid.UUID), args.Error(1)
 }
+
+// ============================================================================
+// ai_parse_cache.go
+// ============================================================================
+
+func (m *MockRepository) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) {
+	args := m.Called(ctx, textHash, promptVersion, task)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.AIParseCacheEntry), args.Error(1)
+}
+
+func (m *MockRepository) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+

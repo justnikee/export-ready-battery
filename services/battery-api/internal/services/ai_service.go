@@ -8,17 +8,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
 // Groq API Configuration
 const groqAPIURL = "https://api.groq.com/openai/v1/chat/completions"
 const groqModel = "llama-3.3-70b-versatile"
+
+// PromptVersion must be bumped whenever extraction prompts, regex patterns, or
+// output schemas change. The cache is keyed on (text_hash, PromptVersion, task),
+// so bumping this constant automatically invalidates all stale cached results.
+const PromptVersion = 1
+
+// Task name constants — every AI use case is a named task. Used as the cache key
+// and (in later phases) as the task-registry lookup key.
+const (
+	TaskDatasheetParse = "datasheet_parse"
+	TaskNLBatchCreate  = "nl_batch_create"
+)
 
 // DatasheetParseResult is the structured output from parsing a battery datasheet.
 // It covers all fields that can realistically appear on a manufacturer spec sheet.
@@ -142,10 +158,8 @@ type NLCreateResult struct {
 	CarbonPerformanceClass string `json:"carbon_performance_class,omitempty"`
 }
 
-const (
-	cacheMaxEntries = 100
-	cacheTTL        = 1 * time.Hour
-)
+// l1CacheMaxEntries caps the in-memory (L1) cache. Evicts oldest on overflow.
+const l1CacheMaxEntries = 100
 
 type parseCacheEntry struct {
 	result    *DatasheetParseResult
@@ -153,19 +167,25 @@ type parseCacheEntry struct {
 	hash      string
 }
 
-// AIService handles AI-powered parsing and generation
+// AIService handles AI-powered parsing and generation.
+// It holds an optional repository for persistent (L2) caching; when repo is nil
+// the service operates with L1 (in-memory) caching only, which is the case in
+// unit tests that construct AIService directly.
 type AIService struct {
 	groqAPIKey string
 	client     *http.Client
+	repo       repository.RepositoryInterface // nil-safe: L2 cache disabled when nil
 
 	parseCache   map[string]*parseCacheEntry
 	parseCacheMu sync.RWMutex
 }
 
-// NewAIService creates a new AI service
-func NewAIService(groqAPIKey string) *AIService {
+// NewAIService creates a new AI service.
+// repo may be nil — in that case only the in-memory L1 cache is used.
+func NewAIService(groqAPIKey string, repo repository.RepositoryInterface) *AIService {
 	return &AIService{
 		groqAPIKey: groqAPIKey,
+		repo:       repo,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -183,32 +203,71 @@ func hashText(text string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// getCachedResult returns a cached parse result if it exists and is not expired.
-func (s *AIService) getCachedResult(textHash string) *DatasheetParseResult {
+// getCachedResult checks L1 (in-memory) then L2 (Postgres) for a cached result.
+// On L2 hit, it populates L1 so the next lookup is fast. Returns nil on miss.
+func (s *AIService) getCachedResult(ctx context.Context, textHash string) *DatasheetParseResult {
+	// --- L1: in-memory ---
 	s.parseCacheMu.RLock()
 	entry, ok := s.parseCache[textHash]
 	s.parseCacheMu.RUnlock()
+	if ok {
+		return entry.result
+	}
 
-	if !ok {
-		return nil
+	// --- L2: Postgres (skip if repo is nil — e.g. unit tests) ---
+	if s.repo != nil {
+		dbEntry, err := s.repo.GetAIParseCache(ctx, textHash, PromptVersion, TaskDatasheetParse)
+		if err != nil {
+			slog.Warn("[ai] L2 cache read failed, falling through", "error", err)
+		} else if dbEntry != nil {
+			var result DatasheetParseResult
+			if err := json.Unmarshal(dbEntry.Result, &result); err != nil {
+				slog.Warn("[ai] L2 cache unmarshal failed, ignoring entry", "error", err)
+			} else {
+				// Backfill L1
+				s.setL1Cache(textHash, &result)
+				return &result
+			}
+		}
 	}
-	if time.Since(entry.timestamp) > cacheTTL {
-		// Expired — clean up
-		s.parseCacheMu.Lock()
-		delete(s.parseCache, textHash)
-		s.parseCacheMu.Unlock()
-		return nil
-	}
-	return entry.result
+
+	return nil
 }
 
-// setCachedResult stores a parse result in the cache, evicting oldest if full.
-func (s *AIService) setCachedResult(textHash string, result *DatasheetParseResult) {
+// setCachedResult writes to both L1 (in-memory) and L2 (Postgres).
+func (s *AIService) setCachedResult(ctx context.Context, textHash string, result *DatasheetParseResult) {
+	// L1
+	s.setL1Cache(textHash, result)
+
+	// L2 (best-effort; failure is logged but does not block the response)
+	if s.repo != nil {
+		resultJSON, err := json.Marshal(result)
+		if err != nil {
+			slog.Warn("[ai] failed to marshal result for L2 cache", "error", err)
+			return
+		}
+		entry := &models.AIParseCacheEntry{
+			TextHash:      textHash,
+			PromptVersion: PromptVersion,
+			Task:          TaskDatasheetParse,
+			Result:        resultJSON,
+			Method:        result.Method,
+			Confidence:    result.Confidence,
+			Model:         s.resolveModelName(result.Method),
+			CreatedAt:     time.Now(),
+		}
+		if err := s.repo.SetAIParseCache(ctx, entry); err != nil {
+			slog.Warn("[ai] L2 cache write failed", "error", err)
+		}
+	}
+}
+
+// setL1Cache writes to the in-memory cache, evicting oldest if full.
+func (s *AIService) setL1Cache(textHash string, result *DatasheetParseResult) {
 	s.parseCacheMu.Lock()
 	defer s.parseCacheMu.Unlock()
 
-	// If at capacity, evict oldest entry
-	if len(s.parseCache) >= cacheMaxEntries {
+	if len(s.parseCache) >= l1CacheMaxEntries {
 		var oldestKey string
 		var oldestTime time.Time
 		for k, v := range s.parseCache {
@@ -229,17 +288,27 @@ func (s *AIService) setCachedResult(textHash string, result *DatasheetParseResul
 	}
 }
 
+// resolveModelName returns the model identifier to store in the cache.
+func (s *AIService) resolveModelName(method string) string {
+	if method == "llm" || method == "regex+llm" {
+		return groqModel
+	}
+	return "" // regex-only — no model used
+}
+
 // ParseDatasheet attempts to extract battery specs from text.
-// Check cache first, then regex (fast/free), then Groq LLM if confidence is low.
+// Cache hierarchy: L1 (in-memory) → L2 (Postgres) → regex → LLM.
 func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*DatasheetParseResult, error) {
 	start := time.Now()
 
-	// 1. Check cache
+	// 1. Check cache (L1 → L2)
 	textHash := hashText(text)
-	if cached := s.getCachedResult(textHash); cached != nil {
-		cached.ProcessingTimeMs = int(time.Since(start).Milliseconds())
-		cached.Method = "cached"
-		return cached, nil
+	if cached := s.getCachedResult(ctx, textHash); cached != nil {
+		// Return a copy so callers can mutate Method/ProcessingTimeMs safely.
+		result := *cached
+		result.ProcessingTimeMs = int(time.Since(start).Milliseconds())
+		result.Method = "cached"
+		return &result, nil
 	}
 
 	// 2. Regex extraction
@@ -251,7 +320,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Method = "regex"
 		regexResult.ProcessingTimeMs = int(time.Since(start).Milliseconds())
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult)
 		return regexResult, nil
 	}
 
@@ -260,7 +329,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult)
 		return regexResult, nil
 	}
 
@@ -269,7 +338,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult)
 		return regexResult, nil
 	}
 
@@ -277,7 +346,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 	merged.Confidence = s.calculateConfidence(merged)
 	merged.Method = "llm"
 	merged.ProcessingTimeMs = int(time.Since(start).Milliseconds())
-	s.setCachedResult(textHash, merged)
+	s.setCachedResult(ctx, textHash, merged)
 	return merged, nil
 }
 

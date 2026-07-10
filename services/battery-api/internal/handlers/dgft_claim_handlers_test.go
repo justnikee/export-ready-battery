@@ -336,3 +336,8 @@ func (f *fakeDGFTRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, 
 func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeDGFTRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
+
+// AI parse cache stubs
+func (f *fakeDGFTRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) { return nil, nil }
+func (f *fakeDGFTRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error { return nil }
+
