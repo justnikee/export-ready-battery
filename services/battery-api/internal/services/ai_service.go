@@ -17,18 +17,33 @@ import (
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
 )
+func init() {
+	// Register validators in the registry
+	t1 := ai.Registry[ai.TaskDatasheetParse]
+	t1.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskDatasheetParse] = t1
+
+	t2 := ai.Registry[ai.TaskNLBatchCreate]
+	t2.JSONValidator = validateNLCreateJSON
+	ai.Registry[ai.TaskNLBatchCreate] = t2
+
+	t3 := ai.Registry[ai.TaskBISParse]
+	t3.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskBISParse] = t3
+
+	t4 := ai.Registry[ai.TaskUN383Parse]
+	t4.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskUN383Parse] = t4
+
+	t5 := ai.Registry[ai.TaskMSDSParse]
+	t5.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskMSDSParse] = t5
+}
 
 // PromptVersion must be bumped whenever extraction prompts, regex patterns, or
 // output schemas change. The cache is keyed on (text_hash, PromptVersion, task),
 // so bumping this constant automatically invalidates all stale cached results.
 const PromptVersion = 1
-
-// Task name constants — every AI use case is a named task. Used as the cache key
-// and (in later phases) as the task-registry lookup key.
-const (
-	TaskDatasheetParse = "datasheet_parse"
-	TaskNLBatchCreate  = "nl_batch_create"
-)
 
 // DatasheetParseResult is the structured output from parsing a battery datasheet.
 // It covers all fields that can realistically appear on a manufacturer spec sheet.
@@ -195,7 +210,7 @@ func hashText(text string) string {
 
 // getCachedResult checks L1 (in-memory) then L2 (Postgres) for a cached result.
 // On L2 hit, it populates L1 so the next lookup is fast. Returns nil on miss.
-func (s *AIService) getCachedResult(ctx context.Context, textHash string) *DatasheetParseResult {
+func (s *AIService) getCachedResult(ctx context.Context, textHash string, task string) *DatasheetParseResult {
 	// --- L1: in-memory ---
 	s.parseCacheMu.RLock()
 	entry, ok := s.parseCache[textHash]
@@ -206,7 +221,7 @@ func (s *AIService) getCachedResult(ctx context.Context, textHash string) *Datas
 
 	// --- L2: Postgres (skip if repo is nil — e.g. unit tests) ---
 	if s.repo != nil {
-		dbEntry, err := s.repo.GetAIParseCache(ctx, textHash, PromptVersion, TaskDatasheetParse)
+		dbEntry, err := s.repo.GetAIParseCache(ctx, textHash, PromptVersion, task)
 		if err != nil {
 			slog.Warn("[ai] L2 cache read failed, falling through", "error", err)
 		} else if dbEntry != nil {
@@ -225,7 +240,7 @@ func (s *AIService) getCachedResult(ctx context.Context, textHash string) *Datas
 }
 
 // setCachedResult writes to both L1 (in-memory) and L2 (Postgres).
-func (s *AIService) setCachedResult(ctx context.Context, textHash string, result *DatasheetParseResult, modelName string) {
+func (s *AIService) setCachedResult(ctx context.Context, textHash string, result *DatasheetParseResult, modelName string, task string) {
 	// L1
 	s.setL1Cache(textHash, result)
 
@@ -239,7 +254,7 @@ func (s *AIService) setCachedResult(ctx context.Context, textHash string, result
 		entry := &models.AIParseCacheEntry{
 			TextHash:      textHash,
 			PromptVersion: PromptVersion,
-			Task:          TaskDatasheetParse,
+			Task:          task,
 			Result:        resultJSON,
 			Method:        result.Method,
 			Confidence:    result.Confidence,
@@ -278,14 +293,49 @@ func (s *AIService) setL1Cache(textHash string, result *DatasheetParseResult) {
 	}
 }
 
+// classifyDocumentType performs rule-based keyword matching to detect document type.
+func classifyDocumentType(text string) string {
+	lower := strings.ToLower(text)
+
+	// BIS Certificate
+	if strings.Contains(lower, "bureau of indian standards") ||
+		strings.Contains(lower, "self declaration-conformance") ||
+		strings.Contains(lower, "is 16046") ||
+		strings.Contains(lower, "is:16046") {
+		return ai.TaskBISParse
+	}
+
+	// UN38.3 Test Report
+	if strings.Contains(lower, "un38.3") ||
+		strings.Contains(lower, "un 38.3") ||
+		strings.Contains(lower, "lithium battery test summary") ||
+		(strings.Contains(lower, "test report") && (strings.Contains(lower, "t.1") || strings.Contains(lower, "t.6"))) {
+		return ai.TaskUN383Parse
+	}
+
+	// MSDS
+	if strings.Contains(lower, "material safety data sheet") ||
+		strings.Contains(lower, "safety data sheet") ||
+		strings.Contains(lower, "msds") ||
+		strings.Contains(lower, "sds") ||
+		strings.Contains(lower, "chemical product") {
+		return ai.TaskMSDSParse
+	}
+
+	return ai.TaskDatasheetParse
+}
+
 // ParseDatasheet attempts to extract battery specs from text.
 // Cache hierarchy: L1 (in-memory) → L2 (Postgres) → regex → LLM.
 func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*DatasheetParseResult, error) {
 	start := time.Now()
 
+	// 0. Classify upfront
+	task := classifyDocumentType(text)
+
 	// 1. Check cache (L1 → L2)
 	textHash := hashText(text)
-	if cached := s.getCachedResult(ctx, textHash); cached != nil {
+	if cached := s.getCachedResult(ctx, textHash, task); cached != nil {
 		// Return a copy so callers can mutate Method/ProcessingTimeMs safely.
 		result := *cached
 		result.ProcessingTimeMs = int(time.Since(start).Milliseconds())
@@ -295,6 +345,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 
 	// 2. Regex extraction
 	regexResult := s.extractWithRegex(text)
+	validateDatasheet(regexResult) // normalizes in place and clears invalid fields
 	regexConfidence := s.calculateConfidence(regexResult)
 
 	if regexConfidence >= 0.70 {
@@ -302,7 +353,7 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Method = "regex"
 		regexResult.ProcessingTimeMs = int(time.Since(start).Milliseconds())
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(ctx, textHash, regexResult, "")
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
@@ -311,24 +362,27 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(ctx, textHash, regexResult, "")
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
-	llmResult, modelName, err := s.extractWithLLM(ctx, text)
+	llmResult, modelName, err := s.extractWithLLM(ctx, text, task)
 	if err != nil {
+		// Log validation or transient failures, fallback to regex result
+		slog.Warn("[ai] LLM extraction failed or rejected, using regex fallback", "error", err)
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(ctx, textHash, regexResult, "")
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
 	merged := s.mergeResults(regexResult, llmResult)
+	validateDatasheet(merged) // normalize final output
 	merged.Confidence = s.calculateConfidence(merged)
 	merged.Method = "llm"
 	merged.ProcessingTimeMs = int(time.Since(start).Milliseconds())
-	s.setCachedResult(ctx, textHash, merged, modelName)
+	s.setCachedResult(ctx, textHash, merged, modelName, task)
 	return merged, nil
 }
 
@@ -338,47 +392,9 @@ func (s *AIService) CreateBatchFromNL(ctx context.Context, text, defaultMarket s
 		return nil, fmt.Errorf("LLM service not configured")
 	}
 
-	prompt := fmt.Sprintf(`You are a battery manufacturing assistant. Parse the user's request into structured JSON.
-
-Rules:
-- chemistry must be one of: LFP, NMC, NMC811, NMC622, NCA, LCO, LTO, LMO, Sodium-ion, Li-ion
-- market_region must be one of: INDIA, EU
-- capacity should include units (e.g., "150Ah", "5000mAh")
-- voltage should include units (e.g., "48V", "3.7V")
-- quantity is the number of units requested
-- battery_category (for EU) should be one of: EV, LMT, INDUSTRIAL, PORTABLE, SLI
-- hsn_code (for India) is an 8-digit code starting with 8507 (e.g., "85076000"); only set if explicitly stated
-- cell_source (for India) must be one of: DOMESTIC, IMPORTED — infer from phrases like "domestic cells", "imported cells", "made in India"
-- carbon_performance_class (for EU) is a single letter A–G; only set if explicitly stated
-
-Only fill compliance fields (hsn_code, cell_source, carbon_performance_class) when the request clearly implies them; otherwise use null.
-
-User request: "%s"
-Default market (if not specified): %s
-
-Respond with ONLY valid JSON in this exact format:
-{
-  "batch_name": "string or null",
-  "model_name": "string or null",
-  "chemistry": "string or null",
-  "capacity": "string or null",
-  "voltage": "string or null",
-  "quantity": number or null,
-  "market_region": "string or null",
-  "customer_name": "string or null",
-  "weight": "string or null",
-  "battery_category": "string or null",
-  "hsn_code": "string or null",
-  "cell_source": "string or null",
-  "carbon_performance_class": "string or null"
-}`, text, defaultMarket)
-
-	resp, err := s.gateway.Complete(ctx, ai.Request{
-		SystemPrompt: "You are a battery manufacturing assistant. Parse the user's request into structured JSON.",
-		UserPrompt:   prompt,
-		Temperature:  0.1,
-		MaxTokens:    2048,
-		JSONMode:     true,
+	resp, err := s.gateway.CompleteTask(ctx, ai.TaskNLBatchCreate, map[string]interface{}{
+		"Text":          text,
+		"DefaultMarket": defaultMarket,
 	})
 	if err != nil {
 		return nil, err
@@ -393,6 +409,9 @@ Respond with ONLY valid JSON in this exact format:
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
 	}
+
+	// Normalize values in place
+	validateNLCreate(&result)
 
 	return &result, nil
 }
@@ -965,89 +984,13 @@ func (s *AIService) mergeResults(regex, llm *DatasheetParseResult) *DatasheetPar
 
 // ==================== Groq LLM Integration ====================
 
-func (s *AIService) extractWithLLM(ctx context.Context, text string) (*DatasheetParseResult, string, error) {
-	prompt := fmt.Sprintf(`You are a battery specification extraction assistant. Extract ALL possible fields from this manufacturer datasheet text.
+func (s *AIService) extractWithLLM(ctx context.Context, text string, task string) (*DatasheetParseResult, string, error) {
+	if s.gateway == nil || !s.gateway.IsAvailable() {
+		return nil, "", fmt.Errorf("LLM gateway not configured or unavailable")
+	}
 
-Extract these fields as JSON. Use null for missing fields:
-{
-  "model_name": "string or null",
-  "part_number": "string or null",
-  "chemistry": "LFP/NMC/NMC811/NMC622/NCA/LCO/LTO/LMO/Sodium-ion/Li-ion or null",
-  "capacity": "string with units (e.g., 150Ah, 5000mAh) or null",
-  "voltage": "string with units (e.g., 48V, 3.7V) or null",
-  "energy_density": "string with Wh/kg or null",
-  "internal_resistance": "string with mΩ or null",
-  "max_charge_current": "string with A or null",
-  "max_discharge_current": "string with A or null",
-  "cutoff_voltage": "string with V or null",
-  "weight": "string with units or null",
-  "dimensions": "string (e.g., 120 x 65 x 18 mm) or null",
-  "terminal_type": "string or null",
-  "ip_rating": "string (e.g., IP67) or null",
-  "cycle_life": "number of cycles or null",
-  "calendar_life": "string or null",
-  "expected_lifetime_cycles": "number or null",
-  "operating_temperature": "string (e.g., -20°C to 60°C) or null",
-  "storage_temperature": "string or null",
-  "self_discharge": "string or null",
-  "manufacturer": "company name or null",
-  "manufacturer_address": "string or null",
-  "country_of_origin": "2-letter ISO code (CN, KR, JP, DE, US, IN, TW) or null",
-  "factory_location": "string or null",
-  "certifications": ["list of certs: UN38.3, CE, UL, BIS, IEC62133, RoHS, REACH, KC, PSE, etc."],
-  "un38_3": true/false,
-  "ce_marking": true/false,
-  "ul_listed": true/false,
-  "bis_certified": true/false,
-  "iec_62133": true/false,
-  "rohs_compliant": true/false,
-  "reach_compliant": true/false,
-  "notified_body_number": "string or null",
-  "eu_representative": "string or null",
-  "eu_representative_email": "string or null",
-  "eu_representative_address": "string or null",
-  "removable_and_replaceable": true/false,
-  "carbon_footprint": "string with kg CO2e or null",
-  "carbon_performance_class": "A-G or null",
-  "warranty_months": "number as string or null",
-  "bis_number": "string or null",
-  "epr_number": "string or null",
-  "hsn_code": "string or null",
-  "is_standard": "string or null",
-  "material_composition": {"lithium": "pct", "cobalt": "pct", "nickel": "pct", "manganese": "pct", "graphite": "pct", "lead": "pct"},
-  "recycled_content_pct": "string or null",
-  "recycled_cobalt": "string or null",
-  "recycled_lithium": "string or null",
-  "recycled_nickel": "string or null",
-  "recycled_lead": "string or null",
-  "hazardous_lead_present": true/false,
-  "hazardous_mercury_present": true/false,
-  "hazardous_cadmium_present": true/false,
-  "hazardous_declaration": "string or null"
-}
-
-Rules:
-- Chemistry must be standardized to exactly: LFP, NMC, NMC811, NMC622, NCA, LCO, LTO, LMO, Sodium-ion, or Li-ion
-- Capacity and voltage MUST include units
-- Country must be 2-letter ISO code
-- Material composition percentages should be strings (e.g., "3.5")
-- For certifications, return true/false booleans AND include them in the certifications array
-- Warranty: convert years to months if needed (e.g., "24" for 2 years)
-- If cycle_life is numeric, also populate expected_lifetime_cycles with same value
-
-Datasheet text:
-"""
-%s
-"""
-
-Respond with ONLY the JSON object, no markdown, no explanation.`, truncateText(text, 4000))
-
-	resp, err := s.gateway.Complete(ctx, ai.Request{
-		SystemPrompt: "You are a battery specification extraction assistant. Respond only with valid JSON.",
-		UserPrompt:   prompt,
-		Temperature:  0.1,
-		MaxTokens:    2048,
-		JSONMode:     true,
+	resp, err := s.gateway.CompleteTask(ctx, task, map[string]interface{}{
+		"Text": text,
 	})
 	if err != nil {
 		return nil, "", err

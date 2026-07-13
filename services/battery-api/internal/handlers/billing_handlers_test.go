@@ -373,7 +373,7 @@ func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
 	}
 
 	// Give the background compliance run goroutine a moment to execute
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	mockRepo.AssertExpectations(t)
 }

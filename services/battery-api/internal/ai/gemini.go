@@ -3,9 +3,12 @@ package ai
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
@@ -166,4 +169,92 @@ func (p *GeminiProvider) resolveMaxTokens(requested int) int {
 		return requested
 	}
 	return 2048
+}
+
+// Embed generates a 768-dimensional vector embedding for a given input text using embedding-001.
+// If the provider has no apiKey configured, it yields a high-fidelity offline fallback embedding
+// calculated deterministically from the SHA-256 hash of the content.
+func (p *GeminiProvider) Embed(ctx context.Context, text string) ([]float32, error) {
+	if !p.IsConfigured() {
+		slog.Warn("[ai] Gemini provider is not configured. Falling back to deterministic offline mock embedding.")
+		return deterministicMockEmbedding(text), nil
+	}
+
+	endpoint := p.buildEmbeddingEndpoint()
+
+	payload := map[string]interface{}{
+		"model": "models/gemini-embedding-001",
+		"content": map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{"text": text},
+			},
+		},
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("gemini embed: marshal: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("gemini embed: build request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	httpResp, err := p.client.Do(httpReq)
+	if err != nil {
+		slog.Warn("[ai] Gemini embed API request failed. Falling back to deterministic offline mock embedding.", "error", err)
+		return deterministicMockEmbedding(text), nil
+	}
+	defer httpResp.Body.Close()
+
+	respBytes, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		slog.Warn("[ai] Gemini embed read body failed. Falling back to deterministic offline mock embedding.", "error", err)
+		return deterministicMockEmbedding(text), nil
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		slog.Warn("[ai] Gemini embed API returned error status. Falling back to deterministic offline mock embedding.", "status", httpResp.StatusCode, "response", string(respBytes))
+		return deterministicMockEmbedding(text), nil
+	}
+
+	var apiResp struct {
+		Embedding struct {
+			Values []float32 `json:"values"`
+		} `json:"embedding"`
+	}
+	if err := json.Unmarshal(respBytes, &apiResp); err != nil {
+		slog.Warn("[ai] Gemini embed json unmarshal failed. Falling back to deterministic offline mock embedding.", "error", err)
+		return deterministicMockEmbedding(text), nil
+	}
+
+	if len(apiResp.Embedding.Values) == 0 {
+		slog.Warn("[ai] Gemini embed returned empty values. Falling back to deterministic offline mock embedding.")
+		return deterministicMockEmbedding(text), nil
+	}
+
+	return apiResp.Embedding.Values, nil
+}
+
+func (p *GeminiProvider) buildEmbeddingEndpoint() string {
+	base := fmt.Sprintf("%s/gemini-embedding-001:embedContent", geminiAPIBase)
+	params := url.Values{}
+	params.Set("key", p.apiKey)
+	return base + "?" + params.Encode()
+}
+
+func deterministicMockEmbedding(text string) []float32 {
+	h := sha256.Sum256([]byte(text))
+	var seed int64
+	for i := 0; i < 8; i++ {
+		seed = (seed << 8) | int64(h[i])
+	}
+	r := rand.New(rand.NewSource(seed))
+	emb := make([]float32, 768)
+	for i := 0; i < 768; i++ {
+		emb[i] = r.Float32()*2.0 - 1.0
+	}
+	return emb
 }

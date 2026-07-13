@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/anvayalabs/battery-api/internal/ai"
 	"github.com/anvayalabs/battery-api/internal/compliance"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/regulatory"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/schema"
 
@@ -21,6 +23,7 @@ type BatchService struct {
 	schemaValidator    *schema.SchemaValidator
 	complianceRegistry *compliance.Registry
 	repo               repository.RepositoryInterface
+	gemini             *ai.GeminiProvider // optional RAG integration
 }
 
 // NewBatchService creates a BatchService. All parameters are required.
@@ -35,6 +38,11 @@ func NewBatchService(
 		complianceRegistry: complianceReg,
 		repo:               repo,
 	}
+}
+
+// SetGeminiProvider configures the optional Gemini provider used for regulatory RAG context injection.
+func (s *BatchService) SetGeminiProvider(gemini *ai.GeminiProvider) {
+	s.gemini = gemini
 }
 
 // ValidateSpecs checks that specsJSON satisfies the active schema for productType.
@@ -63,6 +71,17 @@ func (s *BatchService) RunAndSaveCompliance(ctx context.Context, batchID uuid.UU
 			"error", err,
 		)
 		return
+	}
+
+	if s.gemini != nil {
+		for i, gap := range result.Gaps {
+			// Query RAG regulations for the gap message to find a citation match
+			chunks, err := regulatory.QueryRegulations(ctx, s.gemini, s.repo, gap.Message, 1)
+			if err == nil && len(chunks) > 0 {
+				citation := fmt.Sprintf(" (Relevant rule: %s, %s: %s)", chunks[0].Title, chunks[0].Section, chunks[0].Content)
+				result.Gaps[i].Message += citation
+			}
+		}
 	}
 
 	gapsJSON := result.GapsJSON()

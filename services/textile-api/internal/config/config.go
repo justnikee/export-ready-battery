@@ -38,6 +38,10 @@ type Config struct {
 
 	// ESPR Art. 7 Regulator Access
 	RegulatorAPIKey string
+
+	// AI / LLM Configuration
+	GroqAPIKey   string
+	GeminiAPIKey string
 }
 
 // Load reads configuration from environment variables.
@@ -127,6 +131,8 @@ func Load() (*Config, error) {
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
 		RegulatorAPIKey:       getEnv("REGULATOR_API_KEY", ""),
+		GroqAPIKey:             getEnv("GROQ_API_KEY", ""),
+		GeminiAPIKey:           getEnv("GEMINI_API_KEY", ""),
 	}, nil
 }
 

@@ -201,4 +201,12 @@ type RepositoryInterface interface {
 	DiscardTallySyncStaging(ctx context.Context, id, tenantID uuid.UUID) error
 	CreateTallySyncRun(ctx context.Context, run *TallySyncRun) error
 	UpdateTallySyncRun(ctx context.Context, id uuid.UUID, status, errorMsg string, fetched, staged int) error
+
+	// ai_call_log.go
+	LogAICall(ctx context.Context, entry *models.AICallLogEntry) error
+	GetDailyAICallCount(ctx context.Context, provider string, since time.Time) (int, error)
+
+	// ai_parse_cache.go
+	GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error)
+	SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error
 }

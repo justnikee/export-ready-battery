@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"log/slog"
 	"sync"
 	"time"
@@ -40,11 +41,22 @@ func newDailyBudget(provider string, softLimit, hardLimit int) *DailyBudget {
 // Allow checks the budget and increments the counter.
 // Returns ErrBudgetExhausted when the hard limit is hit.
 // Logs a warning when the soft limit is hit.
-func (b *DailyBudget) Allow() error {
+func (b *DailyBudget) Allow(ctx context.Context, getDailyCount func(ctx context.Context, provider string, since time.Time) (int, error)) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	b.maybeReset()
+	if getDailyCount != nil {
+		since := time.Now().UTC().Truncate(24 * time.Hour)
+		dbCount, err := getDailyCount(ctx, b.provider, since)
+		if err != nil {
+			slog.Error("[ai] failed to query daily count from postgres, falling back to in-memory count", "provider", b.provider, "error", err)
+			b.maybeReset()
+		} else {
+			b.count = dbCount
+		}
+	} else {
+		b.maybeReset()
+	}
 
 	// Hard cut-off
 	if b.hardLimit > 0 && b.count >= b.hardLimit {

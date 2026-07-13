@@ -43,56 +43,34 @@ apps/battery-web                       services/battery-api
 │ upload / advice panel / ├───────────►│           compliance_handlers.go (+advice)   │
 │ digest email links      │            ├──────────────────────────────────────────────┤
 └─────────────────────────┘            │ services:  CertificateService (F1)           │
-                                       │            CarbonEstimator (F2)              │
-                                       │            ComplianceAdviceService (F3)      │
-                                       │            SupplierOrchestrator (F5)         │
-                                       │            DigestGenerator (F6)              │
                                        ├──────────────────────────────────────────────┤
-                                       │ internal/ai  (NEW — shared plumbing)         │
-                                       │   client.go     LLMClient interface          │
-                                       │   anthropic.go  Claude impl (primary)        │
-                                       │   groq.go       existing impl (fallback/dev) │
-                                       │   prompts/      versioned, embed.FS          │
-                                       │   schemas/      JSON Schemas for outputs     │
-                                       │   audit.go      → ai_invocations table       │
-                                       │   budget.go     per-tenant token guard       │
+                                       │ internal/ai  (Implemented plumbing)          │
+                                       │   gateway.go    LLMGateway (failover & logs) │
+                                       │   gemini.go     Gemini REST API & offline    │
+                                       │   groq.go       Groq REST API                │
+                                       │   prompt_registry.go Prompt & Schema registry│
+                                       │   budget.go     Daily call count guard       │
                                        ├──────────────────────────────────────────────┤
-                                       │ internal/regulatory/classifier.go (F4: LLM   │
-                                       │   first, keyword fallback — drop-in)         │
-                                       │ internal/jobs/daily_alerts.go (F6 hook)      │
+                                       │ internal/regulatory/ (RAG & corpus)          │
+                                       │   intel.go      QueryRegulations             │
+                                       │   corpus/       Summary TXT files            │
                                        │ deterministic: compliance/, carbon factors,  │
                                        │   BPAN, VC, OTS — UNTOUCHED                  │
                                        └──────────────────────────────────────────────┘
 ```
 
-### 4.1 `internal/ai` package (the one new foundation)
+### 4.1 `internal/ai` package (shared plumbing)
 
-```go
-type LLMClient interface {
-    // Structured completion: prompt + JSON Schema → validated JSON.
-    Complete(ctx context.Context, req CompletionRequest) (*CompletionResult, error)
-    // Multimodal: PDF/image bytes + prompt + schema → validated JSON. (F1)
-    CompleteWithDocument(ctx context.Context, doc []byte, mime string, req CompletionRequest) (*CompletionResult, error)
-}
+- **Gateway Coordinator (`internal/ai/gateway.go`)**: Manages model failover, daily call limits, and database call logging.
+- **Provider: Groq, direct REST HTTP** (`internal/ai/groq.go`). Targets `llama-3.3-70b-versatile` for high-accuracy certificate extraction.
+- **Provider: Gemini, direct REST HTTP** (`internal/ai/gemini.go`). Targets `gemini-flash-latest` for generation and `gemini-embedding-001` for vector embedding.
+- **Self-Healing Fallback**: Includes a deterministic offline mock embedding mode that hashes document contents via SHA-256 and yields consistent 768-d vectors in case API keys are missing or calls fail.
+- **Prompt Registry (`internal/ai/prompt_registry.go`)**: Registry of prompt templates and JSON schemas ensuring structured outputs.
+- **Budget Counting (`internal/ai/budget.go`)**: Injects DB callbacks to count and restrict daily AI calls per provider.
+- **`ai_call_logs` table**: Records model, provider, tokens used, latency, outcome, and structured extracted keys for auditing.
+- **Config**: Wired via `GROQ_API_KEY`, `GEMINI_API_KEY`, and `AI_PROVIDERS` inside `.env`. Configurable through `cmd/server/main.go` and wired into `BatchService`.
 
-type CompletionRequest struct {
-    Feature      string          // "certificate_parse", "compliance_advice", ...
-    PromptName   string          // key into prompts/ registry
-    PromptVars   map[string]any
-    OutputSchema json.RawMessage // enforced via structured outputs
-    Model        ModelTier       // TierReasoning | TierFast
-    MaxTokens    int
-}
-```
-
-- **Provider: Anthropic Claude, direct HTTP** (stdlib `net/http`, consistent with the no-framework convention; the official Go SDK is an acceptable alternative if the team prefers). `TierReasoning` → `claude-opus-4-8` (certificate extraction, compliance advice, digest). `TierFast` → `claude-haiku-4-5` (regulatory classification volume). Use `output_config.format` (JSON Schema structured outputs) so responses are guaranteed-valid — this replaces the current fragile `extractJSON()` substring hack. Scanned certificates go up as base64 `document` content blocks (native PDF/vision, no OCR pipeline to build).
-- **Prompt caching:** the regulatory ontology system prompt (BIS `CM/L-XXXXXXXX` formats, UN38.3 T.1–T.8, EPR `CPCB/BWMR/...`, BatchSpec field glossary, Art. 7/8/11 summaries) is large, stable, and shared across features → one cached system block per feature, volatile content after it. This is the "months of domain work" moat from Part 4 of the research doc, expressed as versioned prompt files.
-- **Batch API** for non-interactive work (nightly classifier runs, daily digests): 50% cost.
-- **Groq path retained** as `AI_PROVIDER=groq` fallback and free dev mode; the regex extractor remains stage 1 always (free, fast, and its output cross-checks the LLM).
-- **`ai_invocations` table** (new migration): `tenant_id, feature, model, prompt_version, input_tokens, output_tokens, latency_ms, success, created_at`. Powers cost dashboards, per-tenant budgets (`budget.go` returns 429 beyond a plan-tier cap), and the eval flywheel. No document content stored — only metadata.
-- **Config:** `ANTHROPIC_API_KEY`, `AI_PROVIDER` (default `anthropic`, fallback `groq`), added to `.env.example` (never `.env`). Feature-gate every AI route through the existing `feat(services.Feature...)` middleware with a new `FeatureAI` so plans can tier it.
-
-### 4.2 Failure posture
+## 4.2 Failure posture
 
 Every feature must work with AI **off** (key missing, budget exhausted, provider down): F1 falls back to regex-only (current behavior), F3/F6 fall back to raw gap lists / rule-based alerts, F4 falls back to keyword classification, F2 returns the calculator's current behavior. AI never sits between a user and a deterministic capability.
 

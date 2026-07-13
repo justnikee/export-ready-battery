@@ -1,0 +1,26 @@
+---
+Title: India Battery Waste Management Rules 2022
+Source: India_BWM_Rules_2022.pdf
+Section: Rule 4 - Extended Producer Responsibility (EPR)
+---
+Every Producer of batteries shall have the obligation of Extended Producer Responsibility (EPR) for the batteries that they place in the market. 
+The EPR targets require the Producer to ensure recycling and recovery of battery waste.
+Producers must register with the Central Pollution Control Board (CPCB) on the online portal and obtain an EPR Registration Number.
+No Producer shall manufacture or import batteries without obtaining a valid CPCB EPR Registration Number.
+Producers are required to file annual returns regarding the quantity of batteries manufactured, imported, and the waste collected and sent for recycling.
+
+---
+Title: India Battery Waste Management Rules 2022
+Source: India_BWM_Rules_2022.pdf
+Section: Rule 10 - Mandatory Minimum Recycled Material Use Targets
+---
+Producers must ensure a minimum percentage of recycled materials is used in the manufacturing of new batteries.
+The targets are progressive and depend on the battery type:
+For lead-acid batteries, the minimum recycled material percentage must be:
+- 2024-2025: 30% recycled lead
+- 2026-2027: 40% recycled lead
+- 2028-2029: 50% recycled lead
+For lithium-ion batteries:
+- 2026-2027: 5% recycled materials (lithium, cobalt, nickel)
+- 2028-2029: 10% recycled materials
+Waste recyclers must certify the recovery process and provide verification certificates to Producers.

@@ -575,13 +575,49 @@ func main() {
 	if cfg.GeminiAPIKey != "" {
 		aiCfg.GeminiAPIKey = cfg.GeminiAPIKey
 	}
+
+	aiCfg.LogAICall = func(ctx context.Context, task string, textHash string, provider string, model string, promptVersion int, latencyMs int, tokensIn int, tokensOut int, outcome string, fieldsWon []string) {
+		var fieldsJSON []byte
+		if len(fieldsWon) > 0 {
+			fieldsJSON, _ = json.Marshal(fieldsWon)
+		} else {
+			fieldsJSON = []byte("[]")
+		}
+
+		entry := &models.AICallLogEntry{
+			Task:           task,
+			TextHash:       textHash,
+			Provider:       provider,
+			Model:          model,
+			PromptVersion:  promptVersion,
+			LatencyMs:      latencyMs,
+			TokensIn:       tokensIn,
+			TokensOut:      tokensOut,
+			Outcome:        outcome,
+			FieldsWonByLLM: fieldsJSON,
+		}
+
+		if logErr := repo.LogAICall(ctx, entry); logErr != nil {
+			slog.Error("failed to log ai call in callback", "error", logErr)
+		}
+	}
+
+	aiCfg.GetDailyCount = func(ctx context.Context, provider string, since time.Time) (int, error) {
+		return repo.GetDailyAICallCount(ctx, provider, since)
+	}
+
 	aiGateway := ai.NewGateway(aiCfg)
+
+	geminiProvider := ai.NewGeminiProvider(aiCfg.GeminiAPIKey, 30*time.Second)
+	batchService.SetGeminiProvider(geminiProvider)
+
+	aiRateLimiter := middleware.NewTenantAIRateLimiter()
 
 	aiService := services.NewAIService(aiGateway, repo)
 	aiHandler := handlers.NewAIHandler(aiService)
-	mux.Handle("POST /api/v1/ai/parse-datasheet", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheet))))
-	mux.Handle("POST /api/v1/ai/parse-datasheet-upload", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheetFromUpload))))
-	mux.Handle("POST /api/v1/ai/nl-create-batch", authMiddleware.Protect(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.NLCreateBatch))))
+	mux.Handle("POST /api/v1/ai/parse-datasheet", authMiddleware.Protect(aiRateLimiter.LimitTenant(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheet)))))
+	mux.Handle("POST /api/v1/ai/parse-datasheet-upload", authMiddleware.Protect(aiRateLimiter.LimitTenant(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.ParseDatasheetFromUpload)))))
+	mux.Handle("POST /api/v1/ai/nl-create-batch", authMiddleware.Protect(aiRateLimiter.LimitTenant(h.RequireOnboardingComplete(http.HandlerFunc(aiHandler.NLCreateBatch)))))
 
 	// ============================================
 	// BMS TELEMETRY ROUTES (Device Token Authenticated)

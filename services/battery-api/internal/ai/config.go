@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"strings"
@@ -41,6 +42,12 @@ type GatewayConfig struct {
 
 	// GeminiDailyLimit is the soft daily request cap for Gemini. Default: 1000.
 	GeminiDailyLimit int
+
+	// LogAICall callback hook to log AI executions.
+	LogAICall func(ctx context.Context, task string, textHash string, provider string, model string, promptVersion int, latencyMs int, tokensIn int, tokensOut int, outcome string, fieldsWon []string)
+
+	// GetDailyCount callback hook to fetch daily call count from Postgres.
+	GetDailyCount func(ctx context.Context, provider string, since time.Time) (int, error)
 }
 
 // Load reads GatewayConfig from environment variables. Defaults are applied for

@@ -1,0 +1,8 @@
+{
+  "model_name": "INJ-100V",
+  "chemistry": "LFP",
+  "voltage": "100.00V",
+  "dimensions": "100 x 100 x 100 mm",
+  "manufacturer": "SafeCorp Inc.",
+  "country_of_origin": "US"
+}

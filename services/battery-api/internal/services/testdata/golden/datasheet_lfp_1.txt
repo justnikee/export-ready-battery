@@ -1,0 +1,10 @@
+Model: LFP-280Ah-3.2V
+Chemistry: Lithium Iron Phosphate (LiFePO4)
+Nominal Voltage: 3.2 V
+Nominal Capacity: 280 Ah
+Weight: 5.3 kg
+Dimensions: 72mm x 174mm x 200mm
+Manufacturer: Shenzhen Energy Co., Ltd.
+Certifications: UN38.3, CE, RoHS, IEC 62133
+Country of Origin: CN
+Carbon Performance Class: A

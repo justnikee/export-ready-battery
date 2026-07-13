@@ -21,6 +21,7 @@ import (
 // ============================================================================
 
 type fakeTeamRepo struct {
+	repository.RepositoryInterface
 	tenants        map[uuid.UUID]*models.Tenant
 	members        map[uuid.UUID]*models.TeamMember
 	membersByEmail map[string]*models.TeamMember

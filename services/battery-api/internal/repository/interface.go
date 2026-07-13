@@ -414,4 +414,13 @@ type RepositoryInterface interface {
 	// ai_parse_cache.go
 	GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error)
 	SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error
+
+	// ai_call_log.go
+	LogAICall(ctx context.Context, entry *models.AICallLogEntry) error
+	GetDailyAICallCount(ctx context.Context, provider string, since time.Time) (int, error)
+
+	// ai_regulation_chunk.go
+	SaveRegulationChunk(ctx context.Context, chunk *models.AIRegulationChunk) error
+	QuerySemanticChunks(ctx context.Context, queryEmbedding []float32, limit int) ([]*models.AIRegulationChunk, error)
+	QueryTextChunks(ctx context.Context, query string, limit int) ([]*models.AIRegulationChunk, error)
 }

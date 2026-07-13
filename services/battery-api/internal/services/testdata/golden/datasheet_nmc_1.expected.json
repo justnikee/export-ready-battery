@@ -1,0 +1,16 @@
+{
+  "model_name": "NMC-150Ah-3",
+  "chemistry": "NMC",
+  "voltage": "3.70V",
+  "capacity": "150.00Ah",
+  "weight": "2.100kg",
+  "dimensions": "48 x 150 x 220 mm",
+  "manufacturer": "Ningde Times Co.",
+  "un38_3": true,
+  "ce_marking": true,
+  "rohs_compliant": true,
+  "iec_62133": true,
+  "certifications": ["UN38.3", "CE", "RoHS", "IEC62133"],
+  "country_of_origin": "CN",
+  "carbon_performance_class": ""
+}

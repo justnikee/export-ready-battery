@@ -2041,3 +2041,37 @@ func (m *MockRepository) SetAIParseCache(ctx context.Context, entry *models.AIPa
 	return args.Error(0)
 }
 
+// ============================================================================
+// ai_call_log.go
+// ============================================================================
+
+func (m *MockRepository) LogAICall(ctx context.Context, entry *models.AICallLogEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetDailyAICallCount(ctx context.Context, provider string, since time.Time) (int, error) {
+	args := m.Called(ctx, provider, since)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockRepository) SaveRegulationChunk(ctx context.Context, chunk *models.AIRegulationChunk) error {
+	args := m.Called(ctx, chunk)
+	return args.Error(0)
+}
+
+func (m *MockRepository) QuerySemanticChunks(ctx context.Context, queryEmbedding []float32, limit int) ([]*models.AIRegulationChunk, error) {
+	args := m.Called(ctx, queryEmbedding, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.AIRegulationChunk), args.Error(1)
+}
+
+func (m *MockRepository) QueryTextChunks(ctx context.Context, query string, limit int) ([]*models.AIRegulationChunk, error) {
+	args := m.Called(ctx, query, limit)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.AIRegulationChunk), args.Error(1)
+}

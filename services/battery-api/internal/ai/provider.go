@@ -18,6 +18,26 @@ import (
 	"time"
 )
 
+// Task name constants — every AI use case is a named task. Used as the cache key
+// and (in later phases) as the task-registry lookup key.
+const (
+	TaskDatasheetParse = "datasheet_parse"
+	TaskNLBatchCreate  = "nl_batch_create"
+	TaskBISParse       = "bis_parse"
+	TaskUN383Parse     = "un383_parse"
+	TaskMSDSParse      = "msds_parse"
+)
+
+// ValidationError defines a validation violation on a specific field.
+type ValidationError struct {
+	Field string `json:"field"`
+	Msg   string `json:"message"`
+}
+
+func (v ValidationError) Error() string {
+	return v.Field + ": " + v.Msg
+}
+
 // ── Error sentinels ────────────────────────────────────────────────────────────
 
 // ErrNotConfigured is returned by stub providers (e.g. Anthropic) and by the
@@ -61,6 +81,12 @@ type Request struct {
 	// Providers that support native JSON mode (Groq's `response_format`) will
 	// use it; others receive the hint via the system prompt.
 	JSONMode bool
+
+	// Task is the name of the registered task for observability logging.
+	Task string
+
+	// TextHash is the SHA-256 hash of the input document for tracking.
+	TextHash string
 }
 
 // Response is the canonical output from a provider. Gateway callers use this

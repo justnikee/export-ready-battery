@@ -125,3 +125,110 @@ func NewAuthRateLimiter() *RateLimiter {
 func NewAPIRateLimiter() *RateLimiter {
 	return NewRateLimiter(rate.Every(time.Millisecond*600), 50) // ~100 req/min
 }
+
+// TenantRateLimiter implements per-tenant rate limiting
+type TenantRateLimiter struct {
+	visitors map[string]*visitorInfo
+	mu       sync.RWMutex
+	rate     rate.Limit
+	burst    int
+	cleanup  time.Duration
+	stopCh   chan struct{}
+}
+
+// NewTenantRateLimiter creates a tenant-based rate limiter
+func NewTenantRateLimiter(r rate.Limit, b int) *TenantRateLimiter {
+	trl := &TenantRateLimiter{
+		visitors: make(map[string]*visitorInfo),
+		rate:     r,
+		burst:    b,
+		cleanup:  time.Minute * 10,
+		stopCh:   make(chan struct{}),
+	}
+
+	go trl.cleanupVisitors()
+
+	return trl
+}
+
+func (trl *TenantRateLimiter) getVisitor(tenantID string) *rate.Limiter {
+	trl.mu.Lock()
+	defer trl.mu.Unlock()
+
+	v, exists := trl.visitors[tenantID]
+	if !exists {
+		limiter := rate.NewLimiter(trl.rate, trl.burst)
+		trl.visitors[tenantID] = &visitorInfo{limiter: limiter, lastSeen: time.Now()}
+		return limiter
+	}
+
+	v.lastSeen = time.Now()
+	return v.limiter
+}
+
+func (trl *TenantRateLimiter) cleanupVisitors() {
+	ticker := time.NewTicker(trl.cleanup)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			trl.mu.Lock()
+			for tenantID, v := range trl.visitors {
+				if time.Since(v.lastSeen) > trl.cleanup {
+					delete(trl.visitors, tenantID)
+				}
+			}
+			trl.mu.Unlock()
+		case <-trl.stopCh:
+			return
+		}
+	}
+}
+
+// Stop shuts down the cleanup goroutine.
+func (trl *TenantRateLimiter) Stop() {
+	close(trl.stopCh)
+}
+
+// LimitTenant is the middleware that applies rate limiting per tenant ID.
+// Falls back to IP-based rate limiting if tenant ID is not present in context.
+func (trl *TenantRateLimiter) LimitTenant(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tenantID := GetTenantID(r.Context())
+		if tenantID == "" {
+			// Fallback to IP
+			ip := r.Header.Get("X-Forwarded-For")
+			if ip != "" {
+				if idx := strings.Index(ip, ","); idx != -1 {
+					ip = strings.TrimSpace(ip[:idx])
+				}
+			}
+			if ip == "" {
+				ip = r.Header.Get("X-Real-IP")
+			}
+			if ip == "" {
+				ip = r.RemoteAddr
+			}
+			tenantID = ip
+		}
+
+		limiter := trl.getVisitor(tenantID)
+		if !limiter.Allow() {
+			slog.Warn("Tenant rate limit exceeded", "tenant_id", tenantID, "path", r.URL.Path)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"error":"AI rate limit exceeded. Please try again later."}`))
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// NewTenantAIRateLimiter creates a tenant-based rate limiter specifically for AI endpoints.
+// Limits each tenant to ~10 requests per minute with a burst of 5.
+func NewTenantAIRateLimiter() *TenantRateLimiter {
+	return NewTenantRateLimiter(rate.Every(time.Second*6), 5)
+}
+
