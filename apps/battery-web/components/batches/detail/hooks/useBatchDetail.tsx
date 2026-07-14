@@ -96,6 +96,10 @@ export function useBatchDetail(batchId: string, pathname: string) {
     pathname,
     "settings?tab=compliance",
   );
+  const settingsEuComplianceHref = dashboardPathFromPathname(
+    pathname,
+    "settings?tab=eu-compliance",
+  );
   const billingHref = dashboardPathFromPathname(pathname, "billing");
   const batchesHref = dashboardPathFromPathname(pathname, "batches");
 
@@ -860,6 +864,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
     batchesHref,
     settingsHref,
     settingsComplianceHref,
+    settingsEuComplianceHref,
     billingHref,
     exportsHref,
 

@@ -230,16 +230,22 @@ export function StepCompliance({
               <AccordionContent>
                 <div className="grid gap-2">
                   <Label htmlFor="carbonFootprint" className="text-foreground flex items-center gap-1.5">
-                    Carbon Footprint (kg CO₂e)
+                    Carbon Footprint
                     {isEUMode && <span className="text-red-500">*</span>}
                     {filledByAi.has("carbonFootprint") && <AiBadge />}
                   </Label>
-                  <Input
-                    id="carbonFootprint"
-                    {...register("carbonFootprint")}
-                    placeholder="e.g. 10 kg CO2e"
-                    className={`bg-transparent text-foreground ${errors.carbonFootprint ? "border-red-500" : "border-border"} ${aiFieldClass(filledByAi.has("carbonFootprint"))}`}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="carbonFootprint"
+                      {...register("carbonFootprint")}
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder="e.g. 10"
+                      className={`bg-transparent text-foreground ${errors.carbonFootprint ? "border-red-500" : "border-border"} ${aiFieldClass(filledByAi.has("carbonFootprint"))}`}
+                    />
+                    <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">kg CO₂e</span>
+                  </div>
                   {errors.carbonFootprint && <p className="text-xs text-red-500 mt-0.5">{errors.carbonFootprint.message}</p>}
                 </div>
 

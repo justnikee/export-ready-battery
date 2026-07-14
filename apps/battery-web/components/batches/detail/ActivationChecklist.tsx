@@ -22,6 +22,7 @@ interface ActivationChecklistProps {
   complianceGaps: ComplianceGap[];
   onNavigate: (tab: DetailTab, scrollTarget?: string) => void;
   onSettingsCompliance: () => void;
+  onSettingsEuCompliance: () => void;
   onSettingsProfile: () => void;
 }
 
@@ -30,6 +31,7 @@ export function ActivationChecklist({
   activationResult,
   onNavigate,
   onSettingsCompliance,
+  onSettingsEuCompliance,
   onSettingsProfile,
 }: ActivationChecklistProps) {
   const [expanded, setExpanded] = useState(true);
@@ -49,12 +51,14 @@ export function ActivationChecklist({
       "tenant.iec_code",
       "tenant.morth_manufacturer_code",
     ];
-    const settingsProfileKeys = [
-      "tenant.company_name",
-      "tenant.address",
+    const settingsEuComplianceKeys = [
       "tenant.eu_authorized_representative_name",
       "tenant.eu_authorized_representative_address",
       "tenant.eu_contact_email",
+    ];
+    const settingsProfileKeys = [
+      "tenant.company_name",
+      "tenant.address",
     ];
 
     if (settingsComplianceKeys.includes(normalized)) {
@@ -62,6 +66,13 @@ export function ActivationChecklist({
         label: "Fix in Settings",
         icon: <ExternalLink className="h-3 w-3" />,
         onClick: onSettingsCompliance,
+      };
+    }
+    if (settingsEuComplianceKeys.includes(normalized)) {
+      return {
+        label: "Fix in Settings",
+        icon: <ExternalLink className="h-3 w-3" />,
+        onClick: onSettingsEuCompliance,
       };
     }
     if (settingsProfileKeys.includes(normalized)) {
@@ -73,7 +84,7 @@ export function ActivationChecklist({
     }
     if (normalized === "carbon_footprint_result") {
       return {
-        label: "Use Calculator",
+        label: "Add Carbon Data",
         icon: <Leaf className="h-3 w-3" />,
         onClick: () => onNavigate("compliance", "carbon-calculator"),
       };

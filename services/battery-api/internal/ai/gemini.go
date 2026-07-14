@@ -20,7 +20,7 @@ const geminiAPIBase = "https://generativelanguage.googleapis.com/v1beta/models"
 
 // geminiDefaultModel is the free-tier Gemini Flash model. It has a generous
 // daily quota (1,500 RPD / 15 RPM on the free tier) and fast inference.
-const geminiDefaultModel = "gemini-1.5-flash"
+const geminiDefaultModel = "gemini-3.5-flash"
 
 // GeminiProvider implements Provider using the Google Gemini REST API.
 // Uses the generateContent endpoint directly — zero external SDK dependency.

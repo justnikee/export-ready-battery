@@ -116,7 +116,7 @@ Respond with ONLY the JSON object, no markdown, no explanation.`,
 		JSONMode:      true,
 		MaxTokens:     2048,
 		Temperature:   0.1,
-		MaxInputChars: 1000,
+		MaxInputChars: 4000,
 		UserTemplate: `You are a battery manufacturing assistant. Parse the user's request into structured JSON.
 
 Rules:
