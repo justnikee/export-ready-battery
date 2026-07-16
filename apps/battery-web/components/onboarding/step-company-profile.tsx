@@ -17,9 +17,9 @@ interface StepCompanyProfileProps {
 
 export function StepCompanyProfile({ formData, onChange, errors }: StepCompanyProfileProps) {
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <InfoBanner variant="info" title="📋 What you'll need for setup">
-        <ul className="space-y-1">
+        <ul style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
           <li>• Company name and registered address</li>
           <li>• EPR registration number (CPCB portal)</li>
           <li>• BIS R-Number for IS 16046 certification</li>
@@ -30,7 +30,7 @@ export function StepCompanyProfile({ formData, onChange, errors }: StepCompanyPr
       <FormField
         label={
           <>
-            Company Name <span className="text-destructive">*</span>
+            Company Name <span style={{ color: "#f87171" }}>*</span>
           </>
         }
         icon={Building2}
@@ -44,7 +44,7 @@ export function StepCompanyProfile({ formData, onChange, errors }: StepCompanyPr
       <FormField
         label={
           <>
-            Manufacturer Address <span className="text-destructive">*</span>
+            Manufacturer Address <span style={{ color: "#f87171" }}>*</span>
           </>
         }
         icon={MapPin}
@@ -60,7 +60,7 @@ export function StepCompanyProfile({ formData, onChange, errors }: StepCompanyPr
       <FormField
         label={
           <>
-            Support Email <span className="text-destructive">*</span>
+            Support Email <span style={{ color: "#f87171" }}>*</span>
           </>
         }
         icon={Mail}
@@ -75,7 +75,8 @@ export function StepCompanyProfile({ formData, onChange, errors }: StepCompanyPr
       <FormField
         label={
           <>
-            Website <span className="text-muted-foreground">(optional)</span>
+            Website{" "}
+            <span style={{ color: "#475569", fontSize: "12px", fontWeight: 400 }}>(optional)</span>
           </>
         }
         icon={Globe}

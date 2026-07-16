@@ -617,3 +617,32 @@
     color: #10b981;
   }
 }
+
+/* ============================================
+   ONBOARDING — Fixed Dark Theme
+   These rules apply only inside the onboarding
+   split-screen layout and override CSS variables
+   to ensure the UI is always dark regardless
+   of the user's system theme preference.
+   ============================================ */
+
+/* Placeholder text inside onboarding form inputs */
+.onboarding-field input::placeholder,
+.onboarding-field textarea::placeholder {
+  color: #334155 !important;
+}
+
+/* Custom scrollbar for the right panel */
+.onboarding-right-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.onboarding-right-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.onboarding-right-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.onboarding-right-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

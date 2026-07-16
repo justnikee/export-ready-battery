@@ -1125,6 +1125,8 @@ func (h *AuthHandler) PostReadiness(w http.ResponseWriter, r *http.Request) {
 	// Decode draft profile data from request body
 	var draft struct {
 		PrimaryMarket                     string `json:"primary_market"`
+		CompanyName                       string `json:"company_name"`
+		Address                           string `json:"address"`
 		EPRRegistrationNumber             string `json:"epr_registration_number"`
 		BISRNumber                        string `json:"bis_r_number"`
 		IECCode                           string `json:"iec_code"`
@@ -1139,6 +1141,12 @@ func (h *AuthHandler) PostReadiness(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Overlay draft values onto the tenant profile (in-memory only)
+	if draft.CompanyName != "" {
+		tenant.CompanyName = draft.CompanyName
+	}
+	if draft.Address != "" {
+		tenant.Address = draft.Address
+	}
 	if draft.EPRRegistrationNumber != "" {
 		tenant.BatteryProfile.EPRRegistrationNumber = draft.EPRRegistrationNumber
 	}
