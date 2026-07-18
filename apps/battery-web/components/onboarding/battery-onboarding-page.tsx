@@ -12,6 +12,7 @@ import { useOnboardingReadiness } from "@/hooks/use-onboarding-readiness";
 import { onboardingStep1Schema, onboardingStep3Schema } from "@/lib/validation/onboarding";
 
 import { OnboardingShell } from "./onboarding-shell";
+import { OnboardingLeftPanel } from "./onboarding-left-panel";
 import { StepIndicator } from "./step-indicator";
 import { StepHeader } from "./step-header";
 import { AnimatedStep } from "./animated-step";
@@ -39,6 +40,23 @@ export function OnboardingPage() {
   const [direction, setDirection] = useState(1);
   const [step1Errors, setStep1Errors] = useState<Record<string, string>>({});
   const [step3Errors, setStep3Errors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const activeStep1Errors = useMemo(() => {
+    const errs: Record<string, string> = {};
+    Object.keys(step1Errors).forEach((key) => {
+      if (touched[key]) errs[key] = step1Errors[key];
+    });
+    return errs;
+  }, [step1Errors, touched]);
+
+  const activeStep3Errors = useMemo(() => {
+    const errs: Record<string, string> = {};
+    Object.keys(step3Errors).forEach((key) => {
+      if (touched[key]) errs[key] = step3Errors[key];
+    });
+    return errs;
+  }, [step3Errors, touched]);
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -58,9 +76,6 @@ export function OnboardingPage() {
 
   useEffect(() => {
     if (!user) return;
-    // Allow re-entry to specific steps (e.g., step=3 for compliance update)
-    // even after onboarding is marked complete. Only redirect away if
-    // the user lands on the base onboarding URL without a step param.
     if (user.onboarding_completed && !searchParams.get("step")) {
       router.push(productRoutes(user.product_type).dashboard);
     }
@@ -159,6 +174,43 @@ export function OnboardingPage() {
   ]);
 
   const handleNext = () => {
+    if (currentStep === 1) {
+      const result = onboardingStep1Schema.safeParse({
+        company_name: formData.company_name,
+        address: formData.address,
+        support_email: formData.support_email,
+        website: formData.website,
+      });
+      if (!result.success) {
+        const newTouched = { ...touched };
+        result.error.issues.forEach((issue) => {
+          newTouched[String(issue.path[0])] = true;
+        });
+        setTouched(newTouched);
+        return;
+      }
+    }
+    if (currentStep === 3) {
+      const result = onboardingStep3Schema.safeParse({
+        primary_market: formData.primary_market,
+        epr_registration_number: formData.epr_registration_number,
+        bis_r_number: formData.bis_r_number,
+        iec_code: formData.iec_code,
+        morth_manufacturer_code: formData.morth_manufacturer_code,
+        eu_authorized_representative_name: formData.eu_authorized_representative_name,
+        eu_authorized_representative_address: formData.eu_authorized_representative_address,
+        eu_contact_email: formData.eu_contact_email,
+      });
+      if (!result.success) {
+        const newTouched = { ...touched };
+        result.error.issues.forEach((issue) => {
+          newTouched[String(issue.path[0])] = true;
+        });
+        setTouched(newTouched);
+        return;
+      }
+    }
+
     if (currentStep < 4) {
       setDirection(1);
       setCurrentStep((prev) => prev + 1);
@@ -237,16 +289,32 @@ export function OnboardingPage() {
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  // Memoized by value (not recreated every render) — the hook's effect depends
-  // on this object's identity, and an unstable identity here previously caused
-  // an infinite fetch loop: fetch succeeds -> setState -> re-render -> new
-  // object literal -> effect re-fires -> fetch again, every ~500ms forever,
-  // which is what was showing up as UI flicker on the review step.
+  const handleGapClick = (gap: any) => {
+    const field = gap.field || "";
+    if (
+      field.startsWith("tenant.epr_") ||
+      field.startsWith("tenant.bis_") ||
+      field.startsWith("tenant.iec_") ||
+      field.startsWith("tenant.morth_") ||
+      field.startsWith("tenant.eu_")
+    ) {
+      setDirection(3 > currentStep ? 1 : -1);
+      setCurrentStep(3);
+    } else {
+      setDirection(1 > currentStep ? 1 : -1);
+      setCurrentStep(1);
+    }
+  };
+
+  // Memoized to avoid infinite fetch loop on the review step
   const readinessDraft = useMemo(
     () => ({
       primary_market: formData.primary_market,
+      company_name: formData.company_name,
+      address: formData.address,
       epr_registration_number: formData.epr_registration_number,
       bis_r_number: formData.bis_r_number,
       iec_code: formData.iec_code,
@@ -257,6 +325,8 @@ export function OnboardingPage() {
     }),
     [
       formData.primary_market,
+      formData.company_name,
+      formData.address,
       formData.epr_registration_number,
       formData.bis_r_number,
       formData.iec_code,
@@ -272,106 +342,165 @@ export function OnboardingPage() {
     currentStep
   );
 
-  return (
-    <OnboardingShell>
-      <StepIndicator steps={steps} currentStep={currentStep} />
+  // ── Right panel content ───────────────────────────────────────────
+  // ── Right panel content ───────────────────────────────────────────
+  const rightPanel = (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        width: "100%",
+        maxWidth: "640px",
+        padding: "24px 32px 24px",
+        margin: "0 auto",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          flex: 1,
+          justifyContent: "center",
+        }}
+      >
+        {/* Step header */}
+        <div style={{ marginBottom: "12px" }}>
+          <StepHeader
+            stepNumber={currentStep}
+            totalSteps={steps.length}
+            title={steps[currentStep - 1].title}
+            description={steps[currentStep - 1].description}
+          />
+        </div>
 
-      <StepHeader
-        stepNumber={currentStep}
-        totalSteps={steps.length}
-        title={steps[currentStep - 1].title}
-        description={steps[currentStep - 1].description}
-      />
-
-      <motion.div className="bg-muted rounded-md p-6 relative overflow-visible">
-        <AnimatePresence mode="wait" custom={direction}>
-          <AnimatedStep stepKey={currentStep} direction={direction}>
-            {currentStep === 1 && (
-              <StepCompanyProfile
-                formData={formData}
-                onChange={updateField}
-                errors={step1Errors}
-              />
-            )}
-
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <p className="text-muted-foreground text-sm">
-                  Select the markets where you plan to sell your batteries. This helps us show
-                  relevant compliance requirements.
-                </p>
-                <MarketSelector
-                  value={formData.primary_market}
-                  onChange={(v) => updateField("primary_market", v)}
-                />
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <StepComplianceSetup
-                formData={formData}
-                onChange={updateField}
-                onUploadSuccess={() => refreshUser()}
-                certificateStatuses={{
-                  epr: user?.epr_status,
-                  bis: user?.bis_status,
-                  pli: user?.pli_status,
-                }}
-                readiness={readiness}
-                errors={step3Errors}
-              />
-            )}
-
-            {currentStep === 4 && (
-              <ReviewSummary
-                formData={formData}
-                onEdit={(step) => {
-                  setDirection(-1);
-                  setCurrentStep(step);
-                }}
-                readiness={readiness}
-              />
-            )}
-          </AnimatedStep>
-        </AnimatePresence>
-
-        <OnboardingNavigation
-          currentStep={currentStep}
-          totalSteps={steps.length}
-          canProceed={canProceed()}
-          loading={loading}
-          onBack={handleBack}
-          onNext={handleNext}
-          onComplete={handleComplete}
-          canLaunch={(() => {
-            if (readinessLoading || !readiness) return false;
-            const markets =
-              formData.primary_market === "both" ? ["india", "eu"] : [formData.primary_market];
-            const scores: number[] = [];
-            if (markets.includes("india") && readiness.india) scores.push(readiness.india.score);
-            if (markets.includes("eu") && readiness.eu) scores.push(readiness.eu.score);
-            return scores.length > 0 ? Math.min(...scores) >= 50 : true;
-          })()}
-          readinessLoading={readinessLoading}
-          onNavigateToStep={(step) => {
-            setDirection(step < currentStep ? -1 : 1);
-            setCurrentStep(step);
+        {/* Form area */}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.025)",
+            borderRadius: "12px",
+            border: "1px solid rgba(255,255,255,0.07)",
+            padding: "16px",
+            position: "relative",
+            overflow: "visible",
           }}
-        />
-      </motion.div>
-
-      {currentStep === 3 && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center text-muted-foreground text-sm"
         >
-          Don&apos;t have these details?{" "}
-          <button type="button" onClick={handleNext} className="text-(--brand-link) hover:underline">
-            Skip for now
-          </button>
-        </motion.p>
-      )}
+          <AnimatePresence mode="wait" custom={direction}>
+            <AnimatedStep stepKey={currentStep} direction={direction}>
+              {currentStep === 1 && (
+                <StepCompanyProfile
+                  formData={formData}
+                  onChange={updateField}
+                  errors={activeStep1Errors}
+                />
+              )}
+
+              {currentStep === 2 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <p style={{ fontSize: "13px", color: "#64748b", lineHeight: 1.6 }}>
+                    Select the markets where you plan to sell your batteries. This helps us show
+                    relevant compliance requirements.
+                  </p>
+                  <MarketSelector
+                    value={formData.primary_market}
+                    onChange={(v) => updateField("primary_market", v)}
+                  />
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                <StepComplianceSetup
+                  formData={formData}
+                  onChange={updateField}
+                  onUploadSuccess={() => refreshUser()}
+                  certificateStatuses={{
+                    epr: user?.epr_status,
+                    bis: user?.bis_status,
+                    pli: user?.pli_status,
+                  }}
+                  readiness={readiness}
+                  errors={activeStep3Errors}
+                  onGapClick={handleGapClick}
+                />
+              )}
+
+              {currentStep === 4 && (
+                <ReviewSummary
+                  formData={formData}
+                  onEdit={(step) => {
+                    setDirection(-1);
+                    setCurrentStep(step);
+                  }}
+                  readiness={readiness}
+                />
+              )}
+            </AnimatedStep>
+          </AnimatePresence>
+
+          <OnboardingNavigation
+            currentStep={currentStep}
+            totalSteps={steps.length}
+            canProceed={canProceed()}
+            loading={loading}
+            onBack={handleBack}
+            onNext={handleNext}
+            onComplete={handleComplete}
+            canLaunch={(() => {
+              if (readinessLoading || !readiness) return false;
+              const markets =
+                formData.primary_market === "both" ? ["india", "eu"] : [formData.primary_market];
+              const scores: number[] = [];
+              if (markets.includes("india") && readiness.india) scores.push(readiness.india.score);
+              if (markets.includes("eu") && readiness.eu) scores.push(readiness.eu.score);
+              return scores.length > 0 ? Math.min(...scores) >= 50 : true;
+            })()}
+            readinessLoading={readinessLoading}
+            onNavigateToStep={(step) => {
+              setDirection(step < currentStep ? -1 : 1);
+              setCurrentStep(step);
+            }}
+          />
+        </div>
+
+        {currentStep === 3 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ textAlign: "center", fontSize: "12px", color: "#475569", marginTop: "4px" }}
+          >
+            Don&apos;t have these details?{" "}
+            <button
+              type="button"
+              onClick={handleNext}
+              style={{
+                color: "#10b981",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "12px",
+                textDecoration: "underline",
+                textUnderlineOffset: "2px",
+              }}
+            >
+              Skip for now
+            </button>
+          </motion.p>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ paddingTop: "24px", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", color: "#334155" }}>
+          © 2025 Anviora · Secure battery compliance infrastructure
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <OnboardingShell left={<OnboardingLeftPanel currentStep={currentStep} />}>
+      {rightPanel}
     </OnboardingShell>
   );
 }

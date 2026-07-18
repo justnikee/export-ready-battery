@@ -5,7 +5,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function EUBuyerHero() {
   return (
-    <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-[64px] overflow-hidden bg-crew-paper-soft">
+    <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-[64px] overflow-hidden">
       <div className="max-w-[800px] mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -16,7 +16,7 @@ export default function EUBuyerHero() {
             <ShieldCheck size={14} />
             For EU Buyers & Importers
           </div>
-          <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+          <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink">
             Require Digital Battery Passports from your Indian suppliers.
           </h1>
           <p className="mt-5 text-[16px] sm:text-[17px] leading-[1.6] text-[#131313] max-w-[600px] mx-auto">

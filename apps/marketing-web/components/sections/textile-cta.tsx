@@ -5,38 +5,47 @@ import { ArrowRight } from "lucide-react";
 
 export default function TextileCTA() {
   return (
-    <section className="py-[88px] bg-crew-paper-soft">
-      <div className="max-w-[1080px] mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-normal leading-[1.08] tracking-[-0.01em] text-crew-ink">
+    <section className="px-3 sm:px-5 lg:px-6 pb-20 pt-4">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-[32px] max-w-[1340px] mx-auto bg-gradient-to-br from-[#0e5a40] via-[#127055] to-[#1d9670] px-6 py-16 sm:px-12 lg:py-20 text-center"
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(60% 80% at 50% 0%, rgba(255,255,255,0.14) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative">
+          <h2 className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-white text-balance">
             Tirupur. Surat. Panipat. Europe.
           </h2>
-          <p className="mt-4 text-[16px] leading-[1.6] text-[#131313]">
+          <p className="mt-4 text-[16px] leading-[1.6] text-white/75">
             Wherever you weave, we&apos;ll get you there. Join the founding cohort before
             the ESPR mandate lands.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <a
               href="/request-access"
-              className="group inline-flex items-center justify-center gap-1.5 h-[44px] px-6 rounded-full text-[15px] font-semibold text-white bg-crew-coral hover:bg-crew-coral-light transition-colors"
+              className="group inline-flex items-center justify-center gap-1.5 h-[46px] px-7 rounded-full text-[15px] font-semibold text-crew-ink bg-white hover:bg-white/90 transition-colors"
             >
               Join the waitlist
               <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
               href="mailto:sales@anvayalabs.com"
-              className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
+              className="group inline-flex items-center gap-1 text-[15px] font-semibold text-white hover:text-white/80 transition-colors"
             >
               Talk to us <ArrowRight size={14} className="cta-arrow" />
             </a>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </section>
   );
 }

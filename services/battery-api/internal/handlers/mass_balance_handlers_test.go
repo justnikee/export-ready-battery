@@ -472,3 +472,8 @@ func (f *fakeMassBalanceRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Co
 func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeMassBalanceRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
+
+// AI parse cache stubs
+func (f *fakeMassBalanceRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) { return nil, nil }
+func (f *fakeMassBalanceRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error { return nil }
+

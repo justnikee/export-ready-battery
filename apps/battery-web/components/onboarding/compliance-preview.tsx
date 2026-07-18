@@ -32,45 +32,51 @@ export function CompliancePreview({ india, eu, markets, onGapClick }: Compliance
 
     const scoreColor =
       readiness.score >= 80
-        ? "text-emerald-500"
+        ? "#10b981"
         : readiness.score >= 50
-          ? "text-amber-500"
-          : "text-red-500";
+          ? "#f59e0b"
+          : "#ef4444";
 
-    const bgColor =
+    const wrapStyle: React.CSSProperties =
       readiness.score >= 80
-        ? "bg-emerald-500/10 border-emerald-500/20"
+        ? { background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }
         : readiness.score >= 50
-          ? "bg-amber-500/10 border-amber-500/20"
-          : "bg-red-500/10 border-red-500/20";
+          ? { background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }
+          : { background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" };
 
     return (
-      <div className={`p-4 rounded-lg border ${bgColor}`}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">{label}</span>
-          <span className={`text-lg font-bold ${scoreColor}`}>
+      <div style={{ ...wrapStyle, borderRadius: "10px", padding: "14px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+          <span style={{ fontSize: "13px", fontWeight: 500, color: "#cbd5e1" }}>{label}</span>
+          <span style={{ fontSize: "18px", fontWeight: 700, color: scoreColor }}>
             {readiness.score.toFixed(0)}%
           </span>
         </div>
         {readiness.valid ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-400">
-            <CheckCircle2 className="w-4 h-4" />
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#10b981" }}>
+            <CheckCircle2 style={{ width: "14px", height: "14px" }} />
             Ready for activation
           </div>
         ) : (
-          <ul className="space-y-2 mt-2">
+          <ul style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
             {(readiness.gaps || []).map((gap, i) => (
               <li
                 key={i}
-                className={`flex items-start gap-2 text-sm ${onGapClick ? "cursor-pointer hover:opacity-80" : ""}`}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  fontSize: "12px",
+                  cursor: onGapClick ? "pointer" : "default",
+                }}
                 onClick={() => onGapClick?.(gap)}
               >
                 {gap.severity === "ERROR" ? (
-                  <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <XCircle style={{ width: "14px", height: "14px", color: "#ef4444", flexShrink: 0, marginTop: "1px" }} />
                 ) : (
-                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <AlertTriangle style={{ width: "14px", height: "14px", color: "#f59e0b", flexShrink: 0, marginTop: "1px" }} />
                 )}
-                <span className={gap.severity === "ERROR" ? "text-red-400" : "text-amber-400"}>
+                <span style={{ color: gap.severity === "ERROR" ? "#f87171" : "#fbbf24" }}>
                   {gap.message}
                 </span>
               </li>
@@ -82,8 +88,8 @@ export function CompliancePreview({ india, eu, markets, onGapClick }: Compliance
   };
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <p style={{ fontSize: "11px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em" }}>
         Activation Readiness Preview
       </p>
       {hasIndia && renderScore("🇮🇳 India", india)}

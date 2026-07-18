@@ -24,6 +24,8 @@ export interface ReadinessResult {
 
 interface DraftProfile {
   primary_market: string;
+  company_name: string;
+  address: string;
   epr_registration_number: string;
   bis_r_number: string;
   iec_code: string;

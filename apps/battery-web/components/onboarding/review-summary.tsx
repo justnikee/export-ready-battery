@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ArrowRight, Pencil } from "lucide-react";
 import { CompliancePreview } from "./compliance-preview";
 import type { ReadinessResult } from "@/hooks/use-onboarding-readiness";
 
@@ -31,31 +31,86 @@ function getLowestScore(readiness: ReadinessResult | null, markets: string[]): n
   return scores.length > 0 ? Math.min(...scores) : 0;
 }
 
+interface ReviewRowProps {
+  label: string;
+  value: string;
+  onEdit?: () => void;
+}
+
+function ReviewRow({ label, value, onEdit }: ReviewRowProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "12px",
+        padding: "10px 0",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "2px" }}>
+          {label}
+        </p>
+        <p style={{ fontSize: "13px", color: "#cbd5e1", wordBreak: "break-word" }}>{value || "—"}</p>
+      </div>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "12px",
+            color: "#10b981",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "2px 0",
+            flexShrink: 0,
+          }}
+        >
+          <Pencil style={{ width: 11, height: 11 }} />
+          Edit
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProps) {
   const markets =
     formData.primary_market === "both" ? ["india", "eu"] : [formData.primary_market];
   const lowestScore = getLowestScore(readiness, markets);
 
-  const handleGapClick = () => {
-    onEdit(3);
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="text-center py-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", paddingTop: "8px" }}>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200 }}
-          className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-linear-to-br from-emerald-500 to-emerald-600 mb-4"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "64px",
+            height: "64px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #10b981, #059669)",
+            marginBottom: "12px",
+            boxShadow: "0 0 30px rgba(16,185,129,0.25)",
+          }}
         >
-          <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
+          <CheckCircle2 style={{ width: "32px", height: "32px", color: "#fff" }} />
         </motion.div>
-        <h2 className="text-xl text-foreground">You&apos;re all set!</h2>
-        <p className="text-muted-foreground mt-1">
-          Here&apos;s a summary of your profile
-        </p>
+        <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#f1f5f9", marginBottom: "4px" }}>
+          You&apos;re all set!
+        </h2>
+        <p style={{ fontSize: "13px", color: "#475569" }}>Here&apos;s a summary of your profile</p>
       </div>
 
       {/* Readiness Scorecard */}
@@ -64,129 +119,102 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
           india={readiness.india}
           eu={readiness.eu}
           markets={markets}
-          onGapClick={handleGapClick}
+          onGapClick={(gap) => {
+            const field = gap.field || "";
+            if (
+              field.startsWith("tenant.epr_") ||
+              field.startsWith("tenant.bis_") ||
+              field.startsWith("tenant.iec_") ||
+              field.startsWith("tenant.morth_") ||
+              field.startsWith("tenant.eu_")
+            ) {
+              onEdit(3);
+            } else {
+              onEdit(1);
+            }
+          }}
         />
       )}
 
-      {/* Skip acknowledgment banner when compliance is incomplete */}
+      {/* Compliance warning */}
       {lowestScore < 50 && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-md border border-amber-500/20 bg-amber-500/10"
+          style={{
+            padding: "14px 16px",
+            borderRadius: "10px",
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.2)",
+          }}
         >
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <p className="text-sm text-amber-700">
-                Your compliance setup is incomplete. You can continue to the dashboard,
-                but you won&apos;t be able to create batches until all requirements are met.
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+            <AlertTriangle style={{ width: "16px", height: "16px", color: "#f59e0b", flexShrink: 0, marginTop: "1px" }} />
+            <div>
+              <p style={{ fontSize: "12px", color: "#fcd34d", lineHeight: 1.6, marginBottom: "8px" }}>
+                Your compliance setup is incomplete. You can continue to the dashboard, but you
+                won&apos;t be able to create batches until all requirements are met.
               </p>
               <button
                 type="button"
                 onClick={() => onEdit(3)}
-                className="text-sm text-(--brand-link) hover:underline inline-flex items-center gap-1"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  color: "#10b981",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
+                }}
               >
                 Go back to compliance setup
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight style={{ width: "12px", height: "12px" }} />
               </button>
             </div>
           </div>
         </motion.div>
       )}
 
-      <div className="space-y-4 bg-muted rounded-md p-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Company Name</p>
-            <p className="text-foreground">{formData.company_name || "-"}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onEdit(1)}
-            className="text-(--brand-link) text-sm hover:underline"
-          >
-            Edit
-          </button>
-        </div>
-        <div className="border-t border-border" />
-        <div className="flex justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Address</p>
-            <p className="text-foreground">{formData.address || "-"}</p>
-          </div>
-        </div>
-        <div className="border-t border-border" />
-        <div className="flex justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Support Email</p>
-            <p className="text-foreground">{formData.support_email || "-"}</p>
-          </div>
-        </div>
-        {formData.website && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Website</p>
-              <p className="text-foreground">{formData.website}</p>
-            </div>
-          </>
-        )}
-        <div className="border-t border-border" />
-        <div className="flex justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Target Market</p>
-            <p className="text-foreground capitalize">
-              {formData.primary_market === "both"
-                ? "EU & India"
-                : formData.primary_market.toUpperCase()}
-            </p>
-          </div>
-        </div>
+      {/* Profile summary */}
+      <div
+        style={{
+          borderRadius: "10px",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          padding: "4px 16px",
+        }}
+      >
+        <ReviewRow label="Company Name" value={formData.company_name} onEdit={() => onEdit(1)} />
+        <ReviewRow label="Address" value={formData.address} />
+        <ReviewRow label="Support Email" value={formData.support_email} />
+        {formData.website && <ReviewRow label="Website" value={formData.website} />}
+        <ReviewRow
+          label="Target Market"
+          value={
+            formData.primary_market === "both"
+              ? "EU & India"
+              : formData.primary_market.toUpperCase()
+          }
+          onEdit={() => onEdit(2)}
+        />
         {formData.epr_registration_number && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">EPR Number</p>
-              <p className="text-foreground">{formData.epr_registration_number}</p>
-            </div>
-          </>
+          <ReviewRow label="EPR Number" value={formData.epr_registration_number} />
         )}
         {formData.bis_r_number && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">BIS R-Number</p>
-              <p className="text-foreground">{formData.bis_r_number}</p>
-            </div>
-          </>
+          <ReviewRow label="BIS R-Number" value={formData.bis_r_number} />
         )}
         {formData.iec_code && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">IEC Code</p>
-              <p className="text-foreground">{formData.iec_code}</p>
-            </div>
-          </>
+          <ReviewRow label="IEC Code" value={formData.iec_code} />
         )}
         {formData.eu_authorized_representative_name && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">EU Representative</p>
-              <p className="text-foreground">{formData.eu_authorized_representative_name}</p>
-            </div>
-          </>
+          <ReviewRow label="EU Representative" value={formData.eu_authorized_representative_name} />
         )}
         {formData.eu_contact_email && (
-          <>
-            <div className="border-t border-border" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">EU Contact Email</p>
-              <p className="text-foreground">{formData.eu_contact_email}</p>
-            </div>
-          </>
+          <ReviewRow label="EU Contact Email" value={formData.eu_contact_email} />
         )}
       </div>
     </div>

@@ -492,3 +492,8 @@ func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, al
 func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeSupplierRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
 func (f *fakeSupplierRepo) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error { return nil }
+
+// AI parse cache stubs
+func (f *fakeSupplierRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) { return nil, nil }
+func (f *fakeSupplierRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error { return nil }
+

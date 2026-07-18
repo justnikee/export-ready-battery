@@ -59,14 +59,14 @@ export default function EUBuyerVerify() {
   };
 
   return (
-    <section id="verify" className="py-[72px] bg-crew-paper">
+    <section id="verify" className="py-[72px]">
       <div className="max-w-[640px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-normal leading-[1.1] tracking-[-0.01em] text-crew-ink text-center">
+          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink text-center">
             Verify a battery passport
           </h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#131313] text-center">
@@ -99,7 +99,7 @@ export default function EUBuyerVerify() {
           )}
 
           {result && (
-            <div className="mt-6 p-5 rounded-xl bg-white border border-crew-border">
+            <div className="mt-6 p-5 rounded-2xl bg-paper">
               <div className="flex items-center gap-2 text-crew-green">
                 <CheckCircle size={18} />
                 <span className="font-semibold text-sm">Passport verified</span>

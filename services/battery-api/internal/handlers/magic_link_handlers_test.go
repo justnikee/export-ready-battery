@@ -506,3 +506,8 @@ func (f *fakeMagicRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context,
 func (f *fakeMagicRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeMagicRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeMagicRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
+
+// AI parse cache stubs
+func (f *fakeMagicRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) { return nil, nil }
+func (f *fakeMagicRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error { return nil }
+

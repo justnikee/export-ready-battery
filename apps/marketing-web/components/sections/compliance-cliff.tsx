@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { FileWarning, Ship, CalendarClock } from "lucide-react";
 import TextReveal from "@/components/text-reveal";
+import DeadlineCountdown from "@/components/deadline-countdown";
 
 const pains = [
   {
@@ -24,25 +25,42 @@ const pains = [
 
 export default function ComplianceCliff() {
   return (
-    <section className="py-20 lg:py-24 bg-crew-paper-soft">
+    <section className="py-20 lg:py-28">
       <div className="max-w-[1200px] mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-[640px] mb-14"
-        >
-          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
-            The compliance cliff
-          </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-normal tracking-[-0.01em] leading-[1.08] text-crew-ink">
-            <TextReveal as="span" className="block">
-              The rules changed. The paperwork didn&apos;t keep up.
-            </TextReveal>
-          </h2>
-        </motion.div>
+        {/* Countdown + headline row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-14 items-start">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
+              The compliance cliff
+            </div>
+            <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink text-balance">
+              <TextReveal as="span" className="block">
+                The rules changed. The paperwork didn&apos;t keep up.
+              </TextReveal>
+            </h2>
+            <p className="mt-5 text-[16px] leading-[1.6] text-[#131313] max-w-[480px]">
+              EU Battery Regulation 2023/1542 is law. Every battery sold in Europe
+              will need a digital passport. Most Indian manufacturers haven&apos;t started.
+            </p>
+          </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="p-6 sm:p-8 rounded-[28px] bg-paper"
+          >
+            <DeadlineCountdown variant="block" />
+          </motion.div>
+        </div>
+
+        {/* Pain cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {pains.map((p, i) => (
             <motion.div
@@ -51,12 +69,12 @@ export default function ComplianceCliff() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="p-6 rounded-2xl bg-crew-paper border border-crew-border"
+              className="p-7 rounded-3xl bg-paper transition-transform duration-300 hover:-translate-y-1"
             >
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-crew-coral-soft text-crew-coral mb-5">
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#fef2f2] text-[#dc2626] mb-5">
                 {p.icon}
               </div>
-              <h3 className="font-serif text-[22px] font-normal tracking-[-0.01em] text-crew-ink mb-2">
+              <h3 className="font-serif text-[22px] font-semibold tracking-[-0.02em] text-crew-ink mb-2">
                 {p.title}
               </h3>
               <p className="text-[16px] leading-[1.6] text-[#131313]">{p.body}</p>
@@ -71,6 +89,7 @@ export default function ComplianceCliff() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-10 text-[18px] font-medium text-crew-ink"
         >
+          Compliance is no longer a cost center — it&apos;s how you win the order.
           Anviora replaces the scramble with a single source of truth.
         </motion.p>
       </div>

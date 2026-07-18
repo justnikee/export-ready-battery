@@ -7,6 +7,7 @@ const staticRoutes = [
   "/battery",
   "/textile",
   "/pricing",
+  "/about",
   "/request-access",
   "/blog",
   "/compliance/eu-battery-regulation",

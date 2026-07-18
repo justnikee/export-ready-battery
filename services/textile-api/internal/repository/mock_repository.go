@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 import (
 	"context"
@@ -1007,3 +1007,27 @@ func (m *MockRepository) UpdateTallySyncRun(ctx context.Context, id uuid.UUID, s
 	args := m.Called(ctx, id, status, errorMsg, fetched, staged)
 	return args.Error(0)
 }
+
+func (m *MockRepository) LogAICall(ctx context.Context, entry *models.AICallLogEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+
+func (m *MockRepository) GetDailyAICallCount(ctx context.Context, provider string, since time.Time) (int, error) {
+	args := m.Called(ctx, provider, since)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockRepository) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) {
+	args := m.Called(ctx, textHash, promptVersion, task)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.AIParseCacheEntry), args.Error(1)
+}
+
+func (m *MockRepository) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error {
+	args := m.Called(ctx, entry)
+	return args.Error(0)
+}
+

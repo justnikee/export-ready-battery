@@ -27,6 +27,7 @@ interface StepComplianceSetupProps {
   };
   readiness?: ReadinessResult | null;
   errors?: Record<string, string>;
+  onGapClick?: (gap: any) => void;
 }
 
 export function StepComplianceSetup({
@@ -36,6 +37,7 @@ export function StepComplianceSetup({
   certificateStatuses,
   readiness,
   errors,
+  onGapClick,
 }: StepComplianceSetupProps) {
   const hasIndia = formData.primary_market === "india" || formData.primary_market === "both";
   const hasEU = formData.primary_market === "eu" || formData.primary_market === "both";
@@ -56,8 +58,18 @@ export function StepComplianceSetup({
     return true;
   };
 
+  const sectionStyle: React.CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.02)",
+  };
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {isComplete() ? (
         <InfoBanner variant="success">
           Compliance details look good. You can still edit them later in Settings.
@@ -77,19 +89,20 @@ export function StepComplianceSetup({
             ...(hasIndia ? ["india"] : []),
             ...(hasEU ? ["eu"] : []),
           ]}
+          onGapClick={onGapClick}
         />
       )}
 
       {hasIndia && (
-        <div className="space-y-4 rounded-lg border border-border p-4">
-          <h3 className="text-sm text-emerald-500 uppercase tracking-wider">
+        <div style={sectionStyle}>
+          <h3 style={{ fontSize: "11px", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>
             🇮🇳 India Compliance (Recommended for activation)
           </h3>
           <FormField
             label={
               <>
                 EPR Registration Number{" "}
-                <span className="text-xs text-amber-500 font-normal">Recommended</span>
+                <span style={{ fontSize: "11px", color: "#f59e0b", fontWeight: 400 }}>Recommended</span>
               </>
             }
             icon={FileCheck}
@@ -109,7 +122,7 @@ export function StepComplianceSetup({
             label={
               <>
                 BIS-R Number{" "}
-                <span className="text-xs text-amber-400 font-normal">Recommended</span>
+                <span style={{ fontSize: "11px", color: "#f59e0b", fontWeight: 400 }}>Recommended</span>
               </>
             }
             icon={Shield}
@@ -144,7 +157,9 @@ export function StepComplianceSetup({
             label="MoRTH Manufacturer Code"
             icon={Hash}
             value={formData.morth_manufacturer_code}
-            onChange={(v) => onChange("morth_manufacturer_code", v.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+            onChange={(v) =>
+              onChange("morth_manufacturer_code", v.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+            }
             placeholder="NKY"
             helperText="3-character MoRTH-registered code for BPAN serial numbers"
             error={errors?.morth_manufacturer_code}
@@ -153,8 +168,8 @@ export function StepComplianceSetup({
       )}
 
       {hasEU && (
-        <div className="space-y-4 rounded-lg border border-border p-4">
-          <h3 className="text-sm text-blue-400 uppercase tracking-wider">
+        <div style={sectionStyle}>
+          <h3 style={{ fontSize: "11px", color: "#60a5fa", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>
             🇪🇺 EU Compliance (Recommended for activation)
           </h3>
           <FormField

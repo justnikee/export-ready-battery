@@ -111,25 +111,25 @@ export default function RequestAccessPage() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-navy-50 flex items-center justify-center px-6">
+      <main className="min-h-screen bg-white flex items-center justify-center px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-md w-full text-center"
         >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 mb-6">
-            <CheckCircle className="w-8 h-8 text-emerald-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-crew-coral/10 mb-6">
+            <CheckCircle className="w-8 h-8 text-crew-coral" />
           </div>
-          <h1 className="text-2xl font-bold text-navy-900 mb-3">Application Received</h1>
-          <p className="text-navy-600 mb-2">
+          <h1 className="text-2xl font-bold text-crew-ink mb-3">Application Received</h1>
+          <p className="text-crew-ink/70 mb-2">
             We'll review your application and get back to you within 24 hours.
           </p>
-          <p className="text-sm text-navy-500">
+          <p className="text-sm text-crew-muted">
             If approved, you'll receive login credentials at {form.email}.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 mt-8 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+            className="inline-flex items-center gap-2 mt-8 text-sm font-medium text-crew-coral hover:text-crew-coral-light"
           >
             Back to homepage
             <ArrowRight className="w-4 h-4" />
@@ -140,21 +140,21 @@ export default function RequestAccessPage() {
   }
 
   return (
-    <main className="min-h-screen bg-navy-50">
+    <main className="min-h-screen bg-white">
       <div className="max-w-xl mx-auto px-6 py-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-navy-500 hover:text-navy-700 mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-crew-muted hover:text-crew-ink mb-8">
             <ArrowRight className="w-4 h-4 rotate-180" />
             Back to homepage
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-navy-900 mb-3">Request Access</h1>
-            <p className="text-navy-600">
+            <h1 className="text-3xl font-bold text-crew-ink mb-3">Request Access</h1>
+            <p className="text-crew-ink/70">
               Anviora is built exclusively for Indian manufacturers and exporters.
               We review every application to ensure the platform serves legitimate businesses.
             </p>
@@ -163,7 +163,7 @@ export default function RequestAccessPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
                 Company Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -171,7 +171,7 @@ export default function RequestAccessPage() {
                 value={form.companyName}
                 onChange={(e) => setForm({ ...form, companyName: e.target.value })}
                 placeholder="e.g. Tata AutoComp Systems"
-                className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
               />
               {errors.companyName && (
                 <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -182,17 +182,17 @@ export default function RequestAccessPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
                 Business Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crew-muted" />
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="you@company.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
                 />
               </div>
               {errors.email && (
@@ -200,7 +200,7 @@ export default function RequestAccessPage() {
                   <AlertCircle className="w-3 h-3" /> {errors.email}
                 </p>
               )}
-              <p className="mt-1 text-xs text-navy-400">
+              <p className="mt-1 text-xs text-crew-muted">
                 Free email providers (Gmail, Yahoo, etc.) are not accepted.
               </p>
             </div>
@@ -208,7 +208,7 @@ export default function RequestAccessPage() {
             {/* GSTIN / IEC */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-navy-800 mb-1.5">
+                <label className="block text-sm font-medium text-crew-ink mb-1.5">
                   GSTIN
                 </label>
                 <input
@@ -217,7 +217,7 @@ export default function RequestAccessPage() {
                   onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
                   placeholder="27AAPFU0939F1ZV"
                   maxLength={15}
-                  className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
                 />
                 {errors.gstin && (
                   <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -226,7 +226,7 @@ export default function RequestAccessPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-navy-800 mb-1.5">
+                <label className="block text-sm font-medium text-crew-ink mb-1.5">
                   IEC Code
                 </label>
                 <input
@@ -235,7 +235,7 @@ export default function RequestAccessPage() {
                   onChange={(e) => setForm({ ...form, iecCode: e.target.value.toUpperCase() })}
                   placeholder="A123456789"
                   maxLength={10}
-                  className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
                 />
                 {errors.iecCode && (
                   <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -244,19 +244,19 @@ export default function RequestAccessPage() {
                 )}
               </div>
             </div>
-            <p className="text-xs text-navy-400 -mt-2">
+            <p className="text-xs text-crew-muted -mt-2">
               Provide either GSTIN or IEC code to verify your business.
             </p>
 
             {/* Product Type */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
                 Product Type <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.productType}
                 onChange={(e) => setForm({ ...form, productType: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
               >
                 <option value="">Select product type</option>
                 <option value="battery">Battery / Energy Storage</option>
@@ -272,13 +272,13 @@ export default function RequestAccessPage() {
 
             {/* Estimated Batches */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
                 Estimated Monthly Batches
               </label>
               <select
                 value={form.estimatedBatches}
                 onChange={(e) => setForm({ ...form, estimatedBatches: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
               >
                 <option value="">Select range</option>
                 <option value="<5">Less than 5</option>
@@ -290,13 +290,13 @@ export default function RequestAccessPage() {
 
             {/* Market Region */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
                 Primary Export Market
               </label>
               <select
                 value={form.marketRegion}
                 onChange={(e) => setForm({ ...form, marketRegion: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
               >
                 <option value="">Select market</option>
                 <option value="eu">European Union</option>
@@ -308,15 +308,15 @@ export default function RequestAccessPage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-navy-800 mb-1.5">
-                Phone Number <span className="text-navy-400 font-normal">(optional)</span>
+              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+                Phone Number <span className="text-crew-muted font-normal">(optional)</span>
               </label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+91 98765 43210"
-                className="w-full px-4 py-2.5 rounded-lg border border-navy-200 bg-white text-sm text-navy-900 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
               />
             </div>
 
@@ -328,15 +328,15 @@ export default function RequestAccessPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-lg bg-crew-coral text-white font-semibold text-sm hover:bg-crew-coral transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading ? "Submitting..." : "Submit Application"}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
 
-            <p className="text-xs text-navy-400 text-center">
+            <p className="text-xs text-crew-muted text-center">
               Not a manufacturer?{" "}
-              <a href="mailto:founders@anviora.io" className="text-emerald-600 hover:underline">
+              <a href="mailto:founders@anviora.io" className="text-crew-coral hover:underline">
                 Apply as a Partner
               </a>
             </p>

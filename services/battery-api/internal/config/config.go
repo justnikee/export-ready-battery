@@ -41,7 +41,8 @@ type Config struct {
 	RegulatorAPIKey string
 
 	// AI / LLM Configuration
-	GroqAPIKey string // Free tier LLM for datasheet parsing & NL batch creation
+	GroqAPIKey   string // Free tier LLM for datasheet parsing & NL batch creation
+	GeminiAPIKey string // Free tier LLM fallback provider
 
 	// Registry Integration Configuration
 	BISBaseURL             string
@@ -142,6 +143,7 @@ func Load() (*Config, error) {
 		CORSOrigins:           parseOrigins(corsOrigins),
 		RegulatorAPIKey:        getEnv("REGULATOR_API_KEY", ""),
 		GroqAPIKey:             getEnv("GROQ_API_KEY", ""),
+		GeminiAPIKey:           getEnv("GEMINI_API_KEY", ""),
 		BISBaseURL:             getEnv("BIS_BASE_URL", "https://www.bis.gov.in"),
 		CPCBBaseURL:            getEnv("CPCB_BASE_URL", "https://eprbatterycpcb.in"),
 		EUNANDOBaseURL:         getEnv("EU_NANDO_BASE_URL", "https://webgate.ec.europa.eu/single-market-compliance-space/notified-bodies"),

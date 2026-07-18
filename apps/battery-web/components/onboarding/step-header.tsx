@@ -11,20 +11,23 @@ interface StepHeaderProps {
 
 export function StepHeader({ stepNumber, totalSteps, title, description }: StepHeaderProps) {
   return (
-    <div className="text-center space-y-2">
+    <div className="space-y-1.5">
       <motion.p
         key={`step-${stepNumber}`}
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-emerald-500 text-sm font-medium uppercase tracking-wider"
+        className="text-xs font-medium uppercase tracking-widest"
+        style={{ color: "#10b981" }}
       >
         Step {stepNumber} of {totalSteps}
       </motion.p>
       <motion.h1
         key={`title-${stepNumber}`}
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-3xl text-foreground"
+        transition={{ delay: 0.05 }}
+        className="text-2xl font-semibold"
+        style={{ color: "#f1f5f9" }}
       >
         {title}
       </motion.h1>
@@ -32,7 +35,9 @@ export function StepHeader({ stepNumber, totalSteps, title, description }: StepH
         key={`desc-${stepNumber}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="text-muted-foreground"
+        transition={{ delay: 0.1 }}
+        className="text-sm"
+        style={{ color: "#64748b" }}
       >
         {description}
       </motion.p>

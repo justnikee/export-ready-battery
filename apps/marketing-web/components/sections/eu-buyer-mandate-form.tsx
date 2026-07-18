@@ -69,12 +69,12 @@ export default function EUBuyerMandateForm() {
 
   if (submitted) {
     return (
-      <section id="mandate-form" className="py-[72px] bg-crew-paper-soft">
+      <section id="mandate-form" className="py-[72px]">
         <div className="max-w-[520px] mx-auto px-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 mb-5">
             <CheckCircle className="w-7 h-7 text-crew-green" />
           </div>
-          <h2 className="font-serif text-[26px] font-normal text-crew-ink">Thanks — we'll be in touch</h2>
+          <h2 className="font-serif text-[26px] font-semibold text-crew-ink">Thanks — we'll be in touch</h2>
           <p className="mt-2 text-[15px] text-[#131313]">
             We'll reach out to discuss mandating Anviora for your Indian suppliers.
           </p>
@@ -84,14 +84,14 @@ export default function EUBuyerMandateForm() {
   }
 
   return (
-    <section id="mandate-form" className="py-[72px] bg-crew-paper-soft">
+    <section id="mandate-form" className="py-[72px]">
       <div className="max-w-[560px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-normal leading-[1.1] tracking-[-0.01em] text-crew-ink text-center">
+          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink text-center">
             Mandate your Indian suppliers
           </h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#131313] text-center">

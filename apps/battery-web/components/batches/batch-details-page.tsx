@@ -64,6 +64,7 @@ export default function BatchDetailsPage() {
     batchesHref,
     settingsHref,
     settingsComplianceHref,
+    settingsEuComplianceHref,
     billingHref,
     exportsHref,
     isDraft,
@@ -215,6 +216,7 @@ export default function BatchDetailsPage() {
               if (target) setScrollTarget(target);
             }}
             onSettingsCompliance={() => router.push(settingsComplianceHref)}
+            onSettingsEuCompliance={() => router.push(settingsEuComplianceHref)}
             onSettingsProfile={() => router.push(settingsHref)}
           />
         )}

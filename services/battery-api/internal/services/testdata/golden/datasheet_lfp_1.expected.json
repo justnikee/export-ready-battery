@@ -1,0 +1,16 @@
+{
+  "model_name": "LFP-280Ah-3",
+  "chemistry": "LFP",
+  "voltage": "3.20V",
+  "capacity": "280.00Ah",
+  "weight": "5.300kg",
+  "dimensions": "72 x 174 x 200 mm",
+  "manufacturer": "Shenzhen Energy Co.",
+  "un38_3": true,
+  "ce_marking": true,
+  "rohs_compliant": true,
+  "iec_62133": true,
+  "certifications": ["UN38.3", "CE", "RoHS", "IEC62133"],
+  "country_of_origin": "CN",
+  "carbon_performance_class": ""
+}

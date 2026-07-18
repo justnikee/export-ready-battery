@@ -1,0 +1,10 @@
+Model: NMC-150Ah-3.7V
+Chemistry: Lithium Nickel Manganese Cobalt Oxide (NMC)
+Nominal Voltage: 3.7 V
+Nominal Capacity: 150 Ah
+Weight: 2.1 kg
+Dimensions: 48mm x 150mm x 220mm
+Manufacturer: Ningde Times Co., Ltd.
+Certifications: UN38.3, CE, RoHS, IEC 62133
+Country of Origin: CN
+Carbon Performance Class: B

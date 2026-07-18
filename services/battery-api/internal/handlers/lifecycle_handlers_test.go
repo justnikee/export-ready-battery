@@ -700,3 +700,8 @@ func (f *fakeLifecycleRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Cont
 func (f *fakeLifecycleRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeLifecycleRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeLifecycleRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
+
+// AI parse cache stubs
+func (f *fakeLifecycleRepo) GetAIParseCache(ctx context.Context, textHash string, promptVersion int, task string) (*models.AIParseCacheEntry, error) { return nil, nil }
+func (f *fakeLifecycleRepo) SetAIParseCache(ctx context.Context, entry *models.AIParseCacheEntry) error { return nil }
+

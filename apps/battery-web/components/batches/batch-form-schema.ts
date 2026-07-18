@@ -168,7 +168,7 @@ export const batchFormSchema = z
     }
 
     // Numeric validation for capacity, voltage, weight
-    const numericWithUnitRegex = /^\d+(\.\d+)?\s*(mAh|V|g|kg|Wh)?$/i;
+    const numericWithUnitRegex = /^\d+(\.\d+)?\s*(mAh|Ah|kWh|V|g|kg|Wh)?$/i;
     if (data.capacity && !numericWithUnitRegex.test(data.capacity)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

@@ -1,24 +1,49 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-)
 
-// Groq API Configuration
-const groqAPIURL = "https://api.groq.com/openai/v1/chat/completions"
-const groqModel = "llama-3.3-70b-versatile"
+	"github.com/anvayalabs/battery-api/internal/ai"
+	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
+)
+func init() {
+	// Register validators in the registry
+	t1 := ai.Registry[ai.TaskDatasheetParse]
+	t1.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskDatasheetParse] = t1
+
+	t2 := ai.Registry[ai.TaskNLBatchCreate]
+	t2.JSONValidator = validateNLCreateJSON
+	ai.Registry[ai.TaskNLBatchCreate] = t2
+
+	t3 := ai.Registry[ai.TaskBISParse]
+	t3.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskBISParse] = t3
+
+	t4 := ai.Registry[ai.TaskUN383Parse]
+	t4.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskUN383Parse] = t4
+
+	t5 := ai.Registry[ai.TaskMSDSParse]
+	t5.JSONValidator = validateDatasheetJSON
+	ai.Registry[ai.TaskMSDSParse] = t5
+}
+
+// PromptVersion must be bumped whenever extraction prompts, regex patterns, or
+// output schemas change. The cache is keyed on (text_hash, PromptVersion, task),
+// so bumping this constant automatically invalidates all stale cached results.
+const PromptVersion = 1
 
 // DatasheetParseResult is the structured output from parsing a battery datasheet.
 // It covers all fields that can realistically appear on a manufacturer spec sheet.
@@ -142,10 +167,8 @@ type NLCreateResult struct {
 	CarbonPerformanceClass string `json:"carbon_performance_class,omitempty"`
 }
 
-const (
-	cacheMaxEntries = 100
-	cacheTTL        = 1 * time.Hour
-)
+// l1CacheMaxEntries caps the in-memory (L1) cache. Evicts oldest on overflow.
+const l1CacheMaxEntries = 100
 
 type parseCacheEntry struct {
 	result    *DatasheetParseResult
@@ -153,22 +176,24 @@ type parseCacheEntry struct {
 	hash      string
 }
 
-// AIService handles AI-powered parsing and generation
+// AIService handles AI-powered parsing and generation.
+// It holds an optional repository for persistent (L2) caching; when repo is nil
+// the service operates with L1 (in-memory) caching only, which is the case in
+// unit tests that construct AIService directly.
 type AIService struct {
-	groqAPIKey string
-	client     *http.Client
+	gateway    *ai.LLMGateway
+	repo       repository.RepositoryInterface // nil-safe: L2 cache disabled when nil
 
 	parseCache   map[string]*parseCacheEntry
 	parseCacheMu sync.RWMutex
 }
 
-// NewAIService creates a new AI service
-func NewAIService(groqAPIKey string) *AIService {
+// NewAIService creates a new AI service.
+// gateway and repo may be nil.
+func NewAIService(gateway *ai.LLMGateway, repo repository.RepositoryInterface) *AIService {
 	return &AIService{
-		groqAPIKey: groqAPIKey,
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		gateway:    gateway,
+		repo:       repo,
 		parseCache: make(map[string]*parseCacheEntry),
 	}
 }
@@ -183,32 +208,71 @@ func hashText(text string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// getCachedResult returns a cached parse result if it exists and is not expired.
-func (s *AIService) getCachedResult(textHash string) *DatasheetParseResult {
+// getCachedResult checks L1 (in-memory) then L2 (Postgres) for a cached result.
+// On L2 hit, it populates L1 so the next lookup is fast. Returns nil on miss.
+func (s *AIService) getCachedResult(ctx context.Context, textHash string, task string) *DatasheetParseResult {
+	// --- L1: in-memory ---
 	s.parseCacheMu.RLock()
 	entry, ok := s.parseCache[textHash]
 	s.parseCacheMu.RUnlock()
+	if ok {
+		return entry.result
+	}
 
-	if !ok {
-		return nil
+	// --- L2: Postgres (skip if repo is nil — e.g. unit tests) ---
+	if s.repo != nil {
+		dbEntry, err := s.repo.GetAIParseCache(ctx, textHash, PromptVersion, task)
+		if err != nil {
+			slog.Warn("[ai] L2 cache read failed, falling through", "error", err)
+		} else if dbEntry != nil {
+			var result DatasheetParseResult
+			if err := json.Unmarshal(dbEntry.Result, &result); err != nil {
+				slog.Warn("[ai] L2 cache unmarshal failed, ignoring entry", "error", err)
+			} else {
+				// Backfill L1
+				s.setL1Cache(textHash, &result)
+				return &result
+			}
+		}
 	}
-	if time.Since(entry.timestamp) > cacheTTL {
-		// Expired — clean up
-		s.parseCacheMu.Lock()
-		delete(s.parseCache, textHash)
-		s.parseCacheMu.Unlock()
-		return nil
-	}
-	return entry.result
+
+	return nil
 }
 
-// setCachedResult stores a parse result in the cache, evicting oldest if full.
-func (s *AIService) setCachedResult(textHash string, result *DatasheetParseResult) {
+// setCachedResult writes to both L1 (in-memory) and L2 (Postgres).
+func (s *AIService) setCachedResult(ctx context.Context, textHash string, result *DatasheetParseResult, modelName string, task string) {
+	// L1
+	s.setL1Cache(textHash, result)
+
+	// L2 (best-effort; failure is logged but does not block the response)
+	if s.repo != nil {
+		resultJSON, err := json.Marshal(result)
+		if err != nil {
+			slog.Warn("[ai] failed to marshal result for L2 cache", "error", err)
+			return
+		}
+		entry := &models.AIParseCacheEntry{
+			TextHash:      textHash,
+			PromptVersion: PromptVersion,
+			Task:          task,
+			Result:        resultJSON,
+			Method:        result.Method,
+			Confidence:    result.Confidence,
+			Model:         modelName,
+			CreatedAt:     time.Now(),
+		}
+		if err := s.repo.SetAIParseCache(ctx, entry); err != nil {
+			slog.Warn("[ai] L2 cache write failed", "error", err)
+		}
+	}
+}
+
+// setL1Cache writes to the in-memory cache, evicting oldest if full.
+func (s *AIService) setL1Cache(textHash string, result *DatasheetParseResult) {
 	s.parseCacheMu.Lock()
 	defer s.parseCacheMu.Unlock()
 
-	// If at capacity, evict oldest entry
-	if len(s.parseCache) >= cacheMaxEntries {
+	if len(s.parseCache) >= l1CacheMaxEntries {
 		var oldestKey string
 		var oldestTime time.Time
 		for k, v := range s.parseCache {
@@ -229,21 +293,59 @@ func (s *AIService) setCachedResult(textHash string, result *DatasheetParseResul
 	}
 }
 
+// classifyDocumentType performs rule-based keyword matching to detect document type.
+func classifyDocumentType(text string) string {
+	lower := strings.ToLower(text)
+
+	// BIS Certificate
+	if strings.Contains(lower, "bureau of indian standards") ||
+		strings.Contains(lower, "self declaration-conformance") ||
+		strings.Contains(lower, "is 16046") ||
+		strings.Contains(lower, "is:16046") {
+		return ai.TaskBISParse
+	}
+
+	// UN38.3 Test Report
+	if strings.Contains(lower, "un38.3") ||
+		strings.Contains(lower, "un 38.3") ||
+		strings.Contains(lower, "lithium battery test summary") ||
+		(strings.Contains(lower, "test report") && (strings.Contains(lower, "t.1") || strings.Contains(lower, "t.6"))) {
+		return ai.TaskUN383Parse
+	}
+
+	// MSDS
+	if strings.Contains(lower, "material safety data sheet") ||
+		strings.Contains(lower, "safety data sheet") ||
+		strings.Contains(lower, "msds") ||
+		strings.Contains(lower, "sds") ||
+		strings.Contains(lower, "chemical product") {
+		return ai.TaskMSDSParse
+	}
+
+	return ai.TaskDatasheetParse
+}
+
 // ParseDatasheet attempts to extract battery specs from text.
-// Check cache first, then regex (fast/free), then Groq LLM if confidence is low.
+// Cache hierarchy: L1 (in-memory) → L2 (Postgres) → regex → LLM.
 func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*DatasheetParseResult, error) {
 	start := time.Now()
 
-	// 1. Check cache
+	// 0. Classify upfront
+	task := classifyDocumentType(text)
+
+	// 1. Check cache (L1 → L2)
 	textHash := hashText(text)
-	if cached := s.getCachedResult(textHash); cached != nil {
-		cached.ProcessingTimeMs = int(time.Since(start).Milliseconds())
-		cached.Method = "cached"
-		return cached, nil
+	if cached := s.getCachedResult(ctx, textHash, task); cached != nil {
+		// Return a copy so callers can mutate Method/ProcessingTimeMs safely.
+		result := *cached
+		result.ProcessingTimeMs = int(time.Since(start).Milliseconds())
+		result.Method = "cached"
+		return &result, nil
 	}
 
 	// 2. Regex extraction
 	regexResult := s.extractWithRegex(text)
+	validateDatasheet(regexResult) // normalizes in place and clears invalid fields
 	regexConfidence := s.calculateConfidence(regexResult)
 
 	if regexConfidence >= 0.70 {
@@ -251,83 +353,54 @@ func (s *AIService) ParseDatasheet(ctx context.Context, text string) (*Datasheet
 		regexResult.Method = "regex"
 		regexResult.ProcessingTimeMs = int(time.Since(start).Milliseconds())
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
 	// 3. LLM fallback
-	if s.groqAPIKey == "" {
+	if s.gateway == nil || !s.gateway.IsAvailable() {
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
-	llmResult, err := s.extractWithLLM(ctx, text)
+	llmResult, modelName, err := s.extractWithLLM(ctx, text, task)
 	if err != nil {
+		// Log validation or transient failures, fallback to regex result
+		slog.Warn("[ai] LLM extraction failed or rejected, using regex fallback", "error", err)
 		regexResult.Confidence = regexConfidence
 		regexResult.Method = "regex"
 		regexResult.FieldSources = buildFieldSources(regexResult, nil)
-		s.setCachedResult(textHash, regexResult)
+		s.setCachedResult(ctx, textHash, regexResult, "", task)
 		return regexResult, nil
 	}
 
 	merged := s.mergeResults(regexResult, llmResult)
+	validateDatasheet(merged) // normalize final output
 	merged.Confidence = s.calculateConfidence(merged)
 	merged.Method = "llm"
 	merged.ProcessingTimeMs = int(time.Since(start).Milliseconds())
-	s.setCachedResult(textHash, merged)
+	s.setCachedResult(ctx, textHash, merged, modelName, task)
 	return merged, nil
 }
 
 // CreateBatchFromNL converts natural language to structured batch draft.
 func (s *AIService) CreateBatchFromNL(ctx context.Context, text, defaultMarket string) (*NLCreateResult, error) {
-	if s.groqAPIKey == "" {
+	if s.gateway == nil || !s.gateway.IsAvailable() {
 		return nil, fmt.Errorf("LLM service not configured")
 	}
 
-	prompt := fmt.Sprintf(`You are a battery manufacturing assistant. Parse the user's request into structured JSON.
-
-Rules:
-- chemistry must be one of: LFP, NMC, NMC811, NMC622, NCA, LCO, LTO, LMO, Sodium-ion, Li-ion
-- market_region must be one of: INDIA, EU
-- capacity should include units (e.g., "150Ah", "5000mAh")
-- voltage should include units (e.g., "48V", "3.7V")
-- quantity is the number of units requested
-- battery_category (for EU) should be one of: EV, LMT, INDUSTRIAL, PORTABLE, SLI
-- hsn_code (for India) is an 8-digit code starting with 8507 (e.g., "85076000"); only set if explicitly stated
-- cell_source (for India) must be one of: DOMESTIC, IMPORTED — infer from phrases like "domestic cells", "imported cells", "made in India"
-- carbon_performance_class (for EU) is a single letter A–G; only set if explicitly stated
-
-Only fill compliance fields (hsn_code, cell_source, carbon_performance_class) when the request clearly implies them; otherwise use null.
-
-User request: "%s"
-Default market (if not specified): %s
-
-Respond with ONLY valid JSON in this exact format:
-{
-  "batch_name": "string or null",
-  "model_name": "string or null",
-  "chemistry": "string or null",
-  "capacity": "string or null",
-  "voltage": "string or null",
-  "quantity": number or null,
-  "market_region": "string or null",
-  "customer_name": "string or null",
-  "weight": "string or null",
-  "battery_category": "string or null",
-  "hsn_code": "string or null",
-  "cell_source": "string or null",
-  "carbon_performance_class": "string or null"
-}`, text, defaultMarket)
-
-	response, err := s.callGroq(ctx, prompt)
+	resp, err := s.gateway.CompleteTask(ctx, ai.TaskNLBatchCreate, map[string]interface{}{
+		"Text":          text,
+		"DefaultMarket": defaultMarket,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	jsonStr := s.extractJSON(response)
+	jsonStr := s.extractJSON(resp.Text)
 	if jsonStr == "" {
 		return nil, fmt.Errorf("no JSON found in LLM response")
 	}
@@ -336,6 +409,9 @@ Respond with ONLY valid JSON in this exact format:
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
 	}
+
+	// Normalize values in place
+	validateNLCreate(&result)
 
 	return &result, nil
 }
@@ -376,8 +452,8 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 		{"LFP", []string{`LiFePO4`, `LFP`, `lithium iron phosphate`, `磷酸铁锂`, `リン酸鉄`}},
 		{"NMC811", []string{`NMC811`, `NCM811`, `NMC 811`, `NCM 811`}},
 		{"NMC622", []string{`NMC622`, `NCM622`, `NMC 622`}},
-		{"NMC", []string{`NMC(?!8)`, `NCM(?!8)`, `nickel manganese cobalt`, `三元锂`, `ニッケルマンガン`}},
-		{"NCA", []string{`NCA(?!.)`, `nickel cobalt aluminium`, `nickel cobalt aluminum`}},
+		{"NMC", []string{`NMC`, `NCM`, `nickel manganese cobalt`, `三元锂`, `ニッケルマンガン`}},
+		{"NCA", []string{`NCA`, `nickel cobalt aluminium`, `nickel cobalt aluminum`}},
 		{"LCO", []string{`LiCoO2`, `LCO`, `lithium cobalt oxide`}},
 		{"LTO", []string{`Li4Ti5O12`, `LTO`, `lithium titanate`}},
 		{"LMO", []string{`LiMn2O4`, `LMO`, `lithium manganese oxide`, `lithium manganate`}},
@@ -908,157 +984,29 @@ func (s *AIService) mergeResults(regex, llm *DatasheetParseResult) *DatasheetPar
 
 // ==================== Groq LLM Integration ====================
 
-func (s *AIService) extractWithLLM(ctx context.Context, text string) (*DatasheetParseResult, error) {
-	prompt := fmt.Sprintf(`You are a battery specification extraction assistant. Extract ALL possible fields from this manufacturer datasheet text.
-
-Extract these fields as JSON. Use null for missing fields:
-{
-  "model_name": "string or null",
-  "part_number": "string or null",
-  "chemistry": "LFP/NMC/NMC811/NMC622/NCA/LCO/LTO/LMO/Sodium-ion/Li-ion or null",
-  "capacity": "string with units (e.g., 150Ah, 5000mAh) or null",
-  "voltage": "string with units (e.g., 48V, 3.7V) or null",
-  "energy_density": "string with Wh/kg or null",
-  "internal_resistance": "string with mΩ or null",
-  "max_charge_current": "string with A or null",
-  "max_discharge_current": "string with A or null",
-  "cutoff_voltage": "string with V or null",
-  "weight": "string with units or null",
-  "dimensions": "string (e.g., 120 x 65 x 18 mm) or null",
-  "terminal_type": "string or null",
-  "ip_rating": "string (e.g., IP67) or null",
-  "cycle_life": "number of cycles or null",
-  "calendar_life": "string or null",
-  "expected_lifetime_cycles": "number or null",
-  "operating_temperature": "string (e.g., -20°C to 60°C) or null",
-  "storage_temperature": "string or null",
-  "self_discharge": "string or null",
-  "manufacturer": "company name or null",
-  "manufacturer_address": "string or null",
-  "country_of_origin": "2-letter ISO code (CN, KR, JP, DE, US, IN, TW) or null",
-  "factory_location": "string or null",
-  "certifications": ["list of certs: UN38.3, CE, UL, BIS, IEC62133, RoHS, REACH, KC, PSE, etc."],
-  "un38_3": true/false,
-  "ce_marking": true/false,
-  "ul_listed": true/false,
-  "bis_certified": true/false,
-  "iec_62133": true/false,
-  "rohs_compliant": true/false,
-  "reach_compliant": true/false,
-  "notified_body_number": "string or null",
-  "eu_representative": "string or null",
-  "eu_representative_email": "string or null",
-  "eu_representative_address": "string or null",
-  "removable_and_replaceable": true/false,
-  "carbon_footprint": "string with kg CO2e or null",
-  "carbon_performance_class": "A-G or null",
-  "warranty_months": "number as string or null",
-  "bis_number": "string or null",
-  "epr_number": "string or null",
-  "hsn_code": "string or null",
-  "is_standard": "string or null",
-  "material_composition": {"lithium": "pct", "cobalt": "pct", "nickel": "pct", "manganese": "pct", "graphite": "pct", "lead": "pct"},
-  "recycled_content_pct": "string or null",
-  "recycled_cobalt": "string or null",
-  "recycled_lithium": "string or null",
-  "recycled_nickel": "string or null",
-  "recycled_lead": "string or null",
-  "hazardous_lead_present": true/false,
-  "hazardous_mercury_present": true/false,
-  "hazardous_cadmium_present": true/false,
-  "hazardous_declaration": "string or null"
-}
-
-Rules:
-- Chemistry must be standardized to exactly: LFP, NMC, NMC811, NMC622, NCA, LCO, LTO, LMO, Sodium-ion, or Li-ion
-- Capacity and voltage MUST include units
-- Country must be 2-letter ISO code
-- Material composition percentages should be strings (e.g., "3.5")
-- For certifications, return true/false booleans AND include them in the certifications array
-- Warranty: convert years to months if needed (e.g., "24" for 2 years)
-- If cycle_life is numeric, also populate expected_lifetime_cycles with same value
-
-Datasheet text:
-"""
-%s
-"""
-
-Respond with ONLY the JSON object, no markdown, no explanation.`, truncateText(text, 4000))
-
-	response, err := s.callGroq(ctx, prompt)
-	if err != nil {
-		return nil, err
+func (s *AIService) extractWithLLM(ctx context.Context, text string, task string) (*DatasheetParseResult, string, error) {
+	if s.gateway == nil || !s.gateway.IsAvailable() {
+		return nil, "", fmt.Errorf("LLM gateway not configured or unavailable")
 	}
 
-	jsonStr := s.extractJSON(response)
+	resp, err := s.gateway.CompleteTask(ctx, task, map[string]interface{}{
+		"Text": text,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	jsonStr := s.extractJSON(resp.Text)
 	if jsonStr == "" {
-		return nil, fmt.Errorf("no JSON found in LLM response")
+		return nil, "", fmt.Errorf("no JSON found in LLM response")
 	}
 
 	var result DatasheetParseResult
 	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		return nil, fmt.Errorf("failed to parse LLM JSON: %w", err)
+		return nil, "", fmt.Errorf("failed to parse LLM JSON: %w", err)
 	}
 
-	return &result, nil
-}
-
-func (s *AIService) callGroq(ctx context.Context, prompt string) (string, error) {
-	reqBody := map[string]interface{}{
-		"model": groqModel,
-		"messages": []map[string]string{
-			{"role": "system", "content": "You are a battery specification extraction assistant. Respond only with valid JSON."},
-			{"role": "user", "content": prompt},
-		},
-		"temperature": 0.1,
-		"max_tokens": 2048,
-		"response_format": map[string]string{"type": "json_object"},
-	}
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", groqAPIURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Authorization", "Bearer "+s.groqAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("groq API error %d: %s", resp.StatusCode, string(body))
-	}
-
-	var groqResp struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-		Usage struct {
-			TotalTokens int `json:"total_tokens"`
-		} `json:"usage"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&groqResp); err != nil {
-		return "", err
-	}
-
-	if len(groqResp.Choices) == 0 {
-		return "", fmt.Errorf("no choices in groq response")
-	}
-
-	return groqResp.Choices[0].Message.Content, nil
+	return &result, resp.Model, nil
 }
 
 func (s *AIService) extractJSON(text string) string {
