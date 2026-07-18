@@ -20,7 +20,7 @@ const afterRows = [
 export default function TextileChallenge() {
   return (
     <section className="py-20 lg:py-28">
-      <div className="max-w-[1080px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

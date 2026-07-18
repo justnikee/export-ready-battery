@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("dispatch_pending_items");
     sessionStorage.removeItem("dispatch_pending_items");
     setUser(null);
-    router.push(routes.login);
+    window.location.href = routes.login;
   };
 
   const refreshUser = async () => {

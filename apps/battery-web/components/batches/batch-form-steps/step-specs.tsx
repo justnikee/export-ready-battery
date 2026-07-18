@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +27,98 @@ const materialKeyLabels = [
 interface StepSpecsProps {
   aiFilledFields?: Set<string>;
   settingsFilledFields?: Set<string>;
+}
+
+// Splits a stored "number + unit" string (e.g. "100Ah", "3.7 V") into its parts
+// so the UI can edit the number and pick the unit separately.
+function splitUnitValue(raw: string, units: string[], fallback: string) {
+  const m = raw.trim().match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?$/);
+  const unit = units.find((u) => u.toLowerCase() === m?.[2]?.toLowerCase()) ?? fallback;
+  return { num: m?.[1] ?? "", unit };
+}
+
+// Number input + unit pill selector. The form value stays a single combined
+// string (e.g. "100Ah") so drafts/templates/submission are unchanged.
+function UnitNumberInput({
+  name,
+  id,
+  units,
+  defaultUnit,
+  placeholder,
+  hasError,
+  aiFilled,
+}: {
+  name: "capacity" | "voltage" | "weight";
+  id: string;
+  units: string[];
+  defaultUnit: string;
+  placeholder?: string;
+  hasError?: boolean;
+  aiFilled?: boolean;
+}) {
+  const { register, setValue, control } = useFormContext<BatchFormData>();
+  const value = (useWatch({ control, name }) as string | undefined) ?? "";
+  const parsed = useMemo(() => splitUnitValue(value, units, defaultUnit), [value, units, defaultUnit]);
+  const [text, setText] = useState(parsed.num);
+  const [unit, setUnit] = useState(parsed.unit);
+  const [editing, setEditing] = useState(false);
+
+  // Re-sync when the value changes externally (AI fill, template load, draft
+  // resume) — but never clobber what the user is currently typing.
+  useEffect(() => {
+    if (!editing) {
+      setText(parsed.num);
+      setUnit(parsed.unit);
+    }
+  }, [parsed.num, parsed.unit, editing]);
+
+  const commit = (numText: string, nextUnit: string) => {
+    const trimmed = numText.trim();
+    setValue(name, trimmed === "" ? "" : `${trimmed}${nextUnit}`, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  return (
+    <div className="flex gap-2 items-start">
+      <input type="hidden" {...register(name)} />
+      <Input
+        id={id}
+        value={text}
+        inputMode="decimal"
+        placeholder={placeholder}
+        onFocus={() => setEditing(true)}
+        onBlur={() => setEditing(false)}
+        onChange={(e) => {
+          const t = e.target.value;
+          if (!/^\d*\.?\d*$/.test(t)) return;
+          setText(t);
+          commit(t, unit);
+        }}
+        className={`flex-1 ${hasError ? "border-red-500" : ""} ${aiFieldClass(aiFilled ?? false)}`}
+      />
+      <div className="flex shrink-0 overflow-hidden rounded-md border border-border h-9">
+        {units.map((u) => (
+          <button
+            key={u}
+            type="button"
+            onClick={() => {
+              setUnit(u);
+              commit(text, u);
+            }}
+            className={`px-2.5 text-xs transition-colors ${
+              unit === u
+                ? "bg-accent text-foreground font-medium"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            }`}
+          >
+            {u}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsProps = {}) {
@@ -106,17 +199,20 @@ export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsPro
       )}
 
       {/* Capacity & Voltage */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 items-start">
         <div className="grid gap-2">
           <Label htmlFor="capacity" className="flex items-center gap-1.5">
             Rated Capacity <span className="text-red-500">*</span>
             {filledByAi.has("capacity") && <AiBadge />}
           </Label>
-          <Input
+          <UnitNumberInput
+            name="capacity"
             id="capacity"
-            {...register("capacity")}
-            placeholder="e.g. 5000mAh"
-            className={`${errors.capacity ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("capacity"))}`}
+            units={["mAh", "Ah", "kWh"]}
+            defaultUnit="Ah"
+            placeholder="e.g. 100"
+            hasError={!!errors.capacity}
+            aiFilled={filledByAi.has("capacity")}
           />
           {errors.capacity && (
             <p className="text-xs text-red-500">{errors.capacity.message}</p>
@@ -127,11 +223,14 @@ export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsPro
             Voltage <span className="text-red-500">*</span>
             {filledByAi.has("voltage") && <AiBadge />}
           </Label>
-          <Input
+          <UnitNumberInput
+            name="voltage"
             id="voltage"
-            {...register("voltage")}
-            placeholder="e.g. 3.7V"
-            className={`${errors.voltage ? "border-red-500" : ""} ${aiFieldClass(filledByAi.has("voltage"))}`}
+            units={["V", "mV"]}
+            defaultUnit="V"
+            placeholder="e.g. 48"
+            hasError={!!errors.voltage}
+            aiFilled={filledByAi.has("voltage")}
           />
           {errors.voltage && (
             <p className="text-xs text-red-500">{errors.voltage.message}</p>
@@ -140,13 +239,24 @@ export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsPro
       </div>
 
       {/* Weight & Country */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 items-start">
         <div className="grid gap-2">
           <Label htmlFor="weight" className="flex items-center gap-1.5">
             Weight
             {filledByAi.has("weight") && <AiBadge />}
           </Label>
-          <Input id="weight" {...register("weight")} placeholder="e.g. 500g" className={aiFieldClass(filledByAi.has("weight"))} />
+          <UnitNumberInput
+            name="weight"
+            id="weight"
+            units={["kg", "g"]}
+            defaultUnit="kg"
+            placeholder="e.g. 45"
+            hasError={!!errors.weight}
+            aiFilled={filledByAi.has("weight")}
+          />
+          {errors.weight && (
+            <p className="text-xs text-red-500">{errors.weight.message}</p>
+          )}
         </div>
         <div className="grid gap-2">
           <Label htmlFor="countryOfOrigin" className="flex items-center gap-1.5">

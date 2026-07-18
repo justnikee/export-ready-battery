@@ -86,7 +86,7 @@ export default function PricingCards() {
 
   return (
     <section className="py-10">
-      <div className="max-w-[1080px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         {/* Toggle */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <span

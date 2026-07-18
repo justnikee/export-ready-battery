@@ -26,8 +26,8 @@ const contentSecurityPolicy = [
   // billing page can't open the payment modal on localhost) + Next.js dev
   // runtime (requires 'unsafe-eval' for HMR only)
   isDev
-    ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com`
-    : `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com`,
+    ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://cdnjs.cloudflare.com`
+    : `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdnjs.cloudflare.com`,
   // Stylesheets: self + inline styles used by shadcn/ui
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   // Fonts
@@ -36,14 +36,14 @@ const contentSecurityPolicy = [
   // compliance docs) loaded directly as <img> (e.g. the topbar/sidebar avatar,
   // which isn't proxied through next/image's optimizer)
   `img-src 'self' data: blob: https://*.supabase.co`,
-  // API calls + websocket for HMR in dev + jsdelivr CDN for the scan activity world map
+  // API calls + websocket for HMR in dev + jsdelivr CDN + Supabase storage + cdnjs
   isDev
-    ? `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net ws://localhost:*`
-    : `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net`,
+    ? `connect-src 'self' ${apiOrigin} https://*.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com ws://localhost:*`
+    : `connect-src 'self' ${apiOrigin} https://*.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
   // Razorpay checkout iframe
   `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`,
-  // Workers (Next.js)
-  `worker-src 'self' blob:`,
+  // Workers (Next.js) + cdnjs
+  `worker-src 'self' blob: https://cdnjs.cloudflare.com`,
   // Prevent clickjacking
   `frame-ancestors 'none'`,
   // Limit form actions

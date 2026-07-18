@@ -20,6 +20,9 @@ import {
   X,
   ArrowLeft,
   Search,
+  Check,
+  Upload,
+  MessageSquareText,
 } from "lucide-react";
 import type { Template } from "@/hooks/use-queries";
 import type { MarketRegion } from "@/components/batches/batch-form-schema";
@@ -105,7 +108,7 @@ export function BatchEntryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         {view === "main" ? (
           <>
             <DialogHeader>
@@ -119,21 +122,24 @@ export function BatchEntryModal({
                 <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Select Market
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {MARKET_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => setMarket(opt.value)}
-                      className={`p-3 border-2 text-center transition-all ${
+                      className={`relative border p-4 text-center transition-colors focus-visible:outline-none ${
                         market === opt.value
                           ? "border-foreground bg-accent text-foreground"
-                          : "border-border hover:border-border text-muted-foreground"
+                          : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground focus-visible:border-foreground/60"
                       }`}
                     >
-                      <opt.icon className="h-5 w-5 mx-auto mb-1" />
-                      <div className="text-sm">{opt.label}</div>
-                      <div className="text-[10px] opacity-70">{opt.sub}</div>
+                      {market === opt.value && (
+                        <Check className="absolute right-2.5 top-2.5 h-3.5 w-3.5" />
+                      )}
+                      <opt.icon className="h-5 w-5 mx-auto mb-1.5" />
+                      <div className="text-sm font-medium">{opt.label}</div>
+                      <div className="text-[10px] opacity-70 mt-0.5">{opt.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -203,31 +209,33 @@ export function BatchEntryModal({
                 <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Start From
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <div className="relative p-3 border-2 border-emerald-500/40 bg-emerald-500/5 text-left sm:row-span-1">
-                    <span className="absolute -top-2 right-2 bg-emerald-500 text-white text-[9px] font-medium px-1.5 py-0.5 rounded-full">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="relative flex h-full flex-col border border-emerald-500/40 bg-emerald-500/5 p-4 text-left">
+                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-medium text-white">
                       Fastest
                     </span>
                     <Sparkles className="h-5 w-5 mb-1.5 text-emerald-500" />
                     <div className="text-sm font-medium text-foreground">AI Fill</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5 mb-2">
-                      Upload a PDF for full extraction, or describe in words for a quick core-fields draft
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      Auto-draft fields from a PDF or short description
                     </div>
-                    <div className="flex gap-1.5">
+                    <div className="mt-auto flex flex-col gap-2 pt-4">
                       <Button
                         type="button"
                         size="sm"
-                        className="flex-1 text-[11px] h-7 bg-emerald-600 hover:bg-emerald-500 text-white"
+                        className="h-7 w-full bg-emerald-600 px-2 text-[11px] text-white hover:bg-emerald-500 focus-visible:outline-none"
                         onClick={() => onChoice({ type: "ai-pdf", market })}
                       >
+                        <Upload className="mr-1.5 h-3 w-3" />
                         Upload PDF
                       </Button>
                       <Button
                         type="button"
                         size="sm"
-                        className="flex-1 text-[11px] h-7 bg-emerald-600 hover:bg-emerald-500 text-white"
+                        className="h-7 w-full bg-emerald-500/10 px-2 text-[11px] text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 focus-visible:outline-none"
                         onClick={() => onChoice({ type: "ai-nl", market })}
                       >
+                        <MessageSquareText className="mr-1.5 h-3 w-3" />
                         Describe
                       </Button>
                     </div>
@@ -235,7 +243,7 @@ export function BatchEntryModal({
                   <button
                     type="button"
                     onClick={() => setView("templates")}
-                    className="p-3 border border-border text-left hover:border-foreground hover:bg-accent transition-colors"
+                    className="flex h-full flex-col border border-border p-4 text-left transition-colors hover:border-foreground hover:bg-accent focus-visible:outline-none focus-visible:border-foreground"
                   >
                     <LayoutTemplate className="h-5 w-5 mb-1.5 text-muted-foreground" />
                     <div className="text-sm font-medium text-foreground">From Template</div>
@@ -246,7 +254,7 @@ export function BatchEntryModal({
                   <button
                     type="button"
                     onClick={() => onChoice({ type: "blank", market })}
-                    className="p-3 border border-border text-left hover:border-foreground hover:bg-accent transition-colors"
+                    className="flex h-full flex-col border border-border p-4 text-left transition-colors hover:border-foreground hover:bg-accent focus-visible:outline-none focus-visible:border-foreground"
                   >
                     <PenLine className="h-5 w-5 mb-1.5 text-muted-foreground" />
                     <div className="text-sm font-medium text-foreground">Start Blank</div>

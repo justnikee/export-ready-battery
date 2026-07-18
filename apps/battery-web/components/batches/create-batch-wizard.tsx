@@ -1058,12 +1058,12 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                     {t("wizard_save_exit")}
                   </Button>
                   {step < STEPS.length - 1 ? (
-                    <Button type="button" onClick={goNext} disabled={isLoading}>
+                    <Button key="next-button" type="button" onClick={goNext} disabled={isLoading}>
                       {t("wizard_next")}: {translatedSteps[step + 1].label}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button type="submit" disabled={isLoading || iecError}>
+                    <Button key="submit-button" type="submit" disabled={isLoading || iecError}>
                       {isLoading ? t("wizard_creating") : t("wizard_create_batch")}
                     </Button>
                   )}

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-white overflow-x-clip">
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
       <SiteHeader />
       <Hero />
       <PassportFlow />

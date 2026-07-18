@@ -23,10 +23,10 @@ const contentSecurityPolicy = [
   `font-src 'self' https://fonts.gstatic.com`,
   // Images: self + data URIs for base64 QR codes
   `img-src 'self' data: blob:`,
-  // API calls + websocket for HMR in dev
+  // API calls + websocket for HMR in dev + Supabase storage
   isDev
-    ? `connect-src 'self' ${apiOrigin} ws://localhost:*`
-    : `connect-src 'self' ${apiOrigin}`,
+    ? `connect-src 'self' ${apiOrigin} https://*.supabase.co ws://localhost:*`
+    : `connect-src 'self' ${apiOrigin} https://*.supabase.co`,
   // Razorpay checkout iframe
   `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`,
   // Workers (Next.js)

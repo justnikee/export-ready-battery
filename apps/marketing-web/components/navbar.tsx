@@ -13,6 +13,7 @@ import {
   Coins,
   Newspaper,
   BookOpen,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,7 +23,6 @@ interface NavChild {
   href: string;
   desc: string;
   icon: LucideIcon;
-  /** tinted icon chip: [bg class, icon color class] */
   tone: [string, string];
 }
 
@@ -41,21 +41,21 @@ const navItems: NavItem[] = [
         href: "/battery",
         desc: "EU 2023/1542 passports, BIS & carbon compliance for battery exporters.",
         icon: BatteryCharging,
-        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
       {
         label: "Textile DPP",
         href: "/textile",
         desc: "Fiber-to-product traceability, ready before the ESPR mandate.",
         icon: Shirt,
-        tone: ["bg-[#fdf3e3]", "text-[#b45309]"],
+        tone: ["bg-amber-soft", "text-amber-text"],
       },
       {
         label: "Pricing",
         href: "/pricing",
         desc: "One-time credit packs — no subscriptions, no lock-in.",
         icon: Tag,
-        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
     ],
   },
@@ -67,21 +67,21 @@ const navItems: NavItem[] = [
         href: "/compliance/eu-battery-regulation",
         desc: "Everything 2023/1542 requires, mapped article by article.",
         icon: ScrollText,
-        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
       {
         label: "India BWM Rules",
         href: "/compliance/india-bwm-rules",
         desc: "BIS, CPCB EPR and BWM 2022 obligations in one place.",
         icon: Landmark,
-        tone: ["bg-[#fdf3e3]", "text-[#b45309]"],
+        tone: ["bg-amber-soft", "text-amber-text"],
       },
       {
         label: "DGFT TRACE",
         href: "/battery",
         desc: "Auto-file export incentive claims from your passport data.",
         icon: Coins,
-        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
     ],
   },
@@ -93,14 +93,14 @@ const navItems: NavItem[] = [
         href: "/blog",
         desc: "Regulation updates and export playbooks for manufacturers.",
         icon: Newspaper,
-        tone: ["bg-crew-coral-soft", "text-crew-coral"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
       {
         label: "EU Battery Guide",
         href: "/compliance/eu-battery-regulation",
         desc: "The regulatory roadmap from CE marking to Feb 2027.",
         icon: BookOpen,
-        tone: ["bg-[#eef3fd]", "text-[#1d4ed8]"],
+        tone: ["bg-blue-tint", "text-blue"],
       },
     ],
   },
@@ -162,34 +162,33 @@ export default function Navbar({
       <nav
         ref={navRef}
         onMouseLeave={() => scheduleClose()}
-        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-white/80 backdrop-blur-md transition-all duration-300`}
+        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-bg/80 backdrop-blur-md border-b border-border/60 transition-all duration-300`}
       >
         <div
           className={`max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
-            scrolled ? "h-14" : "h-16"
+            scrolled ? "h-14" : "h-14"
           }`}
         >
           {/* Left: Brand */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-semibold tracking-tight shrink-0 text-crew-ink justify-self-start"
-            style={{ fontSize: "24px" }}
+            className="inline-flex items-center gap-2.5 font-heading font-medium tracking-[-0.03em] shrink-0 text-text justify-self-start"
+            style={{ fontSize: "20px" }}
           >
             <span
               aria-hidden="true"
-              className="block bg-crew-coral"
+              className="block bg-blue"
               style={{
-                width: "18px",
-                height: "18px",
-                borderRadius: "5px",
-                transform: "skewX(-10deg)",
+                width: "16px",
+                height: "16px",
+                borderRadius: "3px",
               }}
             />
             Anviora
           </Link>
 
           {/* Center: Desktop links */}
-          <div className="hidden md:flex items-center gap-1 justify-self-center">
+          <div className="hidden md:flex items-center gap-0.5 justify-self-center">
             {navItems.map((item) => {
               const isOpen = activeLabel === item.label;
               if (!item.children) {
@@ -197,7 +196,7 @@ export default function Navbar({
                   <a
                     key={item.label}
                     href={item.href}
-                    className="px-3 py-1.5 text-[15px] font-medium rounded-full text-crew-ink/70 hover:text-crew-ink hover:bg-paper transition-colors"
+                    className="px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] text-text hover:text-text-muted hover:bg-bg-alt rounded-md transition-colors"
                   >
                     {item.label}
                   </a>
@@ -211,10 +210,10 @@ export default function Navbar({
                   onMouseLeave={() => scheduleClose()}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[15px] font-medium rounded-full transition-colors ${
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] rounded-md transition-colors ${
                       isOpen
-                        ? "text-crew-ink bg-paper"
-                        : "text-crew-ink/70 hover:text-crew-ink"
+                        ? "text-text bg-bg-alt"
+                        : "text-text hover:text-text-muted hover:bg-bg-alt"
                     }`}
                   >
                     {item.label}
@@ -228,7 +227,7 @@ export default function Navbar({
 
                   {/* Mega dropdown */}
                   <div
-                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-3 z-50 transition-all duration-200 origin-top ${
+                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50 transition-all duration-200 origin-top ${
                       isOpen
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 scale-[0.98] -translate-y-1 pointer-events-none"
@@ -236,23 +235,23 @@ export default function Navbar({
                     onMouseEnter={cancelClose}
                     onMouseLeave={() => scheduleClose()}
                   >
-                    <div className="w-[400px] rounded-3xl bg-white p-2.5 shadow-[0_24px_70px_rgba(15,40,30,0.16),0_4px_16px_rgba(15,40,30,0.06)]">
+                    <div className="w-[420px] bg-paper border border-border shadow-[0_24px_70px_-12px_rgba(5,98,239,0.18),0_8px_24px_-8px_rgba(11,16,21,0.08)] p-2">
                       {item.children.map((child) => (
                         <a
                           key={child.label}
                           href={child.href}
-                          className="group flex items-start gap-3.5 p-3.5 rounded-2xl hover:bg-paper transition-colors"
+                          className="group flex items-start gap-3.5 p-3 hover:bg-bg-alt transition-colors rounded-sm"
                         >
                           <span
-                            className={`inline-flex items-center justify-center w-11 h-11 rounded-xl shrink-0 ${child.tone[0]} ${child.tone[1]}`}
+                            className={`inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${child.tone[0]} ${child.tone[1]}`}
                           >
-                            <child.icon size={20} strokeWidth={1.8} />
+                            <child.icon size={18} strokeWidth={1.8} />
                           </span>
                           <span className="min-w-0">
-                            <span className="block text-[14.5px] font-semibold text-crew-ink leading-tight">
+                            <span className="block text-[14px] font-medium text-text leading-tight">
                               {child.label}
                             </span>
-                            <span className="block text-[12.5px] leading-[1.45] text-crew-muted mt-1">
+                            <span className="block text-[12px] leading-[1.45] text-text-muted mt-1">
                               {child.desc}
                             </span>
                           </span>
@@ -265,19 +264,22 @@ export default function Navbar({
             })}
           </div>
 
-          {/* Right: Actions */}
-          <div className="hidden md:flex items-center gap-4 justify-self-end text-[16px] font-medium">
+          {/* Right: Actions — Supermemory split CTA */}
+          <div className="hidden md:flex items-center gap-4 justify-self-end">
             <a
               href="/request-access"
-              className="inline-flex items-center justify-center h-[38px] px-5 rounded-full text-[14.5px] font-semibold text-white bg-crew-ink hover:bg-black transition-colors"
+              className="btn-primary press-scale"
             >
-              Request a Demo
+              <span className="btn-primary-label">Request a Demo</span>
+              <span className="btn-primary-arrow">
+                <ArrowRight size={15} />
+              </span>
             </a>
           </div>
 
           {/* Mobile toggle */}
           <button
-            className="md:hidden p-2 justify-self-end text-crew-ink"
+            className="md:hidden p-2 justify-self-end text-text"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -288,13 +290,13 @@ export default function Navbar({
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-white pt-20 px-5 md:hidden overflow-y-auto">
+        <div className="fixed inset-0 z-40 bg-bg pt-20 px-5 md:hidden overflow-y-auto">
           <div className="flex flex-col gap-1 pb-10">
             {navItems.map((item) => (
               <div key={item.label}>
                 {item.children ? (
                   <>
-                    <div className="pt-5 pb-2 px-1 text-[12px] font-semibold text-crew-muted uppercase tracking-wider">
+                    <div className="pt-5 pb-2 px-1 text-[11px] font-medium font-mono tracking-[0.18em] uppercase text-text-dim">
                       {item.label}
                     </div>
                     <div className="grid gap-1">
@@ -303,18 +305,18 @@ export default function Navbar({
                           key={child.label}
                           href={child.href}
                           onClick={() => setMobileOpen(false)}
-                          className="flex items-start gap-3 p-3 rounded-2xl bg-paper"
+                          className="flex items-start gap-3 p-3 bg-paper border border-border rounded-md"
                         >
                           <span
-                            className={`inline-flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${child.tone[0]} ${child.tone[1]}`}
+                            className={`inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${child.tone[0]} ${child.tone[1]}`}
                           >
                             <child.icon size={18} strokeWidth={1.8} />
                           </span>
                           <span className="min-w-0">
-                            <span className="block text-[14px] font-semibold text-crew-ink leading-tight">
+                            <span className="block text-[14px] font-medium text-text leading-tight">
                               {child.label}
                             </span>
-                            <span className="block text-[12px] leading-[1.4] text-crew-muted mt-0.5">
+                            <span className="block text-[12px] leading-[1.4] text-text-muted mt-0.5">
                               {child.desc}
                             </span>
                           </span>
@@ -326,7 +328,7 @@ export default function Navbar({
                   <a
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block px-1 py-3 mt-2 text-[15px] font-semibold text-crew-ink"
+                    className="block px-1 py-3 mt-2 text-[15px] font-medium text-text"
                   >
                     {item.label}
                   </a>
@@ -335,9 +337,12 @@ export default function Navbar({
             ))}
             <a
               href="/request-access"
-              className="inline-flex items-center justify-center h-11 rounded-full text-white text-[14.5px] font-semibold mt-5 bg-crew-ink"
+              className="btn-primary press-scale mt-5"
             >
-              Request a Demo
+              <span className="btn-primary-label">Request a Demo</span>
+              <span className="btn-primary-arrow">
+                <ArrowRight size={15} />
+              </span>
             </a>
           </div>
         </div>

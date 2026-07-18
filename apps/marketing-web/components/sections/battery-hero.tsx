@@ -4,10 +4,14 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import DeadlineCountdown from "@/components/deadline-countdown";
 import BatteryPassportCard from "@/components/illustrations/battery-passport-card";
+import GlowDots from "@/components/illustrations/glow-dots";
 
 export default function BatteryHero() {
   return (
     <section className="relative pt-[120px] pb-20 lg:pt-[152px] lg:pb-[96px] overflow-hidden">
+      {/* Glowing dot grid background */}
+      <GlowDots />
+
       {/* Subtle background grain */}
       <svg
         aria-hidden="true"
@@ -24,7 +28,7 @@ export default function BatteryHero() {
         <rect width="100%" height="100%" filter="url(#bh-grain)" />
       </svg>
 
-      <div className="relative max-w-[1080px] mx-auto px-6">
+      <div className="relative max-w-[1232px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* ── Left: copy ── */}
           <motion.div

@@ -179,7 +179,18 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 		return "", fmt.Errorf("failed to parse signed URL response: %w", err)
 	}
 
-	fullURL := s.supabaseURL + response.SignedURL
+	// The signedURL shape varies by Supabase Storage version: older versions
+	// return "/storage/v1/object/sign/...", newer ones return "/object/sign/..."
+	// (relative to the storage API root, without the /storage/v1 prefix).
+	// Concatenating the newer shape verbatim yields a URL that 404s.
+	signedPath := response.SignedURL
+	if strings.HasPrefix(signedPath, "http://") || strings.HasPrefix(signedPath, "https://") {
+		return signedPath, nil
+	}
+	if !strings.HasPrefix(signedPath, "/storage/v1/") {
+		signedPath = "/storage/v1" + signedPath
+	}
+	fullURL := strings.TrimSuffix(s.supabaseURL, "/") + signedPath
 
 	s.logger.Info("created signed URL successfully",
 		"path", filePath,
@@ -206,6 +217,11 @@ func (s *StorageService) ExtractStoragePath(rawURL, bucket string) (string, bool
 		"/storage/v1/object/sign/" + bucket + "/",
 		"/storage/v1/object/public/" + bucket + "/",
 		"/storage/v1/object/" + bucket + "/",
+		// Newer Supabase versions issue signed URLs relative to the storage API
+		// root (no /storage/v1 prefix). URLs persisted before the prefix fix
+		// carry this shape and must still resolve back to a storage path.
+		"/object/sign/" + bucket + "/",
+		"/object/public/" + bucket + "/",
 	} {
 		idx := strings.Index(rawURL, marker)
 		if idx == -1 {

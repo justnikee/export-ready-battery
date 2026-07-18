@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,6 +58,7 @@ interface CarbonCalculatorProps {
  weight?: string
  existingResult?: CarbonResult | null
  onResultSaved?: () => void
+ onCalculate?: (result: CarbonResult) => void
 }
 
 const HISTORY_STORAGE_KEY = "carbon-calculator-history"
@@ -181,8 +180,8 @@ function parseWeight(raw?: string): number {
  return num
 }
 
-export function CarbonCalculator({ batchId, chemistry, capacity, weight, existingResult, onResultSaved }: CarbonCalculatorProps) {
- const standalone = !batchId
+export function CarbonCalculator({ batchId, chemistry, capacity, weight, existingResult, onResultSaved, onCalculate }: CarbonCalculatorProps) {
+ const standalone = !batchId && !onCalculate
  const [expanded, setExpanded] = useState(!existingResult)
  const [calculating, setCalculating] = useState(false)
  const [saving, setSaving] = useState(false)
@@ -204,6 +203,15 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  transport_distance_km: 5000,
  battery_weight_kg: parseWeight(weight) || 25,
  })
+
+ useEffect(() => {
+ setForm(prev => ({
+ ...prev,
+ chemistry: chemistry || prev.chemistry,
+ capacity_kwh: parseCapacity(capacity, chemistry) || prev.capacity_kwh,
+ battery_weight_kg: parseWeight(weight) || prev.battery_weight_kg,
+ }))
+ }, [chemistry, capacity, weight])
 
  const updateField = <K extends keyof CarbonInput>(field: K, value: CarbonInput[K]) => {
  setForm(prev => ({ ...prev, [field]: value }))
@@ -234,26 +242,30 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  }
 
  const handleSaveToBatch = async () => {
- if (!result) return
- const targetBatchId = batchId || selectedBatchId
- if (!targetBatchId) {
- toast.error("Select a batch first")
- return
- }
- setSaving(true)
- try {
- await api.post(`/batches/${targetBatchId}/carbon`, result)
- toast.success("Carbon footprint saved to batch", {
- description: `Class ${result.carbon_class} · This result will be used for EU compliance declarations.`,
- })
- onResultSaved?.()
- } catch (error: unknown) {
- const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to save"
- toast.error(msg)
- } finally {
- setSaving(false)
- }
- }
+  if (!result) return
+  if (onCalculate) {
+    onCalculate(result)
+    return
+  }
+  const targetBatchId = batchId || selectedBatchId
+  if (!targetBatchId) {
+  toast.error("Select a batch first")
+  return
+  }
+  setSaving(true)
+  try {
+  await api.post(`/batches/${targetBatchId}/carbon`, result)
+  toast.success("Carbon footprint saved to batch", {
+  description: `Class ${result.carbon_class} · This result will be used for EU compliance declarations.`,
+  })
+  onResultSaved?.()
+  } catch (error: unknown) {
+  const msg = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to save"
+  toast.error(msg)
+  } finally {
+  setSaving(false)
+  }
+  }
 
  const handleLoadHistoryEntry = (entry: HistoryEntry) => {
  setForm(entry.input)
@@ -554,7 +566,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  ) : (
  <>
  <Save className="mr-2 h-4 w-4" />
- {standalone ? "Apply to Batch" : "Save Result to Batch"}
+ {onCalculate ? "Apply Result to Form" : standalone ? "Apply to Batch" : "Save Result to Batch"}
  </>
  )}
  </Button>

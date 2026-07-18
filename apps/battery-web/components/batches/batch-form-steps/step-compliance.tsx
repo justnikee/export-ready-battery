@@ -1,8 +1,9 @@
-"use client";
-
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { CarbonCalculator } from "@/components/batches/carbon-calculator";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -88,6 +89,11 @@ export function StepCompliance({
     watch,
     setValue,
   } = useFormContext<BatchFormData>();
+
+  const [calcOpen, setCalcOpen] = useState(false);
+  const chemistry = watch("chemistry");
+  const capacity = watch("capacity");
+  const weight = watch("weight");
 
   const marketRegion = watch("marketRegion");
   const isEUMode = marketRegion === "EU";
@@ -247,6 +253,34 @@ export function StepCompliance({
                     <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">kg CO₂e</span>
                   </div>
                   {errors.carbonFootprint && <p className="text-xs text-red-500 mt-0.5">{errors.carbonFootprint.message}</p>}
+                  <div className="flex justify-between items-center mt-1">
+                    <Dialog open={calcOpen} onOpenChange={setCalcOpen}>
+                      <DialogTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-xs text-emerald-500 hover:text-emerald-400 flex items-center gap-1 font-medium transition-colors"
+                        >
+                          <Calculator className="h-3.5 w-3.5" />
+                          Calculate using Carbon Calculator
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl bg-background border-border max-h-[85vh] overflow-y-auto">
+                        <div className="p-1">
+                          <CarbonCalculator
+                            chemistry={chemistry}
+                            capacity={capacity}
+                            weight={weight}
+                            onCalculate={(result) => {
+                              setValue("carbonFootprint", result.total_kg_co2e.toFixed(1), { shouldValidate: true, shouldDirty: true });
+                              setValue("carbonPerformanceClass", result.carbon_class, { shouldValidate: true, shouldDirty: true });
+                              setCalcOpen(false);
+                              toast.success("Carbon footprint calculated and applied!");
+                            }}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
 
                 <div className="space-y-3 pt-3">

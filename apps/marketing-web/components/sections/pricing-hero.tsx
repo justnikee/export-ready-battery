@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export default function PricingHero() {
   return (
     <section className="pt-[120px] pb-10 lg:pt-[160px] lg:pb-14">
-      <div className="max-w-[1080px] mx-auto px-6 text-center">
+      <div className="max-w-[1232px] mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

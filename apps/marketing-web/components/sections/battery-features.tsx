@@ -412,7 +412,7 @@ const features = [
 export default function BatteryFeatures() {
   return (
     <section className="py-20 lg:py-28">
-      <div className="max-w-[1080px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         {features.map((f, i) => (
           <motion.div
             key={f.title}

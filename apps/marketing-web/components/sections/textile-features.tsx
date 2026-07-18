@@ -41,7 +41,7 @@ const features = [
 export default function TextileFeatures() {
   return (
     <section className="py-20 lg:py-28">
-      <div className="max-w-[1080px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {features.map((f) => (
             <motion.div

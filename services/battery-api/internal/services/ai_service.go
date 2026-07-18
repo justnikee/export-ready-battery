@@ -426,21 +426,29 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 
 	// === Model / Part Number ===
 	modelPatterns := []string{
-		`(?i)(?:model|model\s*no\.?|part\s*#?|p/n|型号|型號)[\s:]*([A-Z0-9\-_/]{3,25})`,
+		`(?i)(?:model\s*name\s*/\s*number|model\s*name|model\s*number|model\s*no\.?|part\s*#?|p/n|型号|型號)[\s:]*([A-Z0-9\-_/]{3,25})`,
 		`(?i)^\s*([A-Z]{2,4}[\-_]?[0-9]{2,4}[A-Z0-9\-_]*)\s*$`,
 	}
 	for _, pat := range modelPatterns {
 		if m := regexp.MustCompile(pat).FindStringSubmatch(text); len(m) > 1 {
-			r.ModelName = strings.TrimSpace(m[1])
-			break
+			val := strings.TrimSpace(m[1])
+			lowerVal := strings.ToLower(val)
+			if lowerVal != "name" && lowerVal != "number" && lowerVal != "parameter" && lowerVal != "value" && lowerVal != "model" {
+				r.ModelName = val
+				break
+			}
 		}
 	}
 
 	// === Part Number (separate from model) ===
 	if m := regexp.MustCompile(`(?i)(?:part\s*number|part\s*no\.?|p/n)[\s:]*([A-Z0-9\-_/]{3,25})`).FindStringSubmatch(text); len(m) > 1 {
-		r.PartNumber = strings.TrimSpace(m[1])
-		if r.ModelName == "" {
-			r.ModelName = r.PartNumber
+		val := strings.TrimSpace(m[1])
+		lowerVal := strings.ToLower(val)
+		if lowerVal != "name" && lowerVal != "number" && lowerVal != "parameter" && lowerVal != "value" && lowerVal != "model" {
+			r.PartNumber = val
+			if r.ModelName == "" {
+				r.ModelName = r.PartNumber
+			}
 		}
 	}
 
@@ -593,42 +601,90 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 		r.SelfDischarge = strings.TrimSpace(m[1]) + "%/month"
 	}
 
+	// === Address & Email Extraction ===
+	// We scan for all "Address:" and standard email formats to accurately separate Manufacturer vs EU Rep
+	var addresses []string
+	addrMatches := regexp.MustCompile(`(?i)address[\s]*:[\s]*([A-Za-z0-9\s,\.\-#]{10,100})`).FindAllStringSubmatch(text, -1)
+	for _, m := range addrMatches {
+		if len(m) > 1 {
+			addresses = append(addresses, strings.TrimSpace(m[1]))
+		}
+	}
+	if len(addresses) > 0 {
+		r.ManufacturerAddress = addresses[0]
+	}
+	if len(addresses) > 1 {
+		r.EURepresentativeAddress = addresses[1]
+	}
+
+	var emails []string
+	emailMatches := regexp.MustCompile(`(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`).FindAllString(text, -1)
+	for _, email := range emailMatches {
+		emails = append(emails, strings.TrimSpace(email))
+	}
+	if len(emails) > 0 {
+		r.ManufacturerEmail = emails[0]
+	}
+	if len(emails) > 1 {
+		r.EURepresentativeEmail = emails[1]
+	}
+
 	// === Manufacturer ===
 	mfgPatterns := []string{
-		`(?i)(?:manufacturer|maker|brand|factory|produced\s+by|made\s+by|制造商|厂家|メーカー)[\s:]*([A-Za-z0-9\s\-&.]{2,35})`,
-		`(?i)(?:company|corporation|corp\.?|ltd\.?|inc\.?)[\s:]*([A-Za-z0-9\s\-&.]{2,35})`,
+		`(?i)(?:manufacturer|maker|brand|produced\s+by|made\s+by)[\s:]*([A-Za-z0-9\s\-&.]{3,35}\s+(?:Ltd\.?|Inc\.?|Co\.?|GmbH|LLC|Corporation|Corp\.?|Technologies|Systems|Power|Energy))`,
+		`(?i)(?:manufacturer|maker|brand|produced\s+by|made\s+by)[\s:]+([A-Za-z0-9\s\-&.]{3,35})`,
+		`(?i)(?:company|corporation|corp\.?|ltd\.?|inc\.?)[\s:]*([A-Za-z0-9\s\-&.]{3,35})`,
 	}
 	for _, pat := range mfgPatterns {
 		if m := regexp.MustCompile(pat).FindStringSubmatch(text); len(m) > 1 {
-			r.Manufacturer = strings.TrimSpace(m[1])
-			break
-		}
-	}
-
-	// === Manufacturer Address ===
-	if m := regexp.MustCompile(`(?i)(?:address|addr\.?|地址|所在地)[\s:]*([A-Za-z0-9\s,\.\-#]{10,80})`).FindStringSubmatch(text); len(m) > 1 {
-		r.ManufacturerAddress = strings.TrimSpace(m[1])
-	}
-
-	// === Country of Origin ===
-	countryMap := map[string][]string{
-		"CN": {"china", "中国", "prc", "shenzhen", "dongguan", "ningde", "byd", "catl", "eve", "lishen"},
-		"KR": {"korea", "韩国", "republic of korea", "lg chem", "samsung sdi", "sk on"},
-		"JP": {"japan", "日本", "panasonic", "sanyo", "gs yuasa"},
-		"DE": {"germany", "德国", "deutschland", "varta", "akasol"},
-		"US": {"usa", "united states", "america", "tesla", "microvast"},
-		"IN": {"india", "印度", "exide", "amara raja"},
-		"TW": {"taiwan", "台湾", "formosa"},
-	}
-	for code, patterns := range countryMap {
-		for _, p := range patterns {
-			if strings.Contains(lower, p) {
-				r.CountryOfOrigin = code
+			val := strings.TrimSpace(m[1])
+			if !strings.Contains(strings.ToLower(val), "compliance partners") && !strings.Contains(strings.ToLower(val), "global compliance") {
+				r.Manufacturer = val
 				break
 			}
 		}
-		if r.CountryOfOrigin != "" {
-			break
+	}
+
+	// === Country of Origin ===
+	countryList := []struct {
+		code     string
+		patterns []string
+	}{
+		{"IN", []string{"india", "印度", "exide", "amara raja"}},
+		{"DE", []string{"germany", "德国", "deutschland", "varta", "akasol"}},
+		{"CN", []string{"china", "中国", "prc", "shenzhen", "dongguan", "ningde", "byd", "catl", "eve", "lishen"}},
+		{"KR", []string{"korea", "韩国", "republic of korea", "lg chem", "samsung sdi", "sk on"}},
+		{"JP", []string{"japan", "日本", "panasonic", "sanyo", "gs yuasa"}},
+		{"US", []string{"usa", "united states", "america", "tesla", "microvast"}},
+		{"TW", []string{"taiwan", "台湾", "formosa"}},
+	}
+	// Try direct contextual match first
+	if m := regexp.MustCompile(`(?i)(?:country\s+of\s+origin|made\s+in|origin)[\s:]*([A-Za-z\s]{2,20})`).FindStringSubmatch(text); len(m) > 1 {
+		countryName := strings.ToLower(strings.TrimSpace(m[1]))
+		for _, entry := range countryList {
+			for _, p := range entry.patterns {
+				if strings.Contains(countryName, p) {
+					r.CountryOfOrigin = entry.code
+					break
+				}
+			}
+			if r.CountryOfOrigin != "" {
+				break
+			}
+		}
+	}
+	// Fallback to substring search prioritised by countryList slice order
+	if r.CountryOfOrigin == "" {
+		for _, entry := range countryList {
+			for _, p := range entry.patterns {
+				if strings.Contains(lower, p) {
+					r.CountryOfOrigin = entry.code
+					break
+				}
+			}
+			if r.CountryOfOrigin != "" {
+				break
+			}
 		}
 	}
 
@@ -653,13 +709,21 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 	}
 
 	// === Notified Body Number ===
-	if m := regexp.MustCompile(`(?i)(?:notified\s+body|notification\s+body|nb\s*#?)[\s:]*([0-9]{3,5})`).FindStringSubmatch(text); len(m) > 1 {
+	if m := regexp.MustCompile(`(?i)\bnotified\s*body\s*(?:number)?\s*([0-9]{3,5})\b`).FindStringSubmatch(text); len(m) > 1 {
+		r.NotifiedBodyNumber = m[1]
+	} else if m := regexp.MustCompile(`(?i)\bnotified\s+body\b[\s\S]{1,50}?\b([0-9]{4})\b`).FindStringSubmatch(text); len(m) > 1 {
 		r.NotifiedBodyNumber = m[1]
 	}
 
 	// === EU Representative ===
 	if m := regexp.MustCompile(`(?i)(?:eu\s+representative|authorized\s+representative|ec\s+rep)[\s:]*([A-Za-z0-9\s,\.\-&]{5,60})`).FindStringSubmatch(text); len(m) > 1 {
-		r.EURepresentative = strings.TrimSpace(m[1])
+		val := strings.TrimSpace(m[1])
+		for _, stopWord := range []string{"email", "address", "contact", "phone"} {
+			if idx := strings.Index(strings.ToLower(val), stopWord); idx >= 0 {
+				val = strings.TrimSpace(val[:idx])
+			}
+		}
+		r.EURepresentative = val
 	}
 
 	// === Carbon Footprint ===
@@ -668,12 +732,12 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 	}
 
 	// === Carbon Performance Class ===
-	if m := regexp.MustCompile(`(?i)carbon\s+class\s*[:]?\s*([A-G])`).FindStringSubmatch(text); len(m) > 1 {
+	if m := regexp.MustCompile(`(?i)(?:carbon\s+performance\s+class|performance\s+class|carbon\s+class)[\s:]*([A-G])`).FindStringSubmatch(text); len(m) > 1 {
 		r.CarbonPerformanceClass = strings.ToUpper(m[1])
 	}
 
 	// === Warranty ===
-	if m := regexp.MustCompile(`(?i)(?:warranty|guarantee)[\s:]*([0-9,.]+)\s*(months?|years?|yr)`).FindStringSubmatch(text); len(m) > 2 {
+	if m := regexp.MustCompile(`(?i)\bwarranty\b[\s\S]{1,50}?\b([0-9]+)\s*(months?|years?|yr)`).FindStringSubmatch(text); len(m) > 2 {
 		val := strings.TrimSpace(m[1])
 		unit := strings.ToLower(m[2])
 		if strings.HasPrefix(unit, "year") || strings.HasPrefix(unit, "yr") {
@@ -686,13 +750,18 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 	}
 
 	// === BIS Number ===
-	if m := regexp.MustCompile(`(?i)(?:bis\s*(?:registration|r|cert|certificate)?\s*#?|is\s*16046)[\s:]*([A-Z0-9\-]{5,15})`).FindStringSubmatch(text); len(m) > 1 {
+	if m := regexp.MustCompile(`(?i)(?:bis\s*(?:registration|r|cert|certificate)?\s*#?|is\s*16046)[\s:]*(R-?\d{8}|\d{8})`).FindStringSubmatch(text); len(m) > 1 {
 		r.BISNumber = strings.TrimSpace(m[1])
 	}
 
 	// === EPR Number ===
-	if m := regexp.MustCompile(`(?i)(?:epr\s*(?:registration|no\.?)?)[\s:]*([A-Z0-9\-]{5,15})`).FindStringSubmatch(text); len(m) > 1 {
+	if m := regexp.MustCompile(`(?i)\bepr\s*(?:registration|no\.?)?[\s:]*([A-Z0-9\-]{5,25})`).FindStringSubmatch(text); len(m) > 1 {
 		r.EPRNumber = strings.TrimSpace(m[1])
+	}
+
+	// === HSN Code ===
+	if m := regexp.MustCompile(`(?i)\bhsn\s*(?:code)?\s*(?:tariff\s*(?:classification)?)?[\s:]*([0-9]{4,8})`).FindStringSubmatch(text); len(m) > 1 {
+		r.HSNCode = strings.TrimSpace(m[1])
 	}
 
 	// === IS Standard ===
@@ -724,7 +793,9 @@ func (s *AIService) extractWithRegex(text string) *DatasheetParseResult {
 	}
 
 	// === Hazardous Declaration ===
-	if regexp.MustCompile(`(?i)(?:rohs\s+compliant|rohs\s+directive|2011/65/eu)`).MatchString(text) {
+	if m := regexp.MustCompile(`(?i)(?:hazardous\s+substances\s+declaration|hazardous\s+declaration)[\s:]*['"]?([^'"]{10,100})['"]?`).FindStringSubmatch(text); len(m) > 1 {
+		r.HazardousDeclaration = strings.TrimSpace(m[1])
+	} else if regexp.MustCompile(`(?i)(?:rohs\s+compliant|rohs\s+directive|2011/65/eu|rohs\s*&\s*reach\s*:\s*100%\s*compliant)`).MatchString(text) {
 		r.HazardousDeclaration = "RoHS compliant per Directive 2011/65/EU"
 	} else if regexp.MustCompile(`(?i)(?:free\s+of\s*hazardous|no\s*hazardous\s+substances)`).MatchString(text) {
 		r.HazardousDeclaration = "Free of hazardous substances per EU Battery Regulation"

@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authApi.logout(); // revokes JTI server-side, clears localStorage + cookie
     clearProductCookies();
     setUser(null);
-    router.push(routes.login);
+    window.location.href = routes.login;
   };
 
   const refreshUser = async () => {
