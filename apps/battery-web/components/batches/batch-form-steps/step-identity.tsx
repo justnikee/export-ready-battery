@@ -745,30 +745,38 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
 
       {/* Market Region */}
       <div className="grid gap-3">
-        <Label className="flex items-center gap-2">
+        <Label className="flex items-center gap-2 font-medium text-foreground">
           <Globe className="h-4 w-4 text-muted-foreground" />
           Target Market <span className="text-red-500">*</span>
         </Label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {([
-            { value: "INDIA" as const, label: "India", sub: "Battery Aadhaar", icon: Flag },
-            { value: "EU" as const, label: "EU Export", sub: "Battery Passport", icon: Leaf },
-          ] as const).map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setValue("marketRegion", opt.value, { shouldValidate: true })}
-              className={`p-3 border-2 text-center transition-all ${
-                marketRegion === opt.value
-                  ? "border-foreground bg-accent text-foreground"
-                  : "border-border hover:border-border text-muted-foreground"
-              }`}
-            >
-              <opt.icon className="h-5 w-5 mx-auto mb-1" />
-              <div className="text-sm">{opt.label}</div>
-              <div className="text-xs opacity-70">{opt.sub}</div>
-            </button>
-          ))}
+            { value: "INDIA" as const, label: "India", sub: "Battery Aadhaar", flagClass: "fi-in" },
+            { value: "EU" as const, label: "EU Export", sub: "Battery Passport", flagClass: "fi-eu" },
+          ] as const).map((opt) => {
+            const isSelected = marketRegion === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setValue("marketRegion", opt.value, { shouldValidate: true })}
+                className={`relative flex flex-col items-center justify-center p-4 border rounded-xl text-center transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? "border-[var(--brand)] bg-[var(--brand)]/5 text-foreground ring-1 ring-[var(--brand)]/20"
+                    : "border-border bg-card hover:border-muted-foreground/30 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className={`fi ${opt.flagClass} text-xl mb-2 shadow-xs rounded-sm`} />
+                <div className="text-sm font-semibold text-foreground">{opt.label}</div>
+                <div className="text-[11px] opacity-85 mt-0.5">{opt.sub}</div>
+                {isSelected && (
+                  <div className="absolute top-3 right-3 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--brand)] text-[var(--brand-foreground)] shadow-xs">
+                    <Check className="h-2.5 w-2.5 stroke-[3px]" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
         {errors.marketRegion && (
           <p className="text-xs text-red-500">{errors.marketRegion.message}</p>

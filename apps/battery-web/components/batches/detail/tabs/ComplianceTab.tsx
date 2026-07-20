@@ -83,7 +83,33 @@ const inlineFixableFields: Record<
   "specs.epr_number": { type: "text" },
   "specs.recycled_content_pct": { type: "number" },
   "domestic_value_add": { type: "number" },
+  "specs.material_composition.recycled_cobalt_pct": { type: "number" },
+  "specs.material_composition.recycled_lithium_pct": { type: "number" },
+  "specs.material_composition.recycled_nickel_pct": { type: "number" },
+  "specs.material_composition.recycled_lead_pct": { type: "number" },
 };
+
+function getFieldValue(batch: Batch, fieldPath: string): string {
+  if (fieldPath === "domestic_value_add") {
+    return batch.domestic_value_add?.toString() || "";
+  }
+  if (fieldPath.startsWith("specs.")) {
+    const specKey = fieldPath.replace("specs.", "");
+    if (specKey.includes(".")) {
+      const parts = specKey.split(".");
+      let current: any = batch.specs;
+      for (const part of parts) {
+        if (current == null) return "";
+        current = current[part];
+      }
+      return current != null ? current.toString() : "";
+    } else {
+      const val = (batch.specs as any)?.[specKey];
+      return val != null ? val.toString() : "";
+    }
+  }
+  return "";
+}
 
 function GapFixRow({
   gap,
@@ -99,9 +125,14 @@ function GapFixRow({
   onSetConfirmCert: (val: { key: string; cert: string } | null) => void;
 }) {
   const normalized = normalizeGapField(gap.field);
-  const [inlineValue, setInlineValue] = useState("");
+  const currentValue = getFieldValue(batch, normalized);
+  const [inlineValue, setInlineValue] = useState(currentValue);
   const [saving, setSaving] = useState(false);
   const inlineDef = inlineFixableFields[normalized];
+
+  useEffect(() => {
+    setInlineValue(currentValue);
+  }, [currentValue]);
 
   const handleSave = async () => {
     if (!inlineValue) return;
@@ -114,10 +145,19 @@ function GapFixRow({
       } else {
         const specKey = normalized.replace("specs.", "");
         const fragment: Record<string, unknown> = {};
-        if (inlineDef?.type === "number") {
-          fragment[specKey] = parseFloat(inlineValue);
+        if (specKey.startsWith("material_composition.")) {
+          const compField = specKey.replace("material_composition.", "");
+          const currentMC = batch.specs?.material_composition || {};
+          fragment["material_composition"] = {
+            ...currentMC,
+            [compField]: parseFloat(inlineValue),
+          };
         } else {
-          fragment[specKey] = inlineValue;
+          if (inlineDef?.type === "number") {
+            fragment[specKey] = parseFloat(inlineValue);
+          } else {
+            fragment[specKey] = inlineValue;
+          }
         }
         await api.patch(`/batches/${batchId}`, { specs: fragment });
       }
@@ -277,8 +317,8 @@ interface EUAttributeScore {
   filled: number;
   total: number;
   attributes: Array<{
-    key: string;
-    label: string;
+    id: string;
+    name: string;
     category: string;
     filled: boolean;
     value?: string | number | boolean;
@@ -417,14 +457,14 @@ export function ComplianceTab({
             {euScore !== null && (
               <Badge
                 className={`ml-auto text-xs ${
-                  euScore.score >= 80
+                  Math.round(euScore.score) >= 80
                     ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                    : euScore.score >= 50
+                    : Math.round(euScore.score) >= 50
                       ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
                       : "bg-red-500/10 text-red-500 border-red-500/30"
                 }`}
               >
-                {euScore.score}%
+                {Math.round(euScore.score)}%
               </Badge>
             )}
           </div>
@@ -448,7 +488,7 @@ export function ComplianceTab({
                   <div className="grid grid-cols-2 gap-2">
                     {euScore.attributes.slice(0, 8).map((attr) => (
                       <div
-                        key={attr.key}
+                        key={attr.id}
                         className={`flex items-center gap-1.5 text-xs px-2 py-1 border ${
                           attr.filled
                             ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-600"
@@ -460,7 +500,7 @@ export function ComplianceTab({
                         ) : (
                           <Clock className="h-3 w-3 shrink-0" />
                         )}
-                        <span className="truncate">{attr.label || attr.key}</span>
+                        <span className="truncate">{attr.name || attr.id}</span>
                       </div>
                     ))}
                   </div>

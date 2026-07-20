@@ -57,7 +57,7 @@ var featureMinPlan = map[Feature]string{
 
 	FeatureSSO:               PlanEnterprise,
 	FeatureMultiEntity:       PlanEnterprise,
-	FeatureAdvancedAnalytics: PlanEnterprise,
+	FeatureAdvancedAnalytics: PlanGrowth,
 }
 
 // NormalizePlan upper-cases and validates a plan string, defaulting unknown/empty

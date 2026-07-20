@@ -40,7 +40,7 @@ export const FEATURE_MIN_PLAN: Partial<Record<Feature, PlanType>> = {
   regulatory: "GROWTH",
   sso: "ENTERPRISE",
   multi_entity: "ENTERPRISE",
-  advanced_analytics: "ENTERPRISE",
+  advanced_analytics: "GROWTH",
 };
 
 export function normalizePlan(plan?: string | null): PlanType {

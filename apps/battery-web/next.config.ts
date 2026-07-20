@@ -36,10 +36,10 @@ const contentSecurityPolicy = [
   // compliance docs) loaded directly as <img> (e.g. the topbar/sidebar avatar,
   // which isn't proxied through next/image's optimizer)
   `img-src 'self' data: blob: https://*.supabase.co`,
-  // API calls + websocket for HMR in dev + jsdelivr CDN for the scan activity world map
+  // API calls + websocket for HMR in dev + jsdelivr CDN + Supabase storage (for signed download redirects)
   isDev
-    ? `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net ws://localhost:*`
-    : `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net`,
+    ? `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co ws://localhost:*`
+    : `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co`,
   // Razorpay checkout iframe
   `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`,
   // Workers (Next.js)

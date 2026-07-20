@@ -460,17 +460,17 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
 
  <Button
  onClick={handleAutoGenerate}
- disabled={isGenerating || isDraft || morthMissing}
+ disabled={isGenerating || morthMissing}
  className="w-full"
  >
  {isGenerating ? "Generating..." : "Generate Passports"}
  </Button>
-  {isDraft && (
-  <p className="text-xs text-amber-500 flex items-center gap-1.5 justify-center">
-  <AlertTriangle className="h-3.5 w-3.5" />
-  Batch must be activated before generating passports
-  </p>
-  )}
+ {isDraft && (
+ <p className="text-xs text-emerald-500 flex items-center gap-1.5 justify-center">
+ <AlertTriangle className="h-3.5 w-3.5 text-emerald-500" />
+ Draft Batch: Passports will be generated. Quota is deducted at activation.
+ </p>
+ )}
  </>
  ) : (
  // Generation Complete

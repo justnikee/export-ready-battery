@@ -105,9 +105,9 @@ export function ActivationChecklist({
       normalized === "domestic_value_add"
     ) {
       return {
-        label: "View in Overview",
+        label: "Fix in Compliance",
         icon: <ExternalLink className="h-3 w-3" />,
-        onClick: () => onNavigate("overview"),
+        onClick: () => onNavigate("compliance"),
       };
     }
     if (
@@ -115,9 +115,9 @@ export function ActivationChecklist({
       normalized === "specs.certifications: AIS-038"
     ) {
       return {
-        label: "Declare",
+        label: "Declare in Compliance",
         icon: <CheckCircle className="h-3 w-3" />,
-        onClick: () => onNavigate("overview"),
+        onClick: () => onNavigate("compliance"),
       };
     }
     return null;

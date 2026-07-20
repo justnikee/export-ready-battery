@@ -125,16 +125,15 @@ export function PassportsTab({
       )}
 
       {passportCount === 0 && isDraft && (
-        <div className="rounded-md bg-amber-500/10 p-4 relative">
+        <div className="rounded-md bg-emerald-500/10 p-4 relative">
           <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+            <Info className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-500">
-                Activate this batch first
+              <p className="text-sm font-medium text-emerald-600">
+                Draft Batch - Passports Ready for Creation
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Passport generation is disabled until the batch is activated.
-                Go to the Overview tab and click "Activate Batch".
+                You can upload a CSV of serial numbers or auto-generate passports while the batch is in DRAFT. Quota slots will be deducted when you activate the batch.
               </p>
             </div>
           </div>

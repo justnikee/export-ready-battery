@@ -135,6 +135,78 @@ func (h *Handler) GetAnalyticsOverview(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, overview)
 }
 
+// GetGapsByRegulation handles GET /api/v1/analytics/gaps-by-regulation
+func (h *Handler) GetGapsByRegulation(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	gaps, err := h.repo.GetGapsByRegulation(r.Context(), tenantID)
+	if err != nil {
+		slog.Error("Failed to get gaps by regulation", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get regulation gaps")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, gaps)
+}
+
+// GetActionFeed handles GET /api/v1/analytics/action-feed
+func (h *Handler) GetActionFeed(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	feed, err := h.repo.GetActionFeed(r.Context(), tenantID)
+	if err != nil {
+		slog.Error("Failed to get action feed", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get action feed")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, feed)
+}
+
+// GetDGFTValue handles GET /api/v1/analytics/dgft-value
+func (h *Handler) GetDGFTValue(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	summary, err := h.repo.GetDGFTValue(r.Context(), tenantID)
+	if err != nil {
+		slog.Error("Failed to get dgft value summary", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to get dgft value summary")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, summary)
+}
+
 // GetScanFeed handles GET /api/v1/scans/feed
 func (h *Handler) GetScanFeed(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())

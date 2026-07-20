@@ -132,25 +132,29 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 	var marketRegion string
 	var manufacturingStart, manufacturingEnd *time.Time
 
-	query := `SELECT id, tenant_id, batch_name, model_name, specs, created_at,
-	          COALESCE(status, 'DRAFT') as status,
-	          COALESCE(market_region, 'GLOBAL') as market_region,
-	          COALESCE(pli_compliant, false),
-	          COALESCE(domestic_value_add, 0),
-	          manufacturing_start_date,
-	          manufacturing_end_date,
-	          carbon_footprint_result,
-	          COALESCE(product_type, 'BATTERY') as product_type,
-	          COALESCE(schema_version, 1) as schema_version,
-	          COALESCE(compliance_score, 0) as compliance_score,
-	          compliance_gaps,
-	          COALESCE(ce_marking, false),
-	          COALESCE(carbon_performance_class, '') as carbon_performance_class,
-	          COALESCE(removable_and_replaceable, false),
-	          COALESCE(notified_body_number, '') as notified_body_number,
-	          COALESCE(declaration_of_conformity_path, '') as declaration_of_conformity_path,
-	          COALESCE(gtin, '') as gtin
-	          FROM public.batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`
+	query := `SELECT b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at,
+	          COALESCE(b.status, 'DRAFT') as status,
+	          COALESCE(b.market_region, 'GLOBAL') as market_region,
+	          COALESCE(b.pli_compliant, false),
+	          COALESCE(b.domestic_value_add, 0),
+	          b.manufacturing_start_date,
+	          b.manufacturing_end_date,
+	          b.carbon_footprint_result,
+	          COALESCE(b.product_type, 'BATTERY') as product_type,
+	          COALESCE(b.schema_version, 1) as schema_version,
+	          COALESCE(b.compliance_score, 0) as compliance_score,
+	          b.compliance_gaps,
+	          COALESCE(b.ce_marking, false),
+	          COALESCE(b.carbon_performance_class, '') as carbon_performance_class,
+	          COALESCE(b.removable_and_replaceable, false),
+	          COALESCE(b.notified_body_number, '') as notified_body_number,
+	          COALESCE(b.declaration_of_conformity_path, '') as declaration_of_conformity_path,
+	          COALESCE(b.gtin, '') as gtin,
+	          COUNT(p.uuid)::int as total_passports
+	          FROM public.batches b
+	          LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
+	          WHERE b.id = $1 AND b.tenant_id = $2 AND b.deleted_at IS NULL
+	          GROUP BY b.id`
 
 	var productType string
 	err := r.db.Pool.QueryRow(ctx, query, id, tenantID).Scan(
@@ -177,6 +181,7 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 		&batch.NotifiedBodyNumber,
 		&batch.DeclarationOfConformityPath,
 		&batch.GTIN,
+		&batch.TotalPassports,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

@@ -761,6 +761,30 @@ func (m *MockRepository) GetAnalyticsOverview(ctx context.Context, tenantID uuid
 	return args.Get(0).(*models.AnalyticsOverview), args.Error(1)
 }
 
+func (m *MockRepository) GetGapsByRegulation(ctx context.Context, tenantID uuid.UUID) ([]models.RegulationGapCount, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.RegulationGapCount), args.Error(1)
+}
+
+func (m *MockRepository) GetActionFeed(ctx context.Context, tenantID uuid.UUID) ([]models.ActionFeedItem, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.ActionFeedItem), args.Error(1)
+}
+
+func (m *MockRepository) GetDGFTValue(ctx context.Context, tenantID uuid.UUID) (*models.DGFTValueSummary, error) {
+	args := m.Called(ctx, tenantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.DGFTValueSummary), args.Error(1)
+}
+
 func (m *MockRepository) GetFleetStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*FleetStats, error) {
 	args := m.Called(ctx, tenantID, productType)
 	if args.Get(0) == nil {

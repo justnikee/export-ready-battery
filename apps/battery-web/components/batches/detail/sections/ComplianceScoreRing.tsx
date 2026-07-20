@@ -7,26 +7,27 @@ interface ComplianceScoreRingProps {
 }
 
 export function ComplianceScoreRing({ score }: ComplianceScoreRingProps) {
+  const roundedScore = Math.round(score);
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
+  const offset = circumference - (roundedScore / 100) * circumference;
 
   const colorClass =
-    score >= 80
+    roundedScore >= 80
       ? "text-emerald-500"
-      : score >= 50
+      : roundedScore >= 50
         ? "text-amber-500"
         : "text-red-500";
 
   const bgClass =
-    score >= 80
+    roundedScore >= 80
       ? "bg-emerald-500/10"
-      : score >= 50
+      : roundedScore >= 50
         ? "bg-amber-500/10"
         : "bg-red-500/10";
 
   const label =
-    score >= 80 ? "Passed" : score >= 50 ? "Partial" : "Failing";
+    roundedScore >= 80 ? "Passed" : roundedScore >= 50 ? "Partial" : "Failing";
 
   return (
     <div className="flex items-center gap-5">
@@ -59,16 +60,16 @@ export function ComplianceScoreRing({ score }: ComplianceScoreRingProps) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className={clsx("text-lg font-bold leading-none", colorClass)}>
-            {score}%
+            {roundedScore}%
           </span>
         </div>
       </div>
       <div>
         <p className={clsx("text-sm font-semibold", colorClass)}>{label}</p>
         <p className="text-xs text-muted-foreground">
-          {score >= 80
+          {roundedScore >= 80
             ? "All checks passed"
-            : score >= 50
+            : roundedScore >= 50
               ? "Some issues need attention"
               : "Critical issues found"}
         </p>
