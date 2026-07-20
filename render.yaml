@@ -23,8 +23,8 @@ services:
     plan: starter
     region: singapore
     rootDir: services/battery-api
-    buildCommand: go build -o battery-api ./cmd/server/main.go
-    startCommand: ./battery-api
+    buildCommand: go build -o migrate ./cmd/migration_runner/main.go && go build -o battery-api ./cmd/server/main.go
+    startCommand: ./migrate up && ./battery-api
     envVars:
       - key: PORT
         value: 8080
@@ -49,18 +49,3 @@ services:
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
     healthCheckPath: /health
-
-  # ═══════════════════════════════════════════════════════════════════
-  # MIGRATION JOBS — Run on every deploy to apply DB migrations
-  # ═══════════════════════════════════════════════════════════════════
-  - type: job
-    name: battery-migrate
-    runtime: go
-    plan: starter
-    region: singapore
-    rootDir: services/battery-api
-    buildCommand: go build -o migrate ./cmd/migration_runner/main.go
-    startCommand: ./migrate up
-    envVars:
-      - key: DATABASE_URL
-        sync: false
