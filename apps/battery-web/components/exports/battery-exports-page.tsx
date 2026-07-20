@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import {
  Plus,
  PackageSearch
 } from 'lucide-react';
+import api, { getAccessToken } from '@/lib/api';
 import {
  listExportJobs,
  refreshExportDownload,
@@ -121,34 +122,47 @@ export default function ExportsPage() {
  return () => clearInterval(interval);
  }, [fetchExports, hasPendingJobs]);
 
- const handleDownload = async (job: ExportJob) => {
- if (!job.download_url) {
- toast.error("Download link is not available for this export");
- return;
- }
+  const getExportFilename = (batchName: string, jobType: ExportJob['job_type']): string => {
+    const sanitized = batchName.replace(/\s+/g, '_');
+    switch (jobType) {
+      case 'QR_ZIP':
+        return `${sanitized}_qrcodes.zip`;
+      case 'LABELS_PDF':
+        return `${sanitized}_labels.pdf`;
+      case 'CSV':
+        return `${sanitized}_export.csv`;
+      case 'DUE_DILIGENCE':
+        return `${sanitized}_due_diligence.pdf`;
+      case 'COMPLIANCE_DECLARATION':
+        return `${sanitized}_carbon_declaration.pdf`;
+      case 'AUDIT_CSV':
+        return `${sanitized}_audit_trail.csv`;
+      case 'AUDIT_PDF':
+        return `${sanitized}_audit_trail.pdf`;
+      case 'EPCIS':
+        return `${sanitized}_epcis.jsonld`;
+      case 'PLI_PACKET':
+        return `${sanitized}_pli_claim_packet.zip`;
+      default:
+        return `${sanitized}_export`;
+    }
+  };
 
- try {
- let url = job.download_url;
-
- // Check if URL might be expired
- if (job.expires_at && new Date(job.expires_at) < new Date()) {
- const result = await refreshExportDownload(job.id);
- url = result.download_url;
- }
-
- // Use anchor click instead of window.open to avoid popup blockers
- const link = document.createElement("a");
- link.href = url;
- link.target = "_blank";
- link.rel = "noopener noreferrer";
- document.body.appendChild(link);
- link.click();
- link.remove();
- } catch (error: unknown) {
- const msg = await getApiErrorMessage(error, "Failed to download export");
- toast.error(msg);
- }
- };
+  const handleDownload = (job: ExportJob) => {
+    toast.success("Download started!", { id: "export-download" });
+    try {
+      const token = getAccessToken();
+      const url = `${api.defaults.baseURL}/export-jobs/${job.id}/download?token=${token || ''}`;
+      
+      const link = document.createElement("a");
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error: unknown) {
+      toast.error("Failed to start download", { id: "export-download" });
+    }
+  };
 
  const getStatusIcon = (status: ExportJob['status']) => {
  switch (status) {

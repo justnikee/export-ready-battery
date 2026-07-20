@@ -533,13 +533,16 @@ func main() {
 	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/batches/chart-data", authMiddleware.Protect(http.HandlerFunc(h.GetBatchesChartData)))
-	mux.Handle("GET /api/v1/scans/feed", authMiddleware.Protect(http.HandlerFunc(h.GetScanFeed)))
-	mux.Handle("GET /api/v1/scans/feed/stream", authMiddleware.Protect(http.HandlerFunc(h.StreamScanFeed)))
+	mux.Handle("GET /api/v1/scans/feed", feat(services.FeatureAdvancedAnalytics, http.HandlerFunc(h.GetScanFeed)))
+	mux.Handle("GET /api/v1/scans/feed/stream", feat(services.FeatureAdvancedAnalytics, http.HandlerFunc(h.StreamScanFeed)))
 
 	// ============================================
 	// ANALYTICS ROUTES (Protected)
 	// ============================================
 	mux.Handle("GET /api/v1/analytics/overview", authMiddleware.Protect(http.HandlerFunc(h.GetAnalyticsOverview)))
+	mux.Handle("GET /api/v1/analytics/gaps-by-regulation", authMiddleware.Protect(http.HandlerFunc(h.GetGapsByRegulation)))
+	mux.Handle("GET /api/v1/analytics/action-feed", authMiddleware.Protect(http.HandlerFunc(h.GetActionFeed)))
+	mux.Handle("GET /api/v1/analytics/dgft-value", feat(services.FeatureAdvancedAnalytics, http.HandlerFunc(h.GetDGFTValue)))
 
 	// ============================================
 	// BILLING ROUTES (Protected)

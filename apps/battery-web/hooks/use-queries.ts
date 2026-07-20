@@ -10,7 +10,12 @@ export const queryKeys = {
     batch: (id: string) => ['batch', id] as const,
     dashboardStats: (tenantId: string) => ['dashboardStats', tenantId] as const,
     templates: (tenantId: string, productType?: string) => ['templates', tenantId, productType] as const,
-    analytics: (tenantId: string) => ['analytics', tenantId] as const,
+    analytics: {
+        overview: (tenantId: string) => ['analytics', 'overview', tenantId] as const,
+        gapsByRegulation: (tenantId: string) => ['analytics', 'gaps', tenantId] as const,
+        actionFeed: (tenantId: string) => ['analytics', 'action-feed', tenantId] as const,
+        dgftValue: (tenantId: string) => ['analytics', 'dgft-value', tenantId] as const,
+    },
     billingBalance: () => ['billingBalance'] as const,
     billingPackages: () => ['billingPackages'] as const,
     apiKeys: () => ['apiKeys'] as const,
@@ -561,5 +566,53 @@ export function useUploadCMRT() {
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['cmrtReports', variables.supplierId] })
         },
+    })
+}
+
+export function useAnalyticsOverview(tenantId: string | undefined, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.analytics.overview(tenantId || ''),
+        queryFn: async () => {
+            const response = await api.get('/analytics/overview')
+            return response.data
+        },
+        enabled: !!tenantId && enabled,
+        staleTime: 30_000,
+    })
+}
+
+export function useGapsByRegulation(tenantId: string | undefined, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.analytics.gapsByRegulation(tenantId || ''),
+        queryFn: async () => {
+            const response = await api.get('/analytics/gaps-by-regulation')
+            return response.data
+        },
+        enabled: !!tenantId && enabled,
+        staleTime: 30_000,
+    })
+}
+
+export function useActionFeed(tenantId: string | undefined, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.analytics.actionFeed(tenantId || ''),
+        queryFn: async () => {
+            const response = await api.get('/analytics/action-feed')
+            return response.data
+        },
+        enabled: !!tenantId && enabled,
+        staleTime: 30_000,
+    })
+}
+
+export function useDGFTValue(tenantId: string | undefined, enabled = true) {
+    return useQuery({
+        queryKey: queryKeys.analytics.dgftValue(tenantId || ''),
+        queryFn: async () => {
+            const response = await api.get('/analytics/dgft-value')
+            return response.data
+        },
+        enabled: !!tenantId && enabled,
+        staleTime: 30_000,
     })
 }

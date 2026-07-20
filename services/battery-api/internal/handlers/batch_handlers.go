@@ -432,10 +432,22 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("Generating QR codes", "count", len(passports), "batch_name", batch.BatchName)
 
-	// Generate QR codes with GS1 Digital Link support when GTIN is available
+	// Get tenant for EPR number enrichment
+	tenant, _ := h.repo.GetTenant(r.Context(), tenantID)
+
+	// Build enriched label context
 	qrCtx := &services.QRLabelContext{
-		GTIN: batch.Specs.GTIN,
+		GTIN:         batch.Specs.GTIN,
+		ModelName:    batch.ModelName,
+		MarketRegion: batch.MarketRegion,
+		Chemistry:    batch.Specs.Chemistry,
+		CarbonPerKWh: services.ExtractCarbonPerKWh(batch.CarbonFootprintResult),
+		ProductType:  batch.ProductType,
 	}
+	if tenant != nil {
+		qrCtx.EPRNumber = tenant.BatteryProfile.EPRRegistrationNumber
+	}
+
 	zipReader, zipSize, err := h.qrService.GenerateAndZipEnriched(passports, qrCtx)
 	if err != nil {
 		slog.Error("Failed to generate QR codes", "error", err)

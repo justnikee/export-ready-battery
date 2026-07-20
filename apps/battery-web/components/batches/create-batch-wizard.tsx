@@ -64,6 +64,7 @@ const CORE_FIELDS = [
   "batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate",
   "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry",
   "weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable",
+  "batteryCategory",
 ];
 
 function getStepForField(field: string): number {
@@ -105,6 +106,8 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isSubmitReady, setIsSubmitReady] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string>("");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   // Briefly true right after a draft write, to pulse the "Saved" indicator
@@ -120,6 +123,17 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   const [pendingAiMode, setPendingAiMode] = useState<"pdf" | "nl" | undefined>(undefined);
   const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
   const [settingsFilledFields, setSettingsFilledFields] = useState<Set<string>>(new Set());
+
+  // Prevent double-click submission capture when morphing from Next -> Submit
+  useEffect(() => {
+    if (step === 2) {
+      setIsSubmitReady(false);
+      const timer = setTimeout(() => setIsSubmitReady(true), 500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsSubmitReady(false);
+    }
+  }, [step]);
 
   const handleAiFill = useCallback((fields: string[]) => {
     setAiFilledFields((prev) => {
@@ -699,6 +713,12 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     ];
     const fields = [...base[stepIdx]];
 
+    if (stepIdx === 0) {
+      if (market === "EU") {
+        fields.push("batteryCategory");
+      }
+    }
+
     if (stepIdx === 1) {
       if (market === "INDIA") {
         fields.push("hsnCode", "cellSource");
@@ -719,9 +739,6 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
           }
         }
       }
-      if (market === "EU") {
-        fields.push("batteryCategory");
-      }
     }
 
     return fields;
@@ -738,9 +755,15 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   };
 
   const goNext = async () => {
-    const ok = await canGoNext();
-    if (ok && step < STEPS.length - 1) {
-      setStep((s) => s + 1);
+    if (isValidating) return;
+    setIsValidating(true);
+    try {
+      const ok = await canGoNext();
+      if (ok && step < STEPS.length - 1) {
+        setStep((s) => s + 1);
+      }
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -1058,12 +1081,12 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                     {t("wizard_save_exit")}
                   </Button>
                   {step < STEPS.length - 1 ? (
-                    <Button type="button" onClick={goNext} disabled={isLoading}>
+                    <Button type="button" onClick={goNext} disabled={isLoading || isValidating}>
                       {t("wizard_next")}: {translatedSteps[step + 1].label}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button type="submit" disabled={isLoading || iecError}>
+                    <Button type="submit" disabled={isLoading || iecError || !isSubmitReady}>
                       {isLoading ? t("wizard_creating") : t("wizard_create_batch")}
                     </Button>
                   )}

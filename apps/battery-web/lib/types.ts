@@ -664,3 +664,76 @@ export interface TenantRegulatoryAlert {
   market_region?: string;
   product_type?: string;
 }
+
+export interface RegulationGapCount {
+  regulation: string;
+  severity: string;
+  count: number;
+}
+
+export interface ActionFeedItem {
+  type: string;
+  title: string;
+  batch_id: string | null;
+  severity: "ERROR" | "WARNING";
+  due_date: string | null;
+}
+
+export interface SchemeValue {
+  scheme: string;
+  claimed_value: number;
+  eligible_value: number;
+  count: number;
+}
+
+export interface DGFTValueSummary {
+  total_claimed_value: number;
+  total_eligible_value: number;
+  approval_rate: number;
+  avg_approval_days: number;
+  scheme_breakdown: SchemeValue[];
+}
+
+export interface ComplianceTrendPoint {
+  period: string;
+  avg_score: number;
+  batch_count: number;
+}
+
+export interface CertExpiryItem {
+  cert_type: string;
+  expiring_30d: number;
+  expiring_7d: number;
+  expired: number;
+}
+
+export interface RegionItem {
+  region: string;
+  count: number;
+}
+
+export interface StatusCountItem {
+  status: string;
+  count: number;
+}
+
+export interface ExpiringCertDetail {
+  batch_id: string;
+  batch_name: string;
+  cert_type: string;
+  expiry_date: string;
+  days_left: number;
+}
+
+export interface AnalyticsOverview {
+  compliance_trend: ComplianceTrendPoint[];
+  certificate_expiry: CertExpiryItem[];
+  expiring_certificates: ExpiringCertDetail[];
+  carbon_distribution: { class: string; count: number }[];
+  batch_status_breakdown: Record<string, number>;
+  compliance_ready_count: number;
+  market_region_split: RegionItem[];
+  supplier_document_status: Record<string, number>;
+  dgft_claim_funnel: StatusCountItem[];
+  alert_severity_breakdown: Record<string, number>;
+}

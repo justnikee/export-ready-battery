@@ -51,6 +51,10 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 		}
 
 		if tokenString == "" {
+			tokenString = r.URL.Query().Get("token")
+		}
+
+		if tokenString == "" {
 			http.Error(w, `{"error":"missing authorization header or token"}`, http.StatusUnauthorized)
 			return
 		}

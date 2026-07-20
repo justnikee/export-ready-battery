@@ -1413,6 +1413,7 @@ type DashboardStats struct {
 type AnalyticsOverview struct {
 	ComplianceTrend        []ComplianceTrendPoint `json:"compliance_trend"`
 	CertificateExpiry      []CertExpirySummary    `json:"certificate_expiry"`
+	ExpiringCertificates   []ExpiringCertDetail   `json:"expiring_certificates"`
 	CarbonDistribution     []CarbonClassCount     `json:"carbon_distribution"`
 	BatchStatusBreakdown   map[string]int         `json:"batch_status_breakdown"`
 	ComplianceReadyCount   int                    `json:"compliance_ready_count"`
@@ -1420,6 +1421,15 @@ type AnalyticsOverview struct {
 	SupplierDocStatus      map[string]int         `json:"supplier_document_status"`
 	DGFTClaimFunnel        []StatusCount          `json:"dgft_claim_funnel"`
 	AlertSeverityBreakdown map[string]int         `json:"alert_severity_breakdown"`
+}
+
+// ExpiringCertDetail holds details of certificates expiring soon for a specific batch.
+type ExpiringCertDetail struct {
+	BatchID    uuid.UUID `json:"batch_id"`
+	BatchName  string    `json:"batch_name"`
+	CertType   string    `json:"cert_type"`
+	ExpiryDate time.Time `json:"expiry_date"`
+	DaysLeft   int       `json:"days_left"`
 }
 
 // ComplianceTrendPoint is a single data point in the compliance trend line.
@@ -1453,6 +1463,39 @@ type RegionCount struct {
 type StatusCount struct {
 	Status string `json:"status"`
 	Count  int    `json:"count"`
+}
+
+// RegulationGapCount represents compliance gaps grouped by regulation.
+type RegulationGapCount struct {
+	Regulation string `json:"regulation"`
+	Severity   string `json:"severity"`
+	Count      int    `json:"count"`
+}
+
+// ActionFeedItem represents a priority action needed by a tenant.
+type ActionFeedItem struct {
+	Type      string     `json:"type"`       // e.g. "CERT_EXPIRY", "SUPPLIER_AUDIT", "EPR_SHORTFALL", "UNSIGNED_DOC", "VERIFICATION_FAILURE"
+	Title     string     `json:"title"`      // Description of the action
+	BatchID   *uuid.UUID `json:"batch_id"`   // Associated batch ID if any
+	Severity  string     `json:"severity"`   // "ERROR" or "WARNING"
+	DueDate   *time.Time `json:"due_date"`   // Due date or expiration date
+}
+
+// DGFTValueSummary represents financial analytics for DGFT claims.
+type DGFTValueSummary struct {
+	TotalClaimedValue  float64       `json:"total_claimed_value"`
+	TotalEligibleValue float64       `json:"total_eligible_value"`
+	ApprovalRate       float64       `json:"approval_rate"`
+	AvgApprovalDays    float64       `json:"avg_approval_days"`
+	SchemeBreakdown    []SchemeValue `json:"scheme_breakdown"`
+}
+
+// SchemeValue represents values for a specific DGFT scheme.
+type SchemeValue struct {
+	Scheme        string  `json:"scheme"` // e.g. "RoDTEP", "Duty Drawback", "Interest Equalization"
+	ClaimedValue  float64 `json:"claimed_value"`
+	EligibleValue float64 `json:"eligible_value"`
+	Count         int     `json:"count"`
 }
 
 // ============================================================================

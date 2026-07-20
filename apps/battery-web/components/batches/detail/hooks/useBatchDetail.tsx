@@ -107,17 +107,31 @@ export function useBatchDetail(batchId: string, pathname: string) {
   // Data fetching
   // ───────────────────────────────────────────────────────────────
 
+  const fetchCompliance = useCallback(async () => {
+    setComplianceLoading(true);
+    try {
+      const res = await api.get(`/batches/${batchId}/compliance`);
+      setComplianceScore(res.data.compliance_score ?? null);
+      setComplianceGaps(res.data.compliance_gaps ?? []);
+    } catch {
+      toast.error("Failed to load compliance data");
+    } finally {
+      setComplianceLoading(false);
+    }
+  }, [batchId]);
+
   const fetchBatch = useCallback(async () => {
     try {
       const response = await api.get<BatchResponse>(`/batches/${batchId}`);
       setBatch(response.data.batch);
       setPassportCount(response.data.passport_count || 0);
+      await fetchCompliance();
     } catch {
       toast.error("Failed to load batch details");
     } finally {
       setLoading(false);
     }
-  }, [batchId]);
+  }, [batchId, fetchCompliance]);
 
   const fetchPassports = useCallback(
     async (page = 1, limit = 50) => {
@@ -150,19 +164,6 @@ export function useBatchDetail(batchId: string, pathname: string) {
       toast.error("Failed to load certificate anchors");
     } finally {
       setAnchorsLoading(false);
-    }
-  }, [batchId]);
-
-  const fetchCompliance = useCallback(async () => {
-    setComplianceLoading(true);
-    try {
-      const res = await api.get(`/batches/${batchId}/compliance`);
-      setComplianceScore(res.data.compliance_score ?? null);
-      setComplianceGaps(res.data.compliance_gaps ?? []);
-    } catch {
-      toast.error("Failed to load compliance data");
-    } finally {
-      setComplianceLoading(false);
     }
   }, [batchId]);
 

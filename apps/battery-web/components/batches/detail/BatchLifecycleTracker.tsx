@@ -48,7 +48,7 @@ export function BatchLifecycleTracker({
       id: "passports",
       label: "Passports issued",
       state:
-        passportCount > 0
+        isActive && passportCount > 0
           ? "done"
           : isActive
             ? "current"

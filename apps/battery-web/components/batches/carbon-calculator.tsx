@@ -273,7 +273,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
 
  return (
  <>
- <Card className="border-l-4 border-l-emerald-500">
+ <Card className="border border-border">
  <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
  <div className="flex items-center justify-between">
  <CardTitle className="flex items-center gap-3 text-foreground">
@@ -441,15 +441,15 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  <div className="space-y-4 pt-2">
  {/* Summary Row */}
  <div className="grid grid-cols-3 gap-4">
- <div className="p-4 bg-emerald-500/10 border border-emerald-200">
+ <div className="p-4 bg-emerald-500/10 rounded-lg">
  <div className="text-xs text-emerald-500 uppercase tracking-wider mb-1">Total Carbon Footprint</div>
  <div className="text-2xl text-emerald-500">{result.total_kg_co2e.toFixed(1)} <span className="text-sm font-normal">kg CO₂e</span></div>
  </div>
- <div className="p-4 bg-blue-500/10 border border-blue-200">
+ <div className="p-4 bg-blue-500/10 rounded-lg">
  <div className="text-xs text-blue-500 uppercase tracking-wider mb-1">Per kWh</div>
  <div className="text-2xl text-blue-500">{result.per_kwh_kg_co2e.toFixed(2)} <span className="text-sm font-normal">kg CO₂e / kWh</span></div>
  </div>
- <div className="p-4 bg-amber-500/10 border border-amber-200">
+ <div className="p-4 bg-amber-500/10 rounded-lg">
  <div className="text-xs text-amber-600 uppercase tracking-wider mb-1">Performance Class</div>
  <div className="text-2xl text-amber-600">{result.carbon_class} <span className="text-sm font-normal">/ G</span></div>
  </div>

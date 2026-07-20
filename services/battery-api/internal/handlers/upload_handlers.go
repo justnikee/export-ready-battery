@@ -42,9 +42,9 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce activation before passport creation
-	if batch.Status != models.BatchStatusActive {
-		respondError(w, http.StatusForbidden, "Batch must be ACTIVE before creating passports")
+	// Enforce draft or active status before passport creation
+	if batch.Status != models.BatchStatusActive && batch.Status != models.BatchStatusDraft {
+		respondError(w, http.StatusForbidden, "Batch must be DRAFT or ACTIVE before creating passports")
 		return
 	}
 
@@ -132,6 +132,25 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to build genesis events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
+	}
+
+	// Deduct quota balance if batch is ACTIVE (draft batches are metered at activation)
+	if batch.Status == models.BatchStatusActive {
+		balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
+		if err != nil {
+			slog.Error("UploadCSV: failed to get quota balance", "error", err)
+			respondError(w, http.StatusInternalServerError, "Failed to check quota balance")
+			return
+		}
+		if balance < len(parseResult.Passports) {
+			respondError(w, http.StatusPaymentRequired, fmt.Sprintf("Insufficient quota. Upload requires %d slots, but you only have %d remaining.", len(parseResult.Passports), balance))
+			return
+		}
+		if err := h.repo.DeductQuota(r.Context(), tenantID, len(parseResult.Passports)); err != nil {
+			slog.Error("UploadCSV: failed to deduct quota", "error", err)
+			respondError(w, http.StatusInternalServerError, "Failed to process quota deduction")
+			return
+		}
 	}
 
 	// Bulk insert passports and genesis events atomically
@@ -301,9 +320,9 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Enforce activation before passport generation (same rule as UploadCSV)
-	if batch.Status != models.BatchStatusActive {
-		respondError(w, http.StatusForbidden, "Batch must be ACTIVE before generating passports")
+	// Enforce draft or active status before passport generation
+	if batch.Status != models.BatchStatusActive && batch.Status != models.BatchStatusDraft {
+		respondError(w, http.StatusForbidden, "Batch must be DRAFT or ACTIVE before generating passports")
 		return
 	}
 
@@ -332,6 +351,25 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	if req.Count <= 0 || req.Count > 10000 {
 		respondError(w, http.StatusBadRequest, "Count must be between 1 and 10000")
 		return
+	}
+
+	// Deduct quota balance if batch is ACTIVE (draft batches are metered at activation)
+	if batch.Status == models.BatchStatusActive {
+		balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
+		if err != nil {
+			slog.Error("AutoGenerate: failed to get quota balance", "error", err)
+			respondError(w, http.StatusInternalServerError, "Failed to check quota balance")
+			return
+		}
+		if balance < req.Count {
+			respondError(w, http.StatusPaymentRequired, fmt.Sprintf("Insufficient quota. Generation requires %d slots, but you only have %d remaining.", req.Count, balance))
+			return
+		}
+		if err := h.repo.DeductQuota(r.Context(), tenantID, req.Count); err != nil {
+			slog.Error("AutoGenerate: failed to deduct quota", "error", err)
+			respondError(w, http.StatusInternalServerError, "Failed to process quota deduction")
+			return
+		}
 	}
 
 	// Parse manufacture date (required)

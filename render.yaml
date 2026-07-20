@@ -28,11 +28,26 @@ services:
     envVars:
       - key: PORT
         value: 8080
+      - key: APP_ENV
+        value: production
       - key: JWT_SECRET
         sync: false
-      # Secrets — set manually in Render dashboard:
-      # DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-      # UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
     healthCheckPath: /health
 
   # ═══════════════════════════════════════════════════════════════════

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,56 @@ import { useFileDropzone } from "@/hooks/use-file-dropzone";
 import { AiBadge, aiFieldClass } from "@/components/batches/batch-form-steps/ai-badge";
 import { SettingsBadge } from "@/components/batches/batch-form-steps/settings-badge";
 import { calculateEstimatedDVA, calculateImportedCostTotal, type BatchFormData } from "@/components/batches/batch-form-schema";
+import api from "@/lib/api";
+
+const NOMINAL_VOLTAGE_BY_CHEMISTRY: Record<string, number> = {
+  LFP: 3.2,
+  SODIUM: 3.1,
+  NMC_622: 3.6,
+  NMC_811: 3.65,
+  NCA: 3.65,
+  LCO: 3.7,
+};
+
+function parseCapacity(raw?: string, chemistry?: string): number {
+  if (!raw) return 0;
+  const num = parseFloat(raw);
+  if (isNaN(num)) return 0;
+  const lower = raw.toLowerCase();
+  if (lower.includes("kwh")) return num;
+  if (lower.includes("ah")) {
+    const voltage = NOMINAL_VOLTAGE_BY_CHEMISTRY[chemistry?.toUpperCase() ?? ""] ?? 3.6;
+    return (num * voltage) / 1000;
+  }
+  return num;
+}
+
+function parseWeight(raw?: string): number {
+  if (!raw) return 0;
+  const num = parseFloat(raw);
+  if (isNaN(num)) return 0;
+  const lower = raw.toLowerCase();
+  if (lower.includes("g") && !lower.includes("kg")) return num / 1000;
+  return num;
+}
+
+const COUNTRIES = [
+  { value: "CN", label: "🇨🇳 China" },
+  { value: "IN", label: "🇮🇳 India" },
+  { value: "KR", label: "🇰🇷 South Korea" },
+  { value: "JP", label: "🇯🇵 Japan" },
+  { value: "DE", label: "🇩🇪 Germany" },
+  { value: "US", label: "🇺🇸 United States" },
+  { value: "FR", label: "🇫🇷 France" },
+  { value: "GB", label: "🇬🇧 United Kingdom" },
+];
+
+const TRANSPORT_MODES = [
+  { value: "SHIP", label: "Ship (Sea freight)" },
+  { value: "RAIL", label: "Rail" },
+  { value: "TRUCK", label: "Truck" },
+  { value: "AIR", label: "Air freight" },
+];
 
 interface StepComplianceProps {
   isUploading: boolean;
@@ -51,7 +102,7 @@ interface StepComplianceProps {
 function sectionCompletion(filled: number, total: number, optional?: boolean) {
   if (optional) {
     return (
-      <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground border border-border rounded">
+      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground border border-border rounded-md font-medium">
         Optional
       </span>
     );
@@ -59,7 +110,7 @@ function sectionCompletion(filled: number, total: number, optional?: boolean) {
   const complete = total > 0 && filled >= total;
   return (
     <span
-      className={`text-[10px] px-1.5 py-0.5 border rounded ${
+      className={`text-[10px] px-2 py-0.5 border rounded-md font-medium ${
         complete ? "bg-green-500/10 border-green-500/30 text-green-600" : "bg-muted text-muted-foreground border-border"
       }`}
     >
@@ -89,6 +140,62 @@ export function StepCompliance({
     setValue,
   } = useFormContext<BatchFormData>();
 
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [calcCellSource, setCalcCellSource] = useState("CN");
+  const [calcFactoryCountry, setCalcFactoryCountry] = useState("IN");
+  const [calcAssemblyEnergy, setCalcAssemblyEnergy] = useState("25");
+  const [calcTransportMode, setCalcTransportMode] = useState("SHIP");
+  const [calcTransportDistance, setCalcTransportDistance] = useState("5000");
+
+  const chemistry = watch("chemistry");
+  const capacity = watch("capacity");
+  const weight = watch("weight");
+
+  const handleCalculateCarbon = async () => {
+    setCalculating(true);
+    try {
+      const parsedCapacityKwh = parseCapacity(capacity, chemistry) || 50;
+      const parsedWeightKg = parseWeight(weight) || 25;
+
+      const payload = {
+        chemistry: chemistry || "LFP",
+        capacity_kwh: parsedCapacityKwh,
+        cell_source_country: calcCellSource,
+        factory_country: calcFactoryCountry,
+        assembly_energy_kwh: parseFloat(calcAssemblyEnergy) || 0,
+        transport_mode: calcTransportMode,
+        transport_distance_km: parseFloat(calcTransportDistance) || 0,
+        battery_weight_kg: parsedWeightKg,
+      };
+
+      const response = await api.post("/carbon/calculate", payload);
+      const totalKgCo2e = response.data.total_kg_co2e;
+      const carbonClass = response.data.carbon_class;
+
+      setValue("carbonFootprint", totalKgCo2e.toFixed(2), {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      if (carbonClass) {
+        setValue("carbonPerformanceClass", carbonClass, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+
+      toast.success("Carbon footprint calculated and applied", {
+        description: `${totalKgCo2e.toFixed(2)} kg CO₂e (Class ${carbonClass}) applied to field.`,
+      });
+      setShowCalculator(false);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to calculate carbon footprint";
+      toast.error(msg);
+    } finally {
+      setCalculating(false);
+    }
+  };
+
   const marketRegion = watch("marketRegion");
   const isEUMode = marketRegion === "EU";
   const isIndiaMode = marketRegion === "INDIA";
@@ -108,6 +215,56 @@ export function StepCompliance({
   const docUploadUrl = watch("docUploadUrl");
   const uploadedFileUrl = watch("uploadedFileUrl");
   const pliCompliant = watch("pliCompliant");
+
+  const [euOpenItem, setEuOpenItem] = useState<string | null>(null);
+  const [inOpenItem, setInOpenItem] = useState<string | null>(null);
+
+  // Auto-expand accordion section containing form errors
+  useEffect(() => {
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length === 0) return;
+
+    // Check EU errors
+    if (showEU) {
+      if (errorKeys.some(k => k === "carbonFootprint" || k.startsWith("materialComposition.recycled_"))) {
+        setEuOpenItem("eu-carbon");
+        return;
+      }
+      if (errorKeys.some(k => k === "euRepresentative" || k === "euRepresentativeEmail" || k === "euRepresentativeAddress")) {
+        setEuOpenItem("eu-supply-chain");
+        return;
+      }
+      if (errorKeys.some(k => k === "expectedLifetime" || k === "warrantyMonths" || k === "carbonPerformanceClass" || k === "notifiedBodyNumber")) {
+        setEuOpenItem("eu-safety-art7");
+        return;
+      }
+      if (errorKeys.some(k => k === "docUploadUrl")) {
+        setEuOpenItem("eu-doc");
+        return;
+      }
+    }
+
+    // Check India errors
+    if (showIndia) {
+      if (errorKeys.some(k => k === "hsnCode" || k === "cellSource" || k === "cellCountryOfOrigin")) {
+        setInOpenItem("in-classification");
+        return;
+      }
+      if (errorKeys.some(k => k === "bisNumber" || k === "eprNumber" || k === "bisCertificateIssueDate" || k === "un383TestDate")) {
+        setInOpenItem("in-bis-epr");
+        return;
+      }
+      if (errorKeys.some(k => 
+        k === "dvaSource" || k === "auditedDva" || k === "uploadedFileUrl" ||
+        k === "salePrice" || k === "cellCostImported" || k === "cellCostDomestic" ||
+        k === "bmsCostImported" || k === "bmsCostDomestic" || k === "casingCostImported" ||
+        k === "casingCostDomestic" || k === "labourOverheadCost"
+      )) {
+        setInOpenItem("in-dva");
+        return;
+      }
+    }
+  }, [errors, showEU, showIndia]);
 
   // Watched purely to drive the section-completion badges below
   const carbonFootprint = watch("carbonFootprint");
@@ -217,7 +374,7 @@ export function StepCompliance({
             )}
           </div>
 
-          <Accordion>
+          <Accordion value={euOpenItem} onValueChange={setEuOpenItem}>
             {/* Carbon & Sustainability */}
             <AccordionItem value="eu-carbon">
               <AccordionTrigger>
@@ -247,6 +404,114 @@ export function StepCompliance({
                     <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">kg CO₂e</span>
                   </div>
                   {errors.carbonFootprint && <p className="text-xs text-red-500 mt-0.5">{errors.carbonFootprint.message}</p>}
+                </div>
+
+                <div className="mt-3 border border-border bg-card/15 rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                      <Calculator className="h-3.5 w-3.5 text-emerald-500" />
+                      Carbon Footprint Calculator
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowCalculator(!showCalculator)}
+                      className="text-xs h-7 text-[var(--brand)] hover:bg-[var(--brand)]/10 font-semibold px-2.5 rounded-lg cursor-pointer"
+                    >
+                      {showCalculator ? "Hide Calculator" : "Estimate / Calculate"}
+                    </Button>
+                  </div>
+
+                  {showCalculator && (
+                    <div className="space-y-3 pt-2 border-t border-border/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Cell Source Country</Label>
+                          <Select value={calcCellSource} onValueChange={setCalcCellSource}>
+                            <SelectTrigger className="h-8 text-xs font-medium cursor-pointer">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COUNTRIES.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>
+                                  {c.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Factory Country</Label>
+                          <Select value={calcFactoryCountry} onValueChange={setCalcFactoryCountry}>
+                            <SelectTrigger className="h-8 text-xs font-medium cursor-pointer">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COUNTRIES.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>
+                                  {c.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Assembly Energy (kWh)</Label>
+                          <Input
+                            type="number"
+                            value={calcAssemblyEnergy}
+                            onChange={(e) => setCalcAssemblyEnergy(e.target.value)}
+                            placeholder="e.g. 25"
+                            className="h-8 text-xs font-medium"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Transport Mode</Label>
+                          <Select value={calcTransportMode} onValueChange={setCalcTransportMode}>
+                            <SelectTrigger className="h-8 text-xs font-medium cursor-pointer">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TRANSPORT_MODES.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>
+                                  {m.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 items-end">
+                        <div className="grid gap-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground font-semibold">Transport Distance (km)</Label>
+                          <Input
+                            type="number"
+                            value={calcTransportDistance}
+                            onChange={(e) => setCalcTransportDistance(e.target.value)}
+                            placeholder="e.g. 5000"
+                            className="h-8 text-xs font-medium"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          disabled={calculating}
+                          onClick={handleCalculateCarbon}
+                          className="h-8 text-xs bg-[var(--brand)] text-primary-foreground hover:bg-[var(--brand)]/90 font-semibold cursor-pointer w-full rounded-lg"
+                        >
+                          {calculating ? "Calculating..." : "Calculate & Apply"}
+                        </Button>
+                      </div>
+
+                      <p className="text-[10px] text-muted-foreground leading-normal mt-1 border-t border-border/50 pt-1">
+                        * Note: Pre-fills and scales automatically using your step-1 specs: <strong>Chemistry ({chemistry || "N/A"})</strong>, <strong>Capacity ({capacity || "N/A"})</strong>, and <strong>Weight ({weight || "N/A"})</strong>.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 pt-3">
@@ -450,7 +715,7 @@ export function StepCompliance({
                   {!docUploadUrl ? (
                     <label
                       {...docDropHandlers}
-                      className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed cursor-pointer transition-colors ${isUploading ? "border-foreground bg-muted/50" : isDocDragActive ? "border-foreground bg-accent" : "border-border bg-background hover:bg-accent"}`}
+                      className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${isUploading ? "border-foreground bg-muted/50" : isDocDragActive ? "border-foreground bg-accent" : "border-border bg-background hover:bg-accent"}`}
                     >
                       <div className="flex flex-col items-center justify-center pt-4 pb-4">
                         {isUploading ? (
@@ -475,12 +740,12 @@ export function StepCompliance({
                       <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => handleFileChange(e, onDocUpload)} />
                     </label>
                   ) : (
-                    <div className="p-3 bg-muted/50 border border-border rounded">
+                    <div className="p-3 bg-muted/15 border border-border rounded-xl">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-foreground flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> DoC uploaded</span>
+                        <span className="text-sm text-foreground flex items-center gap-1.5"><FileText className="h-4 w-4 text-muted-foreground" /> DoC uploaded</span>
                         <div className="flex gap-2">
-                          <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-accent transition-colors border border-border">View</a>
-                          <button type="button" onClick={() => setValue("docUploadUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Remove</button>
+                          <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium">View</a>
+                          <button type="button" onClick={() => setValue("docUploadUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors font-medium cursor-pointer">Remove</button>
                         </div>
                       </div>
                     </div>
@@ -500,7 +765,7 @@ export function StepCompliance({
             <span className="text-xs bg-muted px-2 py-0.5 rounded border border-border">Required</span>
           </div>
 
-          <Accordion>
+          <Accordion value={inOpenItem} onValueChange={setInOpenItem}>
             {/* Classification & Cell Source */}
             <AccordionItem value="in-classification">
               <AccordionTrigger>
@@ -634,21 +899,24 @@ export function StepCompliance({
                   <>
                     <div className="grid gap-2">
                       <Label className="text-foreground">Domestic Value Add (DVA) Mode</Label>
-                      <div className="flex gap-2">
-                        {(["ESTIMATED", "AUDITED"] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => setValue("dvaSource", mode, { shouldValidate: true, shouldDirty: true })}
-                            className={`flex-1 p-2 text-xs border transition-colors ${
-                              dvaSource === mode
-                                ? "border-foreground bg-accent text-foreground"
-                                : "border-border text-muted-foreground hover:bg-accent"
-                            }`}
-                          >
-                            {mode === "ESTIMATED" ? "📊 Indicative Estimator" : "📋 Audited (CA Certified)"}
-                          </button>
-                        ))}
+                      <div className="flex gap-3">
+                        {(["ESTIMATED", "AUDITED"] as const).map((mode) => {
+                          const isSelected = dvaSource === mode;
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setValue("dvaSource", mode, { shouldValidate: true, shouldDirty: true })}
+                              className={`flex-1 p-3 text-xs border rounded-xl font-medium transition-all duration-200 cursor-pointer ${
+                                isSelected
+                                  ? "border-[var(--brand)] bg-[var(--brand)]/5 text-foreground ring-1 ring-[var(--brand)]/20"
+                                  : "border-border text-muted-foreground bg-card hover:bg-accent/40 hover:border-muted-foreground/30"
+                              }`}
+                            >
+                              {mode === "ESTIMATED" ? "📊 Indicative Estimator" : "📋 Audited (CA Certified)"}
+                            </button>
+                          );
+                        })}
                       </div>
                       {errors.dvaSource && <p className="text-xs text-red-500 mt-0.5">{errors.dvaSource.message}</p>}
                     </div>
@@ -678,7 +946,7 @@ export function StepCompliance({
                           {!uploadedFileUrl ? (
                             <label
                               {...certDropHandlers}
-                              className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed cursor-pointer transition-colors ${errors.uploadedFileUrl ? "border-red-500 bg-red-500/10" : isUploading ? "border-foreground bg-muted/50" : isCertDragActive ? "border-foreground bg-accent" : "border-border bg-background hover:bg-accent"}`}
+                              className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${errors.uploadedFileUrl ? "border-red-500 bg-red-500/10" : isUploading ? "border-foreground bg-muted/50" : isCertDragActive ? "border-foreground bg-accent" : "border-border bg-background hover:bg-accent"}`}
                             >
                               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 {isUploading ? (
@@ -703,7 +971,7 @@ export function StepCompliance({
                               <input type="file" className="hidden" accept=".pdf" disabled={isUploading} onChange={(e) => handleFileChange(e, onCertificateUpload)} />
                             </label>
                           ) : (
-                            <div className="p-4 bg-muted/50 border border-border">
+                            <div className="p-4 bg-muted/15 border border-border rounded-xl">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <FileText className="h-5 w-5 text-muted-foreground" />
@@ -713,8 +981,8 @@ export function StepCompliance({
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
-                                  <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-accent transition-colors border border-border">View File</a>
-                                  <button type="button" onClick={() => setValue("uploadedFileUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Replace</button>
+                                  <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium">View File</a>
+                                  <button type="button" onClick={() => setValue("uploadedFileUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors font-medium cursor-pointer font-medium">Replace</button>
                                 </div>
                               </div>
                             </div>

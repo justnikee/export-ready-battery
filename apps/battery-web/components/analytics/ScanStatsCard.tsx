@@ -6,7 +6,7 @@ import { ReactNode } from "react"
 interface ScanStatsCardProps {
  icon: ReactNode
  label: string
- value: number
+ value: number | string
  iconColor: string
  bgColor: string
 }
@@ -21,7 +21,7 @@ export function ScanStatsCard({ icon, label, value, iconColor, bgColor }: ScanSt
  </div>
  <div>
  <p className="text-2xl text-foreground">
- {value.toLocaleString()}
+ {typeof value === "number" ? value.toLocaleString() : value}
  </p>
  <p className="text-sm text-muted-foreground">{label}</p>
  </div>

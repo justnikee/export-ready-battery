@@ -301,10 +301,7 @@ GET /api/v1/templates
  <FeatureItem>IP-based geolocation (city, country)</FeatureItem>
  <FeatureItem>Device type detection (Mobile/Desktop)</FeatureItem>
  <FeatureItem>User agent parsing</FeatureItem>
- <li className="flex items-start gap-2 text-gray-500">
- <span className="w-4 h-4 mt-1 border border-gray-500 rounded shrink-0" />
- <span>Analytics dashboard (Coming Soon)</span>
- </li>
+  <FeatureItem>Analytics dashboard (Overview & Scans)</FeatureItem>
  </ul>
 
  <h4 className="text-sm text-gray-400 uppercase mb-2">Scan Event Data</h4>

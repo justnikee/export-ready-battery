@@ -25,12 +25,63 @@ type StorageService struct {
 
 // NewStorageService creates a new Supabase Storage service
 func NewStorageService(logger *slog.Logger) *StorageService {
+	// Allow override via env; default to lowercase "exports"
+	bucket := os.Getenv("SUPABASE_EXPORTS_BUCKET")
+	if bucket == "" {
+		bucket = "exports"
+	}
 	return &StorageService{
 		supabaseURL:    os.Getenv("SUPABASE_URL"),
 		serviceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
-		bucketName:     "Exports",
+		bucketName:     bucket,
 		logger:         logger,
 	}
+}
+
+// EnsureBucket creates the bucket if it does not already exist.
+// It is idempotent — calling it when the bucket already exists is a no-op.
+func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error {
+	checkURL := fmt.Sprintf("%s/storage/v1/bucket/%s", s.supabaseURL, bucket)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checkURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create bucket check request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("bucket check failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return nil // Bucket already exists
+	}
+
+	// Create the bucket
+	creatURL := fmt.Sprintf("%s/storage/v1/bucket", s.supabaseURL)
+	body := fmt.Sprintf(`{"id":%q,"name":%q,"public":false}`, bucket, bucket)
+	creatReq, err := http.NewRequestWithContext(ctx, http.MethodPost, creatURL, strings.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create bucket creation request: %w", err)
+	}
+	creatReq.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
+	creatReq.Header.Set("Content-Type", "application/json")
+
+	creatResp, err := client.Do(creatReq)
+	if err != nil {
+		return fmt.Errorf("bucket creation failed: %w", err)
+	}
+	defer creatResp.Body.Close()
+
+	if creatResp.StatusCode != http.StatusOK && creatResp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(creatResp.Body)
+		return fmt.Errorf("bucket creation returned status %d: %s", creatResp.StatusCode, string(respBody))
+	}
+
+	s.logger.Info("created storage bucket", "bucket", bucket)
+	return nil
 }
 
 // UploadFile uploads data to the default bucket in Supabase Storage.
@@ -40,15 +91,20 @@ func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath s
 
 // UploadFileToBucket uploads data to a specific bucket in Supabase Storage.
 func (s *StorageService) UploadFileToBucket(ctx context.Context, bucket, filePath string, data []byte, contentType string) error {
-	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
+	// Auto-create bucket if it doesn't exist yet
+	if err := s.EnsureBucket(ctx, bucket); err != nil {
+		s.logger.Warn("EnsureBucket failed — attempting upload anyway", "bucket", bucket, "error", err)
+	}
+
+	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
 
 	s.logger.Info("attempting upload",
-		"url", url,
+		"url", uploadURL,
 		"bucket", bucket,
 		"supabaseURL", s.supabaseURL,
 	)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create upload request: %w", err)
 	}
@@ -86,9 +142,14 @@ func (s *StorageService) UploadReader(ctx context.Context, reader io.Reader, siz
 
 // UploadReaderToBucket uploads from an io.Reader to a specific bucket.
 func (s *StorageService) UploadReaderToBucket(ctx context.Context, bucket string, reader io.Reader, size int64, filePath string, contentType string) error {
-	url := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
+	// Auto-create bucket if it doesn't exist yet
+	if err := s.EnsureBucket(ctx, bucket); err != nil {
+		s.logger.Warn("EnsureBucket failed — attempting upload anyway", "bucket", bucket, "error", err)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reader)
+	uploadURL := fmt.Sprintf("%s/storage/v1/object/%s/%s", s.supabaseURL, bucket, filePath)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, reader)
 	if err != nil {
 		return fmt.Errorf("failed to create upload request: %w", err)
 	}

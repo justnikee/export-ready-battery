@@ -153,6 +153,9 @@ type RepositoryInterface interface {
 
 	// analytics.go
 	GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.AnalyticsOverview, error)
+	GetGapsByRegulation(ctx context.Context, tenantID uuid.UUID) ([]models.RegulationGapCount, error)
+	GetActionFeed(ctx context.Context, tenantID uuid.UUID) ([]models.ActionFeedItem, error)
+	GetDGFTValue(ctx context.Context, tenantID uuid.UUID) (*models.DGFTValueSummary, error)
 
 	// fleet.go
 	GetFleetStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*FleetStats, error)

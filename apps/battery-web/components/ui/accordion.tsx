@@ -80,43 +80,61 @@ const AccordionContent = React.forwardRef<
 AccordionContent.displayName = "AccordionContent"
 
 // Wrapper to manage state for single-open behavior
-const AccordionSingle = ({ children, className }: { children: React.ReactNode, className?: string }) => {
- const [openItem, setOpenItem] = React.useState<string | null>(null)
+const AccordionSingle = ({
+  children,
+  className,
+  value,
+  onValueChange,
+}: {
+  children: React.ReactNode
+  className?: string
+  value?: string | null
+  onValueChange?: (value: string | null) => void
+}) => {
+  const [internalOpenItem, setInternalOpenItem] = React.useState<string | null>(null)
+  const isControlled = value !== undefined
+  const openItem = isControlled ? value : internalOpenItem
 
- const handleToggle = (value: string) => {
- setOpenItem(openItem === value ? null : value)
- }
+  const handleToggle = (itemValue: string) => {
+    const nextValue = openItem === itemValue ? null : itemValue
+    if (!isControlled) {
+      setInternalOpenItem(nextValue)
+    }
+    if (onValueChange) {
+      onValueChange(nextValue)
+    }
+  }
 
- return (
- <div className={cn("space-y-4", className)}>
- {React.Children.map(children, (child) => {
- if (React.isValidElement<AccordionItemProps>(child)) {
- const childElement = child
- const value = childElement.props.value
+  return (
+    <div className={cn("space-y-4", className)}>
+      {React.Children.map(children, (child) => {
+        if (React.isValidElement<AccordionItemProps>(child)) {
+          const childElement = child
+          const itemValue = childElement.props.value
 
- return React.cloneElement(childElement, {
- isOpen: openItem === value,
- onToggle: () => handleToggle(value),
- children: React.Children.map(childElement.props.children, (subChild) => {
- if (React.isValidElement<AccordionTriggerProps>(subChild) && subChild.type === AccordionTrigger) {
- return React.cloneElement(subChild, {
- onClick: () => handleToggle(value),
- isOpen: openItem === value
- })
- }
- if (React.isValidElement<AccordionContentProps>(subChild) && subChild.type === AccordionContent) {
- return React.cloneElement(subChild, {
- isOpen: openItem === value
- })
- }
- return subChild
- })
- })
- }
- return child
- })}
- </div>
- )
+          return React.cloneElement(childElement, {
+            isOpen: openItem === itemValue,
+            onToggle: () => handleToggle(itemValue),
+            children: React.Children.map(childElement.props.children, (subChild) => {
+              if (React.isValidElement<AccordionTriggerProps>(subChild) && subChild.type === AccordionTrigger) {
+                return React.cloneElement(subChild, {
+                  onClick: () => handleToggle(itemValue),
+                  isOpen: openItem === itemValue
+                })
+              }
+              if (React.isValidElement<AccordionContentProps>(subChild) && subChild.type === AccordionContent) {
+                return React.cloneElement(subChild, {
+                  isOpen: openItem === itemValue
+                })
+              }
+              return subChild
+            })
+          })
+        }
+        return child
+      })}
+    </div>
+  )
 }
 
 export { AccordionSingle as Accordion, AccordionItem, AccordionTrigger, AccordionContent }

@@ -289,17 +289,12 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Count passports in the batch to meter by passport (R1)
+	// Count pre-existing passports (created while DRAFT) — used for quota deduction.
+	// Passports added later (to an already-ACTIVE batch) are charged at upload time.
 	passportCount, err := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if err != nil {
 		slog.Error("Failed to count passports for batch", "batch_id", batchID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to count passports in batch")
-		return
-	}
-
-	// A batch must have at least one passport to be activated
-	if passportCount == 0 {
-		respondError(w, http.StatusBadRequest, "Batch cannot be activated with zero passports. Please create passports first.")
 		return
 	}
 
