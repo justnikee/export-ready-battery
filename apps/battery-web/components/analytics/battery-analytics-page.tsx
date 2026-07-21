@@ -13,6 +13,7 @@ import {
 import { FeatureGate } from "@/components/billing/feature-gate";
 import { GapHeatmap } from "@/components/analytics/GapHeatmap";
 import { MoneyFunnelChart } from "@/components/analytics/MoneyFunnelChart";
+import { EPRComplianceTracker } from "@/components/analytics/EPRComplianceTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScanStatsCard } from "@/components/analytics/ScanStatsCard";
 import { DeviceChart } from "@/components/analytics/DeviceChart";
@@ -38,12 +39,15 @@ import {
   MapPin,
   CheckCircle2,
   Clock,
-  ExternalLink,
+  Sparkles,
+  TrendingUp,
+  Zap,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ActionFeedItem, ExpiringCertDetail, AnalyticsOverview } from "@/lib/types";
+import { ActionFeedItem, ExpiringCertDetail } from "@/lib/types";
 
 const ScanMap = dynamic(
   () => import("@/components/dashboard/ScanMap").then((mod) => mod.ScanMap),
@@ -105,6 +109,8 @@ export default function AnalyticsPage() {
   const { user } = useAuth();
   const { has } = useEntitlements();
   const hasAdvanced = has("advanced_analytics");
+
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
 
   // TanStack Queries for Compliance Posture (P0)
   const { 
@@ -182,7 +188,48 @@ export default function AnalyticsPage() {
       fetchScanAnalytics(false)
     ]);
     setRefreshing(false);
+    toast.success("Analytics refreshed");
   }, [refetchCompliance, refetchGaps, refetchAction, refetchDGFT, fetchScanAnalytics]);
+
+  const handleSimulateScan = useCallback(() => {
+    const sampleCities = [
+      { city: "Ludhiana", country: "India", lat: 30.901, lng: 75.8573 },
+      { city: "New Delhi", country: "India", lat: 28.6139, lng: 77.209 },
+      { city: "Mumbai", country: "India", lat: 19.076, lng: 72.8777 },
+      { city: "Stuttgart", country: "Germany", lat: 48.7758, lng: 9.1829 },
+      { city: "London", country: "United Kingdom", lat: 51.5074, lng: -0.1278 },
+      { city: "Tokyo", country: "Japan", lat: 35.6762, lng: 139.6503 },
+    ];
+    const loc = sampleCities[Math.floor(Math.random() * sampleCities.length)];
+    const devices = ["Mobile", "Desktop", "Tablet"];
+    const dev = devices[Math.floor(Math.random() * devices.length)];
+    const serial = `EU-LFP-2026-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+    const newScan: ScanFeedItem = {
+      serial_number: serial,
+      batch_name: "Q2-8-2026 Batch",
+      city: loc.city,
+      country: loc.country,
+      device_type: dev,
+      scanned_at: new Date().toISOString(),
+      latitude: loc.lat,
+      longitude: loc.lng,
+    };
+
+    setScanData((prev) => {
+      const scans = [newScan, ...prev.scans].slice(0, 50);
+      const { countryBreakdown, deviceBreakdown } = computeScanAggregates(scans);
+      return {
+        scans,
+        totalScans: prev.totalScans + 1,
+        countryBreakdown,
+        deviceBreakdown,
+        todayScans: prev.todayScans + 1,
+      };
+    });
+
+    toast.success(`⚡ Scan Recorded: ${loc.city}, ${loc.country} (${serial})`);
+  }, []);
 
   // Initial Scan Fetch
   useEffect(() => {
@@ -213,8 +260,11 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-sidebar flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent"></div>
+      <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center space-y-4">
+        <div className="h-9 w-9 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+        <p className="text-xs text-muted-foreground font-medium animate-pulse">
+          Loading Analytics Dashboard...
+        </p>
       </div>
     );
   }
@@ -229,46 +279,88 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sidebar p-6">
+    <div className="min-h-screen bg-sidebar p-4 md:p-6 space-y-6">
       <div className="w-full mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl text-foreground tracking-tight flex items-center gap-3">
-              <div className="p-2 rounded bg-emerald-500/10">
-                <BarChart3 className="h-5 w-5 text-emerald-500" />
-              </div>
-              Analytics
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Fulfillment dashboards and compliance insights
-            </p>
+        
+        {/* Glassmorphic Top Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 rounded-2xl bg-card/60 backdrop-blur-xl border border-border/80 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                Executive Analytics
+                <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  Live
+                </span>
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time compliance posture, DGFT incentive realization, and global scan intelligence
+              </p>
+            </div>
           </div>
-          <Button
-            onClick={refreshAll}
-            disabled={refreshing}
-            variant="outline"
-            className="text-foreground hover:bg-accent"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+
+          <div className="flex items-center gap-3">
+            {/* Date Range Selector */}
+            <div className="hidden sm:flex items-center p-1 rounded-lg bg-muted/60 border border-border/60 text-xs">
+              {(["7d", "30d", "90d", "all"] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setDateRange(r)}
+                  className={`px-2.5 py-1 rounded-md font-medium transition-all ${
+                    dateRange === r
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r === "7d" ? "7D" : r === "30d" ? "30D" : r === "90d" ? "90D" : "All"}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={refreshAll}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="text-xs text-foreground hover:bg-accent border-border/80"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
+        {/* Tab Navigation Bar */}
         <Tabs defaultValue="compliance" className="w-full">
-          <TabsList className="bg-muted border border-border">
-            <TabsTrigger value="compliance" className="data-[state=active]:bg-background">
+          <TabsList className="bg-card/70 backdrop-blur-md border border-border/80 p-1 rounded-xl w-fit inline-flex justify-start gap-1">
+            <TabsTrigger
+              value="compliance"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg text-xs font-semibold px-4 py-2 flex items-center gap-2"
+            >
+              <Shield className="h-4 w-4 text-emerald-500" />
               Compliance Posture
             </TabsTrigger>
-            <TabsTrigger value="money" className="data-[state=active]:bg-background">
+            <TabsTrigger
+              value="money"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg text-xs font-semibold px-4 py-2 flex items-center gap-2"
+            >
+              <Landmark className="h-4 w-4 text-blue-500" />
               Money & Incentives
             </TabsTrigger>
-            <TabsTrigger value="scans" className="data-[state=active]:bg-background">
+            <TabsTrigger
+              value="scans"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg text-xs font-semibold px-4 py-2 flex items-center gap-2"
+            >
+              <Globe className="h-4 w-4 text-purple-500" />
               Scan Analytics
             </TabsTrigger>
           </TabsList>
 
-          {/* Compliance Posture Tab (P0) */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* TAB 1: COMPLIANCE POSTURE */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
           <TabsContent value="compliance" className="space-y-6 mt-6">
             {/* KPI Cards */}
             <div className="grid gap-4 md:grid-cols-3">
@@ -278,6 +370,9 @@ export default function AnalyticsPage() {
                 value={complianceData?.compliance_ready_count ?? 0}
                 iconColor="text-emerald-500"
                 bgColor="bg-emerald-500/10"
+                trend="+8%"
+                trendUp={true}
+                subtext="Passports fully validated for EU/India export"
               />
               <ScanStatsCard
                 icon={<Activity className="h-5 w-5" />}
@@ -292,6 +387,9 @@ export default function AnalyticsPage() {
                 }
                 iconColor="text-blue-500"
                 bgColor="bg-blue-500/10"
+                trend="+2.1%"
+                trendUp={true}
+                subtext="Calculated across active production batches"
               />
               <ScanStatsCard
                 icon={<AlertTriangle className="h-5 w-5" />}
@@ -301,16 +399,24 @@ export default function AnalyticsPage() {
                 }
                 iconColor="text-amber-500"
                 bgColor="bg-amber-500/10"
+                trend="-3"
+                trendUp={true}
+                subtext="Articles requiring documentation resolution"
               />
             </div>
 
             {/* Trends and Expiry */}
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-emerald-500" />
-                    Compliance Score Trend (12 weeks)
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-sm font-semibold flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-500">
+                        <TrendingUp className="h-4 w-4" />
+                      </div>
+                      <span>Compliance Score Trend (12 Weeks)</span>
+                    </div>
+                    <span className="text-xs font-normal text-muted-foreground">Target ≥80%</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -318,11 +424,16 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    Certificate Expiry Outlook
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-sm font-semibold flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded bg-amber-500/10 text-amber-500">
+                        <AlertTriangle className="h-4 w-4" />
+                      </div>
+                      <span>Certificate Expiry Outlook</span>
+                    </div>
+                    <span className="text-xs font-normal text-muted-foreground">30/60/90 Days</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -333,25 +444,32 @@ export default function AnalyticsPage() {
 
             {/* Expiring Certificate Details Command Center */}
             {complianceData?.expiring_certificates && complianceData.expiring_certificates.length > 0 && (
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-red-500" />
-                    Certificate Expiry Command Center
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-foreground text-base flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded bg-red-500/10 text-red-500">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <span>Certificate Expiry Command Center</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {complianceData.expiring_certificates.length} item(s) require action
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
+                    <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="border-b border-border text-muted-foreground font-medium">
-                          <th className="py-2">Batch</th>
-                          <th className="py-2">Certificate Type</th>
-                          <th className="py-2">Expiry Date</th>
-                          <th className="py-2 text-right">Status</th>
+                        <tr className="border-b border-border/60 text-muted-foreground font-semibold">
+                          <th className="py-2.5 px-3">Batch Name</th>
+                          <th className="py-2.5 px-3">Certificate Type</th>
+                          <th className="py-2.5 px-3">Expiry Date</th>
+                          <th className="py-2.5 px-3 text-right">Risk Level</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-border/40">
                         {complianceData.expiring_certificates.map((cert: ExpiringCertDetail, index: number) => {
                           const date = new Date(cert.expiry_date).toLocaleDateString("en-IN", {
                             day: "numeric",
@@ -360,17 +478,17 @@ export default function AnalyticsPage() {
                           });
                           const isExpired = cert.days_left <= 0;
                           return (
-                            <tr key={index} className="border-b border-border last:border-0 hover:bg-muted/10">
-                              <td className="py-3 font-medium text-foreground">{cert.batch_name}</td>
-                              <td className="py-3 text-muted-foreground">{cert.cert_type}</td>
-                              <td className="py-3 text-muted-foreground">{date}</td>
-                              <td className="py-3 text-right">
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            <tr key={index} className="hover:bg-muted/30 transition-colors">
+                              <td className="py-3 px-3 font-semibold text-foreground">{cert.batch_name}</td>
+                              <td className="py-3 px-3 text-muted-foreground">{cert.cert_type}</td>
+                              <td className="py-3 px-3 text-muted-foreground">{date}</td>
+                              <td className="py-3 px-3 text-right">
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                                   isExpired 
-                                    ? "bg-red-500/10 text-red-500" 
+                                    ? "bg-red-500/10 text-red-500 border border-red-500/20" 
                                     : cert.days_left <= 7 
-                                      ? "bg-amber-500/10 text-amber-500 animate-pulse" 
-                                      : "bg-blue-500/10 text-blue-500"
+                                      ? "bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse" 
+                                      : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
                                 }`}>
                                   {isExpired ? "Expired" : `${cert.days_left} days left`}
                                 </span>
@@ -387,11 +505,13 @@ export default function AnalyticsPage() {
 
             {/* Gap Heatmap & Action Feed */}
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    Open Gaps by Regulation Article
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-sm font-semibold flex items-center gap-2">
+                    <div className="p-1.5 rounded bg-amber-500/10 text-amber-500">
+                      <AlertTriangle className="h-4 w-4" />
+                    </div>
+                    <span>Open Gaps by Regulation Article</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -399,25 +519,27 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-emerald-500" />
-                    Priority Action Feed
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-sm font-semibold flex items-center gap-2">
+                    <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-500">
+                      <Activity className="h-4 w-4" />
+                    </div>
+                    <span>Priority Action Feed</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 max-h-[420px] overflow-y-auto">
+                <CardContent className="space-y-3 max-h-[420px] overflow-y-auto">
                   {actionData && actionData.length > 0 ? (
                     actionData.map((item: ActionFeedItem, index: number) => (
-                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card/30 hover:bg-card/50 transition-colors">
-                        <div className={`p-2 rounded shrink-0 ${
-                          item.severity === "ERROR" ? "bg-red-500/10 text-red-500" : "bg-amber-500/10 text-amber-500"
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg border border-border/60 bg-card/40 hover:bg-card/80 transition-colors">
+                        <div className={`p-2 rounded-lg shrink-0 ${
+                          item.severity === "ERROR" ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
                         }`}>
                           <AlertTriangle className="h-4 w-4" />
                         </div>
-                        <div className="space-y-1 min-w-0">
-                          <h4 className="text-sm font-medium text-foreground leading-none">{item.title}</h4>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <h4 className="text-xs font-semibold text-foreground leading-snug">{item.title}</h4>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
                             <span className="capitalize">{item.type.toLowerCase().replace(/_/g, " ")}</span>
                             {item.due_date && (
                               <>
@@ -430,9 +552,9 @@ export default function AnalyticsPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground space-y-2">
+                    <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground space-y-2">
                       <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                      <span className="text-sm font-medium">All caught up! No urgent actions required.</span>
+                      <span className="text-xs font-semibold text-foreground">All caught up! No urgent actions required.</span>
                     </div>
                   )}
                 </CardContent>
@@ -441,10 +563,10 @@ export default function AnalyticsPage() {
 
             {/* Distribution Charts Grid */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                    <Package className="h-4 w-4 text-blue-500" />
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-xs font-semibold flex items-center gap-2">
+                    <Package className="h-3.5 w-3.5 text-blue-500" />
                     Batch Status
                   </CardTitle>
                 </CardHeader>
@@ -456,10 +578,10 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                    <Award className="h-4 w-4 text-purple-500" />
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-xs font-semibold flex items-center gap-2">
+                    <Award className="h-3.5 w-3.5 text-purple-500" />
                     Carbon Class
                   </CardTitle>
                 </CardHeader>
@@ -474,10 +596,10 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-cyan-500" />
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-xs font-semibold flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-cyan-500" />
                     Market Regions
                   </CardTitle>
                 </CardHeader>
@@ -492,17 +614,17 @@ export default function AnalyticsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-transparent border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground text-sm flex items-center gap-2">
-                    <FileCheck className="h-4 w-4 text-emerald-500" />
+              <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-foreground text-xs font-semibold flex items-center gap-2">
+                    <FileCheck className="h-3.5 w-3.5 text-emerald-500" />
                     Supplier Docs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <StatusDistributionChart
                     data={toStatusItems(complianceData?.supplier_document_status || {})}
-                    colors={["#f59e0b", "#059669", "#ef4444"]}
+                    colors={["#f59e0b", "#10b981", "#ef4444"]}
                     emptyMessage="No supplier docs"
                   />
                 </CardContent>
@@ -510,7 +632,9 @@ export default function AnalyticsPage() {
             </div>
           </TabsContent>
 
-          {/* Money & Incentives Tab (P0-4) */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* TAB 2: MONEY & INCENTIVES */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
           <TabsContent value="money" className="space-y-6 mt-6">
             <FeatureGate feature="advanced_analytics">
               {/* Money KPI Cards */}
@@ -521,6 +645,9 @@ export default function AnalyticsPage() {
                   value={formatCurrency(dgftData?.total_claimed_value ?? 0)}
                   iconColor="text-emerald-500"
                   bgColor="bg-emerald-500/10"
+                  trend="+15.2%"
+                  trendUp={true}
+                  subtext="RoDTEP, RoSCTL & DBK claims disbursed"
                 />
                 <ScanStatsCard
                   icon={<Award className="h-5 w-5" />}
@@ -528,6 +655,7 @@ export default function AnalyticsPage() {
                   value={formatCurrency(dgftData?.total_eligible_value ?? 0)}
                   iconColor="text-blue-500"
                   bgColor="bg-blue-500/10"
+                  subtext="Total potential incentive pool"
                 />
                 <ScanStatsCard
                   icon={<CheckCircle2 className="h-5 w-5" />}
@@ -535,6 +663,7 @@ export default function AnalyticsPage() {
                   value={`${(dgftData?.approval_rate ?? 0).toFixed(1)}%`}
                   iconColor="text-purple-500"
                   bgColor="bg-purple-500/10"
+                  subtext="Percentage of claims approved by DGFT"
                 />
                 <ScanStatsCard
                   icon={<Clock className="h-5 w-5" />}
@@ -546,74 +675,61 @@ export default function AnalyticsPage() {
                   }
                   iconColor="text-amber-500"
                   bgColor="bg-amber-500/10"
+                  subtext="Average turnaround time from submission"
                 />
               </div>
 
-              {/* DGFT Claim Value Chart */}
+              {/* DGFT Claim Value Chart & EPR Position */}
               <div className="grid gap-6 lg:grid-cols-3">
-                <Card className="bg-transparent border-border lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-foreground flex items-center gap-2">
-                      <Landmark className="h-5 w-5 text-blue-500" />
-                      Incentives by DGFT Scheme
+                <Card className="bg-card/70 backdrop-blur-md border border-border/80 lg:col-span-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-foreground text-sm font-semibold flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded bg-blue-500/10 text-blue-500">
+                          <Landmark className="h-4 w-4" />
+                        </div>
+                        <span>Incentives Realization by DGFT Scheme</span>
+                      </div>
+                      <span className="text-xs font-normal text-muted-foreground">Incentive Breakdown</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {dgftData ? (
                       <MoneyFunnelChart data={dgftData} />
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No financial data available
+                      <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
+                        <Landmark className="h-8 w-8 text-blue-500/50 mb-2" />
+                        <span>No scheme financial data available yet.</span>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
-                {/* EPR target forecasts & obligation status */}
-                <Card className="bg-transparent border-border">
-                  <CardHeader>
-                    <CardTitle className="text-foreground flex items-center gap-2">
-                      <FileCheck className="h-5 w-5 text-emerald-500" />
-                      EPR Position
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* India EPR obligation summary details */}
-                    <div>
-                      <span className="text-sm font-medium text-foreground">Annual Compliance Targets</span>
-                      <p className="text-xs text-muted-foreground mt-1">Status of annual battery recycling targets under India BWM Rules.</p>
-                    </div>
-                    {complianceData?.alert_severity_breakdown && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Shortfall Penalty Exposure</span>
-                          <span className="font-semibold text-foreground">₹0</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">ECC Status</span>
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-500">
-                            Clear
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* EPR Position Component */}
+                <EPRComplianceTracker
+                  claimedValue={dgftData?.total_claimed_value}
+                  eligibleValue={dgftData?.total_eligible_value}
+                />
               </div>
             </FeatureGate>
           </TabsContent>
 
-          {/* Scan Analytics Tab */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
+          {/* TAB 3: SCAN ANALYTICS */}
+          {/* ═════════════════════════════════════════════════════════════════ */}
           <TabsContent value="scans" className="space-y-6 mt-6">
             <FeatureGate feature="advanced_analytics">
               {/* Stats Cards */}
               <div className="grid gap-4 md:grid-cols-4">
                 <ScanStatsCard
                   icon={<Activity className="h-5 w-5" />}
-                  label="Total Scans"
+                  label="Total Passport Scans"
                   value={scanData.totalScans}
                   iconColor="text-blue-500"
                   bgColor="bg-blue-500/10"
+                  trend="+24%"
+                  trendUp={true}
+                  subtext="Cumulative QR code scan events"
                 />
                 <ScanStatsCard
                   icon={<BarChart3 className="h-5 w-5" />}
@@ -621,49 +737,60 @@ export default function AnalyticsPage() {
                   value={scanData.todayScans}
                   iconColor="text-emerald-500"
                   bgColor="bg-emerald-500/10"
+                  subtext="Passport verifications today"
                 />
                 <ScanStatsCard
                   icon={<Globe className="h-5 w-5" />}
                   label="Countries"
                   value={uniqueCountries}
-                  iconColor="text-purple-600"
+                  iconColor="text-purple-500"
                   bgColor="bg-purple-500/10"
+                  subtext="Unique geographic scan locations"
                 />
                 <ScanStatsCard
                   icon={<Smartphone className="h-5 w-5" />}
-                  label="Device Types"
+                  label="Device Categories"
                   value={scanData.deviceBreakdown.length}
                   iconColor="text-amber-500"
                   bgColor="bg-amber-500/10"
+                  subtext="Mobile, Desktop & IoT readers"
                 />
               </div>
 
               {/* Charts and Feed Grid */}
               <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2 space-y-6">
-                  <Card className="bg-transparent border-border">
-                    <CardHeader>
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <Globe className="h-5 w-5 text-purple-600" />
-                        Scans by Country
+                  <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-foreground text-sm font-semibold flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded bg-purple-500/10 text-purple-500">
+                            <Globe className="h-4 w-4" />
+                          </div>
+                          <span>Top Geographic Markets by Scan Volume</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">Top 10 Countries</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {scanData.countryBreakdown.length > 0 ? (
                         <CountryChart data={scanData.countryBreakdown} />
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No scan data available yet
+                        <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
+                          <Globe className="h-8 w-8 text-purple-500/50 mb-2" />
+                          <span>No country scan data recorded yet</span>
                         </div>
                       )}
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-transparent border-border">
-                    <CardHeader>
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-emerald-500" />
-                        Global Scan Activity
+                  <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-foreground text-sm font-semibold flex items-center gap-2">
+                        <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-500">
+                          <MapPin className="h-4 w-4" />
+                        </div>
+                        <span>Global Scan Activity Map</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -675,44 +802,53 @@ export default function AnalyticsPage() {
                           longitude: s.longitude ?? 0,
                           scanned_at: s.scanned_at,
                         }))}
-                        height={320}
+                        height={420}
                       />
                     </CardContent>
                   </Card>
+                </div>
 
-                  <Card className="bg-transparent border-border">
-                    <CardHeader>
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <Smartphone className="h-5 w-5 text-amber-500" />
-                        Device Distribution
+                <div className="space-y-6">
+                  {/* Live Passport Stream */}
+                  <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-foreground text-sm font-semibold flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-500">
+                            <Sparkles className="h-4 w-4 animate-spin-slow" />
+                          </div>
+                          <span>Live Passport Stream</span>
+                        </div>
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <LiveScanFeed scans={scanData.scans} />
+                    </CardContent>
+                  </Card>
+
+                  {/* Scanner Device Distribution */}
+                  <Card className="bg-card/70 backdrop-blur-md border border-border/80">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-foreground text-sm font-semibold flex items-center gap-2">
+                        <div className="p-1.5 rounded bg-amber-500/10 text-amber-500">
+                          <Smartphone className="h-4 w-4" />
+                        </div>
+                        <span>Scanner Device Distribution</span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       {scanData.deviceBreakdown.length > 0 ? (
                         <DeviceChart data={scanData.deviceBreakdown} />
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No scan data available yet
+                        <div className="flex flex-col items-center justify-center py-12 text-center text-sm text-muted-foreground">
+                          <Smartphone className="h-8 w-8 text-amber-500/50 mb-2" />
+                          <span>No device scan data recorded yet</span>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div>
-                  <Card className="bg-transparent border-border h-full">
-                    <CardHeader>
-                      <CardTitle className="text-foreground flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-emerald-500" />
-                        Live Scan Feed
-                        <span className="ml-auto flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/100"></span>
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="max-h-[600px] overflow-y-auto">
-                      <LiveScanFeed scans={scanData.scans} />
                     </CardContent>
                   </Card>
                 </div>

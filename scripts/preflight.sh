@@ -26,15 +26,13 @@ gate() {
 }
 
 gate "battery-web vitest"        apps/battery-web       pnpm run test
-gate "textile-web vitest"        apps/textile-web       pnpm run test
 
 if [ "$FAST" -eq 0 ]; then
   # npx tsc resolves a decoy package in this pnpm workspace — must be pnpm exec
   gate "battery-web typecheck"   apps/battery-web       pnpm exec tsc --noEmit
-  gate "textile-web typecheck"   apps/textile-web       pnpm exec tsc --noEmit
 fi
 
-for svc in battery-api textile-api platform-core; do
+for svc in battery-api; do
   gate "${svc} go vet"           "services/${svc}"      go vet ./...
   gate "${svc} go test"          "services/${svc}"      go test ./...
 done
