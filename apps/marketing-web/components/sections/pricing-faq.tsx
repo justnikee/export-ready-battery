@@ -10,7 +10,7 @@ export default function PricingFAQ() {
 
   return (
     <section className="py-[60px]">
-      <div className="max-w-[720px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

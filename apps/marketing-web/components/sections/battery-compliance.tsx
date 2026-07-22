@@ -15,7 +15,7 @@ const timeline = [
 export default function BatteryCompliance() {
   return (
     <section className="py-20 lg:py-28">
-      <div className="max-w-[1080px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

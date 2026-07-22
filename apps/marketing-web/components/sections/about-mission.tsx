@@ -28,7 +28,7 @@ const NUMBERS = [
 export default function AboutMission() {
   return (
     <section className="py-20 lg:py-28">
-      <div className="max-w-[1200px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-20 items-start">
           {/* Left: narrative */}
           <motion.div

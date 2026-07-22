@@ -2,10 +2,13 @@
 
 import { motion } from "framer-motion";
 import TextReveal from "@/components/text-reveal";
+import GlowDots from "@/components/illustrations/glow-dots";
 
 export default function AboutHero() {
   return (
     <section className="relative pt-[140px] pb-20 lg:pt-[180px] lg:pb-28 overflow-hidden">
+      {/* Glowing dot grid background */}
+      <GlowDots />
       {/* Subtle radial glow */}
       <div
         aria-hidden="true"
@@ -16,7 +19,7 @@ export default function AboutHero() {
         }}
       />
 
-      <div className="relative max-w-[1000px] mx-auto px-6 text-center">
+      <div className="relative max-w-[1232px] mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

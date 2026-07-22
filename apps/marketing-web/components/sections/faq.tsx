@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, ArrowRight } from "lucide-react";
 
 const faqs = [
   {
@@ -43,71 +43,99 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="relative py-20 lg:py-28">
-      <div className="max-w-[800px] mx-auto px-6">
-        <div className="text-center mb-16">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-[13px] font-semibold tracking-[-0.01em] uppercase text-crew-coral mb-3"
-          >
-            Questions
-          </motion.p>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink"
-          >
-            Questions, answered.
-          </motion.h2>
+    <section id="faq" className="relative">
+      <div className="max-w-[1232px] mx-auto border-x border-border">
+        {/* Section header */}
+        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+          <span className="section-index">FAQ</span>
+          <span className="section-index text-text-dim/60">
+            [<span className="text-blue font-semibold">7</span>/8]
+          </span>
         </div>
 
-        <div className="space-y-0">
-          {faqs.map((faq, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.05 * i }}
-              className="border-b border-crew-ink/8"
-            >
-              <button
-                onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full flex items-center justify-between py-5 text-left group"
-              >
-                <span className="text-lg font-medium text-crew-ink pr-8 group-hover:text-crew-coral transition-colors">
-                  {faq.question}
-                </span>
-                <span className="shrink-0 w-8 h-8 rounded-lg bg-paper flex items-center justify-center group-hover:bg-crew-coral-soft transition-colors">
-                  {openIndex === i ? (
-                    <Minus size={16} className="text-crew-coral" />
-                  ) : (
-                    <Plus size={16} className="text-crew-muted" />
-                  )}
-                </span>
-              </button>
+        <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
+          {/* Header Title */}
+          <div className="px-6 mb-12">
+            <p className="eyebrow mb-3">
+              Questions
+            </p>
+            <h2 className="font-heading text-text text-[clamp(30px,4.4vw,48px)] font-medium tracking-[-0.035em] leading-[1.08]">
+              Questions, answered.
+            </h2>
+          </div>
 
-              <AnimatePresence>
-                {openIndex === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+          {/* FAQ Accordion List */}
+          <div className="border-t border-border">
+            {faqs.map((faq, i) => {
+              const isOpen = openIndex === i;
+              return (
+                <div
+                  key={faq.question}
+                  className={`border-b border-border transition-colors duration-300 ${
+                    isOpen ? "bg-[#f4f8ff]" : "bg-transparent"
+                  }`}
+                >
+                  <button
+                    onClick={() => setOpenIndex(isOpen ? null : i)}
+                    className="w-full flex items-center justify-between py-6 px-6 text-left group"
                   >
-                    <p className="pb-5 text-crew-muted leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
+                    <div className="flex items-baseline gap-6 pr-8">
+                      <span
+                        className={`font-mono text-[12px] font-medium tabular-nums transition-colors ${
+                          isOpen ? "text-blue" : "text-text-dim"
+                        }`}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span
+                        className={`text-[16px] font-medium transition-colors ${
+                          isOpen ? "text-blue" : "text-text group-hover:text-blue"
+                        }`}
+                      >
+                        {faq.question}
+                      </span>
+                    </div>
+                    <span
+                      className={`shrink-0 w-7 h-7 flex items-center justify-center transition-colors duration-300 ${
+                        isOpen ? "text-blue" : "text-text-dim"
+                      }`}
+                    >
+                      {isOpen ? <Minus size={16} /> : <Plus size={16} />}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <p className="pb-6 pl-16 pr-6 text-[15px] leading-[1.65] text-text-muted text-pretty">
+                          {faq.answer}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* FAQ Footer */}
+          <div className="mt-8 mx-6 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-text-muted">
+            <span>Still something on your mind?</span>
+            <div className="flex items-center gap-6">
+              <a href="/blog" className="hover:text-blue transition-colors font-medium">
+                Read the docs
+              </a>
+              <a href="/request-access" className="inline-flex items-center gap-1 text-blue hover:text-blue-hover font-semibold transition-colors">
+                Talk to sales <ArrowRight size={14} />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
