@@ -6,24 +6,65 @@ import TextReveal from "@/components/text-reveal";
 import GlowDots from "@/components/illustrations/glow-dots";
 
 const sidebarItems = [
-  { label: "Home" },
-  { label: "Passports", active: true },
-  { label: "Suppliers" },
-  { label: "Evidence" },
-  { label: "Buyers" },
-  { label: "Reports" },
+  { label: "Overview", active: true },
+  { label: "Battery Batches" },
+  { label: "Passport Lifecycle" },
+  { label: "Compliance & Rules" },
+  { label: "Mass Balance" },
+  { label: "Supplier Portal" },
+  { label: "Settings" },
 ];
 
-const tableRows = [
-  { sku: "LFP-B4471", reg: "EU 2023/1542", status: "Ready", tone: "blue" },
+const kpiStats = [
   {
-    sku: "PACK-M204",
-    reg: "Carbon footprint",
-    status: "In review",
+    label: "Total Passports",
+    value: "1,420",
+    subtext: "+128 this week",
+    tone: "emerald",
+  },
+  {
+    label: "Active Batches",
+    value: "14",
+    subtext: "Production in progress",
+    tone: "purple",
+  },
+  {
+    label: "Quota Balance",
+    value: "850 / 1,000",
+    subtext: "85% slots available",
+    tone: "blue",
+  },
+];
+
+const batchRows = [
+  {
+    name: "LFP-72V-50AH-2026A",
+    units: "500 units",
+    market: "EU (2023/1542)",
+    status: "ACTIVE",
+    tone: "emerald",
+  },
+  {
+    name: "NMC-48V-100AH-EXP",
+    units: "250 units",
+    market: "EU & INDIA",
+    status: "VERIFIED",
+    tone: "blue",
+  },
+  {
+    name: "BPAN-CELL-M204",
+    units: "1,200 units",
+    market: "INDIA (AIS-156)",
+    status: "VERIFIED",
+    tone: "blue",
+  },
+  {
+    name: "CATL-MORTH-B09",
+    units: "100 units",
+    market: "EU (2023/1542)",
+    status: "PENDING",
     tone: "amber",
   },
-  { sku: "NMC-C1180", reg: "Due diligence", status: "Ready", tone: "blue" },
-  { sku: "TEXT-T889", reg: "EUDR", status: "Ready", tone: "blue" },
 ];
 
 export default function Hero() {
@@ -101,12 +142,12 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* ── App window — dark code-editor style ── */}
+        {/* ── App window — actual platform dashboard replica ── */}
         <motion.div
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-14 lg:mt-16 max-w-[960px] mx-auto"
+          className="relative mt-14 lg:mt-16 max-w-[980px] mx-auto"
         >
           {/* Floating chips */}
           <motion.div
@@ -152,16 +193,19 @@ export default function Hero() {
                 <span className="w-3 h-3 rounded-full bg-[#28c840]" />
               </div>
               <span className="font-mono text-[11px] text-[#6b7480]">
-                app.anviora.com
+                app.anviora.com/dashboard
               </span>
               <span className="inline-flex items-center h-5 px-2 rounded-sm bg-blue/15 text-blue text-[10px] font-mono font-medium tracking-wider uppercase">
-                Live
+                EU & INDIA COMPLIANT
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr]">
+            <div className="grid grid-cols-1 sm:grid-cols-[170px_1fr]">
               {/* Sidebar */}
               <div className="hidden sm:block px-2 py-3 bg-dark-panel border-r border-dark-border">
+                <div className="text-[10px] font-mono font-medium uppercase tracking-[0.14em] text-[#6b7480] px-2.5 mb-2">
+                  Navigation
+                </div>
                 <div className="grid gap-0.5">
                   {sidebarItems.map((item) => (
                     <div
@@ -178,82 +222,95 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* Main panel */}
-              <div className="px-6 py-5 bg-dark">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[13px] font-medium text-[#f5f9ff]">
-                    Passport readiness
-                  </span>
-                  <span className="inline-flex items-center h-6 px-2.5 rounded-sm bg-white/5 text-[11px] text-[#6b7480] font-mono">
-                    Last 90 days
-                  </span>
-                </div>
-
-                <div className="flex items-end gap-3 mb-2">
-                  <span className="font-heading text-[36px] font-medium tracking-[-0.04em] text-[#f5f9ff] leading-none tabular-nums">
-                    84%
-                  </span>
-                  <span className="inline-flex items-center h-[20px] px-2 mb-1 rounded-sm bg-blue/20 text-[#7cb7ff] text-[10.5px] font-mono font-semibold">
-                    +12%
-                  </span>
-                </div>
-
-                {/* Sparkline */}
-                <svg
-                  viewBox="0 0 520 80"
-                  className="w-full h-[72px] mb-5"
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <linearGradient id="hero-spark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0562ef" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#0562ef" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0 64 C 48 60, 72 52, 108 54 S 180 40, 216 42 S 288 26, 324 30 S 396 14, 432 16 S 504 6, 520 4 L 520 80 L 0 80 Z"
-                    fill="url(#hero-spark)"
-                  />
-                  <path
-                    d="M0 64 C 48 60, 72 52, 108 54 S 180 40, 216 42 S 288 26, 324 30 S 396 14, 432 16 S 504 6, 520 4"
-                    fill="none"
-                    stroke="#0562ef"
-                    strokeWidth="2"
-                  />
-                </svg>
-
-                {/* Table */}
-                <div className="border border-dark-border rounded-md overflow-hidden">
-                  <div className="grid grid-cols-[1.1fr_1.2fr_0.8fr] gap-3 px-4 py-2 text-[10px] font-mono font-medium text-[#6b7480] uppercase tracking-[0.14em] border-b border-dark-border">
-                    <span>Product</span>
-                    <span>Regulation</span>
-                    <span>Status</span>
-                  </div>
+              {/* Main Dashboard Workspace */}
+              <div className="p-5 sm:p-6 bg-dark space-y-5">
+                {/* Header bar */}
+                <div className="flex items-center justify-between border-b border-dark-border pb-4">
                   <div>
-                    {tableRows.map((row, i) => (
-                      <div
-                        key={row.sku}
-                        className={`grid grid-cols-[1.1fr_1.2fr_0.8fr] gap-3 px-4 py-[10px] items-center text-[12px] ${
-                          i < tableRows.length - 1
-                            ? "border-b border-dark-border"
-                            : ""
-                        } tabular-nums`}
-                      >
-                        <span className="font-medium text-[#f5f9ff]">
-                          {row.sku}
-                        </span>
-                        <span className="text-[#6b7480]">{row.reg}</span>
-                        <span
-                          className={`inline-flex w-fit items-center h-[18px] px-1.5 rounded-sm text-[10px] font-mono font-semibold ${
-                            row.tone === "blue"
-                              ? "bg-blue/20 text-[#7cb7ff]"
-                              : "bg-amber/20 text-[#ffd667]"
-                          }`}
-                        >
-                          {row.status}
-                        </span>
+                    <h3 className="text-[15px] font-medium text-[#f5f9ff]">
+                      Welcome back, Acme Battery Co.
+                    </h3>
+                    <p className="text-[11px] text-[#6b7480] mt-0.5">
+                      Monitor regulatory readiness, passport activations, and batch compliance.
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 h-7 px-3 rounded bg-blue text-white text-[11px] font-medium">
+                    + Create Batch
+                  </div>
+                </div>
+
+                {/* Real KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {kpiStats.map((kpi) => (
+                    <div
+                      key={kpi.label}
+                      className="p-3.5 rounded-md border border-dark-border bg-dark-panel"
+                    >
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#6b7480]">
+                        {kpi.label}
                       </div>
-                    ))}
+                      <div className="text-[22px] font-medium font-heading text-[#f5f9ff] mt-1 tracking-tight">
+                        {kpi.value}
+                      </div>
+                      <div className="text-[10.5px] text-[#7cb7ff] font-mono mt-1">
+                        {kpi.subtext}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Production Chart & Recent Batches Header */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-medium text-[#f5f9ff]">
+                      Recent Battery Batches
+                    </span>
+                    <span className="text-[10px] font-mono text-[#6b7480]">
+                      Updated 2 mins ago
+                    </span>
+                  </div>
+
+                  {/* Batch Table */}
+                  <div className="border border-dark-border rounded-md overflow-hidden bg-dark-panel">
+                    <div className="grid grid-cols-[1.4fr_0.9fr_1.3fr_0.9fr] gap-2 px-3.5 py-2 text-[9.5px] font-mono font-medium text-[#6b7480] uppercase tracking-[0.12em] border-b border-dark-border">
+                      <span>Batch Name</span>
+                      <span>Units</span>
+                      <span>Market Scope</span>
+                      <span>Status</span>
+                    </div>
+                    <div>
+                      {batchRows.map((row, i) => (
+                        <div
+                          key={row.name}
+                          className={`grid grid-cols-[1.4fr_0.9fr_1.3fr_0.9fr] gap-2 px-3.5 py-2.5 items-center text-[11.5px] ${
+                            i < batchRows.length - 1
+                              ? "border-b border-dark-border/60"
+                              : ""
+                          } tabular-nums`}
+                        >
+                          <span className="font-medium text-[#f5f9ff] truncate">
+                            {row.name}
+                          </span>
+                          <span className="text-[#6b7480] font-mono text-[11px]">
+                            {row.units}
+                          </span>
+                          <span className="text-[#6b7480] text-[11px]">
+                            {row.market}
+                          </span>
+                          <span
+                            className={`inline-flex w-fit items-center h-[18px] px-2 rounded-sm text-[9.5px] font-mono font-semibold ${
+                              row.tone === "emerald"
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : row.tone === "blue"
+                                  ? "bg-blue/20 text-[#7cb7ff]"
+                                  : "bg-amber-500/20 text-[#ffd667]"
+                            }`}
+                          >
+                            {row.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

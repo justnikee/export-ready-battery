@@ -240,7 +240,16 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 		return "", fmt.Errorf("failed to parse signed URL response: %w", err)
 	}
 
-	fullURL := s.supabaseURL + response.SignedURL
+	signedPath := response.SignedURL
+	if !strings.HasPrefix(signedPath, "/storage/v1") {
+		if strings.HasPrefix(signedPath, "/") {
+			signedPath = "/storage/v1" + signedPath
+		} else {
+			signedPath = "/storage/v1/" + signedPath
+		}
+	}
+
+	fullURL := strings.TrimRight(s.supabaseURL, "/") + signedPath
 
 	s.logger.Info("created signed URL successfully",
 		"path", filePath,
@@ -265,8 +274,11 @@ func (s *StorageService) ExtractStoragePath(rawURL, bucket string) (string, bool
 
 	for _, marker := range []string{
 		"/storage/v1/object/sign/" + bucket + "/",
+		"/object/sign/" + bucket + "/",
 		"/storage/v1/object/public/" + bucket + "/",
+		"/object/public/" + bucket + "/",
 		"/storage/v1/object/" + bucket + "/",
+		"/object/" + bucket + "/",
 	} {
 		idx := strings.Index(rawURL, marker)
 		if idx == -1 {
