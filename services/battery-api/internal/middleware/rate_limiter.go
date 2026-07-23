@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -22,7 +23,21 @@ type RateLimiter struct {
 
 type visitorInfo struct {
 	limiter  *rate.Limiter
-	lastSeen time.Time
+	lastSeen atomic.Int64 // UnixNano timestamp stored atomically for thread-safe lock-free reads
+}
+
+func newVisitorInfo(limiter *rate.Limiter) *visitorInfo {
+	v := &visitorInfo{limiter: limiter}
+	v.lastSeen.Store(time.Now().UnixNano())
+	return v
+}
+
+func (v *visitorInfo) touch() {
+	v.lastSeen.Store(time.Now().UnixNano())
+}
+
+func (v *visitorInfo) getLastSeen() time.Time {
+	return time.Unix(0, v.lastSeen.Load())
 }
 
 // NewRateLimiter creates a rate limiter
@@ -43,20 +58,34 @@ func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
 	return rl
 }
 
-// getVisitor retrieves or creates a rate limiter for an IP
+// getVisitor retrieves or creates a rate limiter for an IP.
+// Uses a 2-stage read/write pattern (RLock for existing entries, upgrading to Lock only when missing).
 func (rl *RateLimiter) getVisitor(ip string) *rate.Limiter {
+	// Fast path: read lock for existing visitor
+	rl.mu.RLock()
+	v, exists := rl.visitors[ip]
+	if exists {
+		v.touch()
+		rl.mu.RUnlock()
+		return v.limiter
+	}
+	rl.mu.RUnlock()
+
+	// Slow path: write lock for new visitor allocation
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	v, exists := rl.visitors[ip]
-	if !exists {
-		limiter := rate.NewLimiter(rl.rate, rl.burst)
-		rl.visitors[ip] = &visitorInfo{limiter: limiter, lastSeen: time.Now()}
-		return limiter
+	// Double-check under write lock
+	v, exists = rl.visitors[ip]
+	if exists {
+		v.touch()
+		return v.limiter
 	}
 
-	v.lastSeen = time.Now()
-	return v.limiter
+	limiter := rate.NewLimiter(rl.rate, rl.burst)
+	info := newVisitorInfo(limiter)
+	rl.visitors[ip] = info
+	return limiter
 }
 
 // cleanupVisitors removes stale entries; exits when stopCh is closed.
@@ -69,7 +98,7 @@ func (rl *RateLimiter) cleanupVisitors() {
 		case <-ticker.C:
 			rl.mu.Lock()
 			for ip, v := range rl.visitors {
-				if time.Since(v.lastSeen) > rl.cleanup {
+				if time.Since(v.getLastSeen()) > rl.cleanup {
 					delete(rl.visitors, ip)
 				}
 			}
@@ -152,18 +181,30 @@ func NewTenantRateLimiter(r rate.Limit, b int) *TenantRateLimiter {
 }
 
 func (trl *TenantRateLimiter) getVisitor(tenantID string) *rate.Limiter {
+	// Fast path: read lock for existing tenant visitor
+	trl.mu.RLock()
+	v, exists := trl.visitors[tenantID]
+	if exists {
+		v.touch()
+		trl.mu.RUnlock()
+		return v.limiter
+	}
+	trl.mu.RUnlock()
+
+	// Slow path: write lock for new tenant visitor allocation
 	trl.mu.Lock()
 	defer trl.mu.Unlock()
 
-	v, exists := trl.visitors[tenantID]
-	if !exists {
-		limiter := rate.NewLimiter(trl.rate, trl.burst)
-		trl.visitors[tenantID] = &visitorInfo{limiter: limiter, lastSeen: time.Now()}
-		return limiter
+	v, exists = trl.visitors[tenantID]
+	if exists {
+		v.touch()
+		return v.limiter
 	}
 
-	v.lastSeen = time.Now()
-	return v.limiter
+	limiter := rate.NewLimiter(trl.rate, trl.burst)
+	info := newVisitorInfo(limiter)
+	trl.visitors[tenantID] = info
+	return limiter
 }
 
 func (trl *TenantRateLimiter) cleanupVisitors() {
@@ -175,7 +216,7 @@ func (trl *TenantRateLimiter) cleanupVisitors() {
 		case <-ticker.C:
 			trl.mu.Lock()
 			for tenantID, v := range trl.visitors {
-				if time.Since(v.lastSeen) > trl.cleanup {
+				if time.Since(v.getLastSeen()) > trl.cleanup {
 					delete(trl.visitors, tenantID)
 				}
 			}

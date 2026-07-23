@@ -12,18 +12,37 @@ import {
 } from "@/hooks/use-queries";
 import { FeatureGate } from "@/components/billing/feature-gate";
 import { GapHeatmap } from "@/components/analytics/GapHeatmap";
-import { MoneyFunnelChart } from "@/components/analytics/MoneyFunnelChart";
 import { EPRComplianceTracker } from "@/components/analytics/EPRComplianceTracker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScanStatsCard } from "@/components/analytics/ScanStatsCard";
-import { DeviceChart } from "@/components/analytics/DeviceChart";
-import { CountryChart } from "@/components/analytics/CountryChart";
 import { LiveScanFeed } from "@/components/analytics/LiveScanFeed";
-import { ComplianceTrendChart } from "@/components/analytics/compliance-trend-chart";
-import { CertificateExpiryChart } from "@/components/analytics/certificate-expiry-chart";
-import { StatusDistributionChart } from "@/components/analytics/status-distribution-chart";
 import { subscribeScanFeedStream } from "@/lib/scan-feed-stream";
 import api from "@/lib/api";
+
+const MoneyFunnelChart = dynamic(
+  () => import("@/components/analytics/MoneyFunnelChart").then((mod) => mod.MoneyFunnelChart),
+  { ssr: false }
+);
+const DeviceChart = dynamic(
+  () => import("@/components/analytics/DeviceChart").then((mod) => mod.DeviceChart),
+  { ssr: false }
+);
+const CountryChart = dynamic(
+  () => import("@/components/analytics/CountryChart").then((mod) => mod.CountryChart),
+  { ssr: false }
+);
+const ComplianceTrendChart = dynamic(
+  () => import("@/components/analytics/compliance-trend-chart").then((mod) => mod.ComplianceTrendChart),
+  { ssr: false }
+);
+const CertificateExpiryChart = dynamic(
+  () => import("@/components/analytics/certificate-expiry-chart").then((mod) => mod.CertificateExpiryChart),
+  { ssr: false }
+);
+const StatusDistributionChart = dynamic(
+  () => import("@/components/analytics/status-distribution-chart").then((mod) => mod.StatusDistributionChart),
+  { ssr: false }
+);
 import {
   BarChart3,
   Globe,

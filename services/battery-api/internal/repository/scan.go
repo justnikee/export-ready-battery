@@ -251,9 +251,11 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 			b.created_at,
 			COALESCE(b.status, 'DRAFT') as status,
 			COALESCE(b.market_region::text, 'GLOBAL') as market_region,
-			COALESCE((SELECT COUNT(*) FROM public.passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_units
+			COUNT(p.uuid) as total_units
 		FROM public.batches b
+		LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
 		WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+		GROUP BY b.id, b.batch_name, b.created_at, b.status, b.market_region
 		ORDER BY b.created_at DESC
 		LIMIT $2
 	`
