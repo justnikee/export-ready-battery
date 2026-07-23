@@ -42,6 +42,14 @@ func (c *chainTestRepo) GetPassportEvents(ctx context.Context, passportID uuid.U
 	return c.events[passportID], nil
 }
 
+func (c *chainTestRepo) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	events := c.events[passportID]
+	if len(events) == 0 {
+		return "", nil
+	}
+	return events[len(events)-1].Hash, nil
+}
+
 func (c *chainTestRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
 	if err := c.fakeLifecycleRepo.UndoLifecycleTransition(ctx, passportID, fromStatus, toStatus, event); err != nil {
 		return err

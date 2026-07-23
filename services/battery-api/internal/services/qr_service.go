@@ -230,8 +230,10 @@ func renderLabelledQR(qrURL, serialNumber string, ctx *QRLabelContext) ([]byte, 
 	drawCornerMark(img, imgW-8, imgH-8, black)
 
 	// ── Encode to PNG ─────────────────────────────────────────────────────────
+	// Use BestSpeed compression: QR label images are stored inside compressed ZIP archives or served dynamically
 	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	encoder := &png.Encoder{CompressionLevel: png.BestSpeed}
+	if err := encoder.Encode(&buf, img); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -561,10 +563,9 @@ func (s *QRService) GenerateQRCodesParallel(passports []*models.Passport, worker
 	return results
 }
 
-// CreateZipArchive creates a ZIP file containing all QR codes
-func (s *QRService) CreateZipArchive(qrResults []*QRResult) (io.Reader, int64, error) {
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
+// StreamZipArchive streams rendered QR codes into a ZIP archive via an io.Writer.
+func (s *QRService) StreamZipArchive(qrResults []*QRResult, w io.Writer) error {
+	zipWriter := zip.NewWriter(w)
 
 	for _, qr := range qrResults {
 		if qr.Error != nil || qr.PNGData == nil {
@@ -578,18 +579,27 @@ func (s *QRService) CreateZipArchive(qrResults []*QRResult) (io.Reader, int64, e
 
 		writer, err := zipWriter.Create(safeFilename)
 		if err != nil {
-			return nil, 0, fmt.Errorf("failed to create zip entry: %w", err)
+			return fmt.Errorf("failed to create zip entry: %w", err)
 		}
 
 		if _, err := writer.Write(qr.PNGData); err != nil {
-			return nil, 0, fmt.Errorf("failed to write to zip: %w", err)
+			return fmt.Errorf("failed to write to zip: %w", err)
 		}
 	}
 
 	if err := zipWriter.Close(); err != nil {
-		return nil, 0, fmt.Errorf("failed to close zip: %w", err)
+		return fmt.Errorf("failed to close zip: %w", err)
 	}
 
+	return nil
+}
+
+// CreateZipArchive creates a ZIP file containing all QR codes
+func (s *QRService) CreateZipArchive(qrResults []*QRResult) (io.Reader, int64, error) {
+	buf := new(bytes.Buffer)
+	if err := s.StreamZipArchive(qrResults, buf); err != nil {
+		return nil, 0, err
+	}
 	return bytes.NewReader(buf.Bytes()), int64(buf.Len()), nil
 }
 

@@ -597,6 +597,11 @@ func (m *MockRepository) GetPassportEvents(ctx context.Context, passportID uuid.
 	return args.Get(0).([]*models.PassportEvent), args.Error(1)
 }
 
+func (m *MockRepository) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	args := m.Called(ctx, passportID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockRepository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.AuditEventRow, error) {
 	args := m.Called(ctx, batchID)
 	if args.Get(0) == nil {

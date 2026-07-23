@@ -32,8 +32,12 @@ type EventHashData struct {
 }
 
 // GenerateEventHash creates a SHA-256 hash for tamper detection
-// The hash includes all event data plus the previous event's hash for chain integrity
+// The hash includes all event data plus the previous event's hash for chain integrity.
+// CreatedAt is normalized to UTC millisecond precision so hash generation remains
+// deterministic regardless of timezone or monotonic clock readings.
 func GenerateEventHash(data EventHashData) (string, error) {
+	data.CreatedAt = data.CreatedAt.UTC().Truncate(time.Millisecond)
+
 	// Serialize to JSON for deterministic hashing
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {

@@ -813,6 +813,25 @@ func (r *Repository) GetPassportEvents(ctx context.Context, passportID uuid.UUID
 	return events, nil
 }
 
+// GetLatestEventHash returns only the hash of the most recent passport event.
+// This is used for hash-chain integrity when creating new events, avoiding the
+// need to load the entire event history just to read the last hash.
+func (r *Repository) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	var hash string
+	query := `SELECT COALESCE(hash, '') FROM public.passport_events
+	          WHERE passport_id = $1
+	          ORDER BY created_at DESC, id DESC
+	          LIMIT 1`
+	err := r.db.Pool.QueryRow(ctx, query, passportID).Scan(&hash)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", nil // No events yet — genesis event
+		}
+		return "", fmt.Errorf("failed to get latest event hash: %w", err)
+	}
+	return hash, nil
+}
+
 // GetEventsByBatch retrieves all lifecycle events for passports in a batch, including serial numbers.
 func (r *Repository) GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.AuditEventRow, error) {
 	query := `SELECT e.id, e.passport_id, e.event_type, COALESCE(e.action, ''), e.actor,

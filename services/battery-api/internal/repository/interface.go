@@ -125,6 +125,7 @@ type RepositoryInterface interface {
 	UpdatePassportLifecycle(ctx context.Context, passport *models.Passport) error
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
 	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
+	GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error)
 	GetEventsByBatch(ctx context.Context, batchID uuid.UUID) ([]*models.AuditEventRow, error)
 	CreatePassportEventBatch(ctx context.Context, events []*models.PassportEvent) error
 	UpdatePassportOwnerID(ctx context.Context, passportID uuid.UUID, newOwnerID uuid.UUID) error
