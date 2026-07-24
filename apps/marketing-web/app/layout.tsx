@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, DM_Sans, DM_Mono } from "next/font/google";
+import { Space_Grotesk, DM_Sans, DM_Mono, Barlow_Condensed } from "next/font/google";
 import { Toaster } from "sonner";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import MotionProvider from "@/components/motion-provider";
@@ -24,6 +24,13 @@ const dmMono = DM_Mono({
   variable: "--font-dm-mono",
   display: "swap",
   weight: ["400", "500"],
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -78,7 +85,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${dmSans.variable} ${dmMono.variable} antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${dmSans.variable} ${dmMono.variable} ${barlowCondensed.variable} antialiased`}>
       <body className="font-sans antialiased">
         <MotionProvider>{children}</MotionProvider>
         <Toaster position="top-right" richColors />

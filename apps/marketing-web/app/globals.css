@@ -11,6 +11,7 @@
   --font-serif: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-mono: var(--font-dm-mono), "DM Mono", ui-monospace, monospace;
   --font-heading: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-display-condensed: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
   --font-body: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
 
   /* ── Core Color Tokens (Supermemory palette) ── */
@@ -154,6 +155,10 @@
 
   .font-heading {
     font-family: var(--font-heading);
+  }
+
+  .font-display-condensed {
+    font-family: var(--font-display-condensed);
   }
 
   .font-body {
