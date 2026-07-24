@@ -71,7 +71,7 @@ describe("PassportsTab", () => {
         pagination={{ ...defaultProps.pagination, total: 0, totalPages: 0 }}
       />,
     );
-    expect(screen.getByText(/Activate this batch first/)).toBeInTheDocument();
+    expect(screen.getByText(/Draft Batch - Passports Ready for Creation/)).toBeInTheDocument();
   });
 
   it("filters passports by search query", () => {

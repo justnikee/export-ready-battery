@@ -35,7 +35,7 @@ function DigitCell({
   const display = value === null ? "––" : large ? String(value) : pad(value);
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative overflow-hidden rounded-xl bg-white px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
+      <div className="relative overflow-hidden rounded-md bg-white border border-border px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
         <AnimatePresence mode="popLayout">
           <motion.span
             key={display}
@@ -43,13 +43,13 @@ function DigitCell({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 18, opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="block font-mono text-[clamp(22px,3.5vw,36px)] font-bold leading-none text-crew-ink tracking-[-0.04em] tabular-nums"
+            className="block font-mono text-[clamp(22px,3.5vw,36px)] font-medium leading-none text-text tracking-[-0.04em] tabular-nums"
           >
             {display}
           </motion.span>
         </AnimatePresence>
       </div>
-      <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-crew-muted">
+      <span className="text-[10px] font-medium font-mono tracking-[0.14em] uppercase text-text-dim">
         {label}
       </span>
     </div>
@@ -58,7 +58,7 @@ function DigitCell({
 
 function Colon() {
   return (
-    <span className="text-[clamp(18px,2.5vw,28px)] font-bold text-crew-muted/40 leading-none mb-5 select-none">
+    <span className="text-[clamp(18px,2.5vw,28px)] font-medium text-text-dim/40 leading-none mb-5 select-none">
       :
     </span>
   );
@@ -88,10 +88,10 @@ export default function DeadlineCountdown({
   if (variant === "inline") {
     return (
       <div
-        className={`inline-flex items-center gap-2 h-[30px] pl-2 pr-3 rounded-full bg-[#fef2f2] border border-[#fecaca] ${className}`}
+        className={`inline-flex items-center gap-2 h-[30px] pl-2 pr-3 rounded-sm bg-danger-soft border border-[#fecaca] ${className}`}
       >
-        <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse shrink-0" />
-        <span className="font-mono text-[12px] font-bold text-[#b91c1c] tabular-nums">
+        <span className="w-2 h-2 rounded-full bg-danger animate-pulse shrink-0" />
+        <span className="font-mono text-[12px] font-medium text-danger tabular-nums">
           {time === null
             ? "––d ––h ––m ––s"
             : `${time.days}d ${pad(time.hours)}h ${pad(time.minutes)}m ${pad(time.seconds)}s`}
@@ -107,9 +107,9 @@ export default function DeadlineCountdown({
   return (
     <div className={className}>
       {/* Urgency eyebrow */}
-      <div className="inline-flex items-center gap-2 mb-5 h-7 pl-2 pr-3 rounded-full bg-[#fef2f2] border border-[#fecaca]">
-        <span className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" />
-        <span className="text-[12px] font-semibold text-[#b91c1c] tracking-[0.06em] uppercase">
+      <div className="inline-flex items-center gap-2 mb-5 h-7 pl-2 pr-3 rounded-sm bg-danger-soft border border-[#fecaca]">
+        <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+        <span className="font-mono text-[11px] font-medium text-danger tracking-[0.14em] uppercase">
           EU Battery Passport deadline
         </span>
       </div>
@@ -126,9 +126,9 @@ export default function DeadlineCountdown({
       </div>
 
       {/* Date line */}
-      <p className="mt-4 text-[14px] leading-[1.5] text-crew-muted">
+      <p className="mt-4 text-[14px] leading-[1.5] text-text-muted">
         Until{" "}
-        <strong className="font-semibold text-crew-ink">18 February 2027</strong>
+        <strong className="font-medium text-text">18 February 2027</strong>
         {" "}— no passport, no EU market access.
       </p>
     </div>

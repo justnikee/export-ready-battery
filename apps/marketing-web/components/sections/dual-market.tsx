@@ -1,8 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import TextReveal from "@/components/text-reveal";
 
 const india = [
   "BIS IS 16046 certification",
@@ -20,11 +18,6 @@ const eu = [
   "Battery Passport / BPAN (Art. 77)",
 ];
 
-const tones = {
-  india: { bg: "bg-[#fdf3e3]", check: "bg-white text-[#c2410c]", tag: "bg-white text-[#c2410c]" },
-  eu: { bg: "bg-[#eef3fd]", check: "bg-white text-[#1d4ed8]", tag: "bg-white text-[#1d4ed8]" },
-} as const;
-
 function Column({
   title,
   tag,
@@ -34,26 +27,39 @@ function Column({
   title: string;
   tag: string;
   items: string[];
-  tone: keyof typeof tones;
+  tone: "india" | "eu";
 }) {
-  const t = tones[tone];
+  const isEu = tone === "eu";
   return (
-    <div className={`flex-1 p-8 lg:p-10 rounded-[28px] ${t.bg}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-serif text-[24px] font-semibold tracking-[-0.02em] text-crew-ink">
+    <div className={`relative flex-1 p-8 lg:p-10 border border-border rounded-none overflow-hidden ${isEu ? "bg-[#f4f8ff]" : "bg-paper"}`}>
+      {/* Grid dots background overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-50" 
+        style={{
+          backgroundImage: "radial-gradient(circle, rgba(5, 98, 239, 0.08) 1px, transparent 1px)",
+          backgroundSize: "16px 16px"
+        }}
+      />
+
+      <div className="relative z-10 flex items-center justify-between mb-6">
+        <h3 className="font-heading text-text text-[24px] font-medium tracking-[-0.02em] leading-tight">
           {title}
         </h3>
         <span
-          className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wide ${t.tag}`}
+          className={`inline-flex items-center h-6 px-2.5 rounded-sm text-[10.5px] font-mono font-medium uppercase tracking-[0.14em] ${
+            isEu ? "bg-blue text-white" : "bg-text text-white"
+          }`}
         >
           {tag}
         </span>
       </div>
-      <ul className="grid gap-3">
+      <ul className="relative z-10 grid gap-3">
         {items.map((item) => (
-          <li key={item} className="flex items-start gap-3 text-[16px] leading-[1.6] text-crew-ink/80">
+          <li key={item} className="flex items-start gap-3 text-[15px] leading-[1.65] text-text-muted">
             <span
-              className={`inline-flex items-center justify-center w-[22px] h-[22px] mt-0.5 rounded-full shrink-0 ${t.check}`}
+              className={`inline-flex items-center justify-center w-[22px] h-[22px] mt-0.5 rounded-sm shrink-0 ${
+                isEu ? "bg-white text-blue border border-border" : "bg-bg-alt text-text border border-border"
+              }`}
             >
               <Check size={12} strokeWidth={3} />
             </span>
@@ -67,50 +73,38 @@ function Column({
 
 export default function DualMarket() {
   return (
-    <section className="py-20 lg:py-28">
-      <div className="max-w-[1200px] mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-[680px] mb-12"
-        >
-          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
-            One dataset. Two regulators.
-          </div>
-          <h2 className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink mb-5 text-balance">
-            <TextReveal as="span" className="block">
-              Compliant in India. Cleared for Europe. Same data.
-            </TextReveal>
-          </h2>
-          <p className="text-[16px] leading-[1.6] text-[#131313]">
-            Carbon footprint, recycled content, supplier identities, mass balance — enter it
-            once. Anviora keeps you compliant with India&apos;s BWM Rules, BIS and CPCB EPR, and
-            the EU Battery Regulation at the same time, and even files your DGFT TRACE claims.
-          </p>
-        </motion.div>
+    <section className="">
+      <div className="max-w-[1232px] mx-auto border-x border-border">
+        {/* Section header */}
+        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+          <span className="section-index">DUAL COMPLIANCE</span>
+          <span className="section-index text-text-dim/60">
+            [<span className="text-blue font-semibold">5</span>/8]
+          </span>
+        </div>
+        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="flex flex-col lg:flex-row gap-4"
-        >
+        <div className="max-w-[680px] mb-12">
+          <h2 className="font-heading text-text text-[clamp(30px,4.4vw,48px)] font-medium tracking-[-0.035em] leading-[1.08] mb-5 text-balance">
+            Compliant in India. Cleared for Europe. Same data.
+          </h2>
+          <p className="text-[15px] leading-[1.65] text-text-muted text-pretty">
+            Carbon footprint, recycled content, supplier identities, mass
+            balance — enter it once. Anviora keeps you compliant with India&apos;s
+            BWM Rules, BIS and CPCB EPR, and the EU Battery Regulation at the
+            same time, and even files your DGFT TRACE claims.
+          </p>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-4">
           <Column title="India" tag="Live" items={india} tone="india" />
           <Column title="European Union" tag="Live" items={eu} tone="eu" />
-        </motion.div>
+        </div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 text-[16px] font-medium text-crew-ink"
-        >
+        <p className="mt-8 text-[15px] font-medium text-text text-pretty">
           The only India-born platform that does both — with native Tally integration, no SAP required.
-        </motion.p>
+        </p>
+        </div>
       </div>
     </section>
   );

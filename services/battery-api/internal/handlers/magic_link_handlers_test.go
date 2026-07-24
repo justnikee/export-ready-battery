@@ -186,6 +186,10 @@ func (f *fakeMagicRepo) GetPassportEvents(ctx context.Context, passportID uuid.U
 	return nil, nil
 }
 
+func (f *fakeMagicRepo) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func (f *fakeMagicRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
 	passport, ok := f.passports[passportID]
 	if !ok {

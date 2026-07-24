@@ -60,7 +60,7 @@ export default function EUBuyerVerify() {
 
   return (
     <section id="verify" className="py-[72px]">
-      <div className="max-w-[640px] mx-auto px-6">
+      <div className="max-w-[1232px] mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

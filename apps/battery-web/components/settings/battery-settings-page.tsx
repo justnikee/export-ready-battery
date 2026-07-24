@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
@@ -312,22 +312,28 @@ export default function SettingsPage() {
  return () => window.removeEventListener("beforeunload", handler)
  }, [isDirty])
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault()
- setLoading(true)
- setMessage(null)
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setLoading(true)
+  setMessage(null)
 
- try {
- await api.put("/auth/profile", formData)
- await refreshUser()
- setInitialFormData(formData)
- setMessage({ type: 'success', text: "Organization profile updated successfully" })
- } catch (error) {
- setMessage({ type: 'error', text: "Failed to update profile. Please try again." })
- } finally {
- setLoading(false)
- }
- }
+  try {
+  const response = await api.put("/auth/profile", formData)
+  await refreshUser()
+  setLogoError(false)
+  if (response.data?.logo_url) {
+  setFormData((prev) => ({ ...prev, logo_url: response.data.logo_url }))
+  setInitialFormData((prev) => ({ ...prev, logo_url: response.data.logo_url }))
+  } else {
+  setInitialFormData(formData)
+  }
+  setMessage({ type: 'success', text: "Organization profile updated successfully" })
+  } catch (error) {
+  setMessage({ type: 'error', text: "Failed to update profile. Please try again." })
+  } finally {
+  setLoading(false)
+  }
+  }
 
  const handleUploadSuccess = async () => {
  // Refresh user data to get updated certificate paths
@@ -494,6 +500,7 @@ export default function SettingsPage() {
  src={formData.logo_url.startsWith('/') ? `${getBaseUrl()}${formData.logo_url}` : formData.logo_url}
  alt="Company logo"
  fill
+ unoptimized
  sizes="96px"
  className="object-contain p-1"
  onError={() => setLogoError(true)}
@@ -510,7 +517,9 @@ export default function SettingsPage() {
  <LogoUpload
  currentLogoUrl={formData.logo_url}
  onUploadSuccess={async (newUrl) => {
- setFormData({ ...formData, logo_url: newUrl })
+ setLogoError(false)
+ setFormData((prev) => ({ ...prev, logo_url: newUrl }))
+ setInitialFormData((prev) => ({ ...prev, logo_url: newUrl }))
  await refreshUser()
  }}
  />

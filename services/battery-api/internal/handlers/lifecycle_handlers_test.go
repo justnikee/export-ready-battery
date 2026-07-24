@@ -110,6 +110,14 @@ func (f *fakeLifecycleRepo) GetPassportEvents(ctx context.Context, passportID uu
 	return f.events[passportID], nil
 }
 
+func (f *fakeLifecycleRepo) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	events := f.events[passportID]
+	if len(events) == 0 {
+		return "", nil
+	}
+	return events[len(events)-1].Hash, nil
+}
+
 func (f *fakeLifecycleRepo) UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error {
 	passport, ok := f.passports[passportID]
 	if !ok {

@@ -189,6 +189,7 @@ export function ReviewSummary({ formData, onEdit, readiness }: ReviewSummaryProp
         }}
       >
         <ReviewRow label="Company Name" value={formData.company_name} onEdit={() => onEdit(1)} />
+        {formData.logo_url && <ReviewRow label="Company Logo" value="Uploaded" />}
         <ReviewRow label="Address" value={formData.address} />
         <ReviewRow label="Support Email" value={formData.support_email} />
         {formData.website && <ReviewRow label="Website" value={formData.website} />}

@@ -1,21 +1,36 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, DM_Sans, DM_Mono, Barlow_Condensed } from "next/font/google";
 import { Toaster } from "sonner";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import MotionProvider from "@/components/motion-provider";
 import "./globals.css";
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-space-grotesk",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-dm-sans",
   display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  variable: "--font-dm-mono",
+  display: "swap",
+  weight: ["400", "500"],
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -70,7 +85,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${dmSans.variable} ${dmMono.variable} ${barlowCondensed.variable} antialiased`}>
       <body className="font-sans antialiased">
         <MotionProvider>{children}</MotionProvider>
         <Toaster position="top-right" richColors />

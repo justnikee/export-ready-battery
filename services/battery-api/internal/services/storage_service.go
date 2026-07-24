@@ -7,20 +7,24 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 )
 
 // StorageService handles uploads and downloads to Supabase Storage
 type StorageService struct {
-	supabaseURL    string
-	serviceRoleKey string
-	bucketName     string
-	logger         *slog.Logger
+	supabaseURL     string
+	serviceRoleKey  string
+	bucketName      string
+	logger          *slog.Logger
+	client          *http.Client    // shared HTTP client for connection reuse
+	verifiedBuckets sync.Map        // cache of verified bucket names
 }
 
 // NewStorageService creates a new Supabase Storage service
@@ -35,12 +39,30 @@ func NewStorageService(logger *slog.Logger) *StorageService {
 		serviceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
 		bucketName:     bucket,
 		logger:         logger,
+		client: &http.Client{
+			Timeout: 10 * time.Minute, // generous timeout for large uploads
+			Transport: &http.Transport{
+				MaxIdleConns:        20,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+				DialContext: (&net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+			},
+		},
 	}
 }
 
 // EnsureBucket creates the bucket if it does not already exist.
 // It is idempotent — calling it when the bucket already exists is a no-op.
+// Verified buckets are cached in memory to avoid redundant HTTP checks.
 func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error {
+	// Fast path: bucket already verified in memory
+	if _, ok := s.verifiedBuckets.Load(bucket); ok {
+		return nil
+	}
+
 	checkURL := fmt.Sprintf("%s/storage/v1/bucket/%s", s.supabaseURL, bucket)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checkURL, nil)
 	if err != nil {
@@ -48,14 +70,14 @@ func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error 
 	}
 	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("bucket check failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
+		s.verifiedBuckets.Store(bucket, true)
 		return nil // Bucket already exists
 	}
 
@@ -69,7 +91,7 @@ func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error 
 	creatReq.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 	creatReq.Header.Set("Content-Type", "application/json")
 
-	creatResp, err := client.Do(creatReq)
+	creatResp, err := s.client.Do(creatReq)
 	if err != nil {
 		return fmt.Errorf("bucket creation failed: %w", err)
 	}
@@ -80,6 +102,7 @@ func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error 
 		return fmt.Errorf("bucket creation returned status %d: %s", creatResp.StatusCode, string(respBody))
 	}
 
+	s.verifiedBuckets.Store(bucket, true)
 	s.logger.Info("created storage bucket", "bucket", bucket)
 	return nil
 }
@@ -113,8 +136,7 @@ func (s *StorageService) UploadFileToBucket(ctx context.Context, bucket, filePat
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("x-upsert", "true") // Overwrite if exists
 
-	client := &http.Client{Timeout: 5 * time.Minute}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
@@ -156,11 +178,12 @@ func (s *StorageService) UploadReaderToBucket(ctx context.Context, bucket string
 
 	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", size))
+	if size > 0 {
+		req.Header.Set("Content-Length", fmt.Sprintf("%d", size))
+	}
 	req.Header.Set("x-upsert", "true")
 
-	client := &http.Client{Timeout: 10 * time.Minute}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to upload file: %w", err)
 	}
@@ -213,8 +236,7 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create signed URL: %w", err)
 	}
@@ -240,7 +262,16 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 		return "", fmt.Errorf("failed to parse signed URL response: %w", err)
 	}
 
-	fullURL := s.supabaseURL + response.SignedURL
+	signedPath := response.SignedURL
+	if !strings.HasPrefix(signedPath, "/storage/v1") {
+		if strings.HasPrefix(signedPath, "/") {
+			signedPath = "/storage/v1" + signedPath
+		} else {
+			signedPath = "/storage/v1/" + signedPath
+		}
+	}
+
+	fullURL := strings.TrimRight(s.supabaseURL, "/") + signedPath
 
 	s.logger.Info("created signed URL successfully",
 		"path", filePath,
@@ -265,8 +296,11 @@ func (s *StorageService) ExtractStoragePath(rawURL, bucket string) (string, bool
 
 	for _, marker := range []string{
 		"/storage/v1/object/sign/" + bucket + "/",
+		"/object/sign/" + bucket + "/",
 		"/storage/v1/object/public/" + bucket + "/",
+		"/object/public/" + bucket + "/",
 		"/storage/v1/object/" + bucket + "/",
+		"/object/" + bucket + "/",
 	} {
 		idx := strings.Index(rawURL, marker)
 		if idx == -1 {
@@ -305,8 +339,7 @@ func (s *StorageService) DeleteFileFromBucket(ctx context.Context, bucket, fileP
 
 	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
@@ -327,21 +360,3 @@ func (s *StorageService) PublicURL(bucket, filePath string) string {
 	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", s.supabaseURL, bucket, filePath)
 }
 
-// extractSignedURL parses the signedURL from the JSON response
-func extractSignedURL(jsonResponse string) string {
-	// Simple extraction without external JSON library
-	// Response: {"signedURL":"/storage/v1/object/sign/..."}
-	prefix := `"signedURL":"`
-	start := bytes.Index([]byte(jsonResponse), []byte(prefix))
-	if start == -1 {
-		return ""
-	}
-	start += len(prefix)
-
-	end := bytes.Index([]byte(jsonResponse[start:]), []byte(`"`))
-	if end == -1 {
-		return ""
-	}
-
-	return jsonResponse[start : start+end]
-}

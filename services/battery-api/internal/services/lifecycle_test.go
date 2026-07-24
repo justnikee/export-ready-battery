@@ -48,8 +48,8 @@ func TestApplyTransition_Success_Ship(t *testing.T) {
 
 	mockRepo.On("GetPassportByUUID", ctx, passportID).Return(passport, nil)
 
-	// Return empty list of events for previous hash calculation
-	mockRepo.On("GetPassportEvents", ctx, passportID).Return([]*models.PassportEvent{}, nil)
+	// Return empty string for previous hash calculation
+	mockRepo.On("GetLatestEventHash", ctx, passportID).Return("", nil)
 
 	// Mock GetBatchTenantID for webhook dispatch
 	mockRepo.On("GetBatchTenantID", ctx, passport.BatchID).Return(uuid.Nil, nil)
@@ -189,7 +189,7 @@ func TestUpdateStateOfHealth_AppendsHistoryOnceAndLogsEvent(t *testing.T) {
 	mockRepo.On("AppendSoHHistory", ctx, mock.MatchedBy(func(entry models.SoHHistoryEntry) bool {
 		return entry.PassportID == passportID && entry.SoH == soh && entry.Actor == "device-1" && entry.ActorType == "DEVICE" && entry.Source == "TELEMETRY"
 	})).Return(nil).Once()
-	mockRepo.On("GetPassportEvents", ctx, passportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("GetLatestEventHash", ctx, passportID).Return("", nil).Once()
 	mockRepo.On("CreatePassportEvent", ctx, mock.MatchedBy(func(event *models.PassportEvent) bool {
 		return event != nil &&
 			event.PassportID == passportID &&
@@ -249,7 +249,7 @@ func TestBulkTransitionPassports_ExplicitIDsAreTenantScoped(t *testing.T) {
 
 	mockRepo.On("GetPassportByUUID", ctx, ownedPassportID).Return(ownedPassport, nil).Twice()
 	mockRepo.On("GetBatchTenantID", ctx, ownedBatchID).Return(tenantID, nil).Twice()
-	mockRepo.On("GetPassportEvents", ctx, ownedPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("GetLatestEventHash", ctx, ownedPassportID).Return("", nil).Once()
 	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
 		return p.PassportID == ownedPassportID &&
 			p.NewStatus == models.PassportStatusShipped &&
@@ -272,7 +272,7 @@ func TestBulkTransitionPassports_ExplicitIDsAreTenantScoped(t *testing.T) {
 
 	mockRepo.AssertExpectations(t)
 	mockRepo.AssertNumberOfCalls(t, "ApplyLifecycleTransition", 1)
-	mockRepo.AssertNumberOfCalls(t, "GetPassportEvents", 1)
+	mockRepo.AssertNumberOfCalls(t, "GetLatestEventHash", 1)
 }
 
 func TestGetBulkAllowedActionsForFilter_IntersectsAcrossFilteredDataset(t *testing.T) {
@@ -357,15 +357,15 @@ func TestBulkTransitionPassports_SelectAllResolvesPagedFilteredDataset(t *testin
 	secondPage := []*repository.PassportListItem{{UUID: secondPassportID.String(), Status: models.PassportStatusActive}}
 	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", mock.AnythingOfType("models.ProductType"), 500, 0).Return(firstPage, 2, nil).Once()
 	mockRepo.On("ListPassportsByTenant", ctx, tenantID, models.PassportStatusActive, "INV", "", mock.AnythingOfType("models.ProductType"), 500, 1).Return(secondPage, 2, nil).Once()
-	mockRepo.On("GetPassportByUUID", ctx, firstPassportID).Return(&models.Passport{UUID: firstPassportID, BatchID: firstBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(4)
-	mockRepo.On("GetBatchTenantID", ctx, firstBatchID).Return(tenantID, nil).Times(3)
-	mockRepo.On("GetPassportEvents", ctx, firstPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, firstPassportID).Return(&models.Passport{UUID: firstPassportID, BatchID: firstBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(3)
+	mockRepo.On("GetBatchTenantID", ctx, firstBatchID).Return(tenantID, nil).Times(2)
+	mockRepo.On("GetLatestEventHash", ctx, firstPassportID).Return("", nil).Once()
+	mockRepo.On("GetLatestEventHash", ctx, secondPassportID).Return("", nil).Once()
 	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
 		return p.PassportID == firstPassportID && p.NewStatus == models.PassportStatusShipped
 	})).Return(nil).Once()
-	mockRepo.On("GetPassportByUUID", ctx, secondPassportID).Return(&models.Passport{UUID: secondPassportID, BatchID: secondBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(4)
-	mockRepo.On("GetBatchTenantID", ctx, secondBatchID).Return(tenantID, nil).Times(3)
-	mockRepo.On("GetPassportEvents", ctx, secondPassportID).Return([]*models.PassportEvent{}, nil).Once()
+	mockRepo.On("GetPassportByUUID", ctx, secondPassportID).Return(&models.Passport{UUID: secondPassportID, BatchID: secondBatchID, Status: models.PassportStatusActive, CreatedAt: time.Now()}, nil).Times(3)
+	mockRepo.On("GetBatchTenantID", ctx, secondBatchID).Return(tenantID, nil).Times(2)
 	mockRepo.On("ApplyLifecycleTransition", ctx, mock.MatchedBy(func(p models.TransitionPersistence) bool {
 		return p.PassportID == secondPassportID && p.NewStatus == models.PassportStatusShipped
 	})).Return(nil).Once()

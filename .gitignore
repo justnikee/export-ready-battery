@@ -37,6 +37,8 @@ coverage/
 !.vscode/mcp.json
 *.swp
 *.swo
+.commandcode/
+.obsidian/
 
 # OS
 .DS_Store

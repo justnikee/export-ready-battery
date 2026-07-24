@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
 )
@@ -21,6 +22,7 @@ type EmailService struct {
 	baseURL      string // Frontend base URL for magic links
 	enabled      bool
 	templatesDir string // Path to email templates directory
+	client       *http.Client
 }
 
 // NewEmailService creates a new email service instance (simple constructor for auth)
@@ -30,6 +32,7 @@ func NewEmailService(baseURL string) *EmailService {
 		baseURL:      baseURL,
 		enabled:      false, // Console logging mode for password reset
 		templatesDir: getTemplatesDir(),
+		client:       &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -49,6 +52,7 @@ func NewResendEmailService(apiKey, fromEmail, fromName, baseURL string) *EmailSe
 		baseURL:      baseURL,
 		enabled:      enabled,
 		templatesDir: getTemplatesDir(),
+		client:       &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -421,7 +425,10 @@ func (e *EmailService) sendEmail(to, subject, html, plainText string) error {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", e.apiKey))
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := e.client
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)

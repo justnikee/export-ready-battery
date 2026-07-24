@@ -8,6 +8,7 @@ import (
 
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 // GetAnalyticsOverview returns aggregated analytics for a tenant.
@@ -18,68 +19,104 @@ func (r *Repository) GetAnalyticsOverview(ctx context.Context, tenantID uuid.UUI
 		AlertSeverityBreakdown: make(map[string]int),
 	}
 
+	g, gctx := errgroup.WithContext(ctx)
+
 	// 1. Compliance trend — average compliance_score by week for last 12 weeks
-	trend, err := r.complianceTrend(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("compliance trend failed: %w", err)
-	}
-	overview.ComplianceTrend = trend
+	g.Go(func() error {
+		trend, err := r.complianceTrend(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("compliance trend failed: %w", err)
+		}
+		overview.ComplianceTrend = trend
+		return nil
+	})
 
 	// 2. Certificate expiry summary
-	certs, err := r.certificateExpirySummary(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("certificate expiry failed: %w", err)
-	}
-	overview.CertificateExpiry = certs
+	g.Go(func() error {
+		certs, err := r.certificateExpirySummary(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("certificate expiry failed: %w", err)
+		}
+		overview.CertificateExpiry = certs
+		return nil
+	})
 
 	// 2b. Certificate expiry details (per-batch drill-down)
-	certDetails, err := r.expiringCertificatesDetails(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("certificate expiry details failed: %w", err)
-	}
-	overview.ExpiringCertificates = certDetails
+	g.Go(func() error {
+		certDetails, err := r.expiringCertificatesDetails(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("certificate expiry details failed: %w", err)
+		}
+		overview.ExpiringCertificates = certDetails
+		return nil
+	})
 
 	// 3. Carbon distribution
-	carbon, err := r.carbonDistribution(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("carbon distribution failed: %w", err)
-	}
-	overview.CarbonDistribution = carbon
+	g.Go(func() error {
+		carbon, err := r.carbonDistribution(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("carbon distribution failed: %w", err)
+		}
+		overview.CarbonDistribution = carbon
+		return nil
+	})
 
 	// 4. Batch status breakdown
-	if err := r.batchStatusBreakdown(ctx, tenantID, productType, overview.BatchStatusBreakdown); err != nil {
-		return nil, fmt.Errorf("batch status breakdown failed: %w", err)
-	}
+	g.Go(func() error {
+		if err := r.batchStatusBreakdown(gctx, tenantID, productType, overview.BatchStatusBreakdown); err != nil {
+			return fmt.Errorf("batch status breakdown failed: %w", err)
+		}
+		return nil
+	})
 
 	// 4b. Compliance-ready batch count (score >= 95 and no blocking gaps)
-	readyCount, err := r.complianceReadyCount(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("compliance ready count failed: %w", err)
-	}
-	overview.ComplianceReadyCount = readyCount
+	g.Go(func() error {
+		readyCount, err := r.complianceReadyCount(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("compliance ready count failed: %w", err)
+		}
+		overview.ComplianceReadyCount = readyCount
+		return nil
+	})
 
 	// 5. Market region split
-	regions, err := r.marketRegionSplit(ctx, tenantID, productType)
-	if err != nil {
-		return nil, fmt.Errorf("market region split failed: %w", err)
-	}
-	overview.MarketRegionSplit = regions
+	g.Go(func() error {
+		regions, err := r.marketRegionSplit(gctx, tenantID, productType)
+		if err != nil {
+			return fmt.Errorf("market region split failed: %w", err)
+		}
+		overview.MarketRegionSplit = regions
+		return nil
+	})
 
 	// 6. Supplier document status
-	if err := r.supplierDocStatus(ctx, tenantID, overview.SupplierDocStatus); err != nil {
-		return nil, fmt.Errorf("supplier doc status failed: %w", err)
-	}
+	g.Go(func() error {
+		if err := r.supplierDocStatus(gctx, tenantID, overview.SupplierDocStatus); err != nil {
+			return fmt.Errorf("supplier doc status failed: %w", err)
+		}
+		return nil
+	})
 
 	// 7. DGFT claim funnel
-	claims, err := r.dgftClaimFunnel(ctx, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("dgft claim funnel failed: %w", err)
-	}
-	overview.DGFTClaimFunnel = claims
+	g.Go(func() error {
+		claims, err := r.dgftClaimFunnel(gctx, tenantID)
+		if err != nil {
+			return fmt.Errorf("dgft claim funnel failed: %w", err)
+		}
+		overview.DGFTClaimFunnel = claims
+		return nil
+	})
 
 	// 8. Alert severity breakdown
-	if err := r.alertSeverityBreakdown(ctx, tenantID, overview.AlertSeverityBreakdown); err != nil {
-		return nil, fmt.Errorf("alert severity breakdown failed: %w", err)
+	g.Go(func() error {
+		if err := r.alertSeverityBreakdown(gctx, tenantID, overview.AlertSeverityBreakdown); err != nil {
+			return fmt.Errorf("alert severity breakdown failed: %w", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	return overview, nil

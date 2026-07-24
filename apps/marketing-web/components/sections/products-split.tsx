@@ -1,8 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowRight, BatteryCharging, Shirt } from "lucide-react";
-import TextReveal from "@/components/text-reveal";
 
 const products = [
   {
@@ -27,79 +25,88 @@ const products = [
 
 export default function ProductsSplit() {
   return (
-    <section className="py-20 lg:py-28">
-      <div className="max-w-[1200px] mx-auto px-6">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="font-serif text-[clamp(30px,4.4vw,48px)] font-semibold tracking-[-0.02em] leading-[1.08] text-crew-ink max-w-[640px] mb-12 text-balance"
-        >
-          <TextReveal as="span" className="block">
-            Two products. One identity layer.
-          </TextReveal>
-        </motion.h2>
+    <section className="">
+      <div className="max-w-[1232px] mx-auto border-x border-border">
+        {/* Section header */}
+        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+          <span className="section-index">PRODUCTS</span>
+          <span className="section-index text-text-dim/60">
+            [<span className="text-blue font-semibold">6</span>/8]
+          </span>
+        </div>
+        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
+
+        <h2 className="font-heading text-text text-[clamp(30px,4.4vw,48px)] font-medium tracking-[-0.035em] leading-[1.08] max-w-[640px] mb-12 text-balance">
+          Two products. One identity layer.
+        </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {products.map((p, i) => {
+          {products.map((p) => {
             const dark = p.tagTone === "live";
             return (
-              <motion.a
+              <a
                 key={p.name}
                 href={p.href}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className={`group flex flex-col p-8 lg:p-10 rounded-[28px] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,40,30,0.16)] ${
+                className={`relative group flex flex-col p-8 lg:p-10 press-scale transition-all duration-200 hover:-translate-y-1 rounded-none overflow-hidden ${
                   dark
-                    ? "bg-gradient-to-br from-[#0e5a40] to-[#157a5b] text-white"
-                    : "bg-paper"
+                    ? "bg-blue text-white"
+                    : "bg-paper border border-border"
                 }`}
               >
-                <div className="flex items-center justify-between mb-8">
+                {/* Scoped Grid dot overlay */}
+                <div 
+                  className={`absolute inset-0 pointer-events-none opacity-40`} 
+                  style={{
+                    backgroundImage: dark 
+                      ? "radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px)"
+                      : "radial-gradient(circle, rgba(5, 98, 239, 0.08) 1px, transparent 1px)",
+                    backgroundSize: "16px 16px"
+                  }}
+                />
+
+                <div className="relative z-10 flex items-center justify-between mb-8">
                   <span
-                    className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl ${
-                      dark ? "bg-white/15 text-white" : "bg-crew-coral-soft text-crew-coral"
+                    className={`inline-flex items-center justify-center w-12 h-12 rounded-md ${
+                      dark ? "bg-white/15 text-white" : "bg-blue-tint text-blue border border-border shadow-sm"
                     }`}
                   >
                     {p.icon}
                   </span>
                   <span
-                    className={`inline-flex items-center h-7 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wide ${
-                      dark ? "bg-white/15 text-white" : "bg-crew-amber-soft text-[#b45309]"
+                    className={`inline-flex items-center h-6 px-2.5 rounded-sm text-[10.5px] font-mono font-medium uppercase tracking-[0.14em] ${
+                      dark ? "bg-white/15 text-white" : "bg-amber-soft text-amber-text border border-[#f59e0b1a]"
                     }`}
                   >
                     {p.tag}
                   </span>
                 </div>
                 <h3
-                  className={`font-serif text-[28px] font-semibold tracking-[-0.02em] mb-3 ${
-                    dark ? "text-white" : "text-crew-ink"
+                  className={`relative z-10 font-heading text-[28px] font-medium tracking-[-0.035em] mb-3 leading-tight ${
+                    dark ? "text-white" : "text-text"
                   }`}
                 >
                   {p.name}
                 </h3>
                 <p
-                  className={`text-[16px] leading-[1.6] mb-8 text-pretty ${
-                    dark ? "text-white/75" : "text-crew-ink/70"
+                  className={`relative z-10 text-[15px] leading-[1.65] mb-8 text-pretty ${
+                    dark ? "text-white/75" : "text-text-muted"
                   }`}
                 >
                   {p.body}
                 </p>
                 <span
-                  className={`inline-flex items-center gap-1 mt-auto text-[15px] font-semibold transition-colors ${
+                  className={`relative z-10 inline-flex items-center gap-1 mt-auto text-[14px] font-medium transition-colors ${
                     dark
                       ? "text-white"
-                      : "text-crew-coral group-hover:text-crew-coral-light"
+                      : "text-blue group-hover:text-blue-hover"
                   }`}
                 >
-                  {p.cta} <ArrowRight size={15} className="cta-arrow" />
+                  {p.cta} <ArrowRight size={14} className="cta-arrow animate-none group-hover:translate-x-0.5 transition-transform" />
                 </span>
-              </motion.a>
+              </a>
             );
           })}
+        </div>
         </div>
       </div>
     </section>

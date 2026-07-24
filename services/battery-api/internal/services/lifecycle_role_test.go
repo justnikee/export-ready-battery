@@ -100,6 +100,10 @@ func (f *fakeLifecycleRepo) GetPassportEvents(ctx context.Context, passportID uu
 	return nil, nil
 }
 
+func (f *fakeLifecycleRepo) GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error) {
+	return "", nil
+}
+
 func (f *fakeLifecycleRepo) CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error {
 	return nil
 }

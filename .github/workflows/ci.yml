@@ -59,20 +59,6 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════
   # DATABASE MIGRATIONS (run before deploy)
   # ═══════════════════════════════════════════════════════════════════
-  migrate-platform:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-      - name: Run platform-core migrations
-        run: cd services/platform-core && go run ./cmd/migration_runner up
-        env:
-          DATABASE_URL: ${{ secrets.PLATFORM_DATABASE_URL }}
-
   migrate-battery:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
@@ -86,20 +72,6 @@ jobs:
         run: cd services/battery-api && go run ./cmd/migration_runner up
         env:
           DATABASE_URL: ${{ secrets.BATTERY_DATABASE_URL }}
-
-  migrate-textile:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-      - name: Run textile-api migrations
-        run: cd services/textile-api && go run ./cmd/migration_runner up
-        env:
-          DATABASE_URL: ${{ secrets.TEXTILE_DATABASE_URL }}
 
   # ═══════════════════════════════════════════════════════════════════
   # DEPLOY FRONTEND — Marketing Web (Vercel)
@@ -150,58 +122,10 @@ jobs:
         working-directory: ./apps/battery-web
 
   # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Textile Web (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-textile-web:
-    needs: [build-and-test, migrate-textile]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/textile-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/textile-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/textile-web
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Admin Dashboard (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-admin-web:
-    needs: [build-and-test, migrate-platform]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/admin-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/admin-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/admin-web
-
-  # ═══════════════════════════════════════════════════════════════════
   # DEPLOY BACKEND — Trigger Render Deploy Hook
   # ═══════════════════════════════════════════════════════════════════
   deploy-render:
-    needs: [build-and-test, migrate-platform, migrate-battery, migrate-textile]
+    needs: [build-and-test, migrate-battery]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:

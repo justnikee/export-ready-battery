@@ -932,11 +932,24 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		req.BatteryProfileUpdate = &models.BatteryProfileUpdate{}
 	}
 
+	// Normalize req.LogoURL so DB stores canonical public storage reference
+	// before saving to database, avoiding storing transient signed query tokens.
+	if req.LogoURL != "" && h.storageService != nil {
+		if path, ok := h.storageService.ExtractStoragePath(req.LogoURL, complianceDocsBucket); ok {
+			req.LogoURL = h.storageService.PublicURL(complianceDocsBucket, path)
+		}
+	}
+
 	updatedTenant, err := h.repo.UpdateTenantProfile(r.Context(), tenantID, req)
 	if err != nil {
 		slog.Error("Failed to update profile", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update profile")
 		return
+	}
+
+	// Re-sign logo_url for response so frontend receives a fresh signed URL
+	if freshURL, err := resolveFreshBucketURL(r.Context(), h.storageService, updatedTenant.LogoURL); err == nil && freshURL != "" {
+		updatedTenant.LogoURL = freshURL
 	}
 
 	respondJSON(w, http.StatusOK, updatedTenant)

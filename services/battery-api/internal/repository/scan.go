@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/anvayalabs/battery-api/internal/models"
 )
@@ -147,71 +148,77 @@ func (r *Repository) GetScanFeedSince(ctx context.Context, tenantID uuid.UUID, s
 // GetDashboardStats retrieves statistics for the dashboard
 func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, productType models.ProductType) (*models.DashboardStats, error) {
 	stats := &models.DashboardStats{}
+	g, gctx := errgroup.WithContext(ctx)
 
-	// Total passports for this tenant
-	err := r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM public.passports p
-		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2)
-	`, tenantID, productType).Scan(&stats.TotalPassports)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count passports: %w", err)
-	}
+	// 1. Total passports & quota balance
+	g.Go(func() error {
+		err := r.db.Pool.QueryRow(gctx, `
+			SELECT COUNT(*) FROM public.passports p
+			JOIN public.batches b ON p.batch_id = b.id
+			WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2)
+		`, tenantID, productType).Scan(&stats.TotalPassports)
+		if err != nil {
+			return fmt.Errorf("failed to count passports: %w", err)
+		}
+		stats.QuotaUsed = stats.TotalPassports
 
-	stats.QuotaUsed = stats.TotalPassports
+		balance, err := r.GetQuotaBalance(gctx, tenantID)
+		if err != nil {
+			return fmt.Errorf("failed to get quota balance: %w", err)
+		}
+		stats.QuotaBalance = balance
+		stats.QuotaLimit = stats.TotalPassports + balance
+		return nil
+	})
 
-	// Quota balance is the tenant's real remaining activation credits (topped up
-	// via billing). The dashboard's "limit" is used + remaining, not a fixed
-	// plan ceiling — there is no separate plan-tier cap tracked today.
-	balance, err := r.GetQuotaBalance(ctx, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get quota balance: %w", err)
-	}
-	stats.QuotaBalance = balance
-	stats.QuotaLimit = stats.TotalPassports + balance
+	// 2. Total batches
+	g.Go(func() error {
+		err := r.db.Pool.QueryRow(gctx, `
+			SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2)
+		`, tenantID, productType).Scan(&stats.TotalBatches)
+		if err != nil {
+			return fmt.Errorf("failed to count batches: %w", err)
+		}
+		return nil
+	})
 
-	// Total batches
-	err = r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2)
-	`, tenantID, productType).Scan(&stats.TotalBatches)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count batches: %w", err)
-	}
-
-	// Battery: carbon compliance (% of batches with carbon_footprint data)
+	// 3. Carbon compliant batches count
 	var withCarbon int
-	err = r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM public.batches
-		WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2) AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
-	`, tenantID, productType).Scan(&withCarbon)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count carbon compliant batches: %w", err)
-	}
-	if stats.TotalBatches > 0 {
-		stats.CarbonCompliancePct = float64(withCarbon) / float64(stats.TotalBatches) * 100
-	}
+	g.Go(func() error {
+		err := r.db.Pool.QueryRow(gctx, `
+			SELECT COUNT(*) FROM public.batches
+			WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2) AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
+		`, tenantID, productType).Scan(&withCarbon)
+		if err != nil {
+			return fmt.Errorf("failed to count carbon compliant batches: %w", err)
+		}
+		return nil
+	})
 
-	// Passports created this week (based on batch creation time)
-	err = r.db.Pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM public.passports p
-		JOIN public.batches b ON p.batch_id = b.id
-		WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
-	`, tenantID, productType).Scan(&stats.PassportsThisWeek)
-	if err != nil {
-		// Non-critical, default to 0
-		stats.PassportsThisWeek = 0
-	}
+	// 4. Passports created this week
+	g.Go(func() error {
+		err := r.db.Pool.QueryRow(gctx, `
+			SELECT COUNT(*) FROM public.passports p
+			JOIN public.batches b ON p.batch_id = b.id
+			WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
+		`, tenantID, productType).Scan(&stats.PassportsThisWeek)
+		if err != nil {
+			stats.PassportsThisWeek = 0
+		}
+		return nil
+	})
 
-	// Batch status breakdown
-	rows, err := r.db.Pool.Query(ctx, `
-		SELECT COALESCE(status, 'DRAFT'), COUNT(*) FROM public.batches
-		WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)
-		GROUP BY status
-	`, tenantID, productType)
-	if err != nil {
-		// Non-critical
-		stats.BatchesByStatus = map[string]int{}
-	} else {
+	// 5. Batch status breakdown
+	g.Go(func() error {
+		rows, err := r.db.Pool.Query(gctx, `
+			SELECT COALESCE(status, 'DRAFT'), COUNT(*) FROM public.batches
+			WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)
+			GROUP BY status
+		`, tenantID, productType)
+		if err != nil {
+			stats.BatchesByStatus = map[string]int{}
+			return nil
+		}
 		defer rows.Close()
 		stats.BatchesByStatus = make(map[string]int)
 		for rows.Next() {
@@ -221,6 +228,15 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 				stats.BatchesByStatus[status] = count
 			}
 		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	if stats.TotalBatches > 0 {
+		stats.CarbonCompliancePct = float64(withCarbon) / float64(stats.TotalBatches) * 100
 	}
 
 	return stats, nil
@@ -235,9 +251,11 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 			b.created_at,
 			COALESCE(b.status, 'DRAFT') as status,
 			COALESCE(b.market_region::text, 'GLOBAL') as market_region,
-			COALESCE((SELECT COUNT(*) FROM public.passports WHERE batch_id = b.id AND deleted_at IS NULL), 0) as total_units
+			COUNT(p.uuid) as total_units
 		FROM public.batches b
+		LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
 		WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
+		GROUP BY b.id, b.batch_name, b.created_at, b.status, b.market_region
 		ORDER BY b.created_at DESC
 		LIMIT $2
 	`

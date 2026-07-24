@@ -49,6 +49,7 @@ type LifecycleRepository interface {
 	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
 	UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error
 	GetPassportEvents(ctx context.Context, passportID uuid.UUID) ([]*models.PassportEvent, error)
+	GetLatestEventHash(ctx context.Context, passportID uuid.UUID) (string, error)
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
 	UpdatePassportOwner(ctx context.Context, passportID uuid.UUID, ownerIdentifier string) error
 	AppendOwnershipHistory(ctx context.Context, passportID uuid.UUID, entryJSON []byte) error
@@ -264,12 +265,7 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 	}
 
 	// Get previous event hash for chain integrity
-	var previousHash string
-	prevEvents, err := s.repo.GetPassportEvents(ctx, passport.UUID)
-	if err == nil && len(prevEvents) > 0 {
-		// Get the most recent event's hash
-		previousHash = prevEvents[len(prevEvents)-1].Hash
-	}
+	previousHash, _ := s.repo.GetLatestEventHash(ctx, passport.UUID)
 
 	event := &models.PassportEvent{
 		ID:           uuid.New(),
@@ -557,10 +553,7 @@ func (s *LifecycleService) resolveBulkPassportIDs(ctx context.Context, req BulkT
 
 func (s *LifecycleService) prevalidateBulkTransition(ctx context.Context, passportIDs []uuid.UUID, req BulkTransitionRequest) *BulkTransitionResult {
 	action := models.TransitionAction(req.Action)
-	result := &BulkTransitionResult{
-		Total: len(passportIDs),
-	}
-	result = newBulkTransitionResult(len(passportIDs))
+	result := newBulkTransitionResult(len(passportIDs))
 
 	for _, passportID := range passportIDs {
 		if req.TenantID != uuid.Nil {
@@ -622,17 +615,22 @@ func (s *LifecycleService) BulkTransitionPassports(ctx context.Context, req Bulk
 		return nil, err
 	}
 
+	alreadyVerified := false
 	if req.Strict {
 		precheck := s.prevalidateBulkTransition(ctx, passportIDs, req)
 		if precheck.Failed > 0 {
 			return precheck, ErrBulkEligibilityFailed
 		}
+		alreadyVerified = true
 	}
+
+	// Skip ownership check loop if already verified during prevalidation
+	needsOwnershipCheck := req.TenantID != uuid.Nil && !alreadyVerified
 
 	result := newBulkTransitionResult(len(passportIDs))
 
 	for _, passportID := range passportIDs {
-		if req.TenantID != uuid.Nil {
+		if needsOwnershipCheck {
 			if err := s.VerifyPassportTenantOwnership(ctx, passportID, req.TenantID); err != nil {
 				result.addFailure(passportID, err.Error(), "")
 				continue
@@ -828,11 +826,7 @@ func (s *LifecycleService) TransferPassport(ctx context.Context, passportID uuid
 	}
 
 	// Get previous hash for chain integrity
-	var previousHash string
-	prevEvents, err := s.repo.GetPassportEvents(ctx, passport.UUID)
-	if err == nil && len(prevEvents) > 0 {
-		previousHash = prevEvents[len(prevEvents)-1].Hash
-	}
+	previousHash, _ := s.repo.GetLatestEventHash(ctx, passport.UUID)
 
 	event := &models.PassportEvent{
 		ID:           uuid.New(),
@@ -1153,11 +1147,7 @@ func (s *LifecycleService) UpdateStateOfHealth(ctx context.Context, passportID u
 		slog.Warn("Failed to append SoH history entry", "passport_id", passportID, "error", err)
 	}
 
-	previousHash := ""
-	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
-	if err == nil && len(prevEvents) > 0 {
-		previousHash = prevEvents[len(prevEvents)-1].Hash
-	}
+	previousHash, _ := s.repo.GetLatestEventHash(ctx, passportID)
 
 	event := &models.PassportEvent{
 		ID:           uuid.New(),
@@ -1265,11 +1255,7 @@ func (s *LifecycleService) LogRepairEvent(ctx context.Context, passportID uuid.U
 		_ = s.repo.AppendRepairEvent(ctx, passportID, entryJSON)
 	}
 
-	previousHash := ""
-	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
-	if err == nil && len(prevEvents) > 0 {
-		previousHash = prevEvents[len(prevEvents)-1].Hash
-	}
+	previousHash, _ := s.repo.GetLatestEventHash(ctx, passportID)
 
 	event := &models.PassportEvent{
 		ID:           uuid.New(),
@@ -1360,11 +1346,7 @@ func (s *LifecycleService) LogReplacementEvent(ctx context.Context, passportID u
 		_ = s.repo.AppendReplacementEvent(ctx, passportID, entryJSON)
 	}
 
-	previousHash := ""
-	prevEvents, err := s.repo.GetPassportEvents(ctx, passportID)
-	if err == nil && len(prevEvents) > 0 {
-		previousHash = prevEvents[len(prevEvents)-1].Hash
-	}
+	previousHash, _ := s.repo.GetLatestEventHash(ctx, passportID)
 
 	event := &models.PassportEvent{
 		ID:           uuid.New(),

@@ -64,17 +64,9 @@ migrate-up:
 schema-battery:
 	cd services/battery-api && go run ./cmd/apply_schema internal/db/schema_clean.sql
 
-# Apply clean baseline schema to textile Supabase (for new/empty databases)
-schema-textile:
-	cd services/textile-api && go run ./cmd/apply_schema internal/db/schema_clean.sql
-
 # Reset + reapply schema to battery Supabase (DANGER: drops all data)
 schema-reset-battery:
 	cd services/battery-api && go run ./cmd/apply_schema internal/db/schema_reset.sql
-
-# Reset + reapply schema to textile Supabase (DANGER: drops all data)
-schema-reset-textile:
-	cd services/textile-api && go run ./cmd/apply_schema internal/db/schema_reset.sql
 
 # ---------------------------------------------------------------------------
 # Lint & Format
