@@ -7,24 +7,27 @@
      Sharp geometry, hairline navy borders, mono eyebrows. */
 
   /* Fonts */
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mona-sans: var(--font-mona-sans), "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-suisse), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-space-grotesk), "Space Grotesk", sans-serif;
   --font-mono: var(--font-dm-mono), "DM Mono", ui-monospace, monospace;
-  --font-heading: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-suisse: var(--font-suisse), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-mona-sans), var(--font-suisse), var(--font-space-grotesk), sans-serif;
+  --font-subheading: var(--font-mona-sans), var(--font-suisse), sans-serif;
   --font-display-condensed: var(--font-barlow-condensed), "Barlow Condensed", sans-serif;
-  --font-body: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-suisse), ui-sans-serif, system-ui, sans-serif;
 
-  /* ── Core Color Tokens (Supermemory palette) ── */
-  --color-blue: #0562ef;
-  --color-blue-light: #1e78ff;
-  --color-blue-hover: #3782f2;
-  --color-blue-tint: #eaf2ff;
-  --color-blue-paper: #f3f6fd;
-  --color-card-blue: #ddebff;
-  --color-paper-blue: #f6f8fc;
+  /* ── Core Color Tokens (Premium Battery Emerald Palette) ── */
+  --color-blue: #059669;
+  --color-blue-light: #10b981;
+  --color-blue-hover: #047857;
+  --color-blue-tint: #ecfdf5;
+  --color-blue-paper: #f0fdf4;
+  --color-card-blue: #d1fae5;
+  --color-paper-blue: #f2fbf7;
 
-  --color-bg: #f5f9ff;
-  --color-bg-alt: #f4f8ff;
+  --color-bg: #ffffff;
+  --color-bg-alt: #f8faf9;
   --color-paper: #ffffff;
   --color-white: #ffffff;
 
@@ -32,9 +35,9 @@
   --color-text-muted: #0b101599;
   --color-text-dim: #888e94;
 
-  --color-border: rgba(15, 46, 92, 0.1);
-  --color-border-light: rgba(15, 46, 92, 0.055);
-  --color-border-strong: rgba(15, 46, 92, 0.16);
+  --color-border: rgba(15, 92, 55, 0.1);
+  --color-border-light: rgba(15, 92, 55, 0.055);
+  --color-border-strong: rgba(15, 92, 55, 0.16);
   --color-border-dashed: #0b101529;
   --color-grid: #0b101529;
 
@@ -42,15 +45,15 @@
   --color-dark: #0b1015;
   --color-dark-panel: #13191f;
   --color-dark-border: #1f2933;
-  --color-navy: #001745;
+  --color-navy: #022c22;
 
   /* Gradient */
-  --color-gradient-start: #00c2d8;
-  --color-gradient-mid: #0562ef;
-  --color-gradient-end: #0015ff;
+  --color-gradient-start: #34d399;
+  --color-gradient-mid: #059669;
+  --color-gradient-end: #047857;
 
   /* Semantic */
-  --color-success: #22c55e;
+  --color-success: #10b981;
   --color-success-soft: #dcfce7;
   --color-amber: #f59e0b;
   --color-amber-soft: #fef3c7;
@@ -59,22 +62,22 @@
   --color-danger-soft: #fef2f2;
 
   /* ── Aliases for crew-* classes used across components ──
-     Remapped from warm green → cool blue Supermemory palette */
+     Premium Emerald Battery palette */
   --color-crew-navy: #0b1015;
   --color-crew-navy-light: #13191f;
   --color-crew-navy-panel: #13191f;
-  --color-crew-coral: #0562ef;
-  --color-crew-coral-light: #3782f2;
-  --color-crew-coral-soft: #eaf2ff;
+  --color-crew-coral: #059669;
+  --color-crew-coral-light: #10b981;
+  --color-crew-coral-soft: #ecfdf5;
   --color-crew-ink: #0b1015;
   --color-crew-muted: #888e94;
   --color-crew-muted-2: #0b101599;
-  --color-crew-border: #c5dbf2;
+  --color-crew-border: #a7f3d0;
   --color-crew-border-dark: #1f2933;
   --color-crew-paper: #ffffff;
-  --color-crew-paper-soft: #f4f8ff;
-  --color-crew-green: #0562ef;
-  --color-crew-green-soft: #eaf2ff;
+  --color-crew-paper-soft: #f4fbf7;
+  --color-crew-green: #059669;
+  --color-crew-green-soft: #ecfdf5;
   --color-crew-amber: #f59e0b;
   --color-crew-amber-soft: #fef3c7;
 
@@ -84,7 +87,7 @@
   --color-primary: var(--color-blue);
   --color-primary-foreground: var(--color-white);
   --color-accent: var(--color-blue);
-  --color-accent-deep: #044ab8;
+  --color-accent-deep: #047857;
   --color-accent-soft: var(--color-blue-tint);
   --color-ink: var(--color-text);
   --color-ink-secondary: var(--color-text-muted);
@@ -155,6 +158,14 @@
 
   .font-heading {
     font-family: var(--font-heading);
+  }
+
+  .font-subheading {
+    font-family: var(--font-subheading);
+  }
+
+  .font-suisse {
+    font-family: var(--font-suisse);
   }
 
   .font-display-condensed {

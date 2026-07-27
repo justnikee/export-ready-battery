@@ -196,7 +196,7 @@ export default function Navbar({
                   <a
                     key={item.label}
                     href={item.href}
-                    className="px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] text-text hover:text-text-muted hover:bg-bg-alt rounded-md transition-colors"
+                    className="px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] text-text hover:text-text-muted transition-colors"
                   >
                     {item.label}
                   </a>
@@ -210,10 +210,10 @@ export default function Navbar({
                   onMouseLeave={() => scheduleClose()}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] rounded-md transition-colors ${
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] transition-colors ${
                       isOpen
-                        ? "text-text bg-bg-alt"
-                        : "text-text hover:text-text-muted hover:bg-bg-alt"
+                        ? "text-text"
+                        : "text-text hover:text-text-muted"
                     }`}
                   >
                     {item.label}

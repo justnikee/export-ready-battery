@@ -35,7 +35,7 @@ function DigitCell({
   const display = value === null ? "––" : large ? String(value) : pad(value);
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="relative overflow-hidden rounded-md bg-white border border-border px-3 py-2 min-w-[56px] sm:min-w-[72px] text-center">
+      <div className="relative overflow-hidden rounded-none bg-[#f8faf9] border border-border px-3.5 py-3 min-w-[60px] sm:min-w-[76px] text-center shadow-xs">
         <AnimatePresence mode="popLayout">
           <motion.span
             key={display}
@@ -107,10 +107,10 @@ export default function DeadlineCountdown({
   return (
     <div className={className}>
       {/* Urgency eyebrow */}
-      <div className="inline-flex items-center gap-2 mb-5 h-7 pl-2 pr-3 rounded-sm bg-danger-soft border border-[#fecaca]">
-        <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-        <span className="font-mono text-[11px] font-medium text-danger tracking-[0.14em] uppercase">
-          EU Battery Passport deadline
+      <div className="inline-flex items-center gap-2 mb-5 h-7 pl-2.5 pr-3 rounded-none bg-emerald-50 border border-emerald-200">
+        <span className="w-1.5 h-1.5 bg-emerald-600" />
+        <span className="font-mono text-[11px] font-semibold text-emerald-800 tracking-[0.14em] uppercase">
+          EU Battery Passport Deadline
         </span>
       </div>
 

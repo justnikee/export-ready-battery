@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, DM_Sans, DM_Mono, Barlow_Condensed } from "next/font/google";
+import { Mona_Sans, Space_Grotesk, DM_Sans, DM_Mono, Barlow_Condensed, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import MotionProvider from "@/components/motion-provider";
 import "./globals.css";
+
+const monaSans = Mona_Sans({
+  subsets: ["latin"],
+  variable: "--font-mona-sans",
+  display: "swap",
+});
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
   display: "swap",
   weight: ["300", "400", "500", "600", "700"],
+});
+
+const suisseEquiv = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-suisse",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const dmSans = DM_Sans({
@@ -85,7 +98,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${dmSans.variable} ${dmMono.variable} ${barlowCondensed.variable} antialiased`}>
+    <html lang="en" className={`${monaSans.variable} ${spaceGrotesk.variable} ${suisseEquiv.variable} ${dmSans.variable} ${dmMono.variable} ${barlowCondensed.variable} antialiased`}>
       <body className="font-sans antialiased">
         <MotionProvider>{children}</MotionProvider>
         <Toaster position="top-right" richColors />
