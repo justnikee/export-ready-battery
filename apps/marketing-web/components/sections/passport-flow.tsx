@@ -33,12 +33,12 @@ function MiniQR({ size = 44 }: { size?: number }) {
 export default function PassportFlow() {
   return (
     <section id="how-it-works" className="relative bg-bg">
-      <div className="max-w-[1232px] mx-auto border-x border-border">
+      <div className="max-w-[1232px] mx-auto">
         {/* Sticky Section header with index marker */}
-        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
           <span className="section-index">HOW IT WORKS</span>
           <span className="section-index text-text-dim/60">
-            [<span className="text-blue font-semibold">1</span>/8]
+            [<span className="text-emerald-600 font-semibold">1</span>/8]
           </span>
         </div>
 
@@ -46,14 +46,14 @@ export default function PassportFlow() {
           {/* Header Block */}
           <div className="px-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-16">
             <div className="space-y-4 max-w-[680px]">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue/10 text-blue text-xs font-mono tracking-wider uppercase rounded-none">
-                <span className="w-1.5 h-1.5 bg-blue" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 bg-emerald-600" />
                 Automated Compliance Pipeline
               </div>
-              <h2 className="font-heading text-text text-[clamp(36px,4.8vw,58px)] font-bold tracking-[-0.04em] leading-[1.02] text-balance">
+              <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] text-balance">
                 Four steps.
                 <br />
-                <span className="text-blue">No consultants.</span>
+                <span className="text-emerald-600">No consultants.</span>
               </h2>
             </div>
             <p className="text-[15px] leading-[1.65] text-text-muted max-w-[400px] flex-shrink-0 text-pretty">
@@ -61,11 +61,11 @@ export default function PassportFlow() {
             </p>
           </div>
 
-          {/* 4-Step Grid Pipeline — 16px gap, crisp hairline border + multi-layer ambient shadow */}
+          {/* 4-Step Grid Pipeline — 16px gap, crisp hairline border */}
           <div className="mx-6 grid grid-cols-1 md:grid-cols-2 gap-4 rounded-none">
             
             {/* Card 01 - Upload */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(5,98,239,0.03)] flex flex-col justify-between p-7 rounded-none">
+            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
@@ -75,7 +75,7 @@ export default function PassportFlow() {
                 </div>
 
                 {/* Direct Graphic Component 01 (h-[210px]) */}
-                <div className="h-[210px] w-full border border-dashed border-emerald-500/40 p-6 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                <div className="h-[210px] w-full border border-dashed border-emerald-500/40 p-6 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none">
                   <FileUp size={28} className="text-emerald-600 animate-pulse" />
                   <div>
                     <span className="text-emerald-950 font-bold block text-[13.5px]">📄 bis_cert_2026.pdf</span>
@@ -104,32 +104,32 @@ export default function PassportFlow() {
             </div>
 
             {/* Card 02 - Parse & Validate */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(5,98,239,0.03)] flex flex-col justify-between p-7 rounded-none">
+            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
+                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-amber-500/10 text-amber-900 border border-amber-500/30 rounded-none">
                     02 / PARSE &amp; VALIDATE
                   </span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 bg-emerald-500/15 text-emerald-800 uppercase font-semibold border border-emerald-500/30 rounded-none">MAPPED</span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 bg-amber-500 text-slate-950 uppercase font-bold border border-amber-500 rounded-none">MAPPED</span>
                 </div>
 
                 {/* Direct Graphic Component 02 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                  <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
-                    <span className="text-emerald-800/70 text-[11.5px]">chemistry</span>
-                    <span className="text-emerald-950 font-bold text-[12px]">LFP (Lithium Iron)</span>
+                <div className="h-[210px] w-full bg-[#fffdfa] border border-amber-500/30 p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none">
+                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
+                    <span className="text-amber-900/70 text-[11.5px]">chemistry</span>
+                    <span className="text-slate-900 font-bold text-[12px]">LFP (Lithium Iron)</span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
-                    <span className="text-emerald-800/70 text-[11.5px]">capacity</span>
-                    <span className="text-emerald-950 font-bold text-[12px]">280 Ah</span>
+                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
+                    <span className="text-amber-900/70 text-[11.5px]">capacity</span>
+                    <span className="text-slate-900 font-bold text-[12px]">280 Ah</span>
                   </div>
-                  <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
-                    <span className="text-emerald-800/70 text-[11.5px]">carbon_class</span>
-                    <span className="text-emerald-700 font-bold text-[12px]">Class A</span>
+                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
+                    <span className="text-amber-900/70 text-[11.5px]">carbon_class</span>
+                    <span className="text-amber-800 font-bold text-[12px]">Class A</span>
                   </div>
                   <div className="flex justify-between items-center pt-0.5">
-                    <span className="text-emerald-800/70 text-[11.5px]">bis_status</span>
-                    <span className="text-emerald-700 font-bold text-[12px] bg-emerald-100 px-2 py-0.5 border border-emerald-300">✔ VALID 2027</span>
+                    <span className="text-amber-900/70 text-[11.5px]">bis_status</span>
+                    <span className="text-amber-900 font-bold text-[12px] bg-amber-100 px-2 py-0.5 border border-amber-300">✔ VALID 2027</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +145,7 @@ export default function PassportFlow() {
             </div>
 
             {/* Card 03 - Secure & Anchor */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(5,98,239,0.03)] flex flex-col justify-between p-7 rounded-none">
+            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
@@ -155,16 +155,16 @@ export default function PassportFlow() {
                 </div>
 
                 {/* Direct Graphic Component 03 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-5 font-mono text-xs flex flex-col justify-center gap-3.5 mb-6 rounded-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-5 font-mono text-xs flex flex-col justify-center gap-3.5 mb-6 rounded-none">
                   <div className="flex items-center justify-between gap-3">
                     <div className="bg-white border border-emerald-500/20 p-3 flex-1 rounded-none">
                       <div className="text-[9.5px] text-emerald-800/70 mb-0.5 uppercase tracking-wider font-semibold">DATA_HASH</div>
                       <div className="text-emerald-950 font-bold text-[11.5px] truncate">sha256:7c0a...</div>
                     </div>
-                    <div className="text-emerald-600 font-bold text-lg flex-shrink-0">➔</div>
-                    <div className="bg-white border border-emerald-500/20 p-3 flex-1 rounded-none">
-                      <div className="text-[9.5px] text-emerald-800/70 mb-0.5 uppercase tracking-wider font-semibold">BTC_BLOCK</div>
-                      <div className="text-emerald-700 font-bold text-[11.5px]">#842,190</div>
+                    <div className="text-amber-500 font-bold text-lg flex-shrink-0">➔</div>
+                    <div className="bg-amber-50 border border-amber-300 p-3 flex-1 rounded-none">
+                      <div className="text-[9.5px] text-amber-900/80 mb-0.5 uppercase tracking-wider font-bold">BTC_BLOCK</div>
+                      <div className="text-amber-900 font-bold text-[11.5px]">#842,190</div>
                     </div>
                   </div>
                   <div className="text-[11px] font-mono text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1.5 font-semibold text-center rounded-none">
@@ -184,7 +184,7 @@ export default function PassportFlow() {
             </div>
 
             {/* Card 04 - Identity Issued */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(5,98,239,0.03)] flex flex-col justify-between p-7 rounded-none">
+            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
@@ -194,7 +194,7 @@ export default function PassportFlow() {
                 </div>
 
                 {/* Direct Graphic Component 04 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-6 font-mono text-xs flex items-center justify-between mb-6 rounded-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-6 font-mono text-xs flex items-center justify-between mb-6 rounded-none">
                   <div className="space-y-1.5">
                     <div className="text-[10px] text-emerald-800/70 uppercase tracking-wider font-semibold">ANVIORA PASSPORT</div>
                     <div className="text-emerald-950 font-bold text-[15px] tracking-wide">IN-LFP-2026-B4471</div>
@@ -203,7 +203,7 @@ export default function PassportFlow() {
                       Cryptographically Signed
                     </div>
                   </div>
-                  <div className="bg-white border border-emerald-200 p-2 flex items-center justify-center shadow-xs rounded-none">
+                  <div className="bg-white border border-emerald-200 p-2 flex items-center justify-center rounded-none">
                     <MiniQR size={42} />
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export default function PassportFlow() {
           </div>
 
           {/* 5th Card - Outcome / Destination Verification Hero (Green with Grainy Texture) */}
-          <div className="mx-6 mt-4 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10 shadow-[0_4px_24px_-2px_rgba(5,96,67,0.25)] rounded-none">
+          <div className="mx-6 mt-4 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10 rounded-none">
             
             {/* SVG Noise / Grainy Texture Overlay */}
             <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay">
@@ -235,20 +235,10 @@ export default function PassportFlow() {
               </svg>
             </div>
 
-            {/* Radial Halftone Pattern Overlay */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none opacity-20"
-              style={{
-                backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.4) 0.8px, transparent 1.2px)",
-                backgroundSize: "8px 8px"
-              }}
-            />
-
             {/* Content Left */}
             <div className="space-y-4 max-w-xl relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-950/40 text-emerald-100 text-xs font-mono font-medium rounded-none">
-                <Zap size={13} className="text-emerald-200 fill-emerald-200" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-950/40 text-amber-300 text-xs font-mono font-medium rounded-none border border-amber-400/30">
+                <Zap size={13} className="text-amber-400 fill-amber-400" />
                 THE VERIFICATION PAYOFF
               </div>
               <h3 className="font-heading text-white text-[clamp(28px,3.8vw,44px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
@@ -260,7 +250,7 @@ export default function PassportFlow() {
             </div>
 
             {/* Right Side Destination Verification Preview Card (Crisp White & Glassmorphic) */}
-            <div className="w-full md:w-[320px] bg-white/95 backdrop-blur-md p-6 shadow-[0_20px_50px_rgba(0,0,0,0.25)] border border-white/40 relative z-10 select-none rounded-none text-text">
+            <div className="w-full md:w-[320px] bg-white/95 backdrop-blur-md p-6 border border-white/40 relative z-10 select-none rounded-none text-text">
               {/* Header badge */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div className="flex items-center gap-2.5">

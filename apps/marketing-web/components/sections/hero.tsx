@@ -30,9 +30,9 @@ export default function Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="group inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-full text-[13px] font-medium text-slate-800 bg-white/80 border border-slate-300/80 shadow-xs backdrop-blur-md hover:bg-white hover:border-slate-400 transition-all mb-10"
+          className="group inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-none text-[13px] font-medium text-slate-800 bg-white/80 border border-slate-300/80 backdrop-blur-md hover:bg-white hover:border-slate-400 transition-all mb-10"
         >
-          <span className="inline-flex items-center h-[22px] px-2 rounded-full bg-blue text-white text-[11px] font-semibold tracking-wide font-mono">
+          <span className="inline-flex items-center h-[22px] px-2 rounded-none bg-amber-500 text-slate-950 text-[11px] font-bold tracking-wide font-mono">
             NEW
           </span>
           EU Battery Passport — mandatory 18 Feb 2027
@@ -44,11 +44,11 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="text-text text-[clamp(44px,7.5vw,90px)] font-bold leading-[0.94] tracking-[-0.03em] max-w-[950px] text-balance font-heading"
+          className="text-text text-[clamp(38px,6.2vw,74px)] font-bold leading-[0.98] tracking-[-0.03em] max-w-[900px] text-balance font-heading"
         >
-          Every product
+          Every Product Deserves
           <br />
-          deserves a digital identity
+          a Digital Identity
         </motion.h1>
 
         {/* Subhead */}
@@ -56,7 +56,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-[580px] mt-7 text-[16px] sm:text-[17px] leading-[1.7] text-[#0b1015]/85 text-pretty font-normal"
+          className="max-w-[580px] mt-7 text-[16px] sm:text-[17px] leading-[1.7] text-text-muted text-pretty font-normal"
         >
           Anviora turns your certificates, supplier records, and factory data
           into verifiable digital product passports — compliant at home,
@@ -72,7 +72,7 @@ export default function Hero() {
         >
           <a
             href="/request-access"
-            className="group inline-flex items-stretch h-[52px] overflow-hidden text-white bg-blue border border-blue font-medium text-[15px] tracking-[-0.005em] rounded-sm hover:bg-blue-hover hover:border-blue-hover transition-colors press-scale shadow-sm flex-1 sm:flex-none"
+            className="group inline-flex items-stretch h-[52px] overflow-hidden text-white bg-blue border border-blue font-medium text-[15px] tracking-[-0.005em] rounded-none hover:bg-blue-hover hover:border-blue-hover transition-colors press-scale flex-1 sm:flex-none"
           >
             <span className="inline-flex items-center justify-center flex-1 px-6 border-r border-white/18">
               Request a Demo
@@ -83,7 +83,7 @@ export default function Hero() {
           </a>
           <a
             href="#how-it-works"
-            className="inline-flex items-center justify-center h-[52px] px-6 text-[15px] font-medium text-slate-900 bg-white/90 border border-slate-300 shadow-xs backdrop-blur-sm rounded-sm hover:bg-white hover:border-slate-400 hover:text-black transition-colors press-scale flex-1 sm:flex-none"
+            className="inline-flex items-center justify-center h-[52px] px-6 text-[15px] font-medium text-slate-900 bg-white/90 border border-slate-300 backdrop-blur-sm rounded-none hover:bg-white hover:border-slate-400 hover:text-black transition-colors press-scale flex-1 sm:flex-none"
           >
             See how it works
           </a>

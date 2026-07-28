@@ -32,12 +32,12 @@ const nextSteps = [
 export default function NewsCTA() {
   return (
     <section className="">
-      <div className="max-w-[1232px] mx-auto border-x border-border">
+      <div className="max-w-[1232px] mx-auto">
         {/* Section header */}
-        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
           <span className="section-index">GET STARTED</span>
           <span className="section-index text-text-dim/60">
-            [<span className="text-blue font-semibold">8</span>/8]
+            [<span className="text-emerald-600 font-semibold">8</span>/8]
           </span>
         </div>
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
@@ -45,7 +45,7 @@ export default function NewsCTA() {
             className="relative overflow-hidden rounded-none"
             style={{
               background:
-                "linear-gradient(160deg, #00C2D8 0%, #0562ef 48%, #0015FF 100%)",
+                "linear-gradient(160deg, #10b981 0%, #047857 48%, #044e3a 100%)",
             }}
           >
             {/* Halftone overlay */}
@@ -84,7 +84,7 @@ export default function NewsCTA() {
                     href={step.href}
                     className="relative group block p-7 bg-white/10 backdrop-blur-sm transition-colors duration-200 hover:bg-white/15 border border-white/20 rounded-none overflow-hidden"
                   >
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-md bg-white/15 text-white mb-5 relative z-10">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-none bg-white/15 text-white mb-5 relative z-10">
                       {step.icon}
                     </div>
                     <h3 className="font-heading text-white text-[17px] font-medium mb-2 relative z-10 leading-tight">{step.title}</h3>
@@ -110,7 +110,7 @@ export default function NewsCTA() {
                 </div>
                 <a
                   href="/request-access"
-                  className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-white/10 border border-white/55 px-5 py-3 transition-colors hover:bg-white hover:text-blue press-scale rounded-none"
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-white/10 border border-white/55 px-5 py-3 transition-colors hover:bg-white hover:text-emerald-950 press-scale rounded-none"
                   style={{ textTransform: "uppercase", letterSpacing: "0.04em" }}
                 >
                   Start Building

@@ -73,26 +73,16 @@ function FeatureRow({ eyebrow, title, body, bullets, cta, flip, children }: RowP
 }
 
 export default function Platform() {
-  const visualCardWrapper = "relative bg-[#f4f8ff] border border-border p-6 rounded-none overflow-hidden min-h-[300px] flex flex-col justify-center";
+  const visualCardWrapper = "relative flex flex-col justify-center";
   
-  const DotGrid = () => (
-    <div 
-      className="absolute inset-0 pointer-events-none" 
-      style={{
-        backgroundImage: "radial-gradient(circle, rgba(5, 98, 239, 0.08) 1px, transparent 1px)",
-        backgroundSize: "16px 16px"
-      }}
-    />
-  );
-
   return (
     <section id="platform" className="">
-      <div className="max-w-[1232px] mx-auto border-x border-border">
+      <div className="max-w-[1232px] mx-auto">
         {/* Section header */}
-        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
           <span className="section-index">PLATFORM</span>
           <span className="section-index text-text-dim/60">
-            [<span className="text-blue font-semibold">3</span>/8]
+            [<span className="text-emerald-600 font-semibold">3</span>/8]
           </span>
         </div>
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
@@ -111,16 +101,15 @@ export default function Platform() {
             cta={{ label: "Learn more", href: "/battery" }}
           >
             <div className={visualCardWrapper}>
-              <DotGrid />
-              <div className="relative z-10 bg-white border border-border p-4 shadow-md space-y-3.5">
+              <div className="relative z-10 bg-white border border-border p-4 space-y-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-medium text-text">Certificate parsing</span>
-                  <span className="inline-flex items-center h-6 px-2.5 rounded-sm bg-blue-tint text-blue text-[11px] font-mono font-medium">
+                  <span className="inline-flex items-center h-6 px-2.5 rounded-none bg-blue-tint text-blue text-[11px] font-mono font-medium">
                     112 fields · 98%
                   </span>
                 </div>
                 <div className="flex items-center gap-3 px-3.5 py-3 border border-border">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-blue-tint text-blue shrink-0">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-none bg-blue-tint text-blue shrink-0">
                     <FileText size={16} />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -129,7 +118,7 @@ export default function Platform() {
                     </div>
                     <div className="text-[11px] text-text-dim font-mono">Parsed in 4.2s · auto-mapped</div>
                   </div>
-                  <span className="inline-flex items-center h-5 px-2 rounded-sm bg-blue-tint text-blue text-[10px] font-mono font-medium">
+                  <span className="inline-flex items-center h-5 px-2 rounded-none bg-blue-tint text-blue text-[10px] font-mono font-medium">
                     Done
                   </span>
                 </div>
@@ -168,8 +157,7 @@ export default function Platform() {
             flip
           >
             <div className={visualCardWrapper}>
-              <DotGrid />
-              <div className="relative z-10 bg-white border border-border p-4 shadow-md space-y-3.5">
+              <div className="relative z-10 bg-white border border-border p-4 space-y-3.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-medium text-text">LFP-B4471 — passport build</span>
                   <span
@@ -241,14 +229,13 @@ export default function Platform() {
             cta={{ label: "Explore sharing", href: "/battery" }}
           >
             <div className={visualCardWrapper}>
-              <DotGrid />
-              <div className="relative z-10 bg-white border border-border p-4 shadow-md space-y-3.5">
+              <div className="relative z-10 bg-white border border-border p-4 space-y-3.5">
                 <div className="text-[13px] font-medium text-text">Share passport — LFP-B4471</div>
                 <div className="flex items-center gap-2 px-3 py-2 border border-border bg-bg-alt">
                   <span className="flex-1 text-[11px] font-medium font-mono text-text-dim truncate">
                     portal.anviora.com/p/lfp-b4471
                   </span>
-                  <span className="inline-flex items-center h-6 px-2.5 rounded-sm bg-dark text-white text-[10px] font-medium font-mono">
+                  <span className="inline-flex items-center h-6 px-2.5 rounded-none bg-dark text-white text-[10px] font-medium font-mono">
                     Copy link
                   </span>
                 </div>
@@ -264,12 +251,12 @@ export default function Platform() {
                         <div className="text-[11px] text-text-dim">{p.desc}</div>
                       </div>
                       <span
-                        className={`relative inline-flex w-9 h-5 rounded-full transition-colors ${
+                        className={`relative inline-flex w-9 h-5 rounded-none transition-colors ${
                           p.on ? "bg-blue" : "bg-border"
                         }`}
                       >
                         <span
-                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white ${
+                          className={`absolute top-0.5 w-4 h-4 rounded-none bg-white ${
                             p.on ? "right-0.5" : "left-0.5"
                           }`}
                         />
@@ -299,8 +286,7 @@ export default function Platform() {
             flip
           >
             <div className={visualCardWrapper}>
-              <DotGrid />
-              <div className="relative z-10 bg-white border border-border p-4 shadow-md space-y-3.5">
+              <div className="relative z-10 bg-white border border-border p-4 space-y-3.5">
                 <div className="text-[13px] font-medium text-text">Compliance alerts — Next 30 days</div>
                 <div className="grid gap-3">
                   {[
@@ -313,7 +299,7 @@ export default function Platform() {
                       className="flex items-center gap-3 px-3 py-2 border border-border text-[12.5px] font-medium text-text bg-white"
                     >
                       <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded-sm text-white text-[10px] font-bold shrink-0"
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-none text-white text-[10px] font-bold shrink-0"
                         style={{ background: alert.tone }}
                       >
                         {alert.icon}
