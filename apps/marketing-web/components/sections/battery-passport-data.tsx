@@ -68,21 +68,13 @@ export default function BatteryPassportData() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className={`rounded-none p-7 lg:p-8 transition-all duration-300 hover:-translate-y-1 ${
-                tier.highlight
-                  ? "bg-blue text-white shadow-xl"
-                  : "bg-white border border-border text-slate-900 hover:border-border-strong"
-              }`}
+              className="rounded-none border border-border bg-white p-7 lg:p-8 text-slate-900 shadow-xs"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div
-                  className={`w-10 h-10 rounded-none flex items-center justify-center ${
-                    tier.highlight ? "bg-white/15 text-emerald-300" : "bg-emerald-500/10 text-emerald-800 border border-emerald-500/20"
-                  }`}
-                >
+                <div className="w-10 h-10 rounded-none flex items-center justify-center bg-emerald-500/10 text-emerald-800 border border-emerald-500/20">
                   <tier.icon size={18} />
                 </div>
-                <h3 className={`font-heading text-[18px] font-bold ${tier.highlight ? "text-white" : "text-slate-950"}`}>
+                <h3 className="font-heading text-[18px] font-bold text-slate-950">
                   {tier.title}
                 </h3>
               </div>
@@ -90,11 +82,9 @@ export default function BatteryPassportData() {
                 {tier.items.map((item) => (
                   <li
                     key={item}
-                    className={`text-[14px] flex items-start gap-2.5 ${
-                      tier.highlight ? "text-white/90" : "text-text-muted"
-                    }`}
+                    className="text-[14px] flex items-start gap-2.5 text-text-muted"
                   >
-                    <span className={`w-1.5 h-1.5 rounded-none mt-2 shrink-0 ${tier.highlight ? "bg-emerald-300" : "bg-emerald-600"}`} />
+                    <span className="w-1.5 h-1.5 rounded-none mt-2 shrink-0 bg-emerald-600" />
                     {item}
                   </li>
                 ))}
