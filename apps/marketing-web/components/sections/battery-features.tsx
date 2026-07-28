@@ -10,32 +10,23 @@ import {
 
 /* ─── Visual building blocks ──────────────────────────────── */
 
-const TINTS = {
-  green: "bg-crew-coral-soft",
-  amber: "bg-[#fdf3e3]",
-  blue: "bg-[#eef3fd]",
-  dark: "bg-[#122019]",
-} as const;
-
 function Panel({
-  tint,
   children,
 }: {
-  tint: keyof typeof TINTS;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-[28px] p-6 sm:p-8 ${TINTS[tint]}`}>{children}</div>
+    <div className="rounded-none border border-border bg-slate-50/70 p-6 sm:p-8 shadow-xs">{children}</div>
   );
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-none border border-border bg-white p-5 ${className}`}>{children}</div>;
 }
 
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[12px] font-semibold text-crew-ink mb-4">{children}</div>
+    <div className="font-mono text-[12px] font-bold uppercase tracking-wider text-slate-900 mb-4">{children}</div>
   );
 }
 
@@ -411,7 +402,7 @@ const features = [
 
 export default function BatteryFeatures() {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-20 lg:py-28 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
         {features.map((f, i) => (
           <motion.div
@@ -421,14 +412,14 @@ export default function BatteryFeatures() {
             viewport={{ once: true }}
             transition={{ delay: 0.05 }}
             className={`grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center py-10 lg:py-14 ${
-              i > 0 ? "border-t border-crew-ink/8" : ""
+              i > 0 ? "border-t border-border" : ""
             }`}
           >
             <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-              <h3 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink text-balance">
+              <h3 className="font-heading text-text text-[clamp(24px,3vw,32px)] font-bold tracking-[-0.035em] leading-[1.1] text-balance">
                 {f.title}
               </h3>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#131313] text-pretty">
+              <p className="mt-4 text-[16px] leading-[1.65] text-text-muted text-pretty">
                 {f.description}
               </p>
             </div>

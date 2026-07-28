@@ -49,18 +49,18 @@ const tiers = [
 
 export default function BatteryPassportData() {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-20 lg:py-28 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="font-serif text-[clamp(28px,4vw,44px)] font-semibold leading-[1.08] tracking-[-0.02em] text-crew-ink text-center mb-12 text-balance"
+          className="font-heading text-text text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.035em] text-center mb-12 text-balance"
         >
           What goes into a Battery Passport?
         </motion.h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {tiers.map((tier, i) => (
             <motion.div
               key={tier.title}
@@ -68,29 +68,33 @@ export default function BatteryPassportData() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className={`rounded-[28px] p-7 lg:p-8 transition-transform duration-300 hover:-translate-y-1 ${
-                tier.highlight ? "bg-crew-coral-soft" : "bg-paper"
+              className={`rounded-none p-7 lg:p-8 transition-all duration-300 hover:-translate-y-1 ${
+                tier.highlight
+                  ? "bg-blue text-white shadow-xl"
+                  : "bg-white border border-border text-slate-900 hover:border-border-strong"
               }`}
             >
-              <div className="flex items-center gap-3 mb-5">
+              <div className="flex items-center gap-3 mb-6">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    tier.highlight ? "bg-white" : "bg-crew-coral-soft"
+                  className={`w-10 h-10 rounded-none flex items-center justify-center ${
+                    tier.highlight ? "bg-white/15 text-emerald-300" : "bg-emerald-500/10 text-emerald-800 border border-emerald-500/20"
                   }`}
                 >
-                  <tier.icon size={17} className="text-crew-coral" />
+                  <tier.icon size={18} />
                 </div>
-                <h3 className="text-[16px] font-semibold text-crew-ink">
+                <h3 className={`font-heading text-[18px] font-bold ${tier.highlight ? "text-white" : "text-slate-950"}`}>
                   {tier.title}
                 </h3>
               </div>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {tier.items.map((item) => (
                   <li
                     key={item}
-                    className="text-[13.5px] text-crew-ink/70 flex items-start gap-2.5"
+                    className={`text-[14px] flex items-start gap-2.5 ${
+                      tier.highlight ? "text-white/90" : "text-text-muted"
+                    }`}
                   >
-                    <span className="w-1 h-1 rounded-full bg-crew-coral mt-2 shrink-0" />
+                    <span className={`w-1.5 h-1.5 rounded-none mt-2 shrink-0 ${tier.highlight ? "bg-emerald-300" : "bg-emerald-600"}`} />
                     {item}
                   </li>
                 ))}
