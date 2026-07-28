@@ -1,6 +1,19 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ── Sharp Anti-Blur Text Rendering ── */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prevent synthetic browser font smearing on monospace text */
+.font-mono {
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
 @theme inline {
   /* ── Supermemory-inspired Design Language ──
      Cool blue-tinted canvas, electric blue accent, deep ink text.

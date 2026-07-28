@@ -164,27 +164,13 @@ export default function Navbar({
         onMouseLeave={() => scheduleClose()}
         className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-bg/80 backdrop-blur-md border-b border-border/60 transition-all duration-300`}
       >
-        <div
-          className={`max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 ${
-            scrolled ? "h-14" : "h-14"
-          }`}
-        >
-          {/* Left: Brand */}
+        <div className="max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 h-20">
+          {/* Left: Brand Logo (Mona Sans, 600 weight, normal tracking, Uppercase) */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 font-heading font-medium tracking-[-0.03em] shrink-0 text-text justify-self-start"
-            style={{ fontSize: "20px" }}
+            className="inline-flex items-center font-heading font-semibold text-[24px] uppercase tracking-normal text-slate-950 hover:text-emerald-600 transition-colors shrink-0 justify-self-start"
           >
-            <span
-              aria-hidden="true"
-              className="block bg-blue"
-              style={{
-                width: "16px",
-                height: "16px",
-                borderRadius: "3px",
-              }}
-            />
-            Anviora
+            ANVIORA
           </Link>
 
           {/* Center: Desktop links */}

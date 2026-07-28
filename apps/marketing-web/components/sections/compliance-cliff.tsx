@@ -7,12 +7,12 @@ import DeadlineCountdown from "@/components/deadline-countdown";
 export default function ComplianceCliff() {
   return (
     <section className="bg-bg">
-      <div className="max-w-[1232px] mx-auto border-x border-border">
+      <div className="max-w-[1232px] mx-auto">
         {/* Sticky Section header */}
-        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
           <span className="section-index">THE PROBLEM</span>
           <span className="section-index text-text-dim/60">
-            [<span className="text-blue font-semibold">2</span>/8]
+            [<span className="text-emerald-600 font-semibold">2</span>/8]
           </span>
         </div>
         
@@ -23,12 +23,12 @@ export default function ComplianceCliff() {
             
             {/* Left Column (Headline & Context) */}
             <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono font-semibold uppercase rounded-none">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 bg-emerald-600" />
                 EU Regulatory Mandate
               </div>
 
-              <h2 className="font-heading text-text text-[clamp(34px,4.2vw,52px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+              <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] text-balance">
                 The rules changed.
                 <br />
                 The paperwork didn&apos;t keep up.
@@ -74,10 +74,10 @@ export default function ComplianceCliff() {
               {/* Item 02 */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="font-mono text-xs font-bold text-slate-700 px-2.5 py-0.5 bg-slate-100 border border-slate-200">
+                  <span className="font-mono text-xs font-bold text-amber-900 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30">
                     02 / CUSTOMS CLEARANCE
                   </span>
-                  <Anchor size={16} className="text-emerald-700" />
+                  <Anchor size={16} className="text-amber-700" />
                 </div>
                 <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] leading-snug">
                   Held at the port
@@ -86,7 +86,7 @@ export default function ComplianceCliff() {
                   One missing carbon declaration or Declaration of Conformity can hold your container at European ports.
                 </p>
                 <div className="pt-1">
-                  <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px] font-semibold">
+                  <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 font-mono text-[11px] font-semibold">
                     Destination Verification Required
                   </span>
                 </div>
@@ -117,7 +117,7 @@ export default function ComplianceCliff() {
           </div>
 
           {/* Block 3: Solution Transition Callout Banner */}
-          <div className="mt-16 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg text-white">
+          <div className="mt-16 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 text-white">
             {/* SVG Noise / Grainy Texture Overlay */}
             <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay">
               <svg className="w-full h-full">
@@ -140,7 +140,7 @@ export default function ComplianceCliff() {
 
             <a
               href="#how-it-works"
-              className="relative z-10 inline-flex items-center gap-2 px-6 py-3.5 bg-white text-emerald-950 font-medium text-[14.5px] shadow-md hover:bg-emerald-50 transition-colors shrink-0"
+              className="relative z-10 inline-flex items-center gap-2 px-6 py-3.5 bg-white text-emerald-950 font-medium text-[14.5px] hover:bg-emerald-50 transition-colors shrink-0"
             >
               See how Anviora solves this
               <ArrowRight size={16} className="text-emerald-700" />

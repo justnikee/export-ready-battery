@@ -44,22 +44,23 @@ export default function FAQ() {
 
   return (
     <section id="faq" className="relative">
-      <div className="max-w-[1232px] mx-auto border-x border-border">
+      <div className="max-w-[1232px] mx-auto">
         {/* Section header */}
-        <div className="sticky top-14 z-20 bg-bg/95 backdrop-blur-sm border-b border-border px-6 py-4 flex justify-between items-center">
+        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
           <span className="section-index">FAQ</span>
           <span className="section-index text-text-dim/60">
-            [<span className="text-blue font-semibold">7</span>/8]
+            [<span className="text-emerald-600 font-semibold">7</span>/8]
           </span>
         </div>
 
         <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
           {/* Header Title */}
           <div className="px-6 mb-12">
-            <p className="eyebrow mb-3">
-              Questions
-            </p>
-            <h2 className="font-heading text-text text-[clamp(30px,4.4vw,48px)] font-medium tracking-[-0.035em] leading-[1.08]">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20 mb-4">
+              <span className="w-1.5 h-1.5 bg-emerald-600" />
+              Frequently Asked Questions
+            </div>
+            <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08]">
               Questions, answered.
             </h2>
           </div>
@@ -122,19 +123,6 @@ export default function FAQ() {
                 </div>
               );
             })}
-          </div>
-
-          {/* FAQ Footer */}
-          <div className="mt-8 mx-6 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-text-muted">
-            <span>Still something on your mind?</span>
-            <div className="flex items-center gap-6">
-              <a href="/blog" className="hover:text-blue transition-colors font-medium">
-                Read the docs
-              </a>
-              <a href="/request-access" className="inline-flex items-center gap-1 text-blue hover:text-blue-hover font-semibold transition-colors">
-                Talk to sales <ArrowRight size={14} />
-              </a>
-            </div>
           </div>
         </div>
       </div>
