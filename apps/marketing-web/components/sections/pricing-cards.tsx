@@ -85,134 +85,125 @@ export default function PricingCards() {
   const [annual, setAnnual] = useState(false);
 
   return (
-    <section className="py-10">
+    <section className="py-10 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
-        {/* Toggle */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <span
-            className={`text-sm ${!annual ? "text-crew-ink font-medium" : "text-crew-muted"}`}
-          >
+        {/* Toggle Bar */}
+        <div className="flex items-center justify-center gap-3 mb-12">
+          <span className={`font-mono text-xs uppercase tracking-wider ${!annual ? "text-slate-950 font-bold" : "text-text-dim"}`}>
             Monthly
           </span>
           <button
             onClick={() => setAnnual(!annual)}
-            className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: annual ? "#157a5b" : "#e3e8ee" }}
+            className="relative w-12 h-6 rounded-none bg-slate-200 border border-slate-300 transition-colors p-0.5"
           >
             <div
-              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
-              style={{ transform: annual ? "translateX(22px)" : "translateX(2px)" }}
+              className="w-5 h-4.5 rounded-none bg-emerald-600 shadow-xs transition-transform duration-200"
+              style={{ transform: annual ? "translateX(22px)" : "translateX(0px)" }}
             />
           </button>
-          <span
-            className={`text-sm ${annual ? "text-crew-ink font-medium" : "text-crew-muted"}`}
-          >
+          <span className={`font-mono text-xs uppercase tracking-wider ${annual ? "text-slate-950 font-bold" : "text-text-dim"}`}>
             Annual
           </span>
-          <span className="text-[11px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-none">
             Save ~20%
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {plans.map((plan, i) => {
             const cycle = annual ? plan.annual : plan.monthly;
+            const dark = plan.highlighted;
+
             return (
               <motion.div
                 key={plan.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className={`relative flex flex-col rounded-3xl p-7 transition-transform duration-300 hover:-translate-y-1 ${
-                  plan.highlighted ? "bg-crew-coral-soft" : "bg-paper"
+                transition={{ delay: i * 0.08, duration: 0.4 }}
+                className={`relative flex flex-col justify-between p-8 lg:p-9 rounded-none transition-all duration-300 ease-out hover:-translate-y-2 ${
+                  dark
+                    ? "bg-blue text-white shadow-2xl shadow-emerald-950/20"
+                    : "bg-white text-slate-900 border border-border hover:border-border-strong"
                 }`}
               >
-                {plan.badge && (
-                  <div className="absolute -top-3 left-6">
-                    <span
-                      className="text-[11px] font-medium text-white px-2.5 py-1 rounded-full"
-                      style={{ background: "#157a5b" }}
-                    >
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-
-                <h3 className="text-[15px] font-medium text-crew-ink">
-                  {plan.name}
-                </h3>
-                <p className="text-[12px] text-crew-muted mt-1">
-                  {plan.description}
-                </p>
-
-                <div className="mt-4 mb-2">
-                  <span
-                    className="text-[32px] font-semibold tracking-[-0.02em] text-crew-ink"
-                    style={{ fontFeatureSettings: '"tnum"' }}
-                  >
-                    {plan.isEnterprise ? "Custom" : cycle!.price}
-                  </span>
-                  {!plan.isEnterprise && (
-                    <span className="text-[13px] text-crew-muted">
-                      {annual ? "/yr" : "/mo"}
-                    </span>
-                  )}
-                </div>
-
-                {!plan.isEnterprise && (
-                  <>
-                    <div className="inline-flex items-center gap-1.5 mb-1">
-                      <Zap size={12} className="text-[#157a5b]" />
-                      <span className="text-[12px] text-crew-muted">
-                        <span className="text-crew-ink font-medium">
-                          {cycle!.quotaCount.toLocaleString("en-IN")} passports
-                        </span>
-                        {annual
-                          ? ` upfront @ ${(plan.annual as { monthlyEquivalentInr: string }).monthlyEquivalentInr}/mo equiv.`
-                          : ` @ ${(plan.monthly as { pricePerUnit: string }).pricePerUnit}/passport`}
+                <div>
+                  {plan.badge && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-950 bg-amber-500 px-3.5 py-1 rounded-none shadow-xs whitespace-nowrap">
+                        {plan.badge}
                       </span>
                     </div>
-                    {annual && (
-                      <p className="text-[11px] text-[#94a3b8] mb-4">
-                        Billed {cycle!.price} once/year — not auto-renewing
-                      </p>
+                  )}
+
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className={`font-heading text-[24px] font-bold tracking-[-0.02em] ${dark ? "text-white" : "text-slate-950"}`}>
+                      {plan.name}
+                    </h3>
+                  </div>
+                  <p className={`text-[14px] leading-[1.5] mb-6 ${dark ? "text-white/80" : "text-text-muted"}`}>
+                    {plan.description}
+                  </p>
+
+                  {/* Price Block */}
+                  <div className="mb-6 pb-6 border-b border-current/15">
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-heading text-[38px] font-bold tracking-[-0.03em] leading-none">
+                        {plan.isEnterprise ? "Custom" : cycle!.price}
+                      </span>
+                      {!plan.isEnterprise && (
+                        <span className={`font-mono text-xs ${dark ? "text-white/70" : "text-text-dim"}`}>
+                          {annual ? "/year" : "/month"}
+                        </span>
+                      )}
+                    </div>
+
+                    {!plan.isEnterprise && (
+                      <div className="mt-3 flex items-center gap-1.5 font-mono text-[12px]">
+                        <Zap size={13} className={dark ? "text-amber-300" : "text-emerald-700"} />
+                        <span className={dark ? "text-white/90 font-medium" : "text-slate-800 font-medium"}>
+                          {cycle!.quotaCount.toLocaleString("en-IN")} passports
+                          {annual
+                            ? ` @ ${plan.annual!.monthlyEquivalentInr}/mo equiv.`
+                            : ` @ ${plan.monthly!.pricePerUnit}/passport`}
+                        </span>
+                      </div>
                     )}
-                    {!annual && <div className="mb-4" />}
-                  </>
-                )}
-                {plan.isEnterprise && <div className="mb-4" />}
+                  </div>
 
-                <ul className="space-y-2.5 mb-6 flex-1">
-                  {plan.features.map((f) => (
-                    <li
-                      key={f}
-                      className="text-[13px] text-crew-muted flex items-start gap-2"
-                    >
-                      <Check size={14} className="text-[#157a5b] mt-0.5 shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                  {/* Features List */}
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-[14px] leading-[1.5]">
+                        <span className={`inline-flex items-center justify-center w-4 h-4 mt-0.5 rounded-none shrink-0 ${dark ? "text-emerald-300" : "text-emerald-700"}`}>
+                          <Check size={14} strokeWidth={2.5} />
+                        </span>
+                        <span className={dark ? "text-white/90" : "text-slate-700"}>
+                          {f}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
+                {/* CTA Button */}
                 <a
                   href={plan.href}
-                  className={`inline-flex items-center justify-center w-full h-[34px] rounded-full text-sm font-medium transition-opacity hover:opacity-90 ${
-                    plan.highlighted
-                      ? "text-white"
-                      : "text-[#157a5b] border border-[#157a5b]"
+                  className={`inline-flex items-center justify-center gap-2 w-full h-[48px] rounded-none font-medium text-[14.5px] transition-all duration-200 ${
+                    dark
+                      ? "bg-white text-slate-950 hover:bg-slate-100 font-bold"
+                      : "bg-emerald-700 text-white hover:bg-emerald-800 font-semibold"
                   }`}
-                  style={plan.highlighted ? { background: "#157a5b" } : {}}
                 >
                   {plan.cta}
-                  <ArrowRight size={14} className="ml-1" />
+                  <ArrowRight size={15} />
                 </a>
               </motion.div>
             );
           })}
         </div>
 
-        <p className="text-[12px] text-[#94a3b8] text-center mt-6">
+        <p className="font-mono text-xs text-text-dim text-center mt-10 uppercase tracking-wider">
           Plans are one-time credit purchases, not auto-renewing subscriptions — buy again when you need more.
         </p>
       </div>

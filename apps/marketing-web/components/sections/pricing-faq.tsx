@@ -9,18 +9,18 @@ export default function PricingFAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-[60px]">
+    <section className="py-[60px] antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-[1.12] text-crew-ink text-center mb-8"
+          className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-bold tracking-[-0.035em] text-center mb-10"
         >
           Frequently Asked Questions
         </motion.h2>
 
-        <div className="space-y-0">
+        <div className="border-t border-border divide-y divide-border">
           {faqs.map((faq, i) => (
             <motion.div
               key={i}
@@ -28,19 +28,19 @@ export default function PricingFAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.03 }}
-              className="border-b border-[#e3e8ee]"
+              className="py-1"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full flex items-center justify-between py-4 text-left"
+                className="w-full flex items-center justify-between py-5 text-left group"
               >
-                <span className="text-[14px] font-medium text-crew-ink">
+                <span className="font-heading text-[16px] font-semibold text-text group-hover:text-emerald-700 transition-colors">
                   {faq.q}
                 </span>
                 {openIndex === i ? (
-                  <Minus size={16} className="text-[#157a5b] shrink-0 ml-4" />
+                  <Minus size={18} className="text-emerald-600 shrink-0 ml-4" />
                 ) : (
-                  <Plus size={16} className="text-[#157a5b] shrink-0 ml-4" />
+                  <Plus size={18} className="text-slate-400 group-hover:text-emerald-600 shrink-0 ml-4 transition-colors" />
                 )}
               </button>
               <AnimatePresence>
@@ -52,7 +52,7 @@ export default function PricingFAQ() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <p className="text-[13px] leading-[1.55] text-crew-muted pb-4">
+                    <p className="text-[14.5px] leading-[1.65] text-text-muted pb-5 pr-8 text-pretty font-normal">
                       {faq.a}
                     </p>
                   </motion.div>
