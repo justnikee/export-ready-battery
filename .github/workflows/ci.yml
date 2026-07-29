@@ -19,8 +19,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -83,8 +81,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       - name: Pull Vercel Environment
@@ -107,8 +103,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       - name: Pull Vercel Environment
