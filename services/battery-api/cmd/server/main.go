@@ -32,6 +32,8 @@ import (
 func main() {
 	deps, err := app.Bootstrap("api-server")
 	if err != nil {
+		slog.Error("bootstrap failed", "error", err)
+		fmt.Fprintf(os.Stderr, "bootstrap failed: %v\n", err)
 		os.Exit(1)
 	}
 	defer deps.Close()
