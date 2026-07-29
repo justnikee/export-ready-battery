@@ -1,135 +1,40 @@
-name: CI/CD
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
   # ═══════════════════════════════════════════════════════════════════
-  # BUILD & TEST
+  # DEPLOY BACKEND — Oracle Cloud VM
   # ═══════════════════════════════════════════════════════════════════
-  build-and-test:
+  deploy-oracle:
+    needs: [build-and-test, migrate-battery]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
+      - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build all apps and services
+      - name: Build Linux AMD64 Binaries
         run: |
-          pnpm run build
-          for svc in services/*/; do
-            if [ -f "$svc/go.mod" ]; then
-              echo "Building $svc"
-              (cd "$svc" && go build ./...)
-            fi
-          done
+          cd services/battery-api
+          GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migration_runner/main.go
+          GOOS=linux GOARCH=amd64 go build -o battery-api ./cmd/server/main.go
 
-      - name: Run tests
-        run: |
-          pnpm run test
-          for svc in services/*/; do
-            if [ -f "$svc/go.mod" ]; then
-              echo "Testing $svc"
-              (cd "$svc" && go test ./...)
-            fi
-          done
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DATABASE MIGRATIONS (run before deploy)
-  # ═══════════════════════════════════════════════════════════════════
-  migrate-battery:
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Copy binaries to Oracle VM via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          go-version: "1.24"
-      - name: Run battery-api migrations
-        run: cd services/battery-api && go run ./cmd/migration_runner up
-        env:
-          DATABASE_URL: ${{ secrets.BATTERY_DATABASE_URL }}
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          source: "services/battery-api/battery-api,services/battery-api/migrate"
+          target: "/home/ubuntu/app/"
+          strip_components: 2
 
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Marketing Web (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-marketing:
-    needs: [build-and-test]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Restart battery-api Service
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          version: 9
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Battery Web (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-battery-web:
-    needs: [build-and-test, migrate-battery]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY BACKEND — Trigger Render Deploy Hook
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-render:
-    needs: [build-and-test, migrate-battery]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          echo "Triggering Render deploy..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            sudo systemctl restart battery-api
+            sudo systemctl status battery-api --no-pager
