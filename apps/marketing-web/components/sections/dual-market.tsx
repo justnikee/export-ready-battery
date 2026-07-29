@@ -37,7 +37,6 @@ const euItems = [
   { code: "DUE DILIGENCE", title: "Supply Chain Risk & CMRT Audit", badge: "ART. 48" },
   { code: "BPAN IDENTITY", title: "W3C Signed Verifiable Credential QR", badge: "PUBLIC QR" },
 ];
-
 function Column({
   title,
   subtitle,
@@ -52,47 +51,45 @@ function Column({
   const isEu = tone === "eu";
   return (
     <div
-      className={`relative flex-1 p-7 lg:p-9 rounded-none overflow-hidden flex flex-col justify-between ${
-        isEu ? "bg-[#fffbeb] text-slate-900" : "bg-[#f0fdf4] text-slate-900"
-      }`}
+      className="relative flex-1 p-7 lg:p-9 rounded-none border border-border bg-white text-slate-900 flex flex-col justify-between transition-all duration-300 hover:border-border-strong"
     >
       <div>
         {/* Header Bar */}
-        <div className={`mb-6 pb-5 border-b ${isEu ? "border-amber-900/10" : "border-emerald-900/10"}`}>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="mb-6 pb-5 border-b border-border/60">
+          <div className="flex items-center gap-2 mb-1.5">
             {isEu ? <EUFlagSvg size={24} /> : <IndiaFlagSvg size={24} />}
-            <span className="font-mono text-[11.5px] uppercase tracking-wider text-slate-700 font-normal">
+            <span className="font-mono text-[11.5px] uppercase tracking-wider text-text-dim font-medium">
               {subtitle}
             </span>
           </div>
-          <h3 className="font-heading text-[24px] font-normal tracking-[-0.02em] leading-tight text-slate-900">
+          <h3 className="font-heading text-[26px] font-semibold tracking-[-0.03em] leading-tight text-text">
             {title}
           </h3>
         </div>
 
-        {/* Structured Items List — Checkmark pill boxes with close text */}
+        {/* Structured Items List — Pure clean design tokens */}
         <div className="grid gap-2.5 mb-8">
           {items.map((item) => (
             <div
               key={item.code}
-              className="flex flex-col sm:flex-row sm:items-center justify-between py-1.5 text-slate-800"
+              className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-border/40 last:border-0 text-text"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-3 min-w-0">
                 <span
                   className={`inline-flex items-center justify-center w-5 h-5 shrink-0 border ${
                     isEu
-                      ? "bg-amber-200/70 text-amber-950 border-amber-300"
-                      : "bg-emerald-200/70 text-emerald-950 border-emerald-300"
+                      ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
+                      : "bg-emerald-500/10 text-emerald-800 border-emerald-500/30"
                   }`}
                 >
                   <Check size={12} strokeWidth={3} />
                 </span>
-                <span className="text-[14.5px] font-normal text-slate-800">
-                  <span className="font-mono text-[13px] font-medium text-slate-950 mr-1.5">{item.code} —</span>
+                <span className="text-[14.5px] font-normal text-text">
+                  <span className="font-mono text-[13px] font-semibold text-slate-950 mr-1.5">{item.code} —</span>
                   {item.title}
                 </span>
               </div>
-              <span className={`hidden sm:inline-block font-mono text-[11px] font-normal uppercase tracking-wider shrink-0 ml-3 ${isEu ? "text-amber-900/70" : "text-emerald-900/70"}`}>
+              <span className={`hidden sm:inline-block font-mono text-[11px] font-medium uppercase tracking-wider shrink-0 ml-3 ${isEu ? "text-amber-800" : "text-emerald-800"}`}>
                 {item.badge}
               </span>
             </div>
@@ -101,14 +98,8 @@ function Column({
       </div>
 
       {/* Bottom Integration Highlight Bar */}
-      <div
-        className={`pt-4 border-t flex items-center justify-between text-[12px] font-mono font-normal ${
-          isEu
-            ? "border-amber-900/15 text-amber-900"
-            : "border-emerald-900/15 text-emerald-900"
-        }`}
-      >
-        <span className="flex items-center gap-1.5 font-normal">
+      <div className="pt-4 border-t border-border flex items-center justify-between text-[12px] font-mono font-medium text-text-muted">
+        <span className="flex items-center gap-1.5 font-medium text-text">
           {isEu ? (
             <ShieldCheck size={15} className="text-amber-700" />
           ) : (
@@ -118,7 +109,7 @@ function Column({
             ? "EU Customs Verification Ready (Art. 77/78)"
             : "Native Tally Prime Auto-Sync & GST Claims"}
         </span>
-        <span className="font-normal uppercase tracking-wider text-slate-700">100% COVERAGE</span>
+        <span className="font-semibold uppercase tracking-wider text-emerald-700">100% COVERAGE</span>
       </div>
     </div>
   );

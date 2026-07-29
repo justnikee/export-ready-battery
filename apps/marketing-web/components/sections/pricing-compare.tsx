@@ -24,59 +24,59 @@ const rows = [
 ];
 
 function Cell({ value }: { value: boolean | string }) {
-  if (value === true) return <Check size={16} className="text-emerald-600 mx-auto" />;
-  if (value === false) return <Minus size={16} className="text-[#e3e8ee] mx-auto" />;
-  return <span className="text-[13px] text-crew-muted">{value}</span>;
+  if (value === true) return <Check size={16} strokeWidth={2.5} className="text-emerald-700 mx-auto" />;
+  if (value === false) return <Minus size={16} className="text-slate-300 mx-auto" />;
+  return <span className="text-[13px] font-mono font-medium text-slate-800">{value}</span>;
 }
 
 export default function PricingCompare() {
   return (
-    <section className="py-16">
+    <section className="py-16 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-[1.12] text-crew-ink text-center mb-8"
+          className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-bold tracking-[-0.035em] text-center mb-10"
         >
           Feature Comparison
         </motion.h2>
 
-        <p className="sm:hidden text-[12px] text-crew-muted mb-2">Swipe to see all plans →</p>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
+        <p className="sm:hidden text-[12px] font-mono text-text-dim mb-3">Swipe to see all plans →</p>
+        <div className="overflow-x-auto border border-border bg-white rounded-none">
+          <table className="w-full min-w-[600px] border-collapse">
             <thead>
-              <tr className="border-b border-[#e3e8ee]">
-                <th className="sticky left-0 bg-white text-left text-[13px] font-medium text-crew-ink py-3 pr-4">
+              <tr className="border-b border-border bg-slate-50">
+                <th className="sticky left-0 bg-slate-50 text-left text-[13px] font-mono uppercase tracking-wider font-bold text-slate-900 py-4 px-5">
                   Feature
                 </th>
-                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px]">
+                <th className="text-center text-[13px] font-mono uppercase tracking-wider font-bold text-slate-900 py-4 px-4 w-[140px]">
                   Starter
                 </th>
-                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px] bg-[rgba(21,122,91,0.05)]">
+                <th className="text-center text-[13px] font-mono uppercase tracking-wider font-bold text-emerald-950 py-4 px-4 w-[140px] bg-emerald-500/10">
                   Growth
                 </th>
-                <th className="text-center text-[13px] font-medium text-crew-ink py-3 px-4 w-[140px]">
+                <th className="text-center text-[13px] font-mono uppercase tracking-wider font-bold text-slate-900 py-4 px-4 w-[140px]">
                   Enterprise
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {rows.map((row, i) => (
+            <tbody className="divide-y divide-border">
+              {rows.map((row) => (
                 <tr
                   key={row.feature}
-                  className="border-b border-crew-ink/8 hover:bg-paper transition-colors"
+                  className="hover:bg-slate-50/70 transition-colors"
                 >
-                  <td className="sticky left-0 bg-white text-[13px] text-crew-ink py-3 pr-4">
+                  <td className="sticky left-0 bg-white text-[14px] font-medium text-slate-900 py-3.5 px-5 border-r border-border/40">
                     {row.feature}
                   </td>
-                  <td className="text-center py-3 px-4">
+                  <td className="text-center py-3.5 px-4 border-r border-border/40">
                     <Cell value={row.starter} />
                   </td>
-                  <td className="text-center py-3 px-4 bg-[rgba(21,122,91,0.05)]">
+                  <td className="text-center py-3.5 px-4 bg-emerald-500/5 border-r border-border/40">
                     <Cell value={row.growth} />
                   </td>
-                  <td className="text-center py-3 px-4">
+                  <td className="text-center py-3.5 px-4">
                     <Cell value={row.enterprise} />
                   </td>
                 </tr>

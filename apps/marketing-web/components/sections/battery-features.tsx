@@ -10,32 +10,17 @@ import {
 
 /* ─── Visual building blocks ──────────────────────────────── */
 
-const TINTS = {
-  green: "bg-crew-coral-soft",
-  amber: "bg-[#fdf3e3]",
-  blue: "bg-[#eef3fd]",
-  dark: "bg-[#122019]",
-} as const;
-
-function Panel({
-  tint,
-  children,
-}: {
-  tint: keyof typeof TINTS;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`rounded-[28px] p-6 sm:p-8 ${TINTS[tint]}`}>{children}</div>
-  );
+function Panel({ children }: { children: React.ReactNode }) {
+  return <div className="w-full">{children}</div>;
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white p-5 ${className}`}>{children}</div>;
+  return <div className={`rounded-none border border-border/70 bg-slate-50/70 p-5 ${className}`}>{children}</div>;
 }
 
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[12px] font-semibold text-crew-ink mb-4">{children}</div>
+    <div className="font-mono text-[12px] font-bold uppercase tracking-wider text-slate-900 mb-4">{children}</div>
   );
 }
 
@@ -143,18 +128,23 @@ function RenewalVisual() {
 /* 4 — Bitcoin anchoring */
 function AnchorVisual() {
   return (
-    <Panel tint="dark">
-      <div className="rounded-2xl bg-white/7 p-5 font-mono text-[12px] leading-relaxed">
-        <div className="text-white/45 mb-1">certificate</div>
-        <div className="text-white mb-4 truncate">BIS_IS16046_2024.pdf</div>
-        <div className="text-white/45 mb-1">sha256</div>
-        <div className="text-white/80 mb-4">a91f 7c2e 08d4 … 44b1 c4e2</div>
-        <div className="flex items-center justify-between">
-          <span className="text-crew-amber font-semibold">✓ anchored via OpenTimestamps</span>
-        </div>
-        <div className="text-white/45 mt-1">Bitcoin block 842,190 · permanent</div>
+    <div className="rounded-none border border-slate-800 bg-slate-950 p-5 font-mono text-[12px] leading-relaxed text-white shadow-md">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bitcoin Anchor</span>
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
       </div>
-    </Panel>
+      <div className="text-slate-400 text-[10.5px] uppercase tracking-wider mb-0.5">certificate</div>
+      <div className="text-white font-semibold mb-3 truncate">BIS_IS16046_2024.pdf</div>
+      <div className="text-slate-400 text-[10.5px] uppercase tracking-wider mb-0.5">sha256 digest</div>
+      <div className="text-amber-300 font-mono text-[11px] mb-4 truncate">a91f 7c2e 08d4 … 44b1 c4e2</div>
+      <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px]">
+        <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-emerald-400" />
+          Anchored via OpenTimestamps
+        </span>
+        <span className="text-slate-400 font-medium">Block #842,190</span>
+      </div>
+    </div>
   );
 }
 
@@ -290,23 +280,28 @@ function SupplierVisual() {
 /* 9 — W3C Verifiable Credential */
 function VcVisual() {
   return (
-    <Panel tint="dark">
-      <div className="rounded-2xl bg-white p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#eef3fd] text-[#1d4ed8]">
-            <ShieldCheck size={15} />
-          </span>
-          <span className="text-[12.5px] font-semibold text-crew-ink">BatteryPassportCredential</span>
+    <div className="rounded-none border border-slate-800 bg-slate-950 p-5 font-mono text-[12px] leading-relaxed text-white shadow-md">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-800">
+        <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500/20 text-emerald-400">
+          <ShieldCheck size={16} />
+        </span>
+        <span className="font-heading text-[13px] font-bold text-white">BatteryPassportCredential</span>
+      </div>
+      <div className="space-y-2">
+        <div>
+          <div className="text-slate-400 text-[10.5px] uppercase tracking-wider">issuer</div>
+          <div className="text-slate-200 font-semibold truncate">did:key:z6Mk…9fQ2 (Anviora)</div>
         </div>
-        <div className="font-mono text-[11.5px] leading-relaxed">
-          <div className="text-crew-muted">issuer</div>
-          <div className="text-crew-ink mb-2 truncate">did:key:z6Mk…9fQ2 (Anviora)</div>
-          <div className="text-crew-muted">subject</div>
-          <div className="text-crew-ink mb-2">IN-LFP-2024-B4471</div>
-          <div className="text-[#1d4ed8] font-semibold">✓ Ed25519 signature valid</div>
+        <div>
+          <div className="text-slate-400 text-[10.5px] uppercase tracking-wider">subject</div>
+          <div className="text-slate-200 font-semibold">IN-LFP-2024-B4471</div>
+        </div>
+        <div className="pt-2 border-t border-slate-800 text-emerald-400 font-bold text-[11.5px] flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-emerald-400" />
+          Ed25519 Cryptographic Signature Valid
         </div>
       </div>
-    </Panel>
+    </div>
   );
 }
 
@@ -411,30 +406,119 @@ const features = [
 
 export default function BatteryFeatures() {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-20 lg:py-28 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
-        {features.map((f, i) => (
+        {/* Section Header */}
+        <div className="max-w-[700px] mb-14 text-center mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20 mb-4">
+            END-TO-END CAPABILITIES
+          </div>
+          <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-bold tracking-[-0.035em] leading-[1.08] mb-4 text-balance">
+            Everything you need for complete compliance.
+          </h2>
+          <p className="text-[16px] leading-[1.65] text-text-muted text-pretty">
+            From automated PDF certificate parsing to Bitcoin blockchain anchoring and native Tally sync — built specifically for battery manufacturers.
+          </p>
+        </div>
+
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Hero Spotlight (Spans 2 columns on desktop) */}
           <motion.div
-            key={f.title}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.05 }}
-            className={`grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center py-10 lg:py-14 ${
-              i > 0 ? "border-t border-crew-ink/8" : ""
-            }`}
+            className="col-span-1 md:col-span-2 rounded-none border border-emerald-700/80 bg-blue p-8 lg:p-10 text-white flex flex-col lg:flex-row gap-8 items-center justify-between shadow-2xl"
           >
-            <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-              <h3 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold leading-[1.1] tracking-[-0.02em] text-crew-ink text-balance">
-                {f.title}
+            <div className="flex-1 max-w-[540px]">
+              <span className="font-mono text-xs font-bold text-emerald-200 bg-white/15 border border-white/20 px-2.5 py-0.5 rounded-none mb-4 inline-block">
+                [01] HERO SPOTLIGHT
+              </span>
+              <h3 className="font-heading text-[clamp(24px,3vw,34px)] font-bold tracking-[-0.03em] leading-tight text-white mb-4">
+                {features[0].title}
               </h3>
-              <p className="mt-4 text-[16px] leading-[1.6] text-[#131313] text-pretty">
-                {f.description}
+              <p className="text-[15px] leading-[1.65] text-white/90 text-pretty">
+                {features[0].description}
               </p>
             </div>
-            <div className={i % 2 === 1 ? "lg:order-1" : ""}>{f.visual}</div>
+            <div className="w-full lg:w-[480px] shrink-0">
+              {features[0].visual}
+            </div>
           </motion.div>
-        ))}
+
+          {/* Cards 2 & 3 */}
+          {features.slice(1, 3).map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="rounded-none border border-border bg-white p-7 lg:p-8 flex flex-col justify-between transition-all duration-300 hover:border-border-strong shadow-xs"
+            >
+              <div>
+                <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-none mb-4 inline-block">
+                  [{String(i + 2).padStart(2, "0")}]
+                </span>
+                <h3 className="font-heading text-[22px] font-bold text-slate-950 tracking-[-0.025em] leading-tight mb-3">
+                  {f.title}
+                </h3>
+                <p className="text-[14.5px] leading-[1.6] text-text-muted text-pretty mb-6">
+                  {f.description}
+                </p>
+              </div>
+              <div className="mt-2">{f.visual}</div>
+            </motion.div>
+          ))}
+
+          {/* Card 4: Full-Width Bitcoin Anchor Banner (Spans 2 columns) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="col-span-1 md:col-span-2 rounded-none border border-emerald-700/80 bg-blue p-8 lg:p-10 text-white flex flex-col lg:flex-row gap-8 items-center justify-between shadow-xl"
+          >
+            <div className="flex-1 max-w-[540px]">
+              <span className="font-mono text-xs font-bold text-amber-300 bg-white/15 border border-white/20 px-2.5 py-0.5 rounded-none mb-4 inline-block">
+                [04] BLOCKCHAIN ANCHOR
+              </span>
+              <h3 className="font-heading text-[clamp(24px,3vw,34px)] font-bold tracking-[-0.03em] leading-tight text-white mb-4">
+                {features[3].title}
+              </h3>
+              <p className="text-[15px] leading-[1.65] text-white/90 text-pretty">
+                {features[3].description}
+              </p>
+            </div>
+            <div className="w-full lg:w-[480px] shrink-0">
+              {features[3].visual}
+            </div>
+          </motion.div>
+
+          {/* Cards 5 through 10 */}
+          {features.slice(4).map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="rounded-none border border-border bg-white p-7 lg:p-8 flex flex-col justify-between transition-all duration-300 hover:border-border-strong shadow-xs"
+            >
+              <div>
+                <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-none mb-4 inline-block">
+                  [{String(i + 5).padStart(2, "0")}]
+                </span>
+                <h3 className="font-heading text-[22px] font-bold text-slate-950 tracking-[-0.025em] leading-tight mb-3">
+                  {f.title}
+                </h3>
+                <p className="text-[14.5px] leading-[1.6] text-text-muted text-pretty mb-6">
+                  {f.description}
+                </p>
+              </div>
+              <div className="mt-2">{f.visual}</div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
