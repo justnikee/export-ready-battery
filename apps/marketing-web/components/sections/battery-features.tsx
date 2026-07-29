@@ -10,8 +10,8 @@ import {
 
 /* ─── Visual building blocks ──────────────────────────────── */
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="w-full">{children}</div>;
+function Panel({ children, className = "" }: { children: React.ReactNode; tint?: string; className?: string }) {
+  return <div className={`w-full ${className}`}>{children}</div>;
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
