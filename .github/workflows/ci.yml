@@ -72,58 +72,6 @@ jobs:
           DATABASE_URL: ${{ secrets.BATTERY_DATABASE_URL }}
 
   # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Marketing Web (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-marketing:
-    needs: [build-and-test]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/marketing-web
-
-  # ═══════════════════════════════════════════════════════════════════
-  # DEPLOY FRONTEND — Battery Web (Vercel)
-  # ═══════════════════════════════════════════════════════════════════
-  deploy-battery-web:
-    needs: [build-and-test, migrate-battery]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      - name: Pull Vercel Environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-      - name: Deploy
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: ./apps/battery-web
-
-  # ═══════════════════════════════════════════════════════════════════
   # DEPLOY BACKEND — Oracle Cloud VM
   # ═══════════════════════════════════════════════════════════════════
   deploy-oracle:
