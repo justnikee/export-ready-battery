@@ -1,3 +1,126 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  # BUILD & TEST
+  # ═══════════════════════════════════════════════════════════════════
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all apps and services
+        run: |
+          pnpm run build
+          for svc in services/*/; do
+            if [ -f "$svc/go.mod" ]; then
+              echo "Building $svc"
+              (cd "$svc" && go build ./...)
+            fi
+          done
+
+      - name: Run tests
+        run: |
+          pnpm run test
+          for svc in services/*/; do
+            if [ -f "$svc/go.mod" ]; then
+              echo "Testing $svc"
+              (cd "$svc" && go test ./...)
+            fi
+          done
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DATABASE MIGRATIONS (run before deploy)
+  # ═══════════════════════════════════════════════════════════════════
+  migrate-battery:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run battery-api migrations
+        run: cd services/battery-api && go run ./cmd/migration_runner up
+        env:
+          DATABASE_URL: ${{ secrets.BATTERY_DATABASE_URL }}
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DEPLOY FRONTEND — Marketing Web (Vercel)
+  # ═══════════════════════════════════════════════════════════════════
+  deploy-marketing:
+    needs: [build-and-test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/marketing-web
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/marketing-web
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/marketing-web
+
+  # ═══════════════════════════════════════════════════════════════════
+  # DEPLOY FRONTEND — Battery Web (Vercel)
+  # ═══════════════════════════════════════════════════════════════════
+  deploy-battery-web:
+    needs: [build-and-test, migrate-battery]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/battery-web
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/battery-web
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./apps/battery-web
+
   # ═══════════════════════════════════════════════════════════════════
   # DEPLOY BACKEND — Oracle Cloud VM
   # ═══════════════════════════════════════════════════════════════════
