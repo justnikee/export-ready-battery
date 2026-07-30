@@ -62,6 +62,23 @@ func getTemplatesDir() string {
 	if dir := os.Getenv("TEMPLATES_DIR"); dir != "" {
 		return dir
 	}
+
+	// Check standard locations relative to CWD or executable
+	candidates := []string{
+		"templates",
+		"services/battery-api/templates",
+	}
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates, filepath.Join(exeDir, "templates"), filepath.Join(exeDir, "..", "templates"))
+	}
+
+	for _, cand := range candidates {
+		if info, err := os.Stat(cand); err == nil && info.IsDir() {
+			return cand
+		}
+	}
+
 	// Default to ./templates relative to working directory
 	return "templates"
 }
