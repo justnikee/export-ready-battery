@@ -92,13 +92,13 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migration_runner/main.go
           GOOS=linux GOARCH=amd64 go build -o battery-api ./cmd/server/main.go
 
-      - name: Copy binaries and migrations to Oracle VM via SCP
+      - name: Copy binaries, templates and migrations to Oracle VM via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.ORACLE_VM_IP }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SSH_KEY }}
-          source: "services/battery-api/battery-api,services/battery-api/migrate,services/battery-api/internal/db/migrations/*"
+          source: "services/battery-api/battery-api,services/battery-api/migrate,services/battery-api/templates/**,services/battery-api/internal/db/migrations/*"
           target: "/home/ubuntu/app/"
           strip_components: 2
 
