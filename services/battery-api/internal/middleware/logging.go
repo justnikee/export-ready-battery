@@ -29,6 +29,12 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // RequestLogger returns middleware that logs every incoming HTTP request with
 // method, path, status code, response size, duration, and remote address.
 // Requests that result in a 5xx status are logged at Error level; all others

@@ -431,7 +431,7 @@ func (r *Repository) GetActionFeed(ctx context.Context, tenantID uuid.UUID) ([]m
 			-- 2. Supplier Audit
 			SELECT 
 				'SUPPLIER_AUDIT' AS type,
-				'Supplier Due Diligence ' || step || ' assessment for ' || s.name || ' is pending' AS title,
+				'Supplier Due Diligence ' || step || ' assessment for ' || s.company_name || ' is pending' AS title,
 				batch_id,
 				'WARNING' AS severity,
 				dda.created_at + INTERVAL '30 days' AS due_date
