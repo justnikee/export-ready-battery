@@ -44,13 +44,6 @@ const navItems: NavItem[] = [
         tone: ["bg-blue-tint", "text-blue"],
       },
       {
-        label: "Textile DPP",
-        href: "/textile",
-        desc: "Fiber-to-product traceability, ready before the ESPR mandate.",
-        icon: Shirt,
-        tone: ["bg-amber-soft", "text-amber-text"],
-      },
-      {
         label: "Pricing",
         href: "/pricing",
         desc: "One-time credit packs — no subscriptions, no lock-in.",

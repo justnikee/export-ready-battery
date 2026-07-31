@@ -33,13 +33,6 @@ export default function NewsCTA() {
   return (
     <section className="">
       <div className="max-w-[1232px] mx-auto">
-        {/* Section header */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">GET STARTED</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">8</span>/8]
-          </span>
-        </div>
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
           <div
             className="relative overflow-hidden rounded-none"

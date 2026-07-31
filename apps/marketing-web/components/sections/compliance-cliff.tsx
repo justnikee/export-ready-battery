@@ -1,152 +1,163 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, FileText, Anchor, Clock } from "lucide-react";
+import { X } from "lucide-react";
 import DeadlineCountdown from "@/components/deadline-countdown";
+
+interface ProblemCardItem {
+  number: string;
+  tag: string;
+  title: string;
+  description: string;
+  badge: string;
+}
+
+const PROBLEMS: ProblemCardItem[] = [
+  {
+    number: "001",
+    tag: "REGULATION",
+    title: "200+ pages of EU rules.",
+    description: "A full-time compliance hire — or specialized legal consultants — just to understand what's required of your export lines.",
+    badge: "EU Battery Regulation 2023/1542",
+  },
+  {
+    number: "002",
+    tag: "CUSTOMS CLEARANCE",
+    title: "Containers held at port.",
+    description: "One missing carbon declaration or Declaration of Conformity can stall your shipment at European customs ports for weeks.",
+    badge: "Destination Verification Required",
+  },
+  {
+    number: "003",
+    tag: "CERTIFICATE EXPIRY",
+    title: "Certificates expire silently.",
+    description: "BIS and EPR registrations lapse periodically. Miss a renewal window and production — or export shipping — halts instantly.",
+    badge: "Automated Renewal Tracking",
+  },
+  {
+    number: "004",
+    tag: "DATA FRAGMENTATION",
+    title: "Scramble for supplier data.",
+    description: "Scattered PDFs across emails and ERPs make compliance auditing slow, error-prone, and high-risk for every batch.",
+    badge: "Fragmented Audit Trail",
+  },
+];
 
 export default function ComplianceCliff() {
   return (
-    <section className="bg-bg">
+    <section className="bg-bg antialiased">
       <div className="max-w-[1232px] mx-auto">
-        {/* Sticky Section header */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">THE PROBLEM</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">2</span>/8]
-          </span>
-        </div>
-        
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
-
-          {/* Block 1: Header Row (Full Width Split: Left Headline, Right Countdown) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mb-16">
-            
-            {/* Left Column (Headline & Context) */}
-            <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 bg-emerald-600" />
-                EU Regulatory Mandate
-              </div>
-
-              <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] text-balance">
-                The rules changed.
-                <br />
-                The paperwork didn&apos;t keep up.
-              </h2>
-              
-              <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[580px]">
-                EU Battery Regulation 2023/1542 requires a verifiable digital passport for every battery exported to Europe, linking carbon footprints, material sourcing, and compliance records.
-              </p>
+          {/* Header Block: Centered Pill & Headline */}
+          <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
+              <X size={13} className="text-emerald-600" />
+              THE PROBLEM
             </div>
 
-            {/* Right Column (Deadline Countdown - Direct Page Integration, No Card Box) */}
-            <div className="lg:col-span-5 flex flex-col justify-center">
-              <DeadlineCountdown variant="block" />
-            </div>
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+              The rules changed.
+              <br />
+              <span className="text-emerald-600">The paperwork didn&apos;t keep up.</span>
+            </h2>
 
+            <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[620px] mx-auto">
+              EU Battery Regulation 2023/1542 mandates a verifiable digital passport for every battery exported to Europe, linking carbon class, material sourcing, and test records.
+            </p>
           </div>
 
-          {/* Block 2: Full-Width 3-Column Items 01, 02, 03 (Fills Full Layout Width) */}
-          <div className="pt-12 border-t border-border/60">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-              
-              {/* Item 01 */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="font-mono text-xs font-bold text-emerald-800 px-2.5 py-0.5 bg-emerald-50 border border-emerald-200">
-                    01 / REGULATION
-                  </span>
-                  <FileText size={16} className="text-emerald-700" />
-                </div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] leading-snug">
-                  200+ pages of EU regulation
-                </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  A full-time compliance hire — or specialized legal consultants — just to understand what&apos;s required of you.
-                </p>
-                <div className="pt-1">
-                  <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[11px] font-semibold">
-                    EU Battery Regulation 2023/1542
-                  </span>
-                </div>
+          {/* Grid Layout Container (Left Radar Graphic + Right 2x2 Problem Cards) */}
+          <div className="border border-border/60 bg-white grid grid-cols-1 lg:grid-cols-12">
+            {/* Left Column (5 Cols): Clean Geometric Radar Scanner & Countdown */}
+            <div className="lg:col-span-5 bg-[#fafdfb] p-8 lg:p-10 flex flex-col justify-center items-center lg:border-r border-border/60 relative overflow-hidden">
+              {/* Radar Scanner (Clean Geometric Crosshairs & Concentric Rings) */}
+              <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center select-none">
+                <svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  {/* Corner Target Brackets */}
+                  <path d="M 25 40 L 25 25 L 40 25" stroke="#045c43" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
+                  <path d="M 240 25 L 255 25 L 255 40" stroke="#045c43" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
+                  <path d="M 25 240 L 25 255 L 40 255" stroke="#045c43" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
+                  <path d="M 240 255 L 255 255 L 255 240" stroke="#045c43" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
+
+                  {/* Concentric Radar Rings */}
+                  <circle cx="140" cy="140" r="115" stroke="#045c43" strokeWidth="1" strokeOpacity="0.25" />
+                  <circle cx="140" cy="140" r="90" stroke="#045c43" strokeWidth="1" strokeOpacity="0.25" />
+                  <circle cx="140" cy="140" r="65" stroke="#045c43" strokeWidth="1" strokeOpacity="0.25" />
+                  <circle cx="140" cy="140" r="40" stroke="#045c43" strokeWidth="1" strokeOpacity="0.25" />
+                  <circle cx="140" cy="140" r="18" stroke="#045c43" strokeWidth="1" strokeOpacity="0.25" />
+
+                  {/* Horizontal & Vertical Crosshair Lines */}
+                  <line x1="15" y1="140" x2="265" y2="140" stroke="#045c43" strokeWidth="1" strokeOpacity="0.2" />
+                  <line x1="140" y1="15" x2="140" y2="265" stroke="#045c43" strokeWidth="1" strokeOpacity="0.2" />
+
+                  {/* 45-Degree Diagonal Guidelines */}
+                  <line x1="45" y1="45" x2="235" y2="235" stroke="#045c43" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.2" />
+                  <line x1="235" y1="45" x2="45" y2="235" stroke="#045c43" strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.2" />
+
+                  {/* Small Radar Intersection Dots */}
+                  {[
+                    [76, 76], [204, 76], [76, 204], [204, 204],
+                    [94, 94], [186, 94], [94, 186], [186, 186],
+                    [140, 25], [140, 255], [25, 140], [265, 140],
+                  ].map(([x, y], i) => (
+                    <circle key={i} cx={x} cy={y} r="2" fill="#045c43" fillOpacity="0.5" />
+                  ))}
+                </svg>
+
+                {/* Scanning Radar Line */}
+                <motion.div
+                  className="absolute inset-4 sm:inset-5 rounded-full bg-[conic-gradient(from_0deg,transparent_0_300deg,rgba(16,185,129,0.18)_360deg)] pointer-events-none"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+                />
               </div>
 
-              {/* Item 02 */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="font-mono text-xs font-bold text-amber-900 px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30">
-                    02 / CUSTOMS CLEARANCE
-                  </span>
-                  <Anchor size={16} className="text-amber-700" />
-                </div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] leading-snug">
-                  Held at the port
-                </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  One missing carbon declaration or Declaration of Conformity can hold your container at European ports.
-                </p>
-                <div className="pt-1">
-                  <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200/80 font-mono text-[11px] font-semibold">
-                    Destination Verification Required
-                  </span>
-                </div>
+              {/* Countdown Component Integration */}
+              <div className="w-full mt-6 pt-6 border-t border-border/60">
+                <DeadlineCountdown variant="block" />
               </div>
+            </div>
 
-              {/* Item 03 */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="font-mono text-xs font-bold text-emerald-800 px-2.5 py-0.5 bg-emerald-50 border border-emerald-200">
-                    03 / CERTIFICATE TRACKING
-                  </span>
-                  <Clock size={16} className="text-emerald-700" />
-                </div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] leading-snug">
-                  Certificates that expire silently
-                </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  BIS and EPR registrations lapse periodically. Miss the renewal and production — or a shipment — stops.
-                </p>
-                <div className="pt-1">
-                  <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[11px] font-semibold">
-                    Automated Renewal Tracking
-                  </span>
-                </div>
-              </div>
+            {/* Right Column (7 Cols): 2x2 Problem Cards Grid */}
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 border-t lg:border-t-0 border-border/80">
+              {PROBLEMS.map((item, idx) => {
+                const isRightColumn = idx % 2 === 1;
+                const isTopRow = idx < 2;
 
+                return (
+                  <div
+                    key={item.number}
+                    className={`p-7 sm:p-8 flex flex-col justify-between space-y-4 hover:bg-emerald-50/20 transition-colors ${
+                      !isRightColumn ? "sm:border-r border-border/80" : ""
+                    } ${isTopRow ? "border-b border-border/80" : ""}`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between font-mono text-xs mb-3">
+                        <span className="font-bold text-emerald-800 tracking-wider">
+                          {item.tag}
+                        </span>
+                        <span className="text-text-dim/80 font-medium">
+                          {item.number}
+                        </span>
+                      </div>
+                      <h3 className="font-heading text-text text-[20px] sm:text-[22px] font-bold tracking-[-0.025em] leading-snug mb-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-[13.5px] leading-[1.65] text-text-muted font-normal text-pretty">
+                        {item.description}
+                      </p>
+                    </div>
+                    <div className="pt-2">
+                      <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[10.5px] font-semibold">
+                        {item.badge}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          {/* Block 3: Solution Transition Callout Banner */}
-          <div className="mt-16 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 text-white">
-            {/* SVG Noise / Grainy Texture Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay">
-              <svg className="w-full h-full">
-                <filter id="grainNoiseProblemStoryFull">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" />
-                  <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter="url(#grainNoiseProblemStoryFull)" />
-              </svg>
-            </div>
-
-            <div className="relative z-10 max-w-3xl space-y-2">
-              <h3 className="font-heading text-white text-[clamp(22px,2.8vw,30px)] font-bold tracking-[-0.03em] leading-tight">
-                Compliance is no longer a cost center — it&apos;s your advantage to win European orders.
-              </h3>
-              <p className="text-emerald-100/90 text-[14.5px] leading-[1.65] font-normal">
-                Anviora replaces the manual scramble with a single, cryptographically verified source of truth.
-              </p>
-            </div>
-
-            <a
-              href="#how-it-works"
-              className="relative z-10 inline-flex items-center gap-2 px-6 py-3.5 bg-white text-emerald-950 font-medium text-[14.5px] hover:bg-emerald-50 transition-colors shrink-0"
-            >
-              See how Anviora solves this
-              <ArrowRight size={16} className="text-emerald-700" />
-            </a>
-          </div>
-
         </div>
       </div>
     </section>

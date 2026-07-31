@@ -5,7 +5,6 @@ import ComplianceCliff from "@/components/sections/compliance-cliff";
 import Platform from "@/components/sections/platform";
 import FeatureGrid from "@/components/sections/feature-grid";
 import DualMarket from "@/components/sections/dual-market";
-import ProductsSplit from "@/components/sections/products-split";
 import FAQ from "@/components/sections/faq";
 import NewsCTA from "@/components/sections/news-cta";
 import Footer from "@/components/sections/footer";
@@ -20,12 +19,11 @@ export default function Home() {
     <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
       <SiteHeader />
       <Hero />
-      <PassportFlow />
       <ComplianceCliff />
+      <PassportFlow />
       <Platform />
       <FeatureGrid />
       <DualMarket />
-      <ProductsSplit />
       <FAQ />
       <NewsCTA />
       <Footer />

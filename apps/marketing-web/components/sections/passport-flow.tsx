@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileUp, ShieldCheck, CheckCircle2, Zap } from "lucide-react";
+import { FileUp, ShieldCheck, CheckCircle2, Zap, Check } from "lucide-react";
 
 /* Decorative mini QR code for Step 4 visual */
 function MiniQR({ size = 44 }: { size?: number }) {
@@ -34,266 +34,232 @@ export default function PassportFlow() {
   return (
     <section id="how-it-works" className="relative bg-bg">
       <div className="max-w-[1232px] mx-auto">
-        {/* Sticky Section header with index marker */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">HOW IT WORKS</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">1</span>/8]
-          </span>
-        </div>
-
         <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
-          {/* Header Block */}
-          <div className="px-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-16">
-            <div className="space-y-4 max-w-[680px]">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 bg-emerald-600" />
-                Automated Compliance Pipeline
-              </div>
-              <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] text-balance">
-                Four steps.
-                <br />
-                <span className="text-emerald-600">No consultants.</span>
-              </h2>
+          {/* Header Block: Centered Pill, Headline & Subheading */}
+          <div className="px-6 text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
+              <Check size={13} className="text-emerald-600" />
+              HOW IT WORKS
             </div>
-            <p className="text-[15px] leading-[1.65] text-text-muted max-w-[400px] flex-shrink-0 text-pretty">
+
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+              Four steps.
+              <br />
+              <span className="text-emerald-600">No consultants.</span>
+            </h2>
+
+            <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[620px] mx-auto">
               Upload raw certificates. Anviora validates against live EU &amp; India regulations, issues signed verifiable credentials, and generates instant QR codes for buyer verification.
             </p>
           </div>
 
-          {/* 4-Step Grid Pipeline — 16px gap, crisp hairline border */}
-          <div className="mx-6 grid grid-cols-1 md:grid-cols-2 gap-4 rounded-none">
+          {/* 4-Step Grid Pipeline — Contiguous Gapless 2x2 Container */}
+          <div className="border border-border bg-white grid grid-cols-1 md:grid-cols-2">
             
             {/* Card 01 - Upload */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
-                    01 / UPLOAD
-                  </span>
-                  <span className="text-[11px] font-mono text-emerald-800/80 font-semibold uppercase tracking-wider">RAW DATA</span>
+            <div className="bg-white border-b md:border-r border-border flex flex-col justify-between p-7 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 01 (h-[210px]) */}
+              <div className="h-[210px] w-full p-6 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none">
+                <FileUp size={28} className="text-emerald-600 animate-pulse" />
+                <div>
+                  <span className="text-emerald-950 font-bold block text-[13.5px]">📄 bis_cert_2026.pdf</span>
+                  <span className="text-[11px] text-emerald-800/70 font-mono">1.2 MB • Ready to process</span>
                 </div>
-
-                {/* Direct Graphic Component 01 (h-[210px]) */}
-                <div className="h-[210px] w-full border border-dashed border-emerald-500/40 p-6 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none">
-                  <FileUp size={28} className="text-emerald-600 animate-pulse" />
-                  <div>
-                    <span className="text-emerald-950 font-bold block text-[13.5px]">📄 bis_cert_2026.pdf</span>
-                    <span className="text-[11px] text-emerald-800/70 font-mono">1.2 MB • Ready to process</span>
-                  </div>
-                  <div className="w-full max-w-[260px] bg-emerald-200 h-1.5 overflow-hidden mt-1 rounded-none">
-                    <motion.div
-                      initial={{ width: "0%" }}
-                      whileInView={{ width: "100%" }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1.2, delay: 0.3 }}
-                      className="bg-emerald-600 h-full"
-                    />
-                  </div>
+                <div className="w-full max-w-[260px] bg-emerald-200 h-1.5 overflow-hidden mt-1 rounded-none">
+                  <motion.div
+                    initial={{ width: "0%" }}
+                    whileInView={{ width: "100%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1.2, delay: 0.3 }}
+                    className="bg-emerald-600 h-full"
+                  />
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] mb-2">
+                <div className="mb-2.5">
+                  <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
+                    01 / UPLOAD
+                  </span>
+                </div>
+                <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
                   Upload Batch Records
                 </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  Drag and drop your BIS certificates, EPR registrations, and UN38.3 test reports. No custom spreadsheets required.
+                <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                  Upload raw manufacturer PDFs, test reports, and supply chain records. Our automated ingester extracts batch parameters directly without manual data entry.
                 </p>
               </div>
             </div>
 
             {/* Card 02 - Parse & Validate */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-amber-500/10 text-amber-900 border border-amber-500/30 rounded-none">
-                    02 / PARSE &amp; VALIDATE
-                  </span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 bg-amber-500 text-slate-950 uppercase font-bold border border-amber-500 rounded-none">MAPPED</span>
+            <div className="bg-white border-b border-border flex flex-col justify-between p-7 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 02 (h-[210px]) */}
+              <div className="h-[210px] w-full bg-[#f2faf5] p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none">
+                <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
+                  <span className="text-emerald-800/70 text-[11.5px]">chemistry</span>
+                  <span className="text-slate-900 font-bold text-[12px]">LFP (Lithium Iron)</span>
                 </div>
-
-                {/* Direct Graphic Component 02 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#fffdfa] border border-amber-500/30 p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none">
-                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                    <span className="text-amber-900/70 text-[11.5px]">chemistry</span>
-                    <span className="text-slate-900 font-bold text-[12px]">LFP (Lithium Iron)</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                    <span className="text-amber-900/70 text-[11.5px]">capacity</span>
-                    <span className="text-slate-900 font-bold text-[12px]">280 Ah</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-amber-900/10 pb-2">
-                    <span className="text-amber-900/70 text-[11.5px]">carbon_class</span>
-                    <span className="text-amber-800 font-bold text-[12px]">Class A</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-0.5">
-                    <span className="text-amber-900/70 text-[11.5px]">bis_status</span>
-                    <span className="text-amber-900 font-bold text-[12px] bg-amber-100 px-2 py-0.5 border border-amber-300">✔ VALID 2027</span>
-                  </div>
+                <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
+                  <span className="text-emerald-800/70 text-[11.5px]">capacity</span>
+                  <span className="text-slate-900 font-bold text-[12px]">280 Ah</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
+                  <span className="text-emerald-800/70 text-[11.5px]">carbon_class</span>
+                  <span className="text-emerald-800 font-bold text-[12px]">Class A</span>
+                </div>
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="text-emerald-800/70 text-[11.5px]">bis_status</span>
+                  <span className="text-emerald-800 font-bold text-[12px] bg-emerald-100 px-2 py-0.5 border border-emerald-300">✔ VALID 2027</span>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] mb-2">
+                <div className="mb-2.5">
+                  <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
+                    02 / PARSE &amp; VALIDATE
+                  </span>
+                </div>
+                <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
                   AI Validates &amp; Maps
                 </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  Extracts 100+ raw data points from your certificates, checks validity, and maps them against live EU and India regulations.
+                <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                  Automated engine parses 100+ battery metrics — from cell chemistry to carbon footprint calculations — validating compliance against active EU Battery Regulation rules.
                 </p>
               </div>
             </div>
 
             {/* Card 03 - Secure & Anchor */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
-                    03 / SECURE &amp; ANCHOR
-                  </span>
-                  <span className="text-[11px] font-mono text-emerald-800/80 font-semibold uppercase tracking-wider">IMMUTABLE</span>
+            <div className="bg-white border-b md:border-b-0 md:border-r border-border flex flex-col justify-between p-7 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 03 (h-[210px]) */}
+              <div className="h-[210px] w-full bg-[#f2faf5] p-5 font-mono text-xs flex flex-col justify-center gap-3.5 mb-6 rounded-none">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="bg-white border border-emerald-500/20 p-3 flex-1 rounded-none">
+                    <div className="text-[9.5px] text-emerald-800/70 mb-0.5 uppercase tracking-wider font-semibold">DATA_HASH</div>
+                    <div className="text-emerald-950 font-bold text-[11.5px] truncate">sha256:7c0a...</div>
+                  </div>
+                  <div className="text-amber-500 font-bold text-lg flex-shrink-0">➔</div>
+                  <div className="bg-amber-50 border border-amber-300 p-3 flex-1 rounded-none">
+                    <div className="text-[9.5px] text-amber-900/80 mb-0.5 uppercase tracking-wider font-bold">BTC_BLOCK</div>
+                    <div className="text-amber-900 font-bold text-[11.5px]">#842,190</div>
+                  </div>
                 </div>
-
-                {/* Direct Graphic Component 03 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-5 font-mono text-xs flex flex-col justify-center gap-3.5 mb-6 rounded-none">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="bg-white border border-emerald-500/20 p-3 flex-1 rounded-none">
-                      <div className="text-[9.5px] text-emerald-800/70 mb-0.5 uppercase tracking-wider font-semibold">DATA_HASH</div>
-                      <div className="text-emerald-950 font-bold text-[11.5px] truncate">sha256:7c0a...</div>
-                    </div>
-                    <div className="text-amber-500 font-bold text-lg flex-shrink-0">➔</div>
-                    <div className="bg-amber-50 border border-amber-300 p-3 flex-1 rounded-none">
-                      <div className="text-[9.5px] text-amber-900/80 mb-0.5 uppercase tracking-wider font-bold">BTC_BLOCK</div>
-                      <div className="text-amber-900 font-bold text-[11.5px]">#842,190</div>
-                    </div>
-                  </div>
-                  <div className="text-[11px] font-mono text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1.5 font-semibold text-center rounded-none">
-                    ✓ Timestamped via OpenTimestamps
-                  </div>
+                <div className="text-[11px] font-mono text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1.5 font-semibold text-center rounded-none">
+                  ✓ Timestamped via OpenTimestamps
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] mb-2">
+                <div className="mb-2.5">
+                  <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
+                    03 / SECURE &amp; ANCHOR
+                  </span>
+                </div>
+                <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
                   Blockchain Anchored Proof
                 </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  Every certificate hash is anchored to the Bitcoin blockchain via OpenTimestamps — providing free, permanent, and tamper-proof proof of origin.
+                <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                  Batch parameters are cryptographically hashed and anchored to the Bitcoin blockchain via OpenTimestamps, establishing permanent, tamper-proof proof of origin.
                 </p>
               </div>
             </div>
 
             {/* Card 04 - Identity Issued */}
-            <div className="bg-[#fafdfb] border border-emerald-900/10 flex flex-col justify-between p-7 rounded-none">
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="font-mono text-xs font-semibold px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/30 rounded-none">
-                    04 / IDENTITY ISSUED
-                  </span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 bg-emerald-500/15 text-emerald-800 font-semibold uppercase border border-emerald-500/30 rounded-none">W3C VC</span>
+            <div className="bg-white flex flex-col justify-between p-7 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 04 (h-[210px]) */}
+              <div className="h-[210px] w-full bg-[#f2faf5] p-6 font-mono text-xs flex items-center justify-between mb-6 rounded-none">
+                <div className="space-y-1.5">
+                  <div className="text-[10px] text-emerald-800/70 uppercase tracking-wider font-semibold">ANVIORA PASSPORT</div>
+                  <div className="text-emerald-950 font-bold text-[15px] tracking-wide">IN-LFP-2026-B4471</div>
+                  <div className="text-[11px] text-emerald-700 flex items-center gap-1.5 pt-2 font-bold">
+                    <CheckCircle2 size={13} />
+                    Cryptographically Signed
+                  </div>
                 </div>
-
-                {/* Direct Graphic Component 04 (h-[210px]) */}
-                <div className="h-[210px] w-full bg-[#f2faf5] border border-emerald-500/30 p-6 font-mono text-xs flex items-center justify-between mb-6 rounded-none">
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] text-emerald-800/70 uppercase tracking-wider font-semibold">ANVIORA PASSPORT</div>
-                    <div className="text-emerald-950 font-bold text-[15px] tracking-wide">IN-LFP-2026-B4471</div>
-                    <div className="text-[11px] text-emerald-700 flex items-center gap-1.5 pt-2 font-bold">
-                      <CheckCircle2 size={13} />
-                      Cryptographically Signed
-                    </div>
-                  </div>
-                  <div className="bg-white border border-emerald-200 p-2 flex items-center justify-center rounded-none">
-                    <MiniQR size={42} />
-                  </div>
+                <div className="bg-white border border-emerald-200 p-2 flex items-center justify-center rounded-none">
+                  <MiniQR size={42} />
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading text-text text-[22px] font-normal tracking-[-0.03em] mb-2">
+                <div className="mb-2.5">
+                  <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
+                    04 / IDENTITY ISSUED
+                  </span>
+                </div>
+                <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
                   Signed Verifiable Credentials
                 </h3>
-                <p className="text-[14.5px] leading-[1.65] text-text-muted text-pretty">
-                  Compiled as a W3C Verifiable Credential — cryptographically signed, secure, and ready to export as JSON or PDF.
+                <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                  Generates W3C-compliant Digital Battery Passports with cryptographically signed JSON data and dynamic QR codes for instant verification at European ports.
                 </p>
               </div>
             </div>
 
           </div>
 
-          {/* 5th Card - Outcome / Destination Verification Hero (Green with Grainy Texture) */}
-          <div className="mx-6 mt-4 bg-gradient-to-r from-[#045c43] via-[#059669] to-[#047857] p-8 lg:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10 rounded-none">
+          {/* 5th Card - Outcome / Destination Verification Payoff (Matching White Card Style) */}
+          <div className="border border-t-0 border-border bg-white p-7 sm:p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 rounded-none">
             
-            {/* SVG Noise / Grainy Texture Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-25 mix-blend-overlay">
-              <svg className="w-full h-full">
-                <filter id="grainNoise">
-                  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch" />
-                  <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter="url(#grainNoise)" />
-              </svg>
-            </div>
-
             {/* Content Left */}
-            <div className="space-y-4 max-w-xl relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-950/40 text-amber-300 text-xs font-mono font-medium rounded-none border border-amber-400/30">
-                <Zap size={13} className="text-amber-400 fill-amber-400" />
-                THE VERIFICATION PAYOFF
+            <div className="space-y-3.5 max-w-xl">
+              <div>
+                <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
+                  05 / VERIFICATION PAYOFF
+                </span>
               </div>
-              <h3 className="font-heading text-white text-[clamp(28px,3.8vw,44px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
-                10-second scan verify at destination.
+              <h3 className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-bold tracking-[-0.035em] leading-[1.08] text-balance">
+                10-second scan <span className="text-emerald-600">verify at destination.</span>
               </h3>
-              <p className="text-emerald-100/90 text-[15px] leading-[1.65] text-pretty font-normal">
-                Steps 01–04 compile the cryptographic credential. European buyers simply scan the QR code on the battery at destination to instantly view compliance details, carbon footprint, and blockchain proofs.
+              <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                Steps 01–04 compile the cryptographic credential. European buyers &amp; customs authorities scan the QR code on the battery at destination port to instantly view compliance details, carbon footprint, and blockchain proofs.
               </p>
             </div>
 
-            {/* Right Side Destination Verification Preview Card (Crisp White & Glassmorphic) */}
-            <div className="w-full md:w-[320px] bg-white/95 backdrop-blur-md p-6 border border-white/40 relative z-10 select-none rounded-none text-text">
+            {/* Right Side Destination Verification Preview Card (Clean Inner Graphic Box) */}
+            <div className="w-full lg:w-[360px] bg-[#f2faf5] p-5 sm:p-6 border border-emerald-500/20 select-none rounded-none text-text">
               {/* Header badge */}
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+              <div className="flex items-center justify-between border-b border-emerald-900/10 pb-4 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-none bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                  <div className="w-8 h-8 rounded-none bg-white border border-emerald-200 flex items-center justify-center text-emerald-600">
                     <ShieldCheck size={18} />
                   </div>
                   <div>
-                    <div className="text-[12px] font-mono font-bold text-emerald-700 tracking-wide">PASSPORT VERIFIED</div>
-                    <div className="text-[10px] font-mono text-slate-500">Live Cryptographic Audit</div>
+                    <div className="text-[12px] font-mono font-bold text-emerald-800 tracking-wide">PASSPORT VERIFIED</div>
+                    <div className="text-[10px] font-mono text-emerald-800/70">Live Cryptographic Audit</div>
                   </div>
                 </div>
-                <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold uppercase rounded-none">
+                <span className="inline-flex items-center px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-mono font-bold uppercase rounded-none">
                   100% PASS
                 </span>
               </div>
 
               {/* Passport Specs List */}
-              <div className="space-y-2.5 font-mono text-[11.5px] border-b border-slate-100 pb-4 mb-4">
+              <div className="space-y-2.5 font-mono text-[11.5px] border-b border-emerald-900/10 pb-4 mb-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Serial ID:</span>
+                  <span className="text-emerald-800/70">Serial ID:</span>
                   <span className="text-slate-900 font-bold">IN-LFP-2026-B4471</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Chemistry:</span>
+                  <span className="text-emerald-800/70">Chemistry:</span>
                   <span className="text-slate-900 font-semibold">LFP (Lithium Iron)</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Carbon Footprint:</span>
-                  <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 border border-emerald-200">Class A (18 kg)</span>
+                  <span className="text-emerald-800/70">Carbon Footprint:</span>
+                  <span className="text-emerald-800 font-bold bg-emerald-100 px-1.5 py-0.5 border border-emerald-300">Class A (18 kg)</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-500">BTC Timestamp:</span>
-                  <span className="text-emerald-600 font-semibold">Block #842,190</span>
+                  <span className="text-emerald-800/70">BTC Timestamp:</span>
+                  <span className="text-emerald-700 font-semibold">Block #842,190</span>
                 </div>
               </div>
 
               {/* Live QR Verification Badge Footer */}
               <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 font-mono">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 font-mono">
                   <CheckCircle2 size={13} className="text-emerald-600" />
                   Verified at EU Customs
                 </div>
-                <div className="p-1 bg-slate-50 border border-slate-200">
+                <div className="p-1 bg-white border border-emerald-200">
                   <MiniQR size={32} />
                 </div>
               </div>

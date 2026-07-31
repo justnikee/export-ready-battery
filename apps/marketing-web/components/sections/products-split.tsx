@@ -6,13 +6,6 @@ export default function ProductsSplit() {
   return (
     <section className="bg-white antialiased">
       <div className="max-w-[1232px] mx-auto">
-        {/* Section header */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">PRODUCTS</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">6</span>/8]
-          </span>
-        </div>
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
 
         <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] max-w-[640px] mb-12 text-balance">

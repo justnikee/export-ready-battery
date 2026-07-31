@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus, ArrowRight } from "lucide-react";
+import { Plus, Minus, Zap } from "lucide-react";
 
 const faqs = [
   {
@@ -45,22 +45,15 @@ export default function FAQ() {
   return (
     <section id="faq" className="relative">
       <div className="max-w-[1232px] mx-auto">
-        {/* Section header */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">FAQ</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">7</span>/8]
-          </span>
-        </div>
-
         <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
-          {/* Header Title */}
-          <div className="px-6 mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20 mb-4">
-              <span className="w-1.5 h-1.5 bg-emerald-600" />
-              Frequently Asked Questions
+          {/* Header Block: Centered Pill & Headline */}
+          <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4 px-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
+              <Zap size={13} className="text-emerald-600 fill-emerald-600" />
+              FREQUENTLY ASKED QUESTIONS
             </div>
-            <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08]">
+
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
               Questions, answered.
             </h2>
           </div>

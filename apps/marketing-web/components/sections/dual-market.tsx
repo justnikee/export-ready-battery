@@ -23,20 +23,21 @@ function EUFlagSvg({ size = 20 }: { size?: number }) {
 }
 
 const indiaItems = [
-  { code: "BIS IS 16046", title: "Cell & Pack Safety Certification", badge: "MANDATORY" },
-  { code: "CPCB EPR", title: "Extended Producer Responsibility Filing", badge: "REGISTRATION" },
-  { code: "BWM RULES 2022", title: "Battery Waste Management Compliance", badge: "COMPLIANT" },
-  { code: "DGFT TRACE", title: "Export Incentive & Duty Drawback Claims", badge: "AUTOMATED" },
-  { code: "QR TRACEABILITY", title: "Batch Serialized Traceability QR", badge: "SERIALIZED" },
+  { code: "BIS IS 16046 / 16047", title: "Mandatory Cell & Pack Safety Certification", badge: "BIS VERIFIED" },
+  { code: "CPCB EPR FILING", title: "Extended Producer Responsibility Target Return", badge: "CPCB CLEARED" },
+  { code: "BWM RULES 2022", title: "Battery Waste Management Recycling & Recovery", badge: "COMPLIANT" },
+  { code: "DGFT TRACE CLAIMS", title: "Export Incentive & Duty Drawback Verification", badge: "AUTOMATED" },
+  { code: "BATCH QR TRACEABILITY", title: "Serialized Production Batch QR & Custom Portals", badge: "ACTIVE QR" },
 ];
 
 const euItems = [
-  { code: "EU 2023/1542", title: "Verifiable Battery Digital Passport", badge: "ART. 77" },
-  { code: "CE MARKING", title: "EU Declaration of Conformity (DoC)", badge: "VERIFIED" },
-  { code: "CARBON FOOTPRINT", title: "Lifecycle Carbon Class & Audit (A–G)", badge: "ANNEX II" },
-  { code: "DUE DILIGENCE", title: "Supply Chain Risk & CMRT Audit", badge: "ART. 48" },
-  { code: "BPAN IDENTITY", title: "W3C Signed Verifiable Credential QR", badge: "PUBLIC QR" },
+  { code: "EU REG 2023/1542", title: "Mandatory Digital Battery Passport Credential", badge: "ART. 77 MANDATE" },
+  { code: "EU CE MARKING", title: "Declaration of Conformity & Safety Dossier", badge: "DOC VERIFIED" },
+  { code: "CARBON CLASS A–E", title: "Lifecycle Carbon Footprint & Energy Mix Audit", badge: "ANNEX II AUDIT" },
+  { code: "CMRT DUE DILIGENCE", title: "Supply Chain Conflict Mineral & Risk Audit", badge: "ART. 48 AUDIT" },
+  { code: "PUBLIC W3C QR", title: "Cryptographically Signed Verifiable Credential", badge: "W3C SIGNED" },
 ];
+
 function Column({
   title,
   subtitle,
@@ -51,57 +52,56 @@ function Column({
   const isEu = tone === "eu";
   return (
     <div
-      className="relative flex-1 p-7 lg:p-9 rounded-none border border-border bg-white text-slate-900 flex flex-col justify-between transition-all duration-300 hover:border-border-strong"
+      className="relative p-7 lg:p-9 bg-[#f2faf5] text-slate-900 flex flex-col justify-between font-sans"
+      style={{ clipPath: "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)" }}
     >
       <div>
         {/* Header Bar */}
-        <div className="mb-6 pb-5 border-b border-border/60">
+        <div className="mb-5">
           <div className="flex items-center gap-2 mb-1.5">
             {isEu ? <EUFlagSvg size={24} /> : <IndiaFlagSvg size={24} />}
             <span className="font-mono text-[11.5px] uppercase tracking-wider text-text-dim font-medium">
               {subtitle}
             </span>
           </div>
-          <h3 className="font-heading text-[26px] font-semibold tracking-[-0.03em] leading-tight text-text">
+          <h3 className="font-sans text-[26px] font-semibold tracking-[-0.03em] leading-tight text-text">
             {title}
           </h3>
         </div>
 
         {/* Structured Items List — Pure clean design tokens */}
-        <div className="grid gap-2.5 mb-8">
+        <div className="grid gap-2.5 mb-6 font-sans">
           {items.map((item) => (
             <div
               key={item.code}
-              className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-border/40 last:border-0 text-text"
+              className="flex flex-row items-start justify-between py-1.5 text-text gap-3"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <span
-                  className={`inline-flex items-center justify-center w-5 h-5 shrink-0 border ${
-                    isEu
-                      ? "bg-amber-500/10 text-amber-800 border-amber-500/30"
-                      : "bg-emerald-500/10 text-emerald-800 border-emerald-500/30"
-                  }`}
-                >
-                  <Check size={12} strokeWidth={3} />
-                </span>
-                <span className="text-[14.5px] font-normal text-text">
-                  <span className="font-mono text-[13px] font-semibold text-slate-950 mr-1.5">{item.code} —</span>
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="h-[22px] flex items-center shrink-0">
+                  <span className="inline-flex items-center justify-center w-[18px] h-[18px] border bg-white text-emerald-800 border-emerald-500/40 translate-y-[2px]">
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                </div>
+                <span className="text-[14px] leading-[22px] font-normal text-text-muted">
+                  <span className="font-mono text-[13px] font-semibold text-text mr-1.5">{item.code} —</span>
                   {item.title}
                 </span>
               </div>
-              <span className={`hidden sm:inline-block font-mono text-[11px] font-medium uppercase tracking-wider shrink-0 ml-3 ${isEu ? "text-amber-800" : "text-emerald-800"}`}>
-                {item.badge}
-              </span>
+              <div className="h-[22px] flex items-center shrink-0">
+                <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-emerald-800">
+                  {item.badge}
+                </span>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Bottom Integration Highlight Bar */}
-      <div className="pt-4 border-t border-border flex items-center justify-between text-[12px] font-mono font-medium text-text-muted">
+      <div className="pt-2 flex items-center justify-between text-[12px] font-mono font-medium text-text-muted">
         <span className="flex items-center gap-1.5 font-medium text-text">
           {isEu ? (
-            <ShieldCheck size={15} className="text-amber-700" />
+            <ShieldCheck size={15} className="text-emerald-700" />
           ) : (
             <Zap size={15} className="text-emerald-700" />
           )}
@@ -119,45 +119,45 @@ export default function DualMarket() {
   return (
     <section className="">
       <div className="max-w-[1232px] mx-auto">
-        {/* Section header */}
-        <div className="sticky top-20 z-20 bg-bg/95 backdrop-blur-sm px-6 py-4 flex justify-between items-center">
-          <span className="section-index">DUAL COMPLIANCE</span>
-          <span className="section-index text-text-dim/60">
-            [<span className="text-emerald-600 font-semibold">5</span>/8]
-          </span>
-        </div>
         <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
 
-        <div className="max-w-[680px] mb-12">
-          <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-semibold tracking-[-0.035em] leading-[1.08] mb-5 text-balance">
-            Compliant in India. Cleared for Europe. Same data.
-          </h2>
-          <p className="text-[15px] leading-[1.65] text-text-muted text-pretty">
-            Carbon footprint, recycled content, supplier identities, mass
-            balance — enter it once. Anviora keeps you compliant with India&apos;s
-            BWM Rules, BIS and CPCB EPR, and the EU Battery Regulation at the
-            same time, and even files your DGFT TRACE claims.
+          {/* Header Block: Centered Pill, Headline & Subheading */}
+          <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
+              <Zap size={13} className="text-emerald-600 fill-emerald-600" />
+              DUAL COMPLIANCE
+            </div>
+
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+              Compliant in India.
+              <br />
+              <span className="text-emerald-600">Cleared for Europe. Single Data Engine.</span>
+            </h2>
+
+            <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[680px] mx-auto">
+              Enter cell chemistry, carbon accounting, EPR filings, and supplier declarations once. Anviora automatically synchronizes Indian CPCB/BIS registrations with mandatory EU 2023/1542 battery passport credentials.
+            </p>
+          </div>
+
+          {/* 2-Card Grid with 24px Gap (gap-6) and 14px Chamfer Cut Corner Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Column
+              title="India Market"
+              subtitle="Domestic Rules & Registrations"
+              items={indiaItems}
+              tone="india"
+            />
+            <Column
+              title="European Union"
+              subtitle="Export Mandates & Battery Passport"
+              items={euItems}
+              tone="eu"
+            />
+          </div>
+
+          <p className="mt-8 text-center text-[15px] font-medium text-text text-pretty">
+            The only platform engineered for Indian battery exporters — zero manual re-entry, native ERP sync, 100% audit-ready.
           </p>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-6">
-          <Column
-            title="India Market"
-            subtitle="Domestic Rules & Registrations"
-            items={indiaItems}
-            tone="india"
-          />
-          <Column
-            title="European Union"
-            subtitle="Export Mandates & Battery Passport"
-            items={euItems}
-            tone="eu"
-          />
-        </div>
-
-        <p className="mt-8 text-[15px] font-medium text-text text-pretty">
-          The only India-born platform that does both — with native Tally integration, no SAP required.
-        </p>
         </div>
       </div>
     </section>

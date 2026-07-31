@@ -5,7 +5,6 @@ import Link from "next/link";
 const footerLinks = {
   Product: [
     { label: "Battery Passport", href: "/battery" },
-    { label: "Textile DPP", href: "/textile" },
     { label: "Pricing", href: "/pricing" },
   ],
   Solutions: [
@@ -50,8 +49,7 @@ export default function Footer() {
               ANVIORA
             </Link>
             <p className="max-w-[340px] text-[14px] leading-[1.65] text-emerald-100/75 text-pretty">
-              Digital product passports and compliance for Indian battery and
-              textile manufacturers selling at home and into Europe.
+              Digital product passports and compliance for Indian battery manufacturers selling at home and into Europe.
             </p>
           </div>
 
