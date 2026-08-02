@@ -44,8 +44,8 @@ export default function FAQ() {
 
   return (
     <section id="faq" className="relative">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="px-6 pt-16 pb-16 lg:pt-20 lg:pb-20">
           {/* Header Block: Centered Pill & Headline */}
           <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4 px-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
@@ -53,7 +53,7 @@ export default function FAQ() {
               FREQUENTLY ASKED QUESTIONS
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               Questions, answered.
             </h2>
           </div>

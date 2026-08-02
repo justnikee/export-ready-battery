@@ -47,19 +47,19 @@ const PROBLEMS: ProblemCardItem[] = [
 export default function ComplianceCliff() {
   return (
     <section className="bg-bg antialiased">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="pt-16 lg:pt-20">
           {/* Header Block: Centered Pill & Headline */}
-          <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
+          <div className="px-6 text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
               <X size={13} className="text-emerald-600" />
               THE PROBLEM
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               The rules changed.
               <br />
-              <span className="text-emerald-600">The paperwork didn&apos;t keep up.</span>
+              The paperwork didn&apos;t keep up.
             </h2>
 
             <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[620px] mx-auto">
@@ -68,7 +68,7 @@ export default function ComplianceCliff() {
           </div>
 
           {/* Grid Layout Container (Left Radar Graphic + Right 2x2 Problem Cards) */}
-          <div className="border border-border/60 bg-white grid grid-cols-1 lg:grid-cols-12">
+          <div className="border-t border-border bg-white grid grid-cols-1 lg:grid-cols-12">
             {/* Left Column (5 Cols): Clean Geometric Radar Scanner & Countdown */}
             <div className="lg:col-span-5 bg-[#fafdfb] p-8 lg:p-10 flex flex-col justify-center items-center lg:border-r border-border/60 relative overflow-hidden">
               {/* Radar Scanner (Clean Geometric Crosshairs & Concentric Rings) */}

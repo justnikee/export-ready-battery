@@ -31,87 +31,71 @@ const nextSteps = [
 
 export default function NewsCTA() {
   return (
-    <section className="">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
-          <div
-            className="relative overflow-hidden rounded-none"
-            style={{
-              background:
-                "linear-gradient(160deg, #10b981 0%, #047857 48%, #044e3a 100%)",
-            }}
-          >
-            {/* Halftone overlay */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none opacity-50"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle, rgba(255,255,255,0.15) 0.5px, transparent 1px)",
-                backgroundSize: "4px 4px",
-                mixBlendMode: "overlay",
-              }}
-            />
+    <section className="bg-bg antialiased">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="pt-16 pb-16 lg:pt-20 lg:pb-20">
+          
+          {/* Section Header */}
+          <div className="px-6 text-center max-w-[1100px] mx-auto mb-12 lg:mb-14 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
+              <Rocket size={13} className="text-emerald-600" />
+              GET STARTED
+            </div>
 
-            {/* Soft radial glow */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(60% 80% at 75% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)",
-              }}
-            />
+            <h2 className="font-heading text-text text-[clamp(32px,4.5vw,54px)] font-semibold tracking-[-0.035em] leading-[1.08] max-w-[860px] mx-auto">
+              Wherever you are in your export
+              <br />
+              journey, there&apos;s a path in.
+            </h2>
+          </div>
 
-            <div className="relative px-6 py-16 sm:px-12 lg:px-16 lg:py-20">
-              <div className="relative max-w-[640px] mb-12">
-                <h2 className="font-heading text-white text-[clamp(30px,4.4vw,48px)] font-medium tracking-[-0.04em] leading-[1.02] text-balance">
-                  Wherever you are in your export journey, there&apos;s a path in.
-                </h2>
-              </div>
-
-              <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {nextSteps.map((step) => (
-                  <a
-                    key={step.title}
-                    href={step.href}
-                    className="relative group block p-7 bg-white/10 backdrop-blur-sm transition-colors duration-200 hover:bg-white/15 border border-white/20 rounded-none overflow-hidden"
-                  >
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-none bg-white/15 text-white mb-5 relative z-10">
-                      {step.icon}
-                    </div>
-                    <h3 className="font-heading text-white text-[17px] font-medium mb-2 relative z-10 leading-tight">{step.title}</h3>
-                    <p className="text-[14px] leading-[1.55] text-white/70 mb-5 text-pretty relative z-10">
-                      {step.description}
-                    </p>
-                    <span className="inline-flex items-center gap-1 text-[14px] font-medium text-white relative z-10">
-                      {step.cta} <ArrowRight size={14} className="cta-arrow animate-none group-hover:translate-x-0.5 transition-transform" />
-                    </span>
-                  </a>
-                ))}
-              </div>
-
-              {/* Bottom stat bar — Supermemory token-counter style */}
-              <div className="relative mt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-8 border-t border-white/20">
+          {/* 3 Step Cards — Contiguous Gapless 3-Column Grid */}
+          <div className="border-t border-b border-border bg-white grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+            {nextSteps.map((step) => (
+              <a
+                key={step.title}
+                href={step.href}
+                className="group p-6 sm:p-8 flex flex-col justify-between bg-white hover:bg-[#f2faf5] transition-colors duration-200 cursor-pointer"
+              >
                 <div>
-                  <div className="font-mono text-[11px] font-medium tracking-[0.14em] text-white/60 uppercase">
-                    EU Battery Passport deadline
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-none bg-[#f2faf5] text-emerald-700 border border-emerald-500/20 mb-6 group-hover:bg-emerald-100 transition-colors">
+                    {step.icon}
                   </div>
-                  <div className="font-heading text-white text-[clamp(32px,5vw,56px)] font-medium tracking-[-0.04em] leading-none mt-2 tabular-nums">
-                    18 Feb 2027
-                  </div>
+                  <h3 className="font-heading text-text text-[18px] font-semibold mb-2.5 leading-tight">
+                    {step.title}
+                  </h3>
+                  <p className="text-[14.5px] leading-[1.6] text-text-muted mb-6 text-pretty">
+                    {step.description}
+                  </p>
                 </div>
-                <a
-                  href="/request-access"
-                  className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-white/10 border border-white/55 px-5 py-3 transition-colors hover:bg-white hover:text-emerald-950 press-scale rounded-none"
-                  style={{ textTransform: "uppercase", letterSpacing: "0.04em" }}
-                >
-                  Start Building
-                  <ArrowRight size={14} className="cta-arrow" />
-                </a>
+                
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-mono font-semibold uppercase text-emerald-700 group-hover:text-emerald-950 transition-colors">
+                  {step.cta} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </span>
+              </a>
+            ))}
+          </div>
+
+          {/* Bottom Stat Bar — Clean Deadline Counter */}
+          <div className="px-6 sm:px-8 lg:px-10 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div>
+              <div className="font-mono text-xs font-semibold tracking-[0.14em] text-emerald-700 uppercase">
+                EU Battery Passport Deadline
+              </div>
+              <div className="font-heading text-text text-[clamp(28px,4vw,44px)] font-semibold tracking-[-0.035em] leading-none mt-2 tabular-nums">
+                18 February 2027
               </div>
             </div>
+
+            <a
+              href="/request-access"
+              className="inline-flex items-center justify-center h-11 px-6 text-[12px] font-mono font-bold tracking-widest uppercase text-white bg-black hover:bg-slate-900 transition-all clip-chamfer press-scale shadow-sm cursor-pointer"
+            >
+              Start Building
+              <ArrowRight size={14} className="ml-2" />
+            </a>
           </div>
+
         </div>
       </div>
     </section>

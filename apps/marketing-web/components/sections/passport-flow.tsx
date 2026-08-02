@@ -33,8 +33,8 @@ function MiniQR({ size = 44 }: { size?: number }) {
 export default function PassportFlow() {
   return (
     <section id="how-it-works" className="relative bg-bg">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="pt-16 pb-20 lg:pt-20 lg:pb-28">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="pt-16 lg:pt-20">
           {/* Header Block: Centered Pill, Headline & Subheading */}
           <div className="px-6 text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
@@ -42,10 +42,10 @@ export default function PassportFlow() {
               HOW IT WORKS
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               Four steps.
               <br />
-              <span className="text-emerald-600">No consultants.</span>
+              No consultants.
             </h2>
 
             <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[620px] mx-auto">
@@ -54,18 +54,18 @@ export default function PassportFlow() {
           </div>
 
           {/* 4-Step Grid Pipeline — Contiguous Gapless 2x2 Container */}
-          <div className="border border-border bg-white grid grid-cols-1 md:grid-cols-2">
+          <div className="border-t border-border bg-white grid grid-cols-1 md:grid-cols-2">
             
             {/* Card 01 - Upload */}
-            <div className="bg-white border-b md:border-r border-border flex flex-col justify-between p-7 sm:p-8 rounded-none">
-              {/* Direct Graphic Component 01 (h-[210px]) */}
-              <div className="h-[210px] w-full p-6 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none">
-                <FileUp size={28} className="text-emerald-600 animate-pulse" />
+            <div className="bg-white border-b md:border-r border-border flex flex-col justify-between p-6 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 01 (h-[200px]) */}
+              <div className="h-[200px] w-full p-5 text-center bg-[#f2faf5] flex flex-col items-center justify-center space-y-3 mb-6 rounded-none">
+                <FileUp size={26} className="text-emerald-600 animate-pulse" />
                 <div>
                   <span className="text-emerald-950 font-bold block text-[13.5px]">📄 bis_cert_2026.pdf</span>
                   <span className="text-[11px] text-emerald-800/70 font-mono">1.2 MB • Ready to process</span>
                 </div>
-                <div className="w-full max-w-[260px] bg-emerald-200 h-1.5 overflow-hidden mt-1 rounded-none">
+                <div className="w-full max-w-[280px] bg-emerald-200 h-1.5 overflow-hidden mt-1 rounded-none">
                   <motion.div
                     initial={{ width: "0%" }}
                     whileInView={{ width: "100%" }}
@@ -77,39 +77,39 @@ export default function PassportFlow() {
               </div>
 
               <div>
-                <div className="mb-2.5">
+                <div className="mb-2">
                   <span className="font-mono text-xs font-semibold text-emerald-700 tracking-wider uppercase inline-block">
                     01 / UPLOAD
                   </span>
                 </div>
-                <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
+                <h3 className="font-heading text-text text-[20px] sm:text-[22px] font-semibold tracking-[-0.03em] mb-2">
                   Upload Batch Records
                 </h3>
-                <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
+                <p className="text-[15px] leading-[1.6] text-text-muted text-pretty">
                   Upload raw manufacturer PDFs, test reports, and supply chain records. Our automated ingester extracts batch parameters directly without manual data entry.
                 </p>
               </div>
             </div>
 
             {/* Card 02 - Parse & Validate */}
-            <div className="bg-white border-b border-border flex flex-col justify-between p-7 sm:p-8 rounded-none">
-              {/* Direct Graphic Component 02 (h-[210px]) */}
-              <div className="h-[210px] w-full bg-[#f2faf5] p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none">
+            <div className="bg-white border-b border-border flex flex-col justify-between p-6 sm:p-8 rounded-none">
+              {/* Direct Graphic Component 02 (h-[200px]) */}
+              <div className="h-[200px] w-full bg-[#f2faf5] p-5 font-mono text-xs flex flex-col justify-center space-y-2.5 mb-6 rounded-none">
                 <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
                   <span className="text-emerald-800/70 text-[11.5px]">chemistry</span>
-                  <span className="text-slate-900 font-bold text-[12px]">LFP (Lithium Iron)</span>
+                  <span className="text-slate-900 font-semibold text-[12px]">LFP (Lithium Iron)</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
                   <span className="text-emerald-800/70 text-[11.5px]">capacity</span>
-                  <span className="text-slate-900 font-bold text-[12px]">280 Ah</span>
+                  <span className="text-slate-900 font-semibold text-[12px]">280 Ah</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-emerald-900/10 pb-2">
                   <span className="text-emerald-800/70 text-[11.5px]">carbon_class</span>
-                  <span className="text-emerald-800 font-bold text-[12px]">Class A</span>
+                  <span className="text-emerald-800 font-semibold text-[12px]">Class A</span>
                 </div>
                 <div className="flex justify-between items-center pt-0.5">
                   <span className="text-emerald-800/70 text-[11.5px]">bis_status</span>
-                  <span className="text-emerald-800 font-bold text-[12px] bg-emerald-100 px-2 py-0.5 border border-emerald-300">✔ VALID 2027</span>
+                  <span className="text-emerald-800 font-semibold text-[11.5px] bg-emerald-100 px-2 py-0.5 border border-emerald-300">✓ VALID 2027</span>
                 </div>
               </div>
 
@@ -198,7 +198,7 @@ export default function PassportFlow() {
           </div>
 
           {/* 5th Card - Outcome / Destination Verification Payoff (Matching White Card Style) */}
-          <div className="border border-t-0 border-border bg-white p-7 sm:p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 rounded-none">
+          <div className="border-t border-border bg-white p-7 sm:p-8 lg:p-10 flex flex-col lg:flex-row items-center justify-between gap-10 rounded-none">
             
             {/* Content Left */}
             <div className="space-y-3.5 max-w-xl">
@@ -207,8 +207,8 @@ export default function PassportFlow() {
                   05 / VERIFICATION PAYOFF
                 </span>
               </div>
-              <h3 className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-bold tracking-[-0.035em] leading-[1.08] text-balance">
-                10-second scan <span className="text-emerald-600">verify at destination.</span>
+              <h3 className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
+                10-second scan verify at destination.
               </h3>
               <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
                 Steps 01–04 compile the cryptographic credential. European buyers &amp; customs authorities scan the QR code on the battery at destination port to instantly view compliance details, carbon footprint, and blockchain proofs.

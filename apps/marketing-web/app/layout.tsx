@@ -99,7 +99,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${monaSans.variable} ${spaceGrotesk.variable} ${suisseEquiv.variable} ${dmSans.variable} ${dmMono.variable} ${barlowCondensed.variable} antialiased`}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased relative">
         <MotionProvider>{children}</MotionProvider>
         <Toaster position="top-right" richColors />
         <script

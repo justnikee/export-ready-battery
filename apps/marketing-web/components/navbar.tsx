@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
   X,
@@ -17,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { AnvioraLogo } from "./anviora-logo";
 
 interface NavChild {
   label: string;
@@ -41,13 +43,6 @@ const navItems: NavItem[] = [
         href: "/battery",
         desc: "EU 2023/1542 passports, BIS & carbon compliance for battery exporters.",
         icon: BatteryCharging,
-        tone: ["bg-blue-tint", "text-blue"],
-      },
-      {
-        label: "Pricing",
-        href: "/pricing",
-        desc: "One-time credit packs — no subscriptions, no lock-in.",
-        icon: Tag,
         tone: ["bg-blue-tint", "text-blue"],
       },
     ],
@@ -155,19 +150,19 @@ export default function Navbar({
       <nav
         ref={navRef}
         onMouseLeave={() => scheduleClose()}
-        className={`${fixed ? "fixed top-0 left-0 right-0" : "relative"} z-50 bg-bg/80 backdrop-blur-md border-b border-border/60 transition-all duration-300`}
+        className={`${fixed ? "fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-xs" : "relative z-50 bg-transparent"} transition-all duration-300`}
       >
-        <div className="max-w-[1240px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 h-20">
-          {/* Left: Brand Logo (Mona Sans, 600 weight, normal tracking, Uppercase) */}
+        <div className="max-w-[1320px] mx-auto px-6 grid grid-cols-[1fr_auto_1fr] items-center transition-all duration-300 h-16 sm:h-20">
+          {/* Left: Brand Logo */}
           <Link
             href="/"
-            className="inline-flex items-center font-heading font-semibold text-[24px] uppercase tracking-normal text-slate-950 hover:text-emerald-600 transition-colors shrink-0 justify-self-start"
+            className="inline-flex items-center hover:opacity-80 transition-opacity shrink-0 justify-self-start"
           >
-            ANVIORA
+            <AnvioraLogo className="h-7 sm:h-8 w-auto text-black" />
           </Link>
 
           {/* Center: Desktop links */}
-          <div className="hidden md:flex items-center gap-0.5 justify-self-center">
+          <div className="hidden md:flex items-center gap-1 justify-self-center">
             {navItems.map((item) => {
               const isOpen = activeLabel === item.label;
               if (!item.children) {
@@ -175,7 +170,7 @@ export default function Navbar({
                   <a
                     key={item.label}
                     href={item.href}
-                    className="px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] text-text hover:text-text-muted transition-colors"
+                    className="px-3.5 py-1.5 text-[14px] font-mono uppercase tracking-wider text-black/90 hover:text-black hover:bg-black/5 rounded-none transition-colors cursor-pointer"
                   >
                     {item.label}
                   </a>
@@ -189,70 +184,83 @@ export default function Navbar({
                   onMouseLeave={() => scheduleClose()}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium tracking-[-0.01em] transition-colors ${
+                    onClick={() => setActiveLabel(isOpen ? null : item.label)}
+                    className={`flex items-center gap-1 px-3.5 py-1.5 text-[14px] font-mono uppercase tracking-wider transition-colors cursor-pointer ${
                       isOpen
-                        ? "text-text"
-                        : "text-text hover:text-text-muted"
+                        ? "text-black bg-black/10 font-semibold"
+                        : "text-black/90 hover:text-black hover:bg-black/5"
                     }`}
                   >
                     {item.label}
                     <ChevronDown
-                      size={14}
+                      size={13}
                       className={`transition-transform duration-200 ${
-                        isOpen ? "rotate-180" : ""
+                        isOpen ? "rotate-180 text-black" : ""
                       }`}
                     />
                   </button>
 
-                  {/* Mega dropdown */}
-                  <div
-                    className={`absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50 transition-all duration-200 origin-top ${
-                      isOpen
-                        ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-                        : "opacity-0 scale-[0.98] -translate-y-1 pointer-events-none"
-                    }`}
-                    onMouseEnter={cancelClose}
-                    onMouseLeave={() => scheduleClose()}
-                  >
-                    <div className="w-[420px] bg-paper border border-border shadow-[0_24px_70px_-12px_rgba(5,98,239,0.18),0_8px_24px_-8px_rgba(11,16,21,0.08)] p-2">
-                      {item.children.map((child) => (
-                        <a
-                          key={child.label}
-                          href={child.href}
-                          className="group flex items-start gap-3.5 p-3 hover:bg-bg-alt transition-colors rounded-sm"
-                        >
-                          <span
-                            className={`inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${child.tone[0]} ${child.tone[1]}`}
-                          >
-                            <child.icon size={18} strokeWidth={1.8} />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block text-[14px] font-medium text-text leading-tight">
-                              {child.label}
-                            </span>
-                            <span className="block text-[12px] leading-[1.45] text-text-muted mt-1">
-                              {child.desc}
-                            </span>
-                          </span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Mega dropdown with Framer Motion smooth transitions */}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 pt-1 z-50 origin-top pointer-events-auto"
+                        onMouseEnter={cancelClose}
+                        onMouseLeave={() => scheduleClose()}
+                      >
+                        {/* Invisible Hover Bridge */}
+                        <div className="absolute -top-3 left-0 right-0 h-4 bg-transparent" />
+
+                        <div className="w-[420px] bg-[#090e14] border border-black/80 shadow-2xl p-2.5 rounded-none clip-chamfer-lg text-white overflow-hidden">
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={item.label}
+                              initial={{ opacity: 0, x: -6 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 6 }}
+                              transition={{ duration: 0.12, ease: "easeInOut" }}
+                            >
+                              {item.children.map((child) => (
+                                <a
+                                  key={child.label}
+                                  href={child.href}
+                                  className="group flex items-start gap-3.5 p-3 transition-all rounded-none cursor-pointer"
+                                >
+                                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-none shrink-0 bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 transition-transform group-hover:scale-105">
+                                    <child.icon size={18} strokeWidth={1.8} />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-[14px] font-semibold text-white group-hover:text-emerald-400 transition-colors leading-tight">
+                                      {child.label}
+                                    </span>
+                                    <span className="block text-[12px] leading-[1.45] text-slate-400 mt-1 font-sans">
+                                      {child.desc}
+                                    </span>
+                                  </span>
+                                </a>
+                              ))}
+                            </motion.div>
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
           </div>
 
-          {/* Right: Actions — Supermemory split CTA */}
+          {/* Right: Chamfered Retro-Tech CTA button matching reference */}
           <div className="hidden md:flex items-center gap-4 justify-self-end">
             <a
               href="/request-access"
-              className="btn-primary press-scale"
+              className="inline-flex items-center justify-center h-10 px-5 text-[12px] font-mono font-bold tracking-widest uppercase text-white bg-black hover:bg-slate-900 transition-all clip-chamfer press-scale shadow-sm cursor-pointer"
             >
-              <span className="btn-primary-label">Request a Demo</span>
-              <span className="btn-primary-arrow">
-                <ArrowRight size={15} />
-              </span>
+              Get Early Access
             </a>
           </div>
 

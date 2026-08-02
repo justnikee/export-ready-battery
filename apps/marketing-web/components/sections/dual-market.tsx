@@ -117,9 +117,9 @@ function Column({
 
 export default function DualMarket() {
   return (
-    <section className="">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
+    <section className="bg-bg antialiased">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="px-6 pt-16 pb-16 lg:pt-20 lg:pb-20">
 
           {/* Header Block: Centered Pill, Headline & Subheading */}
           <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
@@ -128,10 +128,10 @@ export default function DualMarket() {
               DUAL COMPLIANCE
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               Compliant in India.
               <br />
-              <span className="text-emerald-600">Cleared for Europe. Single Data Engine.</span>
+              Cleared for Europe. Single Data Engine.
             </h2>
 
             <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[680px] mx-auto">
@@ -139,7 +139,7 @@ export default function DualMarket() {
             </p>
           </div>
 
-          {/* 2-Card Grid with 24px Gap (gap-6) and 14px Chamfer Cut Corner Cards */}
+          {/* 2-Card Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Column
               title="India Market"
@@ -155,7 +155,7 @@ export default function DualMarket() {
             />
           </div>
 
-          <p className="mt-8 text-center text-[15px] font-medium text-text text-pretty">
+          <p className="mt-10 lg:mt-12 text-center text-[15px] font-medium text-text text-pretty">
             The only platform engineered for Indian battery exporters — zero manual re-entry, native ERP sync, 100% audit-ready.
           </p>
         </div>

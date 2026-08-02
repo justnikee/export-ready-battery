@@ -277,20 +277,20 @@ export default function FeatureGrid() {
 
   return (
     <section className="bg-bg antialiased">
-      <div className="max-w-[1232px] mx-auto">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
         {/* Content Area */}
-        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
+        <div className="pt-16 lg:pt-20">
           {/* Header Block: Centered Pill, Headline & Subheading */}
-          <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
+          <div className="px-6 text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
               <Zap size={13} className="text-emerald-600 fill-emerald-600" />
               CAPABILITIES
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               Anviora does more than
               <br />
-              <span className="text-emerald-600">generate passports.</span>
+              generate passports.
             </h2>
 
             <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[640px] mx-auto">
@@ -300,7 +300,7 @@ export default function FeatureGrid() {
 
           {/* Interactive Layout — Seamless Contiguous Container (No Center Gap, Stacked Left Cards) */}
           <div
-            className="flex flex-col lg:flex-row gap-0 items-stretch border border-border/80"
+            className="flex flex-col lg:flex-row gap-0 items-stretch border-t border-border"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >

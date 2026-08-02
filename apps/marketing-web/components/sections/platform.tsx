@@ -22,8 +22,8 @@ export default function Platform() {
 
   return (
     <section id="platform" className="bg-bg antialiased">
-      <div className="max-w-[1232px] mx-auto">
-        <div className="px-6 pt-16 pb-20 lg:pt-20 lg:pb-28">
+      <div className="max-w-[1232px] mx-auto border-x border-b border-border">
+        <div className="px-6 pt-16 pb-16 lg:pt-20 lg:pb-20">
           {/* Header Block: Centered Option C Header */}
           <div className="text-center max-w-[860px] mx-auto mb-14 lg:mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase border border-emerald-500/30">
@@ -31,10 +31,10 @@ export default function Platform() {
               INDIA &amp; EU COMPLIANCE
             </div>
 
-            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.06] text-balance">
+            <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
               Two regulatory markets.
               <br />
-              <span className="text-emerald-600">One automated platform.</span>
+              One automated platform.
             </h2>
 
             <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[640px] mx-auto">
