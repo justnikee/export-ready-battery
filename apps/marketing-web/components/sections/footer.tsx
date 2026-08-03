@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { AnvioraLogo } from "../anviora-logo";
 
-const footerNav = {
+interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+const footerNav: Record<string, FooterLink[]> = {
   Products: [
     { label: "Battery Passport", href: "/battery" },
     { label: "EU 2023/1542 Guide", href: "/compliance/eu-battery-regulation" },
