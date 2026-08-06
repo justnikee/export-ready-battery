@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const isDev = process.env.NODE_ENV === "development";
-
-// API origin for CSP connect-src
+// API origin for next/image remotePatterns (CSP connect-src is set per-request
+// in proxy.ts with nonces — S-15).
 const apiOrigin = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
 ).replace("/api/v1", "");
@@ -18,45 +17,12 @@ const apiUrl = (() => {
   }
 })();
 
-/** @see https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP */
-const contentSecurityPolicy = [
-  // Only allow scripts from self and necessary CDNs (no unsafe-inline in prod)
-  `default-src 'self'`,
-  // Scripts: self + Razorpay checkout (needed in dev too — without it the
-  // billing page can't open the payment modal on localhost) + Next.js dev
-  // runtime (requires 'unsafe-eval' for HMR only)
-  isDev
-    ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com`
-    : `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com`,
-  // Stylesheets: self + inline styles used by shadcn/ui
-  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
-  // Fonts
-  `font-src 'self' https://fonts.gstatic.com`,
-  // Images: self + data URIs for base64 QR codes + Supabase storage (logo,
-  // compliance docs) loaded directly as <img> (e.g. the topbar/sidebar avatar,
-  // which isn't proxied through next/image's optimizer)
-  `img-src 'self' data: blob: https://*.supabase.co`,
-  // API calls + websocket for HMR in dev + jsdelivr CDN + Supabase storage (for signed download redirects)
-  isDev
-    ? `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co ws://localhost:*`
-    : `connect-src 'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co`,
-  // Razorpay checkout iframe
-  `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com`,
-  // Workers (Next.js)
-  `worker-src 'self' blob:`,
-  // Prevent clickjacking
-  `frame-ancestors 'none'`,
-  // Limit form actions
-  `form-action 'self'`,
-  // Upgrade HTTP → HTTPS in production
-  ...(!isDev ? [`upgrade-insecure-requests`] : []),
-].join("; ");
-
+/**
+ * Static security headers (everything except CSP).
+ * CSP is applied per-request in proxy.ts with a fresh nonce so production
+ * script-src does not need 'unsafe-inline' (S-15 / ADR 019).
+ */
 const securityHeaders = [
-  {
-    key: "Content-Security-Policy",
-    value: contentSecurityPolicy,
-  },
   {
     // Prevent MIME type sniffing
     key: "X-Content-Type-Options",
@@ -102,7 +68,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Apply security headers to all routes
+        // Apply static security headers to all routes
         source: "/(.*)",
         headers: securityHeaders,
       },

@@ -30,25 +30,32 @@ func NewRewardHandler(rewardService *services.RewardService, authService *servic
 	}
 }
 
-// getEmailFromToken tries magic link token first, then JWT fallback
+// getEmailFromToken tries magic link token first, then JWT from Authorization only.
 func (h *RewardHandler) getEmailFromToken(r *http.Request) (string, error) {
-	tokenString := extractToken(r)
+	// Prefer Bearer for session JWT (never session JWT in query — S-06).
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if h.authService != nil {
+			if jwtClaims, err := h.authService.ValidateToken(tokenString); err == nil {
+				return jwtClaims.Email, nil
+			}
+		}
+		// Bearer may also be a magic token presented as header
+		if magicClaims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret); err == nil {
+			return magicClaims.Email, nil
+		}
+		return "", fmt.Errorf("invalid token")
+	}
+
+	// Query param: magic-link one-time tokens only (email deep links)
+	tokenString := r.URL.Query().Get("token")
 	if tokenString == "" {
 		return "", fmt.Errorf("no token provided")
 	}
-
-	// Try magic link token first
 	magicClaims, err := auth.ValidateMagicToken(tokenString, h.jwtSecret)
 	if err == nil {
 		return magicClaims.Email, nil
-	}
-
-	// Fallback to JWT token (dashboard users)
-	if h.authService != nil {
-		jwtClaims, err := h.authService.ValidateToken(tokenString)
-		if err == nil {
-			return jwtClaims.Email, nil
-		}
 	}
 
 	return "", fmt.Errorf("invalid token")
@@ -184,18 +191,6 @@ func (h *RewardHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 			{"key": models.RewardActionScanReturn, "label": "Return"},
 		},
 	})
-}
-
-// extractToken extracts JWT from header or query param
-func extractToken(r *http.Request) string {
-	// Try Authorization header first
-	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		return strings.TrimPrefix(authHeader, "Bearer ")
-	}
-
-	// Try query param
-	return r.URL.Query().Get("token")
 }
 
 // anonymizeEmail masks the email for public display

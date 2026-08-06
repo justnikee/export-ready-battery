@@ -38,6 +38,8 @@ var expectedTables = []string{
 	"api_keys",
 	"api_key_usage",
 	"soh_history",
+	"regulator_api_keys",
+	"regulator_access_log",
 }
 
 // expectedColumns maps table → list of critical columns to verify.

@@ -105,10 +105,14 @@ func (h *SyncHandler) GetStaging(w http.ResponseWriter, r *http.Request) {
 	if status == "" {
 		status = "pending"
 	}
+	// P-02: hard-cap list page size (shared convention max 200)
 	limit := 20
 	offset := 0
 	if l, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && l > 0 {
 		limit = l
+		if limit > 200 {
+			limit = 200
+		}
 	}
 	if o, err := strconv.Atoi(r.URL.Query().Get("offset")); err == nil && o >= 0 {
 		offset = o

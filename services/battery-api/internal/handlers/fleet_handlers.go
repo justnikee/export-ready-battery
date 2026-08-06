@@ -44,12 +44,7 @@ func (h *Handler) GetFleetWorstHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 20
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
+	limit := ParseQueryLimit(r, 20, MaxListLimit)
 
 	items, err := h.repo.GetWorstHealthPassports(r.Context(), tenantID, productType, limit)
 	if err != nil {
@@ -102,12 +97,7 @@ func (h *Handler) GetFleetThermalEvents(w http.ResponseWriter, r *http.Request) 
 			days = parsed
 		}
 	}
-	limit := 20
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
+	limit := ParseQueryLimit(r, 20, MaxListLimit)
 	since := time.Now().AddDate(0, 0, -days)
 
 	events, err := h.repo.GetFleetThermalEvents(r.Context(), tenantID, productType, since, limit)

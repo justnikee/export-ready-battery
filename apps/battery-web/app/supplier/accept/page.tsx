@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import {
+  getPasswordRequirements,
+  isPasswordValid,
+  PASSWORD_POLICY_HINT,
+} from "@/lib/password-policy";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 
 function AcceptInvitationForm() {
@@ -17,11 +22,13 @@ function AcceptInvitationForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const passwordOk = isPasswordValid(password);
+  const passwordRequirements = getPasswordRequirements(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    if (!passwordOk) {
+      toast.error(`Password must be ${PASSWORD_POLICY_HINT}`);
       return;
     }
     if (password !== confirmPassword) {
@@ -94,11 +101,17 @@ function AcceptInvitationForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={8}
+          minLength={12}
         />
-        <p className="text-xs text-muted-foreground">
-          Must be at least 8 characters
-        </p>
+        {password.length > 0 && (
+          <ul className="text-xs text-muted-foreground space-y-0.5">
+            {passwordRequirements.map((r) => (
+              <li key={r.id} className={r.met ? "text-green-700" : undefined}>
+                {r.met ? "✓" : "○"} {r.label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="space-y-2">

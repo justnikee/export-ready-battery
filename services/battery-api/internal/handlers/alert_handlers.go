@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/services"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // AlertResponse wraps a single alert for JSON serialization.
@@ -31,18 +32,9 @@ func (h *Handler) GetAlerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
-	offset := 0
-	if o := r.URL.Query().Get("offset"); o != "" {
-		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
-			offset = parsed
-		}
-	}
+	// P-02: default 50, hard max 200
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	offset := ParseQueryOffset(r)
 
 	alertSvc := services.NewAlertService(h.repo, nil)
 	alerts, err := alertSvc.GetAlerts(r.Context(), tenantID, limit, offset)
@@ -65,12 +57,8 @@ func (h *Handler) GetUnreadAlerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 20
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
+	// Unread feed is small UX surface — still hard-capped (≤100 ≤ MaxListLimit)
+	limit := ParseQueryLimit(r, 20, 100)
 
 	alertSvc := services.NewAlertService(h.repo, nil)
 	alerts, err := alertSvc.GetUnreadAlerts(r.Context(), tenantID, limit)
@@ -112,9 +100,10 @@ func (h *Handler) GetUnreadAlertCount(w http.ResponseWriter, r *http.Request) {
 }
 
 // MarkAlertRead handles POST /api/v1/alerts/{id}/read.
+// S-07: scoped to the caller's tenant — foreign alert IDs return 404.
 func (h *Handler) MarkAlertRead(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())
-	_, err := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -128,7 +117,11 @@ func (h *Handler) MarkAlertRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	alertSvc := services.NewAlertService(h.repo, nil)
-	if err := alertSvc.MarkAlertRead(r.Context(), alertID); err != nil {
+	if err := alertSvc.MarkAlertRead(r.Context(), alertID, tenantID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			respondError(w, http.StatusNotFound, "Alert not found")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "Failed to mark alert read")
 		return
 	}
@@ -139,7 +132,8 @@ func (h *Handler) MarkAlertRead(w http.ResponseWriter, r *http.Request) {
 }
 
 // RunDailyAlerts handles POST /api/v1/jobs/daily-alerts.
-// Triggers the daily compliance alert scan. Can be called by cron or manually.
+// Platform-admin only (X-Admin-API-Key / ADMIN_API_KEY) — S-03.
+// The in-process daily ticker still runs without HTTP; this is a manual/cron trigger.
 func (h *Handler) RunDailyAlerts(w http.ResponseWriter, r *http.Request) {
 	if h.alertService == nil {
 		respondError(w, http.StatusInternalServerError, "Alert service not initialized")

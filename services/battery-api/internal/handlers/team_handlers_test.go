@@ -217,7 +217,7 @@ func (f *fakeTeamRepo) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid
 func (f *fakeTeamRepo) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) {
 	return nil, 0, nil
 }
-func (f *fakeTeamRepo) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error) {
+func (f *fakeTeamRepo) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string, marketRegions []string) ([]*models.Batch, int, error) {
 	return nil, 0, nil
 }
 func (f *fakeTeamRepo) GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error) {
@@ -1187,7 +1187,7 @@ func (f *fakeTeamRepo) GetUnreadAlerts(ctx context.Context, tenantID uuid.UUID, 
 func (f *fakeTeamRepo) GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID) (int, error) {
 	return 0, nil
 }
-func (f *fakeTeamRepo) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error    { return nil }
+func (f *fakeTeamRepo) MarkAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error { return nil }
 func (f *fakeTeamRepo) HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error) {
 	return false, nil
@@ -1355,10 +1355,10 @@ func (f *fakeTeamRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID u
 func (f *fakeTeamRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) {
 	return 0, nil
 }
-func (f *fakeTeamRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error {
+func (f *fakeTeamRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
 	return nil
 }
-func (f *fakeTeamRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error {
+func (f *fakeTeamRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error {
 	return nil
 }
 func (f *fakeTeamRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) {

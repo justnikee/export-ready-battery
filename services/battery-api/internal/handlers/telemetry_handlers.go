@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/services"
 
@@ -110,12 +111,9 @@ func (h *TelemetryHandler) GetTelemetryHistory(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Parse pagination
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	if limit <= 0 {
-		limit = 50
-	}
+	// P-02: default 50, hard max 200
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	offset := ParseQueryOffset(r)
 
 	// Parse optional time range
 	var from, to *time.Time
@@ -273,7 +271,7 @@ func (h *TelemetryHandler) UploadSoHCSV(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Limit upload to 5MB
-	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, limits.MaxTelemetryCSVBytes)
 
 	file, _, err := r.FormFile("file")
 	if err != nil {

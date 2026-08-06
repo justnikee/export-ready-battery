@@ -221,9 +221,9 @@ func (s *AlertService) GetUnreadCount(ctx context.Context, tenantID uuid.UUID) (
 	return s.repo.GetUnreadAlertCount(ctx, tenantID)
 }
 
-// MarkAlertRead marks an alert as read.
-func (s *AlertService) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error {
-	return s.repo.MarkAlertRead(ctx, alertID)
+// MarkAlertRead marks an alert as read for the given tenant (S-07).
+func (s *AlertService) MarkAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
+	return s.repo.MarkAlertRead(ctx, alertID, tenantID)
 }
 
 // CreateDGFTClaimAlert creates an alert when a DGFT claim status changes.

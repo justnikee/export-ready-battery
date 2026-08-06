@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/services"
 
@@ -151,29 +152,27 @@ func (h *AIHandler) ParseDatasheetFromUpload(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Parse multipart form (max 10MB)
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "Failed to parse upload: "+err.Error())
+	if !parseMultipartForm(w, r, limits.MaxAIDatasheetBytes) {
 		return
 	}
 
-	file, header, err := r.FormFile("pdf")
+	file, _, err := r.FormFile("pdf")
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "PDF file required")
 		return
 	}
 	defer file.Close()
 
-	// Validate file type
-	if !strings.HasSuffix(strings.ToLower(header.Filename), ".pdf") {
-		respondError(w, http.StatusBadRequest, "Only PDF files are accepted")
+	// Read file content
+	content, err := io.ReadAll(io.LimitReader(file, 10<<20))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to read file")
 		return
 	}
 
-	// Read file content
-	content := make([]byte, header.Size)
-	_, err = file.Read(content)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to read file")
+	// S-11: magic-byte check — filename suffix alone is insufficient.
+	if err := services.RequirePDF(content); err != nil {
+		respondError(w, http.StatusBadRequest, "Only valid PDF files are accepted (file content must start with %PDF-)")
 		return
 	}
 

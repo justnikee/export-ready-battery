@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
@@ -206,18 +207,9 @@ func (h *Handler) ListPassports(w http.ResponseWriter, r *http.Request) {
 	search := q.Get("search")
 	batchID := q.Get("batch_id")
 
-	limit := 50
-	if l := q.Get("limit"); l != "" {
-		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 500 {
-			limit = v
-		}
-	}
-	offset := 0
-	if o := q.Get("offset"); o != "" {
-		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
-			offset = v
-		}
-	}
+	// P-02: was capped at 500; project max list page size is 200
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	offset := ParseQueryOffset(r)
 
 	items, total, err := h.repo.ListPassportsByTenant(r.Context(), tenantID, status, search, batchID, models.ProductType(middleware.GetProductType(r.Context())), limit, offset)
 	if err != nil {
@@ -269,9 +261,8 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse multipart form (32MB max memory before disk)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "Failed to parse multipart form")
+	// P-06: multipart memory ≤ global 10MB body limit (was 32MB)
+	if !parseMultipartForm(w, r, limits.MaxCSVUploadBytes) {
 		return
 	}
 

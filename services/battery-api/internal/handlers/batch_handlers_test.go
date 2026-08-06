@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 )
 
 // ============================================================================
@@ -381,6 +385,87 @@ func TestDownloadLimit(t *testing.T) {
 	}
 
 	t.Logf("Download limit is correctly set to %d passports", maxDownloadLimit)
+}
+
+func TestSyncExportTooLargeMsg(t *testing.T) {
+	msg := syncExportTooLargeMsg("CSV export", "CSV", 1200)
+	if !strings.Contains(msg, "1200") || !strings.Contains(msg, "CSV") || !strings.Contains(msg, "export-jobs") {
+		t.Fatalf("unexpected message: %s", msg)
+	}
+}
+
+func TestParseMarketRegionFilter(t *testing.T) {
+	got, err := parseMarketRegionFilter("")
+	if err != nil || got != nil {
+		t.Fatalf("empty: got %v err %v", got, err)
+	}
+	got, err = parseMarketRegionFilter("EU,GLOBAL")
+	if err != nil || len(got) != 2 || got[0] != "EU" || got[1] != "GLOBAL" {
+		t.Fatalf("eu+global: got %v err %v", got, err)
+	}
+	got, err = parseMarketRegionFilter("eu")
+	if err != nil || len(got) != 1 || got[0] != "EU" {
+		t.Fatalf("case fold: got %v err %v", got, err)
+	}
+	if _, err := parseMarketRegionFilter("MARS"); err == nil {
+		t.Fatal("invalid region must error")
+	}
+	// dedupe
+	got, err = parseMarketRegionFilter("EU,EU,GLOBAL")
+	if err != nil || len(got) != 2 {
+		t.Fatalf("dedupe: got %v", got)
+	}
+}
+
+func TestExportBatchCSV_RejectsOversize(t *testing.T) {
+	// P-05: sync CSV must not load unbounded passports
+	batchID := uuid.New()
+	tenantID := uuid.New()
+
+	repo := new(repository.MockRepository)
+	repo.On("GetBatch", mock.Anything, batchID, tenantID).
+		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "BIG"}, nil)
+	repo.On("CountPassportsByBatch", mock.Anything, batchID).
+		Return(maxDownloadLimit+1, nil)
+	// Must not fetch passports when over limit
+	// Must not check shipped either after count gate — order is count then shipped
+
+	h := &Handler{repo: repo}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/batches/"+batchID.String()+"/export", nil)
+	req.SetPathValue("id", batchID.String())
+	req = req.WithContext(context.WithValue(req.Context(), middleware.TenantIDKey, tenantID.String()))
+
+	rr := httptest.NewRecorder()
+	h.ExportBatchCSV(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+	repo.AssertNotCalled(t, "GetPassportsByBatch", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestExportBatchAuditCSV_RejectsOversize(t *testing.T) {
+	batchID := uuid.New()
+	tenantID := uuid.New()
+
+	repo := new(repository.MockRepository)
+	repo.On("GetBatch", mock.Anything, batchID, tenantID).
+		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "BIG"}, nil)
+	repo.On("CountPassportsByBatch", mock.Anything, batchID).
+		Return(maxDownloadLimit+1, nil)
+
+	h := &Handler{repo: repo}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/batches/"+batchID.String()+"/audit-export", nil)
+	req.SetPathValue("id", batchID.String())
+	req = req.WithContext(context.WithValue(req.Context(), middleware.TenantIDKey, tenantID.String()))
+
+	rr := httptest.NewRecorder()
+	h.ExportBatchAuditCSV(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", rr.Code, rr.Body.String())
+	}
+	repo.AssertNotCalled(t, "GetEventsByBatch", mock.Anything, mock.Anything)
 }
 
 // ============================================================================

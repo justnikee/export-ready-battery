@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import { supplierLogin } from "@/lib/supplier-api";
 import { Upload } from "lucide-react";
 
 export default function SupplierLoginForm() {
@@ -25,14 +25,8 @@ export default function SupplierLoginForm() {
     }
     setLoading(true);
     try {
-      const res = await api.post("/supplier/login", {
-        email,
-        password,
-        tenant_id: tenantId,
-      });
-      localStorage.setItem("supplier_token", res.data.token);
-      localStorage.setItem("supplier_id", res.data.supplier_id);
-      localStorage.setItem("tenant_id", res.data.tenant_id);
+      // Token → memory only; HttpOnly supplier_token cookie set by API (S-05).
+      await supplierLogin(email, password, tenantId);
       toast.success("Logged in successfully");
       window.location.href = "/supplier/dashboard";
     } catch {
@@ -49,7 +43,9 @@ export default function SupplierLoginForm() {
           <div className="flex justify-center">
             <Upload className="w-10 h-10 text-[#37322F]" />
           </div>
-          <h1 className="text-2xl font-semibold text-[#37322F]">Supplier Portal</h1>
+          <h1 className="text-2xl font-semibold text-[#37322F]">
+            Supplier Portal
+          </h1>
           <p className="text-sm text-muted-foreground">
             Upload certificates and provenance data for your buyer
           </p>

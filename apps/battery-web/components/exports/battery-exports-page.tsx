@@ -16,7 +16,6 @@ import {
  Plus,
  PackageSearch
 } from 'lucide-react';
-import api, { getAccessToken } from '@/lib/api';
 import {
  listExportJobs,
  refreshExportDownload,
@@ -148,17 +147,21 @@ export default function ExportsPage() {
     }
   };
 
-  const handleDownload = (job: ExportJob) => {
+  // S-06: never put the access JWT in a download URL (?token=). Use an
+  // authenticated API call to obtain a short-lived signed storage URL instead.
+  const handleDownload = async (job: ExportJob) => {
     toast.success("Download started!", { id: "export-download" });
     try {
-      const token = getAccessToken();
-      const url = `${api.defaults.baseURL}/export-jobs/${job.id}/download?token=${token || ''}`;
-      
-      const link = document.createElement("a");
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      let url = job.download_url;
+      if (!url) {
+        const refreshed = await refreshExportDownload(job.id);
+        url = refreshed.download_url;
+      }
+      if (!url) {
+        toast.error("Download URL not available", { id: "export-download" });
+        return;
+      }
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (error: unknown) {
       toast.error("Failed to start download", { id: "export-download" });
     }

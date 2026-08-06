@@ -60,14 +60,26 @@ export function DocumentUpload({
     }
   };
 
+  // S-10: open via authenticated ViewDocument which redirects to a short-lived
+  // signed URL (private bucket). Prefer JSON {url} then fall back to blob.
   const handleViewDocument = async () => {
     try {
       const response = await api.get(`/settings/documents/${documentType}`, {
+        headers: { Accept: "application/json" },
+      });
+      const signed =
+        typeof response.data?.url === "string" ? response.data.url : "";
+      if (signed) {
+        window.open(signed, "_blank", "noopener,noreferrer");
+        return;
+      }
+      // Fallback: follow redirect as blob if server returned non-JSON
+      const blobRes = await api.get(`/settings/documents/${documentType}`, {
         responseType: "blob",
       });
-      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blob = new Blob([blobRes.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
       setTimeout(() => window.URL.revokeObjectURL(url), 10000);
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { error?: string } } };

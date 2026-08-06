@@ -118,7 +118,7 @@ func TestRegister_ValidationErrors(t *testing.T) {
 				Password:    "short",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "password must be at least 8 characters",
+			expectedError:  "password must be at least 12 characters",
 		},
 	}
 
@@ -240,7 +240,7 @@ func TestResetPassword_ValidationErrors(t *testing.T) {
 				NewPassword: "short",
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "password must be at least 8 characters",
+			expectedError:  "password must be at least 12 characters",
 		},
 	}
 

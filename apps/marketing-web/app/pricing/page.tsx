@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/navbar";
+import SiteHeader from "@/components/site-header";
 import Footer from "@/components/sections/footer";
 import PricingHero from "@/components/sections/pricing-hero";
 import PricingCards from "@/components/sections/pricing-cards";
@@ -27,12 +27,12 @@ const faqJsonLd = {
 
 export default function PricingPage() {
   return (
-    <main className="relative min-h-screen bg-white">
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <Navbar />
+      <SiteHeader />
       <PricingHero />
       <PricingCards />
       <PricingCompare />

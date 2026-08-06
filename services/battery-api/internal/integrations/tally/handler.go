@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/google/uuid"
@@ -28,7 +29,7 @@ func (h *Handler) Import(w http.ResponseWriter, r *http.Request) {
 	tenantID, _ := uuid.Parse(tenantIDStr)
 
 	// Limit upload size to 10 MB
-	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
+	r.Body = http.MaxBytesReader(w, r.Body, limits.MaxTallyImportBytes)
 
 	file, fileHeader, err := r.FormFile("file")
 	if err != nil {

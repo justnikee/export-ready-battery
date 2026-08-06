@@ -4,50 +4,45 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import DeadlineCountdown from "@/components/deadline-countdown";
 import BatteryPassportCard from "@/components/illustrations/battery-passport-card";
-import GlowDots from "@/components/illustrations/glow-dots";
 
 export default function BatteryHero() {
   return (
-    <section className="relative pt-[120px] pb-20 lg:pt-[152px] lg:pb-[96px] overflow-hidden">
-      {/* Glowing dot grid background */}
-      <GlowDots />
+    <section className="relative min-h-[500px] flex flex-col justify-between overflow-hidden bg-[#0e9f6e] text-black pt-24 sm:pt-28 pb-12 select-none">
+      {/* CRT Scanlines Overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px)",
+        }}
+      />
 
-      {/* Subtle background grain */}
-      <svg
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full opacity-[0.025] pointer-events-none"
-      >
-        <filter id="bh-grain">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.72"
-            numOctaves="4"
-            stitchTiles="stitch"
-          />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#bh-grain)" />
-      </svg>
+      {/* Subtle radial glow */}
+      <div className="absolute inset-0 bg-radial from-emerald-400/20 via-transparent to-black/10 pointer-events-none z-0" />
 
-      <div className="relative max-w-[1232px] mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* ── Left: copy ── */}
+      <div className="relative z-10 max-w-[1320px] w-full mx-auto px-6 sm:px-10 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          {/* Left: Copy */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-800 text-xs font-mono font-medium tracking-wider uppercase rounded-none border border-emerald-500/20 mb-5">
-              <span className="w-1.5 h-1.5 bg-emerald-600" />
-              Anviora Battery
+            <div className="inline-flex items-center gap-2.5 px-3 py-1 bg-transparent border border-black text-black clip-chamfer mb-5">
+              <span className="px-1.5 py-0.5 bg-black text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-widest">
+                BATTERY DPP
+              </span>
+              <span className="font-mono text-[12px] font-medium tracking-wide">
+                EU 2023/1542 & BIS IS 16046
+              </span>
             </div>
 
-            <h1 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-bold tracking-[-0.035em] leading-[1.05] mb-5">
-              The identity layer for every battery you ship.
+            <h1 className="font-heading font-semibold text-[clamp(32px,4.8vw,64px)] leading-[0.96] tracking-[-0.04em] text-black mb-4">
+              The identity layer <span className="block">for every battery you ship.</span>
             </h1>
 
-            <p className="text-[16px] sm:text-[17px] leading-[1.65] text-text-muted max-w-[500px] text-pretty">
-              EU Battery Regulation 2023/1542. BIS IS 16046. UN38.3. Carbon
-              footprint. One platform, one verifiable record — from cell to recycler.
+            <p className="text-[15px] sm:text-[17px] leading-[1.6] text-black/85 font-medium max-w-[500px] text-pretty">
+              EU Battery Regulation 2023/1542. BIS IS 16046. UN38.3. Carbon footprint. One platform, one verifiable record — from cell to recycler.
             </p>
 
             {/* Inline countdown */}
@@ -68,44 +63,20 @@ export default function BatteryHero() {
             >
               <a
                 href="/request-access"
-                className="group inline-flex items-center justify-center gap-2 h-[48px] px-7 rounded-none text-[14.5px] font-semibold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors shadow-xs"
+                className="inline-flex items-center justify-center h-12 px-7 text-[12px] font-mono font-bold tracking-widest uppercase text-emerald-400 bg-black hover:bg-slate-900 transition-all clip-chamfer press-scale shadow-lg"
               >
                 Request a Demo
-                <ArrowRight size={15} className="cta-arrow" />
               </a>
               <a
                 href="/#how-it-works"
-                className="group inline-flex items-center justify-center gap-1.5 h-[48px] px-6 rounded-none text-[14.5px] font-semibold text-slate-800 border border-slate-300 hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center justify-center h-12 px-7 text-[12px] font-mono font-bold tracking-widest uppercase text-black bg-transparent border-2 border-black hover:bg-black hover:text-emerald-400 transition-all clip-chamfer press-scale"
               >
-                See how it works <ArrowRight size={14} className="cta-arrow text-slate-500" />
+                Our Approach
               </a>
-            </motion.div>
-
-            {/* Trust strip */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 border-t border-border/60"
-            >
-              {[
-                "EU 2023/1542 ready",
-                "BIS IS 16046",
-                "W3C Credentials",
-                "OpenTimestamps",
-              ].map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-2 font-mono text-xs text-text-dim uppercase tracking-wider"
-                >
-                  <span className="w-1.5 h-1.5 bg-emerald-600" />
-                  {tag}
-                </span>
-              ))}
             </motion.div>
           </motion.div>
 
-          {/* ── Right: animated passport card (below copy on mobile) ── */}
+          {/* Right: animated passport card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}

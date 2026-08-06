@@ -89,28 +89,34 @@ func (r *Repository) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, te
 	return count, nil
 }
 
-// MarkTenantRegulatoryAlertRead marks an alert as read.
-func (r *Repository) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error {
+// MarkTenantRegulatoryAlertRead marks an alert as read for the given tenant (S-07).
+func (r *Repository) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
 	now := time.Now()
-	_, err := r.db.Pool.Exec(ctx,
-		`UPDATE tenant_regulatory_alerts SET is_read=true, read_at=$2 WHERE id=$1`,
-		alertID, now,
+	tag, err := r.db.Pool.Exec(ctx,
+		`UPDATE tenant_regulatory_alerts SET is_read=true, read_at=$3 WHERE id=$1 AND tenant_id=$2`,
+		alertID, tenantID, now,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to mark alert read: %w", err)
 	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("alert not found")
+	}
 	return nil
 }
 
-// MarkTenantRegulatoryAlertDismissed marks an alert as dismissed.
-func (r *Repository) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error {
+// MarkTenantRegulatoryAlertDismissed marks an alert as dismissed for the given tenant (S-07).
+func (r *Repository) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error {
 	now := time.Now()
-	_, err := r.db.Pool.Exec(ctx,
-		`UPDATE tenant_regulatory_alerts SET is_dismissed=true, dismissed_at=$2 WHERE id=$1`,
-		alertID, now,
+	tag, err := r.db.Pool.Exec(ctx,
+		`UPDATE tenant_regulatory_alerts SET is_dismissed=true, dismissed_at=$3 WHERE id=$1 AND tenant_id=$2`,
+		alertID, tenantID, now,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to dismiss alert: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("alert not found")
 	}
 	return nil
 }

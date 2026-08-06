@@ -11,6 +11,51 @@ import (
 	"golang.org/x/time/rate"
 )
 
+func TestGlobalAPIRateLimiter_LimitAPIPaths(t *testing.T) {
+	// Burst 1, zero refill → second API call is 429; health is never limited.
+	rl := NewRateLimiter(0, 1)
+	defer rl.Stop()
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	h := rl.LimitAPIPaths(inner)
+
+	// Health always allowed
+	for i := 0; i < 3; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("health should never 429, got %d", rr.Code)
+		}
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "/api/v1/batches", nil)
+	req1.RemoteAddr = "10.0.0.9:1234"
+	rr1 := httptest.NewRecorder()
+	h.ServeHTTP(rr1, req1)
+	if rr1.Code != http.StatusOK {
+		t.Fatalf("first api call: got %d", rr1.Code)
+	}
+
+	req2 := httptest.NewRequest(http.MethodGet, "/api/v1/batches", nil)
+	req2.RemoteAddr = "10.0.0.9:1234"
+	rr2 := httptest.NewRecorder()
+	h.ServeHTTP(rr2, req2)
+	if rr2.Code != http.StatusTooManyRequests {
+		t.Fatalf("second api call should 429, got %d", rr2.Code)
+	}
+}
+
+func TestNewTenantAPIRateLimiter_Defaults(t *testing.T) {
+	trl := NewTenantAPIRateLimiter()
+	defer trl.Stop()
+	if !trl.Allow("tenant-a") {
+		t.Fatal("first allow should succeed")
+	}
+}
+
 func TestTenantRateLimiter(t *testing.T) {
 	// Limiter allowing 1 request per second with a burst of 1
 	trl := NewTenantRateLimiter(rate.Every(time.Second), 1)

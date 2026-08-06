@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"crypto/subtle"
+	"context"
 	"log/slog"
 	"net/http"
 
 	"github.com/anvayalabs/battery-api/internal/auth"
+	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/services"
 
 	"github.com/google/uuid"
 )
@@ -38,14 +40,23 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Detect access tier
-	tier := h.detectAccessTier(r, passportUUID)
+	tenantID := uuid.Nil
+	if passportWithSpecs.Tenant != nil {
+		tenantID = passportWithSpecs.Tenant.ID
+	}
+
+	// Detect access tier (S-12: regulator keys are scoped + audited)
+	tier := h.detectAccessTier(r, passportUUID, tenantID, string(passportWithSpecs.MarketRegion))
 
 	// S5 Security fix: Parse tenant's DataVisibility config for view filtering
 	var displayConfig models.DisplayConfig
 	if passportWithSpecs.Tenant != nil {
 		displayConfig = models.ParseDisplayConfig(passportWithSpecs.Tenant.DataVisibility)
 	}
+
+	// S-10: re-sign private-bucket cert refs on the source tenant so all view
+	// builders (public/partner/regulator) emit short-lived signed URLs.
+	h.signTenantCertPathsInPlace(r.Context(), passportWithSpecs.Tenant)
 
 	switch tier {
 	case models.AccessTierRegulator:
@@ -69,28 +80,75 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// signTenantCertPathsInPlace mutates the tenant profile cert paths to short-lived
+// signed URLs for private compliance-docs objects (S-10).
+func (h *Handler) signTenantCertPathsInPlace(ctx context.Context, tenant *models.Tenant) {
+	if tenant == nil || h.storageService == nil {
+		return
+	}
+	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.EPRCertificatePath); err == nil && u != "" {
+		tenant.BatteryProfile.EPRCertificatePath = u
+	}
+	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.BISCertificatePath); err == nil && u != "" {
+		tenant.BatteryProfile.BISCertificatePath = u
+	}
+	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.PLICertificatePath); err == nil && u != "" {
+		tenant.BatteryProfile.PLICertificatePath = u
+	}
+}
+
 // detectAccessTier determines the caller's access level from request headers.
 //
 // Priority: Regulator > Partner > Public
-// - X-Regulator-Key header → matched against env REGULATOR_API_KEY
-// - ?access_token=<token> → validated against data_access_tokens
-// - Authorization: Bearer <token> → validated as an unused magic-link token for this passport
+// - X-Regulator-Key → DB-backed scoped regulator keys (S-12), then env REGULATOR_API_KEY bootstrap
+// - ?access_token=<token> → data_access_tokens (REGULATOR only if token.tenant_id matches passport tenant)
+// - Authorization: Bearer <token> → magic-link token for this passport → partner
 // - No auth → public
-func (h *Handler) detectAccessTier(r *http.Request, passportID uuid.UUID) models.AccessTier {
-	// 1. Regulator check (highest priority)
+func (h *Handler) detectAccessTier(r *http.Request, passportID, tenantID uuid.UUID, market string) models.AccessTier {
+	clientIP := middleware.ClientIP(r)
+	userAgent := r.UserAgent()
+
+	// 1. Regulator check (highest priority) — S-12 scoped + audited
 	if regKey := r.Header.Get("X-Regulator-Key"); regKey != "" {
-		if h.regulatorAPIKey != "" && subtle.ConstantTimeCompare([]byte(regKey), []byte(h.regulatorAPIKey)) == 1 {
-			return models.AccessTierRegulator
+		if h.regulatorKeyService != nil {
+			result := h.regulatorKeyService.AuthorizeRegulatorKey(
+				r.Context(), regKey, passportID, tenantID, market, clientIP, userAgent,
+			)
+			if result.Allowed {
+				return models.AccessTierRegulator
+			}
+			// Present-but-invalid/out-of-scope key: fall through (do not leak via hard 401)
+		} else if h.regulatorAPIKey != "" {
+			// Minimal fallback if service not wired: env key only (global)
+			result := services.NewRegulatorKeyService(nil, h.regulatorAPIKey).AuthorizeRegulatorKey(
+				r.Context(), regKey, passportID, tenantID, market, clientIP, userAgent,
+			)
+			if result.Allowed {
+				return models.AccessTierRegulator
+			}
 		}
-		// Invalid key — fall through to partner/public
 	}
 
 	// 2. Data Access Token (query param ?access_token=...)
 	if accessToken := r.URL.Query().Get("access_token"); accessToken != "" && h.dataAccessService != nil {
 		token, err := h.dataAccessService.ValidateToken(r.Context(), accessToken)
 		if err == nil && token != nil {
+			// S-12: REGULATOR data-access tokens are tenant-scoped — never global.
 			if token.AccessTier == "REGULATOR" {
-				return models.AccessTierRegulator
+				if tenantID != uuid.Nil && token.TenantID == tenantID {
+					if h.regulatorKeyService != nil {
+						h.regulatorKeyService.LogDataAccessRegulator(
+							r.Context(), token.Label, passportID, tenantID, market, clientIP, userAgent,
+						)
+					}
+					return models.AccessTierRegulator
+				}
+				// Wrong tenant → treat as unauthenticated for this passport
+				return models.AccessTierPublic
+			}
+			// PARTNER data-access tokens are also tenant-scoped
+			if tenantID != uuid.Nil && token.TenantID != tenantID {
+				return models.AccessTierPublic
 			}
 			return models.AccessTierPartner
 		}

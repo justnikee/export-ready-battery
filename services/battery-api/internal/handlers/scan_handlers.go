@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
 
@@ -85,7 +86,11 @@ func (h *Handler) RecordScan(w http.ResponseWriter, r *http.Request) {
 		r.RemoteAddr,
 		r.Header.Get("X-Forwarded-For"),
 		r.Header.Get("X-Real-IP"),
+		middleware.TrustProxyHeaders(),
 	)
+	if clientIP == "" {
+		clientIP = "unknown"
+	}
 	if !h.scanRateLimiter.allow(clientIP+":"+passportID.String(), 10) {
 		respondError(w, http.StatusTooManyRequests, "Too many scans recorded for this item. Please try again later.")
 		return

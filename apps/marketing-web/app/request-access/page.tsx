@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle, AlertCircle, Factory, Mail } from "lucide-react";
+import { ArrowRight, CheckCircle, AlertCircle, Mail } from "lucide-react";
+import SiteHeader from "@/components/site-header";
+import Footer from "@/components/sections/footer";
 
 const freeEmailDomains = new Set([
   "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com",
@@ -111,59 +113,87 @@ export default function RequestAccessPage() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full text-center"
-        >
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-crew-coral/10 mb-6">
-            <CheckCircle className="w-8 h-8 text-crew-coral" />
-          </div>
-          <h1 className="text-2xl font-bold text-crew-ink mb-3">Application Received</h1>
-          <p className="text-crew-ink/70 mb-2">
-            We'll review your application and get back to you within 24 hours.
-          </p>
-          <p className="text-sm text-crew-muted">
-            If approved, you'll receive login credentials at {form.email}.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 mt-8 text-sm font-medium text-crew-coral hover:text-crew-coral-light"
+      <main className="relative min-h-screen bg-bg text-text overflow-x-clip flex flex-col justify-between">
+        <SiteHeader />
+        <div className="flex-1 flex items-center justify-center px-6 py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-md w-full text-center border-2 border-black p-8 bg-white shadow-xl clip-chamfer"
           >
-            Back to homepage
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </motion.div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-6">
+              <CheckCircle className="w-8 h-8 text-emerald-700" />
+            </div>
+            <h1 className="text-2xl font-bold font-heading text-black mb-3">Application Received</h1>
+            <p className="text-black/80 mb-2">
+              We&apos;ll review your application and get back to you within 24 hours.
+            </p>
+            <p className="text-sm font-mono text-black/60">
+              If approved, credentials will be sent to {form.email}.
+            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 mt-8 text-xs font-mono font-bold uppercase tracking-wider text-black hover:text-emerald-700"
+            >
+              Back to homepage
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+        </div>
+        <Footer />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white">
-      <div className="max-w-xl mx-auto px-6 py-24">
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
+      <SiteHeader />
+
+      {/* CRT Emerald Hero Banner */}
+      <section className="relative min-h-[320px] flex flex-col justify-between overflow-hidden bg-[#0e9f6e] text-black pt-24 sm:pt-28 pb-10 select-none">
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            background:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px)",
+          }}
+        />
+        <div className="relative z-10 max-w-[1320px] w-full mx-auto px-6 sm:px-10 py-4">
+          <div className="max-w-[800px]">
+            <div className="inline-flex items-center gap-2.5 px-3 py-1 bg-transparent border border-black text-black clip-chamfer mb-4">
+              <span className="px-1.5 py-0.5 bg-black text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-widest">
+                VERIFIED ACCESS
+              </span>
+              <span className="font-mono text-[12px] font-medium tracking-wide">
+                Exclusively for Indian Manufacturers
+              </span>
+            </div>
+
+            <h1 className="font-heading font-semibold text-[clamp(32px,4vw,56px)] leading-[0.96] tracking-[-0.04em] text-black">
+              Request Platform Access
+            </h1>
+          </div>
+        </div>
+      </section>
+
+      {/* Form Container */}
+      <div className="max-w-xl mx-auto px-6 py-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="bg-white border-2 border-black p-8 shadow-xl clip-chamfer"
         >
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-crew-muted hover:text-crew-ink mb-8">
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            Back to homepage
-          </Link>
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-crew-ink mb-3">Request Access</h1>
-            <p className="text-crew-ink/70">
-              Anviora is built exclusively for Indian manufacturers and exporters.
-              We review every application to ensure the platform serves legitimate businesses.
+          <div className="mb-8 border-b border-black/10 pb-6">
+            <p className="text-black/80 font-medium text-[15px] leading-relaxed">
+              Anviora is built for Indian manufacturers. We verify every application to ensure compliance data security.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                 Company Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -171,7 +201,7 @@ export default function RequestAccessPage() {
                 value={form.companyName}
                 onChange={(e) => setForm({ ...form, companyName: e.target.value })}
                 placeholder="e.g. Tata AutoComp Systems"
-                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black"
               />
               {errors.companyName && (
                 <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -182,17 +212,17 @@ export default function RequestAccessPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                 Business Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-crew-muted" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/50" />
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="you@company.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black"
                 />
               </div>
               {errors.email && (
@@ -200,15 +230,15 @@ export default function RequestAccessPage() {
                   <AlertCircle className="w-3 h-3" /> {errors.email}
                 </p>
               )}
-              <p className="mt-1 text-xs text-crew-muted">
-                Free email providers (Gmail, Yahoo, etc.) are not accepted.
+              <p className="mt-1 text-[11px] font-mono text-black/50">
+                Free email domains (Gmail, Yahoo, etc.) are not accepted.
               </p>
             </div>
 
             {/* GSTIN / IEC */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-crew-ink mb-1.5">
+                <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                   GSTIN
                 </label>
                 <input
@@ -217,7 +247,7 @@ export default function RequestAccessPage() {
                   onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
                   placeholder="27AAPFU0939F1ZV"
                   maxLength={15}
-                  className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                  className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black"
                 />
                 {errors.gstin && (
                   <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -226,7 +256,7 @@ export default function RequestAccessPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-crew-ink mb-1.5">
+                <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                   IEC Code
                 </label>
                 <input
@@ -235,7 +265,7 @@ export default function RequestAccessPage() {
                   onChange={(e) => setForm({ ...form, iecCode: e.target.value.toUpperCase() })}
                   placeholder="A123456789"
                   maxLength={10}
-                  className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                  className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black"
                 />
                 {errors.iecCode && (
                   <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
@@ -244,19 +274,16 @@ export default function RequestAccessPage() {
                 )}
               </div>
             </div>
-            <p className="text-xs text-crew-muted -mt-2">
-              Provide either GSTIN or IEC code to verify your business.
-            </p>
 
             {/* Product Type */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                 Product Type <span className="text-red-500">*</span>
               </label>
               <select
                 value={form.productType}
                 onChange={(e) => setForm({ ...form, productType: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black focus:outline-none focus:border-black"
               >
                 <option value="">Select product type</option>
                 <option value="battery">Battery / Energy Storage</option>
@@ -272,13 +299,13 @@ export default function RequestAccessPage() {
 
             {/* Estimated Batches */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                 Estimated Monthly Batches
               </label>
               <select
                 value={form.estimatedBatches}
                 onChange={(e) => setForm({ ...form, estimatedBatches: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black focus:outline-none focus:border-black"
               >
                 <option value="">Select range</option>
                 <option value="<5">Less than 5</option>
@@ -290,13 +317,13 @@ export default function RequestAccessPage() {
 
             {/* Market Region */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
                 Primary Export Market
               </label>
               <select
                 value={form.marketRegion}
                 onChange={(e) => setForm({ ...form, marketRegion: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black focus:outline-none focus:border-black"
               >
                 <option value="">Select market</option>
                 <option value="eu">European Union</option>
@@ -308,15 +335,15 @@ export default function RequestAccessPage() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-crew-ink mb-1.5">
-                Phone Number <span className="text-crew-muted font-normal">(optional)</span>
+              <label className="block text-xs font-mono font-bold tracking-wider uppercase text-black mb-1.5">
+                Phone Number <span className="text-black/40 font-normal">(optional)</span>
               </label>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 placeholder="+91 98765 43210"
-                className="w-full px-4 py-2.5 rounded-lg border border-crew-border bg-white text-sm text-crew-ink placeholder:text-crew-muted focus:outline-none focus:ring-2 focus:ring-crew-coral/20 focus:border-crew-coral"
+                className="w-full px-4 py-2.5 rounded-none border border-black/20 bg-white text-sm text-black placeholder:text-black/40 focus:outline-none focus:border-black"
               />
             </div>
 
@@ -325,24 +352,20 @@ export default function RequestAccessPage() {
                 <AlertCircle className="w-4 h-4" /> {errors.submit}
               </p>
             )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg bg-crew-coral text-white font-semibold text-sm hover:bg-crew-coral transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full h-12 inline-flex items-center justify-center gap-2 px-7 text-[12px] font-mono font-bold tracking-widest uppercase text-emerald-400 bg-black hover:bg-slate-900 transition-all clip-chamfer press-scale shadow-lg disabled:opacity-60"
             >
               {loading ? "Submitting..." : "Submit Application"}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
-
-            <p className="text-xs text-crew-muted text-center">
-              Not a manufacturer?{" "}
-              <a href="mailto:founders@anviora.io" className="text-crew-coral hover:underline">
-                Apply as a Partner
-              </a>
-            </p>
           </form>
         </motion.div>
       </div>
+
+      <Footer />
     </main>
   );
 }

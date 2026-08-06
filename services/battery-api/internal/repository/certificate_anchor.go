@@ -55,8 +55,11 @@ type CertificateAnchorWithBatch struct {
 // GetCertificateAnchorsByTenant returns anchors across all of a tenant's
 // batches, optionally filtered by cert_type and/or status, most recent first.
 func (r *Repository) GetCertificateAnchorsByTenant(ctx context.Context, tenantID uuid.UUID, certType, status string, limit, offset int) ([]*CertificateAnchorWithBatch, error) {
-	if limit <= 0 || limit > 200 {
+	if limit <= 0 {
 		limit = 50
+	}
+	if limit > 200 {
+		limit = 200 // P-02: clamp, do not reset to default
 	}
 	query := `SELECT a.id, a.batch_id, a.tenant_id, a.cert_type, a.file_url, a.file_hash,
 			  a.ots_proof, a.bitcoin_tx_id, a.status, a.anchored_at, a.created_at, b.batch_name

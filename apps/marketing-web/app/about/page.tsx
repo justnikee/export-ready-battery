@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/navbar";
+import SiteHeader from "@/components/site-header";
 import Footer from "@/components/sections/footer";
 import AboutHero from "@/components/sections/about-hero";
 import AboutMission from "@/components/sections/about-mission";
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="relative min-h-screen bg-white">
-      <Navbar />
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
+      <SiteHeader />
       <AboutHero />
       <AboutMission />
       <AboutWhy />

@@ -6,7 +6,9 @@
  * `user.role === "OWNER" || user.role === "ADMIN"` checks, so there is one
  * place to update if the role vocabulary changes.
  *
- * Note: this is UX-only — the backend's RequireRole middleware is the real gate.
+ * UX-only for disabling buttons/menus. The real gate is server-side:
+ * `middleware.RequireWrite` (OWNER|ADMIN|MEMBER) on mutating routes (S-02).
+ * VIEWER calls to write APIs receive 403 even if the UI is bypassed.
  */
 
 /** Canonical role constants (UPPERCASE, matching backend). */

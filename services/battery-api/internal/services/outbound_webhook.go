@@ -51,18 +51,19 @@ type OutboundWebhookService struct {
 	client *http.Client
 }
 
-// NewOutboundWebhookService creates a webhook dispatcher with a 10s timeout HTTP client
+// NewOutboundWebhookService creates a webhook dispatcher with an SSRF-hardened HTTP client.
 func NewOutboundWebhookService(repo OutboundWebhookRepository) *OutboundWebhookService {
 	return &OutboundWebhookService{
-		repo: repo,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
+		repo:   repo,
+		client: NewSafeWebhookHTTPClient(),
 	}
 }
 
-// Create persists a new outbound webhook configuration.
+// Create persists a new outbound webhook configuration after SSRF URL validation.
 func (s *OutboundWebhookService) Create(ctx context.Context, wh *models.OutboundWebhook) error {
+	if err := ValidateOutboundWebhookURL(wh.URL); err != nil {
+		return fmt.Errorf("invalid webhook url: %w", err)
+	}
 	return s.repo.CreateOutboundWebhook(ctx, wh)
 }
 
@@ -232,6 +233,12 @@ func (s *OutboundWebhookService) RetryFailedDeliveries(ctx context.Context, limi
 // attempt performs a single HTTP POST attempt and returns the outcome,
 // without touching storage — shared by the first-send and retry paths.
 func (s *OutboundWebhookService) attempt(ctx context.Context, wh *models.OutboundWebhook, body []byte) (status *int, responseBody, errMsg string) {
+	// Re-validate on every delivery (S-04): blocks legacy rows that pointed at
+	// private IPs and resists DNS rebinding between create and send.
+	if err := ValidateOutboundWebhookURL(wh.URL); err != nil {
+		return nil, "", fmt.Sprintf("webhook url blocked: %v", err)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, wh.URL, bytes.NewReader(body))
 	if err != nil {
 		return nil, "", fmt.Sprintf("failed to build request: %v", err)

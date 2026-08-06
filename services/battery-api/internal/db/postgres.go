@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,11 +14,16 @@ import (
 // DB wraps the pgx connection pool
 type DB struct {
 	Pool *pgxpool.Pool
+	// PoolConfig is the sizing applied at Connect (for diagnostics / tests).
+	PoolConfig PoolConfig
 }
 
 // Connect establishes a connection pool to PostgreSQL with exponential backoff
 // retry logic. It will attempt up to maxRetries (5) with an initial delay of
 // 1 second, doubling each attempt.
+//
+// Pool size defaults (P-01): MaxConns=20, MinConns=2 — override with DB_MAX_CONNS /
+// DB_MIN_CONNS. Size against your Supabase pooler limit across all instances.
 func Connect(databaseURL string) (*DB, error) {
 	const maxRetries = 5
 	const initialDelay = 1 * time.Second
@@ -28,11 +33,11 @@ func Connect(databaseURL string) (*DB, error) {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
-	// Connection pool settings (configurable via env vars)
-	config.MaxConns = int32(getEnvInt("DB_MAX_CONNS", 4))
-	config.MinConns = int32(getEnvInt("DB_MIN_CONNS", 1))
-	config.MaxConnLifetime = time.Duration(getEnvInt("DB_MAX_CONN_LIFETIME_MIN", 60)) * time.Minute
-	config.MaxConnIdleTime = time.Duration(getEnvInt("DB_MAX_CONN_IDLE_MIN", 30)) * time.Minute
+	poolCfg := LoadPoolConfig()
+	config.MaxConns = poolCfg.MaxConns
+	config.MinConns = poolCfg.MinConns
+	config.MaxConnLifetime = poolCfg.MaxConnLifetime
+	config.MaxConnIdleTime = poolCfg.MaxConnIdleTime
 
 	// CRITICAL: Disable statement caching for Supabase PgBouncer compatibility
 	// PgBouncer in transaction mode doesn't support prepared statements
@@ -60,7 +65,13 @@ func Connect(databaseURL string) (*DB, error) {
 		cancel()
 
 		if err == nil {
-			return &DB{Pool: pool}, nil
+			slog.Info("database pool ready",
+				"max_conns", poolCfg.MaxConns,
+				"min_conns", poolCfg.MinConns,
+				"max_conn_lifetime", poolCfg.MaxConnLifetime.String(),
+				"max_conn_idle", poolCfg.MaxConnIdleTime.String(),
+			)
+			return &DB{Pool: pool, PoolConfig: poolCfg}, nil
 		}
 
 		if attempt < maxRetries {
@@ -85,12 +96,10 @@ func (db *DB) Ping(ctx context.Context) error {
 	return db.Pool.Ping(ctx)
 }
 
-// getEnvInt reads an env var as int, returning defaultVal if missing or invalid.
-func getEnvInt(key string, defaultVal int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
+// PoolStats returns a snapshot of pool utilization (for health / ops).
+func (db *DB) PoolStats() *pgxpool.Stat {
+	if db == nil || db.Pool == nil {
+		return nil
 	}
-	return defaultVal
+	return db.Pool.Stat()
 }

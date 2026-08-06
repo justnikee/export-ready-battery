@@ -406,7 +406,7 @@ const features = [
 
 export default function BatteryFeatures() {
   return (
-    <section className="py-20 lg:py-28 antialiased">
+    <section id="features" className="py-20 lg:py-28 antialiased">
       <div className="max-w-[1232px] mx-auto px-6">
         {/* Section Header */}
         <div className="max-w-[700px] mb-14 text-center mx-auto">

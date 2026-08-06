@@ -115,28 +115,37 @@ func ParseDeviceType(userAgentStr string) string {
 	return "Desktop"
 }
 
-// GetClientIP extracts the real client IP from request headers
-func GetClientIP(remoteAddr string, xForwardedFor string, xRealIP string) string {
-	// Priority: X-Real-IP > X-Forwarded-For > RemoteAddr
-	if xRealIP != "" {
-		return strings.TrimSpace(xRealIP)
-	}
-
-	if xForwardedFor != "" {
-		// X-Forwarded-For can contain multiple IPs, take the first one
-		ips := strings.Split(xForwardedFor, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
+// GetClientIP extracts the client IP for geo/rate-limit use (S-09).
+// When trustProxy is false, only remoteAddr is used (ignores spoofable headers).
+// When trustProxy is true, prefers rightmost X-Forwarded-For, then X-Real-IP.
+func GetClientIP(remoteAddr string, xForwardedFor string, xRealIP string, trustProxy bool) string {
+	if trustProxy {
+		if xForwardedFor != "" {
+			parts := strings.Split(xForwardedFor, ",")
+			for i := len(parts) - 1; i >= 0; i-- {
+				if ip := normalizeClientIP(parts[i]); ip != "" {
+					return ip
+				}
+			}
+		}
+		if ip := normalizeClientIP(xRealIP); ip != "" {
+			return ip
 		}
 	}
+	return normalizeClientIP(remoteAddr)
+}
 
-	// RemoteAddr might include port
-	if strings.Contains(remoteAddr, ":") {
-		host, _, err := net.SplitHostPort(remoteAddr)
-		if err == nil {
-			return host
-		}
+func normalizeClientIP(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
 	}
-
-	return remoteAddr
+	if host, _, err := net.SplitHostPort(raw); err == nil {
+		raw = host
+	}
+	raw = strings.Trim(raw, "[]")
+	if net.ParseIP(raw) == nil {
+		return ""
+	}
+	return raw
 }

@@ -23,7 +23,9 @@ import (
 )
 
 const (
-	// ThresholdForAsyncExport defines the minimum passport count to trigger async export
+	// ThresholdForAsyncExport is the passport count above which sync download
+	// endpoints reject and clients must use export jobs (handlers maxDownloadLimit).
+	// Keep equal to handlers.maxDownloadLimit (P-05).
 	ThresholdForAsyncExport = 500
 
 	// DownloadURLExpiry is how long presigned download URLs remain valid

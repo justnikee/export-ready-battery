@@ -25,9 +25,10 @@ type Handler struct {
 	razorpayService   *services.RazorpayService
 	validationService *services.ValidationService // India compliance validation
 	lifecycleService  *services.LifecycleService  // Passport lifecycle & audit
-	emailService      *services.EmailService      // Email service for invites
-	dataAccessService *services.DataAccessService // Data Access Tokens
-	regulatorAPIKey   string                      // Art 78 regulator access key
+	emailService         *services.EmailService         // Email service for invites
+	dataAccessService    *services.DataAccessService    // Data Access Tokens
+	regulatorAPIKey      string                         // Art 78 env bootstrap key (global; prefer DB keys)
+	regulatorKeyService  *services.RegulatorKeyService  // S-12 scoped regulator credentials + audit
 
 	// Phase 3: pluggable engines
 	batchService           *services.BatchService           // Schema validation + compliance runner
@@ -95,6 +96,11 @@ func WithRegistryVerificationService(svc *services.RegistryVerificationService) 
 // WithStorageService injects the StorageService for cloud uploads.
 func WithStorageService(svc *services.StorageService) Option {
 	return func(h *Handler) { h.storageService = svc }
+}
+
+// WithRegulatorKeyService injects S-12 scoped regulator credential validation + audit.
+func WithRegulatorKeyService(svc *services.RegulatorKeyService) Option {
+	return func(h *Handler) { h.regulatorKeyService = svc }
 }
 
 // New creates a new Handler with the given database connection.

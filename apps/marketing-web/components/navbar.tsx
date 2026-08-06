@@ -66,32 +66,14 @@ const navItems: NavItem[] = [
       },
       {
         label: "DGFT TRACE",
-        href: "/battery",
+        href: "/battery#features",
         desc: "Auto-file export incentive claims from your passport data.",
         icon: Coins,
         tone: ["bg-blue-tint", "text-blue"],
       },
     ],
   },
-  {
-    label: "Resources",
-    children: [
-      {
-        label: "Blog",
-        href: "/blog",
-        desc: "Regulation updates and export playbooks for manufacturers.",
-        icon: Newspaper,
-        tone: ["bg-blue-tint", "text-blue"],
-      },
-      {
-        label: "EU Battery Guide",
-        href: "/compliance/eu-battery-regulation",
-        desc: "The regulatory roadmap from CE marking to Feb 2027.",
-        icon: BookOpen,
-        tone: ["bg-blue-tint", "text-blue"],
-      },
-    ],
-  },
+  { label: "Blog", href: "/blog" },
   { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
 ];

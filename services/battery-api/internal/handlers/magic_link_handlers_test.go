@@ -507,8 +507,8 @@ func (f *fakeMagicRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID)
 func (f *fakeMagicRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
 func (f *fakeMagicRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
 func (f *fakeMagicRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
-func (f *fakeMagicRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
-func (f *fakeMagicRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMagicRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
+func (f *fakeMagicRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
 func (f *fakeMagicRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
 
 // AI parse cache stubs

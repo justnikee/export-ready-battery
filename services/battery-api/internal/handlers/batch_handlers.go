@@ -30,8 +30,49 @@ func sanitizeBatchName(name string) string {
 	return safe
 }
 
-// Maximum passports allowed in a single PDF/QR download to prevent memory exhaustion
+// Maximum passports allowed for a single synchronous export (QR ZIP, labels PDF,
+// serial CSV, audit CSV). Above this, clients must use POST /api/v1/export-jobs.
+// Keep in sync with services.ThresholdForAsyncExport (P-03 / P-05).
 const maxDownloadLimit = 500
+
+// syncExportTooLargeMsg is the shared 400 body for oversized sync downloads (P-05).
+func syncExportTooLargeMsg(kind, jobType string, count int) string {
+	return fmt.Sprintf(
+		"Batch too large for synchronous %s (%d passports). Maximum is %d. Use POST /api/v1/export-jobs with job_type=%s for bulk exports.",
+		kind, count, maxDownloadLimit, jobType,
+	)
+}
+
+// parseMarketRegionFilter parses ?market_region=EU or ?market_region=EU,GLOBAL (P-07).
+// Empty input → nil (no filter). Invalid tokens → error.
+func parseMarketRegionFilter(raw string) ([]string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, p := range parts {
+		m := strings.ToUpper(strings.TrimSpace(p))
+		if m == "" {
+			continue
+		}
+		switch models.MarketRegion(m) {
+		case models.MarketRegionIndia, models.MarketRegionEU, models.MarketRegionGlobal:
+			if _, ok := seen[m]; !ok {
+				seen[m] = struct{}{}
+				out = append(out, m)
+			}
+		default:
+			return nil, fmt.Errorf("invalid market_region %q; must be INDIA, EU, GLOBAL, or comma-separated list", p)
+		}
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, nil
+}
 
 // CreateBatch handles POST /api/v1/batches with dual-mode validation
 func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
@@ -282,14 +323,9 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse pagination params
-	limit := 50 // Default
+	// Parse pagination params (P-02: max 200)
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
 	page := 1
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if parsed, err := parseInt(limitStr); err == nil && parsed > 0 && parsed <= 200 {
-			limit = parsed
-		}
-	}
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		if parsed, err := parseInt(pageStr); err == nil && parsed > 0 {
 			page = parsed
@@ -303,8 +339,8 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		jwtProductType = models.DefaultProductType()
 	}
 
-	// Optional filters: ?status=DRAFT|ACTIVE|ARCHIVED and ?search=<text>
-	// applied in SQL so they cover all batches, not just the current page.
+	// Optional filters: ?status=DRAFT|ACTIVE|ARCHIVED, ?search=<text>,
+	// ?market_region=EU or ?market_region=EU,GLOBAL (P-07) — all SQL-side.
 	status := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))
 	switch status {
 	case "DRAFT", "ACTIVE", "ARCHIVED", "":
@@ -318,7 +354,13 @@ func (h *Handler) ListBatches(w http.ResponseWriter, r *http.Request) {
 		search = search[:200]
 	}
 
-	batches, totalCount, err := h.repo.ListBatchesFiltered(r.Context(), jwtTenantID, jwtProductType, limit, offset, status, search)
+	marketRegions, err := parseMarketRegionFilter(r.URL.Query().Get("market_region"))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	batches, totalCount, err := h.repo.ListBatchesFiltered(r.Context(), jwtTenantID, jwtProductType, limit, offset, status, search, marketRegions)
 	if err != nil {
 		slog.Error("Failed to list batches", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to list batches")
@@ -414,15 +456,13 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce max limit to prevent memory exhaustion
+	// P-05: force async export job above threshold
 	if count > maxDownloadLimit {
-		respondError(w, http.StatusBadRequest, fmt.Sprintf(
-			"Batch too large for download (%d passports). Maximum is %d. Please contact support for bulk exports.",
-			count, maxDownloadLimit))
+		respondError(w, http.StatusBadRequest, syncExportTooLargeMsg("QR ZIP download", "QR_ZIP", count))
 		return
 	}
 
-	// Get all passports for this batch (no limit for QR download)
+	// Get all passports for this batch (bounded by maxDownloadLimit)
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
 		slog.Error("Failed to get passports", "error", err)
@@ -513,15 +553,13 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enforce max limit to prevent memory exhaustion
+	// P-05: force async export job above threshold
 	if count > maxDownloadLimit {
-		respondError(w, http.StatusBadRequest, fmt.Sprintf(
-			"Batch too large for label download (%d passports). Maximum is %d. Please contact support for bulk exports.",
-			count, maxDownloadLimit))
+		respondError(w, http.StatusBadRequest, syncExportTooLargeMsg("label PDF download", "LABELS_PDF", count))
 		return
 	}
 
-	// Get all passports for this batch (no limit)
+	// Get all passports for this batch (bounded by maxDownloadLimit)
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
 		slog.Error("Failed to get passports", "error", err)
@@ -582,6 +620,12 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// P-05: was unbounded — large batches OOM'd the request goroutine
+	if count > maxDownloadLimit {
+		respondError(w, http.StatusBadRequest, syncExportTooLargeMsg("CSV export", "CSV", count))
+		return
+	}
+
 	// Hard block export if SHIPPED event missing (compliance)
 	missingShipped, err := h.repo.CountPassportsMissingShippedEvent(r.Context(), batchID)
 	if err != nil {
@@ -593,7 +637,7 @@ func (h *Handler) ExportBatchCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get all passports
+	// Get all passports (bounded)
 	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
 	if err != nil {
 		slog.Error("Failed to get passports", "error", err)
@@ -642,6 +686,14 @@ func (h *Handler) ExportBatchAuditCSV(w http.ResponseWriter, r *http.Request) {
 	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
 	if err != nil {
 		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+
+	// P-05: audit trail scales with passports × events — gate on passport count
+	// before loading the full event set into memory.
+	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
+	if count > maxDownloadLimit {
+		respondError(w, http.StatusBadRequest, syncExportTooLargeMsg("audit CSV export", "AUDIT_CSV", count))
 		return
 	}
 
@@ -863,14 +915,9 @@ func (h *Handler) GetBatchPassports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse pagination params
-	limit := 50 // Default
+	// Parse pagination params (P-02: max 200; passports previously capped at 100)
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
 	page := 1
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if parsed, err := parseInt(limitStr); err == nil && parsed > 0 && parsed <= 100 {
-			limit = parsed
-		}
-	}
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		if parsed, err := parseInt(pageStr); err == nil && parsed > 0 {
 			page = parsed

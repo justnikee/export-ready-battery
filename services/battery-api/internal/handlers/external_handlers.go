@@ -375,7 +375,10 @@ func (h *Handler) ExternalGetPassport(w http.ResponseWriter, r *http.Request) {
 }
 
 // ExternalDownloadLabels handles GET /api/v1/external/batches/{id}/labels
-// Returns PDF labels for a batch (for ERP integration)
+// Returns PDF labels for a batch (for ERP integration).
+//
+// P-03: same memory bound as JWT DownloadLabels — maxDownloadLimit (500).
+// Larger batches must use async export jobs (LABELS_PDF) rather than sync PDF.
 func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request) {
 	batchIDStr := r.PathValue("id")
 	batchID, err := uuid.Parse(batchIDStr)
@@ -410,15 +413,25 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Get all passports for the batch
-	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, 10000, 0)
+	// Count first — never load up to 10k rows before knowing size (P-03).
+	count, err := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if err != nil {
+		slog.Error("External API: Failed to count passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to get passports")
 		return
 	}
-
-	if len(passports) == 0 {
+	if count == 0 {
 		respondError(w, http.StatusBadRequest, "No passports in batch")
+		return
+	}
+	if count > maxDownloadLimit {
+		respondError(w, http.StatusBadRequest, syncExportTooLargeMsg("label PDF download", "LABELS_PDF", count))
+		return
+	}
+
+	passports, err := h.repo.GetPassportsByBatch(r.Context(), batchID, count, 0)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get passports")
 		return
 	}
 
@@ -440,7 +453,11 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 	w.Write(pdfBuffer.Bytes())
 
-	slog.Info("External API: Labels downloaded", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
+	slog.Info("External API: Labels downloaded",
+		"batch_name", batch.BatchName,
+		"passport_count", count,
+		"tenant", tenantIDStr[:8],
+	)
 }
 
 // ExternalTransitionPassportRequest is the body for an API-key-authenticated transition

@@ -51,11 +51,15 @@ testdata/*.zip
 .agent/
 issues.md
 
-# Graphify / AI instruction files
-.claude/
-CLAUDE.md
-memory/
+# Graphify output is large / regenerable — keep local
 graphify-out/
+
+# Claude local overrides only (skills + CLAUDE.md are tracked for agents)
+.claude/settings.local.json
+.claude/*.local.*
+
+# Optional local-only scratch under memory (durable INDEX/rules/backlog/ADRs/sessions are tracked)
+memory/.local/
 
 # Scratch / temp files
 temp.ts
@@ -85,7 +89,7 @@ apps/**/tsconfig.tsbuildinfo
 
 .agents
 skills-lock.json
-.claude
+# Track .claude/skills for repo agents; local overrides ignored above
 
 DUAL_PRODUCT_ROLLOUT_PLAN.md
 

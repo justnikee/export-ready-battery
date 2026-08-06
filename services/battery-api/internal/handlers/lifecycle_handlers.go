@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"strings"
 
@@ -781,18 +780,13 @@ func (h *LifecycleHandler) TransferPassport(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// getRequestIP returns the best-effort client IP address.
+// getRequestIP returns the best-effort client IP address (S-09 trusted extraction).
 func getRequestIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		parts := strings.Split(fwd, ",")
-		if len(parts) > 0 {
-			return strings.TrimSpace(parts[0])
-		}
+	ip := middleware.ClientIP(r)
+	if ip == "" {
+		return "unknown"
 	}
-	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
-	}
-	return r.RemoteAddr
+	return ip
 }
 
 func (h *LifecycleHandler) buildInternalEventActorContext(ctx context.Context) (models.ActorContext, int, error) {

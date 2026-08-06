@@ -381,6 +381,37 @@ func TestSupplierLogin_Success(t *testing.T) {
 	if resp.SupplierID != supplierID.String() {
 		t.Errorf("unexpected supplier_id: %v", resp.SupplierID)
 	}
+
+	// S-05: HttpOnly supplier_token cookie must be set for session rehydration
+	found := false
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "supplier_token" && c.Value != "" && c.HttpOnly {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected HttpOnly supplier_token cookie on login")
+	}
+}
+
+func TestSupplierLogout_ClearsCookie(t *testing.T) {
+	handler := newSupplierHandler(newFakeSupplierRepo())
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/supplier/logout", nil)
+	rr := httptest.NewRecorder()
+	handler.SupplierLogout(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	cleared := false
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "supplier_token" && c.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Error("expected supplier_token cookie to be cleared (MaxAge < 0)")
+	}
 }
 
 func TestSupplierLogin_InvalidPassword(t *testing.T) {
@@ -488,8 +519,8 @@ func (f *fakeSupplierRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UU
 func (f *fakeSupplierRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
 func (f *fakeSupplierRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
 func (f *fakeSupplierRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
-func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
-func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
+func (f *fakeSupplierRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
 func (f *fakeSupplierRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
 func (f *fakeSupplierRepo) CreateTeamAuditLog(ctx context.Context, log *models.TeamAuditLog) error { return nil }
 

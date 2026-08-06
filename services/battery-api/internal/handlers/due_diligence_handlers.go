@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/compliance/supplier"
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/google/uuid"
@@ -308,9 +309,8 @@ func (h *Handler) UploadEvidence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form (max 32MB)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "failed to parse form data")
+	// P-06: evidence uploads ≤ global 10MB body (was ParseMultipartForm 32MB)
+	if !parseMultipartForm(w, r, limits.MaxEvidenceUploadBytes) {
 		return
 	}
 
@@ -380,9 +380,7 @@ func (h *Handler) UploadCMRT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form (max 10MB for Excel)
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 10MB")
+	if !parseMultipartForm(w, r, limits.MaxCMRTUploadBytes) {
 		return
 	}
 
@@ -404,8 +402,8 @@ func (h *Handler) UploadCMRT(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	if header.Size > 10<<20 {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 10MB")
+	if header.Size > limits.MaxCMRTUploadBytes {
+		respondError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("File too large. Maximum size is %dMB", limits.MaxRequestBodyMB))
 		return
 	}
 

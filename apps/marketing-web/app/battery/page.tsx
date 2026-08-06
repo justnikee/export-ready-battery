@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/navbar";
+import SiteHeader from "@/components/site-header";
 import Footer from "@/components/sections/footer";
 import BatteryHero from "@/components/sections/battery-hero";
 import BatteryCompliance from "@/components/sections/battery-compliance";
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 
 export default function BatteryPage() {
   return (
-    <main className="relative min-h-screen bg-white">
-      <Navbar />
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
+      <SiteHeader />
       <BatteryHero />
       <BatteryCompliance />
       <BatteryPassportData />

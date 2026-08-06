@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -155,12 +155,8 @@ func (h *Handler) ListRegulatoryItems(w http.ResponseWriter, r *http.Request) {
 		MarketRegion: r.URL.Query().Get("market_region"),
 		Urgency:      r.URL.Query().Get("urgency"),
 	}
-	if l, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil {
-		filter.Limit = l
-	}
-	if o, err := strconv.Atoi(r.URL.Query().Get("offset")); err == nil {
-		filter.Offset = o
-	}
+	filter.Limit = ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	filter.Offset = ParseQueryOffset(r)
 
 	items, total, err := h.repo.ListRegulatoryItems(r.Context(), filter)
 	if err != nil {
@@ -185,14 +181,8 @@ func (h *Handler) GetRegulatoryAlerts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	unreadOnly := r.URL.Query().Get("unread_only") == "true"
-	limit := 50
-	offset := 0
-	if l, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil {
-		limit = l
-	}
-	if o, err := strconv.Atoi(r.URL.Query().Get("offset")); err == nil {
-		offset = o
-	}
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	offset := ParseQueryOffset(r)
 
 	alerts, total, err := h.repo.GetTenantRegulatoryAlerts(r.Context(), tenantID, unreadOnly, limit, offset)
 	if err != nil {
@@ -227,6 +217,13 @@ func (h *Handler) GetRegulatoryAlertUnreadCount(w http.ResponseWriter, r *http.R
 
 // MarkRegulatoryAlertRead marks a single alert as read.
 func (h *Handler) MarkRegulatoryAlertRead(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -234,7 +231,12 @@ func (h *Handler) MarkRegulatoryAlertRead(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.repo.MarkTenantRegulatoryAlertRead(r.Context(), id); err != nil {
+	// S-07: tenant-scoped so one org cannot mutate another's regulatory alerts.
+	if err := h.repo.MarkTenantRegulatoryAlertRead(r.Context(), id, tenantID); err != nil {
+		if strings.Contains(err.Error(), "alert not found") {
+			respondError(w, http.StatusNotFound, "alert not found")
+			return
+		}
 		slog.Error("failed to mark alert read", "error", err)
 		respondError(w, http.StatusInternalServerError, "failed to mark read")
 		return
@@ -244,6 +246,13 @@ func (h *Handler) MarkRegulatoryAlertRead(w http.ResponseWriter, r *http.Request
 
 // DismissRegulatoryAlert marks a single alert as dismissed.
 func (h *Handler) DismissRegulatoryAlert(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -251,7 +260,11 @@ func (h *Handler) DismissRegulatoryAlert(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.repo.MarkTenantRegulatoryAlertDismissed(r.Context(), id); err != nil {
+	if err := h.repo.MarkTenantRegulatoryAlertDismissed(r.Context(), id, tenantID); err != nil {
+		if strings.Contains(err.Error(), "alert not found") {
+			respondError(w, http.StatusNotFound, "alert not found")
+			return
+		}
 		slog.Error("failed to dismiss alert", "error", err)
 		respondError(w, http.StatusInternalServerError, "failed to dismiss")
 		return

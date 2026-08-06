@@ -10,6 +10,10 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { Lock, Loader2, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
+import {
+  getPasswordRequirements,
+  isPasswordValid,
+} from "@/lib/password-policy";
 import { type ProductSlug } from "@/lib/products";
 import { productRoutesFromSlug } from "@/lib/routes";
 
@@ -31,11 +35,8 @@ export function ResetPasswordForm({ productSlug }: ResetPasswordFormProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const passwordChecks = {
-    minLength: password.length >= 8,
-    hasNumber: /\d/.test(password),
-    hasLetter: /[a-zA-Z]/.test(password),
-  };
+  const passwordRequirements = getPasswordRequirements(password);
+  const passwordOk = isPasswordValid(password);
   const passwordsMatch =
     password === confirmPassword && confirmPassword.length > 0;
 
@@ -48,8 +49,8 @@ export function ResetPasswordForm({ productSlug }: ResetPasswordFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordChecks.minLength) {
-      toast.error("Password must be at least 8 characters");
+    if (!passwordOk) {
+      toast.error("Please meet all password requirements");
       return;
     }
 
@@ -186,36 +187,19 @@ export function ResetPasswordForm({ productSlug }: ResetPasswordFormProps) {
 
           {password.length > 0 && (
             <div className="space-y-1 mt-2">
-              <div
-                className={`flex items-center gap-2 text-xs ${passwordChecks.minLength ? "text-(--brand)" : "text-muted-foreground"}`}
-              >
-                {passwordChecks.minLength ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : (
-                  <XCircle className="h-3 w-3" />
-                )}
-                At least 8 characters
-              </div>
-              <div
-                className={`flex items-center gap-2 text-xs ${passwordChecks.hasLetter ? "text-(--brand)" : "text-muted-foreground"}`}
-              >
-                {passwordChecks.hasLetter ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : (
-                  <XCircle className="h-3 w-3" />
-                )}
-                Contains a letter
-              </div>
-              <div
-                className={`flex items-center gap-2 text-xs ${passwordChecks.hasNumber ? "text-(--brand)" : "text-muted-foreground"}`}
-              >
-                {passwordChecks.hasNumber ? (
-                  <CheckCircle className="h-3 w-3" />
-                ) : (
-                  <XCircle className="h-3 w-3" />
-                )}
-                Contains a number
-              </div>
+              {passwordRequirements.map((req) => (
+                <div
+                  key={req.id}
+                  className={`flex items-center gap-2 text-xs ${req.met ? "text-(--brand)" : "text-muted-foreground"}`}
+                >
+                  {req.met ? (
+                    <CheckCircle className="h-3 w-3" />
+                  ) : (
+                    <XCircle className="h-3 w-3" />
+                  )}
+                  {req.label}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -278,7 +262,7 @@ export function ResetPasswordForm({ productSlug }: ResetPasswordFormProps) {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isLoading || !passwordsMatch || !passwordChecks.minLength}
+          disabled={isLoading || !passwordsMatch || !passwordOk}
           variant="accent"
           className="w-full h-12 rounded-md disabled:opacity-50"
         >

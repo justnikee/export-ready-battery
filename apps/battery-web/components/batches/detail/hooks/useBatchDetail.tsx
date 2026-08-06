@@ -347,8 +347,44 @@ export function useBatchDetail(batchId: string, pathname: string) {
     }
   }, [batch, batchId, passportCount, router, exportsHref]);
 
+  // P-05: same 500 threshold as QR/labels — large batches use async export jobs
+  const MAX_DIRECT_DOWNLOAD = 500;
+
   const handleExportCSV = useCallback(async () => {
     if (!batch) return;
+
+    if (passportCount > MAX_DIRECT_DOWNLOAD) {
+      try {
+        toast.loading(
+          "Creating export job... This may take a few minutes for large batches.",
+          { id: "csv-export" },
+        );
+        const job = await createExportJob({
+          batch_id: batchId,
+          job_type: "CSV",
+        });
+        toast.success(
+          "Export job created! Go to Exports page to download when ready.",
+          {
+            id: "csv-export",
+            description: `Job ID: ${job.id}`,
+            duration: 10000,
+            action: {
+              label: "View Exports",
+              onClick: () => router.push(exportsHref),
+            },
+          },
+        );
+      } catch (error: unknown) {
+        const apiError = toApiError(error);
+        toast.error(
+          apiError.response?.data?.error || "Failed to create export job",
+          { id: "csv-export" },
+        );
+      }
+      return;
+    }
+
     try {
       toast.loading("Generating CSV export...", { id: "csv-export" });
       const response = await api.get(`/batches/${batchId}/export`, {
@@ -367,10 +403,43 @@ export function useBatchDetail(batchId: string, pathname: string) {
       const msg = await getApiErrorMessage(error, "Failed to export CSV");
       toast.error(msg, { id: "csv-export" });
     }
-  }, [batch, batchId]);
+  }, [batch, batchId, passportCount, router, exportsHref]);
 
   const handleExportAuditCSV = useCallback(async () => {
     if (!batch) return;
+
+    if (passportCount > MAX_DIRECT_DOWNLOAD) {
+      try {
+        toast.loading(
+          "Creating export job... This may take a few minutes for large batches.",
+          { id: "audit-export" },
+        );
+        const job = await createExportJob({
+          batch_id: batchId,
+          job_type: "AUDIT_CSV",
+        });
+        toast.success(
+          "Export job created! Go to Exports page to download when ready.",
+          {
+            id: "audit-export",
+            description: `Job ID: ${job.id}`,
+            duration: 10000,
+            action: {
+              label: "View Exports",
+              onClick: () => router.push(exportsHref),
+            },
+          },
+        );
+      } catch (error: unknown) {
+        const apiError = toApiError(error);
+        toast.error(
+          apiError.response?.data?.error || "Failed to create export job",
+          { id: "audit-export" },
+        );
+      }
+      return;
+    }
+
     try {
       toast.loading("Generating audit export...", { id: "audit-export" });
       const response = await api.get(`/batches/${batchId}/audit-export`, {
@@ -389,7 +458,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
       const msg = await getApiErrorMessage(error, "Failed to download audit export");
       toast.error(msg, { id: "audit-export" });
     }
-  }, [batch, batchId]);
+  }, [batch, batchId, passportCount, router, exportsHref]);
 
   const handleExportDueDiligence = useCallback(async () => {
     if (!batch) return;

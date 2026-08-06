@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/jobs"
@@ -150,18 +149,8 @@ func (h *Handler) GetTenantCertificateAnchors(w http.ResponseWriter, r *http.Req
 	certType := r.URL.Query().Get("cert_type")
 	status := r.URL.Query().Get("status")
 
-	limit := 50
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
-		}
-	}
-	offset := 0
-	if o := r.URL.Query().Get("offset"); o != "" {
-		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
-			offset = parsed
-		}
-	}
+	limit := ParseQueryLimit(r, DefaultListLimit, MaxListLimit)
+	offset := ParseQueryOffset(r)
 
 	anchors, err := h.repo.GetCertificateAnchorsByTenant(r.Context(), tenantID, certType, status, limit, offset)
 	if err != nil {
@@ -175,7 +164,8 @@ func (h *Handler) GetTenantCertificateAnchors(w http.ResponseWriter, r *http.Req
 }
 
 // UpgradeCertificateAnchors handles POST /api/v1/jobs/upgrade-anchors.
-// Admin-only endpoint to manually trigger the anchor upgrade job.
+// Platform-admin only (X-Admin-API-Key / ADMIN_API_KEY) — S-03.
+// The in-process anchor upgrade ticker still runs without HTTP; this is a manual trigger.
 func (h *Handler) UpgradeCertificateAnchors(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 	defer cancel()

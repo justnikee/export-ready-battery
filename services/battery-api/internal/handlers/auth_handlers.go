@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,12 +12,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/anvayalabs/battery-api/internal/db"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/services"
+)
+
+// S-14: public register responses must not reveal whether an email is already taken.
+const (
+	registerSelfSuccessMessage   = "Registration successful. Please check your email to verify your account before logging in."
+	registerInviteSuccessMessage = "Account created. You can now log in."
 )
 
 // AuthHandler handles authentication endpoints
@@ -216,8 +224,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		req.CompanyName = req.Email
 	}
 
-	if len(req.Password) < 8 {
-		respondError(w, http.StatusBadRequest, "password must be at least 8 characters")
+	// S-13: shared password policy (length, letter+digit, common-password blocklist).
+	if err := services.ValidatePassword(req.Password, req.Email); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if req.ProductType == "" {
@@ -229,25 +238,33 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Identity uniqueness is enforced on `users` now, not `tenants`.
-	var exists bool
-	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT EXISTS(SELECT 1 FROM public.users WHERE email = $1)", req.Email).Scan(&exists)
-	if err != nil {
-		slog.Error("Failed to check email existence", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to register")
-		return
-	}
-	if exists {
-		respondError(w, http.StatusConflict, "Email already registered")
-		return
-	}
-
-	// Hash password
+	// Hash password first so success and "email taken" paths take similar time (S-14).
 	passwordHash, err := h.authService.HashPassword(req.Password)
 	if err != nil {
 		slog.Error("Failed to hash password", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
+		return
+	}
+
+	// Identity uniqueness is enforced on `users` now, not `tenants`.
+	var existingUserID *uuid.UUID
+	var userIDScan uuid.UUID
+	err = h.db.Pool.QueryRow(r.Context(),
+		"SELECT id FROM public.users WHERE email = $1", req.Email).Scan(&userIDScan)
+	switch {
+	case err == nil:
+		existingUserID = &userIDScan
+	case err == pgx.ErrNoRows:
+		// new identity
+	default:
+		slog.Error("Failed to check email existence", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to register")
+		return
+	}
+
+	// ── S-14: existing email — never return 409 "Email already registered". ──
+	if existingUserID != nil {
+		h.handleRegisterExistingEmail(w, r, req, isInviteFlow, productType, *existingUserID)
 		return
 	}
 
@@ -263,6 +280,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			`INSERT INTO public.users (id, email, password_hash, email_verified, created_at)
 			 VALUES ($1, $2, $3, true, $4)`,
 			userID, req.Email, passwordHash, time.Now()); err != nil {
+			// Race: another request created the user — treat as existing (S-14).
+			if isUniqueViolation(err) {
+				h.handleRegisterExistingEmail(w, r, req, true, productType, uuid.Nil)
+				return
+			}
 			slog.Error("Failed to create user (invite)", "error", err)
 			respondError(w, http.StatusInternalServerError, "Failed to register")
 			return
@@ -309,7 +331,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		respondJSON(w, http.StatusCreated, map[string]string{
-			"message": "Account created. You can now log in.",
+			"message": registerInviteSuccessMessage,
 		})
 		return
 	}
@@ -347,6 +369,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			(id, email, password_hash, email_verified, email_verification_token, email_verification_expires, created_at)
 		 VALUES ($1, $2, $3, false, $4, $5, $6)`,
 		userID, req.Email, passwordHash, verificationToken, verificationExpires, time.Now()); err != nil {
+		// Race with concurrent register — same generic response as "already exists" (S-14).
+		if isUniqueViolation(err) {
+			_ = tx.Rollback(r.Context())
+			h.handleRegisterExistingEmail(w, r, req, false, productType, uuid.Nil)
+			return
+		}
 		slog.Error("Failed to create user", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to register")
 		return
@@ -369,8 +397,81 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("Failed to send verification email", "error", err)
 	}
 	respondJSON(w, http.StatusAccepted, map[string]string{
-		"message": "Registration successful. Please check your email to verify your account before logging in.",
+		"message": registerSelfSuccessMessage,
 	})
+}
+
+// handleRegisterExistingEmail is the S-14 anti-enumeration path when the email
+// is already a user. Always returns the same client-visible success shape as a
+// fresh registration; notifies the real owner out-of-band via email.
+func (h *AuthHandler) handleRegisterExistingEmail(
+	w http.ResponseWriter,
+	r *http.Request,
+	req RegisterRequest,
+	isInviteFlow bool,
+	productType models.ProductType,
+	existingUserID uuid.UUID,
+) {
+	// Resolve user id if caller only knew the email (unique-violation race).
+	if existingUserID == uuid.Nil {
+		var id uuid.UUID
+		if err := h.db.Pool.QueryRow(r.Context(),
+			"SELECT id FROM public.users WHERE email = $1", req.Email).Scan(&id); err == nil {
+			existingUserID = id
+		}
+	}
+
+	if isInviteFlow {
+		// Valid invite for this email: attach existing identity to the org.
+		// Invalid invite: same error as unknown-token path (does not say "email taken").
+		invite, invErr := h.repo.GetTeamMemberByToken(r.Context(), req.InviteToken)
+		if invErr != nil || invite == nil || invite.Email != req.Email {
+			respondError(w, http.StatusBadRequest, "Invalid or expired invitation")
+			return
+		}
+		if existingUserID != uuid.Nil {
+			if err := h.repo.UpdateTeamMemberStatus(r.Context(), invite.ID, models.TeamStatusActive, &existingUserID); err != nil {
+				slog.Error("Failed to activate invite for existing user", "error", err)
+				respondError(w, http.StatusInternalServerError, "Failed to register")
+				return
+			}
+			auditLog := &models.TeamAuditLog{
+				ID:           uuid.New(),
+				TenantID:     invite.TenantID,
+				ActorEmail:   invite.Email,
+				SubjectEmail: invite.Email,
+				Action:       "ACCEPT",
+				NewRole:      &invite.Role,
+				CreatedAt:    time.Now(),
+			}
+			_ = h.repo.CreateTeamAuditLog(r.Context(), auditLog)
+		}
+		respondJSON(w, http.StatusCreated, map[string]string{
+			"message": registerInviteSuccessMessage,
+		})
+		return
+	}
+
+	// Self-signup duplicate: tell the real owner via email; HTTP looks like success.
+	if h.emailService != nil {
+		if err := h.emailService.SendAccountExistsEmail(req.Email, productType); err != nil {
+			slog.Warn("Failed to send account-exists notice", "error", err)
+		}
+	} else {
+		slog.Info("Register attempt for existing email (no email service)", "email", req.Email)
+	}
+	respondJSON(w, http.StatusAccepted, map[string]string{
+		"message": registerSelfSuccessMessage,
+	})
+}
+
+// isUniqueViolation reports PostgreSQL unique_violation (23505).
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
+	}
+	return false
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -845,18 +946,14 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.NewPassword) < 8 {
-		respondError(w, http.StatusBadRequest, "password must be at least 8 characters")
-		return
-	}
-
 	// Find user by reset token
 	var userID uuid.UUID
+	var userEmail string
 	var expires time.Time
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, reset_token_expires FROM public.users
+		`SELECT id, email, reset_token_expires FROM public.users
 		 WHERE reset_token = $1 AND reset_token IS NOT NULL`,
-		req.Token).Scan(&userID, &expires)
+		req.Token).Scan(&userID, &userEmail, &expires)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusBadRequest, "Invalid or expired reset token")
@@ -870,6 +967,12 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	// Check if token expired
 	if time.Now().After(expires) {
 		respondError(w, http.StatusBadRequest, "Reset token has expired")
+		return
+	}
+
+	// S-13: password policy (with email so local-part reuse is rejected).
+	if err := services.ValidatePassword(req.NewPassword, userEmail); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -1005,13 +1108,18 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 	planType = services.NormalizePlan(planType)
 
-	// logo_url is stored as a canonical reference into the private compliance-docs
-	// bucket (see UploadLogo) — must be re-signed on every read or it 404s.
+	// logo_url + compliance certs live in the private compliance-docs bucket
+	// (canonical public-URL-shaped refs). Re-sign on every read (S-10) or
+	// browsers get 404 / unauthenticated access if the bucket were public.
 	logoURL, err := resolveFreshBucketURL(r.Context(), h.storageService, tenant.LogoURL)
 	if err != nil {
 		slog.Warn("Failed to resolve logo URL", "tenant_id", id, "error", err)
 		logoURL = tenant.LogoURL
 	}
+
+	eprPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.EPRCertificatePath)
+	bisPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.BISCertificatePath)
+	pliPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.PLICertificatePath)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"id":                                   tenant.ID,
@@ -1037,10 +1145,10 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"morth_manufacturer_code":              tenant.BatteryProfile.MorthManufacturerCode,
 		"morth_factory_codes":                  tenant.BatteryProfile.MorthFactoryCodes,
 		"data_visibility":                      tenant.DataVisibility,
-		// Certificate Document Paths
-		"epr_certificate_path": tenant.BatteryProfile.EPRCertificatePath,
-		"bis_certificate_path": tenant.BatteryProfile.BISCertificatePath,
-		"pli_certificate_path": tenant.BatteryProfile.PLICertificatePath,
+		// Short-lived signed URLs (1h) for private compliance-docs objects
+		"epr_certificate_path": eprPath,
+		"bis_certificate_path": bisPath,
+		"pli_certificate_path": pliPath,
 		// Document Verification Status
 		"epr_status": tenant.BatteryProfile.EPRStatus,
 		"bis_status": tenant.BatteryProfile.BISStatus,

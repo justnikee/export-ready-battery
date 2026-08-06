@@ -29,7 +29,8 @@ type RepositoryInterface interface {
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
 	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
-	ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error)
+	// marketRegions empty = no market filter; otherwise COALESCE(market_region,'GLOBAL') = ANY(marketRegions) (P-07).
+	ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string, marketRegions []string) ([]*models.Batch, int, error)
 	ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error)
 	GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
@@ -281,7 +282,7 @@ type RepositoryInterface interface {
 	GetAlertsByTenant(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]*models.TenantAlert, error)
 	GetUnreadAlerts(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.TenantAlert, error)
 	GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID) (int, error)
-	MarkAlertRead(ctx context.Context, alertID uuid.UUID) error
+	MarkAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error
 	MarkAlertEmailed(ctx context.Context, alertID uuid.UUID) error
 	HasRecentAlert(ctx context.Context, tenantID uuid.UUID, alertType string, resourceID *string, within time.Duration) (bool, error)
 
@@ -411,8 +412,8 @@ type RepositoryInterface interface {
 	CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error
 	GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error)
 	GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error)
-	MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error
-	MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error
+	MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error
+	MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error
 	ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error)
 
 	// ai_parse_cache.go

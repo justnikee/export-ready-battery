@@ -18,6 +18,10 @@ import {
   MailCheck,
 } from "lucide-react";
 import { authApi, type RegisterParams } from "@/lib/auth-api";
+import {
+  getPasswordRequirements,
+  isPasswordValid,
+} from "@/lib/password-policy";
 import { toast } from "sonner";
 import { type ProductSlug, productSlugToType } from "@/lib/products";
 import { productRoutesFromSlug } from "@/lib/routes";
@@ -53,14 +57,8 @@ export function RegisterForm({
     if (prefillEmail) setEmail(prefillEmail);
   }, [prefillEmail]);
 
-  const passwordRequirements = [
-    { label: "At least 8 characters", met: password.length >= 8 },
-    { label: "One uppercase letter", met: /[A-Z]/.test(password) },
-    { label: "One lowercase letter", met: /[a-z]/.test(password) },
-    { label: "One number", met: /\d/.test(password) },
-  ];
-
-  const allRequirementsMet = passwordRequirements.every((req) => req.met);
+  const passwordRequirements = getPasswordRequirements(password, email);
+  const allRequirementsMet = isPasswordValid(password, email);
   const passwordsMatch =
     password === confirmPassword && confirmPassword.length > 0;
 
@@ -241,8 +239,8 @@ export function RegisterForm({
               Password requirements:
             </p>
             <div className="grid grid-cols-2 gap-1.5">
-              {passwordRequirements.map((req, index) => (
-                <div key={index} className="flex items-center gap-1.5">
+              {passwordRequirements.map((req) => (
+                <div key={req.id} className="flex items-center gap-1.5">
                   {req.met ? (
                     <Check className="h-3.5 w-3.5 text-[var(--brand)]" />
                   ) : (

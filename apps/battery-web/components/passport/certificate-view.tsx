@@ -31,6 +31,16 @@ function getBaseUrl() {
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 }
 
+/** S-10: signed HTTPS URLs open as-is; legacy relative paths stay API-rooted. */
+function resolveCertHref(path: string) {
+  const p = path.trim();
+  if (p.startsWith("http://") || p.startsWith("https://")) {
+    return p;
+  }
+  const base = getBaseUrl().replace(/\/api\/v1\/?$/, "");
+  return p.startsWith("/") ? `${base}${p}` : `${base}/${p}`;
+}
+
 function DataRow({
   label,
   value,
@@ -884,7 +894,7 @@ export function CertificateView({
                 {tenant.bis_certificate_path &&
                 tenant.bis_certificate_path.trim() ? (
                   <a
-                    href={`${getBaseUrl()}${tenant.bis_certificate_path}`}
+                    href={resolveCertHref(tenant.bis_certificate_path)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
@@ -901,7 +911,7 @@ export function CertificateView({
                 {tenant.epr_certificate_path &&
                 tenant.epr_certificate_path.trim() ? (
                   <a
-                    href={`${getBaseUrl()}${tenant.epr_certificate_path}`}
+                    href={resolveCertHref(tenant.epr_certificate_path)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"
@@ -919,7 +929,7 @@ export function CertificateView({
                   tenant.pli_certificate_path &&
                   tenant.pli_certificate_path.trim() && (
                     <a
-                      href={`${getBaseUrl()}${tenant.pli_certificate_path}`}
+                      href={resolveCertHref(tenant.pli_certificate_path)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-3 py-2 bg-background hover:bg-accent rounded-lg border border-border text-sm text-foreground transition-colors"

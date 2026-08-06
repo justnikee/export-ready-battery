@@ -15,6 +15,7 @@ import (
 	"time"
 
 	supplierpkg "github.com/anvayalabs/battery-api/internal/compliance/supplier"
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
@@ -24,6 +25,40 @@ import (
 // ============================================================================
 // SUPPLIER PORTAL HANDLERS
 // ============================================================================
+
+// supplierCookieName is the HttpOnly session cookie for the supplier portal (S-05).
+// Kept separate from manufacturer auth_token / refresh_token.
+const supplierCookieName = "supplier_token"
+
+func setSupplierCookie(w http.ResponseWriter, token string, expiry time.Duration) {
+	maxAge := int(expiry.Seconds())
+	secure := os.Getenv("APP_ENV") == "production"
+	sameSite := http.SameSiteStrictMode
+	if !secure {
+		sameSite = http.SameSiteLaxMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     supplierCookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: sameSite,
+	})
+}
+
+func clearSupplierCookie(w http.ResponseWriter) {
+	secure := os.Getenv("APP_ENV") == "production"
+	http.SetCookie(w, &http.Cookie{
+		Name:     supplierCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+	})
+}
 
 // generateInvitationToken creates a secure random token for supplier invites.
 func generateInvitationToken() string {
@@ -126,10 +161,6 @@ func (h *Handler) AcceptSupplierInvitation(w http.ResponseWriter, r *http.Reques
 		respondError(w, http.StatusBadRequest, "token and password are required")
 		return
 	}
-	if len(req.Password) < 8 {
-		respondError(w, http.StatusBadRequest, "password must be at least 8 characters")
-		return
-	}
 
 	supplier, err := h.repo.GetSupplierByInvitationToken(r.Context(), req.Token)
 	if err != nil {
@@ -138,6 +169,12 @@ func (h *Handler) AcceptSupplierInvitation(w http.ResponseWriter, r *http.Reques
 	}
 	if supplier.Status != "invited" {
 		respondError(w, http.StatusConflict, "invitation already accepted or blocked")
+		return
+	}
+
+	// S-13: same password policy as manufacturer register/reset.
+	if err := services.ValidatePassword(req.Password, supplier.Email); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -218,14 +255,28 @@ func (h *Handler) SupplierLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// S-05: HttpOnly cookie for session rehydration (not readable by JS / XSS).
+	// Access token is also returned once for in-memory use on the client.
+	expiry := h.authService.GetTokenExpiry()
+	if expiry <= 0 {
+		expiry = 15 * time.Minute
+	}
+	setSupplierCookie(w, token, expiry)
+
 	respondJSON(w, http.StatusOK, models.SupplierLoginResponse{
 		Token:       token,
 		SupplierID:  supplier.ID,
 		TenantID:    supplier.TenantID,
 		Email:       supplier.Email,
 		CompanyName: supplier.CompanyName,
-		ExpiresIn:   900,
+		ExpiresIn:   int(expiry.Seconds()),
 	})
+}
+
+// SupplierLogout handles POST /api/v1/supplier/logout — clears the HttpOnly supplier session cookie.
+func (h *Handler) SupplierLogout(w http.ResponseWriter, r *http.Request) {
+	clearSupplierCookie(w)
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Logged out successfully"})
 }
 
 // ListSuppliers handles GET /api/v1/suppliers
@@ -302,9 +353,7 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 	supplierID, _ := uuid.Parse(supplierIDStr)
 	tenantID, _ := uuid.Parse(tenantIDStr)
 
-	// Parse multipart form (max 5MB)
-	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
+	if !parseMultipartForm(w, r, limits.MaxSupplierDocBytes) {
 		return
 	}
 
@@ -325,8 +374,8 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 	}
 	defer file.Close()
 
-	if header.Size > 5<<20 {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
+	if header.Size > limits.MaxSupplierDocBytes {
+		respondError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 5MB")
 		return
 	}
 
@@ -342,14 +391,16 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// S-11: allow only sniffed PDF/JPEG/PNG/TIFF — not arbitrary octet-stream.
+	contentType, ok := services.DetectAllowedDocMIME(fileBytes)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "Unsupported file type. Allowed: PDF, JPEG, PNG, TIFF")
+		return
+	}
+
 	filename := fmt.Sprintf("%s_%s_%s", docType, time.Now().Format("20060102_150405"), filepath.Base(header.Filename))
 	filename = strings.ReplaceAll(filename, " ", "_")
 	storagePath := fmt.Sprintf("%s/supplier-docs/%s/%s", tenantID.String(), supplierID.String(), filename)
-
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
 
 	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, contentType); err != nil {
 		slog.Error("Failed to upload supplier document to storage", "error", err, "supplier_id", supplierIDStr, "tenant_id", tenantIDStr)

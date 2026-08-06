@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
@@ -54,9 +55,8 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form (max 32MB)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "Failed to parse form data")
+	// P-06: multipart memory cap must not exceed global MaxBytesReader (10MB)
+	if !parseMultipartForm(w, r, limits.MaxCSVUploadBytes) {
 		return
 	}
 
@@ -208,9 +208,7 @@ func (h *Handler) ValidateCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "Failed to parse form data")
+	if !parseMultipartForm(w, r, limits.MaxCSVUploadBytes) {
 		return
 	}
 

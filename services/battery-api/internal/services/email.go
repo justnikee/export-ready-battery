@@ -162,6 +162,48 @@ If you didn't request this, please ignore this email.
 	return e.sendEmail(toEmail, "Reset Your Password - AnvayaLabs", htmlBuf.String(), plainText)
 }
 
+// SendAccountExistsEmail notifies an existing user that someone tried to register
+// with their email (S-14 anti-enumeration). Does not confirm to the HTTP client
+// whether the account exists — the API returns the same response either way.
+func (e *EmailService) SendAccountExistsEmail(toEmail string, productType models.ProductType) error {
+	productType = normalizeProductType(productType)
+	loginLink := fmt.Sprintf("%s/%s/login", e.baseURL, productSlug(productType))
+	forgotLink := fmt.Sprintf("%s/%s/forgot-password", e.baseURL, productSlug(productType))
+
+	if !e.enabled {
+		slog.Info("Account-exists notice generated (mock)", "to", toEmail, "login", loginLink)
+		return nil
+	}
+
+	plainText := fmt.Sprintf(`Sign-in attempt with your email
+
+Someone tried to create an AnvayaLabs account using this email address.
+
+If this was you, you already have an account — sign in here:
+%s
+
+Forgot your password?
+%s
+
+If you did not try to register, you can ignore this email. Your account was not changed.
+
+© 2026 AnvayaLabs %s
+`, loginLink, forgotLink, productLabel(productType))
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+<h2>You already have an AnvayaLabs account</h2>
+<p>Someone tried to register using <strong>%s</strong>.</p>
+<p>If this was you, sign in instead of creating a new account:</p>
+<p><a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px">Sign in</a></p>
+<p>Forgot your password? <a href="%s">Reset it here</a>.</p>
+<p><small>If you did not try to register, you can ignore this email. Your account was not changed.</small></p>
+<p>© 2026 AnvayaLabs %s</p>
+</body></html>`, toEmail, loginLink, forgotLink, productLabel(productType))
+
+	return e.sendEmail(toEmail, "You already have an AnvayaLabs account", html, plainText)
+}
+
 // SendVerificationEmail sends an email with a link to verify the user's email address.
 // In dev mode (enabled=false), the link is logged to console.
 func (e *EmailService) SendVerificationEmail(toEmail, verificationToken string, productType models.ProductType) error {

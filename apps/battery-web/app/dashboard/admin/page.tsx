@@ -7,8 +7,6 @@ import {
   listSignupRequests,
   approveSignupRequest,
   rejectSignupRequest,
-  runDailyAlerts,
-  upgradeCertificateAnchors,
   type SignupRequest,
 } from "@/lib/api/admin";
 import { toast } from "sonner";
@@ -17,11 +15,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  Zap,
-  Anchor,
   AlertTriangle,
   Clock,
-  RefreshCw,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,8 +58,6 @@ export default function AdminPage() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectId, setRejectId] = useState("");
   const [rejectReason, setRejectReason] = useState("");
-
-  const [jobLoading, setJobLoading] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
     setRequestsLoading(true);
@@ -127,34 +120,6 @@ export default function AdminPage() {
     setRejectOpen(true);
   };
 
-  const handleRunDailyAlerts = async () => {
-    setJobLoading("daily-alerts");
-    try {
-      const res = await runDailyAlerts();
-      toast.success(res.message);
-    } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Daily alert scan failed";
-      toast.error(msg);
-    } finally {
-      setJobLoading(null);
-    }
-  };
-
-  const handleUpgradeAnchors = async () => {
-    setJobLoading("upgrade-anchors");
-    try {
-      const res = await upgradeCertificateAnchors();
-      toast.success(res.message);
-    } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : "Anchor upgrade failed";
-      toast.error(msg);
-    } finally {
-      setJobLoading(null);
-    }
-  };
-
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-sidebar p-6 flex items-center justify-center">
@@ -181,7 +146,7 @@ export default function AdminPage() {
             Admin Panel
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage signup requests and run system jobs
+            Manage signup requests for this workspace
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -274,60 +239,8 @@ export default function AdminPage() {
         )}
       </Section>
 
-      {/* System Jobs */}
-      <Section title="System Jobs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-background rounded-md p-3 relative"><div className="flex items-center gap-2 mb-2">
-              <Zap className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-medium text-foreground">
-                Daily Alert Scan
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Runs certificate expiry checks (30-day window) and compliance score
-              monitoring (70% threshold).
-            </p>
-            <Button
-              size="sm"
-              className="h-7 text-xs gap-1"
-              disabled={jobLoading === "daily-alerts"}
-              onClick={handleRunDailyAlerts}
-            >
-              {jobLoading === "daily-alerts" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
-              Run Now
-            </Button>
-          </div>
-
-          <div className="bg-background rounded-md p-3 relative"><div className="flex items-center gap-2 mb-2">
-              <Anchor className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-foreground">
-                Upgrade Certificate Anchors
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Manually trigger the anchor upgrade job for pending blockchain
-              certificate anchors.
-            </p>
-            <Button
-              size="sm"
-              className="h-7 text-xs gap-1"
-              disabled={jobLoading === "upgrade-anchors"}
-              onClick={handleUpgradeAnchors}
-            >
-              {jobLoading === "upgrade-anchors" ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
-              Run Now
-            </Button>
-          </div>
-        </div>
-      </Section>
+      {/* Platform system jobs (daily-alerts, upgrade-anchors) require
+          ADMIN_API_KEY and are not available from this tenant UI (S-03). */}
 
       {/* Reject Dialog */}
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>

@@ -65,13 +65,15 @@ export function useBatch(id: string) {
 // Active EU/GLOBAL batches — the dataset the EU Compliance Hub's Carbon and
 // Overview tabs both need (carbon class distribution, Declaration of
 // Conformity status). One shared query so both tabs hit cache, not the API.
+// P-07: market_region filter is applied server-side (no client-side filter).
 export function useEuActiveBatches() {
     return useQuery({
         queryKey: ['euActiveBatches'],
         queryFn: async () => {
-            const response = await api.get('/batches?limit=200&status=ACTIVE')
-            const batches = (response.data.batches || []) as Batch[]
-            return batches.filter((b) => b.market_region === 'EU' || b.market_region === 'GLOBAL')
+            const response = await api.get(
+                '/batches?limit=200&status=ACTIVE&market_region=EU,GLOBAL',
+            )
+            return (response.data.batches || []) as Batch[]
         },
         staleTime: 60_000,
     })

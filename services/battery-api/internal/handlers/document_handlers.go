@@ -8,10 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/services"
@@ -25,9 +25,8 @@ var ValidDocumentTypes = map[string]string{
 	"pli": "pli_certificate_path",
 }
 
-const (
-	MaxUploadSize = 5 << 20 // 5MB
-)
+// MaxUploadSize is EPR/BIS/PLI cert upload ceiling (≤ global 10MB body — P-06).
+const MaxUploadSize = limits.MaxCertUploadBytes
 
 const complianceDocsBucket = "compliance-docs"
 
@@ -61,8 +60,7 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
+	if !parseMultipartForm(w, r, MaxUploadSize) {
 		return
 	}
 
@@ -84,12 +82,6 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType := header.Header.Get("Content-Type")
-	if contentType != "application/pdf" && !strings.HasSuffix(strings.ToLower(header.Filename), ".pdf") {
-		respondError(w, http.StatusBadRequest, "Only PDF files are allowed")
-		return
-	}
-
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		slog.Error("Failed to read uploaded file", "error", err)
@@ -97,7 +89,15 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Upload to Supabase Storage
+	// S-11: magic-byte check — do not trust Content-Type or .pdf extension alone.
+	if err := services.RequirePDF(fileBytes); err != nil {
+		respondError(w, http.StatusBadRequest, "Only valid PDF files are allowed (file content must start with %PDF-)")
+		return
+	}
+
+	// Upload to private compliance-docs bucket (S-10).
+	// DB stores a canonical public-URL-shaped reference only — never a signed
+	// URL (those expire). Reads re-sign via resolveFreshBucketURL / ViewDocument.
 	storagePath := fmt.Sprintf("%s/certificates/%s.pdf", tenantID.String(), documentType)
 	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, "application/pdf"); err != nil {
 		slog.Error("Failed to upload certificate to storage", "error", err, "tenant_id", tenantID, "doc_type", documentType)
@@ -105,25 +105,39 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	publicURL := h.storageService.PublicURL(complianceDocsBucket, storagePath)
+	canonicalRef := h.storageService.PublicURL(complianceDocsBucket, storagePath)
 
-	if err := h.repo.UpdateCertificatePath(r.Context(), tenantID, documentType, publicURL); err != nil {
+	if err := h.repo.UpdateCertificatePath(r.Context(), tenantID, documentType, canonicalRef); err != nil {
 		slog.Error("Failed to update tenant certificate path", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to update record")
 		return
 	}
 
+	// Fresh signed URL for the immediate client response only (1h).
+	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
+	if err != nil {
+		slog.Error("Failed to sign certificate URL for response", "error", err, "tenant_id", tenantID)
+		signedURL = "" // client should use GET /settings/documents/{type}
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success":       true,
-		"url":           publicURL,
+		"url":           signedURL,
+		"path":          canonicalRef, // opaque storage reference — not browser-openable without signing
 		"document_type": documentType,
 		"message":       fmt.Sprintf("%s certificate uploaded successfully", strings.ToUpper(documentType)),
 	})
 }
 
 // ViewDocument handles GET /api/v1/settings/documents/{type}
-// Redirects to the cloud storage URL (public or signed).
+// Re-signs a private-bucket certificate and redirects (S-10). Never exposes a
+// long-lived public object URL.
 func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
+	if h.storageService == nil {
+		storageUnavailable(w)
+		return
+	}
+
 	tenantIDStr := middleware.GetTenantID(r.Context())
 	if tenantIDStr == "" {
 		respondError(w, http.StatusUnauthorized, "Unauthorized")
@@ -148,28 +162,42 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var certURL string
+	var stored string
 	switch documentType {
 	case "epr":
-		certURL = tenant.BatteryProfile.EPRCertificatePath
+		stored = tenant.BatteryProfile.EPRCertificatePath
 	case "bis":
-		certURL = tenant.BatteryProfile.BISCertificatePath
+		stored = tenant.BatteryProfile.BISCertificatePath
 	case "pli":
-		certURL = tenant.BatteryProfile.PLICertificatePath
+		stored = tenant.BatteryProfile.PLICertificatePath
 	}
 
-	if certURL == "" {
+	if stored == "" {
 		respondError(w, http.StatusNotFound, fmt.Sprintf("No %s certificate uploaded", strings.ToUpper(documentType)))
 		return
 	}
 
-	// If it's already a public URL, redirect directly
-	if isHTTPURL(certURL) {
-		http.Redirect(w, r, certURL, http.StatusTemporaryRedirect)
-		return
+	// Prefer the deterministic private path; fall back to extracting from a
+	// legacy public/signed URL stored before S-10.
+	storagePath := fmt.Sprintf("%s/certificates/%s.pdf", tenantID.String(), documentType)
+	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
+	if err != nil {
+		// Legacy: stored value may be a full Supabase URL with a different path shape
+		signedURL, err = resolveFreshBucketURL(r.Context(), h.storageService, stored)
+		if err != nil || signedURL == "" {
+			slog.Error("Failed to sign certificate for view", "error", err, "tenant_id", tenantID, "doc_type", documentType)
+			respondError(w, http.StatusNotFound, "Certificate file not found")
+			return
+		}
 	}
 
-	respondError(w, http.StatusNotFound, "Certificate file not found")
+	// JSON preferred by SPA when Accept: application/json; otherwise redirect
+	// (axios blob clients that follow redirects still get the PDF).
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		respondJSON(w, http.StatusOK, map[string]interface{}{"url": signedURL})
+		return
+	}
+	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
 }
 
 // UploadLogo handles POST /api/v1/settings/upload-logo
@@ -192,9 +220,8 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	maxLogoSize := int64(2 << 20) // 2MB
-	if err := r.ParseMultipartForm(maxLogoSize); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 2MB")
+	maxLogoSize := limits.MaxLogoUploadBytes
+	if !parseMultipartForm(w, r, maxLogoSize) {
 		return
 	}
 
@@ -206,21 +233,7 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	if header.Size > maxLogoSize {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 2MB")
-		return
-	}
-
-	contentType := header.Header.Get("Content-Type")
-	ext := strings.ToLower(filepath.Ext(header.Filename))
-
-	var allowedExt string
-	switch {
-	case contentType == "image/png" || ext == ".png":
-		allowedExt = ".png"
-	case contentType == "image/jpeg" || ext == ".jpg" || ext == ".jpeg":
-		allowedExt = ".jpg"
-	default:
-		respondError(w, http.StatusBadRequest, "Only PNG and JPEG images are allowed")
+		respondError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 2MB")
 		return
 	}
 
@@ -228,6 +241,21 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to read uploaded logo", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to read file")
+		return
+	}
+
+	// S-11: sniff image magic bytes (ignore client Content-Type / extension).
+	var allowedExt string
+	var contentType string
+	switch services.DetectImageType(fileBytes) {
+	case services.ImagePNG:
+		allowedExt = ".png"
+		contentType = "image/png"
+	case services.ImageJPEG:
+		allowedExt = ".jpg"
+		contentType = "image/jpeg"
+	default:
+		respondError(w, http.StatusBadRequest, "Only valid PNG and JPEG images are allowed")
 		return
 	}
 
@@ -269,8 +297,8 @@ func (h *Handler) UploadLogo(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 const (
-	// maxPassportDocSize is the server-side limit for passport event documents.
-	maxPassportDocSize = 10 << 20 // 10 MiB
+	// maxPassportDocSize equals global body limit (P-06).
+	maxPassportDocSize = limits.MaxPassportDocBytes
 )
 
 // allowedDocMIMEs maps sniffed content-types that are permitted for event documents.
@@ -299,8 +327,7 @@ func (h *Handler) UploadPassportDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := r.ParseMultipartForm(maxPassportDocSize); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large or malformed form (max 10 MiB)")
+	if !parseMultipartForm(w, r, maxPassportDocSize) {
 		return
 	}
 
@@ -336,10 +363,9 @@ func (h *Handler) UploadPassportDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sniffed := http.DetectContentType(fileBytes)
-	mimeBase := strings.Split(sniffed, ";")[0]
-	mimeBase = strings.TrimSpace(mimeBase)
-	if !allowedDocMIMEs[mimeBase] {
+	// S-11: magic-byte sniff (PDF/JPEG/PNG/TIFF) — not client MIME/filename.
+	mimeBase, ok := services.DetectAllowedDocMIME(fileBytes)
+	if !ok || !allowedDocMIMEs[mimeBase] {
 		respondError(w, http.StatusUnsupportedMediaType,
 			"Unsupported file type. Allowed: PDF, JPEG, PNG, TIFF")
 		return

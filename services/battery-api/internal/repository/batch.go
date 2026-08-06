@@ -204,20 +204,24 @@ func (r *Repository) GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.U
 
 // ListBatches retrieves batches for a tenant with dual-mode fields and pagination
 func (r *Repository) ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error) {
-	return r.ListBatchesFiltered(ctx, tenantID, productType, limit, offset, "", "")
+	return r.ListBatchesFiltered(ctx, tenantID, productType, limit, offset, "", "", nil)
 }
 
-// ListBatchesFiltered retrieves batches for a tenant with optional status and
-// text-search filters applied server-side (so search works across all pages,
-// not just the currently loaded one). Empty status/search mean "no filter".
+// ListBatchesFiltered retrieves batches for a tenant with optional status,
+// text-search, and market_region filters applied server-side (P-07).
+// Empty status/search/marketRegions mean "no filter" for that dimension.
 // Search matches batch name, model name, or batch ID (partial, case-insensitive).
-func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error) {
+// marketRegions values are compared to COALESCE(market_region::text, 'GLOBAL').
+func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string, marketRegions []string) ([]*models.Batch, int, error) {
 	// Default limit if not specified
 	if limit <= 0 {
 		limit = 50
 	}
 	if limit > 200 {
 		limit = 200 // Cap at 200
+	}
+	if marketRegions == nil {
+		marketRegions = []string{}
 	}
 
 	// Get total count first (same filters as the page query)
@@ -228,8 +232,10 @@ func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID
 	            AND ($3 = '' OR COALESCE(status, 'DRAFT') = $3)
 	            AND ($4 = '' OR batch_name ILIKE '%' || $4 || '%'
 	                 OR COALESCE(model_name, '') ILIKE '%' || $4 || '%'
-	                 OR id::text ILIKE '%' || $4 || '%')`
-	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, productType, status, search).Scan(&totalCount); err != nil {
+	                 OR id::text ILIKE '%' || $4 || '%')
+	            AND (cardinality($5::text[]) = 0
+	                 OR COALESCE(market_region::text, 'GLOBAL') = ANY($5::text[]))`
+	if err := r.db.Pool.QueryRow(ctx, countQuery, tenantID, productType, status, search, marketRegions).Scan(&totalCount); err != nil {
 		return nil, 0, fmt.Errorf("failed to count batches: %w", err)
 	}
 
@@ -259,6 +265,8 @@ func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID
 	            AND ($6 = '' OR b.batch_name ILIKE '%' || $6 || '%'
 	                 OR COALESCE(b.model_name, '') ILIKE '%' || $6 || '%'
 	                 OR b.id::text ILIKE '%' || $6 || '%')
+	            AND (cardinality($7::text[]) = 0
+	                 OR COALESCE(b.market_region::text, 'GLOBAL') = ANY($7::text[]))
 	          GROUP BY b.id, b.tenant_id, b.batch_name, b.model_name, b.specs, b.created_at, b.status,
 	                   b.market_region, b.pli_compliant, b.domestic_value_add,
 	                   b.manufacturing_start_date, b.manufacturing_end_date,
@@ -268,7 +276,7 @@ func (r *Repository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID
 	          ORDER BY b.created_at DESC
 	          LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset, productType, status, search)
+	rows, err := r.db.Pool.Query(ctx, query, tenantID, limit, offset, productType, status, search, marketRegions)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list batches: %w", err)
 	}

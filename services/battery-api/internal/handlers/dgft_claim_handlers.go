@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
@@ -112,7 +113,11 @@ func (h *Handler) ListDGFTClaims(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	search := r.URL.Query().Get("search")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if page <= 0 {
+		page = 1
+	}
+	// P-02: page_size hard-capped at MaxListLimit (200)
+	pageSize := ParseQueryPageSize(r, 20, MaxListLimit)
 
 	claims, total, err := h.repo.ListDGFTClaimsByTenant(r.Context(), tenantID, schemeType, status, search, page, pageSize)
 	if err != nil {
@@ -437,9 +442,7 @@ func (h *Handler) UploadDGFTClaimDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Parse multipart form (max 5MB)
-	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
+	if !parseMultipartForm(w, r, limits.MaxDGFTDocBytes) {
 		return
 	}
 
@@ -456,14 +459,8 @@ func (h *Handler) UploadDGFTClaimDocument(w http.ResponseWriter, r *http.Request
 	}
 	defer file.Close()
 
-	if header.Size > 5<<20 {
-		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
-		return
-	}
-
-	contentType := header.Header.Get("Content-Type")
-	if contentType != "application/pdf" && !strings.HasSuffix(strings.ToLower(header.Filename), ".pdf") {
-		respondError(w, http.StatusBadRequest, "Only PDF files are allowed")
+	if header.Size > limits.MaxDGFTDocBytes {
+		respondError(w, http.StatusRequestEntityTooLarge, "File too large. Maximum size is 5MB")
 		return
 	}
 
@@ -476,6 +473,12 @@ func (h *Handler) UploadDGFTClaimDocument(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		slog.Error("Failed to read uploaded file", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to read file")
+		return
+	}
+
+	// S-11: require PDF magic bytes (not Content-Type / .pdf extension alone).
+	if err := services.RequirePDF(fileBytes); err != nil {
+		respondError(w, http.StatusBadRequest, "Only valid PDF files are allowed (file content must start with %PDF-)")
 		return
 	}
 

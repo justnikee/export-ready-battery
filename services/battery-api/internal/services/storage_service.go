@@ -289,9 +289,20 @@ func (s *StorageService) CreateSignedURLForBucket(ctx context.Context, bucket, f
 // path and re-derive a fresh signed URL on each read — this is the inverse
 // operation used to migrate/recover a path from an already-stored URL.
 // Returns ok=false if rawURL isn't a Supabase object URL for this bucket.
+//
+// Also accepts bare object keys (no scheme) such as
+// "{tenant_id}/certificates/epr.pdf" for callers that store paths only.
 func (s *StorageService) ExtractStoragePath(rawURL, bucket string) (string, bool) {
 	if rawURL == "" {
 		return "", false
+	}
+
+	// Bare storage key (no scheme / host) — treat as object path in bucket.
+	if !strings.Contains(rawURL, "://") && !strings.HasPrefix(rawURL, "/") {
+		key := strings.TrimSpace(rawURL)
+		if key != "" && !strings.Contains(key, "..") {
+			return key, true
+		}
 	}
 
 	for _, marker := range []string{

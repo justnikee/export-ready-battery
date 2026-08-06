@@ -283,7 +283,8 @@ func (p *RegistryWorkerPool) processTenantCertJob(ctx context.Context, job model
 	regType, err := registry.NormalizeRegistryType(job.DocType)
 	if err != nil {
 		// No registry adapter for this doc type (e.g. "epr"/"pli" today) —
-		// leave it for manual admin review via /api/v1/admin/verify-doc.
+		// leave it for manual platform-admin review via POST /api/v1/admin/verify-doc
+		// (X-Admin-API-Key / ADMIN_API_KEY — not tenant OWNER JWT).
 		_ = p.tenantCertStore.UpdateTenantCertVerificationJobStatus(ctx, jobID, "dead", job.AttemptCount+1, nil, "", "", fmt.Sprintf("no registry adapter for doc type %q", job.DocType))
 		return
 	}

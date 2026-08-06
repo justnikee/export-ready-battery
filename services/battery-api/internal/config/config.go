@@ -37,8 +37,14 @@ type Config struct {
 	// In production, set CORS_ORIGINS env var to your frontend domain (e.g., https://myapp.com)
 	CORSOrigins []string
 
-	// Art 78 Regulator Access (EU Battery Regulation)
+	// Art 78 Regulator Access (EU Battery Regulation).
+	// Optional bootstrap/global key. Prefer DB-backed scoped keys (S-12)
+	// via POST /api/v1/admin/regulator-keys. Env key remains for local/emergency.
 	RegulatorAPIKey string
+
+	// Platform Admin — cross-tenant operator actions (document verification, etc.).
+	// Sent as X-Admin-API-Key. Never use tenant OWNER JWT for these endpoints.
+	AdminAPIKey string
 
 	// AI / LLM Configuration
 	GroqAPIKey   string // Free tier LLM for datasheet parsing & NL batch creation
@@ -118,8 +124,11 @@ func Load() (*Config, error) {
 		if getEnv("RAZORPAY_KEY_ID", "") == "" || getEnv("RAZORPAY_KEY_SECRET", "") == "" {
 			slog.Warn("Razorpay credentials are empty in production: payments will fail")
 		}
-		if getEnv("REGULATOR_API_KEY", "") == "" {
-			slog.Warn("REGULATOR_API_KEY is empty in production: Article 78 regulator access may be exposed or fail")
+		if getEnv("REGULATOR_API_KEY", "") != "" {
+			slog.Warn("REGULATOR_API_KEY is set in production: prefer DB-scoped regulator keys (S-12); env key is global bootstrap")
+		}
+		if getEnv("ADMIN_API_KEY", "") == "" {
+			slog.Warn("ADMIN_API_KEY is empty in production: platform admin endpoints (e.g. document verification) are unavailable")
 		}
 	}
 
@@ -142,6 +151,7 @@ func Load() (*Config, error) {
 		FrontendURL:           getEnv("FRONTEND_URL", getEnv("BASE_URL", "http://localhost:3000")),
 		CORSOrigins:           parseOrigins(corsOrigins),
 		RegulatorAPIKey:        getEnv("REGULATOR_API_KEY", ""),
+		AdminAPIKey:            getEnv("ADMIN_API_KEY", ""),
 		GroqAPIKey:             getEnv("GROQ_API_KEY", ""),
 		GeminiAPIKey:           getEnv("GEMINI_API_KEY", ""),
 		BISBaseURL:             getEnv("BIS_BASE_URL", "https://www.bis.gov.in"),

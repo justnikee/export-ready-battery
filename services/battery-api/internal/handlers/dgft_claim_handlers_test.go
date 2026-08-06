@@ -333,8 +333,8 @@ func (f *fakeDGFTRepo) GetRegulatoryItemByID(ctx context.Context, id uuid.UUID) 
 func (f *fakeDGFTRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
 func (f *fakeDGFTRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
 func (f *fakeDGFTRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
-func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
-func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
+func (f *fakeDGFTRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
 func (f *fakeDGFTRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
 
 // AI parse cache stubs

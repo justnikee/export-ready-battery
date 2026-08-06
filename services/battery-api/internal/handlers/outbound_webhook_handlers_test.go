@@ -203,6 +203,32 @@ func TestCreateOutboundWebhook_PersistsAndReturnsSecret(t *testing.T) {
 	}
 }
 
+func TestCreateOutboundWebhook_RejectsPrivateIP(t *testing.T) {
+	repo := newFakeWebhookRepo()
+	svc := services.NewOutboundWebhookService(repo)
+	handler := NewOutboundWebhookHandler(svc)
+	tenantID := uuid.New()
+
+	for _, raw := range []string{
+		"http://127.0.0.1/hook",
+		"http://169.254.169.254/latest/meta-data/",
+		"http://10.0.0.1/hooks",
+		"http://localhost/hooks",
+	} {
+		body, _ := json.Marshal(models.CreateOutboundWebhookRequest{
+			URL:        raw,
+			EventTypes: []string{"lifecycle.RECALL"},
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/outbound-webhooks", bytes.NewReader(body))
+		req = setAuthContext(req, tenantID, "owner@example.com", models.ProductTypeBattery)
+		rr := httptest.NewRecorder()
+		handler.CreateOutboundWebhook(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("%s: expected 400, got %d: %s", raw, rr.Code, rr.Body.String())
+		}
+	}
+}
+
 func TestCreateOutboundWebhook_RejectsInvalidURL(t *testing.T) {
 	repo := newFakeWebhookRepo()
 	handler := NewOutboundWebhookHandler(services.NewOutboundWebhookService(repo))
@@ -298,6 +324,9 @@ func TestGetWebhookDeliveries_RejectsOtherTenant(t *testing.T) {
 }
 
 func TestRetryWebhookDelivery_Success(t *testing.T) {
+	services.TestingOnlyBypassSSRF(true)
+	t.Cleanup(func() { services.TestingOnlyBypassSSRF(false) })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

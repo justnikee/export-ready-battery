@@ -214,6 +214,9 @@ func TestOutboundWebhookService_CreateListDelete(t *testing.T) {
 }
 
 func TestOutboundWebhookService_Dispatch_LogsSuccessfulDelivery(t *testing.T) {
+	skipSSRFValidateForTest = true
+	t.Cleanup(func() { skipSSRFValidateForTest = false })
+
 	var received []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		received, _ = io.ReadAll(r.Body)
@@ -256,6 +259,9 @@ func TestOutboundWebhookService_Dispatch_LogsSuccessfulDelivery(t *testing.T) {
 }
 
 func TestOutboundWebhookService_Dispatch_LogsFailedDelivery(t *testing.T) {
+	skipSSRFValidateForTest = true
+	t.Cleanup(func() { skipSSRFValidateForTest = false })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -292,6 +298,9 @@ func TestOutboundWebhookService_Dispatch_LogsFailedDelivery(t *testing.T) {
 }
 
 func TestOutboundWebhookService_RetryDelivery_SucceedsAfterFailure(t *testing.T) {
+	skipSSRFValidateForTest = true
+	t.Cleanup(func() { skipSSRFValidateForTest = false })
+
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++

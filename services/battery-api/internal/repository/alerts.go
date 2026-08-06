@@ -87,12 +87,17 @@ func (r *Repository) GetUnreadAlertCount(ctx context.Context, tenantID uuid.UUID
 	return count, nil
 }
 
-// MarkAlertRead marks a single alert as read.
-func (r *Repository) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error {
-	query := `UPDATE public.tenant_alerts SET read_at = $1 WHERE id = $2`
-	_, err := r.db.Pool.Exec(ctx, query, time.Now(), alertID)
+// MarkAlertRead marks a single alert as read for the given tenant (S-07).
+// Returns pgx.ErrNoRows when the alert does not exist for that tenant (prevents
+// cross-tenant IDOR).
+func (r *Repository) MarkAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
+	query := `UPDATE public.tenant_alerts SET read_at = $1 WHERE id = $2 AND tenant_id = $3`
+	tag, err := r.db.Pool.Exec(ctx, query, time.Now(), alertID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to mark alert read: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
 	}
 	return nil
 }

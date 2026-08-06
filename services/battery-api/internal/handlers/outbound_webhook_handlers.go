@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -51,30 +50,32 @@ func (h *OutboundWebhookHandler) CreateOutboundWebhook(w http.ResponseWriter, r 
 		return
 	}
 
-	if req.URL == "" {
-		respondError(w, http.StatusBadRequest, "url is required")
-		return
-	}
-	parsedURL, err := url.Parse(req.URL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
-		respondError(w, http.StatusBadRequest, "url must be a valid http(s) URL")
-		return
-	}
 	if len(req.EventTypes) == 0 {
 		respondError(w, http.StatusBadRequest, "event_types list is required")
+		return
+	}
+
+	// S-04: SSRF checks (scheme, private/metadata IPs, DNS, userinfo, prod HTTPS).
+	if err := services.ValidateOutboundWebhookURL(req.URL); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid webhook url: "+err.Error())
 		return
 	}
 
 	wh := &models.OutboundWebhook{
 		ID:         uuid.New(),
 		TenantID:   tenantID,
-		URL:        req.URL,
+		URL:        strings.TrimSpace(req.URL),
 		Secret:     strings.ReplaceAll(uuid.New().String(), "-", ""),
 		EventTypes: req.EventTypes,
 		IsActive:   true,
 	}
 
 	if err := h.svc.Create(r.Context(), wh); err != nil {
+		// Validation errors should already be caught above; still map clearly.
+		if strings.Contains(err.Error(), "invalid webhook url") {
+			respondError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "Failed to create webhook")
 		return
 	}

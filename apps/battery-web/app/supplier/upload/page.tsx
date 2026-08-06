@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import api from "@/lib/api";
+import supplierApi from "@/lib/supplier-api";
 import { Upload, ArrowLeft, Camera, FileText } from "lucide-react";
+import Link from "next/link";
 
 const DOC_TYPES = [
   { value: "coc", label: "Certificate of Conformance" },
@@ -32,17 +33,11 @@ export default function SupplierUploadPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const supplierToken =
-    typeof window !== "undefined"
-      ? localStorage.getItem("supplier_token") || ""
-      : "";
-
   useEffect(() => {
     const fetchBatches = async () => {
       try {
-        const res = await api.get("/supplier/batches", {
-          headers: { Authorization: `Bearer ${supplierToken}` },
-        });
+        // Cookie / in-memory token only — never localStorage (S-05).
+        const res = await supplierApi.get("/supplier/batches");
         setBatches(res.data.batches || []);
       } catch {
         toast.error("Failed to load batches");
@@ -51,7 +46,7 @@ export default function SupplierUploadPage() {
       }
     };
     fetchBatches();
-  }, [supplierToken]);
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -77,11 +72,8 @@ export default function SupplierUploadPage() {
         formData.append("batch_id", batchId);
       }
 
-      await api.post("/supplier/documents", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${supplierToken}`,
-        },
+      await supplierApi.post("/supplier/documents", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Document uploaded successfully");
       setFile(null);
@@ -97,8 +89,10 @@ export default function SupplierUploadPage() {
   return (
     <div className="min-h-screen bg-[#F7F5F3]">
       <header className="bg-white border-b px-4 py-3 flex items-center gap-2 sticky top-0 z-10">
-        <Button size="sm" variant="ghost" onClick={() => window.history.back()}>
-          <ArrowLeft className="w-4 h-4" />
+        <Button size="sm" variant="ghost" asChild>
+          <Link href="/supplier/dashboard">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
         </Button>
         <span className="font-medium text-sm">Upload Document</span>
       </header>
@@ -107,106 +101,81 @@ export default function SupplierUploadPage() {
         <div className="space-y-1">
           <h1 className="text-lg font-semibold">Upload Document</h1>
           <p className="text-sm text-muted-foreground">
-            Submit certificates or reports for buyer review
+            Share certificates and provenance files with your buyer
           </p>
         </div>
 
-        <div className="space-y-3">
-          <Label>Document Type</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {DOC_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setDocType(t.value)}
-                className={`p-3 rounded-lg border text-left text-sm transition-colors ${
-                  docType === t.value
-                    ? "border-primary bg-primary/5 font-medium"
-                    : "border-border hover:bg-muted/50"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="batch">Linked Batch (optional)</Label>
-          {batchesLoading ? (
-            <div className="text-sm text-muted-foreground">Loading batches...</div>
-          ) : batches.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No active batches available
-            </div>
-          ) : (
+        <div className="space-y-4 bg-white border rounded-md p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="doc_type">Document type</Label>
             <select
-              id="batch"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              id="doc_type"
+              className="w-full h-9 border rounded-md px-2 text-sm bg-transparent"
+              value={docType}
+              onChange={(e) => setDocType(e.target.value)}
             >
-              <option value="">Select a batch...</option>
-              {batches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.batch_name} — {b.product_name}
+              {DOC_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Link this document to a specific batch for easier tracking
-          </p>
-        </div>
+          </div>
 
-        <div className="space-y-3">
-          <Label>File</Label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full p-6 rounded-lg border-2 border-dashed border-border hover:border-primary/50 transition-colors flex flex-col items-center gap-2"
-          >
+          <div className="space-y-1.5">
+            <Label htmlFor="batch_id">Batch (optional)</Label>
+            <select
+              id="batch_id"
+              className="w-full h-9 border rounded-md px-2 text-sm bg-transparent"
+              value={batchId}
+              onChange={(e) => setBatchId(e.target.value)}
+              disabled={batchesLoading}
+            >
+              <option value="">— None —</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.batch_name || b.product_name || b.id}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>File (max 5MB)</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="block w-full text-sm"
+              onChange={handleFileSelect}
+            />
             {file ? (
-              <>
-                <FileText className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium">{file.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </span>
-              </>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                {file.name}
+              </p>
+            ) : null}
+          </div>
+
+          <Button
+            className="w-full gap-2"
+            onClick={handleUpload}
+            disabled={uploading || !file}
+          >
+            {uploading ? (
+              "Uploading…"
             ) : (
               <>
-                <Camera className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Tap to select or take a photo
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  PDF, PNG, JPG up to 5MB
-                </span>
+                <Upload className="w-4 h-4" />
+                Upload
               </>
             )}
-          </button>
+          </Button>
         </div>
 
-        <Button
-          className="w-full"
-          disabled={!file || uploading}
-          onClick={handleUpload}
-        >
-          {uploading ? "Uploading..." : (
-            <>
-              <Upload className="w-4 h-4 mr-2" />
-              Submit for Review
-            </>
-          )}
-        </Button>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Camera className="w-3 h-3" />
+          You can also photograph certificates on mobile devices.
+        </p>
       </main>
     </div>
   );

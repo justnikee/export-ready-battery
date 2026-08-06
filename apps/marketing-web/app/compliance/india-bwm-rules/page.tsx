@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/navbar";
+import SiteHeader from "@/components/site-header";
 import Footer from "@/components/sections/footer";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
@@ -45,44 +45,57 @@ const checklist = [
 
 export default function IndiaBWMRulesPage() {
   return (
-    <main className="relative min-h-screen bg-white">
-      <Navbar />
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
+      <SiteHeader />
 
-      <section className="relative pt-[120px] pb-16 lg:pt-[160px] lg:pb-20">
-        <div className="max-w-[860px] mx-auto px-6">
-          <div className="text-[13px] font-semibold tracking-[-0.01em] text-crew-coral uppercase mb-3">
-            Compliance guide
+      {/* CRT Emerald Hero Banner */}
+      <section className="relative min-h-[380px] flex flex-col justify-between overflow-hidden bg-[#0e9f6e] text-black pt-24 sm:pt-28 pb-12 select-none">
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            background:
+              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px)",
+          }}
+        />
+        <div className="relative z-10 max-w-[1320px] w-full mx-auto px-6 sm:px-10 py-4">
+          <div className="max-w-[860px]">
+            <div className="inline-flex items-center gap-2.5 px-3 py-1 bg-transparent border border-black text-black clip-chamfer mb-4">
+              <span className="px-1.5 py-0.5 bg-black text-emerald-400 font-mono font-bold text-[10px] uppercase tracking-widest">
+                INDIA MANDATES
+              </span>
+              <span className="font-mono text-[12px] font-medium tracking-wide">
+                BWM Rules 2022 & CPCB EPR
+              </span>
+            </div>
+
+            <h1 className="font-heading font-semibold text-[clamp(32px,4.6vw,56px)] leading-[0.96] tracking-[-0.04em] text-black mb-4">
+              India&apos;s Battery Waste Management Rules, explained.
+            </h1>
+            <p className="text-[15px] sm:text-[17px] leading-[1.6] text-black/85 font-medium max-w-[640px]">
+              BWM Rules 2022, EPR registration, BIS certification, and PLI documentation — four separate compliance tracks that all draw on the same underlying product data.
+            </p>
           </div>
-          <h1 className="font-serif text-[clamp(32px,4.6vw,52px)] font-semibold leading-[1.06] tracking-[-0.02em] text-crew-ink">
-            India's Battery Waste Management Rules, explained.
-          </h1>
-          <p className="mt-5 text-[16px] sm:text-[17px] leading-[1.6] text-[#131313] max-w-[640px]">
-            BWM Rules 2022, EPR registration, BIS certification, and PLI documentation
-            — four separate compliance tracks that all draw on the same underlying
-            product data. Here's what's actually required to sell battery products in
-            India.
-          </p>
         </div>
       </section>
 
       <section className="py-[72px]">
         <div className="max-w-[1080px] mx-auto px-6">
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-crew-ink mb-10">
+          <h2 className="font-heading text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-black mb-10">
             The four requirements that matter most
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {requirements.map((r) => (
-              <div key={r.tag} className="p-6 rounded-3xl bg-paper">
+              <div key={r.tag} className="p-6 bg-white border border-black/15 clip-chamfer shadow-xs">
                 <div className="inline-flex items-center gap-2 mb-3">
-                  <ShieldCheck size={16} className="text-crew-coral" />
-                  <span className="text-[12px] font-semibold uppercase tracking-wider text-crew-coral">
+                  <ShieldCheck size={16} className="text-emerald-700" />
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-emerald-800">
                     {r.tag}
                   </span>
                 </div>
-                <h3 className="font-serif text-[19px] font-semibold tracking-[-0.02em] text-crew-ink mb-2">
+                <h3 className="font-heading text-[19px] font-semibold tracking-[-0.02em] text-black mb-2">
                   {r.title}
                 </h3>
-                <p className="text-[15px] leading-[1.6] text-[#131313]">{r.body}</p>
+                <p className="text-[15px] leading-[1.6] text-black/80">{r.body}</p>
               </div>
             ))}
           </div>
@@ -91,14 +104,14 @@ export default function IndiaBWMRulesPage() {
 
       <section className="py-[72px]">
         <div className="max-w-[720px] mx-auto px-6">
-          <h2 className="font-serif text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-crew-ink mb-8 text-center">
-            What you'll need on file
+          <h2 className="font-heading text-[clamp(24px,3vw,32px)] font-semibold tracking-[-0.02em] text-black mb-8 text-center">
+            What you&apos;ll need on file
           </h2>
-          <div className="bg-white rounded-3xl p-6">
+          <div className="bg-white border border-black/15 clip-chamfer p-6 shadow-xs">
             <ul className="space-y-3">
               {checklist.map((item) => (
-                <li key={item} className="text-[15px] text-crew-muted flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-crew-coral mt-1.5 shrink-0" />
+                <li key={item} className="text-[15px] text-black/80 flex items-start gap-2.5 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-2 shrink-0" />
                   {item}
                 </li>
               ))}
@@ -109,27 +122,24 @@ export default function IndiaBWMRulesPage() {
 
       <section className="py-[72px]">
         <div className="max-w-[860px] mx-auto px-6 text-center">
-          <h2 className="font-serif text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-crew-ink mb-4">
+          <h2 className="font-heading text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-black mb-4">
             Anviora Battery tracks every certificate against this checklist.
           </h2>
-          <p className="text-[16px] leading-[1.6] text-[#131313] max-w-[560px] mx-auto mb-7">
-            Upload once, and Anviora maps your data to EPR, BIS, PLI and AIS
-            requirements automatically — with expiry alerts so a lapsed certificate
-            never stops your line.
+          <p className="text-[16px] leading-[1.6] text-black/80 max-w-[560px] mx-auto mb-7">
+            Upload once, and Anviora maps your data to EPR, BIS, PLI and AIS requirements automatically — with expiry alerts so a lapsed certificate never stops your line.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
               href="/request-access"
-              className="group inline-flex items-center justify-center gap-1.5 h-[44px] px-6 rounded-full text-[15px] font-semibold text-white bg-crew-coral hover:bg-crew-coral-light transition-colors"
+              className="inline-flex items-center justify-center h-12 px-7 text-[12px] font-mono font-bold tracking-widest uppercase text-emerald-400 bg-black hover:bg-slate-900 transition-all clip-chamfer press-scale shadow-lg"
             >
               Request a Demo
-              <ArrowRight size={15} className="cta-arrow" />
             </a>
             <a
               href="/battery"
-              className="group inline-flex items-center gap-1 text-[15px] font-semibold text-crew-coral hover:text-crew-coral-light transition-colors"
+              className="inline-flex items-center justify-center h-12 px-7 text-[12px] font-mono font-bold tracking-widest uppercase text-black bg-transparent border-2 border-black hover:bg-black hover:text-emerald-400 transition-all clip-chamfer press-scale"
             >
-              See the full product <ArrowRight size={14} className="cta-arrow" />
+              See the full product
             </a>
           </div>
         </div>

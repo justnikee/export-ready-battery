@@ -120,7 +120,7 @@ func (m *MockRepository) ListBatches(ctx context.Context, tenantID uuid.UUID, pr
 	return args.Get(0).([]*models.Batch), args.Int(1), args.Error(2)
 }
 
-func (m *MockRepository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string) ([]*models.Batch, int, error) {
+func (m *MockRepository) ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string, marketRegions []string) ([]*models.Batch, int, error) {
 	args := m.Called(ctx, tenantID, productType, limit, offset, status, search)
 	if args.Get(0) == nil {
 		return nil, args.Int(1), args.Error(2)
@@ -1409,8 +1409,8 @@ func (m *MockRepository) GetUnreadAlertCount(ctx context.Context, tenantID uuid.
 	return args.Int(0), args.Error(1)
 }
 
-func (m *MockRepository) MarkAlertRead(ctx context.Context, alertID uuid.UUID) error {
-	args := m.Called(ctx, alertID)
+func (m *MockRepository) MarkAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
+	args := m.Called(ctx, alertID, tenantID)
 	return args.Error(0)
 }
 
@@ -2035,13 +2035,13 @@ func (m *MockRepository) GetTenantRegulatoryAlertUnreadCount(ctx context.Context
 	return args.Int(0), args.Error(1)
 }
 
-func (m *MockRepository) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error {
-	args := m.Called(ctx, alertID)
+func (m *MockRepository) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error {
+	args := m.Called(ctx, alertID, tenantID)
 	return args.Error(0)
 }
 
-func (m *MockRepository) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error {
-	args := m.Called(ctx, alertID)
+func (m *MockRepository) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error {
+	args := m.Called(ctx, alertID, tenantID)
 	return args.Error(0)
 }
 

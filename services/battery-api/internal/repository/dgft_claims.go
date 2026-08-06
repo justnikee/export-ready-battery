@@ -204,6 +204,9 @@ func (r *Repository) ListDGFTClaimsByTenant(ctx context.Context, tenantID uuid.U
 	if pageSize <= 0 {
 		pageSize = 20
 	}
+	if pageSize > 200 {
+		pageSize = 200 // P-02: hard cap list page size
+	}
 	if page <= 0 {
 		page = 1
 	}

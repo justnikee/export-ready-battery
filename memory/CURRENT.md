@@ -1,0 +1,61 @@
+# Current focus
+
+> **Agents: read this first every session.** Keep it short. Update when priorities shift.
+
+**Last updated:** 2026-08-05  
+**Last session:** [sessions/2026-08-05-p07-market-filter.md](sessions/2026-08-05-p07-market-filter.md)
+
+---
+
+## Now
+
+1. **Audit sprint through P-07 done.**
+   - Audit: [`docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md`](../docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md)
+   - Backlog: [`backlog.md`](backlog.md)
+
+| ID | Status | Notes |
+|----|--------|--------|
+| **S-01…S-15** | **Done** | ADRs 004–019 |
+| **P-01…P-07** | **Done** | ADRs 020–026 |
+| **P-08** | Open (lower) | Dashboard bootstrap BFF |
+| **S-16+** | Open (info) | Lower-priority audit notes |
+
+---
+
+## Do not
+
+- Do not re-open S-01 as “tenant OWNER verifies docs” — platform key only.
+- Do not put `RequireWrite` on supplier portal routes (use `RequireRole("supplier")`).
+- Do not expose `ADMIN_API_KEY` via `NEXT_PUBLIC_*` or tenant admin UI.
+- Do not weaken webhook SSRF (`ValidateOutboundWebhookURL` / safe dialer) for convenience.
+- Do not store supplier or manufacturer access tokens in `localStorage`.
+- Do not accept session JWT from `?token=` in Protect (S-06 / ADR 010).
+- Do not accept uploads on extension/MIME alone — use `RequirePDF` / `DetectAllowedDocMIME` (S-11 / ADR 015).
+- Do not treat env `REGULATOR_API_KEY` as the long-term Art. 78 model — use DB-scoped keys (S-12 / ADR 016).
+- Do not accept passwords under 12 chars / without letter+digit — use `ValidatePassword` (S-13 / ADR 017).
+- Do not return `409 Email already registered` on register — generic 202 + account-exists email (S-14 / ADR 018).
+- Do not reintroduce `script-src 'unsafe-inline'` — use proxy nonces + `strict-dynamic` (S-15 / ADR 019).
+- Do not set `DB_MAX_CONNS` so high that `instances × max` exceeds Supabase pooler (P-01 / ADR 020).
+- Do not accept unbounded list `limit` — use `ParseQueryLimit` / max 200 (P-02 / ADR 021).
+- Do not sync-export >`maxDownloadLimit` (500) passports (QR/labels/CSV/audit) — use export-jobs (P-03/P-05 / ADR 022/024).
+- Do not remove global/tenant API rate limits (P-04 / ADR 023).
+- Do not advertise multipart limits above `limits.MaxRequestBodyBytes` (10 MiB) (P-06 / ADR 025).
+- Do not client-filter market regions when `?market_region=` exists — filter server-side (P-07 / ADR 026).
+- Do not run `schema-reset-*` or edit applied migrations without explicit user ask.
+- Do not treat root `docs/*` master plans as current truth without checking code.
+
+---
+
+## Next concrete task
+
+Optional: **P-08** (dashboard bootstrap aggregate) or commit the security-perf branch.
+
+---
+
+## Env notes
+
+- `ADMIN_API_KEY` on battery-api for platform verify-doc + regulator key admin.
+- Never `NEXT_PUBLIC_*` for admin/regulator secrets.
+- Migration `000106_regulator_api_keys` before admin regulator-key routes.
+- Prefer DB regulator keys; env `REGULATOR_API_KEY` = global bootstrap only.
+- `DB_MAX_CONNS` defaults to 20 — size against pooler across replicas.

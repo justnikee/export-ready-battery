@@ -56,6 +56,13 @@ func TestExtractStoragePath(t *testing.T) {
 			wantPath: "",
 			wantOK:   false,
 		},
+		{
+			name:     "Bare object key",
+			rawURL:   "tenant-123/certificates/epr.pdf",
+			bucket:   "compliance-docs",
+			wantPath: "tenant-123/certificates/epr.pdf",
+			wantOK:   true,
+		},
 	}
 
 	for _, tt := range tests {

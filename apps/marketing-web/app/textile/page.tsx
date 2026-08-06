@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/navbar";
+import SiteHeader from "@/components/site-header";
 import Footer from "@/components/sections/footer";
 import TextileHero from "@/components/sections/textile-hero";
 import TextileChallenge from "@/components/sections/textile-challenge";
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function TextilePage() {
   return (
-    <main className="relative min-h-screen bg-white">
-      <Navbar />
+    <main className="relative min-h-screen bg-bg text-text overflow-x-clip">
+      <SiteHeader />
       <TextileHero />
       <TextileChallenge />
       <TextileFeatures />

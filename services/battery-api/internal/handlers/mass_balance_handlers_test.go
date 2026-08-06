@@ -469,8 +469,8 @@ func (f *fakeMassBalanceRepo) GetRegulatoryItemByID(ctx context.Context, id uuid
 func (f *fakeMassBalanceRepo) CreateTenantRegulatoryAlert(ctx context.Context, alert *models.TenantRegulatoryAlert) error { return nil }
 func (f *fakeMassBalanceRepo) GetTenantRegulatoryAlerts(ctx context.Context, tenantID uuid.UUID, unreadOnly bool, limit, offset int) ([]*models.TenantRegulatoryAlert, int, error) { return nil, 0, nil }
 func (f *fakeMassBalanceRepo) GetTenantRegulatoryAlertUnreadCount(ctx context.Context, tenantID uuid.UUID) (int, error) { return 0, nil }
-func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID uuid.UUID) error { return nil }
-func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID uuid.UUID) error { return nil }
+func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertRead(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
+func (f *fakeMassBalanceRepo) MarkTenantRegulatoryAlertDismissed(ctx context.Context, alertID, tenantID uuid.UUID) error { return nil }
 func (f *fakeMassBalanceRepo) ListTenantsForRegulatoryItem(ctx context.Context, item *models.RegulatoryItem) ([]uuid.UUID, error) { return nil, nil }
 
 // AI parse cache stubs

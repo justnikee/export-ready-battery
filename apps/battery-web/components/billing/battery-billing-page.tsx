@@ -371,8 +371,8 @@ export default function BillingPage() {
     buildSuccessMessage: (quotaAdded: number, seatsAdded: number) => string,
   ) => {
     // The checkout modal needs checkout.js from checkout.razorpay.com (loaded
-    // in app/layout.tsx, allowed by the CSP in next.config.ts). If it hasn't
-    // loaded — ad-blocker, offline, or a CSP regression — say exactly that
+    // in app/layout.tsx via nonced next/script, allowed by CSP in proxy.ts).
+    // If it hasn't loaded — ad-blocker, offline, or a CSP regression — say exactly that
     // before creating an order that could never be paid.
     if (typeof window.Razorpay === "undefined") {
       toast.error(
