@@ -48,12 +48,26 @@ export const recentBatchesFixture = {
   count: 1,
 };
 
+/** P-08: combined first-paint payload (stats + chart + recent). */
+export const dashboardBootstrapFixture = {
+  stats: dashboardStatsFixture,
+  chart_batches: batchesChartDataFixture.batches,
+  recent_batches: recentBatchesFixture.batches,
+  stale_draft_batch_count: 0,
+  chart_limit: 200,
+  recent_limit: 5,
+};
+
 export const scanFeedFixture = {
   scans: [],
   count: 0,
 };
 
 export const handlers = [
+  http.get("*/dashboard/bootstrap", () =>
+    HttpResponse.json(dashboardBootstrapFixture),
+  ),
+  // Keep fine-grained endpoints for other pages / legacy callers
   http.get("*/dashboard/stats", () => HttpResponse.json(dashboardStatsFixture)),
   http.get("*/batches/chart-data", () =>
     HttpResponse.json(batchesChartDataFixture),

@@ -30,18 +30,18 @@ vi.mock("@/components/dashboard/ScanMap", () => ({
 }));
 
 describe("DashboardPage", () => {
-  it("renders stats and recent batches from /dashboard/stats, /batches/chart-data and /batches/recent", async () => {
+  it("renders stats and recent batches from /dashboard/bootstrap (P-08)", async () => {
     render(<DashboardPage />);
 
-    // Recent batch name comes from GET /batches/recent
+    // Recent batch name from bootstrap.recent_batches
     await waitFor(() => {
       expect(screen.getByText("June Production Run")).toBeInTheDocument();
     });
 
-    // total_passports from GET /dashboard/stats
+    // total_passports from bootstrap.stats
     expect(screen.getByText("120")).toBeInTheDocument();
 
-    // Chart renders once /batches/chart-data resolves
+    // Chart renders once bootstrap resolves
     expect(screen.getByTestId("production-chart")).toBeInTheDocument();
   });
 });

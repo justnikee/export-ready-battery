@@ -72,12 +72,11 @@ interface RecentBatch {
   created_at: string;
 }
 
-interface BatchesChartDataResponse {
-  batches?: BatchChartData[];
-}
-
-interface RecentBatchesResponse {
-  batches?: Array<{
+/** P-08: single first-paint payload from GET /dashboard/bootstrap */
+interface DashboardBootstrapResponse {
+  stats: DashboardStats;
+  chart_batches?: BatchChartData[];
+  recent_batches?: Array<{
     id: string;
     name: string;
     created_at: string;
@@ -85,6 +84,7 @@ interface RecentBatchesResponse {
     status: string;
     market_region: string;
   }>;
+  stale_draft_batch_count?: number;
 }
 
 function getComplianceBadge(status: string | undefined) {
@@ -173,26 +173,18 @@ export default function DashboardPage() {
     if (!user) return;
 
     try {
-      // Fetch stats, lightweight batch chart data (for chart + compliance), and recent batches
-      const [statsRes, batchesRes, recentRes] = await Promise.all([
-        api.get<DashboardStats>(`/dashboard/stats`),
-        api.get<BatchesChartDataResponse>(`/batches/chart-data?limit=200`),
-        api.get<RecentBatchesResponse>(`/batches/recent?limit=5`),
-      ]);
-
-      setStats(statsRes.data);
-      const allBatches = batchesRes.data.batches || [];
-      setBatches(allBatches);
-      const now = Date.now();
-      setStaleDraftBatchCount(
-        allBatches.filter((b) => {
-          if (b.status !== "DRAFT") return false;
-          const daysSinceCreated = (now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24);
-          return daysSinceCreated > 7;
-        }).length,
+      // P-08: one HTTP call for first paint (stats + chart + recent).
+      // Server runs the three DB queries in parallel; browser pays one RTT.
+      const { data } = await api.get<DashboardBootstrapResponse>(
+        `/dashboard/bootstrap?chart_limit=200&recent_limit=5`,
       );
 
-      // Chart Data
+      setStats(data.stats);
+      const allBatches = data.chart_batches || [];
+      setBatches(allBatches);
+      setStaleDraftBatchCount(data.stale_draft_batch_count ?? 0);
+
+      // Chart Data (same client transform as before)
       const sortedAsc = [...allBatches].sort(
         (a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
@@ -222,7 +214,7 @@ export default function DashboardPage() {
           cData.push({ name: dateKey, value: runningTotal });
         }
         const lastVal = cData[cData.length - 1]?.value || 0;
-        const diff = (statsRes.data.total_passports || 0) - lastVal;
+        const diff = (data.stats?.total_passports || 0) - lastVal;
         setChartData(
           cData.map((d) => ({ name: d.name, value: d.value + diff })),
         );
@@ -230,8 +222,7 @@ export default function DashboardPage() {
         setChartData([{ name: "Today", value: 0 }]);
       }
 
-      // Recent Batches — from dedicated lightweight endpoint
-      const recent = recentRes.data.batches || [];
+      const recent = data.recent_batches || [];
       setRecentBatches(
         recent.map((b) => ({
           id: b.id,

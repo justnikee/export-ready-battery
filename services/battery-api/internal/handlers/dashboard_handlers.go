@@ -14,7 +14,129 @@ import (
 	"github.com/anvayalabs/battery-api/internal/models"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
+
+// DashboardBootstrap is the single first-paint payload for the manufacturer
+// dashboard (P-08). Combines what the FE previously fetched via 3 parallel
+// HTTP calls into one response; DB work still runs in parallel on the server.
+type DashboardBootstrap struct {
+	Stats                *models.DashboardStats    `json:"stats"`
+	ChartBatches         []*models.BatchChartData  `json:"chart_batches"`
+	RecentBatches        []*models.BatchSummary    `json:"recent_batches"`
+	StaleDraftBatchCount int                       `json:"stale_draft_batch_count"`
+	ChartLimit           int                       `json:"chart_limit"`
+	RecentLimit          int                       `json:"recent_limit"`
+}
+
+// GetDashboardBootstrap handles GET /api/v1/dashboard/bootstrap (P-08).
+//
+// Returns stats + chart-data + recent batches in one JSON body so the browser
+// pays one RTT for first paint. Fine-grained endpoints remain for other pages.
+func (h *Handler) GetDashboardBootstrap(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	if tenantIDStr == "" {
+		respondError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	productType := models.ProductType(middleware.GetProductType(r.Context()))
+	if !productType.IsValid() {
+		productType = models.DefaultProductType()
+	}
+
+	chartLimit := 200
+	if limitStr := r.URL.Query().Get("chart_limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 200 {
+			chartLimit = parsed
+		}
+	}
+	recentLimit := 5
+	if limitStr := r.URL.Query().Get("recent_limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 20 {
+			recentLimit = parsed
+		}
+	}
+
+	var (
+		stats         *models.DashboardStats
+		chartBatches  []*models.BatchChartData
+		recentBatches []*models.BatchSummary
+	)
+
+	g, gctx := errgroup.WithContext(r.Context())
+	g.Go(func() error {
+		var e error
+		stats, e = h.repo.GetDashboardStats(gctx, tenantID, productType)
+		if e != nil {
+			return fmt.Errorf("stats: %w", e)
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var e error
+		chartBatches, e = h.repo.GetBatchesChartData(gctx, tenantID, chartLimit)
+		if e != nil {
+			return fmt.Errorf("chart: %w", e)
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var e error
+		recentBatches, e = h.repo.GetRecentBatches(gctx, tenantID, recentLimit)
+		if e != nil {
+			return fmt.Errorf("recent: %w", e)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		slog.Error("Failed to build dashboard bootstrap", "error", err, "tenant_id", tenantID)
+		respondError(w, http.StatusInternalServerError, "Failed to load dashboard")
+		return
+	}
+
+	if chartBatches == nil {
+		chartBatches = []*models.BatchChartData{}
+	}
+	if recentBatches == nil {
+		recentBatches = []*models.BatchSummary{}
+	}
+
+	respondJSON(w, http.StatusOK, DashboardBootstrap{
+		Stats:                stats,
+		ChartBatches:         chartBatches,
+		RecentBatches:        recentBatches,
+		StaleDraftBatchCount: countStaleDraftBatches(chartBatches, 7),
+		ChartLimit:           chartLimit,
+		RecentLimit:          recentLimit,
+	})
+}
+
+// countStaleDraftBatches counts DRAFT batches older than daysThreshold
+// (matches FE ActionQueue stale-draft logic).
+func countStaleDraftBatches(batches []*models.BatchChartData, daysThreshold int) int {
+	if daysThreshold <= 0 {
+		daysThreshold = 7
+	}
+	cutoff := time.Now().AddDate(0, 0, -daysThreshold)
+	n := 0
+	for _, b := range batches {
+		if b == nil {
+			continue
+		}
+		if b.Status == "DRAFT" && b.CreatedAt.Before(cutoff) {
+			n++
+		}
+	}
+	return n
+}
 
 // GetDashboardStats handles GET /api/v1/dashboard/stats
 func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {

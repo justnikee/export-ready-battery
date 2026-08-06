@@ -583,6 +583,8 @@ func main() {
 	// DASHBOARD ROUTES (Protected)
 	// ============================================
 	mux.Handle("GET /api/v1/dashboard/stats", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardStats)))
+	// P-08: single first-paint payload (stats + chart + recent) — prefer over 3 parallel GETs
+	mux.Handle("GET /api/v1/dashboard/bootstrap", authMiddleware.Protect(http.HandlerFunc(h.GetDashboardBootstrap)))
 	mux.Handle("GET /api/v1/batches/recent", authMiddleware.Protect(http.HandlerFunc(h.GetRecentBatches)))
 	mux.Handle("GET /api/v1/batches/chart-data", authMiddleware.Protect(http.HandlerFunc(h.GetBatchesChartData)))
 	mux.Handle("GET /api/v1/scans/feed", feat(services.FeatureAdvancedAnalytics, http.HandlerFunc(h.GetScanFeed)))

@@ -40,7 +40,7 @@ Source of truth for security/perf detail: [`docs/BATTERY_SECURITY_PERFORMANCE_AU
 | P-05 | **done** | Sync heavy exports on request path | CSV/audit + QR/labels gates; FE async | ADR 024; max 500 |
 | P-06 | **done** | Multipart vs MaxBytes mismatch | `internal/limits` + parseMultipartForm | ADR 025; 10MB + 413 |
 | P-07 | **done** | Client-side EU batch filter | `ListBatchesFiltered` + useEuActiveBatches | ADR 026; market_region= |
-| P-08 | **todo** | Dashboard multiple fetches | dashboard handlers / FE | Bootstrap aggregate |
+| P-08 | **done** | Dashboard multiple fetches | `GET /dashboard/bootstrap` + FE | ADR 027; one first-paint call |
 
 ---
 

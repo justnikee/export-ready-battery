@@ -356,13 +356,13 @@ These are working patterns and should be preserved:
 
 ---
 
-#### P-08 — Dashboard still does multiple independent fetches
+#### P-08 — Dashboard still does multiple independent fetches — **FIXED (2026-08-05)**
 
-Dashboard uses TanStack Query well in places, but pages still compose many parallel endpoints. Without request coalescing/BFF, mobile/high-latency users pay waterfall costs.
+**Was:** Dashboard first paint used 3 parallel browser→API calls (stats, chart-data, recent).
 
-**Impact:** Slow TTFD on dashboard.
+**Fix applied:** `GET /api/v1/dashboard/bootstrap` returns stats + chart_batches + recent_batches + stale_draft_batch_count; server fans out with errgroup. FE dashboard uses bootstrap only. ADR 027.
 
-**Fix:** Aggregate “dashboard bootstrap” endpoint (stats + recent batches + unread counts) already partially present — expand and prefer it.
+**Residual:** Secondary widgets (regulatory deadlines, EPR obligation) still fetch independently after first paint.
 
 ---
 

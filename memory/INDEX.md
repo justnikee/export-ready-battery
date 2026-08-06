@@ -89,12 +89,13 @@ Multi-tenant SaaS for Indian manufacturers (battery mature; textile early) expor
 | [024](decisions/024-p05-sync-export-gates.md) | Gate synchronous heavy exports (P-05) |
 | [025](decisions/025-p06-upload-body-limits.md) | Unified HTTP body / multipart upload limits (P-06) |
 | [026](decisions/026-p07-market-region-filter.md) | Server-side batch market_region list filter (P-07) |
+| [027](decisions/027-p08-dashboard-bootstrap.md) | Dashboard bootstrap endpoint (P-08) |
 
 ---
 
 ## ADRs (recent security/perf sprint)
 
-Full table above. Latest for this sprint: **004–026** (S-01…S-15 + P-01…P-07).
+Full table above. Latest for this sprint: **004–027** (S-01…S-15 + P-01…P-08).
 
 ---
 

@@ -3,21 +3,20 @@
 > **Agents: read this first every session.** Keep it short. Update when priorities shift.
 
 **Last updated:** 2026-08-05  
-**Last session:** [sessions/2026-08-05-p07-market-filter.md](sessions/2026-08-05-p07-market-filter.md)
+**Last session:** [sessions/2026-08-05-p08-dashboard-bootstrap.md](sessions/2026-08-05-p08-dashboard-bootstrap.md)
 
 ---
 
 ## Now
 
-1. **Audit sprint through P-07 done.**
+1. **Primary audit track complete:** S-01…S-15 + P-01…P-08.
    - Audit: [`docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md`](../docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md)
    - Backlog: [`backlog.md`](backlog.md)
 
 | ID | Status | Notes |
 |----|--------|--------|
 | **S-01…S-15** | **Done** | ADRs 004–019 |
-| **P-01…P-07** | **Done** | ADRs 020–026 |
-| **P-08** | Open (lower) | Dashboard bootstrap BFF |
+| **P-01…P-08** | **Done** | ADRs 020–027 |
 | **S-16+** | Open (info) | Lower-priority audit notes |
 
 ---
@@ -41,6 +40,7 @@
 - Do not remove global/tenant API rate limits (P-04 / ADR 023).
 - Do not advertise multipart limits above `limits.MaxRequestBodyBytes` (10 MiB) (P-06 / ADR 025).
 - Do not client-filter market regions when `?market_region=` exists — filter server-side (P-07 / ADR 026).
+- Do not re-split dashboard first paint into stats+chart+recent GETs — use `/dashboard/bootstrap` (P-08 / ADR 027).
 - Do not run `schema-reset-*` or edit applied migrations without explicit user ask.
 - Do not treat root `docs/*` master plans as current truth without checking code.
 
@@ -48,7 +48,7 @@
 
 ## Next concrete task
 
-Optional: **P-08** (dashboard bootstrap aggregate) or commit the security-perf branch.
+Commit/push P-08 if not already. Optional: expand bootstrap with EPR/regulatory secondary cards, or product work.
 
 ---
 

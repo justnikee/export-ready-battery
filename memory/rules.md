@@ -62,6 +62,7 @@ Missing mock → handler tests break.
 | Sync exports | QR/labels/**CSV/audit** sync paths reject if passports > 500; use export-jobs (`QR_ZIP`/`LABELS_PDF`/`CSV`/`AUDIT_CSV`). Keep FE aligned (ADR 024 / P-05). |
 | Upload sizes | Global body **10 MiB** (`limits.MaxRequestBodyBytes`). Never `ParseMultipartForm` above that; oversize → **413** via `parseMultipartForm` (ADR 025 / P-06). |
 | Batch market filter | Prefer `GET /batches?market_region=EU,GLOBAL` (server SQL). Do not fetch all markets then filter in the browser (ADR 026 / P-07). |
+| Dashboard first paint | Prefer `GET /dashboard/bootstrap` over parallel stats+chart+recent (ADR 027 / P-08). Keep fine-grained endpoints for other pages. |
 | API rate limits | JWT routes: tenant limiter in `Auth.Protect` (~300/min). All `/api/*`: global IP via `LimitAPIPaths` (~600/min). Auth/AI stay stricter (ADR 023 / P-04). |
 
 `JWT_SECRET` must match across platform-core, battery-api, textile-api, and each app `proxy.ts`.
