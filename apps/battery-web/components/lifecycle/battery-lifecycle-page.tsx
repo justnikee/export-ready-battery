@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardPathFromPathname } from "@/lib/routes";
+import { LIFECYCLE_EVIDENCE_FIELDS } from "@/lib/lifecycle-evidence";
 
 interface PassportSummary {
   uuid: string;
@@ -100,56 +101,7 @@ const LIFECYCLE_STATES = [
   "END_OF_LIFE",
 ];
 
-const EVIDENCE_FIELDS: Record<
-  string,
-  { key: string; label: string; type: "text" | "date" }[]
-> = {
-  SHIP: [
-    { key: "shipment_reference", label: "Shipment Reference", type: "text" },
-    { key: "shipment_date", label: "Shipment Date", type: "date" },
-  ],
-  INSTALL: [
-    { key: "installation_date", label: "Installation Date", type: "date" },
-    { key: "installer_id", label: "Installer ID", type: "text" },
-  ],
-  RECALL: [
-    { key: "recall_reason", label: "Recall Reason", type: "text" },
-    { key: "recall_reference", label: "Recall Reference", type: "text" },
-  ],
-  RECYCLE: [
-    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
-    { key: "recycling_date", label: "Recycling Date", type: "date" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      type: "text",
-    },
-  ],
-  REMANUFACTURE: [
-    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      type: "text",
-    },
-  ],
-  REUSE: [
-    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      type: "text",
-    },
-  ],
-  REPURPOSE: [
-    { key: "recycler_epr_id", label: "Recycler EPR ID", type: "text" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      type: "text",
-    },
-  ],
-};
+const EVIDENCE_FIELDS = LIFECYCLE_EVIDENCE_FIELDS;
 
 type MaintenanceAction = "REPAIR" | "REPLACE";
 

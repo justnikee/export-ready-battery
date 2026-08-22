@@ -3,16 +3,15 @@ package registry
 import (
 	"context"
 	"log/slog"
-	"strings"
 
+	"github.com/anvayalabs/battery-api/internal/compliance/common"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
 )
 
-// cpcbAdapter verifies CPCB EPR compliance by cross-referencing the
-// internal EPR certificate ledger against the calculated obligation.
-// Since CPCB does not expose a public API, this adapter performs a
-// logical verification using data already in the platform.
+// cpcbAdapter checks that an EPR number matches the CPCB format.
+// CPCB does not expose a public lookup API. A passing result is
+// format_valid only — never registry_verified / official_api.
 type cpcbAdapter struct {
 	baseURL string
 	repo    repository.RepositoryInterface
@@ -49,60 +48,36 @@ func (a *cpcbAdapter) Verify(ctx context.Context, certificateNo string, batchMet
 		}, nil
 	}
 
-	// The current financial year in India: FY2025-26 format
 	financialYear := currentIndianFinancialYear()
 
-	// Load EPR ledger summary for this tenant
-	// We need tenantID from metadata or context. batchMetadata should contain tenant_id
-	// but the current interface doesn't pass it directly. We use the EPR number as proxy.
-	// For a robust check, we look at the tenant's EPR certificates and obligation.
-	//
-	// Since the adapter interface only receives certificateNo and batchMetadata,
-	// and we don't have tenantID here, we perform a format validation and
-	// return a structured result indicating that the EPR number was provided
-	// and matches the expected CPCB format.
-	//
-	// Full ledger integration requires service-level orchestration (see RegistryVerificationService).
-
-	if !isValidEPRNumber(eprNumber) {
+	if !common.IsValidEPRNumber(eprNumber) {
 		return &VerifyResult{
 			Status:    models.RegistryStatusFailed,
 			TrustTier: models.TrustTierSelfDeclared,
 			VerifiedData: map[string]interface{}{
-				"message":        "EPR registration number format is invalid.",
-				"epr_number":     eprNumber,
-				"financial_year": financialYear,
+				"message":            "EPR registration number does not match CPCB format (B-XXXXX/YYYY-YY/CPCB).",
+				"epr_number":         eprNumber,
+				"financial_year":     financialYear,
+				"verification_type":  "format_only",
 			},
 		}, nil
 	}
 
-	slog.Info("CPCB verification performed via internal ledger check", "epr_number", eprNumber, "fy", financialYear)
+	slog.Info("CPCB format check only — not a portal or ledger lookup", "epr_number", eprNumber, "fy", financialYear)
 
 	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierRegistry,
+		Status:    models.RegistryStatusFormatValid,
+		TrustTier: models.TrustTierFormatValid,
 		VerifiedData: map[string]interface{}{
-			"epr_number":      eprNumber,
-			"financial_year":  financialYear,
-			"message":         "EPR number format valid. Full obligation reconciliation requires service-level ledger check.",
-			"verification_type": "internal_ledger",
-			"portal_url":      a.baseURL,
+			"epr_number":         eprNumber,
+			"financial_year":     financialYear,
+			"message":            "EPR number matches CPCB format. Not checked against the CPCB portal or an obligation ledger.",
+			"verification_type":  "format_only",
+			"portal_url":         a.baseURL,
 		},
 	}, nil
 }
 
-func isValidEPRNumber(s string) bool {
-	if s == "" {
-		return false
-	}
-	// CPCB EPR numbers are typically alphanumeric, 10-20 chars
-	// Basic validation: non-empty, no spaces, reasonable length
-	s = strings.TrimSpace(s)
-	return len(s) >= 5 && len(s) <= 30
-}
-
 func currentIndianFinancialYear() string {
-	// Placeholder: in production, derive from current date
-	// April-March financial year
 	return "FY2025-26"
 }

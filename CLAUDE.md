@@ -16,11 +16,11 @@ After meaningful work: update CURRENT + backlog, write a session log, ADR if you
 
 ## Project Overview
 
-ExportReady — multi-tenant SaaS for Indian battery (and, early-stage, textile) manufacturers exporting to the EU. Issues Digital Product Passports (BPAN V2 serials, QR codes, W3C Verifiable Credentials), runs India + EU compliance validators, anchors certificate hashes to Bitcoin via OpenTimestamps.
+ExportReady — multi-tenant SaaS for Indian battery manufacturers exporting to the EU. Issues Digital Product Passports (BPAN V2 serials, QR codes, W3C Verifiable Credentials), runs India + EU compliance validators, anchors certificate hashes to Bitcoin via OpenTimestamps.
 
 **Build state:** active development, no production users. Breaking changes are fine; data-destroying ones are not (dev DBs hold real test data).
 
-**Active work:** `battery-web` + `battery-api` are mature; `textile-*` is being built by mirroring the battery stack (current branch `feat/textile-foundation`).
+**Active work:** `battery-web` + `battery-api`. Do **not** work on `textile-web` / `textile-api`.
 
 ## Tech Stack
 

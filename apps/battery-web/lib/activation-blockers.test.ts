@@ -113,6 +113,22 @@ describe("getActivationBlockers", () => {
     expect(blocking).toContain("carbon_footprint_result");
     expect(blocking).toContain("specs.battery_category");
   });
+
+  it("does not accept free-text carbon_footprint as Art. 7 compliance", () => {
+    const { blocking } = getActivationBlockers(
+      euBatch({
+        carbon_footprint_result: null,
+        specs: {
+          chemistry: "NMC",
+          capacity: "180Wh",
+          battery_category: "EV",
+          carbon_footprint: "12 kg CO2e",
+        },
+      }),
+      fullTenant,
+    );
+    expect(blocking).toContain("carbon_footprint_result");
+  });
 });
 
 describe("mergeActivationBlockers", () => {

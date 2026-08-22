@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { PassportVCActions } from "@/components/batches/passport-vc-actions"
 
 interface Passport {
  uuid: string
@@ -74,6 +75,7 @@ export function PassportList({ passports }: PassportListProps) {
  {passport.current_owner_identifier || "—"}
  </TableCell>
  <TableCell className="text-right">
+ <div className="inline-flex items-center justify-end gap-3">
  <Link
  href={`/p/${passport.uuid}`}
  className="inline-flex items-center text-(--brand-link) hover:underline"
@@ -82,6 +84,11 @@ export function PassportList({ passports }: PassportListProps) {
  View
  <ExternalLink className="ml-1 h-3 w-3" />
  </Link>
+ <PassportVCActions
+ uuid={passport.uuid}
+ serialNumber={passport.serial_number}
+ />
+ </div>
  </TableCell>
  </TableRow>
  ))}

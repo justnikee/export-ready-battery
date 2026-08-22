@@ -836,7 +836,7 @@ func IsValidPartnerRole(role string) bool {
 // IsValidActionSource checks if the action source is valid
 func IsValidActionSource(source ActionSource) bool {
 	switch source {
-	case ActionSourceInternal, ActionSourceMagicLink:
+	case ActionSourceInternal, ActionSourceMagicLink, ActionSourceAPIKey:
 		return true
 	}
 	return false
@@ -862,6 +862,11 @@ func ValidateActorContext(ctx ActorContext) error {
 		}
 	case ActorTypePartner:
 		if ctx.Source != ActionSourceMagicLink {
+			return ErrInvalidActorContext
+		}
+	case ActorTypeExternal:
+		// Machine-to-machine via scoped API keys (role stamped on the key).
+		if ctx.Source != ActionSourceAPIKey || ctx.ActorRole == ActorRoleSystem {
 			return ErrInvalidActorContext
 		}
 	}
@@ -919,6 +924,8 @@ func roleMaps(productType ProductType) map[TransitionAction][]ActorRole {
 }
 
 // BatteryTransitionActionOrder ensures deterministic ordering for battery actions.
+// Must include every action in BatteryTransitionMap so allowed-actions APIs and
+// UI discovery do not hide implementable transitions (e.g. circularity).
 var BatteryTransitionActionOrder = []TransitionAction{
 	ActionActivate,
 	ActionShip,
@@ -926,6 +933,9 @@ var BatteryTransitionActionOrder = []TransitionAction{
 	ActionRecycle,
 	ActionClose,
 	ActionRecall,
+	ActionRemanufacture,
+	ActionReuse,
+	ActionRepurpose,
 }
 
 // BatteryTransitionMap defines the canonical battery lifecycle transitions.
@@ -947,8 +957,15 @@ var BatteryTransitionMap = map[TransitionAction]TransitionDefinition{
 		To:          PassportStatusRecycled,
 	},
 	ActionClose: {
-		AllowedFrom: []string{PassportStatusRecycled, PassportStatusRecalled},
-		To:          PassportStatusEndOfLife,
+		// Circularity terminal states can also be closed to END_OF_LIFE.
+		AllowedFrom: []string{
+			PassportStatusRecycled,
+			PassportStatusRecalled,
+			PassportStatusRemanufactured,
+			PassportStatusReused,
+			PassportStatusRepurposed,
+		},
+		To: PassportStatusEndOfLife,
 	},
 	ActionRecall: {
 		AllowedFrom: []string{PassportStatusActive, PassportStatusShipped, PassportStatusInService},
@@ -1045,6 +1062,10 @@ func GetAllowedActions(currentStatus string, productType ProductType) []Transiti
 
 // GetAllowedActionsForRole returns the list of valid actions for a given
 // current status and actor role, filtered by product type.
+//
+// ACTIVATE is recorded as SYSTEM in the audit trail (handler elevation) but is
+// triggered by internal ADMIN / INTERNAL_OPERATOR users. Discovery endpoints
+// therefore surface ACTIVATE for those roles when the from-state allows it.
 func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType ProductType) []TransitionAction {
 	m, order := transitionMaps(productType)
 	rm := roleMaps(productType)
@@ -1074,6 +1095,12 @@ func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType 
 				roleAllowed = true
 				break
 			}
+		}
+		// Internal writers may trigger ACTIVATE even though the event is
+		// attributed to SYSTEM (see LifecycleHandler.buildActorContext).
+		if !roleAllowed && action == ActionActivate &&
+			(role == ActorRoleAdmin || role == ActorRoleInternalOperator) {
+			roleAllowed = true
 		}
 		if roleAllowed {
 			allowed = append(allowed, action)
@@ -1224,10 +1251,26 @@ type SoHHistoryEntry struct {
 
 // BatchStatus constants
 const (
-	BatchStatusDraft    = "DRAFT"    // Data entry mode, downloads disabled
-	BatchStatusActive   = "ACTIVE"   // Activated, downloads enabled
-	BatchStatusArchived = "ARCHIVED" // No longer in use
+	BatchStatusDraft    = "DRAFT"    // Data entry; QR ZIP / label PDF must not be issued
+	BatchStatusActive   = "ACTIVE"   // Activated (quota + compliance); QR / labels allowed
+	BatchStatusArchived = "ARCHIVED" // Closed after activation; QR / labels still allowed
 )
+
+// ProductionArtifactsDraftMessage is the 403 body when QR or labels are
+// requested for a DRAFT batch. Activation is the quota + compliance gate.
+const ProductionArtifactsDraftMessage = "QR codes and labels can only be issued after the batch is activated. Draft batches are not production-ready."
+
+// CanIssueProductionIdentifiers reports whether QR ZIP and label PDFs may be
+// generated for this batch status. One rule for JWT, API-key, and export jobs:
+// never on DRAFT; ACTIVE and ARCHIVED (already activated) are allowed.
+func CanIssueProductionIdentifiers(status string) bool {
+	switch status {
+	case BatchStatusActive, BatchStatusArchived:
+		return true
+	default:
+		return false
+	}
+}
 
 // ============================================================================
 // TRANSACTIONS (QUOTA LEDGER)
@@ -1517,11 +1560,12 @@ const (
 type RegistryVerificationStatus string
 
 const (
-	RegistryStatusPending  RegistryVerificationStatus = "pending"
-	RegistryStatusVerified RegistryVerificationStatus = "verified"
-	RegistryStatusFailed   RegistryVerificationStatus = "failed"
-	RegistryStatusError    RegistryVerificationStatus = "error"
-	RegistryStatusNotFound RegistryVerificationStatus = "not_found"
+	RegistryStatusPending     RegistryVerificationStatus = "pending"
+	RegistryStatusVerified    RegistryVerificationStatus = "verified"
+	RegistryStatusFormatValid RegistryVerificationStatus = "format_valid"
+	RegistryStatusFailed      RegistryVerificationStatus = "failed"
+	RegistryStatusError       RegistryVerificationStatus = "error"
+	RegistryStatusNotFound    RegistryVerificationStatus = "not_found"
 )
 
 // TrustTier indicates the confidence level of the verification.
@@ -1529,6 +1573,7 @@ type TrustTier string
 
 const (
 	TrustTierSelfDeclared TrustTier = "self_declared"
+	TrustTierFormatValid  TrustTier = "format_valid" // regex / allowlist only — not a ledger or portal hit
 	TrustTierRegistry     TrustTier = "registry_verified"
 	TrustTierOfficialAPI  TrustTier = "official_api"
 )

@@ -17,6 +17,7 @@ import (
 	"github.com/anvayalabs/battery-api/internal/middleware"
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
+	"github.com/anvayalabs/battery-api/internal/services"
 )
 
 // ============================================================================
@@ -252,7 +253,13 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 	// tenant's primary market (matching the creation wizard) rather than GLOBAL,
 	// which is no longer offered for new batches. "both"/unset -> INDIA.
 	defaultMarket := models.MarketRegionIndia
-	if tenant, terr := h.repo.GetTenant(r.Context(), tenantID); terr == nil && len(tenant.DataVisibility) > 0 {
+	tenant, terr := h.repo.GetTenant(r.Context(), tenantID)
+	if terr != nil {
+		slog.Error("BulkImport: failed to load tenant", "error", terr)
+		respondError(w, http.StatusInternalServerError, "Failed to retrieve tenant details")
+		return
+	}
+	if len(tenant.DataVisibility) > 0 {
 		var dv struct {
 			PrimaryMarket string `json:"primary_market"`
 		}
@@ -320,13 +327,22 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 	customsDateIdx, _ := idx("customs_date")
 	salePriceIdx, _ := idx("sale_price_inr")
 	importCostIdx, _ := idx("import_cost_inr")
+	cellCostDomesticIdx, _ := idx("cell_cost_domestic_inr")
+	cellCostImportedIdx, _ := idx("cell_cost_imported_inr")
+	bmsCostDomesticIdx, _ := idx("bms_cost_domestic_inr")
+	bmsCostImportedIdx, _ := idx("bms_cost_imported_inr")
+	casingCostDomesticIdx, _ := idx("casing_cost_domestic_inr")
+	casingCostImportedIdx, _ := idx("casing_cost_imported_inr")
+	labourOverheadIdx, _ := idx("labour_overhead_cost_inr")
 	pliCompliantIdx, _ := idx("pli_compliant")
 	domesticValueAddIdx, _ := idx("domestic_value_add")
+	batteryCategoryIdx, _ := idx("battery_category")
 	mfgStartIdx, _ := idx("manufacturing_start_date")
 	mfgEndIdx, _ := idx("manufacturing_end_date")
 
 	type importError struct {
 		Row     int    `json:"row"`
+		Field   string `json:"field,omitempty"`
 		Message string `json:"message"`
 	}
 
@@ -410,23 +426,89 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		}
 
 		specs := models.BatchSpec{
-			Chemistry:        get(chemistryIdx, chemistryIdx >= 0),
-			NominalVoltage:   get(voltageIdx, voltageIdx >= 0),
-			Capacity:         get(capacityIdx, capacityIdx >= 0),
-			Manufacturer:     get(manufacturerIdx, manufacturerIdx >= 0),
-			Weight:           get(weightIdx, weightIdx >= 0),
-			CountryOfOrigin:  get(countryOfOriginIdx, countryOfOriginIdx >= 0),
-			LotSize:          get(lotSizeIdx, lotSizeIdx >= 0),
-			ProductionStage:  get(productionStageIdx, productionStageIdx >= 0),
-			CellSource:       get(cellSourceIdx, cellSourceIdx >= 0),
-			HSNCode:          get(hsnCodeIdx, hsnCodeIdx >= 0),
-			BISNumber:        get(bisNumberIdx, bisNumberIdx >= 0),
-			EPRNumber:        get(eprNumberIdx, eprNumberIdx >= 0),
-			BillOfEntryNo:    get(billOfEntryIdx, billOfEntryIdx >= 0),
-			CustomsDate:      get(customsDateIdx, customsDateIdx >= 0),
-			SalePriceINR:     getFloat(salePriceIdx, salePriceIdx >= 0),
-			ImportCostINR:    getFloat(importCostIdx, importCostIdx >= 0),
-			DomesticValueAdd: getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0),
+			Chemistry:             get(chemistryIdx, chemistryIdx >= 0),
+			NominalVoltage:        get(voltageIdx, voltageIdx >= 0),
+			Capacity:              get(capacityIdx, capacityIdx >= 0),
+			Manufacturer:          get(manufacturerIdx, manufacturerIdx >= 0),
+			Weight:                get(weightIdx, weightIdx >= 0),
+			CountryOfOrigin:       get(countryOfOriginIdx, countryOfOriginIdx >= 0),
+			LotSize:               get(lotSizeIdx, lotSizeIdx >= 0),
+			ProductionStage:       get(productionStageIdx, productionStageIdx >= 0),
+			CellSource:            get(cellSourceIdx, cellSourceIdx >= 0),
+			HSNCode:               get(hsnCodeIdx, hsnCodeIdx >= 0),
+			BISNumber:             get(bisNumberIdx, bisNumberIdx >= 0),
+			EPRNumber:             get(eprNumberIdx, eprNumberIdx >= 0),
+			BillOfEntryNo:         get(billOfEntryIdx, billOfEntryIdx >= 0),
+			CustomsDate:           get(customsDateIdx, customsDateIdx >= 0),
+			SalePriceINR:          getFloat(salePriceIdx, salePriceIdx >= 0),
+			ImportCostINR:         getFloat(importCostIdx, importCostIdx >= 0),
+			CellCostDomesticINR:   getFloat(cellCostDomesticIdx, cellCostDomesticIdx >= 0),
+			CellCostImportedINR:   getFloat(cellCostImportedIdx, cellCostImportedIdx >= 0),
+			BMSCostDomesticINR:    getFloat(bmsCostDomesticIdx, bmsCostDomesticIdx >= 0),
+			BMSCostImportedINR:    getFloat(bmsCostImportedIdx, bmsCostImportedIdx >= 0),
+			CasingCostDomesticINR: getFloat(casingCostDomesticIdx, casingCostDomesticIdx >= 0),
+			CasingCostImportedINR: getFloat(casingCostImportedIdx, casingCostImportedIdx >= 0),
+			LabourOverheadCostINR: getFloat(labourOverheadIdx, labourOverheadIdx >= 0),
+			DomesticValueAdd:      getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0),
+			BatteryCategory:       models.BatteryCategory(get(batteryCategoryIdx, batteryCategoryIdx >= 0)),
+		}
+
+		createReq := models.CreateBatchRequest{
+			TenantID:     tenantID,
+			BatchName:    batchName,
+			ModelName:    modelName,
+			ProductType:  jwtProductType,
+			Specs:        specs,
+			MarketRegion: marketRegion,
+			PLICompliant: getBool(pliCompliantIdx, pliCompliantIdx >= 0),
+			// DomesticValueAdd is recomputed server-side for ESTIMATED DVA.
+			DomesticValueAdd: 0,
+			CellSource:       specs.CellSource,
+			HSNCode:          specs.HSNCode,
+			BISNumber:        specs.BISNumber,
+			EPRNumber:        specs.EPRNumber,
+			BillOfEntryNo:    specs.BillOfEntryNo,
+			CountryOfOrigin:  specs.CountryOfOrigin,
+			CustomsDate:      specs.CustomsDate,
+			DVASource:        services.DVASourceEstimated,
+		}
+		if mfgStart != nil {
+			createReq.ManufacturingStartDate = mfgStart.Format("2006-01-02")
+		}
+		if mfgEnd != nil {
+			createReq.ManufacturingEndDate = mfgEnd.Format("2006-01-02")
+		}
+
+		// Same rules as POST /batches — never bypass BatchCreationValidator.
+		validator := h.batchCreationValidator
+		if validator == nil {
+			validator = services.NewBatchCreationValidator(h.batchService, h.validationService, h.repo)
+		}
+		validation := validator.Validate(r.Context(), createReq, tenant)
+		if !validation.Valid {
+			if len(validation.Errors) == 0 {
+				errors = append(errors, importError{Row: rowNum, Message: "validation failed"})
+			} else {
+				for _, ve := range validation.Errors {
+					errors = append(errors, importError{
+						Row:     rowNum,
+						Field:   ve.Field,
+						Message: ve.Message,
+					})
+				}
+			}
+			failed++
+			continue
+		}
+
+		// Mirror CreateBatch India DVA recompute for ESTIMATED mode.
+		domesticValueAdd := getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0)
+		if marketRegion == models.MarketRegionIndia && jwtProductType == models.ProductTypeBattery {
+			domesticValueAdd = services.CalculateEstimatedDVA(specs)
+			if createReq.CellSource == "IMPORTED" {
+				domesticValueAdd = 0
+				createReq.PLICompliant = false
+			}
 		}
 
 		_, err = h.repo.CreateBatch(r.Context(), repository.CreateBatchRequest{
@@ -436,8 +518,8 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 			ProductType:            jwtProductType,
 			Specs:                  specs,
 			MarketRegion:           marketRegion,
-			PLICompliant:           getBool(pliCompliantIdx, pliCompliantIdx >= 0),
-			DomesticValueAdd:       specs.DomesticValueAdd,
+			PLICompliant:           createReq.PLICompliant,
+			DomesticValueAdd:       domesticValueAdd,
 			ManufacturingStartDate: mfgStart,
 			ManufacturingEndDate:   mfgEnd,
 		})

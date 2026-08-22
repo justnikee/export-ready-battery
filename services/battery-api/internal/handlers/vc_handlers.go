@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -11,14 +13,21 @@ import (
 	"github.com/anvayalabs/battery-api/internal/services"
 )
 
-// GenerateVCHandle handles POST /api/v1/passports/{id}/vc
+func passportUUIDFromRequest(r *http.Request) (uuid.UUID, error) {
+	raw := r.PathValue("uuid")
+	if raw == "" {
+		raw = r.PathValue("id")
+	}
+	return uuid.Parse(raw)
+}
+
+// GenerateVCHandle handles POST /api/v1/passports/{uuid}/vc
 //
 // Generates a W3C Verifiable Credential payload from passport data and
 // cryptographically signs it using the platform Ed25519 key (did:key).
 // If VC signing is not configured, falls back to a draft placeholder.
 func (h *Handler) GenerateVCHandle(w http.ResponseWriter, r *http.Request) {
-	passportIDStr := r.PathValue("id")
-	passportID, err := uuid.Parse(passportIDStr)
+	passportID, err := passportUUIDFromRequest(r)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid passport ID")
 		return
@@ -86,6 +95,7 @@ func (h *Handler) GenerateVCHandle(w http.ResponseWriter, r *http.Request) {
 
 		respondJSON(w, http.StatusOK, map[string]interface{}{
 			"vc":      vc,
+			"status":  "draft",
 			"message": "Verifiable Credential payload generated (draft — not cryptographically signed)",
 		})
 		return
@@ -135,7 +145,80 @@ func (h *Handler) GenerateVCHandle(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"vc":      vcDoc,
+		"status":  "issued",
 		"message": "Verifiable Credential cryptographically signed and stored",
+	})
+}
+
+// GetVCHandle handles GET /api/v1/passports/{uuid}/vc
+// Returns the latest stored W3C credential for the tenant-owned passport.
+func (h *Handler) GetVCHandle(w http.ResponseWriter, r *http.Request) {
+	passportID, err := passportUUIDFromRequest(r)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid passport ID")
+		return
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	passport, err := h.repo.GetPassport(r.Context(), passportID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+	if batch, err := h.repo.GetBatch(r.Context(), passport.BatchID, tenantID); err != nil || batch == nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+
+	stored, err := h.repo.GetPassportVCByPassportID(r.Context(), passport.UUID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to load verifiable credential")
+		return
+	}
+	if stored == nil {
+		respondError(w, http.StatusNotFound, "No verifiable credential issued for this passport")
+		return
+	}
+
+	var subject interface{}
+	if err := json.Unmarshal(stored.CredentialSubject, &subject); err != nil {
+		subject = json.RawMessage(stored.CredentialSubject)
+	}
+	var proof interface{}
+	if err := json.Unmarshal(stored.Proof, &proof); err != nil {
+		proof = json.RawMessage(stored.Proof)
+	}
+
+	issuance := stored.CreatedAt.UTC().Format(time.RFC3339)
+	if proofMap, ok := proof.(map[string]interface{}); ok {
+		if created, ok := proofMap["created"].(string); ok && strings.TrimSpace(created) != "" {
+			issuance = created
+		}
+	}
+
+	vcID := "urn:uuid:" + stored.ID.String()
+	vcDoc := map[string]interface{}{
+		"@context": []string{
+			"https://www.w3.org/2018/credentials/v1",
+			"https://w3id.org/security/suites/ed25519-2020/v1",
+		},
+		"id":                vcID,
+		"type":              []string{"VerifiableCredential", stored.VCType},
+		"issuer":            stored.IssuerDID,
+		"issuanceDate":      issuance,
+		"credentialSubject": subject,
+		"proof":             proof,
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"vc":     vcDoc,
+		"status": stored.Status,
 	})
 }
 

@@ -58,7 +58,7 @@ func (h *Handler) GetSupplierRiskProfile(w http.ResponseWriter, r *http.Request)
 // CreateDueDiligenceAssessment handles POST /api/v1/suppliers/{id}/dd-assessments
 func (h *Handler) CreateDueDiligenceAssessment(w http.ResponseWriter, r *http.Request) {
 	tenantIDStr := middleware.GetTenantID(r.Context())
-	_, err := uuid.Parse(tenantIDStr)
+	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		respondError(w, http.StatusUnauthorized, "invalid tenant")
 		return
@@ -70,6 +70,12 @@ func (h *Handler) CreateDueDiligenceAssessment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	supplier, err := h.repo.GetSupplierByID(r.Context(), supplierID)
+	if err != nil || supplier == nil || !strings.EqualFold(supplier.TenantID, tenantID.String()) {
+		respondError(w, http.StatusNotFound, "supplier not found")
+		return
+	}
+
 	var req struct {
 		Step    string `json:"step" validate:"required,oneof=policy identify assess respond audit"`
 		BatchID string `json:"batch_id,omitempty"`
@@ -78,6 +84,18 @@ func (h *Handler) CreateDueDiligenceAssessment(w http.ResponseWriter, r *http.Re
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid request body")
 		return
+	}
+
+	if req.BatchID != "" {
+		batchUUID, batchErr := uuid.Parse(req.BatchID)
+		if batchErr != nil {
+			respondError(w, http.StatusBadRequest, "invalid batch_id")
+			return
+		}
+		if _, batchErr = h.repo.GetBatch(r.Context(), batchUUID, tenantID); batchErr != nil {
+			respondError(w, http.StatusNotFound, "batch not found")
+			return
+		}
 	}
 
 	assessment := &models.DueDiligenceAssessment{
@@ -105,9 +123,22 @@ func (h *Handler) CreateDueDiligenceAssessment(w http.ResponseWriter, r *http.Re
 
 // ListDueDiligenceAssessments handles GET /api/v1/suppliers/{id}/dd-assessments
 func (h *Handler) ListDueDiligenceAssessments(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "invalid tenant")
+		return
+	}
+
 	supplierID, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "invalid supplier id")
+		return
+	}
+
+	supplier, err := h.repo.GetSupplierByID(r.Context(), supplierID)
+	if err != nil || supplier == nil || !strings.EqualFold(supplier.TenantID, tenantID.String()) {
+		respondError(w, http.StatusNotFound, "supplier not found")
 		return
 	}
 

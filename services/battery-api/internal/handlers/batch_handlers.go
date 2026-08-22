@@ -449,6 +449,10 @@ func (h *Handler) DownloadQRCodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if rejectIfNotProductionReady(w, batch.Status) {
+		return
+	}
+
 	// Get passport count first
 	count, _ := h.repo.CountPassportsByBatch(r.Context(), batchID)
 	if count == 0 {
@@ -532,9 +536,7 @@ func (h *Handler) DownloadLabels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// SECURITY CHECK: Batch must be ACTIVE to download labels
-	if batch.Status != models.BatchStatusActive {
-		respondError(w, http.StatusForbidden, "Batch must be activated first. Please activate this batch using your quota to download labels.")
+	if rejectIfNotProductionReady(w, batch.Status) {
 		return
 	}
 

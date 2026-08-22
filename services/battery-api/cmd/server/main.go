@@ -722,6 +722,9 @@ func main() {
 	mux.Handle("POST /api/v1/settings/upload-document", protectWrite(http.HandlerFunc(h.UploadDocument)))
 	mux.Handle("GET /api/v1/settings/documents/{type}", authMiddleware.Protect(http.HandlerFunc(h.ViewDocument)))
 	mux.Handle("POST /api/v1/settings/upload-logo", protectWrite(http.HandlerFunc(h.UploadLogo)))
+	// Pre-batch wizard uploads (PLI CA cert / DoC). Canonical path only in DB.
+	mux.Handle("POST /api/v1/uploads/compliance-doc", protectWriteOnboard(http.HandlerFunc(h.UploadStagingComplianceDoc)))
+	mux.Handle("GET /api/v1/uploads/compliance-doc", authMiddleware.Protect(http.HandlerFunc(h.ViewStagingComplianceDoc)))
 
 	// ============================================
 	// PASSPORT EVENT DOCUMENTS (Phase 2)
@@ -751,6 +754,7 @@ func main() {
 	mux.Handle("GET /api/v1/passports/{uuid}", apiRateLimiter.Limit(http.HandlerFunc(h.GetPassport)))
 	mux.Handle("GET /api/v1/passports/{uuid}/document-url", apiRateLimiter.Limit(http.HandlerFunc(h.GetPublicPassportDocumentURL)))
 	mux.Handle("POST /api/v1/passports/{uuid}/vc", protectWrite(http.HandlerFunc(h.GenerateVCHandle)))
+	mux.Handle("GET /api/v1/passports/{uuid}/vc", authMiddleware.Protect(http.HandlerFunc(h.GetVCHandle)))
 	mux.Handle("GET /api/v1/did.json", http.HandlerFunc(h.GetDIDDocumentHandle))
 
 	// ============================================

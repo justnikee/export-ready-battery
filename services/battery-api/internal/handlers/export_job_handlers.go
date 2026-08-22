@@ -109,6 +109,16 @@ func (h *ExportJobHandler) CreateExportJob(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Fail closed: caller must own the batch before any count/probe queries.
+	batch, err := h.exportJobService.GetOwnedBatch(r.Context(), batchID, tenantID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Batch not found")
+		return
+	}
+	if isProductionArtifactJob(jobType) && rejectIfNotProductionReady(w, batch.Status) {
+		return
+	}
+
 	// Hard block CSV export if any passport missing SHIPPED event
 	if jobType == models.ExportJobTypeCSV {
 		missing, err := h.exportJobService.CountPassportsMissingShippedEvent(r.Context(), batchID)

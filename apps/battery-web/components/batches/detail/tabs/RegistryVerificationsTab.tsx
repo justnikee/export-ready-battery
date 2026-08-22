@@ -20,6 +20,7 @@ import {
 import { verifyBatchRegistry, autoVerifyBatch } from "@/lib/api/registry";
 import { toast } from "sonner";
 import type { RegistryVerification, RegistryType, TrustTier } from "@/lib/types";
+import { isLedgerOrPortalVerified, trustTierLabel } from "@/lib/registry-honesty";
 
 interface RegistryVerificationsTabProps {
   batchId: string;
@@ -63,22 +64,19 @@ function TrustTierBadge({ tier }: { tier: TrustTier }) {
   const styles: Record<TrustTier, string> = {
     self_declared:
       "bg-amber-500/10 text-amber-500 border-amber-500/30",
+    format_valid:
+      "bg-slate-500/10 text-slate-500 border-slate-500/30",
     registry_verified:
       "bg-blue-500/10 text-blue-500 border-blue-500/30",
     official_api:
       "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
-  };
-  const labels: Record<TrustTier, string> = {
-    self_declared: "Self Declared",
-    registry_verified: "Registry Verified",
-    official_api: "Official API",
   };
   return (
     <Badge
       variant="outline"
       className={`text-xs ${styles[tier] || styles.self_declared}`}
     >
-      {labels[tier] || tier}
+      {trustTierLabel(tier)}
     </Badge>
   );
 }
@@ -87,6 +85,8 @@ function StatusIcon({ status }: { status: string }) {
   switch (status) {
     case "verified":
       return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+    case "format_valid":
+      return <CheckCircle className="h-4 w-4 text-slate-500" />;
     case "failed":
     case "error":
       return <XCircle className="h-4 w-4 text-red-500" />;
@@ -117,10 +117,10 @@ function VerificationCard({
         registry_type: v.registry_type as RegistryType,
         certificate_no: v.certificate_no,
       });
-      toast.success(`${meta.label} verification refreshed`);
+      toast.success(`${meta.label} check refreshed`);
       await onRefresh();
     } catch {
-      toast.error(`${meta.label} verification failed`);
+      toast.error(`${meta.label} check failed`);
     } finally {
       setVerifying(false);
     }
@@ -161,10 +161,15 @@ function VerificationCard({
 
       {v.verified_at && (
         <div className="text-xs text-muted-foreground">
-          Verified: {new Date(v.verified_at).toLocaleString()}
+          {isLedgerOrPortalVerified(v.status, v.trust_tier)
+            ? "Registry checked: "
+            : v.status === "format_valid"
+              ? "Format checked: "
+              : "Last check: "}
+          {new Date(v.verified_at).toLocaleString()}
           {v.expires_at && (
             <span className="ml-2">
-              · Expires: {new Date(v.expires_at).toLocaleDateString()}
+              · Cache expires: {new Date(v.expires_at).toLocaleDateString()}
             </span>
           )}
         </div>
@@ -178,7 +183,7 @@ function VerificationCard({
         onClick={handleVerify}
       >
         <RefreshCw className={`h-3 w-3 mr-1 ${verifying ? "animate-spin" : ""}`} />
-        {verifying ? "Verifying..." : "Re-verify"}
+        {verifying ? "Checking..." : "Re-check"}
       </Button>
     </div>
   );
@@ -203,7 +208,7 @@ export function RegistryVerificationsTab({
     setAutoVerifying(true);
     try {
       const result = await autoVerifyBatch(batchId);
-      toast.success(`Auto-verify complete — ${result.count} registry check(s) run`);
+      toast.success(`Registry checks complete — ${result.count} run`);
       await onRefresh();
     } catch {
       toast.error("Auto-verify failed");
@@ -240,7 +245,7 @@ export function RegistryVerificationsTab({
       <div className="bg-background rounded-md relative"><div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Shield className="h-4 w-4 text-emerald-500" />
           <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
-            External Registry Verification
+            Registry checks
           </h3>
           <Badge
             variant="outline"
@@ -251,18 +256,19 @@ export function RegistryVerificationsTab({
         </div>
         <div className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Verify batch certificates against official registries. When registry
-            API integrations are configured, API-validated trust replaces
-            self-declared compliance for BIS, CPCB EPR, EU NANDO, and UN38.3.
+            Check certificate numbers against what this platform can actually
+            do. A green “Found in registry” badge means a portal scrape or
+            official API returned the record. “Format valid” only means the
+            number matches a known pattern — it is not CPCB/BIS ledger proof.
           </p>
           <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-500/5 border border-amber-500/20 p-2.5">
             <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <span>
-              Registry verification runs against live databases via scraping
-              (BIS portal, EU NANDO, CPCB internal ledger) and lab
-              accreditation validation (UN38.3). Results are cached for 7 days.
-              If a registry portal is down, the check falls back to
-              self-declared status.
+              BIS and EU NANDO attempt a public-portal lookup (best-effort
+              scrape). CPCB EPR and UN38.3 have no public registry API here —
+              those checks are format / local allowlist only. Results cache
+              for 7 days. A down portal falls back to self-declared, never to
+              “verified”.
             </span>
           </div>
           <Button
@@ -272,7 +278,7 @@ export function RegistryVerificationsTab({
             onClick={handleAutoVerify}
           >
             <Zap className={`h-3.5 w-3.5 ${autoVerifying ? "animate-pulse" : ""}`} />
-            {autoVerifying ? "Running checks..." : "Auto-Verify All Registries"}
+            {autoVerifying ? "Running checks..." : "Run all registry checks"}
           </Button>
         </div>
       </div>

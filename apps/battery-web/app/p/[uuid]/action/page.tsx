@@ -4,6 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  buildEvidencePayload,
+  evidenceFieldsForAction,
+} from "@/lib/lifecycle-evidence";
+import {
   Loader2,
   CheckCircle,
   AlertCircle,
@@ -30,6 +34,7 @@ interface PassportInfo {
     role: string;
   };
   allowed_actions: string[];
+  required_evidence?: Record<string, string[]>;
 }
 
 const BATTERY_ACTION_CONFIG: Record<
@@ -72,60 +77,24 @@ const BATTERY_ACTION_CONFIG: Record<
     color: "slate",
     description: "Lifecycle permanently closed after recycling",
   },
-};
-
-const BATTERY_EVIDENCE_FIELDS: Record<
-  string,
-  { key: string; label: string; placeholder?: string; type?: string }[]
-> = {
-  SHIP: [
-    {
-      key: "shipment_reference",
-      label: "Shipment Reference",
-      placeholder: "Tracking number / AWB",
-    },
-    { key: "shipment_date", label: "Shipment Date", type: "date" },
-  ],
-  INSTALL: [
-    { key: "installation_date", label: "Installation Date", type: "date" },
-    {
-      key: "installer_id",
-      label: "Installer ID",
-      placeholder: "Technician ID or badge",
-    },
-  ],
-  RECYCLE: [
-    {
-      key: "recycler_epr_id",
-      label: "Recycler EPR ID",
-      placeholder: "EPR-XXXX",
-    },
-    { key: "recycling_date", label: "Recycling Date", type: "date" },
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      placeholder: "Certificate number",
-    },
-  ],
-  RECALL: [
-    {
-      key: "recall_reason",
-      label: "Recall Reason",
-      placeholder: "Recall reason",
-    },
-    {
-      key: "recall_reference",
-      label: "Recall Reference",
-      placeholder: "Incident / reference ID",
-    },
-  ],
-  CLOSE: [
-    {
-      key: "certificate_reference",
-      label: "Certificate Reference",
-      placeholder: "Certificate number from recycling",
-    },
-  ],
+  REMANUFACTURE: {
+    label: "Remanufacture",
+    icon: Wrench,
+    color: "teal",
+    description: "Refurbished to like-new condition",
+  },
+  REUSE: {
+    label: "Reuse",
+    icon: Truck,
+    color: "cyan",
+    description: "Direct second-use without remanufacturing",
+  },
+  REPURPOSE: {
+    label: "Repurpose",
+    icon: Recycle,
+    color: "orange",
+    description: "Used for a different application",
+  },
 };
 
 function PassportActionContent() {
@@ -138,7 +107,8 @@ function PassportActionContent() {
 
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PassportInfo | null>(null);
-  const [error, setError] = useState("");
+  const [fatalError, setFatalError] = useState("");
+  const [formError, setFormError] = useState("");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [resultStatus, setResultStatus] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<Record<string, string>>({});
@@ -155,11 +125,10 @@ function PassportActionContent() {
   const [otpResendCooldown, setOtpResendCooldown] = useState(0);
 
   const ACTION_CONFIG = BATTERY_ACTION_CONFIG;
-  const EVIDENCE_FIELDS = BATTERY_EVIDENCE_FIELDS;
 
   useEffect(() => {
     if (!token) {
-      setError(
+      setFatalError(
         "No authentication token provided. Please request a new magic link.",
       );
       setLoading(false);
@@ -183,7 +152,7 @@ function PassportActionContent() {
         setInfo(data);
       } catch (err: unknown) {
         const error = err as { message?: string };
-        setError(error.message || "Invalid or expired magic link");
+        setFatalError(error.message || "Invalid or expired magic link");
       } finally {
         setLoading(false);
       }
@@ -197,31 +166,36 @@ function PassportActionContent() {
 
     // Check if UNVERIFIED user needs partner code
     if (info?.actor?.role === "UNVERIFIED" && !partnerCode.trim()) {
-      setError("Partner code is required for unverified accounts");
+      setFormError("Partner code is required for unverified accounts");
       return;
     }
 
-    const requiredEvidence = EVIDENCE_FIELDS[selectedAction] || [];
-    for (const field of requiredEvidence) {
-      if (!evidence[field.key]?.trim()) {
-        setError(`${field.label} is required`);
-        return;
-      }
+    const serverKeys = info?.required_evidence?.[selectedAction];
+    const { evidence: payloadEvidence, missing } = buildEvidencePayload(
+      selectedAction,
+      evidence,
+      serverKeys,
+    );
+    if (missing.length > 0) {
+      setFormError(`${missing[0]} is required`);
+      return;
     }
 
     setSubmitting(true);
+    setFormError("");
     try {
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
-      // Build payload with optional partner_code
+      // Evidence is sent on this first POST so OTP-gated RECYCLE/RECALL can
+      // stash it. ConfirmOTP applies the stash — do not omit evidence here.
       const payload: {
         action: string;
         evidence: Record<string, string>;
         partner_code?: string;
       } = {
         action: selectedAction,
-        evidence: evidence,
+        evidence: payloadEvidence,
       };
       if (partnerCode.trim()) {
         payload.partner_code = partnerCode.trim();
@@ -243,11 +217,13 @@ function PassportActionContent() {
 
       if (response.status === 202 && data.status === "otp_required") {
         setOtpRequired(true);
+        setOtpError("");
         return;
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Transition failed");
+        setFormError(data.error || "Transition failed");
+        return;
       }
 
       // Capture points awarded from response
@@ -261,7 +237,7 @@ function PassportActionContent() {
       setSuccess(true);
     } catch (err: unknown) {
       const error = err as { message?: string };
-      setError(error.message || "Failed to apply action");
+      setFormError(error.message || "Failed to apply action");
     } finally {
       setSubmitting(false);
     }
@@ -365,8 +341,8 @@ function PassportActionContent() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Fatal auth errors only — validation errors stay on the form (L-21).
+  if (fatalError) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <motion.div
@@ -378,7 +354,7 @@ function PassportActionContent() {
             <AlertCircle className="h-8 w-8 text-red-400" />
           </div>
           <h2 className="text-xl text-white mb-2">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">{error}</p>
+          <p className="text-muted-foreground mb-6">{fatalError}</p>
           <button
             onClick={() => router.push(`/p/${passportId}`)}
             className="px-6 py-3 bg-secondary hover:bg-accent text-white rounded-xl font-medium transition-colors"
@@ -403,8 +379,11 @@ function PassportActionContent() {
               Security Verification
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              A 6-digit code was sent to your email. Enter it below to confirm
-              this action.
+              A 6-digit code was sent to your email. Evidence for{" "}
+              <span className="text-foreground font-medium">
+                {ACTION_CONFIG[selectedAction || ""]?.label || selectedAction}
+              </span>{" "}
+              was already submitted and will be applied when you confirm.
             </p>
           </div>
           {otpError && (
@@ -442,6 +421,17 @@ function PassportActionContent() {
             {otpResendCooldown > 0
               ? `Resend in ${otpResendCooldown}s`
               : "Resend code"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOtpRequired(false);
+              setOtpValue("");
+              setOtpError("");
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Back to evidence
           </button>
         </div>
       </div>
@@ -613,7 +603,7 @@ function PassportActionContent() {
                   onClick={() => {
                     setSelectedAction(action);
                     setEvidence({});
-                    setError("");
+                    setFormError("");
                   }}
                   className={`w-full p-4 rounded-xl border transition-all text-left ${
                     isSelected
@@ -654,13 +644,19 @@ function PassportActionContent() {
               Evidence Required
             </p>
 
-            {(EVIDENCE_FIELDS[selectedAction] || []).length === 0 ? (
+            {evidenceFieldsForAction(
+              selectedAction,
+              info?.required_evidence?.[selectedAction],
+            ).length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No evidence is required for this action.
               </p>
             ) : (
               <div className="space-y-3">
-                {(EVIDENCE_FIELDS[selectedAction] || []).map((field) => (
+                {evidenceFieldsForAction(
+                  selectedAction,
+                  info?.required_evidence?.[selectedAction],
+                ).map((field) => (
                   <div key={field.key}>
                     <label className="block text-muted-foreground text-xs mb-2">
                       {field.label}
@@ -700,6 +696,13 @@ function PassportActionContent() {
               </div>
             )}
           </motion.div>
+        )}
+
+        {formError && (
+          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-4">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {formError}
+          </div>
         )}
 
         {/* Submit Button */}

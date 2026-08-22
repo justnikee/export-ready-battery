@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -24,13 +26,14 @@ type CreateMagicLinkTokenRequest struct {
 
 // MagicLinkTokenRecord represents stored token state for validation.
 type MagicLinkTokenRecord struct {
-	PassportID  uuid.UUID
-	Email       string
-	Role        string
-	Action      string
-	ExpiresAt   time.Time
-	UsedAt      *time.Time
-	RequiresOTP bool
+	PassportID      uuid.UUID
+	Email           string
+	Role            string
+	Action          string
+	ExpiresAt       time.Time
+	UsedAt          *time.Time
+	RequiresOTP     bool
+	PendingEvidence models.Evidence // stashed for OTP-gated transitions
 }
 
 // CreateMagicLinkToken stores a magic link token in the database for tracking
@@ -56,11 +59,13 @@ func (r *Repository) CreateMagicLinkToken(ctx context.Context, req CreateMagicLi
 // GetMagicLinkTokenByHash fetches token state for validation.
 func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash string) (*MagicLinkTokenRecord, error) {
 	query := `SELECT passport_id, email, role, action, expires_at, used_at,
-	                 COALESCE(requires_otp, false)
+	                 COALESCE(requires_otp, false),
+	                 pending_evidence
 	          FROM magic_link_tokens
 	          WHERE token_hash = $1`
 
 	var record MagicLinkTokenRecord
+	var evidenceJSON []byte
 	err := r.db.Pool.QueryRow(ctx, query, tokenHash).Scan(
 		&record.PassportID,
 		&record.Email,
@@ -69,30 +74,49 @@ func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash stri
 		&record.ExpiresAt,
 		&record.UsedAt,
 		&record.RequiresOTP,
+		&evidenceJSON,
 	)
-	if isUndefinedColumnError(err, "requires_otp") {
-		legacyQuery := `SELECT passport_id, email, role, action, expires_at, used_at
-			FROM magic_link_tokens
-			WHERE token_hash = $1`
-		legacyErr := r.db.Pool.QueryRow(ctx, legacyQuery, tokenHash).Scan(
+	if isUndefinedColumnError(err, "pending_evidence") {
+		// Migration not applied yet — fall back without evidence column.
+		legacyWithOTP := `SELECT passport_id, email, role, action, expires_at, used_at,
+		                         COALESCE(requires_otp, false)
+		                  FROM magic_link_tokens WHERE token_hash = $1`
+		legacyErr := r.db.Pool.QueryRow(ctx, legacyWithOTP, tokenHash).Scan(
 			&record.PassportID,
 			&record.Email,
 			&record.Role,
 			&record.Action,
 			&record.ExpiresAt,
 			&record.UsedAt,
+			&record.RequiresOTP,
 		)
+		if isUndefinedColumnError(legacyErr, "requires_otp") {
+			legacyQuery := `SELECT passport_id, email, role, action, expires_at, used_at
+				FROM magic_link_tokens
+				WHERE token_hash = $1`
+			legacyErr = r.db.Pool.QueryRow(ctx, legacyQuery, tokenHash).Scan(
+				&record.PassportID,
+				&record.Email,
+				&record.Role,
+				&record.Action,
+				&record.ExpiresAt,
+				&record.UsedAt,
+			)
+			if legacyErr == pgx.ErrNoRows {
+				return nil, nil
+			}
+			if legacyErr != nil {
+				return nil, fmt.Errorf("failed to fetch legacy magic link token: %w", legacyErr)
+			}
+			record.RequiresOTP = false
+			return &record, nil
+		}
 		if legacyErr == pgx.ErrNoRows {
 			return nil, nil
 		}
 		if legacyErr != nil {
-			tokenPrefix := tokenHash
-			if len(tokenHash) > 8 {
-				tokenPrefix = tokenHash[:8]
-			}
-			return nil, fmt.Errorf("failed to fetch legacy magic link token (hash_prefix=%s): %w", tokenPrefix, legacyErr)
+			return nil, fmt.Errorf("failed to fetch magic link token: %w", legacyErr)
 		}
-		record.RequiresOTP = false
 		return &record, nil
 	}
 	if err == pgx.ErrNoRows {
@@ -105,7 +129,32 @@ func (r *Repository) GetMagicLinkTokenByHash(ctx context.Context, tokenHash stri
 		}
 		return nil, fmt.Errorf("failed to fetch magic link token (hash_prefix=%s): %w", tokenPrefix, err)
 	}
+	if len(evidenceJSON) > 0 && string(evidenceJSON) != "null" {
+		var evidence models.Evidence
+		if unmarshalErr := json.Unmarshal(evidenceJSON, &evidence); unmarshalErr == nil {
+			record.PendingEvidence = evidence
+		}
+	}
 	return &record, nil
+}
+
+// SavePendingEvidence stores validated evidence for an OTP-gated magic-link transition.
+func (r *Repository) SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error {
+	if evidence == nil {
+		evidence = models.Evidence{}
+	}
+	payload, err := json.Marshal(evidence)
+	if err != nil {
+		return fmt.Errorf("marshal pending evidence: %w", err)
+	}
+	_, err = r.db.Pool.Exec(ctx,
+		`UPDATE magic_link_tokens SET pending_evidence = $1::jsonb WHERE token_hash = $2 AND used_at IS NULL`,
+		string(payload), tokenHash,
+	)
+	if isUndefinedColumnError(err, "pending_evidence") {
+		return fmt.Errorf("pending_evidence column missing — run migration 000107")
+	}
+	return err
 }
 
 // MarkMagicTokenUsed marks a magic link token as used

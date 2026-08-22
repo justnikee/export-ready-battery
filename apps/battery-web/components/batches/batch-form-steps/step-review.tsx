@@ -29,6 +29,7 @@ import {
   isProfileBlocker,
   type ActivationBatchInput,
 } from "@/lib/activation-blockers";
+import { isCarbonResultCurrent } from "@/lib/carbon";
 
 function Section({
   title,
@@ -169,7 +170,9 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
       manufacturing_end_date: values.manufacturingEndDate || null,
       pli_compliant: values.pliCompliant,
       domestic_value_add: dva,
-      carbon_footprint_result: null, // produced after creation via the Carbon Calculator
+      carbon_footprint_result: isCarbonResultCurrent(values)
+        ? values.carbonFootprintResult
+        : null,
       specs: {
         chemistry: values.chemistry,
         capacity: values.capacity,
@@ -380,7 +383,20 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
       {/* Compliance Summary */}
       {(isEUMode || values.marketRegion === "GLOBAL") && (
         <Section title="EU Compliance" icon={Leaf} onJump={() => onJumpToStep(1)}>
-          <Row label="Carbon Footprint" value={values.carbonFootprint} onClick={() => onJumpToStep(1)} ai={filledByAi.has("carbonFootprint")} incomplete={incompleteLabels.has("Carbon Footprint")} scoreImpact={scoreImpactPct} />
+          <Row
+            label="Carbon Footprint"
+            value={
+              isCarbonResultCurrent(values)
+                ? `${values.carbonFootprint || "—"} kg CO₂e (calculator saved)`
+                : values.carbonFootprint
+                  ? `${values.carbonFootprint} (label only — run calculator)`
+                  : undefined
+            }
+            onClick={() => onJumpToStep(1)}
+            ai={filledByAi.has("carbonFootprint")}
+            incomplete={incompleteLabels.has("Carbon Footprint")}
+            scoreImpact={scoreImpactPct}
+          />
           <Row label="Carbon Class" value={values.carbonPerformanceClass} onClick={() => onJumpToStep(1)} ai={filledByAi.has("carbonPerformanceClass")} incomplete={incompleteLabels.has("Carbon Class")} scoreImpact={scoreImpactPct} />
           <Row label="CE Marking" value={values.ceMarking ? "Yes" : "No"} onClick={() => onJumpToStep(1)} incomplete={incompleteLabels.has("CE Marking")} scoreImpact={scoreImpactPct} />
           <Row label="Notified Body" value={values.notifiedBodyNumber} onClick={() => onJumpToStep(1)} ai={filledByAi.has("notifiedBodyNumber")} incomplete={incompleteLabels.has("Notified Body")} scoreImpact={scoreImpactPct} />

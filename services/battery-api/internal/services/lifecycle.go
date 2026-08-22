@@ -303,9 +303,16 @@ func (s *LifecycleService) ApplyTransition(ctx context.Context, req TransitionRe
 		CreatedAt:    event.CreatedAt,
 		PreviousHash: previousHash,
 	}
-	if hash, err := GenerateEventHash(hashData); err == nil {
-		event.Hash = hash
+	hash, hashErr := GenerateEventHash(hashData)
+	if hashErr != nil {
+		return &TransitionResult{
+			Success:        false,
+			PreviousStatus: previousStatus,
+			Action:         string(action),
+			Error:          "Failed to generate event hash",
+		}, fmt.Errorf("generate event hash: %w", hashErr)
 	}
+	event.Hash = hash
 
 	if err := s.repo.ApplyLifecycleTransition(ctx, models.TransitionPersistence{
 		PassportID:         passport.UUID,

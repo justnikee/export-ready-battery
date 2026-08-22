@@ -129,6 +129,130 @@ func (h *Handler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+var stagingDocKinds = map[string]bool{
+	"pli": true, // CA certificate for audited DVA (batch-level)
+	"doc": true, // Declaration of Conformity
+}
+
+// UploadStagingComplianceDoc handles POST /api/v1/uploads/compliance-doc
+// Wizard uploads before a batch exists. Stores a canonical private-bucket
+// reference (S-10) after PDF magic-byte sniff (S-11). The client must persist
+// `path`, never the short-lived `url`.
+func (h *Handler) UploadStagingComplianceDoc(w http.ResponseWriter, r *http.Request) {
+	if h.storageService == nil {
+		storageUnavailable(w)
+		return
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	if !parseMultipartForm(w, r, MaxUploadSize) {
+		return
+	}
+
+	kind := strings.ToLower(strings.TrimSpace(r.FormValue("kind")))
+	if !stagingDocKinds[kind] {
+		respondError(w, http.StatusBadRequest, "Invalid kind. Must be 'pli' or 'doc'")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "No file uploaded. Use 'file' field in multipart form")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > MaxUploadSize {
+		respondError(w, http.StatusBadRequest, "File too large. Maximum size is 5MB")
+		return
+	}
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		slog.Error("staging compliance upload: failed to read file", "error", err)
+		respondError(w, http.StatusInternalServerError, "Failed to read file")
+		return
+	}
+
+	if err := services.RequirePDF(fileBytes); err != nil {
+		respondError(w, http.StatusBadRequest, "Only valid PDF files are allowed (file content must start with %PDF-)")
+		return
+	}
+
+	storagePath := fmt.Sprintf("%s/batch-staging/%s/%s.pdf", tenantID.String(), kind, uuid.New().String())
+	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, "application/pdf"); err != nil {
+		slog.Error("staging compliance upload: storage failed", "error", err, "tenant_id", tenantID, "kind", kind)
+		respondError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
+		return
+	}
+
+	canonicalRef := h.storageService.PublicURL(complianceDocsBucket, storagePath)
+	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
+	if err != nil {
+		slog.Error("staging compliance upload: sign failed", "error", err)
+		signedURL = ""
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"path":    canonicalRef,
+		"url":     signedURL,
+		"kind":    kind,
+	})
+}
+
+// ViewStagingComplianceDoc handles GET /api/v1/uploads/compliance-doc?path=
+// Re-signs a tenant-owned staging (or later batch-attached) compliance object.
+func (h *Handler) ViewStagingComplianceDoc(w http.ResponseWriter, r *http.Request) {
+	if h.storageService == nil {
+		storageUnavailable(w)
+		return
+	}
+
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	raw := strings.TrimSpace(r.URL.Query().Get("path"))
+	if raw == "" {
+		respondError(w, http.StatusBadRequest, "path is required")
+		return
+	}
+
+	storagePath, ok := h.storageService.ExtractStoragePath(raw, complianceDocsBucket)
+	if !ok {
+		respondError(w, http.StatusBadRequest, "Invalid document path")
+		return
+	}
+	prefix := tenantID.String() + "/"
+	if !strings.HasPrefix(storagePath, prefix) || strings.Contains(storagePath, "..") {
+		respondError(w, http.StatusNotFound, "Document not found")
+		return
+	}
+
+	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
+	if err != nil || signedURL == "" {
+		slog.Error("staging compliance view: sign failed", "error", err, "tenant_id", tenantID)
+		respondError(w, http.StatusNotFound, "Document not found")
+		return
+	}
+
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		respondJSON(w, http.StatusOK, map[string]interface{}{"url": signedURL})
+		return
+	}
+	http.Redirect(w, r, signedURL, http.StatusTemporaryRedirect)
+}
+
 // ViewDocument handles GET /api/v1/settings/documents/{type}
 // Re-signs a private-bucket certificate and redirects (S-10). Never exposes a
 // long-lived public object URL.
@@ -339,6 +463,17 @@ func (h *Handler) UploadPassportDocument(w http.ResponseWriter, r *http.Request)
 	passportID, err := uuid.Parse(passportIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid passport_id")
+		return
+	}
+
+	// Tenancy: passport must belong to the caller's tenant via its batch.
+	passport, err := h.repo.GetPassport(r.Context(), passportID)
+	if err != nil || passport == nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
+		return
+	}
+	if _, err := h.repo.GetBatch(r.Context(), passport.BatchID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "Passport not found")
 		return
 	}
 

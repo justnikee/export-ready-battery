@@ -18,7 +18,7 @@ import { WizardSummaryPanel } from "@/components/batches/wizard/wizard-summary-p
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { PlusCircle, ChevronLeft, ChevronRight, Check } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { uploadStagingComplianceDoc } from "@/lib/api/compliance-docs";
 import { useTemplates, type Template } from "@/hooks/use-queries";
 import { useBatchValidation } from "@/hooks/use-batch-validation";
 import { mapBackendFieldToFormPath } from "@/lib/batch-error-mapper";
@@ -41,6 +41,12 @@ import { StepIdentity } from "@/components/batches/batch-form-steps/step-identit
 import { StepSpecs } from "@/components/batches/batch-form-steps/step-specs";
 import { StepCompliance } from "@/components/batches/batch-form-steps/step-compliance";
 import { StepReview } from "@/components/batches/batch-form-steps/step-review";
+import {
+  isCarbonResultCurrent,
+  isCarbonResultPayload,
+  saveCarbonToBatch,
+  type CarbonResult,
+} from "@/lib/carbon";
 
 interface CreateBatchWizardProps {
   onBatchCreated: () => void;
@@ -649,29 +655,20 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     setWizardOpen(true);
   };
 
-  // File upload handlers
+  // File upload handlers — API path only (S-10/S-11). Persist canonical
+  // `path`, never a signed URL (those expire in ~1h).
   const handleCertificateUpload = async (file: File) => {
     if (!user) return;
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const timestamp = Date.now();
-      const sanitized = watch("batchName").replace(/[^a-zA-Z0-9-]/g, "_") || "unnamed";
-      const filePath = `certificates/${user.tenant_id}/${sanitized}_${timestamp}.pdf`;
-      setUploadProgress(30);
-      const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
-      if (error) throw error;
-      setUploadProgress(70);
-      // Signed (not public) URL — compliance-docs holds BIS/EPR/PLI certs and
-      // must not be readable by anyone with just the URL.
-      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
-      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
-      setUploadProgress(100);
-      setValue("uploadedFileUrl", signedData.signedUrl, { shouldValidate: true, shouldDirty: true });
+      const result = await uploadStagingComplianceDoc(file, "pli", setUploadProgress);
+      if (!result.path) throw new Error("Upload did not return a storage path");
+      setValue("uploadedFileUrl", result.path, { shouldValidate: true, shouldDirty: true });
       toast.success("Certificate uploaded successfully");
     } catch (error: unknown) {
-      const err = error as { message?: string };
-      toast.error(err.message || "Upload failed");
+      const err = error as { message?: string; response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || err.message || "Upload failed");
     } finally {
       setIsUploading(false);
       setTimeout(() => setUploadProgress(0), 1000);
@@ -683,21 +680,13 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const timestamp = Date.now();
-      const sanitized = watch("batchName").replace(/[^a-zA-Z0-9-]/g, "_") || "unnamed";
-      const filePath = `declarations/${user.tenant_id}/${sanitized}_${timestamp}.pdf`;
-      setUploadProgress(30);
-      const { error } = await supabase.storage.from("compliance-docs").upload(filePath, file, { cacheControl: "3600", upsert: false });
-      if (error) throw error;
-      setUploadProgress(70);
-      const { data: signedData, error: signError } = await supabase.storage.from("compliance-docs").createSignedUrl(filePath, 3600);
-      if (signError || !signedData) throw signError || new Error("Failed to create signed URL");
-      setUploadProgress(100);
-      setValue("docUploadUrl", signedData.signedUrl);
+      const result = await uploadStagingComplianceDoc(file, "doc", setUploadProgress);
+      if (!result.path) throw new Error("Upload did not return a storage path");
+      setValue("docUploadUrl", result.path, { shouldValidate: true, shouldDirty: true });
       toast.success("Declaration of Conformity uploaded");
     } catch (error: unknown) {
-      const err = error as { message?: string };
-      toast.error(err.message || "Upload failed");
+      const err = error as { message?: string; response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || err.message || "Upload failed");
     } finally {
       setIsUploading(false);
       setTimeout(() => setUploadProgress(0), 1000);
@@ -842,6 +831,26 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         "/batches",
         payload,
       );
+      const newBatchId = createRes.data?.batch?.id;
+
+      // Art. 7: persist the calculator payload after create. Free-text
+      // carbonFootprint is already on specs; the gate only reads this JSON.
+      if (
+        newBatchId &&
+        isCarbonResultCurrent(data) &&
+        isCarbonResultPayload(data.carbonFootprintResult)
+      ) {
+        try {
+          await saveCarbonToBatch(
+            newBatchId,
+            data.carbonFootprintResult as unknown as CarbonResult,
+          );
+        } catch {
+          toast.warning(
+            "Batch created, but the carbon calculator result did not save. Open the Carbon tab on the batch to retry.",
+          );
+        }
+      }
 
       // Save template
       if (data.saveAsTemplate && data.templateName.trim()) {
@@ -887,7 +896,6 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
       // Take the user straight to the new batch — the activation checklist,
       // compliance gaps, and passport tools all live on the detail page.
-      const newBatchId = createRes.data?.batch?.id;
       if (newBatchId) {
         router.push(
           `${dashboardPathFromPathname(pathname, "batches")}/${newBatchId}`,

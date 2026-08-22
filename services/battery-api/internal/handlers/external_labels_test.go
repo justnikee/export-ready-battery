@@ -27,7 +27,7 @@ func TestExternalDownloadLabels_RejectsOversizeBatch(t *testing.T) {
 
 	repo := new(repository.MockRepository)
 	repo.On("GetBatch", mock.Anything, batchID, tenantID).
-		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "BIG-BATCH"}, nil)
+		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "BIG-BATCH", Status: models.BatchStatusActive}, nil)
 	repo.On("GetTenant", mock.Anything, tenantID).
 		Return(&models.Tenant{ID: tenantID, CompanyName: "Acme"}, nil)
 	// Over the sync limit
@@ -64,7 +64,7 @@ func TestExternalDownloadLabels_EmptyBatch(t *testing.T) {
 
 	repo := new(repository.MockRepository)
 	repo.On("GetBatch", mock.Anything, batchID, tenantID).
-		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "EMPTY"}, nil)
+		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "EMPTY", Status: models.BatchStatusActive}, nil)
 	repo.On("GetTenant", mock.Anything, tenantID).
 		Return(&models.Tenant{ID: tenantID}, nil)
 	repo.On("CountPassportsByBatch", mock.Anything, batchID).Return(0, nil)
@@ -89,7 +89,7 @@ func TestExternalDownloadLabels_CountError(t *testing.T) {
 
 	repo := new(repository.MockRepository)
 	repo.On("GetBatch", mock.Anything, batchID, tenantID).
-		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "X"}, nil)
+		Return(&models.Batch{ID: batchID, TenantID: tenantID, BatchName: "X", Status: models.BatchStatusActive}, nil)
 	repo.On("GetTenant", mock.Anything, tenantID).
 		Return(&models.Tenant{ID: tenantID}, nil)
 	repo.On("CountPassportsByBatch", mock.Anything, batchID).

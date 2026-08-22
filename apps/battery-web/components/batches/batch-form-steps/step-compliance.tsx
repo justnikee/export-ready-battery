@@ -34,37 +34,14 @@ import { AiBadge, aiFieldClass } from "@/components/batches/batch-form-steps/ai-
 import { SettingsBadge } from "@/components/batches/batch-form-steps/settings-badge";
 import { calculateEstimatedDVA, calculateImportedCostTotal, type BatchFormData } from "@/components/batches/batch-form-schema";
 import api from "@/lib/api";
-
-const NOMINAL_VOLTAGE_BY_CHEMISTRY: Record<string, number> = {
-  LFP: 3.2,
-  SODIUM: 3.1,
-  NMC_622: 3.6,
-  NMC_811: 3.65,
-  NCA: 3.65,
-  LCO: 3.7,
-};
-
-function parseCapacity(raw?: string, chemistry?: string): number {
-  if (!raw) return 0;
-  const num = parseFloat(raw);
-  if (isNaN(num)) return 0;
-  const lower = raw.toLowerCase();
-  if (lower.includes("kwh")) return num;
-  if (lower.includes("ah")) {
-    const voltage = NOMINAL_VOLTAGE_BY_CHEMISTRY[chemistry?.toUpperCase() ?? ""] ?? 3.6;
-    return (num * voltage) / 1000;
-  }
-  return num;
-}
-
-function parseWeight(raw?: string): number {
-  if (!raw) return 0;
-  const num = parseFloat(raw);
-  if (isNaN(num)) return 0;
-  const lower = raw.toLowerCase();
-  if (lower.includes("g") && !lower.includes("kg")) return num / 1000;
-  return num;
-}
+import {
+  carbonSpecKey,
+  isCarbonResultCurrent,
+  parseCapacityKwh,
+  parseWeightKg,
+  type CarbonResult,
+} from "@/lib/carbon";
+import { openStagingComplianceDoc } from "@/lib/api/compliance-docs";
 
 const COUNTRIES = [
   { value: "CN", label: "🇨🇳 China" },
@@ -153,11 +130,19 @@ export function StepCompliance({
   const weight = watch("weight");
 
   const handleCalculateCarbon = async () => {
+    const parsedCapacityKwh = parseCapacityKwh(capacity, chemistry);
+    const parsedWeightKg = parseWeightKg(weight);
+    if (parsedCapacityKwh <= 0) {
+      toast.error("Enter a valid capacity (e.g. 50 kWh or 2500 mAh) on the Core step first");
+      return;
+    }
+    if (parsedWeightKg <= 0) {
+      toast.error("Enter a valid battery weight (e.g. 25 kg) on the Core step first");
+      return;
+    }
+
     setCalculating(true);
     try {
-      const parsedCapacityKwh = parseCapacity(capacity, chemistry) || 50;
-      const parsedWeightKg = parseWeight(weight) || 25;
-
       const payload = {
         chemistry: chemistry || "LFP",
         capacity_kwh: parsedCapacityKwh,
@@ -169,14 +154,24 @@ export function StepCompliance({
         battery_weight_kg: parsedWeightKg,
       };
 
-      const response = await api.post("/carbon/calculate", payload);
-      const totalKgCo2e = response.data.total_kg_co2e;
-      const carbonClass = response.data.carbon_class;
+      const response = await api.post<CarbonResult>("/carbon/calculate", payload);
+      const result = response.data;
+      const totalKgCo2e = result.total_kg_co2e;
+      const carbonClass = result.carbon_class;
 
       setValue("carbonFootprint", totalKgCo2e.toFixed(2), {
         shouldValidate: true,
         shouldDirty: true,
       });
+      setValue("carbonFootprintResult", result as unknown as Record<string, unknown>, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      setValue(
+        "carbonResultSpecKey",
+        carbonSpecKey(chemistry || "", capacity || "", weight || ""),
+        { shouldDirty: true },
+      );
       if (carbonClass) {
         setValue("carbonPerformanceClass", carbonClass, {
           shouldValidate: true,
@@ -184,12 +179,14 @@ export function StepCompliance({
         });
       }
 
-      toast.success("Carbon footprint calculated and applied", {
-        description: `${totalKgCo2e.toFixed(2)} kg CO₂e (Class ${carbonClass}) applied to field.`,
+      toast.success("Carbon footprint calculated", {
+        description: `${totalKgCo2e.toFixed(2)} kg CO₂e (Class ${carbonClass}) will be saved on create for EU Art. 7.`,
       });
       setShowCalculator(false);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || "Failed to calculate carbon footprint";
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Failed to calculate carbon footprint";
       toast.error(msg);
     } finally {
       setCalculating(false);
@@ -268,7 +265,16 @@ export function StepCompliance({
 
   // Watched purely to drive the section-completion badges below
   const carbonFootprint = watch("carbonFootprint");
+  const carbonFootprintResult = watch("carbonFootprintResult");
+  const carbonResultSpecKey = watch("carbonResultSpecKey");
   const materialComposition = watch("materialComposition");
+  const carbonResultReady = isCarbonResultCurrent({
+    carbonFootprintResult,
+    carbonResultSpecKey,
+    chemistry,
+    capacity,
+    weight,
+  });
   const euRepresentative = watch("euRepresentative");
   const euRepresentativeEmail = watch("euRepresentativeEmail");
   const euRepresentativeAddress = watch("euRepresentativeAddress");
@@ -332,7 +338,7 @@ export function StepCompliance({
   );
 
   const carbonSectionFilled = [
-    carbonFootprint,
+    carbonResultReady || carbonFootprint,
     materialComposition?.recycled_cobalt,
     materialComposition?.recycled_lithium,
     materialComposition?.recycled_nickel,
@@ -404,6 +410,9 @@ export function StepCompliance({
                     <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">kg CO₂e</span>
                   </div>
                   {errors.carbonFootprint && <p className="text-xs text-red-500 mt-0.5">{errors.carbonFootprint.message}</p>}
+                  <p className="text-[10px] text-muted-foreground leading-normal">
+                    Free-text is a label only. EU Art. 7 activation requires the calculator result below.
+                  </p>
                 </div>
 
                 <div className="mt-3 border border-border bg-card/15 rounded-xl p-3.5 space-y-3">
@@ -508,9 +517,20 @@ export function StepCompliance({
                       </div>
 
                       <p className="text-[10px] text-muted-foreground leading-normal mt-1 border-t border-border/50 pt-1">
-                        * Note: Pre-fills and scales automatically using your step-1 specs: <strong>Chemistry ({chemistry || "N/A"})</strong>, <strong>Capacity ({capacity || "N/A"})</strong>, and <strong>Weight ({weight || "N/A"})</strong>.
+                        Uses Core-step specs — no silent defaults: <strong>Chemistry ({chemistry || "missing"})</strong>, <strong>Capacity ({capacity || "missing"})</strong>, <strong>Weight ({weight || "missing"})</strong>.
+                        Changing those fields after calculating requires a re-run.
                       </p>
                     </div>
+                  )}
+                  {carbonResultReady && (
+                    <p className="text-[11px] text-emerald-600 font-medium">
+                      Calculator result stored — will be saved to the batch on create (Art. 7).
+                    </p>
+                  )}
+                  {carbonFootprintResult && !carbonResultReady && (
+                    <p className="text-[11px] text-amber-600">
+                      Specs changed since the last calculation. Re-run the calculator.
+                    </p>
                   )}
                 </div>
 
@@ -744,7 +764,18 @@ export function StepCompliance({
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-foreground flex items-center gap-1.5"><FileText className="h-4 w-4 text-muted-foreground" /> DoC uploaded</span>
                         <div className="flex gap-2">
-                          <a href={docUploadUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium">View</a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void openStagingComplianceDoc(docUploadUrl).catch((err: unknown) => {
+                                const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                                toast.error(msg || "Failed to open document");
+                              });
+                            }}
+                            className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium"
+                          >
+                            View
+                          </button>
                           <button type="button" onClick={() => setValue("docUploadUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors font-medium cursor-pointer">Remove</button>
                         </div>
                       </div>
@@ -981,7 +1012,18 @@ export function StepCompliance({
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
-                                  <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium">View File</a>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      void openStagingComplianceDoc(uploadedFileUrl).catch((err: unknown) => {
+                                        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+                                        toast.error(msg || "Failed to open document");
+                                      });
+                                    }}
+                                    className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-accent transition-colors border border-border font-medium"
+                                  >
+                                    View File
+                                  </button>
                                   <button type="button" onClick={() => setValue("uploadedFileUrl", null, { shouldValidate: true, shouldDirty: true })} className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors font-medium cursor-pointer font-medium">Replace</button>
                                 </div>
                               </div>

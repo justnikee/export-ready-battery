@@ -9,7 +9,7 @@ export interface BulkImportResult {
   total: number;
   created: number;
   failed: number;
-  errors: { row: number; message: string }[];
+  errors: { row: number; field?: string; message: string }[];
 }
 
 export const bulkImportBatches = async (file: File): Promise<BulkImportResult> => {

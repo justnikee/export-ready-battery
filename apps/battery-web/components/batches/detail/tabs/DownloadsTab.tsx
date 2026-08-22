@@ -15,6 +15,7 @@ import {
   Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PRODUCTION_ARTIFACTS_DRAFT_LOCK } from "@/lib/production-artifacts";
 
 interface DownloadsTabProps {
   isDraft: boolean;
@@ -108,6 +109,7 @@ export function DownloadsTab({
   onExportPLIPacket,
 }: DownloadsTabProps) {
   const draftLock = "Activate batch to unlock downloads";
+  const qrLabelLock = PRODUCTION_ARTIFACTS_DRAFT_LOCK;
 
   return (
     <div className="space-y-8">
@@ -120,7 +122,7 @@ export function DownloadsTab({
           description="Generate printable labels for all passports"
           onClick={onPrintLabels}
           disabled={isDraft}
-          disabledReason={draftLock}
+          disabledReason={qrLabelLock}
         />
         <DownloadCard
           icon={<QrCode className="h-4 w-4 text-emerald-500" />}
@@ -129,7 +131,7 @@ export function DownloadsTab({
           description="Download all QR codes as a ZIP archive"
           onClick={onDownloadQR}
           disabled={isDraft}
-          disabledReason={draftLock}
+          disabledReason={qrLabelLock}
         />
         <DownloadCard
           icon={<FileSpreadsheet className="h-4 w-4 text-teal-500" />}

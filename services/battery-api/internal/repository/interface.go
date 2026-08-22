@@ -100,6 +100,7 @@ type RepositoryInterface interface {
 	CleanupExpiredMagicTokens(ctx context.Context) (int, error)
 	// Phase 7: OTP methods
 	SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error
+	SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error
 	CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error
 	GetMagicLinkOTP(ctx context.Context, tokenHash string) (*OTPRecord, error)
 	IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error

@@ -65,7 +65,9 @@ Missing mock → handler tests break.
 | Dashboard first paint | Prefer `GET /dashboard/bootstrap` over parallel stats+chart+recent (ADR 027 / P-08). Keep fine-grained endpoints for other pages. |
 | API rate limits | JWT routes: tenant limiter in `Auth.Protect` (~300/min). All `/api/*`: global IP via `LimitAPIPaths` (~600/min). Auth/AI stay stricter (ADR 023 / P-04). |
 
-`JWT_SECRET` must match across platform-core, battery-api, textile-api, and each app `proxy.ts`.
+`JWT_SECRET` must match across platform-core, battery-api, and each app `proxy.ts`.
+
+Do not start textile work (`apps/textile-web`, `services/textile-api`). Battery product only.
 
 ---
 
@@ -84,6 +86,7 @@ Missing mock → handler tests break.
 - List pagination: default 50, max **200** (clamp; never unbounded `limit`).
 - New routes: wire in `cmd/server/main.go`; add handler tests with mocks.
 - Go logging: `log/slog`. Frontend errors: sonner toasts.
+- QR ZIP and label PDF are production artifacts: issue only when batch is **ACTIVE or ARCHIVED**. Never on DRAFT (`CanIssueProductionIdentifiers`). Same rule on JWT, API-key, and export jobs.
 
 ---
 

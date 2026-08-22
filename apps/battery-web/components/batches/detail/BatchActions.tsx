@@ -90,7 +90,6 @@ export function BatchActions({
                 onPrintLabels();
                 setOpen(false);
               }}
-              disabled={isArchived}
             >
               <Printer className="mr-2 h-4 w-4" />
               Print Labels
@@ -100,7 +99,6 @@ export function BatchActions({
                 onDownloadQR();
                 setOpen(false);
               }}
-              disabled={isArchived}
             >
               <QrCode className="mr-2 h-4 w-4" />
               Download QR Codes

@@ -45,7 +45,9 @@ describe("DownloadsTab", () => {
   it("disables buttons when batch is draft", () => {
     render(<DownloadsTab {...defaultProps} isDraft={true} />);
     const labelsBtn = screen.getByRole("button", { name: /Print Labels/i });
+    const qrBtn = screen.getByRole("button", { name: /QR Codes/i });
     expect(labelsBtn).toBeDisabled();
+    expect(qrBtn).toBeDisabled();
   });
 
   it("shows EU documents when isEU is true", () => {

@@ -45,6 +45,7 @@ type MagicLinkRepository interface {
 	MarkMagicTokenUsed(ctx context.Context, tokenHash string) error
 	// Phase 7: OTP methods
 	SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error
+	SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error
 	CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error
 	GetMagicLinkOTP(ctx context.Context, tokenHash string) (*repository.OTPRecord, error)
 	IncrementOTPAttempt(ctx context.Context, otpID uuid.UUID) error
@@ -167,6 +168,11 @@ func (h *MagicLinkHandler) RequestMagicLink(w http.ResponseWriter, r *http.Reque
 	}
 	if !models.IsValidPartnerRole(role) {
 		respondError(w, http.StatusForbidden, "Invalid partner role")
+		return
+	}
+	if req.Action != string(models.ActionSOHUpdate) &&
+		!models.IsRoleAllowedForAction(models.TransitionAction(req.Action), models.ActorRole(role), passport.ProductType) {
+		respondError(w, http.StatusForbidden, fmt.Sprintf("Role %s is not permitted to perform %s", role, req.Action))
 		return
 	}
 
@@ -330,28 +336,8 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// ===== PHASE 7: OTP GATE =====
-	// RECYCLE and RECALL actions require a one-time OTP challenge.
-	if record.RequiresOTP {
-		otp, issued, otpErr := h.ensureActiveOTP(r.Context(), tokenHash, record.Email, record.Action)
-		if otpErr != nil {
-			slog.Error("OTP issue failed", "error", otpErr)
-			respondError(w, http.StatusInternalServerError, "Failed to issue OTP")
-			return
-		}
-		response := map[string]interface{}{
-			"status":  "otp_required",
-			"message": "A 6-digit OTP has been sent to your email. Please confirm via /confirm-otp.",
-		}
-		if !issued {
-			response["message"] = "An active 6-digit OTP is already pending. Check your email or use resend after the cooldown."
-		}
-		if (h.emailService == nil || !h.emailService.IsEnabled()) && issued && otp != "" {
-			response["otp_dev"] = otp
-		}
-		respondJSON(w, http.StatusAccepted, response)
-		return
-	}
+	// Always parse body first so OTP-gated actions can stash evidence before
+	// returning 202 otp_required (ConfirmOTP reloads pending_evidence).
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
@@ -403,6 +389,41 @@ func (h *MagicLinkHandler) TransitionWithMagicLink(w http.ResponseWriter, r *htt
 	}
 	if claims.Action != req.Action {
 		respondError(w, http.StatusForbidden, "Action not permitted by magic link token")
+		return
+	}
+
+	// Pre-validate evidence before OTP so partners get immediate field errors.
+	if _, evidenceErr := models.ValidateEvidence(models.TransitionAction(req.Action), req.Evidence); evidenceErr != nil {
+		respondError(w, http.StatusBadRequest, evidenceErr.Error())
+		return
+	}
+
+	// ===== PHASE 7: OTP GATE =====
+	// RECYCLE and RECALL actions require a one-time OTP challenge.
+	// Evidence is persisted on the token so ConfirmOTP can apply it.
+	if record.RequiresOTP {
+		if err := h.repo.SavePendingEvidence(r.Context(), tokenHash, req.Evidence); err != nil {
+			slog.Error("Failed to stash pending evidence for OTP transition", "error", err)
+			respondError(w, http.StatusInternalServerError, "Failed to store transition evidence")
+			return
+		}
+		otp, issued, otpErr := h.ensureActiveOTP(r.Context(), tokenHash, record.Email, record.Action)
+		if otpErr != nil {
+			slog.Error("OTP issue failed", "error", otpErr)
+			respondError(w, http.StatusInternalServerError, "Failed to issue OTP")
+			return
+		}
+		response := map[string]interface{}{
+			"status":  "otp_required",
+			"message": "A 6-digit OTP has been sent to your email. Please confirm via /confirm-otp.",
+		}
+		if !issued {
+			response["message"] = "An active 6-digit OTP is already pending. Check your email or use resend after the cooldown."
+		}
+		if (h.emailService == nil || !h.emailService.IsEnabled()) && issued && otp != "" {
+			response["otp_dev"] = otp
+		}
+		respondJSON(w, http.StatusAccepted, response)
 		return
 	}
 
@@ -625,6 +646,14 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	requiredEvidence := map[string][]string{}
+	for _, action := range allowedForToken {
+		fields := models.RequiredEvidenceFields(models.TransitionAction(action))
+		if len(fields) > 0 {
+			requiredEvidence[action] = fields
+		}
+	}
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"passport": map[string]interface{}{
 			"uuid":          passport.UUID,
@@ -636,7 +665,8 @@ func (h *MagicLinkHandler) GetPassportForAction(w http.ResponseWriter, r *http.R
 			"email": claims.Email,
 			"role":  claims.Role,
 		},
-		"allowed_actions": allowedForToken,
+		"allowed_actions":    allowedForToken,
+		"required_evidence":  requiredEvidence,
 	})
 }
 
@@ -912,6 +942,17 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to mark OTP used", "error", err)
 	}
 
+	// Evidence was validated and stashed on the token when OTP was issued.
+	evidence := record.PendingEvidence
+	if evidence == nil {
+		evidence = models.Evidence{}
+	}
+	if _, evidenceErr := models.ValidateEvidence(models.TransitionAction(record.Action), evidence); evidenceErr != nil {
+		respondError(w, http.StatusBadRequest,
+			"Pending evidence missing or invalid. Re-submit the transition with evidence to receive a new OTP.")
+		return
+	}
+
 	passengerContext := models.ActorContext{
 		ActorType: models.ActorTypePartner,
 		ActorID:   record.Email,
@@ -925,6 +966,7 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		ActorContext:       passengerContext,
 		IPAddress:          r.RemoteAddr,
 		MagicLinkTokenHash: tokenHash,
+		Evidence:           evidence,
 	})
 	if err != nil {
 		if result == nil {
@@ -934,6 +976,8 @@ func (h *MagicLinkHandler) ConfirmOTP(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, services.ErrActionNotAllowed):
 			respondError(w, http.StatusConflict, result.Error)
+		case errors.Is(err, services.ErrInvalidEvidence):
+			respondError(w, http.StatusBadRequest, result.Error)
 		default:
 			respondError(w, http.StatusBadRequest, result.Error)
 		}

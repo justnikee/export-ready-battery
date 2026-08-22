@@ -48,10 +48,17 @@ export default function PublicPassportPage() {
     window.history.replaceState({}, "", url.toString());
   };
 
+  const accessToken = searchParams?.get("access_token") ?? "";
+
   useEffect(() => {
     const fetchPassport = async () => {
       try {
-        const response = await apiAnonymous.get(`/passports/${params.uuid}`);
+        // Forward access_token so partner/regulator data-access tokens elevate
+        // Art. 78 tier (API reads ?access_token=). Without this the page always
+        // stays on PUBLIC even when a token is present in the URL.
+        const response = await apiAnonymous.get(`/passports/${params.uuid}`, {
+          params: accessToken ? { access_token: accessToken } : undefined,
+        });
         const data = response.data;
 
         // The API returns a tier-aware view (PublicPassportView, PartnerPassportView,
@@ -131,7 +138,7 @@ export default function PublicPassportPage() {
     if (params.uuid) {
       fetchPassport();
     }
-  }, [params.uuid]);
+  }, [params.uuid, accessToken]);
 
   const recordScan = async (passportId: string) => {
     try {

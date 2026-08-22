@@ -48,6 +48,18 @@ var evidenceRequirementsByAction = map[TransitionAction][]string{
 	ActionRepurpose:     {EvidenceRecyclerEprID, EvidenceCertificateReference},
 }
 
+// RequiredEvidenceFields returns the canonical evidence keys for an action.
+// Empty means the action must be submitted with no evidence object keys.
+func RequiredEvidenceFields(action TransitionAction) []string {
+	fields := evidenceRequirementsByAction[action]
+	if len(fields) == 0 {
+		return nil
+	}
+	out := make([]string, len(fields))
+	copy(out, fields)
+	return out
+}
+
 var evidenceDateFields = map[string]bool{
 	EvidenceShipmentDate:     true,
 	EvidenceInstallationDate: true,

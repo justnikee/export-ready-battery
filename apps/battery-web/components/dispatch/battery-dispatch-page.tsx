@@ -248,11 +248,13 @@ export default function DispatchPage() {
       const bulkTransition = async (
         action: string,
         evidence?: Record<string, unknown>,
+        extras?: Record<string, unknown>,
       ) => {
         const response = await api.post("/passports/bulk/transition", {
           passport_ids: passportIds,
           action: action,
           evidence: evidence || {},
+          ...extras,
         });
         return response.data as {
           total: number;
@@ -263,8 +265,17 @@ export default function DispatchPage() {
         };
       };
 
-      // Phase 2 action flow: ACTIVATE (if needed), then SHIP
-      await bulkTransition("ACTIVATE");
+      // ACTIVATE requires reason_code (backend ValidateReasonCode). CREATED
+      // units that fail here stay CREATED; SHIP still runs for already-ACTIVE.
+      const activateResult = await bulkTransition("ACTIVATE", undefined, {
+        reason_code: "DISPATCH_QC_PASS",
+        admin_note: "Auto-activated during dispatch",
+      });
+      if (activateResult.failed > 0 && activateResult.succeeded === 0) {
+        // All failed activate — only proceed if units may already be ACTIVE
+        // (API returns failed for wrong-from-state). Log and continue to SHIP.
+        console.warn("Dispatch ACTIVATE partial/failed", activateResult);
+      }
 
       const result = await bulkTransition("SHIP", {
         shipment_reference: shipmentReference,

@@ -3,6 +3,18 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { PassportsTab } from "./PassportsTab";
 import type { Passport } from "@/lib/types";
 
+vi.mock("@/context/auth-context", () => ({
+  useAuth: () => ({
+    user: {
+      id: "user-1",
+      tenant_id: "tenant-1",
+      email: "test@example.com",
+      company_name: "Acme Battery Co",
+      role: "ADMIN",
+    },
+  }),
+}));
+
 const mockPassports: Passport[] = [
   {
     uuid: "p1",

@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // CreatePassportVC inserts a signed Verifiable Credential into the passport_vcs table.
@@ -50,6 +52,9 @@ func (r *Repository) GetPassportVCByPassportID(ctx context.Context, passportID u
 		&vc.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get passport vc: %w", err)
 	}
 	return &vc, nil

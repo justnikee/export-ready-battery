@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import type { Batch, RegistryVerification } from "@/lib/types";
 import type { MarketRegion } from "./types";
 import { BatchLifecycleTracker } from "./BatchLifecycleTracker";
+import { isLedgerOrPortalVerified } from "@/lib/registry-honesty";
 
 interface BatchStatusCardProps {
   batch: Batch;
@@ -55,7 +56,9 @@ export function BatchStatusCard({
     s.msds_issue_date
   );
   const hasOrgCert = !!(user?.bis_r_number || user?.epr_registration_number || user?.iec_code);
-  const hasVerifiedRegistry = (verifications || []).some((v) => v.status === "verified");
+  const hasVerifiedRegistry = (verifications || []).some((v) =>
+    isLedgerOrPortalVerified(v.status, v.trust_tier),
+  );
 
   const chips: Chip[] = [
     {

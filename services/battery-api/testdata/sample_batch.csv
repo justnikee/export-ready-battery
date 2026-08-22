@@ -1,4 +1,4 @@
-batch_name,description,chemistry,capacity_kwh,weight_kg,hsn_code,pli_compliant,sale_price_inr,import_cost_inr,lithium_pct,graphite_pct,cobalt_pct,nickel_pct,manganese_pct,warranty_months,cycle_life
-"IND-LFP-2026-A","Tata Tiago EV Pack (Standard)","LFP",19.2,220.5,"85076000","true",350000,120000,4.5,18.2,0.0,0.0,15.5,96,3000
-"IND-LFP-2026-B","Ola S1 Pro Battery Module","LFP",4.0,45.0,"85076000","true",65000,28000,4.2,17.8,0.0,0.0,16.0,60,2500
-"IND-NMC-2026-C","Export Grade High Performance","NMC",75.0,450.0,"85076000","false",1200000,800000,6.1,22.0,12.5,45.0,0.0,120,1500
+batch_name,model_name,market_region,chemistry,capacity,voltage,weight,manufacturer,country_of_origin,manufacturing_start_date,manufacturing_end_date,battery_category,cell_source,hsn_code,sale_price_inr,cell_cost_domestic_inr,labour_overhead_cost_inr,cell_cost_imported_inr,bms_cost_domestic_inr,bms_cost_imported_inr,casing_cost_domestic_inr,casing_cost_imported_inr,import_cost_inr,pli_compliant,bill_of_entry_no,customs_date,bis_number,epr_number,lot_size,production_stage
+IND-LFP-DOM-2026-A,Tiago EV Pack,INDIA,LFP,19.2 kWh,3.2 V,220 kg,Example Cells Pvt Ltd,IN,2026-01-01,2026-01-31,,DOMESTIC,85076000,350000,140000,40000,0,20000,0,15000,0,0,false,,,R-41001234,,500,pack
+IND-LFP-IMP-2026-B,Scooter Module,INDIA,LFP,4 kWh,3.2 V,45 kg,Example Cells Pvt Ltd,CN,2026-02-01,2026-02-15,,IMPORTED,85076000,65000,0,0,28000,0,0,0,0,28000,false,BOE-2026-00421,2026-01-20,,,200,pack
+EU-NMC-2026-C,Export EV Pack,EU,NMC,75 kWh,3.6 V,450 kg,Example Cells Pvt Ltd,IN,2026-03-01,2026-03-20,EV,,,,,,,,,,,,,,,,,,100,pack

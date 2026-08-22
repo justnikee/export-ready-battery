@@ -446,6 +446,11 @@ func (m *MockRepository) SetRequiresOTP(ctx context.Context, tokenHash string, r
 	return args.Error(0)
 }
 
+func (m *MockRepository) SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error {
+	args := m.Called(ctx, tokenHash, evidence)
+	return args.Error(0)
+}
+
 func (m *MockRepository) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
 	args := m.Called(ctx, tokenHash, otpHash)
 	return args.Error(0)

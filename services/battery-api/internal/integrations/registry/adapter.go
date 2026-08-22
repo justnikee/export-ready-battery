@@ -4,9 +4,9 @@
 // Each adapter implements the RegistryAdapter interface. The verification
 // strategy varies by registry:
 //   - BIS: HTTP scraper of the public BIS CRS portal
-//   - CPCB: Internal EPR ledger cross-check (no public API exists)
+//   - CPCB: EPR number format check only (no public CPCB API / ledger)
 //   - EU NANDO: HTTP scraper of the public NANDO database
-//   - UN38.3: Lab accreditation validation against known lab list
+//   - UN38.3: Local lab-name allowlist + report format (not IAF/ILAC)
 //
 // Adapters are designed to degrade gracefully: if the external source is
 // unreachable or its structure changes, the adapter returns a self_declared

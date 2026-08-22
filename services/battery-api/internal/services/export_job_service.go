@@ -107,6 +107,32 @@ func (s *ExportJobService) CreateJob(ctx context.Context, tenantID, batchID, req
 	return job, nil
 }
 
+// GetOwnedBatch returns the tenant-owned batch or an error.
+func (s *ExportJobService) GetOwnedBatch(ctx context.Context, batchID, tenantID uuid.UUID) (*models.Batch, error) {
+	if s.repo != nil {
+		batch, err := s.repo.GetBatch(ctx, batchID, tenantID)
+		if err != nil || batch == nil {
+			return nil, fmt.Errorf("batch not found")
+		}
+		return batch, nil
+	}
+	batch := &models.Batch{}
+	err := s.db.QueryRow(ctx,
+		`SELECT id, tenant_id, COALESCE(status, 'DRAFT') FROM batches WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL`,
+		batchID, tenantID,
+	).Scan(&batch.ID, &batch.TenantID, &batch.Status)
+	if err != nil {
+		return nil, fmt.Errorf("batch not found: %w", err)
+	}
+	return batch, nil
+}
+
+// VerifyBatchOwnership returns nil when batchID belongs to tenantID.
+func (s *ExportJobService) VerifyBatchOwnership(ctx context.Context, batchID, tenantID uuid.UUID) error {
+	_, err := s.GetOwnedBatch(ctx, batchID, tenantID)
+	return err
+}
+
 // GetPassportCountByBatch returns the number of passports in a batch
 func (s *ExportJobService) GetPassportCountByBatch(ctx context.Context, batchID uuid.UUID) (int, error) {
 	var count int
@@ -332,10 +358,16 @@ func (s *ExportJobService) ProcessJob(ctx context.Context, job *models.ExportJob
 	var contentType string
 
 	switch job.JobType {
-	case models.ExportJobTypeQRZip:
-		data, contentType, err = s.generateQRZip(batch, passports)
-	case models.ExportJobTypeLabelPDF:
-		data, contentType, err = s.generateLabelPDF(batch, passports, tenant)
+	case models.ExportJobTypeQRZip, models.ExportJobTypeLabelPDF:
+		if !models.CanIssueProductionIdentifiers(batch.Status) {
+			err = fmt.Errorf("%s", models.ProductionArtifactsDraftMessage)
+			break
+		}
+		if job.JobType == models.ExportJobTypeQRZip {
+			data, contentType, err = s.generateQRZip(batch, passports)
+		} else {
+			data, contentType, err = s.generateLabelPDF(batch, passports, tenant)
+		}
 	case models.ExportJobTypeCSV:
 		data, contentType, err = s.generateCSV(passports)
 	case models.ExportJobTypeDueDiligence:

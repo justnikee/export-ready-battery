@@ -134,7 +134,9 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Deduct quota balance if batch is ACTIVE (draft batches are metered at activation)
+	// Deduct quota only after parse/events succeed; refund if insert fails.
+	// Draft batches are metered at activation, not here.
+	quotaCharged := 0
 	if batch.Status == models.BatchStatusActive {
 		balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
 		if err != nil {
@@ -151,11 +153,17 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusInternalServerError, "Failed to process quota deduction")
 			return
 		}
+		quotaCharged = len(parseResult.Passports)
 	}
 
 	// Bulk insert passports and genesis events atomically
 	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), parseResult.Passports, events)
 	if err != nil {
+		if quotaCharged > 0 {
+			if refundErr := h.repo.AddQuota(r.Context(), tenantID, quotaCharged); refundErr != nil {
+				slog.Error("UploadCSV: failed to refund quota after insert failure", "error", refundErr, "quota", quotaCharged)
+			}
+		}
 		slog.Error("Failed to insert passports with audit events", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to save passports to database")
 		return
@@ -345,13 +353,26 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Validate inputs
+	// Validate inputs before any quota mutation
 	if req.Count <= 0 || req.Count > 10000 {
 		respondError(w, http.StatusBadRequest, "Count must be between 1 and 10000")
 		return
 	}
 
-	// Deduct quota balance if batch is ACTIVE (draft batches are metered at activation)
+	// Parse manufacture date (required) before quota deduction
+	if req.ManufactureDate == "" {
+		respondError(w, http.StatusBadRequest, "manufacture_date is required (YYYY-MM-DD)")
+		return
+	}
+	manufactureDate, err := time.Parse("2006-01-02", req.ManufactureDate)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid manufacture_date format (expected YYYY-MM-DD)")
+		return
+	}
+
+	// Deduct quota only after request validation; refund if generation fails later.
+	// Draft batches are metered at activation, not here.
+	quotaCharged := 0
 	if batch.Status == models.BatchStatusActive {
 		balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
 		if err != nil {
@@ -368,26 +389,26 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 			respondError(w, http.StatusInternalServerError, "Failed to process quota deduction")
 			return
 		}
-	}
-
-	// Parse manufacture date (required)
-	if req.ManufactureDate == "" {
-		respondError(w, http.StatusBadRequest, "manufacture_date is required (YYYY-MM-DD)")
-		return
-	}
-	manufactureDate, err := time.Parse("2006-01-02", req.ManufactureDate)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid manufacture_date format (expected YYYY-MM-DD)")
-		return
+		quotaCharged = req.Count
 	}
 
 	// Fetch component tree for BOM embedding in passport snapshot (EU Art 77)
 	componentTree, _ := h.repo.GetComponentTreeByBatch(r.Context(), batchID, tenantID)
 	batch.Specs.Components = convertComponentTree(componentTree)
 
+	refundQuota := func() {
+		if quotaCharged <= 0 {
+			return
+		}
+		if refundErr := h.repo.AddQuota(r.Context(), tenantID, quotaCharged); refundErr != nil {
+			slog.Error("AutoGenerate: failed to refund quota after failure", "error", refundErr, "quota", quotaCharged)
+		}
+	}
+
 	// Build batch snapshot for auditability
 	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
 	if err != nil {
+		refundQuota()
 		slog.Error("AutoGenerate: failed to build batch snapshot", "batch_id", batchID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
 		return
@@ -443,6 +464,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	slog.Info("AutoGenerate: reserving sequences", "prefix", bpanPrefix, "count", req.Count)
 	startSeq, err := h.repo.NextSequenceBatch(r.Context(), bpanPrefix, req.Count)
 	if err != nil {
+		refundQuota()
 		slog.Error("AutoGenerate: failed to reserve BPAN sequences", "prefix", bpanPrefix, "count", req.Count, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate serial numbers")
 		return
@@ -469,6 +491,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 
 	events, err := h.lifecycleService.BuildLifecycleEvents(passports, models.PassportEventCreated, actor, actorType, "INTERNAL")
 	if err != nil {
+		refundQuota()
 		slog.Error("Failed to build genesis events for auto-generated passports", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to create audit events")
 		return
@@ -478,6 +501,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	slog.Info("AutoGenerate: inserting passports", "count", len(passports), "batch_id", batchID)
 	insertedCount, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
 	if err != nil {
+		refundQuota()
 		slog.Error("AutoGenerate: failed to insert passports", "count", len(passports), "batch_id", batchID, "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to generate passports")
 		return

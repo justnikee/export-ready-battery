@@ -83,6 +83,22 @@ func (f *fakeMagicRepo) SetRequiresOTP(ctx context.Context, tokenHash string, re
 	return nil
 }
 
+func (f *fakeMagicRepo) SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error {
+	if token := f.tokens[tokenHash]; token != nil {
+		// Copy so later mutations to the request map don't race the stash.
+		if evidence == nil {
+			token.PendingEvidence = models.Evidence{}
+			return nil
+		}
+		copied := make(models.Evidence, len(evidence))
+		for k, v := range evidence {
+			copied[k] = v
+		}
+		token.PendingEvidence = copied
+	}
+	return nil
+}
+
 func (f *fakeMagicRepo) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
 	f.otps[tokenHash] = &repository.OTPRecord{
 		ID:                 uuid.New(),
@@ -314,6 +330,71 @@ func setupMagicLinkHandler(t *testing.T, status string, action string, role stri
 	return handler, repo, token, passportID
 }
 
+func TestMagicLinkOTP_RecycleStashesEvidenceAndConfirmApplies(t *testing.T) {
+	handler, repo, token, passportID := setupMagicLinkHandler(
+		t, models.PassportStatusInService, string(models.ActionRecycle), "RECYCLER",
+	)
+	// OTP-gated tokens set requires_otp at issue time.
+	repo.tokens[token.TokenHash].RequiresOTP = true
+
+	body := `{"action":"RECYCLE","evidence":{"recycler_epr_id":"EPR-99","recycling_date":"2026-03-01","certificate_reference":"CERT-1"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusAccepted {
+		t.Fatalf("expected 202 otp_required, got %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	// Evidence must be stashed for ConfirmOTP
+	stashed := repo.tokens[token.TokenHash].PendingEvidence
+	if stashed["recycler_epr_id"] != "EPR-99" {
+		t.Fatalf("expected pending evidence stashed, got %#v", stashed)
+	}
+
+	// Dev mode returns otp_dev when email service is nil
+	var otpResp map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&otpResp); err != nil {
+		t.Fatalf("decode otp response: %v", err)
+	}
+	otpCode, _ := otpResp["otp_dev"].(string)
+	if otpCode == "" {
+		t.Fatal("expected otp_dev in response when email is disabled")
+	}
+
+	confirmBody := `{"otp":"` + otpCode + `"}`
+	creq := httptest.NewRequest(http.MethodPost, "/api/v1/magic-links/"+token.Token+"/confirm-otp", strings.NewReader(confirmBody))
+	creq.Header.Set("Content-Type", "application/json")
+	crr := httptest.NewRecorder()
+	handler.ConfirmOTP(crr, creq)
+	if crr.Code != http.StatusOK {
+		t.Fatalf("expected 200 after OTP confirm, got %d body=%s", crr.Code, crr.Body.String())
+	}
+	if repo.passports[passportID].Status != models.PassportStatusRecycled {
+		t.Fatalf("expected RECYCLED status, got %s", repo.passports[passportID].Status)
+	}
+}
+
+func TestMagicLinkOTP_RejectsMissingEvidenceBeforeOTP(t *testing.T) {
+	handler, repo, token, passportID := setupMagicLinkHandler(
+		t, models.PassportStatusInService, string(models.ActionRecycle), "RECYCLER",
+	)
+	repo.tokens[token.TokenHash].RequiresOTP = true
+
+	body := `{"action":"RECYCLE","evidence":{}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+	rr := httptest.NewRecorder()
+
+	handler.TransitionWithMagicLink(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 missing evidence before OTP, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestMagicLinkTransition_ReusedTokenRejected(t *testing.T) {
 	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
 
@@ -406,6 +487,30 @@ func TestMagicLinkTransition_ValidTokenSucceeds(t *testing.T) {
 	}
 }
 
+func TestRequestMagicLink_RejectsLogisticsForRemanufacture(t *testing.T) {
+	handler, _, _, passportID := setupMagicLinkHandler(t, models.PassportStatusInService, string(models.ActionRecycle), "RECYCLER")
+	body := `{"passport_id":"` + passportID.String() + `","email":"partner@example.com","action":"REMANUFACTURE"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/magic-link", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.RequestMagicLink(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 when verified role cannot remanufacture, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestRequestMagicLink_AllowsLogisticsForShip(t *testing.T) {
+	handler, _, _, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionShip), "LOGISTICS")
+	body := `{"passport_id":"` + passportID.String() + `","email":"partner@example.com","action":"SHIP"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/magic-link", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.RequestMagicLink(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200 for logistics SHIP, got %d body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestGetPassportForAction_FiltersByTokenRole(t *testing.T) {
 	handler, _, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionRecall), "LOGISTICS")
 
@@ -442,7 +547,8 @@ func TestGetPassportForAction_AllowsMatchingTokenRole(t *testing.T) {
 	}
 
 	var resp struct {
-		AllowedActions []string `json:"allowed_actions"`
+		AllowedActions    []string            `json:"allowed_actions"`
+		RequiredEvidence  map[string][]string `json:"required_evidence"`
 	}
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
@@ -450,13 +556,18 @@ func TestGetPassportForAction_AllowsMatchingTokenRole(t *testing.T) {
 	if len(resp.AllowedActions) != 1 || resp.AllowedActions[0] != string(models.ActionShip) {
 		t.Fatalf("expected only SHIP, got %v", resp.AllowedActions)
 	}
+	if len(resp.RequiredEvidence["SHIP"]) != 2 {
+		t.Fatalf("expected SHIP evidence keys from action-info, got %#v", resp.RequiredEvidence)
+	}
 }
 
 func TestMagicLinkTransition_ActiveOTPIsReused(t *testing.T) {
+	// RECALL is OTP-gated and requires evidence fields — supply them so the
+	// request reaches the OTP gate (evidence is stashed for ConfirmOTP).
 	handler, repo, token, passportID := setupMagicLinkHandler(t, models.PassportStatusActive, string(models.ActionRecall), "LOGISTICS")
 	repo.tokens[token.TokenHash].RequiresOTP = true
 
-	body := `{"action":"RECALL"}`
+	body := `{"action":"RECALL","evidence":{"recall_reason":"safety","recall_reference":"RCL-1"}}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/passport/"+passportID.String()+"/transition", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token.Token)
@@ -464,7 +575,7 @@ func TestMagicLinkTransition_ActiveOTPIsReused(t *testing.T) {
 
 	handler.TransitionWithMagicLink(rr, req)
 	if rr.Code != http.StatusAccepted {
-		t.Fatalf("expected status 202, got %d", rr.Code)
+		t.Fatalf("expected status 202, got %d body=%s", rr.Code, rr.Body.String())
 	}
 	firstOTP := repo.otps[token.TokenHash]
 	if firstOTP == nil {
@@ -479,7 +590,7 @@ func TestMagicLinkTransition_ActiveOTPIsReused(t *testing.T) {
 
 	handler.TransitionWithMagicLink(rr2, req2)
 	if rr2.Code != http.StatusAccepted {
-		t.Fatalf("expected status 202, got %d", rr2.Code)
+		t.Fatalf("expected status 202, got %d body=%s", rr2.Code, rr2.Body.String())
 	}
 	secondOTP := repo.otps[token.TokenHash]
 	if secondOTP == nil {

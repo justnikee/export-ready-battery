@@ -129,11 +129,12 @@ export function getActivationBlockers(
       blocking.push("tenant.eu_contact_email");
     }
 
-    // Carbon footprint is satisfied by either the full Calculator result OR the
-    // simpler text value entered in the batch creation wizard (specs.carbon_footprint).
+    // EU Art. 7 requires the structured platform calculator result
+    // (batch.carbon_footprint_result). Free-text specs.carbon_footprint is
+    // NOT accepted by the activation gate — keep FE/BE in lockstep.
     const hasCarbonResult =
-      (batch.carbon_footprint_result && Object.keys(batch.carbon_footprint_result).length > 0) ||
-      !!batch.specs?.carbon_footprint?.trim();
+      !!batch.carbon_footprint_result &&
+      Object.keys(batch.carbon_footprint_result).length > 0;
     if (!hasCarbonResult) {
       blocking.push("carbon_footprint_result");
     }
@@ -207,7 +208,8 @@ export function formatBlockerLabel(key: string): string {
     "tenant.eu_authorized_representative_name": "EU representative name (Settings -> Compliance)",
     "tenant.eu_authorized_representative_address": "EU representative address (Settings -> Compliance)",
     "tenant.eu_contact_email": "EU contact email (Settings -> Compliance)",
-    carbon_footprint_result: "Carbon footprint (fill in batch form or use Carbon Calculator tab)",
+    carbon_footprint_result:
+      "Carbon footprint calculator (Compliance step — run Calculate; free-text alone is not accepted)",
     "specs.material_composition": "Material composition (at least one non-zero %)",
     "specs.material_composition.recycled_cobalt_pct": "Recycled cobalt content not declared (EU Art. 8)",
     "specs.material_composition.recycled_lithium_pct": "Recycled lithium content not declared (EU Art. 8)",

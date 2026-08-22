@@ -13,6 +13,9 @@ export type PassportStatus =
   | "IN_SERVICE"
   | "RECALLED"
   | "RECYCLED"
+  | "REMANUFACTURED"
+  | "REUSED"
+  | "REPURPOSED"
   | "END_OF_LIFE";
 
 export type TransitionAction =
@@ -21,7 +24,10 @@ export type TransitionAction =
   | "INSTALL"
   | "RECYCLE"
   | "CLOSE"
-  | "RECALL";
+  | "RECALL"
+  | "REMANUFACTURE"
+  | "REUSE"
+  | "REPURPOSE";
 
 export interface TransitionEvidence {
   shipment_reference?: string;
@@ -42,6 +48,9 @@ export const PASSPORT_STATUS_LABELS: Record<PassportStatus, string> = {
   IN_SERVICE: "In Service",
   RECALLED: "Recalled",
   RECYCLED: "Recycled",
+  REMANUFACTURED: "Remanufactured",
+  REUSED: "Reused",
+  REPURPOSED: "Repurposed",
   END_OF_LIFE: "End of Life",
 };
 
@@ -52,6 +61,9 @@ export const TRANSITION_ACTION_LABELS: Record<TransitionAction, string> = {
   RECYCLE: "Recycle",
   CLOSE: "Close",
   RECALL: "Recall",
+  REMANUFACTURE: "Remanufacture",
+  REUSE: "Reuse",
+  REPURPOSE: "Repurpose",
 };
 
 export interface Passport {
@@ -491,11 +503,16 @@ export type RegistryType = "bis" | "cpcb" | "eu_nando" | "un38_3" | "custom";
 export type RegistryVerificationStatus =
   | "pending"
   | "verified"
+  | "format_valid"
   | "failed"
   | "error"
   | "not_found";
 
-export type TrustTier = "self_declared" | "registry_verified" | "official_api";
+export type TrustTier =
+  | "self_declared"
+  | "format_valid"
+  | "registry_verified"
+  | "official_api";
 
 export interface RegistryVerification {
   id: string;

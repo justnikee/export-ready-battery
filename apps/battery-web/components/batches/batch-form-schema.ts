@@ -100,6 +100,10 @@ export const batchFormSchema = z
 
     // Step 3: EU Compliance
     carbonFootprint: z.string(),
+    // Full POST /carbon/calculate payload — required for Art. 7 activation.
+    // Free-text carbonFootprint is display-only and does not satisfy the gate.
+    carbonFootprintResult: z.record(z.string(), z.unknown()).nullable(),
+    carbonResultSpecKey: z.string(),
     certifications: z.array(z.string()),
     bisCertificateIssueDate: z.string(),
     un383TestDate: z.string(),
@@ -458,6 +462,8 @@ export const defaultBatchFormValues: BatchFormData = {
     recycled_lead: "",
   },
   carbonFootprint: "",
+  carbonFootprintResult: null,
+  carbonResultSpecKey: "",
   certifications: ["AIS-156", "AIS-038"],
   recycledContent: "",
   hazardousSubstances: { lead: false, mercury: false, cadmium: false },

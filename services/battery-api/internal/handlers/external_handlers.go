@@ -406,6 +406,10 @@ func (h *Handler) ExternalDownloadLabels(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if rejectIfNotProductionReady(w, batch.Status) {
+		return
+	}
+
 	// Get tenant for label generation
 	tenant, err := h.repo.GetTenant(r.Context(), tenantID)
 	if err != nil {

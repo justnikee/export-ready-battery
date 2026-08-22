@@ -29,10 +29,17 @@ export interface CreateExportJobRequest {
     job_type: 'QR_ZIP' | 'LABELS_PDF' | 'CSV' | 'DUE_DILIGENCE' | 'COMPLIANCE_DECLARATION' | 'AUDIT_CSV' | 'AUDIT_PDF' | 'EPCIS' | 'PLI_PACKET';
 }
 
-// Create a new async export job
-export const createExportJob = async (request: CreateExportJobRequest) => {
+// Create a new async export job.
+// API returns 202 { message, job }; unwrap to the job for callers that use job.id.
+export const createExportJob = async (
+    request: CreateExportJobRequest,
+): Promise<ExportJob> => {
     const response = await api.post('/export-jobs', request);
-    return response.data;
+    const data = response.data;
+    if (data?.job) {
+        return data.job as ExportJob;
+    }
+    return data as ExportJob;
 };
 
 // List export jobs with pagination

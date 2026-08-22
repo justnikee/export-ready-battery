@@ -200,7 +200,7 @@ export default function BatchesPage() {
           </div>
           <div className="flex items-center gap-3">
             <TemplatesDialog />
-            <BulkImportDialog />
+            <BulkImportDialog onImported={fetchBatches} />
             <CreateBatchWizard onBatchCreated={fetchBatches} />
           </div>
         </div>

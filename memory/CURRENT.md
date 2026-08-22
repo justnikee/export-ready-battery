@@ -2,8 +2,9 @@
 
 > **Agents: read this first every session.** Keep it short. Update when priorities shift.
 
-**Last updated:** 2026-08-05  
-**Last session:** [sessions/2026-08-05-p08-dashboard-bootstrap.md](sessions/2026-08-05-p08-dashboard-bootstrap.md)
+**Last updated:** 2026-08-17  
+**Last session:** [sessions/2026-08-17-l23-qr-labels.md](sessions/2026-08-17-l23-qr-labels.md)  
+**Scope:** battery-web + battery-api only. Textile is out of scope.
 
 ---
 
@@ -43,12 +44,14 @@
 - Do not re-split dashboard first paint into stats+chart+recent GETs — use `/dashboard/bootstrap` (P-08 / ADR 027).
 - Do not run `schema-reset-*` or edit applied migrations without explicit user ask.
 - Do not treat root `docs/*` master plans as current truth without checking code.
+- Do not pick up textile work (`textile-web`, `textile-api`, L-24). Battery only.
 
 ---
 
 ## Next concrete task
 
-Commit/push P-08 if not already. Optional: expand bootstrap with EPR/regulatory secondary cards, or product work.
+1. **Battery DPP spine complete** (L-01…L-23) in git. No further L-items on this track.
+2. Apply `000107` + `000108` on the **Oracle** battery DB if that environment is behind local (`migration_runner up` → 108).
 
 ---
 

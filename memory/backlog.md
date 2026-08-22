@@ -54,11 +54,29 @@ Source of truth for security/perf detail: [`docs/BATTERY_SECURITY_PERFORMANCE_AU
 
 ---
 
+## Product / lifecycle (battery spine)
+
+Source: [`ROADMAP.md`](ROADMAP.md). L-01…L-13 are implemented in the working tree.
+
+| ID | Status | Title | Done when |
+|----|--------|-------|-----------|
+| L-01…L-13 | **done** (uncommitted) | Integrity spine (OTP evidence, API_KEY, VC path, ACTIVATE UX, carbon blockers, tenancy, …) | Code + tests; apply **000107** |
+| L-14 | **done** (local) | Apply migration 000107 | Local applied; Oracle live DB must be checked independently |
+| L-15 | **done** | Wizard persists `carbon_footprint_result` | POST `/batches/{id}/carbon` after create; specs fingerprint |
+| L-16 | **done** | Cert/DoC via API (S-10/S-11) | Wizard uses `/uploads/compliance-doc`; persist `path` |
+| L-17 | **done** | Bulk-import CSV template matches validator | Sample rows + per-field errors + DVA/EU columns |
+| L-18 | **done** | Magic-link modal circularity actions | Status-filtered catalog + role check on issue |
+| L-19 | **done** | VC UI | Issue + download from batch Passports tab; GET `/passports/{uuid}/vc`; 400 tests |
+| L-20 | **done** | CPCB honesty | Format-only is `format_valid`; UI distinguishes format vs registry lookup |
+| L-21 | **done** | Partner OTP evidence UX | First POST stashes evidence; form errors stay on form |
+| L-22 | **done** | External API lifecycle test | SHIP→INSTALL→RECYCLE via API key + wrong-role / foreign-tenant 403 |
+| L-23 | **done** | Draft QR vs labels policy | QR + labels only ACTIVE/ARCHIVED; DRAFT 403 JWT + API-key + export jobs |
+
 ## Product / platform (not security sprint)
 
 | Item | Notes |
 |------|--------|
-| Textile stack | Mirror battery; branch history may say `feat/textile-foundation` — verify current branch |
+| Textile | **Out of scope.** Do not work `textile-web` / `textile-api`. |
 | `admin-web` | Still placeholder; platform admin key is the interim auth for cross-tenant ops |
 | `packages/ui` | Unused — do not adopt without discussion |
 

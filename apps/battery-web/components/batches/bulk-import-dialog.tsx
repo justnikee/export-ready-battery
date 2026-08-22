@@ -13,9 +13,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { bulkImportBatches, type BulkImportResult } from "@/lib/api/batches";
+import {
+  BATCH_IMPORT_COLUMNS,
+  downloadBatchImportTemplate,
+} from "@/lib/batch-import-template";
 import { toast } from "sonner";
 
-export function BulkImportDialog() {
+interface BulkImportDialogProps {
+  onImported?: () => void;
+}
+
+export function BulkImportDialog({ onImported }: BulkImportDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string[][]>([]);
@@ -57,6 +65,7 @@ export function BulkImportDialog() {
       setResult(res);
       if (res.created > 0) {
         toast.success(`Imported ${res.created} batch${res.created === 1 ? "" : "es"}`);
+        onImported?.();
       }
       if (res.failed > 0) {
         toast.error(`${res.failed} row${res.failed === 1 ? "" : "s"} failed`);
@@ -66,42 +75,6 @@ export function BulkImportDialog() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const downloadTemplate = () => {
-    const headers = [
-      "batch_name",
-      "model_name",
-      "chemistry",
-      "voltage",
-      "capacity",
-      "manufacturer",
-      "weight",
-      "country_of_origin",
-      "market_region",
-      "cell_source",
-      "lot_size",
-      "production_stage",
-      "hsn_code",
-      "bis_number",
-      "epr_number",
-      "bill_of_entry_no",
-      "customs_date",
-      "sale_price_inr",
-      "import_cost_inr",
-      "pli_compliant",
-      "domestic_value_add",
-      "manufacturing_start_date",
-      "manufacturing_end_date",
-    ];
-    const csv = headers.join(",") + "\n";
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "batch_import_template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const reset = () => {
@@ -125,13 +98,26 @@ export function BulkImportDialog() {
             Bulk Import Batches
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV file to create multiple batches at once.
+            Same create-time rules as the wizard. Rows become DRAFT batches — activation still needs carbon, certs, and profile fields.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground space-y-2">
+            <p>
+              <span className="font-medium text-foreground">Always:</span>{" "}
+              {BATCH_IMPORT_COLUMNS.filter((c) => c.required === true).map((c) => c.key).join(", ")}.
+              {" "}<span className="font-medium text-foreground">India:</span> hsn_code (8507xxxx), cell_source.
+              {" "}DOMESTIC needs sale_price_inr + domestic cost breakdown so DVA &gt; 0.
+              {" "}IMPORTED needs bill_of_entry_no, country_of_origin, customs_date (and IEC in Settings).
+              {" "}<span className="font-medium text-foreground">EU:</span> battery_category (EV / LMT / INDUSTRIAL / PORTABLE / SLI).
+            </p>
+            <p>
+              Template includes three example rows. Delete them before importing your data, or keep them as a starting point.
+            </p>
+          </div>
           <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={downloadTemplate} className="gap-1">
+            <Button variant="ghost" size="sm" onClick={downloadBatchImportTemplate} className="gap-1">
               <Download className="h-4 w-4" />
               Download Template
             </Button>
@@ -227,6 +213,7 @@ export function BulkImportDialog() {
                     <thead className="bg-muted">
                       <tr>
                         <th className="px-2 py-1 text-left font-medium">Row</th>
+                        <th className="px-2 py-1 text-left font-medium">Field</th>
                         <th className="px-2 py-1 text-left font-medium">Error</th>
                       </tr>
                     </thead>
@@ -234,6 +221,7 @@ export function BulkImportDialog() {
                       {result.errors.map((err, i) => (
                         <tr key={i} className="border-t">
                           <td className="px-2 py-1">{err.row}</td>
+                          <td className="px-2 py-1 font-mono text-muted-foreground">{err.field || "—"}</td>
                           <td className="px-2 py-1 text-red-600">{err.message}</td>
                         </tr>
                       ))}

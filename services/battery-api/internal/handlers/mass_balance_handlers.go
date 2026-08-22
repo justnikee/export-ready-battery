@@ -265,6 +265,19 @@ func (h *Handler) CreateMassBalanceAllocation(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Batch must belong to the same tenant (and optional passport to that batch).
+	if _, err := h.repo.GetBatch(r.Context(), req.BatchID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "batch not found")
+		return
+	}
+	if req.PassportID != nil && *req.PassportID != uuid.Nil {
+		passport, perr := h.repo.GetPassport(r.Context(), *req.PassportID)
+		if perr != nil || passport == nil || passport.BatchID != req.BatchID {
+			respondError(w, http.StatusNotFound, "passport not found for batch")
+			return
+		}
+	}
+
 	allocation := &models.MassBalanceAllocation{
 		ID:           uuid.New(),
 		LedgerID:     req.LedgerID,
@@ -293,6 +306,13 @@ func (h *Handler) CreateMassBalanceAllocation(w http.ResponseWriter, r *http.Req
 
 // ListMassBalanceAllocations handles GET /api/v1/mass-balance/allocations
 func (h *Handler) ListMassBalanceAllocations(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "invalid tenant")
+		return
+	}
+
 	batchIDStr := r.URL.Query().Get("batch_id")
 	if batchIDStr == "" {
 		respondError(w, http.StatusBadRequest, "batch_id query parameter is required")
@@ -302,6 +322,11 @@ func (h *Handler) ListMassBalanceAllocations(w http.ResponseWriter, r *http.Requ
 	batchID, err := uuid.Parse(batchIDStr)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "invalid batch_id")
+		return
+	}
+
+	if _, err := h.repo.GetBatch(r.Context(), batchID, tenantID); err != nil {
+		respondError(w, http.StatusNotFound, "batch not found")
 		return
 	}
 

@@ -9,6 +9,7 @@ Start here only for **map + links**. Live priorities: **[`CURRENT.md`](CURRENT.m
 | Need | File |
 |------|------|
 | What are we doing now? | [CURRENT.md](CURRENT.md) |
+| Product direction | [ROADMAP.md](ROADMAP.md) |
 | Hard rules | [rules.md](rules.md) |
 | Ordered open work | [backlog.md](backlog.md) |
 | Session handoffs | [sessions/](sessions/) |
@@ -22,7 +23,7 @@ Start here only for **map + links**. Live priorities: **[`CURRENT.md`](CURRENT.m
 
 ## Product (one paragraph)
 
-Multi-tenant SaaS for Indian manufacturers (battery mature; textile early) exporting to EU/global. Issues Digital Product Passports (BPAN V2, QR, W3C VCs), India + EU compliance checks, OpenTimestamps anchoring.
+Multi-tenant SaaS for Indian **battery** manufacturers exporting to EU/global. Issues Digital Product Passports (BPAN V2, QR, W3C VCs), India + EU compliance checks, OpenTimestamps anchoring. Textile is present in the monorepo but **out of scope**.
 
 **Build state:** active development; breaking changes OK; do not destroy dev DB data without asking.
 
@@ -34,10 +35,10 @@ Multi-tenant SaaS for Indian manufacturers (battery mature; textile early) expor
 |------|------|
 | `apps/battery-web` | Primary manufacturer UI (Next 16, React 19, TanStack Query) |
 | `apps/marketing-web` | Marketing site |
-| `apps/textile-web` | Textile UI (mirror battery) |
+| `apps/textile-web` | Present; **do not work** |
 | `services/battery-api` | Battery domain API ~230 routes, workers |
 | `services/platform-core` | Auth/teams/billing JWT issuer (:8081) |
-| `services/textile-api` | Textile API (fork; clean toward battery patterns) |
+| `services/textile-api` | Present; **do not work** |
 | `packages/ui`, `packages/types` | Shared packages — **ui largely unused** |
 
 ---
@@ -113,4 +114,4 @@ Full table above. Latest for this sprint: **004–027** (S-01…S-15 + P-01…P-
 **Session start:** read `CURRENT.md` → last handoff session → `rules.md` as needed.  
 **Session end:** update **CURRENT**, **backlog**, **session** log; decisions → **ADR**; `graphify update .` if structure changed.
 
-**Tomorrow’s start task:** P-02 (list limit caps) — see [sessions/2026-08-05-eod-handoff.md](sessions/2026-08-05-eod-handoff.md).
+**Tomorrow’s start task:** Apply `000107`, then ROADMAP L-15 or L-16 — see [ROADMAP.md](ROADMAP.md).

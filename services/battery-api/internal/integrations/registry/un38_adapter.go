@@ -131,10 +131,11 @@ func (a *un38Adapter) Verify(ctx context.Context, certificateNo string, batchMet
 		}, nil
 	}
 
-	verifiedData["message"] = "Lab is accredited and report format is valid."
+	verifiedData["message"] = "Lab name matches a local allowlist and the report number format looks valid. Not confirmed against IAF/ILAC or a UN38.3 registry."
+	verifiedData["verification_type"] = "format_only"
 	return &VerifyResult{
-		Status:    models.RegistryStatusVerified,
-		TrustTier: models.TrustTierRegistry,
+		Status:    models.RegistryStatusFormatValid,
+		TrustTier: models.TrustTierFormatValid,
 		VerifiedData: verifiedData,
 	}, nil
 }

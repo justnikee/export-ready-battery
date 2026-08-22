@@ -295,6 +295,9 @@ func (f *fakeTeamRepo) CleanupExpiredMagicTokens(ctx context.Context) (int, erro
 func (f *fakeTeamRepo) SetRequiresOTP(ctx context.Context, tokenHash string, required bool) error {
 	return nil
 }
+func (f *fakeTeamRepo) SavePendingEvidence(ctx context.Context, tokenHash string, evidence models.Evidence) error {
+	return nil
+}
 func (f *fakeTeamRepo) CreateMagicLinkOTP(ctx context.Context, tokenHash, otpHash string) error {
 	return nil
 }

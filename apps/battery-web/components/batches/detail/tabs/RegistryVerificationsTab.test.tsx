@@ -33,7 +33,7 @@ describe("RegistryVerificationsTab", () => {
   it("renders header section", () => {
     render(<RegistryVerificationsTab {...defaultProps} />);
     expect(
-      screen.getByText("External Registry Verification"),
+      screen.getByText("Registry checks"),
     ).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
   });
@@ -41,7 +41,7 @@ describe("RegistryVerificationsTab", () => {
   it("renders auto-verify button", () => {
     render(<RegistryVerificationsTab {...defaultProps} />);
     expect(
-      screen.getByRole("button", { name: /Auto-Verify All Registries/i }),
+      screen.getByRole("button", { name: /Run all registry checks/i }),
     ).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe("RegistryVerificationsTab", () => {
       <RegistryVerificationsTab {...defaultProps} verifications={verifications} />,
     );
     expect(screen.getByText("Official API")).toBeInTheDocument();
-    expect(screen.getAllByText("Self Declared").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Self-declared").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Registry timeout")).toBeInTheDocument();
   });
 
@@ -87,13 +87,30 @@ describe("RegistryVerificationsTab", () => {
       <RegistryVerificationsTab {...defaultProps} verificationsLoading={true} />,
     );
     expect(
-      screen.getByText("External Registry Verification"),
+      screen.getByText("Registry checks"),
     ).toBeInTheDocument();
   });
 
   it("shows re-verify buttons for each registry", () => {
     render(<RegistryVerificationsTab {...defaultProps} />);
-    const buttons = screen.getAllByRole("button", { name: /Re-verify/i });
+    const buttons = screen.getAllByRole("button", { name: /Re-check/i });
     expect(buttons.length).toBe(4);
+  });
+
+  it("labels CPCB format-only as Format valid, not Registry Verified", () => {
+    const verifications = [
+      createMockVerification({
+        registry_type: "cpcb",
+        status: "format_valid",
+        trust_tier: "format_valid",
+        certificate_no: "B-29016/2024-25/CPCB",
+      }),
+    ];
+    render(
+      <RegistryVerificationsTab {...defaultProps} verifications={verifications} />,
+    );
+    expect(screen.getByText("Format valid")).toBeInTheDocument();
+    expect(screen.queryByText("Registry Verified")).not.toBeInTheDocument();
+    expect(screen.getByText(/Format checked:/)).toBeInTheDocument();
   });
 });

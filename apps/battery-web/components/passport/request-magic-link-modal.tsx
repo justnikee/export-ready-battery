@@ -8,6 +8,11 @@ import {
  Key, ArrowRight
 } from "lucide-react"
 import { createTranslator, type Locale } from "@/lib/i18n/i18n"
+import {
+  defaultRoleForAction,
+  magicLinkActionsForStatus,
+  type MagicLinkActionDef,
+} from "@/lib/lifecycle-magic-link"
 
 interface RequestMagicLinkModalProps {
  passportId: string
@@ -19,44 +24,29 @@ interface RequestMagicLinkModalProps {
 export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', status }: RequestMagicLinkModalProps) {
  const t = createTranslator(locale)
 
- const ACTIONS = [
- {
- action: "SHIP",
- label: t("modal_action_ship"),
- icon: Truck,
- color: "blue",
- role: "LOGISTICS"
- },
- {
- action: "INSTALL",
- label: t("modal_action_install"),
- icon: Wrench,
- color: "emerald",
- role: "TECHNICIAN"
- },
- {
- action: "RECYCLE",
- label: t("modal_action_recycle"),
- icon: Recycle,
- color: "purple",
- role: "RECYCLER"
- },
- {
- action: "CLOSE",
- label: t("modal_action_close"),
- icon: XCircle,
- color: "red",
- role: "RECYCLER"
- },
- ]
+ const ACTION_ICON: Record<string, typeof Truck> = {
+  SHIP: Truck,
+  INSTALL: Wrench,
+  RECYCLE: Recycle,
+  REMANUFACTURE: Wrench,
+  REUSE: Truck,
+  REPURPOSE: Recycle,
+  CLOSE: XCircle,
+ }
+ const ACTION_COLOR: Record<string, string> = {
+  SHIP: "blue",
+  INSTALL: "emerald",
+  RECYCLE: "purple",
+  REMANUFACTURE: "teal",
+  REUSE: "cyan",
+  REPURPOSE: "orange",
+  CLOSE: "red",
+ }
 
- // Only show CLOSE action if the battery is already RECYCLED
- const filteredActions = status === "RECYCLED"
- ? ACTIONS
- : ACTIONS.filter(a => a.action !== "CLOSE")
+ const filteredActions = magicLinkActionsForStatus(status)
 
  const [step, setStep] = useState<"select" | "email" | "success" | "error">("select")
- const [selectedAction, setSelectedAction] = useState<typeof ACTIONS[0] | null>(null)
+ const [selectedAction, setSelectedAction] = useState<MagicLinkActionDef | null>(null)
  const [email, setEmail] = useState("")
  const [partnerCode, setPartnerCode] = useState("")
  const [showPartnerCode, setShowPartnerCode] = useState(false)
@@ -78,7 +68,7 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  body: JSON.stringify({
  passport_id: passportId,
  email: email,
- role: selectedAction.role,
+ role: defaultRoleForAction(selectedAction.action),
  action: selectedAction.action,
  partner_code: partnerCode || undefined
  })
@@ -141,8 +131,14 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  {/* Step 1: Select Action */}
  {step === "select" && (
  <div className="space-y-3">
+ {filteredActions.length === 0 && (
+ <p className="text-sm text-muted-foreground text-center py-6">
+ {t("modal_no_actions")}
+ </p>
+ )}
  {filteredActions.map((action) => {
- const Icon = action.icon
+ const Icon = ACTION_ICON[action.action] ?? Recycle
+ const color = ACTION_COLOR[action.action] ?? "slate"
  return (
  <button
  key={action.action}
@@ -153,10 +149,15 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  className="w-full p-4 rounded-xl border border-border hover:border-border bg-secondary/50 hover:bg-primary/90 transition-all text-left group"
  >
  <div className="flex items-center gap-3">
- <div className={`h-10 w-10 rounded-lg bg-${action.color}-500/10 flex items-center justify-center`}>
- <Icon className={`h-5 w-5 text-${action.color}-400`} />
+ <div className={`h-10 w-10 rounded-lg bg-${color}-500/10 flex items-center justify-center`}>
+ <Icon className={`h-5 w-5 text-${color}-400`} />
  </div>
- <span className="text-white font-medium flex-1">{action.label}</span>
+ <div className="flex-1 min-w-0">
+ <span className="text-white font-medium block">{t(action.labelKey)}</span>
+ <span className="text-muted-foreground text-xs">
+ {action.roles.join(" / ")}
+ </span>
+ </div>
  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-white transition-colors" />
  </div>
  </button>
@@ -168,10 +169,13 @@ export function RequestMagicLinkModal({ passportId, onClose, locale = 'en', stat
  {/* Step 2: Email Input */}
  {step === "email" && selectedAction && (
  <div className="space-y-4">
- <div className={`p-3 rounded-lg bg-${selectedAction.color}-500/10 border border-${selectedAction.color}-500/20`}>
+ <div className={`p-3 rounded-lg bg-${ACTION_COLOR[selectedAction.action] ?? "slate"}-500/10 border border-${ACTION_COLOR[selectedAction.action] ?? "slate"}-500/20`}>
  <div className="flex items-center gap-2">
- <selectedAction.icon className={`h-5 w-5 text-${selectedAction.color}-400`} />
- <span className={`text-${selectedAction.color}-400 font-medium`}>{selectedAction.label}</span>
+ {(() => {
+ const Icon = ACTION_ICON[selectedAction.action] ?? Recycle
+ return <Icon className={`h-5 w-5 text-${ACTION_COLOR[selectedAction.action] ?? "slate"}-400`} />
+ })()}
+ <span className={`text-${ACTION_COLOR[selectedAction.action] ?? "slate"}-400 font-medium`}>{t(selectedAction.labelKey)}</span>
  </div>
  </div>
 
