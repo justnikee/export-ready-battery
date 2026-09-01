@@ -72,7 +72,7 @@ describe("StepCompliance", () => {
     expect(screen.getByText("2 / 2 complete")).toBeTruthy();
   });
 
-  it("surfaces the domestic-value-add shortfall error on the Sale Price field", async () => {
+  it("allows DVA of 0% at create (activation gate, not a create-time error)", async () => {
     let formMethods!: UseFormReturn<BatchFormData>;
     const user = userEvent.setup();
     render(<Harness onReady={(m) => (formMethods = m)} />);
@@ -80,14 +80,16 @@ describe("StepCompliance", () => {
     await user.click(screen.getByText("Domestic Value Add"));
 
     formMethods.setValue("salePrice", "100");
-    formMethods.setValue("cellCostImported", "100"); // all imported, 0 domestic -> DVA = 0% -> invalid
+    formMethods.setValue("cellCostImported", "100"); // all imported, 0 domestic
+    let valid = false;
     await act(async () => {
-      await formMethods.trigger(["salePrice", "cellCostImported"]);
+      valid = await formMethods.trigger(["salePrice", "cellCostImported"]);
     });
 
+    expect(valid).toBe(true);
     expect(
-      await screen.findByText(/Domestic batches must have Domestic Value Add > 0%/i)
-    ).toBeTruthy();
+      screen.queryByText(/Domestic batches must have Domestic Value Add > 0%/i),
+    ).toBeNull();
   });
 
   it("surfaces required-field errors for Audited DVA mode", async () => {
