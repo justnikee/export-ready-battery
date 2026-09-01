@@ -71,6 +71,8 @@ const nextConfig: NextConfig = {
     }
     return [
       {
+        // Auth is proxied by app/api/v1/auth/[...path] so Cookie/Set-Cookie
+        // survive (Vercel external rewrites drop inbound cookies).
         source: "/api/v1/:path*",
         destination: `${dest}/api/v1/:path*`,
       },
