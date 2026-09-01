@@ -128,6 +128,17 @@ describe("proxy S-08 JWT verification", () => {
     expect(res.headers.get("location") || "").toContain("/dashboard");
   });
 
+  it("handleProxy does not 500 /login when JWT_SECRET is missing but a cookie is present", async () => {
+    delete process.env.JWT_SECRET;
+    process.env.NODE_ENV = "production";
+    const { handleProxy } = await import("./proxy");
+    const res = await handleProxy(
+      requestWithCookie("/login", "header.payload.signature"),
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
   it("handleProxy does not treat forged cookie as logged-in on /login", async () => {
     const { handleProxy } = await import("./proxy");
     const res = await handleProxy(

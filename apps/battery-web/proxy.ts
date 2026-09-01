@@ -31,17 +31,15 @@ export function getProxyJwtSecret() {
     return jwtSecret;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "JWT_SECRET must be configured in the frontend runtime so the proxy can verify auth token product claims.",
-    );
-  }
-
+  // Never throw here: after Google OAuth the API sets an auth_token cookie, and
+  // a throw 500s /login. Missing secret → treat as logged out (fail closed).
   if (!hasWarnedMissingJwtSecret) {
     hasWarnedMissingJwtSecret = true;
-    console.warn(
-      "JWT_SECRET is not configured in the frontend runtime; protected-route verification falls back to cookie presence in development only.",
-    );
+    const msg =
+      process.env.NODE_ENV === "production"
+        ? "JWT_SECRET is not set on the frontend; auth cookies cannot be verified. Set it in Vercel to the same value as battery-api."
+        : "JWT_SECRET is not configured in the frontend runtime; protected-route verification falls back to cookie presence in development only.";
+    console.error(msg);
   }
 
   return null;
