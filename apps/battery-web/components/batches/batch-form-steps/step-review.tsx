@@ -232,7 +232,7 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
         <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm flex items-start gap-2.5 font-medium">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
           <div>
-            <p className="font-semibold">Create Batch is disabled — an IEC Code is required for imported cells.</p>
+            <p className="font-semibold">IEC Code is missing in Settings — required to activate imported-cell lots, not to save this draft.</p>
             <div className="flex gap-3 mt-1.5">
               <button type="button" onClick={() => onJumpToStep(1)} className="text-xs underline hover:text-red-600 transition-colors font-medium">
                 Back to Compliance
@@ -287,7 +287,7 @@ export function StepReview({ onJumpToStep, aiFilledFields, iecError }: StepRevie
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Creating saves this as a <span className="font-semibold text-foreground bg-muted/40 px-1 py-0.5 rounded">draft</span>. To
               generate passports &amp; exports you&apos;ll <span className="font-semibold text-foreground bg-muted/40 px-1 py-0.5 rounded">activate</span> it
-              — which uses <span className="font-semibold text-emerald-500">1 activation credit</span> and requires the items below.
+              — which uses <span className="font-semibold text-emerald-500">1 credit per passport</span> and requires the items below.
             </p>
           </div>
         </div>

@@ -75,6 +75,7 @@ func TestIndiaValidator_ValidBatch_Passes(t *testing.T) {
 
 func TestIndiaValidator_MissingAISCerts(t *testing.T) {
 	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryLMT
 	batch.Specs.Certifications = nil // Remove all certs
 
 	v := &battery.IndiaValidator{}
@@ -97,6 +98,7 @@ func TestIndiaValidator_MissingAISCerts(t *testing.T) {
 
 func TestIndiaValidator_PartialAISCerts_OnlyMissingOne(t *testing.T) {
 	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryEV
 	batch.Specs.Certifications = []string{"AIS-156"} // only AIS-156, missing AIS-038
 
 	v := &battery.IndiaValidator{}
@@ -114,6 +116,39 @@ func TestIndiaValidator_PartialAISCerts_OnlyMissingOne(t *testing.T) {
 		}
 	}
 	assert.True(t, found038)
+}
+
+func TestIndiaValidator_IndustrialSkipsAIS(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryIndustrial
+	batch.Specs.Certifications = nil
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, validIndiaTenant())
+	require.NoError(t, err)
+	assert.True(t, result.Valid, "industrial India batch should not require AIS, missing=%v errors=%v", result.Missing, result.Errors)
+	for _, m := range result.Missing {
+		assert.False(t, contains(m, "AIS-156"), m)
+		assert.False(t, contains(m, "AIS-038"), m)
+	}
+}
+
+func TestIndiaValidator_EmptyCategory_WarnsDoesNotBlockAIS(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = ""
+	batch.Specs.Certifications = nil
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, validIndiaTenant())
+	require.NoError(t, err)
+	assert.True(t, result.Valid, "empty category should warn, not block AIS, missing=%v", result.Missing)
+	found := false
+	for _, w := range result.Warnings {
+		if contains(w, "battery category") || contains(w, "AIS") {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected category/AIS warning, got %v", result.Warnings)
 }
 
 func TestIndiaValidator_MissingTenantCredentials(t *testing.T) {
@@ -167,7 +202,7 @@ func TestIndiaValidator_ImportedCells_RequiresCustomsFields(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, result.Valid)
 	assert.Contains(t, result.Missing, "batch.specs.bill_of_entry_no")
-	assert.Contains(t, result.Missing, "batch.specs.country_of_origin")
+	assert.Contains(t, result.Missing, "batch.specs.cell_country_of_origin")
 	assert.Contains(t, result.Missing, "batch.specs.customs_date")
 }
 

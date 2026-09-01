@@ -68,10 +68,19 @@ type recycledThresholds struct {
 	Lead     float64
 }
 
-// hardCodedThresholds returns the default EU 2030 thresholds used when the DB
+// hardCodedThresholds returns the default EU 2031 minima used when the DB
 // compliance_rules table is empty or the repository is not injected.
 func hardCodedThresholds() recycledThresholds {
 	return recycledThresholds{Cobalt: 16.0, Lithium: 6.0, Nickel: 6.0, Lead: 85.0}
+}
+
+// recycledContentWarning is dated so activation is not blocked before the
+// Art. 8 floors apply (minima 18 Aug 2031; disclosure 18 Aug 2028).
+func recycledContentWarning(metal string, declared, min float64) string {
+	if declared <= 0 {
+		return fmt.Sprintf("Recycled %s content not declared (EU minimum ≥%.1f%% applies from 18 Aug 2031; disclosure from 18 Aug 2028)", metal, min)
+	}
+	return fmt.Sprintf("Recycled %s content %.1f%% is below EU minimum %.1f%% (applies from 18 Aug 2031; disclosure from 18 Aug 2028)", metal, declared, min)
 }
 
 // getRecycledThresholds queries the database for active compliance rules.
@@ -242,36 +251,26 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 				"Material composition must contain non-zero values for at least one critical raw material", euArt8Ref)
 		}
 
-		// Recycled content thresholds — query DB for active rules, fall back to hard-coded defaults.
+		// Recycled-content minima (Art. 8) are not in force until 18 Aug 2031
+		// (disclosure from 18 Aug 2028). Below-floor values are warnings so a
+		// 2026 exporter can activate; missing composition itself stays an error.
 		thresholds := v.getRecycledThresholds(context.Background())
 
 		if mc.CobaltPct > 0 && mc.RecycledCobaltPct < thresholds.Cobalt {
-			msg := fmt.Sprintf("Recycled cobalt content %.1f%% is below EU minimum %.1f%%", mc.RecycledCobaltPct, thresholds.Cobalt)
-			if mc.RecycledCobaltPct <= 0 {
-				msg = fmt.Sprintf("Recycled cobalt content not declared (EU minimum: ≥%.1f%%)", thresholds.Cobalt)
-			}
-			addError("batch.specs.material_composition.recycled_cobalt_pct", msg, euArt8Ref)
+			addWarning("batch.specs.material_composition.recycled_cobalt_pct",
+				recycledContentWarning("cobalt", mc.RecycledCobaltPct, thresholds.Cobalt), euArt8Ref)
 		}
 		if mc.LithiumPct > 0 && mc.RecycledLithiumPct < thresholds.Lithium {
-			msg := fmt.Sprintf("Recycled lithium content %.1f%% is below EU minimum %.1f%%", mc.RecycledLithiumPct, thresholds.Lithium)
-			if mc.RecycledLithiumPct <= 0 {
-				msg = fmt.Sprintf("Recycled lithium content not declared (EU minimum: ≥%.1f%%)", thresholds.Lithium)
-			}
-			addError("batch.specs.material_composition.recycled_lithium_pct", msg, euArt8Ref)
+			addWarning("batch.specs.material_composition.recycled_lithium_pct",
+				recycledContentWarning("lithium", mc.RecycledLithiumPct, thresholds.Lithium), euArt8Ref)
 		}
 		if mc.NickelPct > 0 && mc.RecycledNickelPct < thresholds.Nickel {
-			msg := fmt.Sprintf("Recycled nickel content %.1f%% is below EU minimum %.1f%%", mc.RecycledNickelPct, thresholds.Nickel)
-			if mc.RecycledNickelPct <= 0 {
-				msg = fmt.Sprintf("Recycled nickel content not declared (EU minimum: ≥%.1f%%)", thresholds.Nickel)
-			}
-			addError("batch.specs.material_composition.recycled_nickel_pct", msg, euArt8Ref)
+			addWarning("batch.specs.material_composition.recycled_nickel_pct",
+				recycledContentWarning("nickel", mc.RecycledNickelPct, thresholds.Nickel), euArt8Ref)
 		}
 		if mc.LeadPct > 0 && mc.RecycledLeadPct < thresholds.Lead {
-			msg := fmt.Sprintf("Recycled lead content %.1f%% is below EU minimum %.1f%%", mc.RecycledLeadPct, thresholds.Lead)
-			if mc.RecycledLeadPct <= 0 {
-				msg = fmt.Sprintf("Recycled lead content not declared (EU minimum: ≥%.1f%%)", thresholds.Lead)
-			}
-			addError("batch.specs.material_composition.recycled_lead_pct", msg, euArt8Ref)
+			addWarning("batch.specs.material_composition.recycled_lead_pct",
+				recycledContentWarning("lead", mc.RecycledLeadPct, thresholds.Lead), euArt8Ref)
 		}
 	}
 
@@ -423,8 +422,8 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	score := compliance.ScoreFromCheckpoints(euTotalCheckpoints, criticalFailures)
 
 	return compliance.Result{
-		Valid:    criticalFailures == 0,
-		Score:    score,
+		Valid: criticalFailures == 0,
+		Score: score,
 		PerMarket: map[string]compliance.MarketScore{
 			euMarket: {Score: score, Valid: criticalFailures == 0, Gaps: gaps},
 		},

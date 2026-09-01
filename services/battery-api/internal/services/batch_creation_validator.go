@@ -199,33 +199,17 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 			calculatedDVA = CalculateEstimatedDVA(req.Specs)
 		}
 
-		// e. India Mode + IMPORTED: require customs declaration fields
-		if req.CellSource == "IMPORTED" {
-			if req.BillOfEntryNo == "" {
-				addError("bill_of_entry_no", "Bill of Entry No. is required for imported cells per Customs regulations")
+		// Customs / DVA completeness is an *activation* gate, not a create gate.
+		// A factory can save a named DRAFT lot before the BoE, IEC, or PLI sheet exists.
+		if req.CellSource == "IMPORTED" && dvaSource == DVASourceEstimated {
+			if req.Specs.SalePriceINR == 0 || req.Specs.ImportCostINR >= req.Specs.SalePriceINR {
+				calculatedDVA = 0
 			}
-			if req.CountryOfOrigin == "" {
-				addError("country_of_origin", "Cell country of origin is required for imported cells per Customs regulations")
-			}
-			if req.CustomsDate == "" {
-				addError("customs_date", "Import date (customs_date) is required for imported cells per Customs regulations")
-			}
-			// For pure imports with no local value add (ESTIMATED mode only)
-			if dvaSource == DVASourceEstimated {
-				if req.Specs.SalePriceINR == 0 || req.Specs.ImportCostINR >= req.Specs.SalePriceINR {
-					calculatedDVA = 0
-				}
-			}
-		} else if req.CellSource == "DOMESTIC" {
-			// f. DOMESTIC: require value add > 0
-			if calculatedDVA <= 0 {
-				addError("domestic_value_add", "Domestic batches must have Domestic Value Add > 0%. Please enter Sale Price and Import Cost.")
-			}
+		}
 
-			// g. PLI: if PLICompliant=true, require DVA >= 50%
-			if req.PLICompliant && calculatedDVA < 50.0 {
-				addError("pli_compliant", fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Calculated DVA: %.2f%%. Minimum 50%% required for PLI Benefits.", calculatedDVA))
-			}
+		// PLI is an explicit claim — if they tick it at create, still require ≥50%.
+		if req.CellSource == "DOMESTIC" && req.PLICompliant && calculatedDVA < 50.0 {
+			addError("pli_compliant", fmt.Sprintf("PLI Scheme requires minimum 50%% Domestic Value Add. Calculated DVA: %.2f%%. Minimum 50%% required for PLI Benefits.", calculatedDVA))
 		}
 
 		// h. PLI compliance validation via validationService.ValidatePLICompliance
@@ -238,15 +222,10 @@ func (v *BatchCreationValidator) Validate(ctx context.Context, req models.Create
 
 	// 13. IEC code validation (soft warning in original handler; not surfaced as hard error).
 
-	// 14. India + IMPORTED: tenant must have IECCode
-	if marketRegion == models.MarketRegionIndia && req.CellSource == "IMPORTED" {
-		if tenant == nil || tenant.BatteryProfile == nil || tenant.BatteryProfile.IECCode == "" {
-			addError("iec_code", "IEC Code is required in Organization Settings for importing battery cells")
-		}
-	}
+	// 14. India + IMPORTED tenant IEC is an activation/profile gate, not create.
 
-	// 15. India + Battery: HSN code validation
-	if marketRegion == models.MarketRegionIndia && productType == models.ProductTypeBattery {
+	// 15. India + Battery: validate HSN only when the user provided one.
+	if marketRegion == models.MarketRegionIndia && productType == models.ProductTypeBattery && req.HSNCode != "" {
 		hsnResult := v.validationService.ValidateHSNCode(req.HSNCode)
 		if !hsnResult.Valid {
 			addError("hsn_code", hsnResult.Message)

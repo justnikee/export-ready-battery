@@ -35,7 +35,6 @@ export const FEATURE_MIN_PLAN: Partial<Record<Feature, PlanType>> = {
   dgft_claims: "GROWTH",
   fleet: "GROWTH",
   telemetry: "GROWTH",
-  partners: "GROWTH",
   developer: "GROWTH",
   regulatory: "GROWTH",
   sso: "ENTERPRISE",

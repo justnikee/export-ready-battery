@@ -132,12 +132,9 @@ func (h *AuthHandler) getTenantProductType(ctx context.Context, tenantID uuid.UU
 func setRefreshCookie(w http.ResponseWriter, token string, expiry time.Duration) {
 	maxAge := int(expiry.Seconds())
 	secure := os.Getenv("APP_ENV") == "production"
-	sameSite := http.SameSiteStrictMode
-	if !secure {
-		// SameSite=Strict blocks the cookie during top-level navigations in dev
-		// (e.g. after Google OAuth redirect), so use Lax in local dev.
-		sameSite = http.SameSiteLaxMode
-	}
+	// Lax (not Strict): Strict is omitted on the Google OAuth return navigation
+	// and was causing /login?error=oauth_session in production. Same-origin
+	// /api/v1 rewrites keep this first-party, so Lax is sufficient.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    token,
@@ -145,7 +142,7 @@ func setRefreshCookie(w http.ResponseWriter, token string, expiry time.Duration)
 		MaxAge:   maxAge,
 		HttpOnly: true,   // Not accessible via document.cookie
 		Secure:   secure, // HTTPS only in production
-		SameSite: sameSite,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -167,12 +164,6 @@ func clearRefreshCookie(w http.ResponseWriter) {
 func setAuthCookie(w http.ResponseWriter, token string, expiry time.Duration) {
 	maxAge := int(expiry.Seconds())
 	secure := os.Getenv("APP_ENV") == "production"
-	sameSite := http.SameSiteStrictMode
-	if !secure {
-		// SameSite=Strict blocks the cookie during top-level navigations in dev
-		// (e.g. after Google OAuth redirect), so use Lax in local dev.
-		sameSite = http.SameSiteLaxMode
-	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "auth_token",
 		Value:    token,
@@ -180,7 +171,7 @@ func setAuthCookie(w http.ResponseWriter, token string, expiry time.Duration) {
 		MaxAge:   maxAge,
 		HttpOnly: true,   // Not accessible via document.cookie
 		Secure:   secure, // HTTPS only in production
-		SameSite: sameSite,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 

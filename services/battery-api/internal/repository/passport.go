@@ -552,6 +552,38 @@ func (r *Repository) GetPassportByUUID(ctx context.Context, id uuid.UUID) (*mode
 	return r.GetPassport(ctx, id)
 }
 
+// GetPassportBySerialForTenant returns a passport matching serial_number exactly
+// (case-insensitive) and belonging to tenantID. Foreign-tenant serials 404.
+func (r *Repository) GetPassportBySerialForTenant(ctx context.Context, tenantID uuid.UUID, serial string) (*models.Passport, error) {
+	passport := &models.Passport{}
+	query := `
+		SELECT p.uuid, p.batch_id, p.serial_number, p.manufacture_date, p.status, p.created_at,
+		       p.product_type, p.battery_passport_id
+		FROM public.passports p
+		JOIN public.batches b ON p.batch_id = b.id
+		WHERE UPPER(p.serial_number) = UPPER($1)
+		  AND b.tenant_id = $2
+		  AND p.deleted_at IS NULL
+		LIMIT 1`
+	err := r.db.Pool.QueryRow(ctx, query, strings.TrimSpace(serial), tenantID).Scan(
+		&passport.UUID,
+		&passport.BatchID,
+		&passport.SerialNumber,
+		&passport.ManufactureDate,
+		&passport.Status,
+		&passport.CreatedAt,
+		&passport.ProductType,
+		&passport.BatteryPassportID,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("passport not found")
+		}
+		return nil, fmt.Errorf("failed to get passport by serial: %w", err)
+	}
+	return passport, nil
+}
+
 // UpdatePassportStatus updates a passport's status
 func (r *Repository) UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error {
 	query := `UPDATE public.passports SET status = $1 WHERE uuid = $2 AND deleted_at IS NULL`

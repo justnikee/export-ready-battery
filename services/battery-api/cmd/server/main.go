@@ -46,8 +46,13 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
-	authEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
-	magicLinkEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
+	// Auth/magic-link emails must land on the Next.js app, not the API host.
+	emailFrontendURL := cfg.FrontendURL
+	if emailFrontendURL == "" {
+		emailFrontendURL = cfg.BaseURL
+	}
+	authEmailService := services.GetEmailServiceFromEnv(emailFrontendURL)
+	magicLinkEmailService := services.GetEmailServiceFromEnv(emailFrontendURL)
 
 	// Initialize repository
 	repo := repository.New(database)
@@ -143,10 +148,17 @@ func main() {
 	authHandler := handlers.NewAuthHandler(database, repo, authService, authEmailService, storageService)
 
 	// Initialize OAuth service and handler
+	// OAuth callback must be the frontend origin (proxied /api/v1) so
+	// Set-Cookie is first-party. Fall back to BACKEND_URL only if FRONTEND_URL
+	// is unset.
+	oauthPublicBase := cfg.FrontendURL
+	if oauthPublicBase == "" {
+		oauthPublicBase = cfg.BackendURL
+	}
 	oauthService := services.NewOAuthService(
 		cfg.GoogleClientID, cfg.GoogleClientSecret,
 		cfg.MicrosoftClientID, cfg.MicrosoftClientSecret,
-		cfg.BackendURL,
+		oauthPublicBase,
 	)
 	oauthHandler := handlers.NewOAuthHandler(database, repo, authService, oauthService, cfg.FrontendURL)
 
@@ -207,7 +219,7 @@ func main() {
 	var exportJobHandler *handlers.ExportJobHandler
 	var exportJobService *services.ExportJobService
 	if storageService != nil {
-		exportEmailService := services.GetEmailServiceFromEnv(cfg.BaseURL)
+		exportEmailService := services.GetEmailServiceFromEnv(emailFrontendURL)
 		qrService := services.NewQRService(cfg.BaseURL)
 		pdfService := services.NewPDFService(cfg.BaseURL)
 		csvService := services.NewCSVService()
@@ -230,7 +242,7 @@ func main() {
 	}
 
 	// Initialize magic link handler (with reward service for scan-to-earn and email service)
-	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, magicLinkEmailService, cfg.JWTSecret, cfg.BaseURL)
+	magicLinkHandler := handlers.NewMagicLinkHandler(repo, lifecycleService, rewardService, magicLinkEmailService, cfg.JWTSecret, emailFrontendURL)
 
 	// Initialize trusted partner handler
 	trustedPartnerHandler := handlers.NewTrustedPartnerHandler(repo)
@@ -502,6 +514,7 @@ func main() {
 	mux.Handle("POST /api/v1/passports/bulk/transition", protectWriteOnboard(http.HandlerFunc(lifecycleHandler.BulkTransitionPassports)))
 	mux.Handle("GET /api/v1/passports/bulk/allowed-actions", authMiddleware.Protect(http.HandlerFunc(lifecycleHandler.GetBulkAllowedActions)))
 	mux.Handle("GET /api/v1/passports", authMiddleware.Protect(http.HandlerFunc(h.ListPassports)))
+	mux.Handle("GET /api/v1/passports/resolve", authMiddleware.Protect(http.HandlerFunc(h.ResolvePassport)))
 
 	// ============================================
 	// FLEET HEALTH ROUTES (Protected)
@@ -607,7 +620,8 @@ func main() {
 	mux.Handle("PATCH /api/v1/batches/{id}", protectWriteOnboard(http.HandlerFunc(h.PatchBatch)))
 	mux.Handle("POST /api/v1/batches/{id}/carbon", protectWriteOnboard(http.HandlerFunc(h.SaveCarbonFootprint)))
 	mux.Handle("POST /api/v1/batches/{id}/duplicate", protectWriteOnboard(http.HandlerFunc(h.DuplicateBatch)))
-	mux.Handle("POST /api/v1/billing/top-up", protectWriteOnboard(http.HandlerFunc(h.TopUpQuota)))
+	// Quota credits are minted only via Razorpay verify + webhook (ADR 029).
+	// Do not reintroduce POST /billing/top-up on tenant JWT.
 
 	// Razorpay Payment Gateway
 	mux.Handle("GET /api/v1/billing/packages", authMiddleware.Protect(http.HandlerFunc(h.GetPackages)))

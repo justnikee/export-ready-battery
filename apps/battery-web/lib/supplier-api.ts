@@ -4,9 +4,9 @@ import {
   getSupplierAccessToken,
   setSupplierAccessToken,
 } from "@/lib/supplier-session";
+import { getApiV1Base } from "@/lib/api-origin";
 
-const baseURL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+const baseURL = getApiV1Base();
 
 /**
  * Axios instance for the supplier portal.

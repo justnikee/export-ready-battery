@@ -569,6 +569,14 @@ func (m *MockRepository) GetPassportByUUID(ctx context.Context, id uuid.UUID) (*
 	return args.Get(0).(*models.Passport), args.Error(1)
 }
 
+func (m *MockRepository) GetPassportBySerialForTenant(ctx context.Context, tenantID uuid.UUID, serial string) (*models.Passport, error) {
+	args := m.Called(ctx, tenantID, serial)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Passport), args.Error(1)
+}
+
 func (m *MockRepository) UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)

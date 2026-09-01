@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -27,15 +28,19 @@ type OAuthService struct {
 	microsoftEnabled bool
 }
 
-// NewOAuthService creates a new OAuth service
-func NewOAuthService(googleClientID, googleClientSecret, microsoftClientID, microsoftClientSecret, backendBaseURL string) *OAuthService {
+// NewOAuthService creates a new OAuth service.
+// publicBaseURL is the browser-facing origin (FRONTEND_URL). The Google
+// callback is /api/v1/auth/google/callback on that origin and is rewritten
+// to battery-api so Set-Cookie stays first-party.
+func NewOAuthService(googleClientID, googleClientSecret, microsoftClientID, microsoftClientSecret, publicBaseURL string) *OAuthService {
 	svc := &OAuthService{}
+	publicBaseURL = strings.TrimRight(publicBaseURL, "/")
 
 	if googleClientID != "" && googleClientSecret != "" {
 		svc.googleConfig = &oauth2.Config{
 			ClientID:     googleClientID,
 			ClientSecret: googleClientSecret,
-			RedirectURL:  backendBaseURL + "/api/v1/auth/google/callback",
+			RedirectURL:  publicBaseURL + "/api/v1/auth/google/callback",
 			Scopes:       []string{"openid", "email", "profile"},
 			Endpoint:     google.Endpoint,
 		}
@@ -46,7 +51,7 @@ func NewOAuthService(googleClientID, googleClientSecret, microsoftClientID, micr
 		svc.microsoftConfig = &oauth2.Config{
 			ClientID:     microsoftClientID,
 			ClientSecret: microsoftClientSecret,
-			RedirectURL:  backendBaseURL + "/api/v1/auth/microsoft/callback",
+			RedirectURL:  publicBaseURL + "/api/v1/auth/microsoft/callback",
 			Scopes:       []string{"openid", "email", "profile", "User.Read"},
 			Endpoint:     microsoft.AzureADEndpoint("common"),
 		}

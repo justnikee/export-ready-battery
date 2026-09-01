@@ -155,7 +155,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 		err := r.db.Pool.QueryRow(gctx, `
 			SELECT COUNT(*) FROM public.passports p
 			JOIN public.batches b ON p.batch_id = b.id
-			WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2)
+			WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2)
 		`, tenantID, productType).Scan(&stats.TotalPassports)
 		if err != nil {
 			return fmt.Errorf("failed to count passports: %w", err)
@@ -174,7 +174,8 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 	// 2. Total batches
 	g.Go(func() error {
 		err := r.db.Pool.QueryRow(gctx, `
-			SELECT COUNT(*) FROM public.batches WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2)
+			SELECT COUNT(*) FROM public.batches
+			WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2)
 		`, tenantID, productType).Scan(&stats.TotalBatches)
 		if err != nil {
 			return fmt.Errorf("failed to count batches: %w", err)
@@ -187,7 +188,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 	g.Go(func() error {
 		err := r.db.Pool.QueryRow(gctx, `
 			SELECT COUNT(*) FROM public.batches
-			WHERE tenant_id = $1 AND ($2 = '' OR product_type = $2) AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
+			WHERE tenant_id = $1 AND deleted_at IS NULL AND ($2 = '' OR product_type = $2) AND specs->>'carbon_footprint' IS NOT NULL AND specs->>'carbon_footprint' != ''
 		`, tenantID, productType).Scan(&withCarbon)
 		if err != nil {
 			return fmt.Errorf("failed to count carbon compliant batches: %w", err)
@@ -200,7 +201,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context, tenantID uuid.UUID, 
 		err := r.db.Pool.QueryRow(gctx, `
 			SELECT COUNT(*) FROM public.passports p
 			JOIN public.batches b ON p.batch_id = b.id
-			WHERE b.tenant_id = $1 AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
+			WHERE b.tenant_id = $1 AND b.deleted_at IS NULL AND p.deleted_at IS NULL AND ($2 = '' OR b.product_type = $2) AND b.created_at >= NOW() - INTERVAL '7 days'
 		`, tenantID, productType).Scan(&stats.PassportsThisWeek)
 		if err != nil {
 			stats.PassportsThisWeek = 0
@@ -251,7 +252,7 @@ func (r *Repository) GetRecentBatches(ctx context.Context, tenantID uuid.UUID, l
 			b.created_at,
 			COALESCE(b.status, 'DRAFT') as status,
 			COALESCE(b.market_region::text, 'GLOBAL') as market_region,
-			COUNT(p.uuid) as total_units
+			COUNT(p.uuid)::int as total_units
 		FROM public.batches b
 		LEFT JOIN public.passports p ON b.id = p.batch_id AND p.deleted_at IS NULL
 		WHERE b.tenant_id = $1 AND b.deleted_at IS NULL

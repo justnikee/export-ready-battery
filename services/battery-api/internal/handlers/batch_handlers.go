@@ -209,13 +209,11 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 	// repository stores everything product-agnostically in one jsonb column.
 	req.Specs.CellSource = req.CellSource
 	req.Specs.BillOfEntryNo = req.BillOfEntryNo
-	// CountryOfOrigin at the top level is the cell's customs import origin
-	// (India + IMPORTED only) — distinct from Specs.CountryOfOrigin, the
-	// battery's own manufacturing origin set in the Specifications step.
-	// Only overwrite it when the top-level field is actually in scope,
-	// otherwise this blanks out the user's manufacturing-origin entry.
-	if req.CellSource == "IMPORTED" {
-		req.Specs.CountryOfOrigin = req.CountryOfOrigin
+	// Top-level CountryOfOrigin is the *cell* customs origin (India IMPORTED).
+	// Specs.CountryOfOrigin is the pack's manufacturing origin from the wizard.
+	// Never clobber the pack origin with the cell origin.
+	if req.CellSource == "IMPORTED" && req.CountryOfOrigin != "" {
+		req.Specs.CellCountryOfOrigin = req.CountryOfOrigin
 	}
 	if customsDate != nil {
 		req.Specs.CustomsDate = customsDate.Format("2006-01-02")
@@ -247,6 +245,7 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		NotifiedBodyNumber:          req.NotifiedBodyNumber,
 		DeclarationOfConformityPath: req.DeclarationOfConformityPath,
 		GTIN:                        req.Specs.GTIN,
+		CarbonFootprintResult:       req.CarbonFootprintResult,
 	})
 	if err != nil {
 		slog.Error("Failed to create batch", "error", err)

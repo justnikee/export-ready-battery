@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
@@ -106,16 +107,17 @@ func normalizeProductType(productType models.ProductType) models.ProductType {
 	return productType
 }
 
-func productSlug(productType models.ProductType) string {
-	return "battery"
-}
-
 func productLabel(productType models.ProductType) string {
 	return "Battery Passport"
 }
 
-func (e *EmailService) productLink(productType models.ProductType, page string, token string) string {
-	return fmt.Sprintf("%s/%s/%s?token=%s", e.baseURL, productSlug(productType), page, token)
+// frontendPageURL is a flattened battery-web path (no /battery prefix).
+func (e *EmailService) frontendPageURL(page string) string {
+	return fmt.Sprintf("%s/%s", strings.TrimRight(e.baseURL, "/"), strings.TrimLeft(page, "/"))
+}
+
+func (e *EmailService) productLink(_ models.ProductType, page string, token string) string {
+	return fmt.Sprintf("%s?token=%s", e.frontendPageURL(page), token)
 }
 
 // SendPasswordResetEmail sends a password reset email using template
@@ -167,8 +169,8 @@ If you didn't request this, please ignore this email.
 // whether the account exists — the API returns the same response either way.
 func (e *EmailService) SendAccountExistsEmail(toEmail string, productType models.ProductType) error {
 	productType = normalizeProductType(productType)
-	loginLink := fmt.Sprintf("%s/%s/login", e.baseURL, productSlug(productType))
-	forgotLink := fmt.Sprintf("%s/%s/forgot-password", e.baseURL, productSlug(productType))
+	loginLink := e.frontendPageURL("login")
+	forgotLink := e.frontendPageURL("forgot-password")
 
 	if !e.enabled {
 		slog.Info("Account-exists notice generated (mock)", "to", toEmail, "login", loginLink)
@@ -397,7 +399,7 @@ type TeamInviteData struct {
 // SendTeamInvite sends a team invitation email using template
 func (e *EmailService) SendTeamInvite(toEmail, companyName, inviteToken, role string, productType models.ProductType) error {
 	productType = normalizeProductType(productType)
-	inviteLink := fmt.Sprintf("%s/%s/accept-invite?token=%s", e.baseURL, productSlug(productType), inviteToken)
+	inviteLink := e.productLink(productType, "accept-invite", inviteToken)
 
 	if !e.enabled {
 		slog.Info("Team invite email (mock)", "to", toEmail, "company", companyName, "role", role)

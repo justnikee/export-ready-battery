@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/anvayalabs/battery-api/internal/auth"
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -78,6 +79,53 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 		models.ApplyDisplayConfigToPublicView(publicView, displayConfig)
 		respondJSON(w, http.StatusOK, publicView)
 	}
+}
+
+// ResolvePassport handles GET /api/v1/passports/resolve?q=
+// Tenant-scoped lookup by UUID or BPAN serial for warehouse scan.
+func (h *Handler) ResolvePassport(w http.ResponseWriter, r *http.Request) {
+	tenantIDStr := middleware.GetTenantID(r.Context())
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		respondError(w, http.StatusUnauthorized, "Invalid tenant context")
+		return
+	}
+
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		respondError(w, http.StatusBadRequest, "query parameter q is required")
+		return
+	}
+	if len(q) > 128 {
+		respondError(w, http.StatusBadRequest, "query is too long")
+		return
+	}
+
+	var passport *models.Passport
+	if parsed, parseErr := uuid.Parse(q); parseErr == nil {
+		passport, err = h.repo.GetPassport(r.Context(), parsed)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+		owner, ownerErr := h.repo.GetBatchTenantID(r.Context(), passport.BatchID)
+		if ownerErr != nil || owner != tenantID {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+	} else {
+		passport, err = h.repo.GetPassportBySerialForTenant(r.Context(), tenantID, q)
+		if err != nil {
+			respondError(w, http.StatusNotFound, "Passport not found")
+			return
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"uuid":          passport.UUID,
+		"serial_number": passport.SerialNumber,
+		"status":        passport.Status,
+	})
 }
 
 // signTenantCertPathsInPlace mutates the tenant profile cert paths to short-lived

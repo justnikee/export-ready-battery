@@ -27,6 +27,7 @@ interface UploadCSVProps {
  chemistry?: string // For dynamic BPAN prefix (e.g., 'LFP', 'NMC')
  morthCode?: string // Tenant's MoRTH manufacturer code (e.g., 'NKY', 'TBC')
  isDraft?: boolean  // When true, passport generation is blocked until batch is activated
+ defaultQuantity?: string
  onUploadComplete: () => void
 }
 
@@ -58,7 +59,7 @@ interface AutoGenerateResult {
  serial_range?: string
 }
 
-export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCode, isDraft = false, onUploadComplete }: UploadCSVProps) {
+export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCode, isDraft = false, defaultQuantity, onUploadComplete }: UploadCSVProps) {
  // CSV Upload State
  const [file, setFile] = useState<File | null>(null)
  const [isValidating, setIsValidating] = useState(false)
@@ -78,7 +79,10 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
   : marketRegion === 'EU'
   ? `EU-BAT-${currentYear}-`
   : `BAT-${currentYear}-`
- const [quantity, setQuantity] = useState("100")
+ const parsedDefault = parseInt(defaultQuantity || "", 10)
+ const [quantity, setQuantity] = useState(
+  !isNaN(parsedDefault) && parsedDefault > 0 ? String(parsedDefault) : "100",
+ )
  const [prefix, setPrefix] = useState(defaultPrefix)
  const [startNumber, setStartNumber] = useState("1")
  const [manufactureDate, setManufactureDate] = useState(new Date().toISOString().split('T')[0])

@@ -41,6 +41,7 @@ func makeBaseTenant() *models.Tenant {
 
 func TestAISCertGate_IndiaBatchWithoutCerts(t *testing.T) {
 	batch := makeBaseBatch(models.MarketRegionIndia)
+	batch.Specs.BatteryCategory = models.BatteryCategoryLMT
 	tenant := makeBaseTenant()
 
 	result := ValidateActivationCompliance(batch, tenant)
@@ -97,6 +98,7 @@ func TestAISCertGate_EUBatchSkipsAISCheck(t *testing.T) {
 
 func TestAISCertGate_PartialCerts(t *testing.T) {
 	batch := makeBaseBatch(models.MarketRegionIndia)
+	batch.Specs.BatteryCategory = models.BatteryCategoryEV
 	batch.Specs.Certifications = []string{"AIS-156"} // Only AIS-156, missing AIS-038
 	tenant := makeBaseTenant()
 
@@ -116,9 +118,23 @@ func TestAISCertGate_PartialCerts(t *testing.T) {
 	}
 }
 
-func TestAISCertGate_GlobalBatchRequiresAIS(t *testing.T) {
+func TestAISCertGate_IndiaIndustrialSkipsAIS(t *testing.T) {
+	batch := makeBaseBatch(models.MarketRegionIndia)
+	batch.Specs.BatteryCategory = models.BatteryCategoryIndustrial
+	tenant := makeBaseTenant()
+
+	result := ValidateActivationCompliance(batch, tenant)
+
+	for _, m := range result.Missing {
+		if containsStr(m, "AIS-156") || containsStr(m, "AIS-038") {
+			t.Errorf("industrial India batch should not require AIS, got: %s", m)
+		}
+	}
+}
+
+func TestAISCertGate_GlobalTractionRequiresAIS(t *testing.T) {
 	batch := makeBaseBatch(models.MarketRegionGlobal)
-	// GLOBAL runs both India + EU validation
+	batch.Specs.BatteryCategory = models.BatteryCategoryLMT
 	tenant := makeBaseTenant()
 
 	result := ValidateActivationCompliance(batch, tenant)

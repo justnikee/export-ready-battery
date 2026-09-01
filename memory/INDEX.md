@@ -10,6 +10,8 @@ Start here only for **map + links**. Live priorities: **[`CURRENT.md`](CURRENT.m
 |------|------|
 | What are we doing now? | [CURRENT.md](CURRENT.md) |
 | Product direction | [ROADMAP.md](ROADMAP.md) |
+| Industry / regulation / product briefing | [INDUSTRY_PRODUCT_BRIEFING.md](INDUSTRY_PRODUCT_BRIEFING.md) |
+| First-customer GTM | [PRODUCT_GTM_PLAN.md](PRODUCT_GTM_PLAN.md) |
 | Hard rules | [rules.md](rules.md) |
 | Ordered open work | [backlog.md](backlog.md) |
 | Session handoffs | [sessions/](sessions/) |

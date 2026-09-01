@@ -21,6 +21,7 @@ const validBaseline: BatchFormData = {
   manufacturingStartDate: "2024-01-01",
   manufacturingEndDate: "2024-06-01",
   hsnCode: "85076000",
+  lotSize: "200",
 };
 
 interface FixtureCase {

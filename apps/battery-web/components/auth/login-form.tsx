@@ -20,6 +20,7 @@ import { useAuth } from "@/context/auth-context";
 import { toast } from "sonner";
 import { getProductConfig, type ProductSlug } from "@/lib/products";
 import { productRoutesFromSlug } from "@/lib/routes";
+import { getOAuthStartPath } from "@/lib/api-origin";
 
 type LoginFormProps = {
   productSlug: ProductSlug;
@@ -222,10 +223,7 @@ export function LoginForm({ productSlug }: LoginFormProps) {
           variant="outline"
           className="w-full h-11 border-border hover:bg-accent text-foreground rounded-md"
           onClick={() => {
-            const apiBase = (
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
-            ).replace("/api/v1", "");
-            window.location.href = `${apiBase}/api/v1/auth/google`;
+            window.location.href = getOAuthStartPath("google");
           }}
         >
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

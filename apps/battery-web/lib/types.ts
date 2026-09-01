@@ -192,6 +192,7 @@ export interface BatchSpec {
   recyclable: boolean;
   carbon_footprint: string;
   country_of_origin: string;
+  cell_country_of_origin?: string;
   material_profile?: string;
   lot_size?: string;
   production_stage?: string;

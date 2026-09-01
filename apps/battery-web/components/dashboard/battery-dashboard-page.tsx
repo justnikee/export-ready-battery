@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import api from "@/lib/api";
 import dynamic from "next/dynamic";
-import { formatDistanceToNow, format, parseISO } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import {
   Zap,
   AlertCircle,
@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { getApiErrorMessage, toApiError } from "@/lib/utils";
 import type { BatchChartData } from "@/lib/types";
 import { dashboardPathFromPathname } from "@/lib/routes";
 import {
@@ -61,6 +62,24 @@ interface DashboardStats {
 interface ChartPoint {
   name: string;
   value: number;
+}
+
+function chartDayLabel(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return format(d, "MMM d");
+}
+
+function relativeTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return formatDistanceToNow(d, { addSuffix: true });
+  } catch {
+    return "";
+  }
 }
 
 interface RecentBatch {
@@ -198,7 +217,8 @@ export default function DashboardPage() {
           dateMap.set(format(d, "MMM d"), 0);
         }
         sortedAsc.forEach((batch) => {
-          const dateStr = format(parseISO(batch.created_at), "MMM d");
+          const dateStr = chartDayLabel(batch.created_at);
+          if (!dateStr) return;
           dateMap.set(
             dateStr,
             (dateMap.get(dateStr) || 0) + (batch.total_passports || 0),
@@ -230,14 +250,24 @@ export default function DashboardPage() {
           units: b.total_units || 0,
           status: b.status || "DRAFT",
           market_region: b.market_region,
-          created_at: formatDistanceToNow(new Date(b.created_at), {
-            addSuffix: true,
-          }),
+          created_at: relativeTime(b.created_at),
         })),
       );
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
-      toast.error("Failed to load dashboard data. Please refresh the page.");
+      const apiError = toApiError(error);
+      if (!apiError.response) {
+        toast.error(
+          "Cannot reach the battery API. Check NEXT_PUBLIC_API_URL and that battery-api is running.",
+        );
+      } else {
+        toast.error(
+          await getApiErrorMessage(
+            error,
+            "Failed to load dashboard data. Please refresh the page.",
+          ),
+        );
+      }
     } finally {
       setLoading(false);
     }

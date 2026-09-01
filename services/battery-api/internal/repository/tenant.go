@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -337,6 +338,9 @@ func (r *Repository) GetQuotaBalance(ctx context.Context, tenantID uuid.UUID) (i
 	query := `SELECT COALESCE(quota_balance, 2) FROM public.tenants WHERE id = $1`
 	err := r.db.Pool.QueryRow(ctx, query, tenantID).Scan(&balance)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
 		return 0, fmt.Errorf("failed to get quota balance: %w", err)
 	}
 	return balance, nil

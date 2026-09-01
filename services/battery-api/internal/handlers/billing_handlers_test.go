@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -225,6 +228,7 @@ func TestActivateBatch_ComplianceBlocked(t *testing.T) {
 
 	batch := validBillingBatch(tenantID)
 	batch.ID = batchID
+	batch.Specs.BatteryCategory = models.BatteryCategoryLMT
 	batch.Specs.Certifications = []string{"BIS"} // missing AIS-156 and AIS-038
 	tenant := validBillingTenant(tenantID)
 
@@ -376,4 +380,27 @@ func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 
 	mockRepo.AssertExpectations(t)
+}
+
+// TestMockTopUpRouteRemoved is a regression lock for ADR 029: tenant JWTs must
+// not mint quota. Credits come from Razorpay verify + webhook only.
+func TestMockTopUpRouteRemoved(t *testing.T) {
+	mainSrc, err := os.ReadFile(filepath.Join("..", "..", "cmd", "server", "main.go"))
+	if err != nil {
+		t.Fatalf("read main.go: %v", err)
+	}
+	if bytes.Contains(mainSrc, []byte("/api/v1/billing/top-up")) {
+		t.Fatal("POST /api/v1/billing/top-up must not be registered (ADR 029)")
+	}
+	if bytes.Contains(mainSrc, []byte("TopUpQuota")) {
+		t.Fatal("TopUpQuota must not be wired on the mux (ADR 029)")
+	}
+
+	handlerSrc, err := os.ReadFile("billing_handlers.go")
+	if err != nil {
+		t.Fatalf("read billing_handlers.go: %v", err)
+	}
+	if bytes.Contains(handlerSrc, []byte("func (h *Handler) TopUpQuota")) {
+		t.Fatal("TopUpQuota handler must stay deleted (ADR 029)")
+	}
 }

@@ -134,8 +134,8 @@ func parseEvidenceDate(value string) (time.Time, error) {
 }
 
 // ValidateReasonCode enforces that a reason_code is provided for actions that require one.
-// ACTIVATE always requires a reason_code — the handler maps it to a SYSTEM actor but the
-// trigger is always a human admin making a deliberate decision.
+// ACTIVATE always requires a reason_code — a deliberate decision by the
+// signed-in operator (or SYSTEM for jobs).
 // CLOSE is already enforced by the evidence requirement (certificate_reference).
 func ValidateReasonCode(action TransitionAction, reasonCode string) error {
 	if action == ActionActivate {

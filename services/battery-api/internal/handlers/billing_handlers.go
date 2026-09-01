@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -372,62 +371,6 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		"message":       "Batch activated successfully",
 		"batch_id":      batchID,
 		"quota_balance": balance - passportCount,
-	})
-}
-
-// TopUpQuota handles POST /api/v1/billing/top-up (MOCK for now)
-func (h *Handler) TopUpQuota(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Amount int `json:"amount"` // Number of quota units to add
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	if req.Amount <= 0 {
-		respondError(w, http.StatusBadRequest, "Amount must be positive")
-		return
-	}
-
-	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	tenantID, err := uuid.Parse(tenantIDStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
-		return
-	}
-
-	// Add quota
-	err = h.repo.AddQuota(r.Context(), tenantID, req.Amount)
-	if err != nil {
-		slog.Error("Failed to add quota", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to add quota")
-		return
-	}
-
-	// Log transaction
-	tx := &models.Transaction{
-		TenantID:    tenantID,
-		Description: fmt.Sprintf("Mock Top-Up: %d quota units", req.Amount),
-		QuotaChange: req.Amount,
-	}
-	err = h.repo.CreateTransaction(r.Context(), tx)
-	if err != nil {
-		slog.Warn("Failed to log transaction", "error", err)
-	}
-
-	// Get new balance
-	newBalance, _ := h.repo.GetQuotaBalance(r.Context(), tenantID)
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message":       "Quota added successfully",
-		"amount_added":  req.Amount,
-		"quota_balance": newBalance,
 	})
 }
 

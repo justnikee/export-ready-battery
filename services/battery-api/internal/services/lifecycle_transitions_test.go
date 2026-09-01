@@ -203,6 +203,15 @@ func TestApplyTransition_AllHappyPaths(t *testing.T) {
 			wantStatus: models.PassportStatusActive,
 		},
 		{
+			name:       "CREATED→ACTIVATE→ACTIVE (InternalOperator)",
+			fromStatus: models.PassportStatusCreated,
+			action:     string(models.ActionActivate),
+			actor:      operatorActor(),
+			evidence:   nil,
+			reasonCode: "DISPATCH_QC_PASS",
+			wantStatus: models.PassportStatusActive,
+		},
+		{
 			name:       "ACTIVE→SHIP→SHIPPED (InternalOperator)",
 			fromStatus: models.PassportStatusActive,
 			action:     string(models.ActionShip),

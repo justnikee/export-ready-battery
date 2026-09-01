@@ -175,7 +175,7 @@ func (h *Handler) UploadCSV(w http.ResponseWriter, r *http.Request) {
 		BatchID:        batchID,
 		PassportsCount: insertedCount,
 		ProcessingTime: processingTime.String(),
-		QRCodesReady:   true,
+		QRCodesReady:   models.CanIssueProductionIdentifiers(batch.Status),
 	}
 
 	// Include warnings if some rows failed
@@ -471,6 +471,8 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Generate passports with BPAN V2 serials
+	issuedAt := time.Now()
+	factorySoH, factorySoHAt := models.FactoryGateSoHFields(issuedAt)
 	passports := make([]*models.Passport, req.Count)
 	for i := 0; i < req.Count; i++ {
 		serialNumber := services.GenerateBPANv2(bpanPrefix, startSeq+i)
@@ -480,7 +482,9 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 			SerialNumber:           serialNumber,
 			ManufactureDate:        manufactureDate,
 			Status:                 models.PassportStatusCreated,
-			CreatedAt:              time.Now(),
+			CreatedAt:              issuedAt,
+			StateOfHealth:          factorySoH,
+			LastSOHUpdateTimestamp: factorySoHAt,
 			BatchSnapshot:          snapshot,
 			CurrentOwnerIdentifier: ownerIdentifier,
 		}
@@ -517,7 +521,7 @@ func (h *Handler) AutoGeneratePassports(w http.ResponseWriter, r *http.Request) 
 		"serial_range":      fmt.Sprintf("%s to %s", firstSerial, lastSerial),
 		"bpan_version":      "V2",
 		"bpan_prefix":       bpanPrefix,
-		"qr_codes_ready":    true,
+		"qr_codes_ready":    models.CanIssueProductionIdentifiers(batch.Status),
 	})
 }
 

@@ -17,6 +17,7 @@ func TestPlanIncludes(t *testing.T) {
 		{PlanStarter, FeatureEUCompliance, false},
 		{PlanGrowth, FeatureEUCompliance, true},
 		{PlanEnterprise, FeatureEUCompliance, true},
+		{PlanStarter, FeaturePartners, true},
 		{PlanStarter, FeatureDeveloper, false},
 		{PlanGrowth, FeatureDeveloper, true},
 		{PlanStarter, FeatureRegulatory, false},
@@ -40,6 +41,9 @@ func TestEntitlementsForPlan(t *testing.T) {
 	starter := EntitlementsForPlan(PlanStarter)
 	if starter[string(FeatureEUCompliance)] {
 		t.Error("Starter should NOT include eu_compliance")
+	}
+	if !starter[string(FeaturePartners)] {
+		t.Error("Starter should include partners (core DPP spine)")
 	}
 	growth := EntitlementsForPlan(PlanGrowth)
 	if !growth[string(FeatureEUCompliance)] {

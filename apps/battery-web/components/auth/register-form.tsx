@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { type ProductSlug, productSlugToType } from "@/lib/products";
 import { productRoutesFromSlug } from "@/lib/routes";
+import { getOAuthStartPath } from "@/lib/api-origin";
 
 type RegisterFormProps = {
   inviteToken?: string;
@@ -374,10 +375,7 @@ export function RegisterForm({
           variant="outline"
           className="w-full h-11 border-border hover:bg-accent text-foreground rounded-md"
           onClick={() => {
-            const apiBase = (
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
-            ).replace("/api/v1", "");
-            window.location.href = `${apiBase}/api/v1/auth/google`;
+            window.location.href = getOAuthStartPath("google");
           }}
         >
           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

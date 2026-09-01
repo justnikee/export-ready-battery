@@ -46,7 +46,9 @@ export interface ActivationBatchInput {
     battery_category?: string;
     bill_of_entry_no?: string;
     country_of_origin?: string;
+    cell_country_of_origin?: string;
     customs_date?: string;
+    hsn_code?: string;
     bis_certificate_issue_date?: string;
     un38_3_test_date?: string;
     iec_62133_test_date?: string;
@@ -87,9 +89,15 @@ export function getActivationBlockers(
     if (!batch.specs?.iec_62133_test_date) blocking.push("specs.iec_62133_test_date");
     if (!batch.specs?.msds_issue_date) blocking.push("specs.msds_issue_date");
 
-    const certs = batch.specs?.certifications || [];
-    if (!certs.includes("AIS-156")) blocking.push("specs.certifications: AIS-156");
-    if (!certs.includes("AIS-038")) blocking.push("specs.certifications: AIS-038");
+    const category = batch.specs?.battery_category;
+    const isTraction = category === "EV" || category === "LMT";
+    if (!category) {
+      warnings.push("Set battery category so AIS type-approval can be applied (required for EV/LMT)");
+    } else if (isTraction) {
+      const certs = batch.specs?.certifications || [];
+      if (!certs.includes("AIS-156")) blocking.push("specs.certifications: AIS-156");
+      if (!certs.includes("AIS-038")) blocking.push("specs.certifications: AIS-038");
+    }
 
     if (!user?.epr_registration_number?.trim()) blocking.push("tenant.epr_registration_number");
     if (!user?.bis_r_number?.trim()) blocking.push("tenant.bis_r_number");
@@ -98,8 +106,12 @@ export function getActivationBlockers(
 
     if (batch.specs?.cell_source === "IMPORTED") {
       if (!batch.specs?.bill_of_entry_no?.trim()) blocking.push("bill_of_entry_no");
-      if (!batch.specs?.country_of_origin?.trim()) blocking.push("country_of_origin");
+      const cellOrigin = batch.specs?.cell_country_of_origin || batch.specs?.country_of_origin;
+      if (!cellOrigin?.trim()) blocking.push("cell_country_of_origin");
       if (!batch.specs?.customs_date) blocking.push("customs_date");
+    }
+    if (!batch.specs?.hsn_code?.trim()) {
+      warnings.push("HSN 8507xxxx is recommended before activation for DGFT/export filings");
     }
 
     if (batch.specs?.cell_source === "DOMESTIC" && (batch.domestic_value_add ?? 0) <= 0) {
@@ -172,7 +184,9 @@ export function getActivationBlockers(
         const baseVal = parseFloat(String(mc[baseKey])) || 0;
         const recycledVal = parseFloat(String(mc[key])) || 0;
         if (baseVal > 0 && recycledVal === 0) {
-          warnings.push(`Recycled ${baseKey} content not declared (required from Aug 2028)`);
+          warnings.push(
+            `Recycled ${baseKey} content not declared (EU minimum applies from 18 Aug 2031; disclosure from 18 Aug 2028)`,
+          );
         }
       }
     }
@@ -200,6 +214,7 @@ export function formatBlockerLabel(key: string): string {
     "tenant.morth_manufacturer_code": "MoRTH code (Settings -> Compliance)",
     bill_of_entry_no: "Bill of entry number",
     country_of_origin: "Cell country of origin",
+    cell_country_of_origin: "Cell country of origin",
     customs_date: "Import date",
     domestic_value_add: "Domestic value-add percentage",
     "specs.battery_category": "EU battery category",

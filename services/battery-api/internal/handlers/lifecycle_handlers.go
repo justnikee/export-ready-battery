@@ -130,16 +130,6 @@ func (h *LifecycleHandler) buildActorContext(ctx context.Context, action string)
 		return models.ActorContext{}, status, err
 	}
 
-	if action == string(models.ActionActivate) {
-		// System actions: performed by system actor
-		return models.ActorContext{
-			ActorType: models.ActorTypeSystem,
-			ActorID:   "system",
-			ActorRole: models.ActorRoleSystem,
-			Source:    models.ActionSourceInternal,
-		}, http.StatusOK, nil
-	}
-
 	return models.ActorContext{
 		ActorType: models.ActorTypeUser,
 		ActorID:   email,

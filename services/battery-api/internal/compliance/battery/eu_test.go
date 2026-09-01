@@ -2,6 +2,7 @@ package battery_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -153,7 +154,7 @@ func TestEUValidator_MissingTenantEUFields(t *testing.T) {
 	assert.Contains(t, result.Missing, "tenant.eu_contact_email")
 }
 
-func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesErrors(t *testing.T) {
+func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesWarnings(t *testing.T) {
 	batch := validEUBatch()
 	// Remove per-material recycled content but keep raw material percentages.
 	batch.Specs.MaterialComposition.RecycledCobaltPct = 0
@@ -163,9 +164,17 @@ func TestEUValidator_RecycledContent_MissingPerMaterial_ProducesErrors(t *testin
 	v := &battery.EUValidator{}
 	result, err := v.ValidateBatch(batch, validEUTenant())
 	require.NoError(t, err)
-	// Hard threshold: missing recycled content is now an error.
-	assert.False(t, result.Valid, "recycled content below threshold should block activation, errors=%v", result.Errors)
-	assert.NotEmpty(t, result.Errors)
+	assert.True(t, result.Valid, "Art. 8 floors are not in force until 2031; should not block, errors=%v missing=%v", result.Errors, result.Missing)
+	assert.Empty(t, result.Errors)
+	require.NotEmpty(t, result.Warnings)
+	foundDated := false
+	for _, w := range result.Warnings {
+		if strings.Contains(w, "18 Aug 2031") {
+			foundDated = true
+			break
+		}
+	}
+	assert.True(t, foundDated, "warning should cite 18 Aug 2031, got %v", result.Warnings)
 }
 
 func TestEUValidator_OverallRecycledPct_Missing_ProducesWarning(t *testing.T) {

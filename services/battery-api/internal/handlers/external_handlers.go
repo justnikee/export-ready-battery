@@ -290,7 +290,7 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		}
 
 		now := time.Now()
-		initialSoH := 100.0
+		factorySoH, factorySoHAt := models.FactoryGateSoHFields(now)
 
 		passports[i] = &models.Passport{
 			UUID:                   uuid.New(),
@@ -299,8 +299,8 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 			ManufactureDate:        manufDate,
 			Status:                 models.PassportStatusCreated,
 			CreatedAt:              now,
-			StateOfHealth:          &initialSoH,
-			LastSOHUpdateTimestamp: &now,
+			StateOfHealth:          factorySoH,
+			LastSOHUpdateTimestamp: factorySoHAt,
 			BatchSnapshot:          snapshot,
 			CurrentOwnerIdentifier: ownerIdentifier,
 		}

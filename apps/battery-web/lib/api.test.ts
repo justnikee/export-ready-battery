@@ -81,9 +81,9 @@ describe("api request interceptor", () => {
     // We can exercise the interceptor by calling the internal handler if exposed,
     // but axios does not expose it. Instead, verify the api instance was created
     // and that defaults reflect the expected baseURL.
-    expect(api.defaults.baseURL).toBe(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
-    );
+    // jsdom provides `window`, so the browser path uses same-origin /api/v1.
+    expect(api.defaults.baseURL).toBe("/api/v1");
+    expect(api.defaults.withCredentials).toBe(true);
     expect(api.defaults.headers["Content-Type"]).toBe("application/json");
   });
 });

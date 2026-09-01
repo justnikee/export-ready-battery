@@ -121,6 +121,7 @@ type RepositoryInterface interface {
 	GetPassportStatusCounts(ctx context.Context, tenantID uuid.UUID, batchID string) (map[string]int, error)
 	FindDuplicateSerials(ctx context.Context, serials []string) ([]DuplicateInfo, error)
 	GetPassportByUUID(ctx context.Context, id uuid.UUID) (*models.Passport, error)
+	GetPassportBySerialForTenant(ctx context.Context, tenantID uuid.UUID, serial string) (*models.Passport, error)
 	UpdatePassportStatus(ctx context.Context, id uuid.UUID, status string) error
 	ApplyLifecycleTransition(ctx context.Context, params models.TransitionPersistence) error
 	UndoLifecycleTransition(ctx context.Context, passportID uuid.UUID, fromStatus, toStatus string, event *models.PassportEvent) error

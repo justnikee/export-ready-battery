@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/compliance"
@@ -28,9 +29,14 @@ const (
 
 // indiaBaseCheckpoints counts the hard rules that always run regardless of
 // cell source: 4 tenant credentials + 3 certificate uploads + 4 test dates +
-// cell_source itself + PLI claim + AIS-156 + AIS-038.
-// Sub-checks that are conditional on cell_source are added dynamically.
-const indiaBaseCheckpoints = 15
+// cell_source itself + PLI claim. AIS-156/038 are added when the batch is
+// traction (EV/LMT). Sub-checks conditional on cell_source are added dynamically.
+const indiaBaseCheckpoints = 13
+
+// isTractionBattery reports whether MoRTH AIS-156 / AIS-038 apply.
+func isTractionBattery(cat models.BatteryCategory) bool {
+	return cat == models.BatteryCategoryEV || cat == models.BatteryCategoryLMT
+}
 
 // isCertificateValid returns true if the certificate has been uploaded and
 // has not been rejected. PENDING is acceptable because the certificate may
@@ -281,9 +287,13 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 			addMissing("batch.specs.bill_of_entry_no",
 				"Bill of Entry number is required for imported cells", indiaCustoms)
 		}
-		if batch.Specs.CountryOfOrigin == "" {
-			addMissing("batch.specs.country_of_origin",
-				"Country of origin is required for imported cells", indiaCustoms)
+		cellOrigin := strings.TrimSpace(batch.Specs.CellCountryOfOrigin)
+		if cellOrigin == "" {
+			cellOrigin = strings.TrimSpace(batch.Specs.CountryOfOrigin)
+		}
+		if cellOrigin == "" {
+			addMissing("batch.specs.cell_country_of_origin",
+				"Cell country of origin is required for imported cells", indiaCustoms)
 		}
 		if batch.Specs.CustomsDate == "" {
 			addMissing("batch.specs.customs_date",
@@ -308,26 +318,33 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 
 	// ----------------------------------------------------------------
 	// AIS-156 and AIS-038 type-approval certificates
-	// Both are mandatory under MoRTH for traction/EV batteries.
+	// MoRTH traction rules apply to EV and LMT only — not stationary /
+	// portable / SLI. Empty category: warn, do not block.
 	// ----------------------------------------------------------------
 
-	hasAIS156 := false
-	hasAIS038 := false
-	for _, cert := range batch.Specs.Certifications {
-		switch cert {
-		case "AIS-156":
-			hasAIS156 = true
-		case "AIS-038":
-			hasAIS038 = true
+	cat := batch.Specs.BatteryCategory
+	if cat == "" {
+		addWarning("batch.specs.battery_category",
+			"Set battery category so AIS type-approval can be applied (required for EV/LMT traction packs)", indiaAIS156Ref)
+	} else if isTractionBattery(cat) {
+		hasAIS156 := false
+		hasAIS038 := false
+		for _, cert := range batch.Specs.Certifications {
+			switch cert {
+			case "AIS-156":
+				hasAIS156 = true
+			case "AIS-038":
+				hasAIS038 = true
+			}
 		}
-	}
-	if !hasAIS156 {
-		addMissing("batch.specs.certifications[AIS-156]",
-			"AIS-156 safety type-approval certificate is mandatory for traction batteries", indiaAIS156Ref)
-	}
-	if !hasAIS038 {
-		addMissing("batch.specs.certifications[AIS-038]",
-			"AIS-038 Rev.2 battery safety certificate is mandatory for EV batteries", indiaAIS038Ref)
+		if !hasAIS156 {
+			addMissing("batch.specs.certifications[AIS-156]",
+				"AIS-156 safety type-approval certificate is mandatory for traction batteries", indiaAIS156Ref)
+		}
+		if !hasAIS038 {
+			addMissing("batch.specs.certifications[AIS-038]",
+				"AIS-038 Rev.2 battery safety certificate is mandatory for EV/LMT batteries", indiaAIS038Ref)
+		}
 	}
 
 	// ----------------------------------------------------------------
@@ -343,6 +360,15 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 			"EPR batch-level registration number is recommended for BWM traceability", indiaBWMRef)
 	}
 
+	hsn := strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(batch.Specs.HSNCode), ".", ""), " ", "")
+	if hsn == "" {
+		addWarning("batch.specs.hsn_code",
+			"HSN 8507xxxx is recommended before activation for DGFT/export filings", indiaCustoms)
+	} else if len(hsn) != 8 || !strings.HasPrefix(hsn, "8507") {
+		addError("batch.specs.hsn_code",
+			"HSN Code must be exactly 8 digits starting with 8507 (e.g. 85076000)", indiaCustoms)
+	}
+
 	// Compute denominator from only the hard (ERROR-severity) checkpoints that
 	// actually ran, so warnings never inflate the denominator or distort the score.
 	hardCheckpoints := indiaBaseCheckpoints
@@ -351,6 +377,9 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 		hardCheckpoints += 3 // bill_of_entry_no, country_of_origin, customs_date
 	case "DOMESTIC":
 		hardCheckpoints += 1 // domestic_value_add
+	}
+	if isTractionBattery(batch.Specs.BatteryCategory) {
+		hardCheckpoints += 2 // AIS-156, AIS-038
 	}
 
 	criticalFailures := len(missing) + len(errors)

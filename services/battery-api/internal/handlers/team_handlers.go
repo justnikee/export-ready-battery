@@ -184,7 +184,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	inviteURL := fmt.Sprintf("/battery/accept-invite?token=%s", token)
+	inviteURL := fmt.Sprintf("/accept-invite?token=%s", token)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":    "Invitation sent successfully",
@@ -272,8 +272,6 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	productSlug := "battery"
-
 	// Check if already accepted
 	if member.Status == models.TeamStatusActive {
 		respondError(w, http.StatusConflict, "This invitation has already been accepted")
@@ -311,14 +309,14 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		}
 		respondJSON(w, http.StatusOK, map[string]string{
 			"message":       "Invitation accepted successfully",
-			"dashboard_url": fmt.Sprintf("/%s/dashboard", productSlug),
+			"dashboard_url": "/dashboard",
 		})
 	} else {
 		respondJSON(w, http.StatusAccepted, map[string]interface{}{
 			"status":       "registration_required",
 			"message":      "Please complete registration to accept this invitation",
 			"email":        member.Email,
-			"register_url": fmt.Sprintf("/%s/register?email=%s&invite=%s", productSlug, member.Email, req.Token),
+			"register_url": fmt.Sprintf("/register?email=%s&invite=%s", member.Email, req.Token),
 		})
 	}
 }

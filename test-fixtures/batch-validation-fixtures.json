@@ -1,5 +1,5 @@
 {
-  "_comment": "Shared validation-rule fixtures consumed by both services/battery-api/internal/services/batch_creation_validator_test.go and apps/battery-web/components/batches/batch-form-schema.test.ts. Field names follow the frontend's BatchFormData naming; each case that expects an error also carries the matching backend (CreateBatchRequest/BatchSpec) field name, since the two validators don't share a naming convention. This file is test-only fixtures — it does not change either validator's behavior. Every case is built India/DOMESTIC unless noted, since the rules under test (HSN prefix, DVA>0%, PLI>=50%, IMPORTED required fields, AUDITED required fields, date ordering) are all India-Battery rules confirmed to exist on both sides.",
+  "_comment": "Shared validation-rule fixtures for CreateBatch (draft-friendly). HSN format is checked only when provided; DVA/BoE/IEC/customs completeness is an activation gate, not create. PLI claim and AUDITED mode still fail create if incomplete. Consumed by batch_creation_validator_test.go and batch-form-schema.test.ts.",
   "cases": [
     {
       "name": "HSN code missing the 8507 battery prefix",
@@ -12,6 +12,14 @@
       "cellCostImported": 400,
       "expectValid": false,
       "expectErrors": [{ "go": "hsn_code", "ts": "hsnCode" }]
+    },
+    {
+      "name": "HSN omitted at create is allowed",
+      "rule": "hsn-prefix",
+      "marketRegion": "INDIA",
+      "cellSource": "DOMESTIC",
+      "hsnCode": "",
+      "expectValid": true
     },
     {
       "name": "HSN code with valid 8507 battery prefix",
@@ -45,8 +53,7 @@
       "salePrice": 100,
       "cellCostDomestic": 0,
       "cellCostImported": 100,
-      "expectValid": false,
-      "expectErrors": [{ "go": "domestic_value_add", "ts": "salePrice" }]
+      "expectValid": true
     },
     {
       "name": "PLI claimed below the 50% DVA threshold",
@@ -83,8 +90,7 @@
       "billOfEntryNo": "",
       "cellCountryOfOrigin": "CN",
       "customsDate": "2024-03-01",
-      "expectValid": false,
-      "expectErrors": [{ "go": "bill_of_entry_no", "ts": "billOfEntryNo" }]
+      "expectValid": true
     },
     {
       "name": "Imported cells missing country of origin",
@@ -96,8 +102,7 @@
       "billOfEntryNo": "BOE123",
       "cellCountryOfOrigin": "",
       "customsDate": "2024-03-01",
-      "expectValid": false,
-      "expectErrors": [{ "go": "country_of_origin", "ts": "cellCountryOfOrigin" }]
+      "expectValid": true
     },
     {
       "name": "Imported cells missing the customs/import date",
@@ -109,8 +114,7 @@
       "billOfEntryNo": "BOE123",
       "cellCountryOfOrigin": "CN",
       "customsDate": "",
-      "expectValid": false,
-      "expectErrors": [{ "go": "customs_date", "ts": "customsDate" }]
+      "expectValid": true
     },
     {
       "name": "Audited DVA mode missing the audited percentage",

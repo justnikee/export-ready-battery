@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { resolvePassport } from "@/lib/api/lifecycle";
+import { parseDispatchScan, shouldShipAfterActivateFailure } from "@/lib/dispatch-scan";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import { isAdminRole } from "@/lib/rbac";
@@ -166,46 +168,47 @@ export default function DispatchPage() {
     focusInput();
   }, []);
 
-  const extractUUID = (input: string): string | null => {
-    // Regex for UUID
-    const uuidRegex =
-      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
-    const match = input.match(uuidRegex);
-    return match ? match[0] : null;
-  };
-
-  const handleScan = (e: React.FormEvent) => {
-    e.preventDefault();
-    const raw = inputValue.trim();
-    if (!raw) return;
-
-    // Validate
-    const uuid = extractUUID(raw);
-    if (!uuid) {
-      playSound("error");
-      toast.error("Invalid Scan: Could not find valid Passport UUID");
-      setInputValue("");
-      return;
-    }
-
-    // Check duplicate
+  const addScanned = (uuid: string, raw: string) => {
     if (scannedItems.some((item) => item.id === uuid)) {
       playSound("duplicate");
       toast.warning("Duplicate: Item already in pending list");
       setInputValue("");
       return;
     }
-
-    // Add to list
-    const newItem: ScannedItem = {
-      id: uuid,
-      rawValue: raw,
-      timestamp: new Date(),
-    };
-
-    setScannedItems((prev) => [newItem, ...prev]);
+    setScannedItems((prev) => [
+      { id: uuid, rawValue: raw, timestamp: new Date() },
+      ...prev,
+    ]);
     playSound("success");
     setInputValue("");
+  };
+
+  const handleScan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = inputValue.trim();
+    if (!raw) return;
+
+    const parsed = parseDispatchScan(raw);
+    if (parsed.kind === "invalid") {
+      playSound("error");
+      toast.error("Invalid scan: use a passport QR, UUID, or BPAN serial");
+      setInputValue("");
+      return;
+    }
+
+    if (parsed.kind === "uuid") {
+      addScanned(parsed.uuid, raw);
+      return;
+    }
+
+    try {
+      const resolved = await resolvePassport(parsed.serial);
+      addScanned(resolved.uuid, raw);
+    } catch {
+      playSound("error");
+      toast.error("Serial not found in this workspace");
+      setInputValue("");
+    }
   };
 
   const handleRemove = (idToRemove: string) => {
@@ -247,11 +250,12 @@ export default function DispatchPage() {
 
       const bulkTransition = async (
         action: string,
+        ids: string[],
         evidence?: Record<string, unknown>,
         extras?: Record<string, unknown>,
       ) => {
         const response = await api.post("/passports/bulk/transition", {
-          passport_ids: passportIds,
+          passport_ids: ids,
           action: action,
           evidence: evidence || {},
           ...extras,
@@ -265,22 +269,60 @@ export default function DispatchPage() {
         };
       };
 
-      // ACTIVATE requires reason_code (backend ValidateReasonCode). CREATED
-      // units that fail here stay CREATED; SHIP still runs for already-ACTIVE.
-      const activateResult = await bulkTransition("ACTIVATE", undefined, {
+      const activateResult = await bulkTransition("ACTIVATE", passportIds, undefined, {
         reason_code: "DISPATCH_QC_PASS",
         admin_note: "Auto-activated during dispatch",
       });
-      if (activateResult.failed > 0 && activateResult.succeeded === 0) {
-        // All failed activate — only proceed if units may already be ACTIVE
-        // (API returns failed for wrong-from-state). Log and continue to SHIP.
-        console.warn("Dispatch ACTIVATE partial/failed", activateResult);
+
+      const activateFailed = new Set(activateResult.failed_ids || []);
+      const activateErrors = new Map<string, string>();
+      if (
+        activateResult.errors &&
+        activateResult.failed_ids &&
+        activateResult.errors.length === activateResult.failed_ids.length
+      ) {
+        activateResult.failed_ids.forEach((id, idx) => {
+          activateErrors.set(id, activateResult.errors![idx]);
+        });
       }
 
-      const result = await bulkTransition("SHIP", {
-        shipment_reference: shipmentReference,
-        shipment_date: shipmentDate,
+      const shipIds = passportIds.filter((id) => {
+        if (!activateFailed.has(id)) return true;
+        return shouldShipAfterActivateFailure(activateErrors.get(id));
       });
+      const blockedAtActivate = scannedItems.filter(
+        (item) => activateFailed.has(item.id) && !shipIds.includes(item.id),
+      );
+
+      let result = {
+        succeeded: 0,
+        failed: blockedAtActivate.length,
+        failed_ids: blockedAtActivate.map((i) => i.id),
+        errors: blockedAtActivate.map(
+          (i) => activateErrors.get(i.id) || "Activate failed",
+        ),
+      };
+
+      if (shipIds.length > 0) {
+        const shipResult = await bulkTransition("SHIP", shipIds, {
+          shipment_reference: shipmentReference,
+          shipment_date: shipmentDate,
+        });
+        result = {
+          succeeded: shipResult.succeeded || 0,
+          failed: (shipResult.failed || 0) + blockedAtActivate.length,
+          failed_ids: [
+            ...(shipResult.failed_ids || []),
+            ...blockedAtActivate.map((i) => i.id),
+          ],
+          errors: [
+            ...(shipResult.errors || []),
+            ...blockedAtActivate.map(
+              (i) => activateErrors.get(i.id) || "Activate failed",
+            ),
+          ],
+        };
+      }
 
       // Safety Net #2: Partial Failure Handling
       const successCount = result.succeeded || 0;
@@ -293,7 +335,7 @@ export default function DispatchPage() {
           action: isAdmin
             ? {
                 label: "Undo",
-                onClick: () => handleUndoDispatch(passportIds),
+                onClick: () => handleUndoDispatch(shipIds),
               }
             : undefined,
         });

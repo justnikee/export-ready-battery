@@ -674,8 +674,8 @@ export function StepCompliance({
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {["A","B","C","D","E"].map((c) => (
-                          <SelectItem key={c} value={c}>{c} {c === "A" ? "— Best" : c === "E" ? "— Worst" : ""}</SelectItem>
+                        {["A","B","C","D","E","F","G"].map((c) => (
+                          <SelectItem key={c} value={c}>{c} {c === "A" ? "— Best" : c === "G" ? "— Worst" : ""}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -910,6 +910,14 @@ export function StepCompliance({
                     <div className="grid gap-1">
                       <Label htmlFor="un383TestDate" className="text-xs text-muted-foreground">UN38.3 Test Date</Label>
                       <Input id="un383TestDate" type="date" {...register("un383TestDate")} className="h-8 text-xs bg-transparent border-border" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="iec62133TestDateIndia" className="text-xs text-muted-foreground">IEC 62133 Test Date</Label>
+                      <Input id="iec62133TestDateIndia" type="date" {...register("iec62133TestDate")} className="h-8 text-xs bg-transparent border-border" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="msdsIssueDateIndia" className="text-xs text-muted-foreground">MSDS Issue Date</Label>
+                      <Input id="msdsIssueDateIndia" type="date" {...register("msdsIssueDate")} className="h-8 text-xs bg-transparent border-border" />
                     </div>
                   </div>
                 </div>

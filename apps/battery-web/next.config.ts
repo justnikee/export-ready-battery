@@ -52,6 +52,30 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
+  async redirects() {
+    // Auth emails used to link to /battery/verify-email etc. Routes are
+    // flattened now; keep old links working.
+    return [
+      {
+        source: "/battery/:path*",
+        destination: "/:path*",
+        permanent: false,
+      },
+    ];
+  },
+  async rewrites() {
+    // Same-origin /api/v1 so auth cookies are first-party on Vercel.
+    const dest = apiOrigin.replace(/\/$/, "");
+    if (!dest || dest.startsWith("/")) {
+      return [];
+    }
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${dest}/api/v1/:path*`,
+      },
+    ];
+  },
   images: {
     // Logos and compliance docs are served from Supabase public storage
     // (<project>.supabase.co) and, in some deployments, directly from the API

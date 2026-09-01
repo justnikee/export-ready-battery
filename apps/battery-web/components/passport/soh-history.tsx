@@ -45,14 +45,14 @@ export function SoHHistory({ passportUuid }: SoHHistoryProps) {
               </span>
               <span
                 className={`font-medium ${
-                  entry.soh >= 80
+                  entry.state_of_health >= 80
                     ? "text-emerald-400"
-                    : entry.soh >= 50
+                    : entry.state_of_health >= 50
                       ? "text-amber-400"
                       : "text-red-400"
                 }`}
               >
-                {entry.soh}%
+                {entry.state_of_health}%
               </span>
               <span className="text-muted-foreground truncate max-w-[100px]">
                 {entry.source}

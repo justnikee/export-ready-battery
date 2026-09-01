@@ -2,15 +2,20 @@
 
 > **Agents: read this first every session.** Keep it short. Update when priorities shift.
 
-**Last updated:** 2026-08-17  
-**Last session:** [sessions/2026-08-17-l23-qr-labels.md](sessions/2026-08-17-l23-qr-labels.md)  
+**Last updated:** 2026-09-01  
+**Last session:** [sessions/2026-09-01-login-oauth-session.md](sessions/2026-09-01-login-oauth-session.md)  
+**Prior:** [sessions/2026-09-01-industry-product-briefing.md](sessions/2026-09-01-industry-product-briefing.md)  
+**Industry briefing:** [`INDUSTRY_PRODUCT_BRIEFING.md`](INDUSTRY_PRODUCT_BRIEFING.md) (sources verified; do not use the 2023-07-28 ELI as current law)  
+**Spine plan:** [`PRODUCT_SPINE_FIX_PLAN.md`](PRODUCT_SPINE_FIX_PLAN.md) (PR 1–4 done)  
+**GTM plan:** [`PRODUCT_GTM_PLAN.md`](PRODUCT_GTM_PLAN.md) — G2 mock top-up **done** (ADR 029)  
 **Scope:** battery-web + battery-api only. Textile is out of scope.
 
 ---
 
 ## Now
 
-1. **Primary audit track complete:** S-01…S-15 + P-01…P-08.
+1. **Prod login (2026-09-01):** Google `/login?error=oauth_session` + `/battery/*` email 404s. Code fix in tree; **needs Google Console redirect URI + Vercel + Oracle deploy** — see [sessions/2026-09-01-login-oauth-session.md](sessions/2026-09-01-login-oauth-session.md).
+2. **Primary audit track complete:** S-01…S-15 + P-01…P-08.
    - Audit: [`docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md`](../docs/BATTERY_SECURITY_PERFORMANCE_AUDIT.md)
    - Backlog: [`backlog.md`](backlog.md)
 
@@ -45,13 +50,16 @@
 - Do not run `schema-reset-*` or edit applied migrations without explicit user ask.
 - Do not treat root `docs/*` master plans as current truth without checking code.
 - Do not pick up textile work (`textile-web`, `textile-api`, L-24). Battery only.
+- Do not reintroduce `POST /billing/top-up` on tenant JWT — quota only via Razorpay (ADR 029).
 
 ---
 
 ## Next concrete task
 
-1. **Battery DPP spine complete** (L-01…L-23) in git. No further L-items on this track.
-2. Apply `000107` + `000108` on the **Oracle** battery DB if that environment is behind local (`migration_runner up` → 108).
+1. **Battery DPP spine complete** (L-01…L-23) in git. Do **not** add more product surfaces.
+2. GTM P0 remaining: slim nav (G6), strip fake landing stats (G1). G2 mock top-up **done**. Factory-gate SoH **done** (generate 100% + Lifecycle update).
+3. Apply `000107` + `000108` on the **Oracle** battery DB if that environment is behind local.
+4. Commercial: 15-account ICP list + 90-day paid pilot SKU (partners + EU + API included).
 
 ---
 

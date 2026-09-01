@@ -19,7 +19,7 @@ const (
 	FeatureDGFT         Feature = "dgft_claims"
 	FeatureFleet        Feature = "fleet"
 	FeatureTelemetry    Feature = "telemetry"
-	FeaturePartners     Feature = "partners"
+	FeaturePartners     Feature = "partners"  // core: INSTALL/RECYCLE magic links
 	FeatureDeveloper    Feature = "developer" // API keys, webhooks, Tally sync
 	FeatureRegulatory   Feature = "regulatory"
 
@@ -51,7 +51,6 @@ var featureMinPlan = map[Feature]string{
 	FeatureDGFT:         PlanGrowth,
 	FeatureFleet:        PlanGrowth,
 	FeatureTelemetry:    PlanGrowth,
-	FeaturePartners:     PlanGrowth,
 	FeatureDeveloper:    PlanGrowth,
 	FeatureRegulatory:   PlanGrowth,
 
@@ -88,10 +87,13 @@ func RequiredPlan(f Feature) string {
 // EntitlementsForPlan returns the gated feature → allowed map for a plan. The
 // frontend consumes this (via /auth/me) to lock nav items and show upgrade CTAs.
 func EntitlementsForPlan(plan string) map[string]bool {
-	out := make(map[string]bool, len(featureMinPlan))
+	out := make(map[string]bool, len(featureMinPlan)+1)
 	for f := range featureMinPlan {
 		out[string(f)] = PlanIncludes(plan, f)
 	}
+	// Partners is core (INSTALL/RECYCLE magic links). Always true so /auth/me
+	// does not leave a stale false from when this was Growth-gated.
+	out[string(FeaturePartners)] = true
 	return out
 }
 

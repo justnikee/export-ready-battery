@@ -8,10 +8,15 @@ describe("BatchLifecycleTracker", () => {
     expect(screen.getByText(/clear 3 activation requirements/i)).toBeInTheDocument();
   });
 
-  it("tells a compliance-ready draft to activate (and mentions the credit)", () => {
+  it("tells a compliance-ready draft to activate (credits are per passport)", () => {
     render(<BatchLifecycleTracker status="DRAFT" activationBlockerCount={0} passportCount={0} />);
     expect(screen.getByText(/activate this batch/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 activation credit/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 per passport/i)).toBeInTheDocument();
+  });
+
+  it("states N credits when the draft already has passports", () => {
+    render(<BatchLifecycleTracker status="DRAFT" activationBlockerCount={0} passportCount={200} />);
+    expect(screen.getByText(/uses 200 activation credits/i)).toBeInTheDocument();
   });
 
   it("tells an active batch with no passports to add passports", () => {

@@ -439,33 +439,9 @@ func formatSerial(serial string) string {
 // BPAN V2 serial:       https://app.anvayalabs.in/p/{uuid}?bpan=IN-TEN-LFP-2026-00001&chem=LFP&yr=2026&mfr=TEN&rgn=IN
 // EU with carbon:       ...&co2=65.00
 func (s *QRService) BuildQRPayload(passportUUID uuid.UUID, serialNumber string, ctx *QRLabelContext) string {
-	// GS1 Digital Link format when GTIN is available
-	if ctx != nil && ctx.GTIN != "" {
-		base := fmt.Sprintf("%s/01/%s/21/%s", s.baseURL, ctx.GTIN, serialNumber)
-
-		comp := ParseBPAN(serialNumber)
-		if comp == nil {
-			return base
-		}
-
-		params := url.Values{}
-		params.Set("bpan", serialNumber)
-		params.Set("chem", comp.Chemistry)
-		params.Set("yr", fmt.Sprintf("%d", comp.Year))
-		params.Set("mfr", comp.Manufacturer)
-		params.Set("rgn", comp.Region)
-
-		if ctx.CarbonPerKWh > 0 {
-			params.Set("co2", fmt.Sprintf("%.2f", ctx.CarbonPerKWh))
-		}
-		if ctx.EPRNumber != "" && comp.Region == "IN" {
-			params.Set("epr", ctx.EPRNumber)
-		}
-
-		return fmt.Sprintf("%s?%s", base, params.Encode())
-	}
-
-	// Legacy format: fall back to /p/{uuid}
+	// Always encode /p/{uuid}. GS1 Digital Link (/01/{gtin}/21/{serial}) is stored
+	// on the batch when a GTIN exists but is not used as the scan URL until a
+	// resolver route exists — encoding it today 404s the public passport page.
 	base := fmt.Sprintf("%s/p/%s", s.baseURL, passportUUID.String())
 
 	comp := ParseBPAN(serialNumber)

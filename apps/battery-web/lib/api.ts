@@ -1,6 +1,7 @@
 import axios from "axios";
 import { routesFromPathname } from "@/lib/routes";
 import { clearProductCookies } from "@/lib/product-session";
+import { getApiV1Base } from "@/lib/api-origin";
 
 // The access token is held in memory only (never localStorage) so an XSS
 // payload can't read it out of persistent storage. It's re-hydrated on page
@@ -14,7 +15,8 @@ export const setAccessToken = (token: string | null) => {
 };
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  baseURL: getApiV1Base(),
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -106,7 +108,8 @@ api.interceptors.response.use(
 // Use this for endpoints that may be called from public/unauthenticated views
 // or where the caller wants to handle 401 gracefully instead of being redirected.
 export const apiPublic = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  baseURL: getApiV1Base(),
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -128,7 +131,7 @@ apiPublic.interceptors.request.use(
 // code). Use this for truly public pages like /p/[uuid] so a logged-in viewer
 // doesn't get a privileged tier-aware response or pollute public scan analytics.
 export const apiAnonymous = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1",
+  baseURL: getApiV1Base(),
   headers: {
     "Content-Type": "application/json",
   },

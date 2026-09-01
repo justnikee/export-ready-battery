@@ -237,7 +237,7 @@ const BATTERY_CONFIG: ProductConfig = {
       label: "Account",
       items: [
         { name: "Team", dashboardSubpath: "team", icon: Users },
-        { name: "Partners", dashboardSubpath: "partners", icon: Building2, feature: "partners" },
+        { name: "Partners", dashboardSubpath: "partners", icon: Building2 },
         { name: "Billing", dashboardSubpath: "billing", icon: CreditCard },
         { name: "Settings", dashboardSubpath: "settings", icon: Settings },
       ],

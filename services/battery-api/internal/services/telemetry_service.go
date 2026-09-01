@@ -27,6 +27,7 @@ type TelemetryRepository interface {
 	GetTelemetryHistory(ctx context.Context, passportID uuid.UUID, limit, offset int, from, to *time.Time) ([]*repository.TelemetryReading, int, error)
 	GetPassportByUUID(ctx context.Context, passportID uuid.UUID) (*models.Passport, error)
 	CreatePassportEvent(ctx context.Context, event *models.PassportEvent) error
+	AppendSoHHistory(ctx context.Context, entry models.SoHHistoryEntry) error
 }
 
 // TelemetryService handles BMS telemetry ingestion and auto-event generation
@@ -86,6 +87,10 @@ func (s *TelemetryService) Ingest(ctx context.Context, req IngestRequest, device
 		return nil, ErrRecordedAtInFuture
 	}
 
+	if req.StateOfHealth != nil && (*req.StateOfHealth < 0 || *req.StateOfHealth > 100) {
+		return nil, fmt.Errorf("state_of_health must be between 0 and 100")
+	}
+
 	// Verify passport exists
 	passport, err := s.repo.GetPassportByUUID(ctx, req.PassportID)
 	if err != nil {
@@ -131,6 +136,17 @@ func (s *TelemetryService) Ingest(ctx context.Context, req IngestRequest, device
 
 	// Log SOH_UPDATED event for every SoH change (EU audit trail requirement)
 	if req.StateOfHealth != nil {
+		if err := s.repo.AppendSoHHistory(ctx, models.SoHHistoryEntry{
+			ID:         uuid.New(),
+			PassportID: req.PassportID,
+			SoH:        *req.StateOfHealth,
+			RecordedAt: req.RecordedAt,
+			Actor:      deviceTokenID.String(),
+			ActorType:  "DEVICE",
+			Source:     "TELEMETRY",
+		}); err != nil {
+			slog.Warn("Failed to append SoH history from telemetry", "passport_id", req.PassportID, "error", err)
+		}
 		var previousSoH *float64
 		if passport.StateOfHealth != nil {
 			v := *passport.StateOfHealth

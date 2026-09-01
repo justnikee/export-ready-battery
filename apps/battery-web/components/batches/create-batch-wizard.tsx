@@ -67,7 +67,7 @@ const stepFieldCounts = [
 // Which wizard step a form field belongs to — used to scope backend
 // validation errors to steps the user has already reached.
 const CORE_FIELDS = [
-  "batchName", "modelName", "marketRegion", "manufacturingStartDate", "manufacturingEndDate",
+  "batchName", "modelName", "lotSize", "marketRegion", "manufacturingStartDate", "manufacturingEndDate",
   "manufacturer", "manufacturerAddress", "manufacturerEmail", "chemistry",
   "weight", "capacity", "voltage", "materialComposition", "recycledContent", "countryOfOrigin", "recyclable",
   "batteryCategory",
@@ -209,8 +209,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   const marketRegion = watch("marketRegion");
   const cellSource = watch("cellSource");
+  const batteryCategory = watch("batteryCategory");
 
-  // Default certifications based on market region
+  // Default certifications: CE for EU/GLOBAL; AIS only for India traction (EV/LMT).
   useEffect(() => {
     if (!wizardOpen) return
     const currentCerts = watch("certifications")
@@ -220,13 +221,14 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       currentCerts.length === 0
     if (!isDefault) return
 
+    const traction = batteryCategory === "EV" || batteryCategory === "LMT"
     if (marketRegion === "INDIA") {
-      setValue("certifications", ["AIS-156", "AIS-038"], { shouldValidate: false })
+      setValue("certifications", traction ? ["AIS-156", "AIS-038"] : [], { shouldValidate: false })
     } else if (marketRegion === "EU" || marketRegion === "GLOBAL") {
       setValue("certifications", ["CE"], { shouldValidate: false })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketRegion, wizardOpen])
+  }, [marketRegion, batteryCategory, wizardOpen])
 
   // Fetch templates via React Query (cached, deduped)
   const { data: templatesData } = useTemplates(user?.tenant_id, "BATTERY");
@@ -260,8 +262,20 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         voltage: data.voltage,
         chemistry: data.chemistry,
         battery_category: data.batteryCategory || undefined,
+        lot_size: data.lotSize || undefined,
       },
     };
+
+    if (data.recycledContent.trim()) {
+      const recycled = parseFloat(data.recycledContent);
+      if (!Number.isNaN(recycled)) {
+        (payload.specs as Record<string, unknown>).recycled_content_pct = recycled;
+      }
+    }
+
+    if (data.carbonFootprintResult && Object.keys(data.carbonFootprintResult).length > 0) {
+      payload.carbon_footprint_result = data.carbonFootprintResult;
+    }
 
     if (data.marketRegion === "EU" || data.marketRegion === "GLOBAL") {
       (payload.specs as Record<string, unknown>).carbon_footprint = data.carbonFootprint;
@@ -541,6 +555,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
     // India fields
     if (specs.cell_source) updates.cellSource = specs.cell_source as "IMPORTED" | "DOMESTIC";
+    if (specs.lot_size) updates.lotSize = String(specs.lot_size);
     if (specs.hsn_code) updates.hsnCode = specs.hsn_code as string;
     if (specs.bis_number) updates.bisNumber = specs.bis_number as string;
     if (specs.epr_number) updates.eprNumber = specs.epr_number as string;
@@ -696,7 +711,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
   // Market-aware required fields per step
   const getRequiredFieldsForStep = useCallback((stepIdx: number, market: MarketRegion, source: CellSource, dvaSource: BatchFormData["dvaSource"]): (keyof BatchFormData)[] => {
     const base: (keyof BatchFormData)[][] = [
-      ["batchName", "modelName", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer", "chemistry", "capacity", "voltage"],
+      ["batchName", "modelName", "lotSize", "manufacturingStartDate", "manufacturingEndDate", "marketRegion", "manufacturer", "chemistry", "capacity", "voltage"],
       [], // Compliance step varies by market
       [], // Review step has no step-gating fields; templateName is validated by zod only when saveAsTemplate is checked
     ];
@@ -710,22 +725,9 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
     if (stepIdx === 1) {
       if (market === "INDIA") {
-        fields.push("hsnCode", "cellSource");
-        if (source === "IMPORTED") {
-          fields.push("billOfEntryNo", "cellCountryOfOrigin", "customsDate");
-        }
-        if (source === "DOMESTIC") {
-          if (dvaSource === "AUDITED") {
-            fields.push("auditedDva", "uploadedFileUrl");
-          } else {
-            fields.push(
-              "salePrice",
-              "cellCostImported", "cellCostDomestic",
-              "bmsCostImported", "bmsCostDomestic",
-              "casingCostImported", "casingCostDomestic",
-              "labourOverheadCost",
-            );
-          }
+        fields.push("cellSource");
+        if (source === "DOMESTIC" && dvaSource === "AUDITED") {
+          fields.push("auditedDva", "uploadedFileUrl");
         }
       }
     }
@@ -735,9 +737,6 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
 
   // Step navigation
   const canGoNext = async () => {
-    if (step === 1 && marketRegion === "INDIA" && cellSource === "IMPORTED" && iecError) {
-      return false;
-    }
     const fields = getRequiredFieldsForStep(step, marketRegion, cellSource, watch("dvaSource"));
     const valid = await trigger(fields);
     return valid;
@@ -1094,7 +1093,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button type="submit" disabled={isLoading || iecError || !isSubmitReady}>
+                    <Button type="submit" disabled={isLoading || !isSubmitReady}>
                       {isLoading ? t("wizard_creating") : t("wizard_create_batch")}
                     </Button>
                   )}

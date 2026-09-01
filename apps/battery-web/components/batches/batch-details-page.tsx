@@ -272,6 +272,7 @@ export default function BatchDetailsPage() {
                 chemistry={batch.specs?.chemistry}
                 morthCode={user?.morth_manufacturer_code}
                 isDraft={isDraft}
+                lotSize={batch.specs?.lot_size}
                 onPageChange={handlePageChange}
                 onUploadComplete={handleUploadComplete}
               />

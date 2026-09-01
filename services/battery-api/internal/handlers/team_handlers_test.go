@@ -324,6 +324,9 @@ func (f *fakeTeamRepo) CreatePassportsWithEvents(ctx context.Context, passports 
 func (f *fakeTeamRepo) GetPassport(ctx context.Context, id uuid.UUID) (*models.Passport, error) {
 	return nil, nil
 }
+func (f *fakeTeamRepo) GetPassportBySerialForTenant(ctx context.Context, tenantID uuid.UUID, serial string) (*models.Passport, error) {
+	return nil, nil
+}
 func (f *fakeTeamRepo) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*models.PassportWithSpecs, error) {
 	return nil, nil
 }

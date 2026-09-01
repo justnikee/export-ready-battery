@@ -229,9 +229,10 @@ type BatchSpec struct {
 	Weight            string `json:"weight"`                       // String for flexibility (e.g., "500g")
 	Recyclable        bool   `json:"recyclable"`                   // Is the battery recyclable?
 	CarbonFootprint   string `json:"carbon_footprint"`             // e.g., "10 kg CO2e"
-	CountryOfOrigin   string `json:"country_of_origin"`
-	MaterialProfile   string `json:"material_profile,omitempty"`
-	LotSize           string `json:"lot_size,omitempty"`
+	CountryOfOrigin     string `json:"country_of_origin"`                // pack manufacturing origin
+	CellCountryOfOrigin string `json:"cell_country_of_origin,omitempty"` // import cell origin (distinct from pack)
+	MaterialProfile     string `json:"material_profile,omitempty"`
+	LotSize             string `json:"lot_size,omitempty"`
 	ProductionStage   string `json:"production_stage,omitempty"`
 
 	// Financials (India PLI) stored in JSONB to avoid schema change
@@ -739,6 +740,17 @@ type Passport struct {
 	CircularityStatus string `json:"circularity_status,omitempty"`  // ORIGINAL, REPURPOSED, REUSED, REMANUFACTURED, WASTE
 }
 
+// FactoryGateSoH is the declared state of health for a newly issued pack
+// (no in-life BMS reading yet). Annex XIII SoH is dynamic; at manufacture this is 100.
+const FactoryGateSoH = 100.0
+
+// FactoryGateSoHFields returns the SoH pointer + timestamp to set on a new passport.
+func FactoryGateSoHFields(now time.Time) (soh *float64, updatedAt *time.Time) {
+	v := FactoryGateSoH
+	t := now
+	return &v, &t
+}
+
 // PassportStatus constants - lifecycle states
 const (
 	PassportStatusCreated        = "CREATED"        // Passport record created
@@ -987,7 +999,7 @@ var BatteryTransitionMap = map[TransitionAction]TransitionDefinition{
 
 // BatteryAllowedRolesByAction defines which roles can perform battery actions.
 var BatteryAllowedRolesByAction = map[TransitionAction][]ActorRole{
-	ActionActivate:      {ActorRoleSystem},
+	ActionActivate:      {ActorRoleSystem, ActorRoleAdmin, ActorRoleInternalOperator},
 	ActionShip:          {ActorRoleInternalOperator, ActorRoleLogistics, ActorRoleAdmin},
 	ActionInstall:       {ActorRoleTechnician},
 	ActionRecycle:       {ActorRoleRecycler},
@@ -1062,10 +1074,6 @@ func GetAllowedActions(currentStatus string, productType ProductType) []Transiti
 
 // GetAllowedActionsForRole returns the list of valid actions for a given
 // current status and actor role, filtered by product type.
-//
-// ACTIVATE is recorded as SYSTEM in the audit trail (handler elevation) but is
-// triggered by internal ADMIN / INTERNAL_OPERATOR users. Discovery endpoints
-// therefore surface ACTIVATE for those roles when the from-state allows it.
 func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType ProductType) []TransitionAction {
 	m, order := transitionMaps(productType)
 	rm := roleMaps(productType)
@@ -1095,12 +1103,6 @@ func GetAllowedActionsForRole(currentStatus string, role ActorRole, productType 
 				roleAllowed = true
 				break
 			}
-		}
-		// Internal writers may trigger ACTIVATE even though the event is
-		// attributed to SYSTEM (see LifecycleHandler.buildActorContext).
-		if !roleAllowed && action == ActionActivate &&
-			(role == ActorRoleAdmin || role == ActorRoleInternalOperator) {
-			roleAllowed = true
 		}
 		if roleAllowed {
 			allowed = append(allowed, action)
@@ -1336,6 +1338,9 @@ type CreateBatchRequest struct {
 	RemovableAndReplaceable     bool   `json:"removable_and_replaceable,omitempty"`
 	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
 	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
+
+	// Art. 7 calculator payload — persisted on INSERT so create does not race a follow-up POST.
+	CarbonFootprintResult json.RawMessage `json:"carbon_footprint_result,omitempty"`
 }
 
 // CreateBatchResponse is the response after creating a batch

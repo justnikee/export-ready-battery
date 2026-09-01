@@ -26,6 +26,7 @@ interface PassportsTabProps {
   chemistry?: string;
   morthCode?: string;
   isDraft: boolean;
+  lotSize?: string;
   onPageChange: (page: number) => void;
   onUploadComplete: () => void;
 }
@@ -39,6 +40,7 @@ export function PassportsTab({
   chemistry,
   morthCode,
   isDraft,
+  lotSize,
   onPageChange,
   onUploadComplete,
 }: PassportsTabProps) {
@@ -148,6 +150,7 @@ export function PassportsTab({
             chemistry={chemistry}
             morthCode={morthCode}
             isDraft={isDraft}
+            defaultQuantity={lotSize}
             onUploadComplete={() => {
               onUploadComplete();
               if (passportCount > 0) setShowTools(false);

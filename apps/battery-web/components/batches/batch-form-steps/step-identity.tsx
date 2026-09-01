@@ -46,6 +46,7 @@ const FIELD_LABELS: Record<string, string> = {
   certifications: "Certifications",
   materialComposition: "Material Composition",
   batchName: "Batch Name",
+  lotSize: "Lot size",
   marketRegion: "Market Region",
   batteryCategory: "Battery Category",
 };
@@ -369,6 +370,11 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
       } else {
         setValue("certifications", [], { shouldDirty: true });
       }
+    }
+    if (result.quantity && result.quantity > 0) {
+      setValue("lotSize", String(result.quantity), { shouldDirty: true });
+      populated.push("Lot size");
+      appliedKeys.push("lotSize");
     }
     if (result.battery_category) {
       setValue("batteryCategory", result.battery_category, { shouldDirty: true });
@@ -799,6 +805,22 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
         )}
       </div>
 
+      <div className="grid gap-2">
+        <Label htmlFor="lotSize">
+          How many packs in this lot? <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="lotSize"
+          inputMode="numeric"
+          {...register("lotSize")}
+          placeholder="e.g. 200"
+          className={errors.lotSize ? "border-red-500" : ""}
+        />
+        {errors.lotSize && (
+          <p className="text-xs text-red-500">{errors.lotSize.message}</p>
+        )}
+      </div>
+
       {/* Model Name */}
       <div className="grid gap-2">
         <Label htmlFor="modelName" className="flex items-center gap-1.5">
@@ -925,7 +947,7 @@ export function StepIdentity({ initialAiMode, aiFilledFields, onAiFill, settings
           maxLength={14}
         />
         <p className="text-[10px] text-muted-foreground">
-          Required for EU Battery Passport QR codes. Enables GS1 Digital Link format: /01/&#123;gtin&#125;/21/&#123;serial&#125;
+          Optional — only if you already have a GS1 GTIN. QR codes still use /p/&#123;uuid&#125; until Digital Link is enabled.
         </p>
       </div>
     </div>

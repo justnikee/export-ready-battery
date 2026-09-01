@@ -127,7 +127,7 @@ func TestGenerateQRCode_BackwardCompatible(t *testing.T) {
 	}
 }
 
-func TestBuildQRPayload_GS1DigitalLink_WithGTIN(t *testing.T) {
+func TestBuildQRPayload_GTINDoesNotChangePath(t *testing.T) {
 	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 	serial := "EU-TEN-LFP-2026-00042"
@@ -135,17 +135,12 @@ func TestBuildQRPayload_GS1DigitalLink_WithGTIN(t *testing.T) {
 
 	url := svc.BuildQRPayload(id, serial, ctx)
 
-	expectedBase := "https://app.anvayalabs.in/01/12345678901234/21/EU-TEN-LFP-2026-00042"
-	if !strings.HasPrefix(url, expectedBase) {
-		t.Errorf("GS1 Digital Link URL must start with base path\ngot:  %s\nwant prefix: %s", url, expectedBase)
+	if strings.Contains(url, "/01/") {
+		t.Errorf("GTIN must not switch QR to /01/ until a resolver exists, got %s", url)
 	}
-
-	// Must NOT contain legacy /p/{uuid} format
-	if strings.Contains(url, "/p/77777777-7777-7777-7777-777777777777") {
-		t.Error("GS1 Digital Link URL should not contain legacy /p/{uuid} format")
+	if !strings.Contains(url, "/p/77777777-7777-7777-7777-777777777777") {
+		t.Errorf("QR must stay on /p/{uuid}, got %s", url)
 	}
-
-	// Must contain decoded BPAN params
 	for _, param := range []string{"bpan=EU-TEN-LFP-2026-00042", "chem=LFP", "yr=2026", "mfr=TEN", "rgn=EU"} {
 		if !strings.Contains(url, param) {
 			t.Errorf("URL missing expected param %q\ngot: %s", param, url)
@@ -153,16 +148,16 @@ func TestBuildQRPayload_GS1DigitalLink_WithGTIN(t *testing.T) {
 	}
 }
 
-func TestBuildQRPayload_GS1DigitalLink_LegacySerial(t *testing.T) {
+func TestBuildQRPayload_GTINLegacySerialStaysOnPassportPath(t *testing.T) {
 	svc := NewQRService("https://app.anvayalabs.in")
 	id := uuid.MustParse("88888888-8888-8888-8888-888888888888")
 	ctx := &QRLabelContext{GTIN: "12345678901234"}
 
 	url := svc.BuildQRPayload(id, "LEGACY-SERIAL-456", ctx)
 
-	expected := "https://app.anvayalabs.in/01/12345678901234/21/LEGACY-SERIAL-456"
+	expected := "https://app.anvayalabs.in/p/88888888-8888-8888-8888-888888888888"
 	if url != expected {
-		t.Errorf("GS1 Digital Link with legacy serial should produce plain URL\ngot:  %s\nwant: %s", url, expected)
+		t.Errorf("GTIN with legacy serial must still use /p/{uuid}\ngot:  %s\nwant: %s", url, expected)
 	}
 }
 

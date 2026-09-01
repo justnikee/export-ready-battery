@@ -33,10 +33,6 @@ const supplierCookieName = "supplier_token"
 func setSupplierCookie(w http.ResponseWriter, token string, expiry time.Duration) {
 	maxAge := int(expiry.Seconds())
 	secure := os.Getenv("APP_ENV") == "production"
-	sameSite := http.SameSiteStrictMode
-	if !secure {
-		sameSite = http.SameSiteLaxMode
-	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     supplierCookieName,
 		Value:    token,
@@ -44,7 +40,7 @@ func setSupplierCookie(w http.ResponseWriter, token string, expiry time.Duration
 		MaxAge:   maxAge,
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: sameSite,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 

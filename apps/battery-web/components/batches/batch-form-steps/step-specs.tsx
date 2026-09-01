@@ -122,12 +122,13 @@ export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsPro
         </Select>
       </div>
 
-      {/* Battery Category (EU/GLOBAL) */}
-      {(isEUMode || marketRegion === "GLOBAL") && (
-        <div className="grid gap-2">
+      {/* Battery Category — required for EU; used in India to apply AIS only to EV/LMT */}
+      <div className="grid gap-2">
           <Label htmlFor="batteryCategory">
-            Battery Category <span className="text-red-500">*</span>
-            <span className="text-xs text-muted-foreground ml-1">(EU Reg. Art 2)</span>
+            Battery Category {isEUMode || marketRegion === "GLOBAL" ? <span className="text-red-500">*</span> : null}
+            <span className="text-xs text-muted-foreground ml-1">
+              {isEUMode || marketRegion === "GLOBAL" ? "(EU Reg. Art 2)" : "(AIS type-approval applies to EV/LMT)"}
+            </span>
           </Label>
           <Select
             value={watch("batteryCategory")}
@@ -148,7 +149,6 @@ export function StepSpecs({ aiFilledFields, settingsFilledFields }: StepSpecsPro
             <p className="text-xs text-red-500">{errors.batteryCategory.message}</p>
           )}
         </div>
-      )}
 
       {/* Capacity & Voltage */}
       <div className="grid grid-cols-2 gap-4">

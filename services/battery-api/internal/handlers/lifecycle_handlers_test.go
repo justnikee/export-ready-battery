@@ -468,6 +468,65 @@ func TestTransitionPassport_ActionSkipState(t *testing.T) {
 	}
 }
 
+func TestTransitionPassport_ActivateRecordsUserNotSystem(t *testing.T) {
+	repo := newFakeLifecycleRepo()
+	passportID := uuid.New()
+	batchID := uuid.New()
+	repo.batchTenants[batchID] = repo.defaultTenantID
+	repo.passports[passportID] = &models.Passport{
+		UUID:      passportID,
+		BatchID:   batchID,
+		Status:    models.PassportStatusCreated,
+		CreatedAt: time.Now(),
+	}
+	handler := NewLifecycleHandler(services.NewLifecycleService(repo), &fakeRoleResolver{role: "OWNER"})
+
+	body := `{"action":"ACTIVATE","reason_code":"DISPATCH_QC_PASS"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "owner@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.TransitionPassport(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	events := repo.events[passportID]
+	if len(events) == 0 {
+		t.Fatal("expected an ACTIVATE audit event")
+	}
+	ev := events[len(events)-1]
+	if ev.ActorID != "owner@example.com" {
+		t.Errorf("actor_identifier=%q want owner@example.com", ev.ActorID)
+	}
+	if ev.Actor != "owner@example.com" {
+		t.Errorf("actor=%q want owner@example.com", ev.Actor)
+	}
+	if ev.ActorRole != models.ActorRoleAdmin {
+		t.Errorf("actor_role=%q want ADMIN", ev.ActorRole)
+	}
+	if ev.ActorType != string(models.ActorTypeUser) {
+		t.Errorf("actor_type=%q want USER", ev.ActorType)
+	}
+}
+
+func TestTransitionPassport_ActivateViewerForbidden(t *testing.T) {
+	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusCreated, "VIEWER")
+
+	body := `{"action":"ACTIVATE","reason_code":"DISPATCH_QC_PASS"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/passports/"+passportID.String()+"/transition", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(contextWithAuthAndEmail("11111111-1111-1111-1111-111111111111", "viewer@example.com"))
+	rr := httptest.NewRecorder()
+
+	handler.TransitionPassport(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestTransitionPassport_ValidAction(t *testing.T) {
 	handler, passportID := newLifecycleHandlerWithStatus(models.PassportStatusActive, "MEMBER")
 

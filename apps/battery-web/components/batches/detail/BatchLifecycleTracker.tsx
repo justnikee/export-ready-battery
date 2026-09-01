@@ -63,7 +63,10 @@ export function BatchLifecycleTracker({
   } else if (isDraft && !complianceReady) {
     nextStep = `Next: clear ${activationBlockerCount} activation requirement${activationBlockerCount > 1 ? "s" : ""} below.`;
   } else if (isDraft && complianceReady) {
-    nextStep = "Next: activate this batch (uses 1 activation credit) to unlock passports & exports.";
+    nextStep =
+      passportCount > 0
+        ? `Next: activate this batch (uses ${passportCount} activation credit${passportCount === 1 ? "" : "s"} — 1 per passport).`
+        : "Next: activate this batch. Credits are 1 per passport (generate serials first, or activate empty and generate after).";
   } else if (isActive && passportCount === 0) {
     nextStep = "Next: add passports / serial numbers from the Passports tab.";
   } else {

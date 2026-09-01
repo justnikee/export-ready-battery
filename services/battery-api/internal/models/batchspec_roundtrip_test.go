@@ -23,7 +23,8 @@ func TestBatchSpec_JSONRoundTrip(t *testing.T) {
 		Weight:                  "25kg",
 		Recyclable:              true,
 		CarbonFootprint:         "45 kg CO2e",
-		CountryOfOrigin:         "CN",
+		CountryOfOrigin:         "IN",
+		CellCountryOfOrigin:     "CN",
 		MaterialProfile:         "High-nickel NMC",
 		LotSize:                 "1000",
 		ProductionStage:         "Cell Assembly",
@@ -105,6 +106,7 @@ func TestBatchSpec_JSONRoundTrip(t *testing.T) {
 	assertEq(t, "Recyclable", original.Recyclable, roundTripped.Recyclable)
 	assertEq(t, "CarbonFootprint", original.CarbonFootprint, roundTripped.CarbonFootprint)
 	assertEq(t, "CountryOfOrigin", original.CountryOfOrigin, roundTripped.CountryOfOrigin)
+	assertEq(t, "CellCountryOfOrigin", original.CellCountryOfOrigin, roundTripped.CellCountryOfOrigin)
 	assertEq(t, "MaterialProfile", original.MaterialProfile, roundTripped.MaterialProfile)
 	assertEq(t, "LotSize", original.LotSize, roundTripped.LotSize)
 	assertEq(t, "ProductionStage", original.ProductionStage, roundTripped.ProductionStage)

@@ -38,6 +38,8 @@ type CreateBatchRequest struct {
 
 	// GS1 Digital Link GTIN for EU Battery Passport QR code compliance
 	GTIN string
+
+	CarbonFootprintResult json.RawMessage
 }
 
 // CreateBatch creates a new batch with dual-mode support
@@ -85,6 +87,12 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		return nil, fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
+	var carbonJSON interface{}
+	if len(req.CarbonFootprintResult) > 0 {
+		carbonJSON = string(req.CarbonFootprintResult)
+		batch.CarbonFootprintResult = req.CarbonFootprintResult
+	}
+
 	query := `INSERT INTO public.batches
 		(id, tenant_id, batch_name, model_name, specs, created_at, status, market_region, pli_compliant, domestic_value_add,
 		 manufacturing_start_date, manufacturing_end_date,
@@ -107,7 +115,7 @@ func (r *Repository) CreateBatch(ctx context.Context, req CreateBatchRequest) (*
 		batch.DomesticValueAdd,
 		req.ManufacturingStartDate,
 		req.ManufacturingEndDate,
-		nil, // carbon_footprint_result — populated later via POST /api/v1/carbon/calculate
+		carbonJSON,
 		string(productType),
 		batch.SchemaVersion,
 		batch.CEMarking,

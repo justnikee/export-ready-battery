@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RequestMagicLinkModal } from "@/components/passport/request-magic-link-modal";
+import { ManualSoHEntry } from "@/components/passport/manual-soh-entry";
 import { BatchCombobox } from "@/components/batches/batch-combobox";
 import {
   ArrowRight,
@@ -41,6 +42,7 @@ import {
   Key,
   X,
   Download,
+  Activity,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardPathFromPathname } from "@/lib/routes";
@@ -278,6 +280,8 @@ export default function LifecyclePage() {
   const [undoTarget, setUndoTarget] = useState<PassportSummary | null>(null);
   const [undoNote, setUndoNote] = useState("");
   const [undoing, setUndoing] = useState(false);
+
+  const [sohTarget, setSohTarget] = useState<PassportSummary | null>(null);
 
   const [maintenanceAction, setMaintenanceAction] = useState<{
     passport: PassportSummary;
@@ -1168,6 +1172,13 @@ export default function LifecyclePage() {
                                   Send magic link
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  onSelect={() => setSohTarget(p)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Activity className="h-3.5 w-3.5" />
+                                  Update SoH
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   onSelect={() => handleExportEPCIS(p.uuid)}
                                   className="flex items-center gap-2"
                                 >
@@ -1795,6 +1806,35 @@ export default function LifecyclePage() {
               Confirm
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!sohTarget}
+        onOpenChange={(open) => {
+          if (!open) setSohTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Update state of health
+              {sohTarget
+                ? `: ${sohTarget.serial_number || sohTarget.uuid.slice(0, 12)}`
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {sohTarget && (
+            <ManualSoHEntry
+              passportUuid={sohTarget.uuid}
+              currentSoH={sohTarget.state_of_health}
+              onCancel={() => setSohTarget(null)}
+              onUpdated={() => {
+                setSohTarget(null);
+                void fetchPassports();
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

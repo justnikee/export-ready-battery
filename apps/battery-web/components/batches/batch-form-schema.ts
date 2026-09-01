@@ -66,6 +66,7 @@ export const batchFormSchema = z
     // Step 1: Identity
     batchName: z.string().min(1, "Batch name is required"),
     modelName: z.string().min(1, "Model name is required"),
+    lotSize: z.string().min(1, "Lot size is required"),
     manufacturingStartDate: z.string().min(1, "Start date is required"),
     manufacturingEndDate: z.string().min(1, "End date is required"),
     marketRegion: z.enum(["INDIA", "EU", "GLOBAL"]),
@@ -290,68 +291,27 @@ export const batchFormSchema = z
       });
     }
 
-    // India: HSN code required, exactly 8 digits, and must start with 8507
-    // (mirrors Go's ValidateHSNCode / HSNBatteryRegex — services/battery-api/internal/services/validation.go)
-    if (data.marketRegion === "INDIA") {
-      const normalizedHsn = data.hsnCode.trim().replace(/[. ]/g, "");
-      if (!normalizedHsn) {
+    // Lot size: 1–10000 packs
+    {
+      const n = parseInt(data.lotSize, 10);
+      if (!/^[1-9]\d*$/.test(data.lotSize.trim()) || Number.isNaN(n) || n > 10000) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "HSN Code is required for India",
-          path: ["hsnCode"],
+          message: "Lot size must be a whole number between 1 and 10,000",
+          path: ["lotSize"],
         });
-      } else if (!/^8507[0-9]{4}$/.test(normalizedHsn)) {
+      }
+    }
+
+    // India: HSN format only when provided (activation warns if still empty)
+    if (data.marketRegion === "INDIA") {
+      const normalizedHsn = data.hsnCode.trim().replace(/[. ]/g, "");
+      if (normalizedHsn && !/^8507[0-9]{4}$/.test(normalizedHsn)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'HSN Code must be exactly 8 digits starting with "8507" (e.g., 85076000)',
           path: ["hsnCode"],
         });
-      }
-    }
-
-    // India imported: bill of entry, country, customs date required
-    if (data.marketRegion === "INDIA" && data.cellSource === "IMPORTED") {
-      if (!data.billOfEntryNo.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Bill of Entry No. is required for imported cells",
-          path: ["billOfEntryNo"],
-        });
-      }
-      if (!data.cellCountryOfOrigin.trim() || data.cellCountryOfOrigin.length < 2) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Cell country of origin required (2-letter ISO code)",
-          path: ["cellCountryOfOrigin"],
-        });
-      }
-      if (!data.customsDate) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Import date is required for imported cells",
-          path: ["customsDate"],
-        });
-      }
-    }
-
-    // India domestic, estimator mode: DVA must be > 0 if salePrice is provided.
-    // (Audited mode supplies auditedDva directly — validated separately below
-    // — so these breakdown-based checks only apply to the estimator.)
-    if (
-      data.marketRegion === "INDIA" &&
-      data.cellSource === "DOMESTIC" &&
-      data.dvaSource === "ESTIMATED"
-    ) {
-      const salePrice = parseFloat(data.salePrice) || 0;
-      if (salePrice > 0) {
-        const dva = calculateEstimatedDVA(data);
-        if (dva <= 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Domestic batches must have Domestic Value Add > 0%. Please check the cost breakdown.",
-            path: ["salePrice"],
-          });
-        }
       }
     }
 
@@ -436,6 +396,7 @@ export type BatchFormData = z.infer<typeof batchFormSchema>;
 export const defaultBatchFormValues: BatchFormData = {
   batchName: "",
   modelName: "",
+  lotSize: "",
   manufacturingStartDate: "",
   manufacturingEndDate: "",
   marketRegion: "INDIA",

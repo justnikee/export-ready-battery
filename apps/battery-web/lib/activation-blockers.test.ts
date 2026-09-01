@@ -114,6 +114,53 @@ describe("getActivationBlockers", () => {
     expect(blocking).toContain("specs.battery_category");
   });
 
+  it("requires AIS only for EV/LMT traction, not industrial", () => {
+    const industrial = getActivationBlockers(
+      indiaBatch({ specs: { chemistry: "LFP", capacity: "2500mAh", cell_source: "DOMESTIC", battery_category: "INDUSTRIAL", certifications: [] } }),
+      fullTenant,
+    );
+    expect(industrial.blocking).not.toContain("specs.certifications: AIS-156");
+    expect(industrial.blocking).not.toContain("specs.certifications: AIS-038");
+
+    const lmt = getActivationBlockers(
+      indiaBatch({
+        specs: {
+          chemistry: "LFP",
+          capacity: "2500mAh",
+          cell_source: "DOMESTIC",
+          battery_category: "LMT",
+          certifications: [],
+          bis_certificate_issue_date: "2026-01-01",
+          un38_3_test_date: "2026-01-01",
+          iec_62133_test_date: "2026-01-01",
+          msds_issue_date: "2026-01-01",
+        },
+      }),
+      fullTenant,
+    );
+    expect(lmt.blocking).toContain("specs.certifications: AIS-156");
+    expect(lmt.blocking).toContain("specs.certifications: AIS-038");
+  });
+
+  it("does not block EU activation when recycled content is undeclared", () => {
+    const { blocking, warnings } = getActivationBlockers(
+      euBatch({
+        specs: {
+          chemistry: "NMC",
+          capacity: "180Wh",
+          battery_category: "LMT",
+          material_composition: { nickel: "30", recycled_nickel: "0" },
+          hazardous_substances: { declaration: "none present" },
+          expected_lifetime_cycles: 2000,
+          warranty_months: 24,
+        },
+      }),
+      fullTenant,
+    );
+    expect(blocking).toEqual([]);
+    expect(warnings.some((w) => w.includes("2031"))).toBe(true);
+  });
+
   it("does not accept free-text carbon_footprint as Art. 7 compliance", () => {
     const { blocking } = getActivationBlockers(
       euBatch({

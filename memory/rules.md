@@ -9,6 +9,7 @@ Agents **must** follow these. Prefer updating this file when a new invariant is 
 - All passport **status** changes go through `LifecycleService` (`services/battery-api/internal/services/lifecycle.go`). No direct SQL status writes.
 - Actor role + evidence/reason required for discretionary transitions.
 - Every transition produces an immutable `PassportEvent` (hash chain). Bulk raw status update / passport delete endpoints stay **disabled** (compliance lock).
+- New passports (auto-generate, CSV, external API) set factory-gate SoH to 100% via `models.FactoryGateSoHFields`. In-life updates go through `LifecycleService.UpdateStateOfHealth` or telemetry ingest — both must append `soh_history`.
 
 ---
 
@@ -64,6 +65,7 @@ Missing mock → handler tests break.
 | Batch market filter | Prefer `GET /batches?market_region=EU,GLOBAL` (server SQL). Do not fetch all markets then filter in the browser (ADR 026 / P-07). |
 | Dashboard first paint | Prefer `GET /dashboard/bootstrap` over parallel stats+chart+recent (ADR 027 / P-08). Keep fine-grained endpoints for other pages. |
 | API rate limits | JWT routes: tenant limiter in `Auth.Protect` (~300/min). All `/api/*`: global IP via `LimitAPIPaths` (~600/min). Auth/AI stay stricter (ADR 023 / P-04). |
+| Quota mint | Passport credits come from Razorpay verify + webhook only. Never reintroduce `POST /billing/top-up` (or any free `AddQuota` from tenant JWT). Refunds of a failed charge may credit back. (ADR 029) |
 
 `JWT_SECRET` must match across platform-core, battery-api, and each app `proxy.ts`.
 
