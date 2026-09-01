@@ -46,8 +46,8 @@ export function buildContentSecurityPolicy(opts: CspBuildOptions): string {
   ].join(" ");
 
   const connectSrc = isDev
-    ? `'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co ws://localhost:*`
-    : `'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co`;
+    ? `'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com ws://localhost:*`
+    : `'self' ${apiOrigin} https://cdn.jsdelivr.net https://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com`;
 
   const directives = [
     `default-src 'self'`,

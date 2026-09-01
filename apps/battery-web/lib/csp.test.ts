@@ -22,6 +22,8 @@ describe("CSP S-15", () => {
     expect(csp).toContain("'nonce-testnonce123'");
     expect(csp).toContain("'strict-dynamic'");
     expect(csp).toContain("https://checkout.razorpay.com");
+    expect(csp).toContain("https://lumberjack.razorpay.com");
+    expect(csp).toContain("https://api.razorpay.com");
     expect(cspAllowsUnsafeInlineScripts(csp)).toBe(false);
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("upgrade-insecure-requests");

@@ -69,6 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkAuth = async () => {
+    // Login/register don't have a session yet — skip the refresh probe so a
+    // logged-out visit doesn't look like a 401 failure in the network tab.
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (
+        path === "/login" ||
+        path === "/register" ||
+        path === "/forgot-password" ||
+        path === "/reset-password"
+      ) {
+        setLoading(false);
+        return;
+      }
+    }
+
     // The access token lives in memory only, so on every fresh page load we
     // exchange the HttpOnly refresh_token cookie for a new one.
     const token = await refreshAccessToken();

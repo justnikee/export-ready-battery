@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,22 +22,84 @@ import (
 
 // OAuthHandler handles OAuth authentication endpoints
 type OAuthHandler struct {
-	db           *db.DB
-	repo         *repository.Repository
-	authService  *services.AuthService
-	oauthService *services.OAuthService
-	frontendURL  string
+	db             *db.DB
+	repo           *repository.Repository
+	authService    *services.AuthService
+	oauthService   *services.OAuthService
+	frontendURL    string
+	allowedOrigins []string
 }
 
 // NewOAuthHandler creates a new OAuth handler
-func NewOAuthHandler(database *db.DB, repo *repository.Repository, authService *services.AuthService, oauthService *services.OAuthService, frontendURL string) *OAuthHandler {
+func NewOAuthHandler(database *db.DB, repo *repository.Repository, authService *services.AuthService, oauthService *services.OAuthService, frontendURL string, allowedOrigins ...string) *OAuthHandler {
 	return &OAuthHandler{
-		db:           database,
-		repo:         repo,
-		authService:  authService,
-		oauthService: oauthService,
-		frontendURL:  frontendURL,
+		db:             database,
+		repo:           repo,
+		authService:    authService,
+		oauthService:   oauthService,
+		frontendURL:    frontendURL,
+		allowedOrigins: allowedOrigins,
 	}
+}
+
+func firstForwarded(v string) string {
+	if i := strings.Index(v, ","); i >= 0 {
+		v = v[:i]
+	}
+	return strings.TrimSpace(v)
+}
+
+// resolveOAuthPublicBase is the browser origin that set oauth_state (Vercel
+// rewrite → X-Forwarded-Host). Callback and token exchange must use the same
+// host or Google login stores cookies on the API host and refresh fails.
+func resolveOAuthPublicBase(r *http.Request, frontendURL string, allowedOrigins []string) string {
+	allowed := make(map[string]struct{}, len(allowedOrigins)+1)
+	for _, o := range allowedOrigins {
+		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
+			allowed[strings.ToLower(o)] = struct{}{}
+		}
+	}
+	if frontendURL != "" {
+		allowed[strings.ToLower(strings.TrimRight(frontendURL, "/"))] = struct{}{}
+	}
+
+	try := func(origin string) string {
+		origin = strings.TrimRight(strings.TrimSpace(origin), "/")
+		if origin == "" {
+			return ""
+		}
+		if _, ok := allowed[strings.ToLower(origin)]; ok {
+			return origin
+		}
+		return ""
+	}
+
+	if host := firstForwarded(r.Header.Get("X-Forwarded-Host")); host != "" {
+		proto := firstForwarded(r.Header.Get("X-Forwarded-Proto"))
+		if proto == "" {
+			proto = "https"
+		}
+		if base := try(proto + "://" + host); base != "" {
+			return base
+		}
+	}
+	return strings.TrimRight(frontendURL, "/")
+}
+
+func oauthOriginAllowed(origin, frontendURL string, allowedOrigins []string) bool {
+	origin = strings.TrimRight(strings.TrimSpace(origin), "/")
+	if origin == "" {
+		return false
+	}
+	if strings.EqualFold(origin, strings.TrimRight(frontendURL, "/")) {
+		return true
+	}
+	for _, o := range allowedOrigins {
+		if strings.EqualFold(origin, strings.TrimRight(strings.TrimSpace(o), "/")) {
+			return true
+		}
+	}
+	return false
 }
 
 // generateState generates a random state token for CSRF protection
@@ -85,6 +148,14 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	publicBase := resolveOAuthPublicBase(r, h.frontendURL, h.allowedOrigins)
+	h.setOAuthStartCookies(w, state, string(productType), publicBase)
+
+	authURL := h.oauthService.GetGoogleAuthURL(state, publicBase)
+	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+}
+
+func (h *OAuthHandler) setOAuthStartCookies(w http.ResponseWriter, state, productType, publicBase string) {
 	// Store state in a short-lived cookie (5 minutes).
 	// Secure must be true in production (HTTPS) — without it the browser
 	// will NOT send the cookie back on the callback, causing a state mismatch.
@@ -100,7 +171,7 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_product_type",
-		Value:    string(productType),
+		Value:    productType,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
@@ -108,8 +179,17 @@ func (h *OAuthHandler) GoogleRedirect(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	authURL := h.oauthService.GetGoogleAuthURL(state)
-	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+	if publicBase != "" {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "oauth_public_base",
+			Value:    publicBase,
+			Path:     "/",
+			MaxAge:   300,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
 }
 
 // GoogleCallback handles GET /api/v1/auth/google/callback
@@ -137,30 +217,10 @@ func (h *OAuthHandler) MicrosoftRedirect(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Store state in a short-lived cookie (5 minutes).
-	// Secure must be true in production (HTTPS) — without it the browser
-	// will NOT send the cookie back on the callback, causing a state mismatch.
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauth_state",
-		Value:    state,
-		Path:     "/",
-		MaxAge:   300,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
+	publicBase := resolveOAuthPublicBase(r, h.frontendURL, h.allowedOrigins)
+	h.setOAuthStartCookies(w, state, string(productType), publicBase)
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauth_product_type",
-		Value:    string(productType),
-		Path:     "/",
-		MaxAge:   300,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	})
-
-	authURL := h.oauthService.GetMicrosoftAuthURL(state)
+	authURL := h.oauthService.GetMicrosoftAuthURL(state, publicBase)
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
@@ -211,6 +271,13 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		MaxAge:   -1,
 		HttpOnly: true,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_public_base",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 
 	// Exchange code for profile
 	code := r.URL.Query().Get("code")
@@ -219,12 +286,19 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	publicBase := resolveOAuthPublicBase(r, h.frontendURL, h.allowedOrigins)
+	if c, cErr := r.Cookie("oauth_public_base"); cErr == nil {
+		if candidate := strings.TrimRight(c.Value, "/"); oauthOriginAllowed(candidate, h.frontendURL, h.allowedOrigins) {
+			publicBase = candidate
+		}
+	}
+
 	var profile *services.OAuthProfile
 	switch provider {
 	case "google":
-		profile, err = h.oauthService.ExchangeGoogleCode(r.Context(), code)
+		profile, err = h.oauthService.ExchangeGoogleCode(r.Context(), code, publicBase)
 	case "microsoft":
-		profile, err = h.oauthService.ExchangeMicrosoftCode(r.Context(), code)
+		profile, err = h.oauthService.ExchangeMicrosoftCode(r.Context(), code, publicBase)
 	default:
 		h.redirectWithError(w, r, "Unknown OAuth provider")
 		return

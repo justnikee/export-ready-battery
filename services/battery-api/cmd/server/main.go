@@ -160,7 +160,7 @@ func main() {
 		cfg.MicrosoftClientID, cfg.MicrosoftClientSecret,
 		oauthPublicBase,
 	)
-	oauthHandler := handlers.NewOAuthHandler(database, repo, authService, oauthService, cfg.FrontendURL)
+	oauthHandler := handlers.NewOAuthHandler(database, repo, authService, oauthService, cfg.FrontendURL, cfg.CORSOrigins...)
 
 	// Rate limiters (P-04):
 	// - auth: strict (login/register)

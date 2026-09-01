@@ -71,35 +71,67 @@ func (s *OAuthService) MicrosoftEnabled() bool {
 	return s.microsoftEnabled
 }
 
-// GetGoogleAuthURL returns the Google OAuth consent URL
-func (s *OAuthService) GetGoogleAuthURL(state string) string {
+func trimBase(publicBase string) string {
+	return strings.TrimRight(publicBase, "/")
+}
+
+func (s *OAuthService) googleCfg(publicBase string) *oauth2.Config {
+	cfg := *s.googleConfig
+	if b := trimBase(publicBase); b != "" {
+		cfg.RedirectURL = b + "/api/v1/auth/google/callback"
+	}
+	return &cfg
+}
+
+func (s *OAuthService) microsoftCfg(publicBase string) *oauth2.Config {
+	cfg := *s.microsoftConfig
+	if b := trimBase(publicBase); b != "" {
+		cfg.RedirectURL = b + "/api/v1/auth/microsoft/callback"
+	}
+	return &cfg
+}
+
+// GoogleCallbackURL is the redirect_uri registered with Google for this public base.
+func (s *OAuthService) GoogleCallbackURL(publicBase string) string {
 	if !s.googleEnabled {
 		return ""
 	}
-	return s.googleConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	return s.googleCfg(publicBase).RedirectURL
+}
+
+// GetGoogleAuthURL returns the Google OAuth consent URL.
+// publicBase is the browser-facing origin (e.g. the Vercel app); the
+// redirect_uri is {publicBase}/api/v1/auth/google/callback.
+func (s *OAuthService) GetGoogleAuthURL(state, publicBase string) string {
+	if !s.googleEnabled {
+		return ""
+	}
+	return s.googleCfg(publicBase).AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
 // GetMicrosoftAuthURL returns the Microsoft OAuth consent URL
-func (s *OAuthService) GetMicrosoftAuthURL(state string) string {
+func (s *OAuthService) GetMicrosoftAuthURL(state, publicBase string) string {
 	if !s.microsoftEnabled {
 		return ""
 	}
-	return s.microsoftConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	return s.microsoftCfg(publicBase).AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
-// ExchangeGoogleCode exchanges a Google auth code for a user profile
-func (s *OAuthService) ExchangeGoogleCode(ctx context.Context, code string) (*OAuthProfile, error) {
+// ExchangeGoogleCode exchanges a Google auth code for a user profile.
+// publicBase must match the origin used in GetGoogleAuthURL (same redirect_uri).
+func (s *OAuthService) ExchangeGoogleCode(ctx context.Context, code, publicBase string) (*OAuthProfile, error) {
 	if !s.googleEnabled {
 		return nil, fmt.Errorf("Google OAuth not configured")
 	}
 
-	token, err := s.googleConfig.Exchange(ctx, code)
+	cfg := s.googleCfg(publicBase)
+	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange Google code: %w", err)
 	}
 
 	// Fetch user info from Google
-	client := s.googleConfig.Client(ctx, token)
+	client := cfg.Client(ctx, token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Google user info: %w", err)
@@ -133,18 +165,19 @@ func (s *OAuthService) ExchangeGoogleCode(ctx context.Context, code string) (*OA
 }
 
 // ExchangeMicrosoftCode exchanges a Microsoft auth code for a user profile
-func (s *OAuthService) ExchangeMicrosoftCode(ctx context.Context, code string) (*OAuthProfile, error) {
+func (s *OAuthService) ExchangeMicrosoftCode(ctx context.Context, code, publicBase string) (*OAuthProfile, error) {
 	if !s.microsoftEnabled {
 		return nil, fmt.Errorf("Microsoft OAuth not configured")
 	}
 
-	token, err := s.microsoftConfig.Exchange(ctx, code)
+	cfg := s.microsoftCfg(publicBase)
+	token, err := cfg.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange Microsoft code: %w", err)
 	}
 
 	// Fetch user info from Microsoft Graph
-	client := s.microsoftConfig.Client(ctx, token)
+	client := cfg.Client(ctx, token)
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Microsoft user info: %w", err)
