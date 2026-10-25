@@ -406,6 +406,7 @@ export default function BillingPage() {
           try {
             const verifyResponse = await api.post<{
               success: boolean;
+              status?: string;
               quota_added?: number;
               seats_added?: number;
             }>("/billing/razorpay/verify", {
@@ -416,12 +417,12 @@ export default function BillingPage() {
             });
 
             if (verifyResponse.data.success) {
-              toast.success(
-                buildSuccessMessage(
-                  verifyResponse.data.quota_added || 0,
-                  verifyResponse.data.seats_added || 0,
-                ),
-              );
+              toast.success(verifyResponse.data.status === "already_processed"
+                ? "Payment already applied to your account"
+                : buildSuccessMessage(
+                    verifyResponse.data.quota_added || 0,
+                    verifyResponse.data.seats_added || 0,
+                  ));
               await refreshUser();
               // Dispatch event to update balance banner
               window.dispatchEvent(new Event("quota-updated"));
@@ -431,7 +432,7 @@ export default function BillingPage() {
               fetchPackages();
             }
           } catch {
-            toast.error("Payment verification failed. Please contact support.");
+            toast.error("Payment confirmation is pending. Refresh your balance shortly; contact support if it does not appear.");
           }
         },
         prefill: {
@@ -553,6 +554,20 @@ export default function BillingPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Your production quota, usage history, and license packages. Quota is
             consumed per passport when you activate a batch.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-border bg-muted px-5 py-4 text-sm">
+          <p className="font-medium text-foreground">
+            {user?.plan_type ?? "Starter"} plan · {user?.plan_active === false ? "Expired" : "Active"}
+          </p>
+          {user?.subscription_expires_at && (
+            <p className="mt-1 text-muted-foreground">
+              Plan access {user.plan_active === false ? "ended" : "ends"} on {format(new Date(user.subscription_expires_at), "dd MMM yyyy")}.
+            </p>
+          )}
+          <p className="mt-1 text-muted-foreground">
+            Your {quota} remaining passport credits remain usable after the plan term ends. Renew to restore plan-only features.
           </p>
         </div>
 

@@ -4,7 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"regexp"
 
 	razorpay "github.com/razorpay/razorpay-go"
 )
@@ -191,6 +193,82 @@ func NewRazorpayService(keyID, keySecret string) *RazorpayService {
 		keyID:     keyID,
 		keySecret: keySecret,
 	}
+}
+
+// NewRazorpayServiceWithClient permits an injected provider client for sandbox
+// and local HTTP contract tests. Production uses NewRazorpayService.
+func NewRazorpayServiceWithClient(client *razorpay.Client, keyID, keySecret string) *RazorpayService {
+	return &RazorpayService{client: client, keyID: keyID, keySecret: keySecret}
+}
+
+type CapturedPurchase struct {
+	TenantID  string
+	PackageID string
+	Package   QuotaPackage
+}
+
+var razorpayOrderID = regexp.MustCompile(`^order_[A-Za-z0-9]+$`)
+var razorpayPaymentID = regexp.MustCompile(`^pay_[A-Za-z0-9]+$`)
+
+// LookupCapturedPurchase binds a payment to the provider's original order.
+// Browser fields and webhook payment notes are never authority for fulfillment.
+func (s *RazorpayService) LookupCapturedPurchase(orderID, paymentID string) (CapturedPurchase, error) {
+	if s == nil || s.client == nil || !razorpayOrderID.MatchString(orderID) || !razorpayPaymentID.MatchString(paymentID) {
+		return CapturedPurchase{}, fmt.Errorf("invalid payment identifiers")
+	}
+	payment, err := s.client.Payment.Fetch(paymentID, nil, nil)
+	if err != nil {
+		return CapturedPurchase{}, fmt.Errorf("fetch payment: %w", err)
+	}
+	order, err := s.client.Order.Fetch(orderID, nil, nil)
+	if err != nil {
+		return CapturedPurchase{}, fmt.Errorf("fetch order: %w", err)
+	}
+	return validateCapturedPurchase(orderID, paymentID, order, payment)
+}
+
+func providerAmount(value interface{}) (int64, bool) {
+	switch n := value.(type) {
+	case float64:
+		if n >= 0 && n == float64(int64(n)) {
+			return int64(n), true
+		}
+	case int:
+		if n >= 0 {
+			return int64(n), true
+		}
+	case int64:
+		if n >= 0 {
+			return n, true
+		}
+	case json.Number:
+		v, err := n.Int64()
+		return v, err == nil && v >= 0
+	}
+	return 0, false
+}
+
+func validateCapturedPurchase(orderID, paymentID string, order, payment map[string]interface{}) (CapturedPurchase, error) {
+	if order["id"] != orderID || payment["id"] != paymentID || payment["order_id"] != orderID || payment["status"] != "captured" {
+		return CapturedPurchase{}, fmt.Errorf("payment is not captured for this order")
+	}
+	notes, ok := order["notes"].(map[string]interface{})
+	if !ok {
+		return CapturedPurchase{}, fmt.Errorf("order has no purchase identity")
+	}
+	tenantID, _ := notes["tenant_id"].(string)
+	packageID, _ := notes["package_id"].(string)
+	pkg, exists := GetPackage(packageID)
+	if tenantID == "" || !exists {
+		return CapturedPurchase{}, fmt.Errorf("order purchase identity is invalid")
+	}
+	orderAmount, orderOK := providerAmount(order["amount"])
+	paidAmount, paymentOK := providerAmount(payment["amount"])
+	if !orderOK || !paymentOK || orderAmount != pkg.PricePaise || paidAmount != pkg.PricePaise ||
+		order["currency"] != "INR" || payment["currency"] != "INR" {
+		return CapturedPurchase{}, fmt.Errorf("payment amount or currency does not match purchase")
+	}
+	return CapturedPurchase{TenantID: tenantID, PackageID: packageID, Package: pkg}, nil
 }
 
 // CreateOrderRequest is the input for creating an order

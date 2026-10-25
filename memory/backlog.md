@@ -7,6 +7,19 @@ Source of truth for security/perf detail: [`docs/BATTERY_SECURITY_PERFORMANCE_AU
 
 ---
 
+## Billing and payment integrity — 2026-10-25
+
+| ID | Status | Priority | Result |
+|----|--------|----------|--------|
+| B-01 | done locally | P0 | Verify and webhook bind captured provider payment/order to tenant, SKU, amount, and currency. |
+| B-02 | done locally | P0 | One DB transaction grants credits/seats/plan and records unique payment ID. Concurrent duplicate and rollback tests pass. |
+| B-03 | done locally | P1 | Expiry no longer blocks core writes or renewal billing routes. |
+| B-04 | done locally | P1 | Credits survive plan term; billing UI shows term and balance separately. ADR 032. |
+
+Provider sandbox and logged-in UI verification remain before accepting production self-service payments.
+
+---
+
 ## Security (battery)
 
 | ID | Status | Title | Primary surfaces | Done when |

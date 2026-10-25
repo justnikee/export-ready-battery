@@ -221,17 +221,12 @@ func (h *Handler) checkIfOnboardingCompleted(w http.ResponseWriter, r *http.Requ
 		return false
 	}
 
-	if services.IsSubscriptionExpired(tenant.PlanStatus, tenant.SubscriptionExpiresAt) {
-		respondSubscriptionExpired(w)
-		return false
-	}
-
 	return true
 }
 
 // respondSubscriptionExpired writes the standard 402 for a lapsed subscription.
-// Shared by RequireOnboardingComplete (writes) and RequireFeature (Growth-feature
-// routes, including reads) so both gates return an identical error shape.
+// Used by RequireFeature for paid plan features. Purchased passport credits
+// remain usable after a plan term ends.
 func respondSubscriptionExpired(w http.ResponseWriter) {
 	respondJSON(w, http.StatusPaymentRequired, map[string]interface{}{
 		"error":       "subscription_expired",

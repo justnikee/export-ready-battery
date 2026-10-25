@@ -93,6 +93,7 @@ Multi-tenant SaaS for Indian **battery** manufacturers exporting to EU/global. I
 | [025](decisions/025-p06-upload-body-limits.md) | Unified HTTP body / multipart upload limits (P-06) |
 | [026](decisions/026-p07-market-region-filter.md) | Server-side batch market_region list filter (P-07) |
 | [027](decisions/027-p08-dashboard-bootstrap.md) | Dashboard bootstrap endpoint (P-08) |
+| [032](decisions/032-credits-plan-term-and-payment-fulfillment.md) | Credits, plan term and atomic payment fulfillment |
 
 ---
 

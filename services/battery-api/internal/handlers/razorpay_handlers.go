@@ -2,16 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/anvayalabs/battery-api/internal/middleware"
-	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
-
-	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -116,121 +111,45 @@ func (h *Handler) VerifyRazorpayPayment(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Get package details
-	pkg, exists := services.GetPackage(req.PackageID)
-	if !exists {
-		respondError(w, http.StatusBadRequest, "Invalid package")
+	// The signed callback identifies a payment, but does not authenticate the
+	// browser-supplied package or tenant. Fetch the captured payment and its
+	// original order from Razorpay before granting anything.
+	purchase, err := h.razorpayService.LookupCapturedPurchase(req.OrderID, req.PaymentID)
+	if err != nil {
+		slog.Warn("Unable to validate captured Razorpay purchase", "payment_id", req.PaymentID, "error", err)
+		respondError(w, http.StatusBadGateway, "Payment is not yet verifiable. Your payment will be reconciled automatically; contact support if it does not appear.")
 		return
 	}
-
-	// Get tenant ID
 	tenantIDStr := middleware.GetTenantID(r.Context())
-	if tenantIDStr == "" {
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
 		respondError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
-	tenantID, err := uuid.Parse(tenantIDStr)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid tenant ID")
+	if purchase.TenantID != tenantIDStr || purchase.PackageID != req.PackageID {
+		respondError(w, http.StatusForbidden, "Payment does not belong to this tenant or package")
 		return
 	}
-
-	// Idempotency check: a verify request that's already been processed for
-	// this Razorpay payment (e.g. retried after a network blip) must not
-	// credit quota a second time.
-	alreadyProcessed, err := h.repo.TransactionExistsForPayment(r.Context(), req.PaymentID)
+	grant, err := paymentGrantForPurchase(tenantID, req.PaymentID, purchase.Package)
 	if err != nil {
-		slog.Error("Failed to check existing transaction for payment", "error", err)
-		respondError(w, http.StatusInternalServerError, "Payment verification failed")
+		slog.Error("Invalid purchased package configuration", "package_id", purchase.PackageID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Payment package is unavailable")
 		return
 	}
-	if alreadyProcessed {
-		newBalance, _ := h.repo.GetQuotaBalance(r.Context(), tenantID)
-		slog.Info("Payment already processed", "tenant", tenantIDStr[:8], "payment_id", req.PaymentID)
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"status":        "already_processed",
-			"success":       true,
-			"message":       "Payment already verified",
-			"quota_added":   0,
-			"quota_balance": newBalance,
-		})
+	result, err := h.repo.ApplyPaymentGrant(r.Context(), grant)
+	if err != nil {
+		slog.Error("Failed to fulfill captured payment", "payment_id", req.PaymentID, "error", err)
+		respondError(w, http.StatusInternalServerError, "Payment received but fulfillment is pending. Please contact support if it does not appear.")
 		return
 	}
-
-	// What a purchase actually does depends on its Kind — add-ons are pure
-	// top-ups and must NEVER touch plan_type/subscription_expires_at (only
-	// PackageKindTier does). Getting this wrong would corrupt plan_type with
-	// an add-on's SKU id (e.g. "ADDON-PASSPORTS-500-STARTER").
-	var txDescription string
-	var quotaChange int
-	switch pkg.Kind {
-	case services.PackageKindSeatAddOn:
-		if err := h.repo.AddBonusSeats(r.Context(), tenantID, pkg.SeatBonus); err != nil {
-			slog.Error("Failed to add bonus seat", "error", err, "tenant_id", tenantID)
-			respondError(w, http.StatusInternalServerError, "Failed to update seat allowance")
-			return
-		}
-		txDescription = fmt.Sprintf("Razorpay Purchase: %s (+%d seat)", pkg.Name, pkg.SeatBonus)
-		quotaChange = 0
-
-	case services.PackageKindQuotaAddOn:
-		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
-			slog.Error("Failed to add quota", "error", err)
-			respondError(w, http.StatusInternalServerError, "Failed to update quota balance")
-			return
-		}
-		txDescription = fmt.Sprintf("Razorpay Purchase: %s (%d quota)", pkg.Name, pkg.QuotaUnits)
-		quotaChange = pkg.QuotaUnits
-
-	default: // PackageKindTier — also unlocks/renews the plan (monthly or annual)
-		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
-			slog.Error("Failed to add quota", "error", err)
-			respondError(w, http.StatusInternalServerError, "Failed to update quota balance")
-			return
-		}
-		planType := pkg.PlanType
-		if planType == "" {
-			planType = strings.ToUpper(pkg.ID) // fallback for any SKU that forgot to set PlanType
-		}
-		cycleDays := pkg.BillingCycleDays
-		if cycleDays == 0 {
-			cycleDays = 30
-		}
-		expiresAt := time.Now().AddDate(0, 0, cycleDays)
-		if err := h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE"); err != nil {
-			slog.Error("Failed to update tenant subscription details on purchase", "tenant_id", tenantID, "error", err)
-			// Non-critical, continue
-		}
-		txDescription = fmt.Sprintf("Razorpay Purchase: %s (%d quota)", pkg.Name, pkg.QuotaUnits)
-		quotaChange = pkg.QuotaUnits
+	status := "already_processed"
+	quotaAdded, seatsAdded := 0, 0
+	if result.Applied {
+		status = "success"
+		quotaAdded, seatsAdded = grant.QuotaUnits, grant.SeatBonus
 	}
-
-	// Log transaction. payment_id has a partial unique index, so a concurrent
-	// duplicate request will fail here as a backstop to the check above.
-	paymentID := req.PaymentID
-	tx := &models.Transaction{
-		TenantID:    tenantID,
-		Description: txDescription,
-		QuotaChange: quotaChange,
-		PaymentID:   &paymentID,
-	}
-	err = h.repo.CreateTransaction(r.Context(), tx)
-	if err != nil {
-		slog.Warn("Failed to log transaction", "error", err)
-		// Non-critical, continue
-	}
-
-	// Get new balance
-	newBalance, _ := h.repo.GetQuotaBalance(r.Context(), tenantID)
-
-	slog.Info("Payment verified", "tenant", tenantIDStr[:8], "package", pkg.Name, "kind", pkg.Kind)
-
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":        "success",
-		"success":       true,
-		"message":       "Payment verified successfully",
-		"quota_added":   pkg.QuotaUnits,
-		"seats_added":   pkg.SeatBonus,
-		"quota_balance": newBalance,
+		"status": status, "success": true, "quota_added": quotaAdded,
+		"seats_added": seatsAdded, "quota_balance": result.QuotaBalance,
 	})
 }

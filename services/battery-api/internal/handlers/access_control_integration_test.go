@@ -7,8 +7,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/anvayalabs/battery-api/internal/services"
 
 	"github.com/google/uuid"
+	razorpay "github.com/razorpay/razorpay-go"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -227,64 +230,19 @@ func TestActivateBatch_PassportMeteredQuota(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestRequireOnboardingComplete_ExpiredSubscription verifies the write-route
-// expiry gate. (Previously named TestRequireActiveSubscription_Expired, but it
-// never actually exercised RequireActiveSubscription — that middleware duplicated
-// this same check and was wired to zero routes, so it was deleted; this test
-// renamed to describe what it really covers.)
 func TestRequireOnboardingComplete_ExpiredSubscription(t *testing.T) {
-	mockRepo := new(repository.MockRepository)
-	handler := newTestHandler(mockRepo)
-
-	tenantID := uuid.New()
-
-	gatedHandler := handler.RequireOnboardingComplete(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Case 1: Tenant is expired -> should return 402 with subscription_expired
-	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(&models.Tenant{
-		ID:                  tenantID,
-		OnboardingCompleted: true,
-		PlanStatus:          "EXPIRED",
-	}, nil).Once()
-
-	req1 := httptest.NewRequest(http.MethodPost, "/api/v1/batches", nil)
-	req1 = setAuthContext(req1, tenantID, "user@example.com", models.ProductTypeBattery)
-	rr1 := httptest.NewRecorder()
-
-	gatedHandler.ServeHTTP(rr1, req1)
-
-	if rr1.Code != http.StatusPaymentRequired {
-		t.Errorf("expected 402 for expired subscription, got %d: %s", rr1.Code, rr1.Body.String())
+	repo := new(repository.MockRepository)
+	h := newTestHandler(repo)
+	id := uuid.New()
+	repo.On("GetTenant", mock.Anything, id).Return(&models.Tenant{ID: id, OnboardingCompleted: true, PlanStatus: "EXPIRED"}, nil).Once()
+	gate := h.RequireOnboardingComplete(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }))
+	req := setAuthContext(httptest.NewRequest(http.MethodPost, "/api/v1/batches", nil), id, "user@example.com", models.ProductTypeBattery)
+	rr := httptest.NewRecorder()
+	gate.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expired plan blocked purchased credits: %d %s", rr.Code, rr.Body.String())
 	}
-
-	var respBody map[string]interface{}
-	if err := json.Unmarshal(rr1.Body.Bytes(), &respBody); err != nil {
-		t.Fatalf("failed to parse response body: %v", err)
-	}
-	if respBody["error"] != "subscription_expired" {
-		t.Errorf("expected error field to be 'subscription_expired', got %v", respBody["error"])
-	}
-
-	// Case 2: Tenant is active -> should pass through (200 OK)
-	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(&models.Tenant{
-		ID:                  tenantID,
-		OnboardingCompleted: true,
-		PlanStatus:          "ACTIVE",
-	}, nil).Once()
-
-	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/batches", nil)
-	req2 = setAuthContext(req2, tenantID, "user@example.com", models.ProductTypeBattery)
-	rr2 := httptest.NewRecorder()
-
-	gatedHandler.ServeHTTP(rr2, req2)
-
-	if rr2.Code != http.StatusOK {
-		t.Errorf("expected 200 for active subscription, got %d", rr2.Code)
-	}
-
-	mockRepo.AssertExpectations(t)
+	repo.AssertExpectations(t)
 }
 
 // signRazorpayPayload computes the same HMAC-SHA256(order_id + "|" + payment_id)
@@ -295,129 +253,79 @@ func signRazorpayPayload(orderID, paymentID, keySecret string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// TestVerifyRazorpayPayment_AddOnDoesNotChangePlan guards the exact bug this
-// add-on feature could reintroduce: buying a pure quota/seat top-up must never
-// call UpdateTenantSubscription (that would stamp plan_type with the add-on's
-// SKU id, e.g. "ADDON-PASSPORTS-500-STARTER", corrupting the tenant's plan).
-// Not calling `mockRepo.On("UpdateTenantSubscription", ...)` means testify will
-// panic the test if the handler calls it anyway — that's the regression guard.
-func TestVerifyRazorpayPayment_AddOnDoesNotChangePlan(t *testing.T) {
-	mockRepo := new(repository.MockRepository)
-	handler := newTestHandler(mockRepo)
-	handler.razorpayService = services.NewRazorpayService("test_key_id", "test_key_secret")
+type roundTripFunc func(*http.Request) (*http.Response, error)
 
-	tenantID := uuid.New()
-	orderID := "order_test123"
-	paymentID := "pay_test456"
-	signature := signRazorpayPayload(orderID, paymentID, "test_key_secret")
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-	mockRepo.On("TransactionExistsForPayment", mock.Anything, paymentID).Return(false, nil).Once()
-	mockRepo.On("AddQuota", mock.Anything, tenantID, 500).Return(nil).Once()
-	mockRepo.On("CreateTransaction", mock.Anything, mock.MatchedBy(func(tx *models.Transaction) bool {
-		return tx.QuotaChange == 500 && tx.TenantID == tenantID
-	})).Return(nil).Once()
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(1000, nil).Once()
-	// Deliberately NOT mocking UpdateTenantSubscription or AddBonusSeats — if
-	// the handler calls either, the mock panics and the test fails.
-
-	body, _ := json.Marshal(map[string]string{
-		"razorpay_order_id":   orderID,
-		"razorpay_payment_id": paymentID,
-		"razorpay_signature":  signature,
-		"package_id":          "addon-passports-500-starter",
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/billing/razorpay/verify", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = setAuthContext(req, tenantID, "user@example.com", models.ProductTypeBattery)
-	rr := httptest.NewRecorder()
-
-	handler.VerifyRazorpayPayment(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+func capturedPaymentService(t *testing.T, tenantID uuid.UUID, packageID, orderID, paymentID string) *services.RazorpayService {
+	t.Helper()
+	pkg, ok := services.GetPackage(packageID)
+	if !ok {
+		t.Fatal("unknown test package")
 	}
-	mockRepo.AssertExpectations(t)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/payments/" + paymentID:
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": paymentID, "order_id": orderID, "status": "captured", "amount": pkg.PricePaise, "currency": "INR"})
+		case "/v1/orders/" + orderID:
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": orderID, "amount": pkg.PricePaise, "currency": "INR", "notes": map[string]string{"tenant_id": tenantID.String(), "package_id": packageID}})
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	client := razorpay.NewClient("test_key_id", "test_key_secret")
+	client.Request.HTTPClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, r)
+		return &http.Response{StatusCode: rr.Code, Header: rr.Header(), Body: io.NopCloser(strings.NewReader(rr.Body.String())), Request: r}, nil
+	})}
+	return services.NewRazorpayServiceWithClient(client, "test_key_id", "test_key_secret")
 }
 
-// TestVerifyRazorpayPayment_AnnualTierUses365DayExpiry guards against deriving
-// plan_type/expiry from the SKU id (which would break for "starter-annual" ->
-// invalid "STARTER-ANNUAL" and grant only the default 30-day window instead of
-// the paid-for 365 days). It must use pkg.PlanType/pkg.BillingCycleDays.
-func TestVerifyRazorpayPayment_AnnualTierUses365DayExpiry(t *testing.T) {
-	mockRepo := new(repository.MockRepository)
-	handler := newTestHandler(mockRepo)
-	handler.razorpayService = services.NewRazorpayService("test_key_id", "test_key_secret")
-
-	tenantID := uuid.New()
-	orderID := "order_annual123"
-	paymentID := "pay_annual456"
-	signature := signRazorpayPayload(orderID, paymentID, "test_key_secret")
-
-	mockRepo.On("TransactionExistsForPayment", mock.Anything, paymentID).Return(false, nil).Once()
-	mockRepo.On("AddQuota", mock.Anything, tenantID, 6000).Return(nil).Once()
-	mockRepo.On("UpdateTenantSubscription", mock.Anything, tenantID, "STARTER", mock.MatchedBy(func(expiresAt time.Time) bool {
-		days := time.Until(expiresAt).Hours() / 24
-		return days > 364 && days <= 365
-	}), "ACTIVE").Return(nil).Once()
-	mockRepo.On("CreateTransaction", mock.Anything, mock.MatchedBy(func(tx *models.Transaction) bool {
-		return tx.QuotaChange == 6000 && tx.TenantID == tenantID
-	})).Return(nil).Once()
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(6000, nil).Once()
-
-	body, _ := json.Marshal(map[string]string{
-		"razorpay_order_id":   orderID,
-		"razorpay_payment_id": paymentID,
-		"razorpay_signature":  signature,
-		"package_id":          "starter-annual",
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/billing/razorpay/verify", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = setAuthContext(req, tenantID, "user@example.com", models.ProductTypeBattery)
-	rr := httptest.NewRecorder()
-
-	handler.VerifyRazorpayPayment(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+func TestVerifyRazorpayPayment_GrantKinds(t *testing.T) {
+	for _, tc := range []struct {
+		name, pkg          string
+		quota, seats, days int
+		plan               string
+	}{
+		{"quota add-on", "addon-passports-500-starter", 500, 0, 0, ""},
+		{"annual tier", "starter-annual", 6000, 0, 365, "STARTER"},
+		{"seat add-on", "addon-seat-starter", 0, 1, 0, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := new(repository.MockRepository)
+			h := newTestHandler(repo)
+			id := uuid.New()
+			order, payment := "order_test123", "pay_test456"
+			h.razorpayService = capturedPaymentService(t, id, tc.pkg, order, payment)
+			repo.On("ApplyPaymentGrant", mock.Anything, mock.MatchedBy(func(g repository.PaymentGrant) bool {
+				return g.TenantID == id && g.PaymentID == payment && g.QuotaUnits == tc.quota && g.SeatBonus == tc.seats && g.PlanType == tc.plan && g.BillingCycleDays == tc.days
+			})).Return(repository.PaymentGrantResult{Applied: true, QuotaBalance: 7000}, nil).Once()
+			body, _ := json.Marshal(map[string]string{"razorpay_order_id": order, "razorpay_payment_id": payment, "razorpay_signature": signRazorpayPayload(order, payment, "test_key_secret"), "package_id": tc.pkg})
+			req := setAuthContext(httptest.NewRequest(http.MethodPost, "/api/v1/billing/razorpay/verify", bytes.NewReader(body)), id, "user@example.com", models.ProductTypeBattery)
+			rr := httptest.NewRecorder()
+			h.VerifyRazorpayPayment(rr, req)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+			}
+			repo.AssertExpectations(t)
+		})
 	}
-	mockRepo.AssertExpectations(t)
 }
 
-// TestVerifyRazorpayPayment_SeatAddOn verifies a seat add-on purchase credits
-// bonus seats (not quota) and, like the quota add-on, never touches plan_type.
-func TestVerifyRazorpayPayment_SeatAddOn(t *testing.T) {
-	mockRepo := new(repository.MockRepository)
-	handler := newTestHandler(mockRepo)
-	handler.razorpayService = services.NewRazorpayService("test_key_id", "test_key_secret")
-
-	tenantID := uuid.New()
-	orderID := "order_test789"
-	paymentID := "pay_test789"
-	signature := signRazorpayPayload(orderID, paymentID, "test_key_secret")
-
-	mockRepo.On("TransactionExistsForPayment", mock.Anything, paymentID).Return(false, nil).Once()
-	mockRepo.On("AddBonusSeats", mock.Anything, tenantID, 1).Return(nil).Once()
-	mockRepo.On("CreateTransaction", mock.Anything, mock.MatchedBy(func(tx *models.Transaction) bool {
-		return tx.QuotaChange == 0 && tx.TenantID == tenantID
-	})).Return(nil).Once()
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(500, nil).Once()
-	// Deliberately NOT mocking AddQuota or UpdateTenantSubscription.
-
-	body, _ := json.Marshal(map[string]string{
-		"razorpay_order_id":   orderID,
-		"razorpay_payment_id": paymentID,
-		"razorpay_signature":  signature,
-		"package_id":          "addon-seat-starter",
-	})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/billing/razorpay/verify", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	req = setAuthContext(req, tenantID, "user@example.com", models.ProductTypeBattery)
+func TestVerifyRazorpayPayment_RejectsBrowserPackageSwap(t *testing.T) {
+	repo := new(repository.MockRepository)
+	h := newTestHandler(repo)
+	id := uuid.New()
+	order, payment := "order_test123", "pay_test456"
+	h.razorpayService = capturedPaymentService(t, id, "addon-passports-500-starter", order, payment)
+	body, _ := json.Marshal(map[string]string{"razorpay_order_id": order, "razorpay_payment_id": payment, "razorpay_signature": signRazorpayPayload(order, payment, "test_key_secret"), "package_id": "growth-annual"})
+	req := setAuthContext(httptest.NewRequest(http.MethodPost, "/api/v1/billing/razorpay/verify", bytes.NewReader(body)), id, "user@example.com", models.ProductTypeBattery)
 	rr := httptest.NewRecorder()
-
-	handler.VerifyRazorpayPayment(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	h.VerifyRazorpayPayment(rr, req)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", rr.Code, rr.Body.String())
 	}
-	mockRepo.AssertExpectations(t)
+	repo.AssertNotCalled(t, "ApplyPaymentGrant", mock.Anything, mock.Anything)
 }
