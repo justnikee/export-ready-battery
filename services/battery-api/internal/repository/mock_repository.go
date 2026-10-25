@@ -1064,6 +1064,11 @@ func (m *MockRepository) CreateTransaction(ctx context.Context, tx *models.Trans
 	return args.Error(0)
 }
 
+func (m *MockRepository) ApplyPaymentGrant(ctx context.Context, grant PaymentGrant) (PaymentGrantResult, error) {
+	args := m.Called(ctx, grant)
+	return args.Get(0).(PaymentGrantResult), args.Error(1)
+}
+
 func (m *MockRepository) ListTransactions(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.Transaction, error) {
 	args := m.Called(ctx, tenantID, limit)
 	if args.Get(0) == nil {

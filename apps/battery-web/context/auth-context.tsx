@@ -43,6 +43,9 @@ interface User {
   // Subscription plan + server-computed feature entitlements (UX gating only —
   // the backend's RequireFeature middleware is the real gate). See lib/entitlements.ts.
   plan_type?: string;
+  plan_status?: string;
+  plan_active?: boolean;
+  subscription_expires_at?: string | null;
   entitlements?: Record<string, boolean>;
   // Data Visibility Preferences
   data_visibility?: Record<string, string>;

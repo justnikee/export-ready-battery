@@ -61,6 +61,9 @@ graphify-out/
 # Optional local-only scratch under memory (durable INDEX/rules/backlog/ADRs/sessions are tracked)
 memory/.local/
 
+# Local export archives (keep release bundles out of Git)
+/export-ready-*.zip
+
 # Scratch / temp files
 temp.ts
 .ruff_cache/

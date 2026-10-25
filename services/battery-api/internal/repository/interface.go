@@ -210,6 +210,7 @@ type RepositoryInterface interface {
 
 	// transaction.go
 	CreateTransaction(ctx context.Context, tx *models.Transaction) error
+	ApplyPaymentGrant(ctx context.Context, grant PaymentGrant) (PaymentGrantResult, error)
 	ListTransactions(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.Transaction, error)
 	TransactionExistsForPayment(ctx context.Context, paymentID string) (bool, error)
 	GetTransactionByPaymentID(ctx context.Context, tenantID uuid.UUID, paymentID string) (*models.Transaction, error)

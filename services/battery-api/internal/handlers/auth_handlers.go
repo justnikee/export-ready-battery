@@ -1098,6 +1098,11 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		planType = services.PlanStarter
 	}
 	planType = services.NormalizePlan(planType)
+	planActive := !services.IsSubscriptionExpired(tenant.PlanStatus, tenant.SubscriptionExpiresAt)
+	entitlementPlan := planType
+	if !planActive {
+		entitlementPlan = services.PlanStarter
+	}
 
 	// logo_url + compliance certs live in the private compliance-docs bucket
 	// (canonical public-URL-shaped refs). Re-sign on every read (S-10) or
@@ -1116,7 +1121,10 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"id":                                   tenant.ID,
 		"tenant_id":                            tenant.ID.String(),
 		"plan_type":                            planType,
-		"entitlements":                         services.EntitlementsForPlan(planType),
+		"plan_status":                          tenant.PlanStatus,
+		"plan_active":                          planActive,
+		"subscription_expires_at":              tenant.SubscriptionExpiresAt,
+		"entitlements":                         services.EntitlementsForPlan(entitlementPlan),
 		"company_name":                         tenant.CompanyName,
 		"product_type":                         tenant.ProductType,
 		"email":                                loginEmail,

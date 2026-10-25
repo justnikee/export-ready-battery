@@ -66,6 +66,7 @@ Missing mock → handler tests break.
 | Dashboard first paint | Prefer `GET /dashboard/bootstrap` over parallel stats+chart+recent (ADR 027 / P-08). Keep fine-grained endpoints for other pages. |
 | API rate limits | JWT routes: tenant limiter in `Auth.Protect` (~300/min). All `/api/*`: global IP via `LimitAPIPaths` (~600/min). Auth/AI stay stricter (ADR 023 / P-04). |
 | Quota mint | Passport credits come from Razorpay verify + webhook only. Never reintroduce `POST /billing/top-up` (or any free `AddQuota` from tenant JWT). Refunds of a failed charge may credit back. (ADR 029) |
+| Paid credits and term | Passport credits stay usable after plan expiry; only plan-only features expire. Captured Razorpay payments must match provider order tenant/SKU/price and be fulfilled once transactionally. (ADR 032) |
 
 `JWT_SECRET` must match across platform-core, battery-api, and each app `proxy.ts`.
 

@@ -7,11 +7,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"strings"
-	"time"
 
 	"github.com/anvayalabs/battery-api/internal/logger"
-	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/services"
 )
 
@@ -19,30 +17,24 @@ import (
 type WebhookHandler struct {
 	razorpayService *services.RazorpayService
 	repo            interface {
-		AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
-		AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
-		CreateTransaction(ctx context.Context, tx *models.Transaction) error
-		UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
+		ApplyPaymentGrant(ctx context.Context, grant repository.PaymentGrant) (repository.PaymentGrantResult, error)
 	}
 }
 
-// NewWebhookHandler creates a new webhook handler
 func NewWebhookHandler(razorpay *services.RazorpayService, repo interface {
-	AddQuota(ctx context.Context, tenantID uuid.UUID, amount int) error
-	AddBonusSeats(ctx context.Context, tenantID uuid.UUID, count int) error
-	CreateTransaction(ctx context.Context, tx *models.Transaction) error
-	UpdateTenantSubscription(ctx context.Context, tenantID uuid.UUID, planType string, expiresAt time.Time, planStatus string) error
+	ApplyPaymentGrant(ctx context.Context, grant repository.PaymentGrant) (repository.PaymentGrantResult, error)
 }) *WebhookHandler {
-	return &WebhookHandler{
-		razorpayService: razorpay,
-		repo:            repo,
-	}
+	return &WebhookHandler{razorpayService: razorpay, repo: repo}
 }
 
 // RazorpayWebhook handles POST /api/v1/webhooks/razorpay
 // This endpoint receives payment notifications directly from Razorpay servers
 // and must verify the signature before processing
 func (h *WebhookHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Request) {
+	if h.razorpayService == nil {
+		http.Error(w, "Payments are not configured", http.StatusServiceUnavailable)
+		return
+	}
 	// Read the raw request body for signature verification
 	// Limit to 1MB to prevent DoS via oversized payloads
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
@@ -102,113 +94,40 @@ func (h *WebhookHandler) RazorpayWebhook(w http.ResponseWriter, r *http.Request)
 
 // handlePaymentCaptured processes successful payment events
 func (h *WebhookHandler) handlePaymentCaptured(w http.ResponseWriter, r *http.Request, event *services.WebhookEvent) {
-	// Extract tenant ID and package ID from notes
-	tenantIDStr := event.GetTenantID()
-	packageID := event.GetPackageID()
-
-	if tenantIDStr == "" || packageID == "" {
-		logger.Error("Missing tenant_id or package_id in payment notes",
-			"payment_id", event.GetPaymentID(),
-			"tenant_id", tenantIDStr,
-			"package_id", packageID,
-		)
-		http.Error(w, "Missing required notes", http.StatusBadRequest)
-		return
-	}
-
-	// Parse tenant UUID
-	tenantID, err := uuid.Parse(tenantIDStr)
+	// The signed webhook identifies the payment. The fetched provider order is
+	// authoritative for tenant, package and price, just as in browser verify.
+	purchase, err := h.razorpayService.LookupCapturedPurchase(event.GetOrderID(), event.GetPaymentID())
 	if err != nil {
-		logger.Error("Invalid tenant_id format", "tenant_id", tenantIDStr, "error", err)
-		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		logger.Error("Could not validate captured payment", "payment_id", event.GetPaymentID(), "error", err)
+		http.Error(w, "Payment validation unavailable", http.StatusBadGateway)
 		return
 	}
-
-	// Get package details
-	pkg, exists := services.GetPackage(packageID)
-	if !exists {
-		logger.Error("Unknown package in webhook", "package_id", packageID)
-		http.Error(w, "Unknown package", http.StatusBadRequest)
+	tenantID, err := uuid.Parse(purchase.TenantID)
+	if err != nil {
+		logger.Error("Invalid provider order tenant", "order_id", event.GetOrderID())
+		http.Error(w, "Invalid order tenant", http.StatusBadRequest)
 		return
 	}
-
-	// Verify the payment amount matches the package
-	if event.GetAmount() < pkg.PricePaise {
-		logger.Warn("Payment amount mismatch",
-			"expected", pkg.PricePaise,
-			"received", event.GetAmount(),
-			"payment_id", event.GetPaymentID(),
-		)
-		// Continue processing - Razorpay handles partial payments
+	grant, err := paymentGrantForPurchase(tenantID, event.GetPaymentID(), purchase.Package)
+	if err != nil {
+		logger.Error("Invalid purchased package configuration", "package_id", purchase.PackageID, "error", err)
+		http.Error(w, "Invalid package", http.StatusInternalServerError)
+		return
 	}
-
-	// Branch on package Kind — add-ons are pure top-ups and must NEVER touch
-	// plan_type/subscription_expires_at (mirrors VerifyRazorpayPayment; this
-	// webhook is a redundant confirmation path for the same purchase).
-	var quotaChange int
-	switch pkg.Kind {
-	case services.PackageKindSeatAddOn:
-		if err := h.repo.AddBonusSeats(r.Context(), tenantID, pkg.SeatBonus); err != nil {
-			logger.Error("Failed to add bonus seat via webhook", "tenant_id", tenantIDStr, "error", err)
-			http.Error(w, "Failed to update seat allowance", http.StatusInternalServerError)
-			return
-		}
-		quotaChange = 0
-
-	case services.PackageKindQuotaAddOn:
-		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
-			logger.Error("Failed to add quota via webhook", "tenant_id", tenantIDStr, "quota", pkg.QuotaUnits, "error", err)
-			http.Error(w, "Failed to update quota", http.StatusInternalServerError)
-			return
-		}
-		quotaChange = pkg.QuotaUnits
-
-	default: // PackageKindTier
-		if err := h.repo.AddQuota(r.Context(), tenantID, pkg.QuotaUnits); err != nil {
-			logger.Error("Failed to add quota via webhook", "tenant_id", tenantIDStr, "quota", pkg.QuotaUnits, "error", err)
-			// Return 500 so Razorpay will retry
-			http.Error(w, "Failed to update quota", http.StatusInternalServerError)
-			return
-		}
-		planType := pkg.PlanType
-		if planType == "" {
-			planType = strings.ToUpper(pkg.ID) // fallback for any SKU that forgot to set PlanType
-		}
-		cycleDays := pkg.BillingCycleDays
-		if cycleDays == 0 {
-			cycleDays = 30
-		}
-		expiresAt := time.Now().AddDate(0, 0, cycleDays)
-		if err := h.repo.UpdateTenantSubscription(r.Context(), tenantID, planType, expiresAt, "ACTIVE"); err != nil {
-			logger.Error("Failed to update tenant subscription details via webhook", "tenant_id", tenantIDStr, "error", err)
-			// Continue processing
-		}
-		quotaChange = pkg.QuotaUnits
+	result, err := h.repo.ApplyPaymentGrant(r.Context(), grant)
+	if err != nil {
+		logger.Error("Failed to fulfill captured payment", "payment_id", event.GetPaymentID(), "error", err)
+		http.Error(w, "Payment fulfillment pending", http.StatusInternalServerError)
+		return
 	}
-
-	// Log the transaction
-	tx := &models.Transaction{
-		TenantID:    tenantID,
-		Description: "Razorpay Webhook: " + pkg.Name,
-		QuotaChange: quotaChange,
+	status := "already_processed"
+	quotaAdded := 0
+	if result.Applied {
+		status, quotaAdded = "success", grant.QuotaUnits
 	}
-	if err := h.repo.CreateTransaction(r.Context(), tx); err != nil {
-		logger.Error("Failed to log webhook transaction", "error", err)
-		// Non-critical, continue
-	}
-
-	logger.Info("Successfully processed payment webhook",
-		"tenant_id", tenantIDStr[:8],
-		"package", packageID,
-		"quota_added", pkg.QuotaUnits,
-		"payment_id", event.GetPaymentID(),
-	)
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":      "success",
-		"quota_added": pkg.QuotaUnits,
-		"tenant_id":   tenantIDStr[:8] + "...",
+	logger.Info("Processed captured payment", "tenant_id", purchase.TenantID, "payment_id", event.GetPaymentID(), "status", status)
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status": status, "quota_added": quotaAdded,
 	})
 }
 

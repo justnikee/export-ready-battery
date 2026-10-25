@@ -39,10 +39,11 @@ describe("proxy S-08 JWT verification", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env.JWT_SECRET = secret;
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.JWT_SECRET;
   });
 
@@ -130,7 +131,7 @@ describe("proxy S-08 JWT verification", () => {
 
   it("handleProxy does not 500 /login when JWT_SECRET is missing but a cookie is present", async () => {
     delete process.env.JWT_SECRET;
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     const { handleProxy } = await import("./proxy");
     const res = await handleProxy(
       requestWithCookie("/login", "header.payload.signature"),

@@ -3,7 +3,7 @@
 > **Agents: read this first every session.** Keep it short. Update when priorities shift.
 
 **Last updated:** 2026-09-01  
-**Last session:** [sessions/2026-09-01-login-oauth-session.md](sessions/2026-09-01-login-oauth-session.md)  
+**Last session:** [sessions/2026-10-25-billing-credit-and-payment-fix.md](sessions/2026-10-25-billing-credit-and-payment-fix.md)
 **Prior:** [sessions/2026-09-01-industry-product-briefing.md](sessions/2026-09-01-industry-product-briefing.md)  
 **Industry briefing:** [`INDUSTRY_PRODUCT_BRIEFING.md`](INDUSTRY_PRODUCT_BRIEFING.md) (sources verified; do not use the 2023-07-28 ELI as current law)  
 **Spine plan:** [`PRODUCT_SPINE_FIX_PLAN.md`](PRODUCT_SPINE_FIX_PLAN.md) (PR 1–4 done)  
@@ -13,6 +13,8 @@
 ---
 
 ## Now
+
+**Billing (2026-10-25):** Passport credits survive plan expiry; plan-only features still expire. Razorpay verify and webhook now validate captured provider records and share atomic, idempotent fulfillment. See [ADR 032](decisions/032-credits-plan-term-and-payment-fulfillment.md) and the [session](sessions/2026-10-25-billing-credit-and-payment-fix.md). API tests/vet and web tests/typecheck pass. Live provider sandbox checkout and UI verification remain before production rollout.
 
 1. **Prod login (2026-09-01):** Google `/login?error=oauth_session` + `/battery/*` email 404s. Code fix in tree; **needs Google Console redirect URI + Vercel + Oracle deploy** — see [sessions/2026-09-01-login-oauth-session.md](sessions/2026-09-01-login-oauth-session.md).
 2. **Primary audit track complete:** S-01…S-15 + P-01…P-08.
