@@ -24,9 +24,9 @@ import {
 interface UploadCSVProps {
  batchId: string
  marketRegion?: 'INDIA' | 'EU' | 'GLOBAL'
- chemistry?: string // For dynamic BPAN prefix (e.g., 'LFP', 'NMC')
+ batteryCategory?: string
  morthCode?: string // Tenant's MoRTH manufacturer code (e.g., 'NKY', 'TBC')
- isDraft?: boolean  // When true, passport generation is blocked until batch is activated
+ isDraft?: boolean  // Draft passports are generated now and metered at activation
  defaultQuantity?: string
  onUploadComplete: () => void
 }
@@ -59,7 +59,8 @@ interface AutoGenerateResult {
  serial_range?: string
 }
 
-export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCode, isDraft = false, defaultQuantity, onUploadComplete }: UploadCSVProps) {
+export function UploadCSV({ batchId, marketRegion = 'GLOBAL', batteryCategory, morthCode, isDraft = false, defaultQuantity, onUploadComplete }: UploadCSVProps) {
+ const settingsHref = dashboardPathFromPathname(usePathname(), "settings")
  // CSV Upload State
  const [file, setFile] = useState<File | null>(null)
  const [isValidating, setIsValidating] = useState(false)
@@ -68,32 +69,17 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
 
- // Auto-Generate State - Default prefix based on market region and chemistry
- const currentYear = new Date().getFullYear()
- const chemistryCode = chemistry?.toUpperCase() || 'LFP'
- const morthTrimmed = morthCode?.trim() ?? ''
- const morthMissing = marketRegion === 'INDIA' && (morthTrimmed === '' || morthTrimmed === 'TBC')
- const morthSegment = morthTrimmed && morthTrimmed !== 'TBC' ? morthTrimmed : '{MoRTH}'
- const defaultPrefix = marketRegion === 'INDIA'
-  ? `IN-${morthSegment}-${chemistryCode}-${currentYear}-`
-  : marketRegion === 'EU'
-  ? `EU-BAT-${currentYear}-`
-  : `BAT-${currentYear}-`
+ // The server owns BPAN prefix and sequence allocation.
  const parsedDefault = parseInt(defaultQuantity || "", 10)
  const [quantity, setQuantity] = useState(
   !isNaN(parsedDefault) && parsedDefault > 0 ? String(parsedDefault) : "100",
  )
- const [prefix, setPrefix] = useState(defaultPrefix)
- const [startNumber, setStartNumber] = useState("1")
+ const needsMorthForActivation = (marketRegion === 'INDIA' || marketRegion === 'GLOBAL') &&
+  (batteryCategory === 'EV' || batteryCategory === 'LMT') &&
+  (!morthCode?.trim() || morthCode.trim().toUpperCase() === 'TBC')
  const [manufactureDate, setManufactureDate] = useState(new Date().toISOString().split('T')[0])
- const pathname = usePathname()
- const settingsHref = dashboardPathFromPathname(pathname, "settings")
  const [isGenerating, setIsGenerating] = useState(false)
  const [generateResult, setGenerateResult] = useState<AutoGenerateResult | null>(null)
-
- // Computed preview
- const previewStart = `${prefix}${String(parseInt(startNumber) || 1).padStart(3, '0')}`
- const previewEnd = `${prefix}${String((parseInt(startNumber) || 1) + (parseInt(quantity) || 1) - 1).padStart(3, '0')}`
 
  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
  if (e.target.files && e.target.files[0]) {
@@ -178,7 +164,6 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
 
  const handleAutoGenerate = async () => {
  const count = parseInt(quantity)
- const start = parseInt(startNumber)
 
  if (isNaN(count) || count <= 0 || count > 10000) {
  toast.error("Quantity must be between 1 and 10,000")
@@ -193,8 +178,6 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  try {
  const response = await api.post(`/batches/${batchId}/auto-generate`, {
  count,
- prefix,
- start_number: start,
  manufacture_date: manufactureDate
  })
 
@@ -219,8 +202,6 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  const resetAutoGen = () => {
  setGenerateResult(null)
  setQuantity("100")
- setPrefix(`BAT-${new Date().getFullYear()}-`)
- setStartNumber("1")
  }
 
  return (
@@ -391,7 +372,6 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  {!generateResult ? (
  <>
  <div className="grid gap-4">
- <div className="grid grid-cols-2 gap-4">
  <div className="grid gap-2">
  <Label htmlFor="quantity">Quantity</Label>
  <Input
@@ -405,29 +385,6 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  />
  </div>
  <div className="grid gap-2">
- <Label htmlFor="startNumber">Start Number</Label>
- <Input
- id="startNumber"
- type="number"
- min="1"
- value={startNumber}
- onChange={(e) => setStartNumber(e.target.value)}
- placeholder="e.g. 1"
- />
- </div>
- </div>
-
- <div className="grid gap-2">
- <Label htmlFor="prefix">Serial Prefix</Label>
- <Input
- id="prefix"
- value={prefix}
- onChange={(e) => setPrefix(e.target.value)}
- placeholder={`e.g. BAT-${new Date().getFullYear()}-`}
- />
- </div>
-
- <div className="grid gap-2">
  <Label htmlFor="mfgDate">Manufacture Date</Label>
  <Input
  id="mfgDate"
@@ -438,33 +395,24 @@ export function UploadCSV({ batchId, marketRegion = 'GLOBAL', chemistry, morthCo
  </div>
  </div>
 
- {/* Live Preview */}
- <div className="rounded-md bg-muted p-4 text-center">
- <p className="text-xs text-muted-foreground mb-1">Preview</p>
- <p className="font-mono text-sm">
- Generates <span className=" text-blue-500">{previewStart}</span> to{" "}
- <span className=" text-blue-500">{previewEnd}</span>
+ <p className="text-xs text-muted-foreground">
+ The server assigns unique BPAN V2 serials and the next sequence. The exact range appears after generation.
  </p>
- <p className="text-xs text-muted-foreground mt-1">
- ({quantity || 0} passports)
- </p>
- </div>
 
- {morthMissing && (
+ {needsMorthForActivation && (
  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-start gap-2 text-sm text-amber-400">
  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
  <span>
- <span className="font-medium">MoRTH Manufacturer Code not configured.</span>{" "}
- Go to{" "}
- <a href={`${settingsHref}?tab=compliance`} className="underline hover:text-amber-300">Settings → India Compliance</a>{" "}
- and enter your 3-character MoRTH-registered code before generating passports.
+ <span className="font-medium">MoRTH manufacturer code is missing for this traction battery.</span>{" "}
+ You can generate draft passports now, but activation will require the registered code in{" "}
+ <a href={`${settingsHref}?tab=compliance`} className="underline">Settings → India Compliance</a>.
  </span>
  </div>
  )}
 
  <Button
  onClick={handleAutoGenerate}
- disabled={isGenerating || morthMissing}
+ disabled={isGenerating}
  className="w-full"
  >
  {isGenerating ? "Generating..." : "Generate Passports"}

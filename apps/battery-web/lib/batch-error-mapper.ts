@@ -46,3 +46,37 @@ export const backendFieldToFormPath: Record<string, string> = {
 export function mapBackendFieldToFormPath(backendField: string): string {
   return backendFieldToFormPath[backendField] ?? backendField
 }
+
+export interface BatchCreationError {
+  message?: string;
+  response?: {
+    status?: number;
+    statusText?: string;
+    data?: { error?: string; fields?: Array<{ field: string; message: string }> };
+  };
+}
+
+/** CreateBatch's 422 contains both a summary and field details. Show the fields first. */
+export function describeBatchCreationError(error: BatchCreationError): {
+  message: string;
+  fields: Array<{ field: string; message: string }>;
+} {
+  const fields = error.response?.data?.fields;
+  if (Array.isArray(fields) && fields.length > 0) {
+    const mapped = fields.map(({ field, message }) => ({
+      field: mapBackendFieldToFormPath(field),
+      message,
+    }));
+    return {
+      message: `Please fix the highlighted ${mapped.length} field(s) before submitting.`,
+      fields: mapped,
+    };
+  }
+  return {
+    message: error.response?.data?.error ||
+      (error.response?.statusText
+        ? `Server error (${error.response.status}): ${error.response.statusText}`
+        : error.message || "Failed to create batch"),
+    fields: [],
+  };
+}

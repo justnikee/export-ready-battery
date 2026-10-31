@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import axios from "axios";
 
 // Mock browser globals and dependencies before importing api.ts
 const locationSpy = vi.fn();
@@ -85,5 +86,37 @@ describe("api request interceptor", () => {
     expect(api.defaults.baseURL).toBe("/api/v1");
     expect(api.defaults.withCredentials).toBe(true);
     expect(api.defaults.headers["Content-Type"]).toBe("application/json");
+  });
+});
+
+describe("refresh coordination", () => {
+  it("shares one cookie rotation across overlapping requests", async () => {
+    let resolveRefresh!: (value: { data: { token: string } }) => void;
+    const post = vi.spyOn(axios, "post").mockImplementation(() =>
+      new Promise((resolve) => { resolveRefresh = resolve as typeof resolveRefresh; }),
+    );
+    const { refreshAccessToken, getAccessToken } = await import("./api");
+    const first = refreshAccessToken();
+    const second = refreshAccessToken();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0][2]).toMatchObject({ withCredentials: true, timeout: 15000 });
+    resolveRefresh({ data: { token: "rotated-token" } });
+    expect(await Promise.all([first, second])).toEqual(["rotated-token", "rotated-token"]);
+    expect(getAccessToken()).toBe("rotated-token");
+    post.mockRestore();
+  });
+
+  it("does not overwrite a newer login when an older refresh fails", async () => {
+    let rejectRefresh!: (reason: Error) => void;
+    const post = vi.spyOn(axios, "post").mockImplementation(() =>
+      new Promise((_, reject) => { rejectRefresh = reject; }),
+    );
+    const { refreshAccessToken, setAccessToken, getAccessToken } = await import("./api");
+    const oldRefresh = refreshAccessToken();
+    setAccessToken("new-login");
+    rejectRefresh(new Error("old cookie expired"));
+    expect(await oldRefresh).toBe("new-login");
+    expect(getAccessToken()).toBe("new-login");
+    post.mockRestore();
   });
 });

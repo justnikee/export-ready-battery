@@ -269,7 +269,7 @@ export default function BatchDetailsPage() {
                 passportCount={passportCount}
                 pagination={pagination}
                 region={region}
-                chemistry={batch.specs?.chemistry}
+                batteryCategory={batch.specs?.battery_category}
                 morthCode={user?.morth_manufacturer_code}
                 isDraft={isDraft}
                 lotSize={batch.specs?.lot_size}

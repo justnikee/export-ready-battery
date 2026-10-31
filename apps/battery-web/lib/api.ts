@@ -7,11 +7,15 @@ import { getApiV1Base } from "@/lib/api-origin";
 // payload can't read it out of persistent storage. It's re-hydrated on page
 // load via the HttpOnly refresh_token cookie (see auth-context's checkAuth).
 let accessToken: string | null = null;
+let sessionVersion = 0;
+let refreshPromise: Promise<string | null> | null = null;
 
 export const getAccessToken = () => accessToken;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
+  sessionVersion += 1;
+  if (!token) delete api.defaults.headers.common["Authorization"];
 };
 
 const api = axios.create({
@@ -33,22 +37,41 @@ export const getBaseUrl = () => {
 // Exchanges the HttpOnly refresh_token cookie for a new access token, storing
 // it in memory. Returns the token on success, or null if there's no valid
 // refresh session (e.g. first visit, expired/revoked session).
-export const refreshAccessToken = async (): Promise<string | null> => {
+const exchangeRefreshCookie = async (): Promise<string | null> => {
+  const startedAtVersion = sessionVersion;
   try {
-    const response = await axios.post(
+    const rotate = () => axios.post(
       `${api.defaults.baseURL}/auth/refresh`,
       {},
-      { withCredentials: true },
+      { withCredentials: true, timeout: 15000 },
     );
-    if (response.data.token) {
+    // Web Locks serialize refresh-cookie rotation across tabs when available.
+    // The shared promise below serializes requests within this tab.
+    const response = typeof navigator !== "undefined" && navigator.locks?.request
+      ? await navigator.locks.request("battery-api-refresh", rotate)
+      : await rotate();
+    if (startedAtVersion === sessionVersion && response.data.token) {
       setAccessToken(response.data.token);
-      return response.data.token;
+    } else if (startedAtVersion === sessionVersion) {
+      setAccessToken(null);
     }
   } catch {
-    // No valid refresh cookie — caller treats this as logged out.
+    // A missing/expired refresh session is handled below. A later login or
+    // logout wins over this older request's response.
+    if (startedAtVersion === sessionVersion) setAccessToken(null);
   }
-  setAccessToken(null);
-  return null;
+  return accessToken;
+};
+
+export const refreshAccessToken = (): Promise<string | null> => {
+  if (!refreshPromise) {
+    const inFlight = exchangeRefreshCookie();
+    refreshPromise = inFlight;
+    void inFlight.finally(() => {
+      if (refreshPromise === inFlight) refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 };
 
 // Add a request interceptor to include the auth token
@@ -71,14 +94,17 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // The HttpOnly refresh_token cookie is sent automatically by the browser.
-      const newToken = await refreshAccessToken();
+      // An overlapping request may already have installed a newer token.
+      const sentToken = originalRequest.headers?.Authorization;
+      const currentToken = getAccessToken();
+      const newToken = currentToken && sentToken !== `Bearer ${currentToken}`
+        ? currentToken
+        : await refreshAccessToken();
       if (newToken) {
         // Update defaults and original request, then retry
-        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
         return api(originalRequest);
       }

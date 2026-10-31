@@ -115,3 +115,7 @@ D01–D04 are implemented on the P1 branch and pass isolated API/unit/database c
 ## Activation gate review (ADR 033)
 
 EU/India category gating and carbon-screening copy are implemented on a draft branch. Technical tests pass; current legal wording and browser walkthrough remain before merge.
+
+## Demo workflow (ADR 031)
+
+D06, D07, D09, D10, and D13 are done on the workflow branch with frontend tests/typecheck; D11 is on the preceding activation branch. Manual browser verification remains before merge.

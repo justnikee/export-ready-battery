@@ -14,6 +14,8 @@
 
 ## Now
 
+**Demo P2/P3 workflow branch (31 Oct):** Refresh coordination, batch field errors, server-owned serial display, traction-only MoRTH warning, and duplicate-fetch removal are isolated in `codex/demo-p2-workflow` after activation-gate changes. Battery-web 323 tests and TypeScript pass; founder browser demo remains. See [ADR 031](decisions/031-coordinated-battery-refresh.md).
+
 **Activation gate branch (31 Oct):** EU/India category gates and carbon-screening wording are isolated in `codex/activation-honesty`, stacked after demo P1. API and battery-web tests/typecheck pass; current legal review and runtime demo remain before merge. See [ADR 033](decisions/033-activation-gate-and-carbon-screening.md).
 
 **Billing (2026-10-25):** Passport credits survive plan expiry; plan-only features still expire. Razorpay verify and webhook now validate captured provider records and share atomic, idempotent fulfillment. See [ADR 032](decisions/032-credits-plan-term-and-payment-fulfillment.md) and the [session](sessions/2026-10-25-billing-credit-and-payment-fix.md). API tests/vet and web tests/typecheck pass. Live provider sandbox checkout and UI verification remain before production rollout.

@@ -185,8 +185,7 @@ export function useBatchDetail(batchId: string, pathname: string) {
     fetchBatch();
     fetchPassports(1, 50);
     fetchAnchors();
-    fetchCompliance();
-  }, [fetchBatch, fetchPassports, fetchAnchors, fetchCompliance]);
+  }, [fetchBatch, fetchPassports, fetchAnchors]);
 
   // Scroll to target after render
   useEffect(() => {
