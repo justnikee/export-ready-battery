@@ -23,7 +23,7 @@ interface PassportsTabProps {
   passportCount: number;
   pagination: PaginationInfo;
   region: MarketRegion;
-  chemistry?: string;
+  batteryCategory?: string;
   morthCode?: string;
   isDraft: boolean;
   lotSize?: string;
@@ -37,7 +37,7 @@ export function PassportsTab({
   passportCount,
   pagination,
   region,
-  chemistry,
+  batteryCategory,
   morthCode,
   isDraft,
   lotSize,
@@ -113,7 +113,7 @@ export function PassportsTab({
                   <strong className="text-foreground">Auto-Generate</strong> —
                   Let the system create serial numbers automatically{" "}
                   {isIndia
-                    ? `(IN-${morthCode || "XXX"}-${chemistry || "LFP"}-YYYY-XXXXX format)`
+                    ? "with a server-assigned India BPAN V2 code and sequence"
                     : "in the standard format"}
                 </li>
                 <li>
@@ -147,7 +147,7 @@ export function PassportsTab({
         <div className="bg-background rounded-md p-4 relative"><UploadCSV
             batchId={batchId}
             marketRegion={region}
-            chemistry={chemistry}
+            batteryCategory={batteryCategory}
             morthCode={morthCode}
             isDraft={isDraft}
             defaultQuantity={lotSize}

@@ -21,7 +21,7 @@ import { PlusCircle, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { uploadStagingComplianceDoc } from "@/lib/api/compliance-docs";
 import { useTemplates, type Template } from "@/hooks/use-queries";
 import { useBatchValidation } from "@/hooks/use-batch-validation";
-import { mapBackendFieldToFormPath } from "@/lib/batch-error-mapper";
+import { mapBackendFieldToFormPath, describeBatchCreationError, type BatchCreationError } from "@/lib/batch-error-mapper";
 import {
   batchFormSchema,
   defaultBatchFormValues,
@@ -901,43 +901,15 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
         );
       }
     } catch (error: unknown) {
-      const apiError = error as {
-        message?: string;
-        response?: {
-          status?: number;
-          statusText?: string;
-          data?: { error?: string; fields?: Array<{ field: string; message: string }> };
-        };
-      };
-
-      let errMsg = "Failed to create batch";
-      if (apiError.response?.data?.error) {
-        errMsg = apiError.response.data.error;
-      } else if (apiError.response?.data?.fields && apiError.response.data.fields.length > 0) {
-        // Map backend validation errors to form fields
-        const backendFields = apiError.response.data.fields;
-        const formPathErrors: Array<{ field: string; message: string }> = [];
-        backendFields.forEach((bf) => {
-          const formPath = mapBackendFieldToFormPath(bf.field);
-          if (formPath) {
-            setError(formPath as keyof BatchFormData, { type: "manual", message: bf.message });
-            formPathErrors.push({ field: formPath, message: bf.message });
-          }
-        });
-        // Auto-navigate to first error's step
-        if (formPathErrors.length > 0) {
-          setStep(getStepForField(formPathErrors[0].field));
-        }
-        errMsg = `Please fix the highlighted ${formPathErrors.length} field(s) before submitting.`;
-      } else if (apiError.response?.statusText) {
-        errMsg = `Server error (${apiError.response.status}): ${apiError.response.statusText}`;
-      } else if (apiError.message && apiError.message !== "Failed to create batch") {
-        errMsg = apiError.message;
-      }
+      const failure = describeBatchCreationError(error as BatchCreationError);
+      failure.fields.forEach(({ field, message }) => {
+        setError(field as keyof BatchFormData, { type: "manual", message });
+      });
+      if (failure.fields.length > 0) setStep(getStepForField(failure.fields[0].field));
 
       setRetryPayload(data);
-      toast.error(errMsg, {
-        action: {
+      toast.error(failure.message, {
+        action: failure.fields.length > 0 ? undefined : {
           label: "Retry",
           onClick: () => {
             if (retryPayload || data) {
