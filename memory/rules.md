@@ -79,7 +79,7 @@ Do not start textile work (`apps/textile-web`, `services/textile-api`). Battery 
 - Use `lib/api.ts` axios instance + domain modules in `lib/api/*`.
 - Keep battery-web access tokens in memory and refresh in the HttpOnly cookie. Coordinate refresh calls and guard stale completions as in ADR 031.
 - TanStack keys only via `queryKeys` in `hooks/use-queries.ts`.
-- Public passport pages: `apiPublic` / `apiAnonymous` as appropriate — do not attach privileged auth to public scan analytics.
+- Public passport pages: `apiPublic` / `apiAnonymous` as appropriate — do not attach privileged auth to public scan analytics. Public UI must not claim official registry, filing, or lab verification without live evidence (ADR 035).
 - shadcn: `@/components/ui/*` per app. Do not start using unused `packages/ui` without discussion.
 
 ---

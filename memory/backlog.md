@@ -119,3 +119,7 @@ EU/India category gating and carbon-screening copy are implemented on a draft br
 ## Demo workflow (ADR 031)
 
 D06, D07, D09, D10, and D13 are done on the workflow branch with frontend tests/typecheck; D11 is on the preceding activation branch. Manual browser verification remains before merge.
+
+## Public passport display (ADR 035)
+
+Manufacturer-issued labels, restricted-data caption, and date-dependent optional field presentation are done on a draft branch. Browser and current copy review remain before merge.

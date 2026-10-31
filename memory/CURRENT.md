@@ -14,6 +14,8 @@
 
 ## Now
 
+**Public passport branch (31 Oct):** Manufacturer-issued identity, honest document/registry labels, and February 2027 field captions are isolated in `codex/public-passport-honesty` after the demo workflow branch. Battery-web 334 tests, TypeScript, and translation JSON checks pass; browser review remains. See [ADR 035](decisions/035-public-passport-honesty.md).
+
 **Demo P2/P3 workflow branch (31 Oct):** Refresh coordination, batch field errors, server-owned serial display, traction-only MoRTH warning, and duplicate-fetch removal are isolated in `codex/demo-p2-workflow` after activation-gate changes. Battery-web 323 tests and TypeScript pass; founder browser demo remains. See [ADR 031](decisions/031-coordinated-battery-refresh.md).
 
 **Activation gate branch (31 Oct):** EU/India category gates and carbon-screening wording are isolated in `codex/activation-honesty`, stacked after demo P1. API and battery-web tests/typecheck pass; current legal review and runtime demo remain before merge. See [ADR 033](decisions/033-activation-gate-and-carbon-screening.md).

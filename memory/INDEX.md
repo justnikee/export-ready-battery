@@ -102,6 +102,7 @@ Multi-tenant SaaS for Indian **battery** manufacturers exporting to EU/global. I
 Latest correctness decision: [ADR 030 — atomic issuance and enforced passport privacy](decisions/030-atomic-issuance-and-passport-privacy.md).
 Activation gate decision: [ADR 033 — activation gate and carbon screening labels](decisions/033-activation-gate-and-carbon-screening.md).
 Session refresh decision: [ADR 031 — coordinated battery-web session refresh](decisions/031-coordinated-battery-refresh.md).
+Public passport decision: [ADR 035 — public passport display honesty](decisions/035-public-passport-honesty.md).
 Full table above. Latest for this sprint: **004–027** (S-01…S-15 + P-01…P-08).
 
 ---
