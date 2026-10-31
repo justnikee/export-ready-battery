@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/anvayalabs/battery-api/internal/repository"
 	"log/slog"
 	"net/http"
 
@@ -266,8 +268,8 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if already active
-	if batch.Status == models.BatchStatusActive {
-		respondError(w, http.StatusBadRequest, "Batch is already active")
+	if batch.Status != models.BatchStatusDraft {
+		respondError(w, http.StatusBadRequest, "Only DRAFT batches can be activated")
 		return
 	}
 
@@ -288,61 +290,18 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Count pre-existing passports (created while DRAFT) — used for quota deduction.
-	// Passports added later (to an already-ACTIVE batch) are charged at upload time.
-	passportCount, err := h.repo.CountPassportsByBatch(r.Context(), batchID)
-	if err != nil {
-		slog.Error("Failed to count passports for batch", "batch_id", batchID, "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to count passports in batch")
-		return
-	}
-
-	// Check quota balance
-	balance, err := h.repo.GetQuotaBalance(r.Context(), tenantID)
-	if err != nil {
-		slog.Error("Failed to get quota balance", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to check quota")
-		return
-	}
-
-	if balance < passportCount {
-		respondError(w, http.StatusPaymentRequired, fmt.Sprintf("Insufficient quota. This batch requires %d passports, but you only have %d activation slots.", passportCount, balance))
-		return
-	}
-
-	// Deduct quota (atomic operation)
-	err = h.repo.DeductQuota(r.Context(), tenantID, passportCount)
-	if err != nil {
-		slog.Error("Failed to deduct quota", "error", err)
-		if err.Error() == "insufficient quota" {
-			respondError(w, http.StatusPaymentRequired, "Insufficient quota")
-		} else {
-			respondError(w, http.StatusInternalServerError, "Failed to deduct quota")
+	// Re-validate and freeze the current data under the same lock as metering.
+	balance, err := h.repo.ActivateBatchAtomic(r.Context(), batchID, tenantID, func(lockedBatch *models.Batch, lockedTenant *models.Tenant, tree []*repository.ComponentTreeNode) (json.RawMessage, error) {
+		lockedBatch.Specs.Components = convertComponentTree(tree)
+		result := h.batchService.ValidateActivation(lockedBatch, lockedTenant)
+		if !result.Valid {
+			return nil, repository.ErrIssuanceChanged
 		}
-		return
-	}
-
-	// Set batch status to ACTIVE
-	err = h.repo.SetBatchStatus(r.Context(), batchID, models.BatchStatusActive)
+		return h.issuanceSnapshot(r.Context(), lockedBatch, lockedTenant, tree)
+	})
 	if err != nil {
-		slog.Error("Failed to activate batch", "error", err)
-		// Try to refund quota if activation fails
-		_ = h.repo.AddQuota(r.Context(), tenantID, passportCount)
-		respondError(w, http.StatusInternalServerError, "Failed to activate batch")
+		respondIssuanceError(w, err)
 		return
-	}
-
-	// Log transaction
-	tx := &models.Transaction{
-		TenantID:    tenantID,
-		Description: fmt.Sprintf("Batch Activation (%d Passports): %s", passportCount, batch.BatchName),
-		QuotaChange: -passportCount,
-		BatchID:     &batchID,
-	}
-	err = h.repo.CreateTransaction(r.Context(), tx)
-	if err != nil {
-		slog.Warn("Failed to log transaction", "error", err)
-		// Non-critical, don't fail the request
 	}
 
 	// Phase 3: run compliance engine asynchronously (non-blocking).
@@ -370,7 +329,7 @@ func (h *Handler) ActivateBatch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message":       "Batch activated successfully",
 		"batch_id":      batchID,
-		"quota_balance": balance - passportCount,
+		"quota_balance": balance,
 	})
 }
 

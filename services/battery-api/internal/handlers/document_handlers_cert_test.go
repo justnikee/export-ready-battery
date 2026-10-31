@@ -31,17 +31,17 @@ func TestComplianceCertificateStoragePath(t *testing.T) {
 }
 
 func TestResolveFreshBucketURL_Empty(t *testing.T) {
-	url, err := resolveFreshBucketURL(t.Context(), nil, "")
+	url, err := resolveFreshBucketURL(t.Context(), nil, uuid.Nil, "")
 	if err != nil || url != "" {
 		t.Fatalf("empty stored → empty, got %q err=%v", url, err)
 	}
 }
 
-func TestResolveFreshBucketURL_NilStoragePassthrough(t *testing.T) {
+func TestResolveFreshBucketURL_NilStorageFailsClosed(t *testing.T) {
 	stored := "https://example.com/external.pdf"
-	url, err := resolveFreshBucketURL(t.Context(), nil, stored)
-	if err != nil || url != stored {
-		t.Fatalf("nil storage should pass through, got %q err=%v", url, err)
+	url, err := resolveFreshBucketURL(t.Context(), nil, uuid.Nil, stored)
+	if err == nil || url != "" {
+		t.Fatalf("nil storage must fail closed, got %q err=%v", url, err)
 	}
 }
 

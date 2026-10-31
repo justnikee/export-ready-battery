@@ -1042,7 +1042,7 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Re-sign logo_url for response so frontend receives a fresh signed URL
-	if freshURL, err := resolveFreshBucketURL(r.Context(), h.storageService, updatedTenant.LogoURL); err == nil && freshURL != "" {
+	if freshURL, err := resolveFreshBucketURL(r.Context(), h.storageService, updatedTenant.ID, updatedTenant.LogoURL); err == nil && freshURL != "" {
 		updatedTenant.LogoURL = freshURL
 	}
 
@@ -1107,15 +1107,15 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	// logo_url + compliance certs live in the private compliance-docs bucket
 	// (canonical public-URL-shaped refs). Re-sign on every read (S-10) or
 	// browsers get 404 / unauthenticated access if the bucket were public.
-	logoURL, err := resolveFreshBucketURL(r.Context(), h.storageService, tenant.LogoURL)
+	logoURL, err := resolveFreshBucketURL(r.Context(), h.storageService, tenant.ID, tenant.LogoURL)
 	if err != nil {
 		slog.Warn("Failed to resolve logo URL", "tenant_id", id, "error", err)
-		logoURL = tenant.LogoURL
+		logoURL = ""
 	}
 
-	eprPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.EPRCertificatePath)
-	bisPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.BISCertificatePath)
-	pliPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.BatteryProfile.PLICertificatePath)
+	eprPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.ID, tenant.BatteryProfile.EPRCertificatePath)
+	bisPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.ID, tenant.BatteryProfile.BISCertificatePath)
+	pliPath, _ := resolveFreshBucketURL(r.Context(), h.storageService, tenant.ID, tenant.BatteryProfile.PLICertificatePath)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"id":                                   tenant.ID,

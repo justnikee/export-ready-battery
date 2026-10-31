@@ -191,8 +191,7 @@ func TestActivateBatch_PassportMeteredQuota(t *testing.T) {
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
 
 	// Case 1: Batch has 5 passports, tenant has balance of 4 -> should fail with 402
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(5, nil).Once()
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(4, nil).Once()
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(0, repository.ErrInsufficientQuota).Once()
 
 	req1 := httptest.NewRequest(http.MethodPost, "/api/v1/batches/"+batchID.String()+"/activate", nil)
 	req1.SetPathValue("id", batchID.String())
@@ -206,11 +205,7 @@ func TestActivateBatch_PassportMeteredQuota(t *testing.T) {
 	}
 
 	// Case 2: Batch has 5 passports, tenant has balance of 5 -> should succeed and deduct 5
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(5, nil).Once()
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(5, nil).Once()
-	mockRepo.On("DeductQuota", mock.Anything, tenantID, 5).Return(nil).Once()
-	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil).Once()
-	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(nil).Once()
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(0, nil).Once()
 	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.Anything, mock.Anything).Return(nil).Once()
 
 	req2 := httptest.NewRequest(http.MethodPost, "/api/v1/batches/"+batchID.String()+"/activate", nil)

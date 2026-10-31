@@ -124,6 +124,15 @@ func (h *Handler) CreateBatch(w http.ResponseWriter, r *http.Request) {
 		req.MarketRegion = models.MarketRegionGlobal
 	}
 
+	if err := validateBatchDocumentRefs(req.TenantID, req.DeclarationOfConformityPath, req.PLICertificateURL); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Persist canonical keys, never a signed URL supplied by a client.
+	req.DeclarationOfConformityPath, _ = batchDocumentKey(req.TenantID, "doc", req.DeclarationOfConformityPath)
+	req.PLICertificateURL, _ = batchDocumentKey(req.TenantID, "pli", req.PLICertificateURL)
+
 	// ===== BATCH CREATION VALIDATION =====
 	// Run all business-rule validations through the shared validator.
 	// This ensures CreateBatch and ValidateBatchCreation are always in sync.
@@ -1038,6 +1047,32 @@ func (h *Handler) PatchBatch(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
+	}
+
+	doc, pli := "", ""
+	if req.DeclarationOfConformityPath != nil {
+		doc = *req.DeclarationOfConformityPath
+	}
+	if value, ok := req.Specs["pli_certificate_url"]; ok {
+		var valid bool
+		pli, valid = value.(string)
+		if !valid {
+			respondError(w, http.StatusBadRequest, "Invalid PLI document reference")
+			return
+		}
+	}
+	if err := validateBatchDocumentRefs(tenantID, doc, pli); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if req.DeclarationOfConformityPath != nil {
+		key, _ := batchDocumentKey(tenantID, "doc", doc)
+		req.DeclarationOfConformityPath = &key
+	}
+	if _, present := req.Specs["pli_certificate_url"]; present {
+		key, _ := batchDocumentKey(tenantID, "pli", pli)
+		req.Specs["pli_certificate_url"] = key
 	}
 
 	if err := h.repo.PatchBatchDraft(r.Context(), batchID, tenantID, req); err != nil {

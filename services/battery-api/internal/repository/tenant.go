@@ -145,10 +145,14 @@ func (r *Repository) GetTenantSubscriptionStatus(ctx context.Context, tenantID u
 
 // GetTenant retrieves a tenant by ID
 func (r *Repository) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error) {
+	return getTenant(ctx, r.db.Pool, id)
+}
+
+func getTenant(ctx context.Context, q rowQuerier, id uuid.UUID) (*models.Tenant, error) {
 	tenant := &models.Tenant{}
 	query := fmt.Sprintf(`SELECT %s %s WHERE t.id = $1`, tenantSelectColumns, tenantProfileJoin)
 
-	err := scanTenant(r.db.Pool.QueryRow(ctx, query, id), tenant)
+	err := scanTenant(q.QueryRow(ctx, query, id), tenant)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("tenant not found")

@@ -28,6 +28,8 @@ type RepositoryInterface interface {
 	// batch.go
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
+	ActivateBatchAtomic(ctx context.Context, batchID, tenantID uuid.UUID, prepare PrepareIssuance) (int, error)
+	InsertPassportsAtomic(ctx context.Context, batchID, tenantID uuid.UUID, expectedStatus string, passports []*models.Passport, events []*models.PassportEvent, prepare PrepareIssuance) (int, error)
 	ListBatches(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int) ([]*models.Batch, int, error)
 	// marketRegions empty = no market filter; otherwise COALESCE(market_region,'GLOBAL') = ANY(marketRegions) (P-07).
 	ListBatchesFiltered(ctx context.Context, tenantID uuid.UUID, productType models.ProductType, limit, offset int, status, search string, marketRegions []string) ([]*models.Batch, int, error)

@@ -211,8 +211,8 @@ func TestActivateBatch_AlreadyActive(t *testing.T) {
 	}
 	var resp map[string]interface{}
 	json.NewDecoder(rr.Body).Decode(&resp)
-	if resp["error"] != "Batch is already active" {
-		t.Errorf("expected 'Batch is already active', got %v", resp["error"])
+	if resp["error"] != "Only DRAFT batches can be activated" {
+		t.Errorf("expected 'Only DRAFT batches can be activated', got %v", resp["error"])
 	}
 	mockRepo.AssertExpectations(t)
 }
@@ -264,8 +264,7 @@ func TestActivateBatch_InsufficientQuota(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(0, nil)
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(0, repository.ErrInsufficientQuota)
 
 	rr := httptest.NewRecorder()
 	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
@@ -289,11 +288,7 @@ func TestActivateBatch_Success(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(5, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
-	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil)
-	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).Return(nil)
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(4, nil)
 	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.Anything, mock.Anything).Return(nil).Once()
 
 	rr := httptest.NewRecorder()
@@ -321,7 +316,7 @@ func TestActivateBatch_Success(t *testing.T) {
 
 // --- Quota refund on SetBatchStatus failure (edge case) ---
 
-func TestActivateBatch_QuotaRefundOnActivationFailure(t *testing.T) {
+func TestActivateBatch_AtomicFailure(t *testing.T) {
 	mockRepo := new(repository.MockRepository)
 	handler := newTestHandler(mockRepo)
 
@@ -332,11 +327,7 @@ func TestActivateBatch_QuotaRefundOnActivationFailure(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(3, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
-	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(errors.New("db error"))
-	mockRepo.On("AddQuota", mock.Anything, tenantID, 1).Return(nil) // quota refund
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(0, errors.New("transaction failed"))
 
 	rr := httptest.NewRecorder()
 	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
@@ -349,7 +340,7 @@ func TestActivateBatch_QuotaRefundOnActivationFailure(t *testing.T) {
 
 // --- Transaction failure is non-fatal (edge case) ---
 
-func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
+func TestActivateBatch_LedgerFailureRollsBack(t *testing.T) {
 	mockRepo := new(repository.MockRepository)
 	handler := newTestHandler(mockRepo)
 
@@ -360,20 +351,14 @@ func TestActivateBatch_TransactionLogFailureIsNonFatal(t *testing.T) {
 
 	mockRepo.On("GetBatch", mock.Anything, batchID, tenantID).Return(batch, nil)
 	mockRepo.On("GetTenant", mock.Anything, tenantID).Return(tenant, nil)
-	mockRepo.On("CountPassportsByBatch", mock.Anything, batchID).Return(1, nil)
-	mockRepo.On("GetQuotaBalance", mock.Anything, tenantID).Return(2, nil)
-	mockRepo.On("DeductQuota", mock.Anything, tenantID, 1).Return(nil)
-	mockRepo.On("SetBatchStatus", mock.Anything, batchID, models.BatchStatusActive).Return(nil)
-	mockRepo.On("CreateTransaction", mock.Anything, mock.AnythingOfType("*models.Transaction")).
-		Return(errors.New("transaction log failed")) // non-fatal
-	mockRepo.On("UpdateBatchComplianceResult", mock.Anything, batchID, mock.Anything, mock.Anything).Return(nil).Once()
+	mockRepo.On("ActivateBatchAtomic", mock.Anything, batchID, tenantID, mock.Anything).Return(0, errors.New("transaction failed"))
 
 	rr := httptest.NewRecorder()
 	handler.ActivateBatch(rr, activateBatchReq(batchID, tenantID))
 
-	// Should still return 200 — transaction logging is non-critical
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200 (transaction failure is non-fatal), got %d: %s", rr.Code, rr.Body.String())
+	// Ledger failure is fatal; the repository rolls back the entire issuance.
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 (transaction rolled back), got %d: %s", rr.Code, rr.Body.String())
 	}
 
 	// Give the background compliance run goroutine a moment to execute

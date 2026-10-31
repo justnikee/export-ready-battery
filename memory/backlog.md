@@ -100,3 +100,14 @@ Source: [`ROADMAP.md`](ROADMAP.md). L-01…L-13 are implemented in the working t
 - Flip status `todo` → `doing` when starting; `doing` → `done` when preflight/tests pass.
 - Add a one-line note under the row or in CURRENT.md if blocked.
 - New findings: add a row with an ID; do not bury only in chat.
+
+## Demo P1 correctness (ADR 030)
+
+D01–D04 are implemented on the P1 branch and pass isolated API/unit/database checks; runtime demo verification remains before merge.
+
+| ID | Status | Change |
+|---|---|---|
+| D01 | done (branch) | Tenant-owned staging document references on writes and signing reads |
+| D02 | done (branch) | Server-enforced public/partner visibility and document access |
+| D03 | done (branch) | Atomic activation and issuance with quota and ledger |
+| D04 | done (branch) | Draft publication gate and final snapshot at activation |
