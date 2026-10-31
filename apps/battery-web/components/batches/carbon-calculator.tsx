@@ -244,7 +244,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  try {
  await api.post(`/batches/${targetBatchId}/carbon`, result)
  toast.success("Carbon footprint saved to batch", {
- description: `Class ${result.carbon_class} · This result will be used for EU compliance declarations.`,
+ description: `Internal band ${result.carbon_class} · screening estimate, not a PEFCR Art. 7 declaration.`,
  })
  onResultSaved?.()
  } catch (error: unknown) {
@@ -292,7 +292,7 @@ export function CarbonCalculator({ batchId, chemistry, capacity, weight, existin
  </Button>
  </div>
  <CardDescription className="text-muted-foreground">
- EU Battery Regulation 2023/1542 Article 7 — JRC methodology carbon footprint declaration
+ Screening estimate for pack carbon. Not PEFCR, not an Article 7 declaration, not a Commission class.
  </CardDescription>
  </CardHeader>
 

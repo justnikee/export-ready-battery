@@ -27,10 +27,10 @@ func validIndiaBatch() *models.Batch {
 		ManufacturingStartDate: &now,
 		ManufacturingEndDate:   &now,
 		Specs: models.BatchSpec{
-			Chemistry: "LFP",
-			Capacity:  "100Ah",
-			Certifications: []string{"AIS-156", "AIS-038", "BIS"},
-			ExpectedLifetimeCycles: &cycles,
+			Chemistry:               "LFP",
+			Capacity:                "100Ah",
+			Certifications:          []string{"AIS-156", "AIS-038", "BIS"},
+			ExpectedLifetimeCycles:  &cycles,
 			CellSource:              "DOMESTIC",
 			BISNumber:               "R-41001234",
 			EPRNumber:               "EPR/E-Waste/2024/00001",
@@ -157,9 +157,47 @@ func TestIndiaValidator_MissingTenantCredentials(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, result.Valid)
 	assert.Contains(t, result.Missing, "tenant.epr_registration_number")
-	assert.Contains(t, result.Missing, "tenant.bis_r_number")
 	assert.Contains(t, result.Missing, "tenant.iec_code")
-	assert.Contains(t, result.Missing, "tenant.morth_manufacturer_code")
+	assert.NotContains(t, result.Missing, "tenant.bis_r_number")
+	assert.NotContains(t, result.Missing, "tenant.morth_manufacturer_code")
+}
+
+func TestIndiaValidator_Industrial_NoMoRTH_Passes(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryIndustrial
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.MorthManufacturerCode = ""
+	tenant.BatteryProfile.BISRNumber = ""
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.True(t, result.Valid, "industrial India lot must not require MoRTH or BIS CRS, missing=%v errors=%v", result.Missing, result.Errors)
+}
+
+func TestIndiaValidator_Portable_RequiresBIS(t *testing.T) {
+	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryPortable
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.BISRNumber = ""
+	tenant.BatteryProfile.BISCertificatePath = ""
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.False(t, result.Valid)
+	assert.Contains(t, result.Missing, "tenant.bis_r_number")
+}
+
+func TestIndiaValidator_PendingPDF_DoesNotBlock(t *testing.T) {
+	batch := validIndiaBatch()
+	tenant := validIndiaTenant()
+	tenant.BatteryProfile.EPRStatus = "PENDING"
+
+	v := &battery.IndiaValidator{}
+	result, err := v.ValidateBatch(batch, tenant)
+	require.NoError(t, err)
+	assert.True(t, result.Valid, "PENDING upload is not verified but must not block, missing=%v", result.Missing)
 }
 
 func TestIndiaValidator_PLIClaim_InsufficientDVA_Errors(t *testing.T) {
@@ -279,6 +317,7 @@ func TestIndiaValidator_MissingEPRCertificate_BlocksActivation(t *testing.T) {
 
 func TestIndiaValidator_MissingBISCertificate_BlocksActivation(t *testing.T) {
 	batch := validIndiaBatch()
+	batch.Specs.BatteryCategory = models.BatteryCategoryPortable
 	batch.PLICompliant = false // avoid PLI cert check
 
 	tenant := validIndiaTenant()
@@ -347,10 +386,17 @@ func TestIndiaValidator_MissingTestDates_BlocksActivation(t *testing.T) {
 	result, err := v.ValidateBatch(batch, validIndiaTenant())
 	require.NoError(t, err)
 	assert.False(t, result.Valid)
-	assert.Contains(t, result.Missing, "batch.specs.bis_certificate_issue_date")
-	assert.Contains(t, result.Missing, "batch.specs.un38_3_test_date")
+	assert.NotContains(t, result.Missing, "batch.specs.bis_certificate_issue_date")
+	assert.NotContains(t, result.Missing, "batch.specs.un38_3_test_date")
 	assert.Contains(t, result.Missing, "batch.specs.iec_62133_test_date")
 	assert.Contains(t, result.Missing, "batch.specs.msds_issue_date")
+	foundUN38 := false
+	for _, w := range result.Warnings {
+		if contains(w, "UN 38.3") {
+			foundUN38 = true
+		}
+	}
+	assert.True(t, foundUN38, "UN 38.3 should be a warning, got %v", result.Warnings)
 }
 
 func TestIndiaValidator_FutureTestDate_BlocksActivation(t *testing.T) {

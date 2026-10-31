@@ -264,7 +264,7 @@ func (d *ddPDF) drawMaterialComposition(specs models.BatchSpec) {
 
 	// Table header
 	colWidths := []float64{d.contentW * 0.22, d.contentW * 0.16, d.contentW * 0.18, d.contentW * 0.20, d.contentW * 0.24}
-	d.tableRow([]string{"Material", "Total %", "Recycled %", "EU 2030 Target", "Status"}, colWidths, true, true)
+	d.tableRow([]string{"Material", "Total %", "Recycled %", "Art. 8 2031 min.", "Status"}, colWidths, true, true)
 
 	// Helper to determine compliance status
 	type matRow struct {

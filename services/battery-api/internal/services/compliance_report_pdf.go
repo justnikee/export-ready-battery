@@ -344,12 +344,13 @@ func (d *crPDF) addEURegulatorySection(batch *models.Batch) {
 		Article string
 		Title   string
 	}{
-		{"Art. 7", "Carbon Footprint Declaration"},
-		{"Art. 8", "Recycled Content Disclosure"},
-		{"Art. 10", "Due Diligence in Supply Chain"},
-		{"Art. 11", "Performance & Durability Requirements"},
-		{"Art. 13", "Labelling & Marking"},
-		{"Art. 77", "Battery Passport (Digital Product Passport)"},
+		{"Art. 7", "Carbon footprint (not an activation duty in 2026)"},
+		{"Art. 8", "Recycled content (disclosure 2028 / LMT 2033)"},
+		{"Art. 10", "Performance and durability"},
+		{"Art. 11", "Removability and replaceability (product design)"},
+		{"Art. 13", "Labelling and QR"},
+		{"Art. 48", "Due diligence (from 18 Aug 2027)"},
+		{"Art. 77", "Battery passport"},
 	}
 
 	pdf.SetFont("Helvetica", "", 8)

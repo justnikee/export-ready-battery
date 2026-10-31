@@ -83,14 +83,23 @@ export function getActivationBlockers(
   if (region === "INDIA" || region === "GLOBAL") {
     if (!batch.specs?.cell_source) blocking.push("cell_source");
 
-    // Legal declaration dates required for India activation (mirrors india.go).
-    if (!batch.specs?.bis_certificate_issue_date) blocking.push("specs.bis_certificate_issue_date");
-    if (!batch.specs?.un38_3_test_date) blocking.push("specs.un38_3_test_date");
+    const category = batch.specs?.battery_category;
+    const isTraction = category === "EV" || category === "LMT";
+    const isPortable = category === "PORTABLE";
+
+    // Dates: IEC 62133 + MSDS still required. BIS date only portable CRS.
+    // UN 38.3 is transport classification — warning, not a blocker.
+    if (isPortable && !batch.specs?.bis_certificate_issue_date) {
+      blocking.push("specs.bis_certificate_issue_date");
+    }
+    if (!batch.specs?.un38_3_test_date) {
+      warnings.push(
+        "UN 38.3 test date is recommended before lithium transport — it is a transport classification, not a digital-passport duty",
+      );
+    }
     if (!batch.specs?.iec_62133_test_date) blocking.push("specs.iec_62133_test_date");
     if (!batch.specs?.msds_issue_date) blocking.push("specs.msds_issue_date");
 
-    const category = batch.specs?.battery_category;
-    const isTraction = category === "EV" || category === "LMT";
     if (!category) {
       warnings.push("Set battery category so AIS type-approval can be applied (required for EV/LMT)");
     } else if (isTraction) {
@@ -100,9 +109,21 @@ export function getActivationBlockers(
     }
 
     if (!user?.epr_registration_number?.trim()) blocking.push("tenant.epr_registration_number");
-    if (!user?.bis_r_number?.trim()) blocking.push("tenant.bis_r_number");
     if (!user?.iec_code?.trim()) blocking.push("tenant.iec_code");
-    if (!user?.morth_manufacturer_code?.trim()) blocking.push("tenant.morth_manufacturer_code");
+    if (isPortable) {
+      if (!user?.bis_r_number?.trim()) blocking.push("tenant.bis_r_number");
+    } else if (!user?.bis_r_number?.trim()) {
+      warnings.push(
+        "BIS CRS IS 16046 applies to portable sealed secondary cells/batteries, not EV/industrial/SLI as a general sale rule.",
+      );
+    }
+    if (isTraction) {
+      if (!user?.morth_manufacturer_code?.trim()) blocking.push("tenant.morth_manufacturer_code");
+    } else if (!user?.morth_manufacturer_code?.trim()) {
+      warnings.push(
+        "MoRTH manufacturer code applies to vehicle traction batteries (EV/LMT), not portable/stationary/SLI.",
+      );
+    }
 
     if (batch.specs?.cell_source === "IMPORTED") {
       if (!batch.specs?.bill_of_entry_no?.trim()) blocking.push("bill_of_entry_no");
@@ -131,24 +152,26 @@ export function getActivationBlockers(
 
     if (!user?.company_name?.trim()) blocking.push("tenant.company_name");
     if (!user?.address?.trim()) blocking.push("tenant.address");
-    if (!user?.eu_authorized_representative_name?.trim()) {
-      blocking.push("tenant.eu_authorized_representative_name");
-    }
-    if (!user?.eu_authorized_representative_address?.trim()) {
-      blocking.push("tenant.eu_authorized_representative_address");
+    if (!isEstablishedInEUEEA(user)) {
+      if (!user?.eu_authorized_representative_name?.trim()) {
+        blocking.push("tenant.eu_authorized_representative_name");
+      }
+      if (!user?.eu_authorized_representative_address?.trim()) {
+        blocking.push("tenant.eu_authorized_representative_address");
+      }
     }
     if (!user?.eu_contact_email?.trim()) {
       blocking.push("tenant.eu_contact_email");
     }
 
-    // EU Art. 7 requires the structured platform calculator result
-    // (batch.carbon_footprint_result). Free-text specs.carbon_footprint is
-    // NOT accepted by the activation gate — keep FE/BE in lockstep.
+    const category = batch.specs?.battery_category ?? "";
     const hasCarbonResult =
       !!batch.carbon_footprint_result &&
       Object.keys(batch.carbon_footprint_result).length > 0;
-    if (!hasCarbonResult) {
-      blocking.push("carbon_footprint_result");
+    if (art7Applies(category, batch.specs?.capacity) && !hasCarbonResult) {
+      warnings.push(
+        "Screening estimate not attached. Optional in 2026 — not a PEFCR Art. 7 declaration and not required in the February 2027 passport. Free-text carbon_footprint is display-only.",
+      );
     }
 
     const materialComposition = batch.specs?.material_composition as
@@ -161,7 +184,7 @@ export function getActivationBlockers(
         typeof value === "number" ? value > 0 : parseFloat(String(value)) > 0,
       )
     ) {
-      blocking.push("specs.material_composition");
+      warnings.push("Material composition (critical raw material percentages) is not declared");
     }
 
     if (!batch.specs?.hazardous_substances?.declaration?.trim()) {
@@ -176,17 +199,21 @@ export function getActivationBlockers(
       blocking.push("specs.warranty_months");
     }
 
-    const recycledKeys = ["recycled_cobalt", "recycled_lithium", "recycled_nickel", "recycled_lead"] as const;
-    for (const key of recycledKeys) {
-      const baseKey = key.replace("recycled_", "");
-      if (materialComposition && typeof materialComposition === "object" && baseKey in materialComposition) {
-        const mc = materialComposition as Record<string, unknown>;
-        const baseVal = parseFloat(String(mc[baseKey])) || 0;
-        const recycledVal = parseFloat(String(mc[key])) || 0;
-        if (baseVal > 0 && recycledVal === 0) {
-          warnings.push(
-            `Recycled ${baseKey} content not declared (EU minimum applies from 18 Aug 2031; disclosure from 18 Aug 2028)`,
-          );
+    if (art8Applies(category, batch.specs?.capacity)) {
+      const disclosure = category === "LMT" ? "18 Aug 2033" : "18 Aug 2028";
+      const minima = category === "LMT" ? "18 Aug 2036" : "18 Aug 2031";
+      const recycledKeys = ["recycled_cobalt", "recycled_lithium", "recycled_nickel", "recycled_lead"] as const;
+      for (const key of recycledKeys) {
+        const baseKey = key.replace("recycled_", "");
+        if (materialComposition && typeof materialComposition === "object" && baseKey in materialComposition) {
+          const mc = materialComposition as Record<string, unknown>;
+          const baseVal = parseFloat(String(mc[baseKey])) || 0;
+          const recycledVal = parseFloat(String(mc[key])) || 0;
+          if (baseVal > 0 && recycledVal === 0) {
+            warnings.push(
+              `Recycled ${baseKey} content not declared (EU minimum applies from ${minima}; disclosure from ${disclosure})`,
+            );
+          }
         }
       }
     }
@@ -224,7 +251,7 @@ export function formatBlockerLabel(key: string): string {
     "tenant.eu_authorized_representative_address": "EU representative address (Settings -> Compliance)",
     "tenant.eu_contact_email": "EU contact email (Settings -> Compliance)",
     carbon_footprint_result:
-      "Carbon footprint calculator (Compliance step — run Calculate; free-text alone is not accepted)",
+      "Carbon screening estimate (optional in 2026 — not a PEFCR Art. 7 declaration)",
     "specs.material_composition": "Material composition (at least one non-zero %)",
     "specs.material_composition.recycled_cobalt_pct": "Recycled cobalt content not declared (EU Art. 8)",
     "specs.material_composition.recycled_lithium_pct": "Recycled lithium content not declared (EU Art. 8)",
@@ -266,15 +293,81 @@ export interface ComplianceGapLike {
   severity: string;
 }
 
-/**
- * Merge the lightweight client-side heuristic with the authoritative backend
- * compliance gaps. Additive and deduplicated: gap fields are normalized into the
- * heuristic key space (so e.g. `batch.specs.certifications[AIS-156]` lines up
- * with the heuristic's `specs.certifications: AIS-156`). This guarantees the
- * activation checklist never *understates* what the backend gate will enforce —
- * the original bug, where the heuristic omitted cert dates, tenant certificate
- * uploads, etc., and the UI said "ready" while activation was rejected.
- */
+const EU_EEA_ADDRESS_TOKENS = [
+  "AUSTRIA",
+  "BELGIUM",
+  "BULGARIA",
+  "CROATIA",
+  "CYPRUS",
+  "CZECH",
+  "DENMARK",
+  "ESTONIA",
+  "FINLAND",
+  "FRANCE",
+  "GERMANY",
+  "GREECE",
+  "HUNGARY",
+  "IRELAND",
+  "ITALY",
+  "LATVIA",
+  "LITHUANIA",
+  "LUXEMBOURG",
+  "MALTA",
+  "NETHERLANDS",
+  "POLAND",
+  "PORTUGAL",
+  "ROMANIA",
+  "SLOVAK",
+  "SLOVENIA",
+  "SPAIN",
+  "SWEDEN",
+  "ICELAND",
+  "LIECHTENSTEIN",
+  "NORWAY",
+];
+
+function isEstablishedInEUEEA(user: ActivationTenantFields | null | undefined): boolean {
+  const hay = (user?.address ?? "").toUpperCase();
+  if (!hay) return false;
+  if (EU_EEA_ADDRESS_TOKENS.some((token) => hay.includes(token))) return true;
+  // Match the comma/space-padded ISO-2 forms accepted by the API validator.
+  return /(?:,\s*(?:AT|BE|BG|HR|CY|CZ|DK|EE|FI|FR|DE|GR|EL|HU|IE|IT|LV|LT|LU|MT|NL|PL|PT|RO|SK|SI|ES|SE|IS|LI|NO)(?:\b|,)|\b(?:AT|BE|BG|HR|CY|CZ|DK|EE|FI|FR|DE|GR|EL|HU|IE|IT|LV|LT|LU|MT|NL|PL|PT|RO|SK|SI|ES|SE|IS|LI|NO),)/.test(hay);
+}
+
+/** Parse kWh from a capacity string. Ah/mAh cannot be converted without voltage. */
+function parseCapacityKWh(raw?: string): number | null {
+  if (!raw) return null;
+  const compact = raw.toLowerCase().replace(/\s/g, "");
+  const match = compact.match(/([0-9]+(?:\.[0-9]+)?)/);
+  if (!match) return null;
+  const n = parseFloat(match[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (compact.includes("kwh")) return n;
+  if (compact.includes("wh")) return n / 1000;
+  return null;
+}
+
+function art7Applies(category: string, capacity?: string): boolean {
+  if (category === "EV" || category === "LMT") return true;
+  if (category === "INDUSTRIAL") {
+    const kwh = parseCapacityKWh(capacity);
+    if (kwh == null) return true;
+    return kwh > 2;
+  }
+  return false;
+}
+
+function art8Applies(category: string, capacity?: string): boolean {
+  if (category === "EV" || category === "LMT" || category === "SLI") return true;
+  if (category === "INDUSTRIAL") {
+    const kwh = parseCapacityKWh(capacity);
+    if (kwh == null) return true;
+    return kwh > 2;
+  }
+  return false;
+}
+
+/** Merge client heuristic with backend gaps. ERROR gaps become blockers. */
 export function mergeActivationBlockers(
   heuristic: ActivationBlockers,
   gaps: ComplianceGapLike[] | null | undefined,

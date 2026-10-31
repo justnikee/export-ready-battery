@@ -105,13 +105,51 @@ describe("getActivationBlockers", () => {
     expect(warnings.some((w) => w.includes("PLI"))).toBe(true);
   });
 
-  it("flags EU carbon footprint and battery category when missing", () => {
-    const { blocking } = getActivationBlockers(
+  it("flags EU battery category when missing but does not block on carbon", () => {
+    const { blocking, warnings } = getActivationBlockers(
       euBatch({ carbon_footprint_result: null, specs: { chemistry: "NMC", capacity: "180Wh" } }),
       fullTenant,
     );
-    expect(blocking).toContain("carbon_footprint_result");
+    expect(blocking).not.toContain("carbon_footprint_result");
     expect(blocking).toContain("specs.battery_category");
+    expect(warnings.some((w) => w.includes("Screening estimate"))).toBe(false);
+  });
+
+  it("warns on missing carbon for EV, does not block", () => {
+    const { blocking, warnings } = getActivationBlockers(
+      euBatch({
+        carbon_footprint_result: null,
+        specs: {
+          chemistry: "NMC",
+          capacity: "75kWh",
+          battery_category: "EV",
+          hazardous_substances: { declaration: "none present" },
+          expected_lifetime_cycles: 2000,
+          warranty_months: 24,
+        },
+      }),
+      fullTenant,
+    );
+    expect(blocking).not.toContain("carbon_footprint_result");
+    expect(warnings.some((w) => w.includes("Screening estimate"))).toBe(true);
+  });
+
+  it("does not require MoRTH or BIS on an India industrial lot", () => {
+    const { blocking } = getActivationBlockers(
+      indiaBatch({
+        specs: {
+          chemistry: "LFP",
+          capacity: "100Ah",
+          cell_source: "DOMESTIC",
+          battery_category: "INDUSTRIAL",
+          iec_62133_test_date: "2026-01-01",
+          msds_issue_date: "2026-01-01",
+        },
+      }),
+      { ...fullTenant, morth_manufacturer_code: "", bis_r_number: "" },
+    );
+    expect(blocking).not.toContain("tenant.morth_manufacturer_code");
+    expect(blocking).not.toContain("tenant.bis_r_number");
   });
 
   it("requires AIS only for EV/LMT traction, not industrial", () => {
@@ -158,23 +196,49 @@ describe("getActivationBlockers", () => {
       fullTenant,
     );
     expect(blocking).toEqual([]);
-    expect(warnings.some((w) => w.includes("2031"))).toBe(true);
+    expect(warnings.some((w) => w.includes("2036") || w.includes("2033"))).toBe(true);
   });
 
-  it("does not accept free-text carbon_footprint as Art. 7 compliance", () => {
-    const { blocking } = getActivationBlockers(
+  it("does not treat free-text carbon_footprint as an activation blocker", () => {
+    const { blocking, warnings } = getActivationBlockers(
       euBatch({
         carbon_footprint_result: null,
         specs: {
           chemistry: "NMC",
-          capacity: "180Wh",
+          capacity: "75kWh",
           battery_category: "EV",
           carbon_footprint: "12 kg CO2e",
+          hazardous_substances: { declaration: "none present" },
+          expected_lifetime_cycles: 2000,
+          warranty_months: 24,
         },
       }),
       fullTenant,
     );
-    expect(blocking).toContain("carbon_footprint_result");
+    expect(blocking).not.toContain("carbon_footprint_result");
+    expect(warnings.some((w) => w.includes("Free-text"))).toBe(true);
+  });
+
+  it("does not require an EU AR when the manufacturer address is in the EU", () => {
+    const { blocking } = getActivationBlockers(euBatch(), {
+      ...fullTenant,
+      address: "123 Batterieplatz, Berlin, Germany",
+      eu_authorized_representative_name: "",
+      eu_authorized_representative_address: "",
+    });
+    expect(blocking).not.toContain("tenant.eu_authorized_representative_name");
+    expect(blocking).not.toContain("tenant.eu_authorized_representative_address");
+  });
+
+  it("accepts the EU country-code address form accepted by the API", () => {
+    const { blocking } = getActivationBlockers(euBatch(), {
+      ...fullTenant,
+      address: "Berlin, DE",
+      eu_authorized_representative_name: "",
+      eu_authorized_representative_address: "",
+    });
+    expect(blocking).not.toContain("tenant.eu_authorized_representative_name");
+    expect(blocking).not.toContain("tenant.eu_authorized_representative_address");
   });
 });
 
