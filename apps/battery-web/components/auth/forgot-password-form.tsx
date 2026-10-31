@@ -27,13 +27,16 @@ export function ForgotPasswordForm({ productSlug }: ForgotPasswordFormProps) {
     setIsLoading(true);
 
     try {
-      await api.post("/auth/forgot-password", { email });
-      setIsSubmitted(true);
-      toast.success("Reset instructions sent to your email");
+      await api.post("/auth/forgot-password", {
+        email: email.trim().toLowerCase(),
+      });
     } catch {
-      setIsSubmitted(true);
-      toast.success("If the email exists, reset instructions will be sent");
+      // Same copy either way — do not reveal whether the address exists.
     } finally {
+      setIsSubmitted(true);
+      toast.success(
+        "If an account exists for that email, reset instructions will be sent",
+      );
       setIsLoading(false);
     }
   };

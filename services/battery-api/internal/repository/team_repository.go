@@ -205,7 +205,7 @@ func (r *Repository) GetTeamMemberByID(ctx context.Context, id uuid.UUID) (*mode
 // GetPendingInvitesByEmail retrieves all pending invites for a given email
 func (r *Repository) GetPendingInvitesByEmail(ctx context.Context, email string) ([]models.TeamMember, error) {
 	query := `SELECT id, tenant_id, email, role, status, invite_token, invite_expires_at, user_id, created_at
-	          FROM team_members WHERE email = $1 AND status = 'PENDING'`
+	          FROM team_members WHERE LOWER(email) = LOWER($1) AND status = 'PENDING'`
 
 	rows, err := r.db.Pool.Query(ctx, query, email)
 	if err != nil {

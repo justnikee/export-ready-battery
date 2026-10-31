@@ -198,7 +198,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
+	req.Email = services.NormalizeEmail(req.Email)
 	if req.Email == "" || req.Password == "" {
 		respondError(w, http.StatusBadRequest, "email and password are required")
 		return
@@ -241,7 +241,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var existingUserID *uuid.UUID
 	var userIDScan uuid.UUID
 	err = h.db.Pool.QueryRow(r.Context(),
-		"SELECT id FROM public.users WHERE email = $1", req.Email).Scan(&userIDScan)
+		"SELECT id FROM public.users WHERE LOWER(email) = $1", req.Email).Scan(&userIDScan)
 	switch {
 	case err == nil:
 		existingUserID = &userIDScan
@@ -262,7 +262,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// ── Invite flow: create the identity and JOIN the inviter's org. No new tenant. ──
 	if isInviteFlow {
 		invite, invErr := h.repo.GetTeamMemberByToken(r.Context(), req.InviteToken)
-		if invErr != nil || invite == nil || invite.Email != req.Email {
+		if invErr != nil || invite == nil || services.NormalizeEmail(invite.Email) != req.Email {
 			respondError(w, http.StatusBadRequest, "Invalid or expired invitation")
 			return
 		}
@@ -407,7 +407,7 @@ func (h *AuthHandler) handleRegisterExistingEmail(
 	if existingUserID == uuid.Nil {
 		var id uuid.UUID
 		if err := h.db.Pool.QueryRow(r.Context(),
-			"SELECT id FROM public.users WHERE email = $1", req.Email).Scan(&id); err == nil {
+			"SELECT id FROM public.users WHERE LOWER(email) = $1", req.Email).Scan(&id); err == nil {
 			existingUserID = id
 		}
 	}
@@ -416,7 +416,7 @@ func (h *AuthHandler) handleRegisterExistingEmail(
 		// Valid invite for this email: attach existing identity to the org.
 		// Invalid invite: same error as unknown-token path (does not say "email taken").
 		invite, invErr := h.repo.GetTeamMemberByToken(r.Context(), req.InviteToken)
-		if invErr != nil || invite == nil || invite.Email != req.Email {
+		if invErr != nil || invite == nil || services.NormalizeEmail(invite.Email) != req.Email {
 			respondError(w, http.StatusBadRequest, "Invalid or expired invitation")
 			return
 		}
@@ -540,7 +540,12 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	var req struct {
 		Email string `json:"email"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "email is required")
+		return
+	}
+	req.Email = services.NormalizeEmail(req.Email)
+	if req.Email == "" {
 		respondError(w, http.StatusBadRequest, "email is required")
 		return
 	}
@@ -549,7 +554,7 @@ func (h *AuthHandler) ResendVerification(w http.ResponseWriter, r *http.Request)
 	var userID uuid.UUID
 	var emailVerified bool
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id, email_verified FROM public.users WHERE email = $1", req.Email).
+		"SELECT id, email_verified FROM public.users WHERE LOWER(email) = $1", req.Email).
 		Scan(&userID, &emailVerified)
 	if err != nil {
 		// Silently succeed to prevent email enumeration
@@ -614,6 +619,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = services.NormalizeEmail(req.Email)
 	if req.Email == "" || req.Password == "" {
 		respondError(w, http.StatusBadRequest, "email and password are required")
 		return
@@ -626,7 +632,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var oauthProvider *string
 	var emailVerified bool
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, password_hash, oauth_provider, email_verified FROM public.users WHERE email = $1`,
+		`SELECT id, password_hash, oauth_provider, email_verified FROM public.users WHERE LOWER(email) = $1`,
 		req.Email).Scan(&userID, &passwordHash, &oauthProvider, &emailVerified)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -869,6 +875,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = services.NormalizeEmail(req.Email)
 	if req.Email == "" {
 		respondError(w, http.StatusBadRequest, "email is required")
 		return
@@ -877,7 +884,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	// Check if the identity exists
 	var userID uuid.UUID
 	err := h.db.Pool.QueryRow(r.Context(),
-		"SELECT id FROM public.users WHERE email = $1", req.Email).Scan(&userID)
+		"SELECT id FROM public.users WHERE LOWER(email) = $1", req.Email).Scan(&userID)
 	if err != nil {
 		// Don't reveal if email exists or not
 		respondJSON(w, http.StatusOK, map[string]string{
@@ -894,7 +901,7 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Generate reset token
+	// Generate reset token (plaintext goes in the email; only the hash is stored)
 	resetToken, err := h.authService.GenerateResetToken()
 	if err != nil {
 		slog.Error("Failed to generate reset token", "error", err)
@@ -902,11 +909,10 @@ func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save reset token to database
 	expires := h.authService.GetResetTokenExpiry()
 	_, err = h.db.Pool.Exec(r.Context(),
 		"UPDATE public.users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3",
-		resetToken, expires, userID)
+		services.HashResetToken(resetToken), expires, userID)
 	if err != nil {
 		slog.Error("Failed to save reset token", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to process request")
@@ -937,14 +943,16 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find user by reset token
+	tokenHash := services.HashResetToken(req.Token)
+
+	// Find user by hashed reset token
 	var userID uuid.UUID
 	var userEmail string
 	var expires time.Time
 	err := h.db.Pool.QueryRow(r.Context(),
 		`SELECT id, email, reset_token_expires FROM public.users
 		 WHERE reset_token = $1 AND reset_token IS NOT NULL`,
-		req.Token).Scan(&userID, &userEmail, &expires)
+		tokenHash).Scan(&userID, &userEmail, &expires)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			respondError(w, http.StatusBadRequest, "Invalid or expired reset token")

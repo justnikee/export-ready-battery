@@ -2,10 +2,12 @@ package services
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,6 +16,22 @@ import (
 
 	"github.com/anvayalabs/battery-api/internal/models"
 )
+
+// NormalizeEmail trims and lowercases so login / forgot-password / register
+// hit the same row regardless of how the user typed the address.
+func NormalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// HashResetToken is SHA-256 of the token we email. Store only the hash;
+// a DB dump must not be enough to reset a password.
+func HashResetToken(token string) string {
+	if token == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
 
 // getBcryptCost returns the bcrypt cost from BCRYPT_COST env var, defaulting to bcrypt.DefaultCost.
 func getBcryptCost() int {

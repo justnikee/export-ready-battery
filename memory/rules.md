@@ -54,6 +54,7 @@ Missing mock → handler tests break.
 | Client IP | Rate limits use `middleware.ClientIP` — ignore XFF unless `TRUST_PROXY` / production; when trusted use **rightmost** hop (ADR 013 / S-09). |
 | Compliance certs | Store private-bucket canonical refs only; **re-sign on every read** (`resolveFreshBucketURL` / ViewDocument). Never persist long-lived signed URLs (ADR 014 / S-10). |
 | Upload sniff | PDF certs/AI/DGFT: `services.RequirePDF` (`%PDF-`). Logos: `DetectImageType`. Multi-type docs: `DetectAllowedDocMIME`. Never accept on extension/MIME alone (ADR 015 / S-11). |
+| Password reset | Store only SHA-256 of random reset tokens; compare hashes at redemption. Normalize email lookups and keep forgot-password responses non-enumerating (ADR 034). |
 | Passwords | Register/reset/supplier accept: `services.ValidatePassword` — min 12, letter+digit, blocklist, not email (ADR 017 / S-13). Keep `lib/password-policy.ts` in sync. |
 | Register enum | Never return `409 Email already registered`. Existing email → same 202 success + `SendAccountExistsEmail` (ADR 018 / S-14). |
 | CSP scripts | Production `script-src` must not use `'unsafe-inline'`. Nonce + `'strict-dynamic'` via `proxy.ts` / `lib/csp.ts`; third-party scripts take `nonce` (ADR 019 / S-15). |
