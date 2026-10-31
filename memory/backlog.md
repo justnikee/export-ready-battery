@@ -111,3 +111,7 @@ D01–D04 are implemented on the P1 branch and pass isolated API/unit/database c
 | D02 | done (branch) | Server-enforced public/partner visibility and document access |
 | D03 | done (branch) | Atomic activation and issuance with quota and ledger |
 | D04 | done (branch) | Draft publication gate and final snapshot at activation |
+
+## Authentication hardening (ADR 034)
+
+Email normalization and hashed reset-token storage are done on a draft branch with API/frontend gates passing. Manual forgot/reset email flow remains before merge.

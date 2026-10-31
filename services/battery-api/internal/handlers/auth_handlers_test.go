@@ -427,7 +427,38 @@ func TestAuthService_GenerateResetToken(t *testing.T) {
 	}
 }
 
-// TestAuthService_GetResetTokenExpiry tests reset token expiry
+func TestNormalizeEmail(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		{"  You@Factory.COM  ", "you@factory.com"},
+		{"you@factory.com", "you@factory.com"},
+		{"\t", ""},
+	}
+	for _, tt := range tests {
+		if got := services.NormalizeEmail(tt.in); got != tt.want {
+			t.Errorf("NormalizeEmail(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestHashResetToken(t *testing.T) {
+	token := "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+	got := services.HashResetToken(token)
+	if got == "" || got == token {
+		t.Fatalf("hash must differ from plaintext, got %q", got)
+	}
+	if services.HashResetToken(token) != got {
+		t.Fatal("hash must be deterministic")
+	}
+	if services.HashResetToken(token+"x") == got {
+		t.Fatal("different tokens must not collide")
+	}
+	if services.HashResetToken("") != "" {
+		t.Fatal("empty token hashes to empty")
+	}
+}
+
 func TestAuthService_GetResetTokenExpiry(t *testing.T) {
 	authService := newTestAuthService()
 

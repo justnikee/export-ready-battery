@@ -100,6 +100,7 @@ Multi-tenant SaaS for Indian **battery** manufacturers exporting to EU/global. I
 ## ADRs (recent security/perf sprint)
 
 Latest correctness decision: [ADR 030 — atomic issuance and enforced passport privacy](decisions/030-atomic-issuance-and-passport-privacy.md).
+Auth decision: [ADR 034 — hashed password-reset tokens](decisions/034-hashed-password-reset-tokens.md).
 Full table above. Latest for this sprint: **004–027** (S-01…S-15 + P-01…P-08).
 
 ---

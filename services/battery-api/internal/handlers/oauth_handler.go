@@ -368,7 +368,8 @@ func (h *OAuthHandler) handleOAuthCallback(w http.ResponseWriter, r *http.Reques
 // (OWNER) only when the user belongs to none.
 func (h *OAuthHandler) findOrCreateUser(ctx context.Context, profile *services.OAuthProfile, productType models.ProductType) (tenantID uuid.UUID, userID uuid.UUID, companyName string, role string, err error) {
 	// 1. Ensure a user identity exists.
-	uErr := h.db.Pool.QueryRow(ctx, "SELECT id FROM public.users WHERE email = $1", profile.Email).Scan(&userID)
+	profile.Email = services.NormalizeEmail(profile.Email)
+	uErr := h.db.Pool.QueryRow(ctx, "SELECT id FROM public.users WHERE LOWER(email) = $1", profile.Email).Scan(&userID)
 	switch {
 	case uErr == pgx.ErrNoRows:
 		userID = uuid.New()
