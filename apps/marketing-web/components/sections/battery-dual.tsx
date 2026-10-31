@@ -3,21 +3,19 @@
 import { motion } from "framer-motion";
 
 const indiaItems = [
-  "BIS Certification (IS 16046)",
-  "EPR Registration (CPCB)",
-  "BWM Rules 2022 Compliance",
-  "PLI Phase II Documentation",
-  "AIS-156 / AIS-038 Testing",
-  "QR code traceability mandate",
+  "BIS CRS numbers for portable cells (vault, not a licence)",
+  "EPR registration number + Form 3 CSV helper",
+  "UN 38.3 test report on the lot",
+  "AIS-156 / AIS-038 only for EV/LMT traction",
+  "Printable pack QR and serials",
 ];
 
 const euItems = [
-  "EU Battery Regulation 2023/1542",
-  "CE Marking & Declaration of Conformity",
-  "Carbon Footprint Declaration (Annex II)",
-  "Due Diligence Policy (Art. 48)",
-  "Recycling & Recycled Content (Art. 8)",
-  "Battery Passport (Art. 77)",
+  "Art. 77 passport: LMT, industrial >2 kWh, EV",
+  "Art. 13 QR for all batteries from 18 Feb 2027",
+  "Public / partner / regulator views",
+  "Art. 48 due diligence from 18 Aug 2027",
+  "Art. 7 / Art. 8 later — not day-one passport fields",
 ];
 
 export default function BatteryDual() {
@@ -30,7 +28,7 @@ export default function BatteryDual() {
           viewport={{ once: true }}
           className="font-heading text-text text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.035em] text-center mb-12 text-balance"
         >
-          One data set. Two regulatory masters.
+          One lot. India papers beside an EU scan page.
         </motion.h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -86,9 +84,8 @@ export default function BatteryDual() {
           viewport={{ once: true }}
           className="text-center text-[16px] leading-[1.65] text-text-muted mt-10 max-w-[640px] mx-auto text-pretty font-normal"
         >
-          The same underlying data — carbon footprint, recycled content, supplier
-          identities, mass balance — serves both regulatory masters. Enter it once.
-          Stay compliant everywhere.
+          The same lot holds serials for the EU buyer and certificate numbers
+          for the factory. That is not dual-regulator clearance.
         </motion.p>
       </div>
     </section>

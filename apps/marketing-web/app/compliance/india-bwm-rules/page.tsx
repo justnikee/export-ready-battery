@@ -14,12 +14,12 @@ const requirements = [
   {
     tag: "EPR",
     title: "Extended Producer Responsibility (CPCB)",
-    body: "Every battery manufacturer or importer must register with CPCB and file EPR returns covering collection and recycling targets — non-compliance blocks production and sale.",
+    body: "Producers who introduce batteries on the Indian market register with CPCB and file annual Form 3 on the portal. Anviora stores the number and can emit a helper CSV. That is not a live filing and not a substitute for the portal.",
   },
   {
     tag: "BIS",
     title: "BIS IS 16046 certification",
-    body: "Mandatory safety certification for lithium-ion cells and packs sold in India, renewed every two years. A lapsed certificate is one of the most common causes of a stopped production line.",
+    body: "CRS Order 2021 schedules IS 16046 for portable sealed secondary cells/batteries. It is not a general CRS mandate for EV traction or industrial packs (those sit under AIS where they apply). Export goods to a foreign buyer’s spec are outside that Order.",
   },
   {
     tag: "PLI",
@@ -29,18 +29,17 @@ const requirements = [
   {
     tag: "AIS",
     title: "AIS-156 / AIS-038 safety testing",
-    body: "Type-approval testing for EV traction batteries (AIS-156) and general EV battery safety (AIS-038), required alongside UN38.3 and IEC 62133 for export-bound cells.",
+    body: "MoRTH type-approval for traction REESS of L-category (AIS-156) and M/N (AIS-038) electric power-train vehicles — not a general sale rule for portable, stationary, or SLI packs.",
   },
 ];
 
 const checklist = [
-  "EPR registration number (CPCB)",
-  "BIS R-Number and current certificate status",
-  "PLI Domestic Value Addition documentation",
-  "AIS-156 / AIS-038 type-approval reports",
-  "UN38.3 transport test report",
-  "MoRTH manufacturer code (for traction batteries)",
-  "QR code traceability (BWM Rules 2022 mandate)",
+  "EPR number if you place batteries on the Indian market (file Form 3 on the CPCB portal)",
+  "BIS R-number for portable CRS cells only",
+  "PLI DVA evidence only if you claim PLI",
+  "AIS-156 / AIS-038 only for EV/LMT traction",
+  "UN 38.3 test report before lithium transport",
+  "MoRTH manufacturer code for traction packs only",
 ];
 
 export default function IndiaBWMRulesPage() {
@@ -72,7 +71,7 @@ export default function IndiaBWMRulesPage() {
               India&apos;s Battery Waste Management Rules, explained.
             </h1>
             <p className="text-[15px] sm:text-[17px] leading-[1.6] text-black/85 font-medium max-w-[640px]">
-              BWM Rules 2022, EPR registration, BIS certification, and PLI documentation — four separate compliance tracks that all draw on the same underlying product data.
+              India producer duties are separate from the EU passport. We store numbers and PDFs. Filing, licences, and type-approval stay with CPCB, BIS, and MoRTH.
             </p>
           </div>
         </div>
@@ -123,10 +122,10 @@ export default function IndiaBWMRulesPage() {
       <section className="py-[72px]">
         <div className="max-w-[860px] mx-auto px-6 text-center">
           <h2 className="font-heading text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-black mb-4">
-            Anviora Battery tracks every certificate against this checklist.
+            We store the papers. You still file the portals.
           </h2>
           <p className="text-[16px] leading-[1.6] text-black/80 max-w-[560px] mx-auto mb-7">
-            Upload once, and Anviora maps your data to EPR, BIS, PLI and AIS requirements automatically — with expiry alerts so a lapsed certificate never stops your line.
+            Upload numbers and PDFs. Category-correct checklists. Expiry reminders. We do not register you with CPCB or BIS.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a

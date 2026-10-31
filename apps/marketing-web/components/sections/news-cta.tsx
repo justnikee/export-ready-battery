@@ -7,7 +7,7 @@ const nextSteps = [
     icon: <Rocket size={18} />,
     title: "Starting out",
     description:
-      "Map one product line and generate your first buyer-ready passport in days. Free for small exporters.",
+      "One SKU, first serials, a public sample page. Ask for a 90-day pilot — not a free certified passport.",
     href: "/request-access",
     cta: "Request access",
   },

@@ -155,10 +155,10 @@ export default function PassportFlow() {
                   </span>
                 </div>
                 <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
-                  Blockchain Anchored Proof
+                  Hash-chained lot events
                 </h3>
                 <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
-                  Batch parameters are cryptographically hashed and anchored to the Bitcoin blockchain via OpenTimestamps, establishing permanent, tamper-proof proof of origin.
+                  Status changes go through a lifecycle service that appends hash-chained events. Optional OpenTimestamps on a certificate hash is not the passport and not required to ship.
                 </p>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function PassportFlow() {
                   <div className="text-emerald-950 font-bold text-[15px] tracking-wide">IN-LFP-2026-B4471</div>
                   <div className="text-[11px] text-emerald-700 flex items-center gap-1.5 pt-2 font-bold">
                     <CheckCircle2 size={13} />
-                    Cryptographically Signed
+                    Public scan page
                   </div>
                 </div>
                 <div className="bg-white border border-emerald-200 p-2 flex items-center justify-center rounded-none">
@@ -187,10 +187,10 @@ export default function PassportFlow() {
                   </span>
                 </div>
                 <h3 className="font-heading text-text text-[22px] font-bold tracking-[-0.03em] mb-2">
-                  Signed Verifiable Credentials
+                  A public page the buyer can open
                 </h3>
                 <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
-                  Generates W3C-compliant Digital Battery Passports with cryptographically signed JSON data and dynamic QR codes for instant verification at European ports.
+                  QR opens /p/{"{uuid}"} with no login. Optional signed credential is extra. This is not EU customs clearance and not the Commission registry.
                 </p>
               </div>
             </div>
@@ -208,10 +208,10 @@ export default function PassportFlow() {
                 </span>
               </div>
               <h3 className="font-heading text-text text-[clamp(28px,3.8vw,42px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
-                10-second scan verify at destination.
+                The importer scans. No account.
               </h3>
               <p className="text-[15.5px] leading-[1.6] text-text-muted text-pretty">
-                Steps 01–04 compile the cryptographic credential. European buyers &amp; customs authorities scan the QR code on the battery at destination port to instantly view compliance details, carbon footprint, and blockchain proofs.
+                Identity, category, and the fields you published. Not carbon class as law, not CPCB cleared, not a registry unique identifier.
               </p>
             </div>
 
@@ -224,12 +224,12 @@ export default function PassportFlow() {
                     <ShieldCheck size={18} />
                   </div>
                   <div>
-                    <div className="text-[12px] font-mono font-bold text-emerald-800 tracking-wide">PASSPORT VERIFIED</div>
-                    <div className="text-[10px] font-mono text-emerald-800/70">Live Cryptographic Audit</div>
+                    <div className="text-[12px] font-mono font-bold text-emerald-800 tracking-wide">PUBLIC RECORD</div>
+                    <div className="text-[10px] font-mono text-emerald-800/70">No login required</div>
                   </div>
                 </div>
                 <span className="inline-flex items-center px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-mono font-bold uppercase rounded-none">
-                  100% PASS
+                  SCAN OK
                 </span>
               </div>
 

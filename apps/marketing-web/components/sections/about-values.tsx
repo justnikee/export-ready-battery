@@ -9,11 +9,11 @@ const VALUES = [
   },
   {
     title: "Verifiability over trust",
-    body: "A claim without proof is noise. Every passport we issue is cryptographically signed, blockchain-timestamped, and independently verifiable by anyone with a phone.",
+    body: "A public QR that opens without an account is the proof that matters. Optional hash timestamps and credentials are extras. We do not sell Bitcoin as the product.",
   },
   {
     title: "India + EU, not just EU",
-    body: "We're the only platform that starts with Indian compliance and adds EU on top — because that's the real journey. Not the other way around.",
+    body: "India certificate vault next to an EU scan page — because that is the pack-house job. We do not file those Indian portals for you.",
   },
   {
     title: "No black boxes",
@@ -25,7 +25,7 @@ const VALUES = [
   },
   {
     title: "Long-term thinking",
-    body: "Textile DPP, Carbon Border Adjustment, CSRD supply-chain disclosures — these are coming. We're building the infrastructure that makes each new regulation a feature, not a crisis.",
+    body: "February 2027 is identity and QR for certain large batteries. Later clocks (carbon, recycled %, due diligence) get collected when they actually apply — not sold as day-one blockers.",
   },
 ];
 

@@ -7,27 +7,27 @@ import { Plus, Minus, Zap } from "lucide-react";
 const faqs = [
   {
     question: "What exactly is a Digital Product Passport?",
-    answer: "A Digital Product Passport (DPP) is a digital record containing sustainability, traceability, and compliance data for a product. Under EU Battery Regulation 2023/1542, every EV, LMT, and industrial battery above 2kWh sold in the EU must have one by February 2027. Anviora generates, hosts, and maintains these passports for you.",
+    answer: "A Digital Product Passport is a structured electronic record for a product. Under Regulation (EU) 2023/1542 Article 77, each LMT battery, each industrial battery above 2 kWh, and each EV battery placed on the EU market or put into service from 18 February 2027 needs one. Portable and SLI batteries need a QR, not that full passport. Anviora issues serials, QR, and a public page — it does not replace a notified body.",
   },
   {
     question: "Is my certificate data secure?",
-    answer: "Yes. Your data is encrypted in transit and at rest, isolated per tenant, and every record carries an audit trail. Certificate hashes are anchored to the Bitcoin blockchain via OpenTimestamps, so any tampering is independently detectable. You control exactly which fields appear on public passport pages — buyers and regulators each see only their access tier.",
+    answer: "Data is encrypted in transit and at rest and isolated per tenant. Lifecycle events are hash-chained. You can optionally timestamp a certificate hash with OpenTimestamps. Public pages show only the public tier; partners and regulators use separate access. We do not put Bitcoin on the label as the product.",
   },
   {
     question: "Do I need a compliance team to use Anviora?",
-    answer: "No. Anviora is built for teams of one. Our AI handles the heavy lifting — you upload certificates and review the output. Most customers are fully operational within 2 hours of signup. If you can use Zoho Books, you can use Anviora.",
+    answer: "The first lot is a concierge path: we sit with your compliance person and issue serials together. After that, a small team can run create → activate → print → ship. AI extraction is an aid, not a substitute for the papers you already have.",
   },
   {
     question: "What if EU regulations change?",
-    answer: "We track regulatory changes in real-time. When the EU updates the Battery Regulation or adds new requirements, we update the platform automatically. You'll get a notification and a clear checklist of what's new. Your existing passports update too.",
+    answer: "We update validators and copy when the Official Journal or Commission guidance changes. We do not scrape every gazette in real time. You still own legal dates for your SKU.",
   },
   {
     question: "Can my European buyers verify the passports?",
-    answer: "Yes — and they don't need an account. Every QR code links to a public passport page that shows compliance status, certificate validity, and blockchain proof. Buyers can verify in 10 seconds with any phone camera.",
+    answer: "Yes — they do not need an Anviora account. The QR opens a public page on our host with identity and the fields you publish. That is not the EU DPP Registry and not a notified-body stamp.",
   },
   {
     question: "What certificates do I need to start?",
-    answer: "At minimum: BIS certification, EPR registration, and UN38.3 test report for batteries. Don't have them? The platform shows you exactly which ones you're missing and how to get them. We'll even pre-fill the application forms.",
+    answer: "For an EU LMT or industrial >2 kWh lot: category, model, plant, dates, and the PDFs you already have (often UN 38.3, MSDS, DoC). BIS CRS applies to portable sealed cells, not every pack. EPR is an India placing-on-market duty, filed on the CPCB portal — we store the number.",
   },
   {
     question: "Is there a setup fee or lock-in period?",
@@ -35,7 +35,7 @@ const faqs = [
   },
   {
     question: "Does this work with Tally?",
-    answer: "Yes. Our native Tally Prime connector extracts bills of materials, supplier invoices, and GST-linked transactions directly into Anviora. No manual data entry. This is a feature no global competitor offers.",
+    answer: "There is an optional on-prem connector that talks to Tally Prime on the factory LAN (typically localhost:9000). Cloud Anviora cannot reach a factory PC. It is not live ERP sync and not required for a passport pilot.",
   },
 ];
 

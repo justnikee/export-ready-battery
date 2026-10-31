@@ -52,7 +52,7 @@ export default function AboutHero() {
             transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="mt-4 sm:mt-6 max-w-[660px] text-[15px] sm:text-[18px] leading-[1.6] text-black/85 font-medium text-pretty"
           >
-            Every battery that crosses a border carries a compliance story. We turn chemical specs, carbon metrics, and supply chain provenance into verifiable digital passports.
+            We issue serials, QR, and a public page for Indian pack exporters facing a 2027 EU buyer mandate. We are not a notified body, not CPCB, and not the EU registry.
           </motion.p>
         </div>
       </div>

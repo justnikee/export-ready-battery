@@ -1,16 +1,20 @@
 # Anviora
 
-> Digital Product Passport platform for Indian battery and textile exporters. Automates EU Battery Passport generation, certificate tracking, QR-code verification, and compliance gap detection for manufacturers exporting to Europe.
+> Software for Indian pack manufacturers to issue EU-scannable battery records: serials, QR, a public page, and an India certificate vault. Not a notified body, not CPCB, not the EU DPP Registry.
 
 ## Products
 
-- [Battery](/battery): Generate EU-compliant Battery Passports, track BIS certificates, and verify every cell from factory to recycler.
-- [Textile](/textile): Track fiber composition, manage sustainability certifications, and generate EU-compliant textile Digital Product Passports.
+- [Battery](/battery): LMT, industrial >2 kWh, and EV passport records from 18 February 2027 (Art. 77). QR for all batteries (Art. 13). Certificate vault for papers you already have.
 
 ## Pricing
 
-- [Pricing](/pricing): Plans for every scale, including a free tier and MSME discount support via the DGFT TRACE scheme.
+- [Pricing](/pricing): Prepaid passport credits. Ask about a 90-day pilot. DGFT TRACE is a separate testing/certification reimbursement scheme — not a discount on this software.
+
+## Legal
+
 
 ## Resources
 
-- [Blog](/blog): Insights on battery and textile compliance, EU Battery Regulation, and export requirements for Indian manufacturers.
+- [Blog](/blog): Battery export and EU Batteries Regulation notes for Indian manufacturers.
+- [EU 2023/1542](/compliance/eu-battery-regulation)
+- [India BWM Rules](/compliance/india-bwm-rules)

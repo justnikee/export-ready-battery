@@ -30,7 +30,7 @@ export default function PricingHero() {
                 PRICING
               </span>
               <span className="font-mono text-[12px] font-medium tracking-wide">
-                Transparent Credit & Subscription Plans
+                Prepaid passport credits — not a subscription
               </span>
             </div>
           </motion.div>

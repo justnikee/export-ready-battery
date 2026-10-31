@@ -389,8 +389,6 @@ export default function AnalyticsPage() {
                 value={complianceData?.compliance_ready_count ?? 0}
                 iconColor="text-emerald-500"
                 bgColor="bg-emerald-500/10"
-                trend="+8%"
-                trendUp={true}
                 subtext="Passports fully validated for EU/India export"
               />
               <ScanStatsCard
@@ -406,8 +404,6 @@ export default function AnalyticsPage() {
                 }
                 iconColor="text-blue-500"
                 bgColor="bg-blue-500/10"
-                trend="+2.1%"
-                trendUp={true}
                 subtext="Calculated across active production batches"
               />
               <ScanStatsCard
@@ -418,8 +414,6 @@ export default function AnalyticsPage() {
                 }
                 iconColor="text-amber-500"
                 bgColor="bg-amber-500/10"
-                trend="-3"
-                trendUp={true}
                 subtext="Articles requiring documentation resolution"
               />
             </div>
@@ -664,8 +658,6 @@ export default function AnalyticsPage() {
                   value={formatCurrency(dgftData?.total_claimed_value ?? 0)}
                   iconColor="text-emerald-500"
                   bgColor="bg-emerald-500/10"
-                  trend="+15.2%"
-                  trendUp={true}
                   subtext="RoDTEP, RoSCTL & DBK claims disbursed"
                 />
                 <ScanStatsCard
@@ -746,8 +738,6 @@ export default function AnalyticsPage() {
                   value={scanData.totalScans}
                   iconColor="text-blue-500"
                   bgColor="bg-blue-500/10"
-                  trend="+24%"
-                  trendUp={true}
                   subtext="Cumulative QR code scan events"
                 />
                 <ScanStatsCard

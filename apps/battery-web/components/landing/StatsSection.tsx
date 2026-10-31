@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 
 const stats = [
-  { value: "10,000+", label: "Passports Issued" },
-  { value: "500,000+", label: "Audit Trail Entries" },
-  { value: "99.8%", label: "Compliance Accuracy" },
-  { value: "EU + India", label: "Dual Regulation Ready" },
+  { value: "18 Feb 2027", label: "EU passport duty (LMT / industrial >2 kWh / EV)" },
+  { value: "Art. 13", label: "QR on all batteries from the same date" },
+  { value: "Vault", label: "India certificates stored, not filed" },
+  { value: "No login", label: "Buyer scans the public page" },
 ];
 
 export function StatsSection() {

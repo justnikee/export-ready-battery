@@ -46,7 +46,7 @@ const features = [
  icon: Zap,
  title: "Bulk Operations",
  description:
- "CSV upload processes 10,000+ batteries in under 2 minutes. Download print-ready sticker sheets instantly.",
+ "CSV import for a production lot (up to the product cap of 10,000 units). Download print-ready sticker sheets.",
  highlight: "10K+ / 2min",
  iconBg: "bg-amber-500/10",
  iconColor: "text-amber-400",

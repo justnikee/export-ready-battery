@@ -25,7 +25,7 @@ const PROBLEMS: ProblemCardItem[] = [
     number: "002",
     tag: "CUSTOMS CLEARANCE",
     title: "Containers held at port.",
-    description: "One missing carbon declaration or Declaration of Conformity can stall your shipment at European customs ports for weeks.",
+    description: "The EU importer will refuse a PO without a scannable pack record. A missing DoC is a lab and legal problem — software cannot invent one.",
     badge: "Destination Verification Required",
   },
   {
@@ -63,7 +63,7 @@ export default function ComplianceCliff() {
             </h2>
 
             <p className="text-[16px] leading-[1.65] text-text-muted text-pretty max-w-[620px] mx-auto">
-              EU Battery Regulation 2023/1542 mandates a verifiable digital passport for every battery exported to Europe, linking carbon class, material sourcing, and test records.
+              From 18 February 2027, LMT, industrial batteries above 2 kWh, and EV batteries placed on the EU market need a battery passport. Portable and SLI packs need a QR, not that full record. Carbon class is not the 2027 product.
             </p>
           </div>
 

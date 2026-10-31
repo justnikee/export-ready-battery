@@ -48,24 +48,21 @@ const barlowCondensed = Barlow_Condensed({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Anviora — Digital Product Passports for Indian Battery & Textile Exporters",
+  title: "Anviora — Battery records for Indian pack exporters",
   description:
-    "Automate EU Battery Passport generation, certificate tracking, QR-code verification, and compliance gaps. Built for Indian manufacturers exporting to Europe.",
+    "Serials, QR, a public passport page, and an India certificate vault for LMT, industrial >2 kWh, and EV packs. We are not a notified body and we do not file CPCB.",
   keywords: [
     "digital product passport",
     "battery passport",
     "EU Battery Regulation",
     "export compliance",
     "Indian manufacturers",
-    "BIS certification",
-    "traceability",
-    "textile compliance",
     "QR code passport",
   ],
   openGraph: {
-    title: "Anviora — Digital Product Passports for Indian Exporters",
+    title: "Anviora — Battery records for Indian pack exporters",
     description:
-      "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
+      "Serials, QR, a public page, and an India certificate vault. LMT, industrial >2 kWh, and EV from 18 February 2027.",
     type: "website",
     locale: "en_IN",
     siteName: SITE_NAME,
@@ -73,9 +70,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Anviora — Digital Product Passports for Indian Exporters",
+    title: "Anviora — Battery records for Indian pack exporters",
     description:
-      "Automate EU Battery Passport generation, certificate tracking, and QR-code verification. Built for Indian manufacturers exporting to Europe.",
+      "Serials, QR, a public page, and an India certificate vault. LMT, industrial >2 kWh, and EV from 18 February 2027.",
   },
   robots: {
     index: true,
@@ -89,7 +86,7 @@ const organizationJsonLd = {
   name: SITE_NAME,
   url: SITE_URL,
   description:
-    "Digital Product Passport platform for Indian battery and textile exporters, automating EU compliance, certificate tracking, and QR-code verification.",
+    "Software for Indian pack manufacturers to issue EU-scannable battery records — serials, QR, public page, certificate vault.",
 };
 
 export default function RootLayout({

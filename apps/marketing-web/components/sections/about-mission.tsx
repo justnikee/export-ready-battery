@@ -11,7 +11,7 @@ const NUMBERS = [
   {
     stat: "18 Feb 2027",
     label: "EU Battery Passport becomes mandatory",
-    sub: "No passport = no EU market. Affects every LFP, NMC, and lead-acid battery",
+    sub: "LMT, industrial >2 kWh, and EV packs placed on the EU market — not every battery",
   },
   {
     stat: "₹3L+",
@@ -21,7 +21,7 @@ const NUMBERS = [
   {
     stat: "1",
     label: "Dataset for both India and EU",
-    sub: "Enter data once in Anviora. Satisfy BIS, CPCB, DGFT, and EU regulators simultaneously",
+    sub: "One lot for the EU scan page and the India certificate vault — not a substitute for CPCB or BIS",
   },
 ];
 
@@ -51,15 +51,14 @@ export default function AboutMission() {
                 requirements, with delegated acts still being added.
               </p>
               <p>
-                We built Anviora to invert that. Upload your existing certificates — BIS,
-                UN38.3, EPR registration, IEC 62133. Our platform reads them, maps the data,
-                validates against live regulations, and issues a W3C Verifiable Credential
-                with a BPAN V2 serial and QR code your buyer scans in ten seconds.
+                We built Anviora so that factory can issue serials, print a QR, and send
+                the importer a page that opens without a login. Upload the PDFs you already
+                have. We are not TÜV, not CPCB, and not the EU registry.
               </p>
               <p>
-                The same data that satisfies EU buyers also handles your BIS renewal reminders,
-                CPCB EPR filings, DGFT TRACE claims, and India Customs traceability
-                requirements. One record. Two regulators. Zero scramble.
+                The same lot can hold India certificate numbers next to the EU public
+                record. Filing CPCB Form 3, renewing BIS, and TRACE reimbursement stay
+                on those agencies&apos; processes.
               </p>
             </div>
           </motion.div>

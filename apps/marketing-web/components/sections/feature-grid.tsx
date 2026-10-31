@@ -154,7 +154,7 @@ export default function FeatureGrid() {
       stepNumber: "02",
       title: "Automated Validation",
       shortDesc: "Catch missing regulatory information before publishing.",
-      detailPara1: "Real-time compliance engine validates against EU Battery Regulation 2023/1542 and India EPR rules, calculating carbon classes and flagging missing certificates instantly.",
+      detailPara1: "Activation checklist for this category and market. Missing papers are flagged. Carbon class is not assigned as law.",
       href: "#how-it-works",
       cardTitle: "COMPLIANCE ENGINE",
       cardContent: (
@@ -166,10 +166,10 @@ export default function FeatureGrid() {
 
           <div className="space-y-2">
             {[
-              { label: "EU Mandate", status: "100% Compliant" },
-              { label: "Carbon Class", status: "Class A (12.4 kg)" },
-              { label: "UN38.3 Test", status: "Pass (#94821)" },
-              { label: "EPR Renewal", status: "Active (312 days)" },
+              { label: "Category", status: "LMT" },
+              { label: "UN38.3 PDF", status: "Uploaded" },
+              { label: "EPR number", status: "On file" },
+              { label: "Carbon", status: "Estimate only" },
             ].map((rule) => (
               <div key={rule.label} className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -192,8 +192,8 @@ export default function FeatureGrid() {
       id: 2,
       stepNumber: "03",
       title: "Export Readiness",
-      shortDesc: "Understand exactly what's blocking a shipment.",
-      detailPara1: "Never get stuck at European customs. Export Readiness score verifies all required declarations and certificates before your containers ship.",
+      shortDesc: "See what is still missing on this lot.",
+      detailPara1: "A checklist of fields for this SKU. It does not clear customs, notify a body, or file CPCB.",
       href: "#how-it-works",
       cardTitle: "CUSTOMS GATE",
       cardContent: (
@@ -206,7 +206,7 @@ export default function FeatureGrid() {
           <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10.5px] text-text-dim font-medium">Customs Clearance</span>
-              <span className="font-mono text-[11.5px] font-bold text-emerald-900">100% READY</span>
+              <span className="font-mono text-[11.5px] font-bold text-emerald-900">CHECKLIST</span>
             </div>
             <div className="h-1.5 bg-border/60 w-full overflow-hidden">
               <div className="h-full bg-emerald-600 transition-all duration-500 w-[100%]" />
@@ -221,13 +221,13 @@ export default function FeatureGrid() {
             <div className="p-2.5 bg-bg-alt/60 border border-border/70">
               <div className="font-mono text-[9.5px] text-text-dim uppercase tracking-wider font-medium">Declarations</div>
               <div className="font-mono text-[11.5px] font-bold text-emerald-800 flex items-center gap-1 pt-0.5">
-                <Anchor size={12} /> Verified
+                <Anchor size={12} /> On file
               </div>
             </div>
             <div className="p-2.5 bg-bg-alt/60 border border-border/70">
               <div className="font-mono text-[9.5px] text-text-dim uppercase tracking-wider font-medium">Port Risk</div>
               <div className="font-mono text-[11.5px] font-bold text-emerald-800 flex items-center gap-1 pt-0.5">
-                <Activity size={12} /> Zero Risk
+                <Activity size={12} /> Unknown
               </div>
             </div>
           </div>
@@ -238,8 +238,8 @@ export default function FeatureGrid() {
       id: 3,
       stepNumber: "04",
       title: "QR Passports",
-      shortDesc: "Give buyers verified product information instantly.",
-      detailPara1: "Generates W3C signed Verifiable Credentials and tamper-proof QR codes. European buyers and regulators scan to inspect live passport data without log-ins.",
+      shortDesc: "Give buyers a public page with no login.",
+      detailPara1: "QR opens the public record. Optional W3C credential is extra. Not the EU registry.",
       href: "#how-it-works",
       cardTitle: "VERIFIABLE PASSPORT",
       cardContent: (
@@ -252,9 +252,9 @@ export default function FeatureGrid() {
           <div className="p-3.5 bg-white text-slate-900 flex items-center gap-3.5 border border-emerald-200/90 shadow-sm">
             <DetailedQRCode size={52} />
             <div className="space-y-0.5">
-              <div className="font-mono text-[11.5px] font-bold text-emerald-950">PASSPORT VERIFIED</div>
-              <div className="font-sans text-[11px] text-slate-600">W3C Credential Signed</div>
-              <div className="font-mono text-[9.5px] text-emerald-700 font-semibold">Bitcoin Block #842,190</div>
+              <div className="font-mono text-[11.5px] font-bold text-emerald-950">PUBLIC PASSPORT</div>
+              <div className="font-sans text-[11px] text-slate-600">Scan opens /p/{"{uuid}"} — no login</div>
+              <div className="font-mono text-[9.5px] text-emerald-700 font-semibold">House serial · not GS1</div>
             </div>
           </div>
 

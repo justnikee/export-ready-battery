@@ -17,8 +17,8 @@ export default function AboutCTA() {
             If you&apos;re exporting batteries to Europe, we should talk.
           </h2>
           <p className="text-[17px] leading-[1.6] text-[#131313] mb-10 max-w-[520px] mx-auto">
-            The deadline is real. The passport is mandatory. And the manufacturers who
-            get certified first will be the ones their EU buyers call first.
+            The deadline is real for LMT, industrial packs above 2 kWh, and EV.
+            We help you issue the first scannable lot — we do not certify the battery.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a

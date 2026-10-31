@@ -245,7 +245,7 @@ export default function BatteryPassportCard() {
         <span className="font-mono text-[11px] font-bold text-slate-900">W3C Credential</span>
       </motion.div>
 
-      {/* Floating badge: Bitcoin anchored */}
+      {/* Floating badge: public scan */}
       <motion.div
         initial={{ opacity: 0, x: -20, y: 10 }}
         animate={inView ? { opacity: 1, x: 0, y: 0 } : {}}
@@ -256,7 +256,7 @@ export default function BatteryPassportCard() {
           <circle cx="7" cy="7" r="6.5" stroke="#d97706" strokeWidth="1.2" />
           <path d="M5 4.5h3.5c.8 0 1.2.6 1.2 1.2s-.5 1-.8 1.1c.5.1 1 .5 1 1.3 0 .9-.6 1.4-1.5 1.4H5V4.5z" fill="#d97706" />
         </svg>
-        <span className="font-mono text-[11px] font-bold text-amber-900">Bitcoin Timestamped</span>
+        <span className="font-mono text-[11px] font-bold text-amber-900">Public scan page</span>
       </motion.div>
     </div>
   );

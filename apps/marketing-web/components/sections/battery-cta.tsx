@@ -33,7 +33,7 @@ export default function BatteryCTA() {
             className="relative z-10 flex flex-col items-center max-w-[660px]"
           >
             <h2 className="font-heading text-[clamp(28px,4vw,44px)] font-bold tracking-[-0.035em] leading-[1.08] text-white mb-4 text-balance">
-              Ship your first compliant battery this month.
+              Issue your first scannable lot this month.
             </h2>
             <p className="text-[16px] leading-[1.65] text-white/85 mb-8 text-pretty font-normal">
               No setup fee. No lock-in. Buy only the passport credits you need.

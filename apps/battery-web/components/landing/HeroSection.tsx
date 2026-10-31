@@ -19,9 +19,9 @@ const heroNoiseTexture =
   'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27180%27 height=%27180%27 viewBox=%270 0 180 180%27%3E%3Cfilter id=%27noise%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.85%27 numOctaves=%272%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27180%27 height=%27180%27 filter=%27url(%2523noise)%27 opacity=%270.42%27/%3E%3C/svg%3E")';
 
 const productionStats = [
-  { icon: Factory, value: "50+", label: "Production Lines Connected" },
-  { icon: QrCode, value: "< 2 min", label: "Per Passport Generation" },
-  { icon: FileCheck, value: "99.8%", label: "Compliance Accuracy Rate" },
+  { icon: Factory, value: "Pack house", label: "Built for mid-size Indian assemblers" },
+  { icon: QrCode, value: "QR", label: "Public /p/{uuid} — no buyer login" },
+  { icon: FileCheck, value: "Vault", label: "PDFs stored; CPCB filing stays on the portal" },
 ];
 
 const productLaunchCards = [
