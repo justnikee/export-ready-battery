@@ -1,3 +1,7 @@
+// Public-scan honesty (Wave 3) lives in certificate-view + lib/passport-honesty.ts.
+// This config only toggles which battery clusters to show; it must not add
+// textile blocks or present carbon class as an Article 7 legal label.
+
 export type PassportTemplateFamily = "battery";
 
 export interface PassportTemplateConfig {

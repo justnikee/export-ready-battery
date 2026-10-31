@@ -23,6 +23,11 @@ import { toast } from "sonner";
 import { createTranslator, type Locale } from "@/lib/i18n/i18n";
 import { resolvePassportTemplateConfig } from "@/lib/passport-template-config";
 import { openPublicPassportDocument } from "@/lib/document-url";
+import {
+  isPublicAccessTier,
+  notInForceDisplay,
+  type PassportAccessTier,
+} from "@/lib/passport-honesty";
 import { TrustBadge, type TrustTier } from "./trust-badge";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -60,6 +65,31 @@ function DataRow({
       >
         {value ?? <span className="text-muted-foreground">—</span>}
       </span>
+    </div>
+  );
+}
+
+function NotInForceRow({
+  label,
+  value,
+  caption,
+}: {
+  label: string;
+  value: string | number | null | undefined;
+  caption: string;
+}) {
+  const { display } = notInForceDisplay(value);
+  return (
+    <div className="py-2 border-b border-border last:border-0">
+      <div className="flex items-baseline justify-between gap-4">
+        <span className="text-muted-foreground text-sm whitespace-nowrap">
+          {label}
+        </span>
+        <span className="text-foreground text-sm text-right">{display}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+        {caption}
+      </p>
     </div>
   );
 }
@@ -178,48 +208,7 @@ export interface PassportViewData {
       recycled_lead_pct?: number;
     } | null;
     certifications?: string[];
-    gsm?: number;
-    dye_process?: string;
-    finish_type?: string[];
-    water_usage_liters?: number;
-    energy_usage_kwh?: number;
-    biodegradable_pct?: number | null;
-    expected_lifetime_washes?: number | null;
     recycled_content_pct?: number | null;
-    fiber_composition?: {
-      cotton_pct?: number;
-      polyester_pct?: number;
-      wool_pct?: number;
-      silk_pct?: number;
-      linen_pct?: number;
-      viscose_pct?: number;
-      nylon_pct?: number;
-      acrylic_pct?: number;
-      hemp_pct?: number;
-      other_pct?: number;
-    } | null;
-    supplier_tier?: {
-      fiber_supplier?: string;
-      spinning_mill?: string;
-      weaving_knitting_mill?: string;
-      dye_house?: string;
-      finishing_facility?: string;
-      cut_sew_facility?: string;
-    } | null;
-    labor_compliance?: {
-      sa8000_certified?: boolean;
-      bsci_audited?: boolean;
-      sedex_member?: boolean;
-      fair_trade_certified?: boolean;
-      audit_score?: number;
-      audit_date?: string;
-    } | null;
-    chemical_compliance_zdhc?: {
-      zdhc_level?: string;
-      mrsl_tested?: boolean;
-      test_report_url?: string;
-      restricted_substances_found?: string[];
-    } | null;
   } | null;
   tenant: {
     company_name?: string;
@@ -266,6 +255,7 @@ export interface PassportViewData {
   removable_and_replaceable?: boolean;
   notified_body_number?: string;
   declaration_of_conformity_path?: string;
+  access_tier?: PassportAccessTier;
 }
 
 interface CertificateViewProps {
@@ -298,9 +288,7 @@ export function CertificateView({
   const capacityAh = specs?.capacity || null;
   const voltage = specs?.voltage || null;
   const weightKg = specs?.weight || null;
-  const materialProfile = specs?.material_profile || null;
   const lotSize = specs?.lot_size || null;
-  const productionStage = specs?.production_stage || null;
   const cycleLife = specs?.expected_lifetime_cycles || null;
   const warrantyMonths = specs?.warranty_months || null;
   const hazardousSubs = specs?.hazardous_substances?.declaration || null;
@@ -338,20 +326,6 @@ export function CertificateView({
     ? new Date(passport.recycling_date)
     : null;
 
-  // Textile derived values
-  const gsm = specs?.gsm || null;
-  const dyeProcess = specs?.dye_process || null;
-  const finishType = specs?.finish_type || [];
-  const waterUsage = specs?.water_usage_liters || null;
-  const energyUsage = specs?.energy_usage_kwh || null;
-  const biodegradablePct = specs?.biodegradable_pct || null;
-  const expectedLifetimeWashes = specs?.expected_lifetime_washes || null;
-  const recycledContentPct = specs?.recycled_content_pct || null;
-  const fiberComposition = specs?.fiber_composition;
-  const supplierTier = specs?.supplier_tier;
-  const laborCompliance = specs?.labor_compliance;
-  const chemicalCompliance = specs?.chemical_compliance_zdhc;
-
   // EU Representative — backend uses eu_authorized_representative_name / eu_contact_email
   const euRepresentativeName =
     tenant.eu_authorized_representative_name ||
@@ -368,17 +342,18 @@ export function CertificateView({
 
   // EU Battery Regulation compliance fields
   const batteryPassportID = passportData.battery_passport_id || null;
-  const ceMarking = passportData.ce_marking ?? false;
+  const ceMarking = passportData.ce_marking;
   const carbonPerformanceClass = passportData.carbon_performance_class || null;
-  const removableAndReplaceable = passportData.removable_and_replaceable ?? false;
+  const removableDeclared = passportData.removable_and_replaceable;
   const notifiedBodyNumber = passportData.notified_body_number || null;
   const declarationOfConformityPath = passportData.declaration_of_conformity_path || null;
-  const hasEUCompliance =
+  const hasEUDeclared =
     ceMarking ||
-    carbonPerformanceClass ||
-    removableAndReplaceable ||
-    notifiedBodyNumber ||
-    declarationOfConformityPath;
+    removableDeclared === true ||
+    Boolean(notifiedBodyNumber) ||
+    Boolean(declarationOfConformityPath);
+  const recycledPct = specs?.recycled_content_pct;
+  const isPublicView = isPublicAccessTier(passportData.access_tier);
 
   // Critical raw materials
   const crm = specs?.material_composition;
@@ -427,7 +402,6 @@ export function CertificateView({
     statusStyleMap[currentStatus.color] || statusStyleMap.slate;
 
   // Market
-  const isIndia = marketRegion?.toUpperCase() === "INDIA";
   const isImported = cellSource?.toUpperCase() === "IMPORTED";
   const productType = passportData.product_type || "BATTERY";
   const templateConfig = resolvePassportTemplateConfig({
@@ -436,10 +410,9 @@ export function CertificateView({
     marketRegion,
     t,
   });
-  const templateVariant = templateConfig.variant;
   const isBattery = templateConfig.family === "battery";
   const productBadge = templateConfig.badge;
-  const primaryDescriptor = isBattery ? chemistry : materialProfile;
+  const primaryDescriptor = chemistry;
   const isBatteryIndia = templateConfig.complianceMode === "battery_india";
   const isBatteryStandard =
     templateConfig.complianceMode === "battery_standard";
@@ -517,8 +490,9 @@ export function CertificateView({
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t border-white/10">
+        <div className="mt-4 pt-4 border-t border-white/10 space-y-1">
           <p className="text-muted-foreground text-xs">{t("bpan_badge")}</p>
+          <p className="text-muted-foreground text-xs">{t("honesty_not_registry")}</p>
         </div>
       </div>
 
@@ -550,15 +524,8 @@ export function CertificateView({
                   : null
               }
             />
-            {isBattery ? (
-              <DataRow label={t("label_cell_source")} value={cellSourceLabel} />
-            ) : (
-              <DataRow label="Production Stage" value={productionStage} />
-            )}
+            <DataRow label={t("label_cell_source")} value={cellSourceLabel} />
             <DataRow label={t("label_market")} value={marketRegion || null} />
-            {!isBattery && (
-              <DataRow label="Country of Origin" value={countryOfOrigin} />
-            )}
           </div>
 
           {/* Batch Window */}
@@ -591,27 +558,16 @@ export function CertificateView({
           </h3>
 
           <div className="space-y-0">
-            {isBattery ? (
-              <>
-                <DataRow label={t("label_chemistry")} value={chemistry} />
-                {batteryCategory && (
-                  <DataRow
-                    label={t("label_battery_category")}
-                    value={batteryCategory}
-                  />
-                )}
-                <DataRow label={t("label_capacity")} value={capacityAh} />
-                <DataRow label={t("label_voltage")} value={voltage} />
-                <DataRow label={t("label_weight")} value={weightKg} />
-              </>
-            ) : (
-              <>
-                <DataRow label="Material Profile" value={materialProfile} />
-                <DataRow label="Lot Size" value={lotSize} />
-                <DataRow label="Production Stage" value={productionStage} />
-                <DataRow label={t("label_weight")} value={weightKg} />
-              </>
+            <DataRow label={t("label_chemistry")} value={chemistry} />
+            {batteryCategory && (
+              <DataRow
+                label={t("label_battery_category")}
+                value={batteryCategory}
+              />
             )}
+            <DataRow label={t("label_capacity")} value={capacityAh} />
+            <DataRow label={t("label_voltage")} value={voltage} />
+            <DataRow label={t("label_weight")} value={weightKg} />
           </div>
         </div>
       </div>
@@ -662,15 +618,48 @@ export function CertificateView({
                   </p>
                   <p className="text-foreground ">{m.pct}%</p>
                   {m.recycled != null && m.recycled > 0 && (
-                    <p className="text-emerald-500 text-xs mt-0.5">
-                      ♻ {m.recycled}% {t("label_recycled_content")}
+                    <p className="text-muted-foreground text-xs mt-0.5">
+                      {m.recycled}% {t("label_recycled_content")}
                     </p>
                   )}
                 </div>
               ))}
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3 leading-snug">
+            {t("honesty_feb_2027")}
+          </p>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+ NOT YET REQUIRED (carbon class / recycled % / due diligence)
+ ═══════════════════════════════════════════════════════════════════ */}
+      <div className="p-6 md:p-8">
+        <h3 className="text-foreground mb-1 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-muted-foreground" />
+          {t("section_not_in_force")}
+        </h3>
+        <p className="text-[11px] text-muted-foreground mb-4 leading-snug">
+          {t("honesty_feb_2027")}
+        </p>
+        <div className="space-y-0">
+          <NotInForceRow
+            label={t("label_carbon_class_declared")}
+            value={carbonPerformanceClass}
+            caption={t("honesty_feb_2027")}
+          />
+          <NotInForceRow
+            label={t("label_recycled_pct")}
+            value={recycledPct != null ? `${recycledPct}%` : null}
+            caption={t("honesty_feb_2027")}
+          />
+          <NotInForceRow
+            label={t("label_due_diligence")}
+            value={null}
+            caption={t("honesty_feb_2027")}
+          />
+        </div>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
  REGULATORY COMPLIANCE
@@ -684,72 +673,65 @@ export function CertificateView({
 
           <div className="space-y-0">
             {isBatteryIndia && (
-              <DataRow label={t("label_epr")} value={eprNumber} mono />
-            )}
-            {isBatteryIndia && dvaPercent != null && (
-              <DataRow
-                label={t("label_dva")}
-                value={`${(dvaPercent as number).toFixed(1)}%`}
-              />
-            )}
-            {isBatteryIndia && (
-              <DataRow
-                label={t("label_pli")}
-                value={pliCompliant ? "✅ Yes" : "No"}
-              />
-            )}
-            {isBatteryIndia && (
-              <DataRow label={t("label_bis")} value={bisRNumber} mono />
-            )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_carbon_footprint")}
-                value={carbonFootprint}
-              />
+              <>
+                <DataRow label={t("label_epr")} value={eprNumber} mono />
+                {dvaPercent != null && (
+                  <DataRow
+                    label={t("label_dva")}
+                    value={`${(dvaPercent as number).toFixed(1)}%`}
+                  />
+                )}
+                <DataRow
+                  label={t("label_pli")}
+                  value={pliCompliant ? "Yes" : "No"}
+                />
+                <DataRow label={t("label_bis")} value={bisRNumber} mono />
+                <p className="text-[11px] text-muted-foreground pt-2 leading-snug">
+                  {t("honesty_india_ids")}
+                </p>
+              </>
             )}
             {isBatteryStandard && (
-              <DataRow label={t("label_hazardous")} value={hazardousSubs} />
+              <>
+                <DataRow
+                  label={t("label_carbon_footprint")}
+                  value={carbonFootprint}
+                />
+                <DataRow label={t("label_hazardous")} value={hazardousSubs} />
+                <DataRow
+                  label={t("label_warranty")}
+                  value={
+                    warrantyMonths
+                      ? t("label_months", { count: warrantyMonths })
+                      : null
+                  }
+                />
+                <DataRow
+                  label={t("label_lifetime")}
+                  value={
+                    cycleLife ? t("label_cycles", { count: cycleLife }) : null
+                  }
+                />
+              </>
             )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_warranty")}
-                value={
-                  warrantyMonths
-                    ? t("label_months", { count: warrantyMonths })
-                    : null
-                }
-              />
-            )}
-            {isBatteryStandard && (
-              <DataRow
-                label={t("label_lifetime")}
-                value={
-                  cycleLife ? t("label_cycles", { count: cycleLife }) : null
-                }
-              />
-            )}
-            {hasEUCompliance && (
+            {hasEUDeclared && (
               <div className="pt-3 border-t border-border">
                 <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
                   EU Battery Regulation
                 </p>
                 <div className="space-y-0">
-                  <DataRow
-                    label={t("label_ce_marking")}
-                    value={ceMarking ? "✅ Yes" : "No"}
-                  />
-                  <DataRow
-                    label={t("label_carbon_class")}
-                    value={carbonPerformanceClass}
-                  />
-                  <DataRow
-                    label={t("label_removable")}
-                    value={removableAndReplaceable ? "✅ Yes" : "No"}
-                  />
-                  <DataRow
-                    label={t("label_notified_body")}
-                    value={notifiedBodyNumber}
-                  />
+                  {ceMarking === true && (
+                    <DataRow label={t("label_ce_marking")} value="Yes" />
+                  )}
+                  {removableDeclared === true && (
+                    <DataRow label={t("label_removable")} value="Yes" />
+                  )}
+                  {notifiedBodyNumber && (
+                    <DataRow
+                      label={t("label_notified_body")}
+                      value={notifiedBodyNumber}
+                    />
+                  )}
                   {declarationOfConformityPath && (
                     <div className="flex items-center justify-between py-1.5">
                       <span className="text-muted-foreground text-xs">
@@ -772,123 +754,17 @@ export function CertificateView({
                 </div>
               </div>
             )}
-            {supplierTier && (
-              <div className="pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
-                  Supplier Tier
-                </p>
-                <div className="space-y-0">
-                  <DataRow label="Fiber Supplier" value={supplierTier.fiber_supplier} />
-                  <DataRow label="Spinning Mill" value={supplierTier.spinning_mill} />
-                  <DataRow
-                    label="Weaving / Knitting Mill"
-                    value={supplierTier.weaving_knitting_mill}
-                  />
-                  <DataRow label="Dye House" value={supplierTier.dye_house} />
-                  <DataRow
-                    label="Finishing Facility"
-                    value={supplierTier.finishing_facility}
-                  />
-                  <DataRow
-                    label="Cut & Sew Facility"
-                    value={supplierTier.cut_sew_facility}
-                  />
-                </div>
-              </div>
-            )}
-            {laborCompliance && (
-              <div className="pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
-                  Labor Compliance
-                </p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {[
-                    { label: "SA8000", active: laborCompliance.sa8000_certified },
-                    { label: "BSCI", active: laborCompliance.bsci_audited },
-                    { label: "SEDEX", active: laborCompliance.sedex_member },
-                    { label: "Fair Trade", active: laborCompliance.fair_trade_certified },
-                  ].map((cert) => (
-                    <span
-                      key={cert.label}
-                      className={`px-2 py-0.5 rounded text-xs border ${
-                        cert.active
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                          : "bg-muted text-muted-foreground border-border"
-                      }`}
-                    >
-                      {cert.label}
-                    </span>
-                  ))}
-                </div>
-                <div className="space-y-0">
-                  <DataRow
-                    label="Audit Score"
-                    value={laborCompliance.audit_score ?? null}
-                  />
-                  <DataRow label="Audit Date" value={laborCompliance.audit_date || null} />
-                </div>
-              </div>
-            )}
-            {chemicalCompliance && (
-              <div className="pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-2">
-                  Chemical Compliance (ZDHC)
-                </p>
-                <div className="space-y-0">
-                  <div className="flex items-baseline justify-between py-2 border-b border-border last:border-0 gap-4">
-                    <span className="text-muted-foreground text-sm whitespace-nowrap">
-                      ZDHC Level
-                    </span>
-                    <span className="text-foreground text-sm text-right">
-                      {chemicalCompliance.zdhc_level ? (
-                        <span className="px-2 py-0.5 rounded text-xs bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                          Level {chemicalCompliance.zdhc_level}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </span>
-                  </div>
-                  <DataRow
-                    label="MRSL Tested"
-                    value={
-                      chemicalCompliance.mrsl_tested != null
-                        ? chemicalCompliance.mrsl_tested
-                          ? "Yes ✓"
-                          : "No"
-                        : null
-                    }
-                  />
-                  <div className="flex items-baseline justify-between py-2 border-b border-border last:border-0 gap-4">
-                    <span className="text-muted-foreground text-sm whitespace-nowrap">
-                      Test Report
-                    </span>
-                    <span className="text-foreground text-sm text-right">
-                      {chemicalCompliance.test_report_url ? (
-                        <a
-                          href={chemicalCompliance.test_report_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline truncate block max-w-[200px]"
-                        >
-                          {chemicalCompliance.test_report_url}
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Document Downloads */}
+          {/* Document Downloads — uploaded files only; missing is not a red fail */}
           {templateConfig.showDocuments && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-muted-foreground text-xs uppercase tracking-wide mb-3 flex items-center gap-1">
                 <FileText className="w-3.5 h-3.5 text-muted-foreground" />{" "}
                 {t("section_documents")}
+              </p>
+              <p className="text-[11px] text-muted-foreground mb-3 leading-snug">
+                {t("honesty_docs_caption")}
               </p>
               <div className="space-y-2">
                 {tenant.bis_certificate_path &&
@@ -902,12 +778,7 @@ export function CertificateView({
                     <Download className="w-4 h-4 text-blue-500" />
                     {t("doc_bis")}
                   </a>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
-                    <FileText className="w-4 h-4" />
-                    {t("doc_bis_missing")}
-                  </div>
-                )}
+                ) : null}
                 {tenant.epr_certificate_path &&
                 tenant.epr_certificate_path.trim() ? (
                   <a
@@ -919,12 +790,7 @@ export function CertificateView({
                     <Download className="w-4 h-4 text-emerald-500" />
                     {t("doc_epr")}
                   </a>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border text-sm text-muted-foreground">
-                    <FileText className="w-4 h-4" />
-                    {t("doc_epr_missing")}
-                  </div>
-                )}
+                ) : null}
                 {pliCompliant &&
                   tenant.pli_certificate_path &&
                   tenant.pli_certificate_path.trim() && (
@@ -1088,30 +954,38 @@ export function CertificateView({
         {templateConfig.showSoh && soh != null && <SoHGauge soh={soh} />}
 
         <div className="space-y-0 mt-3">
-          <DataRow
-            label={t("label_current_owner")}
-            value={passport.current_owner_identifier}
-            mono
-          />
           {templateConfig.showSoh && soh == null && (
             <DataRow label={t("label_soh")} value={stateOfHealthLabel} />
           )}
           {templateConfig.showSoh && (
             <DataRow label={t("label_last_soh")} value={lastSohUpdateLabel} />
           )}
-          <DataRow
-            label={t("label_ownership_records")}
-            value={ownershipCount}
-          />
-          <DataRow label={t("label_repair_events")} value={repairCount} />
-          <DataRow
-            label={t("label_replacement_events")}
-            value={replacementCount}
-          />
+          {isPublicView ? (
+            <p className="text-sm text-muted-foreground pt-3 leading-snug">
+              {t("honesty_restricted")}
+            </p>
+          ) : (
+            <>
+              <DataRow
+                label={t("label_current_owner")}
+                value={passport.current_owner_identifier}
+                mono
+              />
+              <DataRow
+                label={t("label_ownership_records")}
+                value={ownershipCount}
+              />
+              <DataRow label={t("label_repair_events")} value={repairCount} />
+              <DataRow
+                label={t("label_replacement_events")}
+                value={replacementCount}
+              />
+            </>
+          )}
         </div>
 
-        {/* Expanded Repair History (EU Art 14) */}
-        {repairCount > 0 && passport.repair_events && (
+        {/* Expanded Repair History — partner / regulator only */}
+        {!isPublicView && repairCount > 0 && passport.repair_events && (
           <div className="mt-4 pt-4 border-t border-border">
             <h4 className="text-foreground text-sm font-medium mb-2 flex items-center gap-1.5">
               <Wrench className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1137,8 +1011,8 @@ export function CertificateView({
           </div>
         )}
 
-        {/* Expanded Replacement History */}
-        {replacementCount > 0 && passport.replacement_events && (
+        {/* Expanded Replacement History — partner / regulator only */}
+        {!isPublicView && replacementCount > 0 && passport.replacement_events && (
           <div className="mt-4 pt-4 border-t border-border">
             <h4 className="text-foreground text-sm font-medium mb-2 flex items-center gap-1.5">
               <Replace className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1164,7 +1038,7 @@ export function CertificateView({
           </div>
         )}
 
-        {templateConfig.showIndiaRecycling && (
+        {!isPublicView && templateConfig.showIndiaRecycling && (
           <div className="mt-4 pt-4 border-t border-border">
             <DataRow
               label={t("label_recycling_status")}

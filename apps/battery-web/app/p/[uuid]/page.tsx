@@ -105,11 +105,12 @@ export default function PublicPassportPage() {
             removable_and_replaceable: data.removable_and_replaceable,
             notified_body_number: data.notified_body_number,
             declaration_of_conformity_path: data.declaration_of_conformity_path,
+            access_tier: data.access_tier,
           };
           setPassport(reshaped);
         } else {
           // RegulatorPassportView or legacy shape — already has nested passport key
-          setPassport(data);
+          setPassport({ ...data, access_tier: data.access_tier ?? "REGULATOR" });
         }
         recordScan(params.uuid as string);
       } catch (err: unknown) {

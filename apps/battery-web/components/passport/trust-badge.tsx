@@ -1,7 +1,8 @@
 "use client";
 
-import { Lock, Pencil, ShieldCheck } from "lucide-react";
+import { Lock, Pencil } from "lucide-react";
 
+/** LAB_CERTIFIED is accepted for backward compat but always displayed as SELF_DECLARED — lab registry partnerships are not live. */
 export type TrustTier = "BLOCKCHAIN_ANCHORED" | "SELF_DECLARED" | "LAB_CERTIFIED";
 
 interface TrustBadgeProps {
@@ -9,8 +10,10 @@ interface TrustBadgeProps {
   size?: "sm" | "md";
 }
 
+type DisplayTrustTier = "BLOCKCHAIN_ANCHORED" | "SELF_DECLARED";
+
 const tierConfig: Record<
-  TrustTier,
+  DisplayTrustTier,
   {
     label: string;
     icon: React.ReactNode;
@@ -34,21 +37,15 @@ const tierConfig: Record<
     title:
       "This document was uploaded by the manufacturer without independent third-party verification. The platform does not validate certificate authenticity against BIS, CPCB, EU NANDO, or UN38.3 lab registries.",
   },
-  LAB_CERTIFIED: {
-    label: "Lab Certified",
-    icon: <ShieldCheck className="h-3.5 w-3.5" />,
-    className:
-      "bg-blue-500/10 text-blue-400 ring-blue-500/30",
-    title:
-      "This certificate was verified against an external test lab or regulatory registry. (Requires paid API partnerships — not yet available.)",
-  },
 };
 
 export function TrustBadge({
   tier = "SELF_DECLARED",
   size = "sm",
 }: TrustBadgeProps) {
-  const config = tierConfig[tier];
+  const resolvedTier: DisplayTrustTier =
+    tier === "BLOCKCHAIN_ANCHORED" ? "BLOCKCHAIN_ANCHORED" : "SELF_DECLARED";
+  const config = tierConfig[resolvedTier];
   const sizeClasses =
     size === "sm"
       ? "px-3 py-1 text-xs gap-1.5"
