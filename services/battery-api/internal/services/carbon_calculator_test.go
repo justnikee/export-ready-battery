@@ -139,8 +139,9 @@ func TestCalculateCarbon_NMC_Ship(t *testing.T) {
 
 	// Verify audit trail
 	assert.NotEmpty(t, result.FactorsUsed)
-	assert.Equal(t, "JRC_2024_DECLARED", result.Methodology)
-	assert.Contains(t, result.DeclarationText, "EU Regulation 2023/1542")
+	assert.Equal(t, "SCREENING_ESTIMATE", result.Methodology)
+	assert.Contains(t, result.DeclarationText, "Screening estimate")
+	assert.NotContains(t, result.DeclarationText, "in accordance with EU Regulation 2023/1542 Article 7")
 }
 
 func TestCalculateCarbon_LFP_Truck(t *testing.T) {

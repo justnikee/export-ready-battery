@@ -1,8 +1,9 @@
 /**
  * Shared carbon-calculator types and helpers.
- * The EU Art. 7 activation gate only accepts batch.carbon_footprint_result
- * from POST /carbon/calculate (then POST /batches/{id}/carbon). Free-text
- * specs.carbon_footprint is display-only.
+ * Calculator results persist as batch.carbon_footprint_result via
+ * POST /carbon/calculate then POST /batches/{id}/carbon. Free-text
+ * specs.carbon_footprint is display-only. The 2026 activation gate does
+ * not ERROR on a missing result.
  */
 
 import api from "@/lib/api";
@@ -122,7 +123,7 @@ export function isCarbonResultCurrent(data: {
   );
 }
 
-/** Persist a calculator result on a batch (Art. 7 source of truth). */
+/** Persist a calculator result on a batch (screening estimate). */
 export async function saveCarbonToBatch(
   batchId: string,
   result: CarbonResult,

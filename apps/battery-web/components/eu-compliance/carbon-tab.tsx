@@ -72,7 +72,7 @@ export default function CarbonTab() {
             <p className="text-xs text-muted-foreground">Across {withFootprint.length} batches with a calculated footprint</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-2">EU JRC carbon class thresholds</p>
+            <p className="text-xs text-muted-foreground mb-2">Internal screening bands (not a Commission Art. 7 class table)</p>
             <div className="grid grid-cols-7 gap-1">
               {CARBON_CLASS_THRESHOLDS.map((t) => (
                 <div key={t.class} className="text-center">

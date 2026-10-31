@@ -832,7 +832,7 @@ export function CreateBatchWizard({ onBatchCreated }: CreateBatchWizardProps) {
       );
       const newBatchId = createRes.data?.batch?.id;
 
-      // Art. 7: persist the calculator payload after create. Free-text
+      // Persist the calculator payload after create (screening estimate). Free-text
       // carbonFootprint is already on specs; the gate only reads this JSON.
       if (
         newBatchId &&

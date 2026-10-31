@@ -43,9 +43,9 @@ type CarbonInput struct {
 type CarbonResult struct {
 	TotalKgCO2e     float64         `json:"total_kg_co2e"`
 	PerKWhKgCO2e    float64         `json:"per_kwh_kg_co2e"`
-	CarbonClass     string          `json:"carbon_class"`     // EU performance class A-G
+	CarbonClass     string          `json:"carbon_class"` // EU performance class A-G
 	Breakdown       CarbonBreakdown `json:"breakdown"`
-	Methodology     string          `json:"methodology"`      // "JRC_2024_DECLARED"
+	Methodology     string          `json:"methodology"`      // "SCREENING_ESTIMATE"
 	CalculationDate string          `json:"calculation_date"` // ISO 8601
 	DeclarationText string          `json:"declaration_text"` // Legal declaration
 	FactorsUsed     []FactorUsed    `json:"factors_used"`     // Audit trail of factors
@@ -253,27 +253,24 @@ func (s *CarbonCalculatorService) CalculateCarbon(ctx context.Context, input Car
 	// 8. Build market-aware methodology label and declaration text.
 	market := strings.ToUpper(strings.TrimSpace(input.Market))
 	var methodology, declarationText string
+	methodology = "SCREENING_ESTIMATE"
 	switch market {
 	case "INDIA":
-		methodology = "IEA_2025_BEE_DECLARED"
 		declarationText = fmt.Sprintf(
-			"Carbon footprint calculated using IEA 2025 country emission factors and Bureau of Energy Efficiency (BEE) India assembly standards. "+
-				"Reference: Battery Waste Management Rules 2022, MoRTH AIS-038. "+
-				"Declared value: %.2f kgCO2e/kWh.",
+			"Screening estimate using published grid and chemistry factors. Not a regulatory filing and not CPCB/BEE verified. "+
+				"Estimated value: %.2f kgCO2e/kWh.",
 			perKWhKgCO2e,
 		)
 	case "GLOBAL":
-		methodology = "IEA_2025_DECLARED"
 		declarationText = fmt.Sprintf(
-			"Carbon footprint calculated using IEA 2025 country-specific grid emission factors and JRC 2024 cell chemistry factors. "+
-				"Declared value: %.2f kgCO2e/kWh.",
+			"Screening estimate using published grid and chemistry factors. Not a certified life-cycle assessment. "+
+				"Estimated value: %.2f kgCO2e/kWh.",
 			perKWhKgCO2e,
 		)
 	default: // "EU" and empty string
-		methodology = "JRC_2024_DECLARED"
 		declarationText = fmt.Sprintf(
-			"Carbon footprint calculated in accordance with EU Regulation 2023/1542 Article 7 using JRC 2024 methodology. "+
-				"Declared value: %.2f kgCO2e/kWh.",
+			"Screening estimate. Not PEFCR. Not an Article 7 carbon-footprint declaration. Not a Commission performance class. "+
+				"Estimated value: %.2f kgCO2e/kWh.",
 			perKWhKgCO2e,
 		)
 	}

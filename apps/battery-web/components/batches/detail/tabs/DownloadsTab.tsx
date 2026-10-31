@@ -161,7 +161,7 @@ export function DownloadsTab({
               icon={<Leaf className="h-4 w-4 text-emerald-500" />}
               label="Carbon Declaration"
               format="PDF"
-              description="Carbon footprint compliance declaration"
+              description="Carbon screening estimate (not a certified Art. 7 declaration)"
               onClick={onExportComplianceDeclaration}
               disabled={isDraft}
               disabledReason={

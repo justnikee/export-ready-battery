@@ -19,7 +19,6 @@ const (
 	euBatRegRef = "EU Battery Regulation 2023/1542"
 	euArt7Ref   = "EU 2023/1542 Art. 7 — Carbon footprint declaration"
 	euArt8Ref   = "EU 2023/1542 Art. 8 — Recycled content targets"
-	euArt11Ref  = "EU 2023/1542 Art. 11 — Supply chain due diligence"
 	euREACHRef  = "REACH Regulation (EC) No 1907/2006"
 )
 
@@ -29,8 +28,8 @@ const euTotalCheckpoints = 15
 
 // EUValidator validates battery batch and tenant data against the EU Battery
 // Regulation 2023/1542, covering carbon footprint disclosure (Art. 7),
-// recycled content targets (Art. 8), supply chain due diligence (Art. 11),
-// and REACH/RoHS hazardous substance declarations.
+// recycled content targets (Art. 8), supply chain due diligence (Ch. VII /
+// Art. 48 — not Art. 11), and REACH/RoHS hazardous substance declarations.
 //
 // Implements compliance.Validator and compliance.BatchValidator.
 type EUValidator struct {
@@ -62,10 +61,10 @@ func (v *EUValidator) Validate(specs json.RawMessage) (compliance.Result, error)
 
 // recycledThresholds holds the minimum recycled-content percentages for EU Art. 8.
 type recycledThresholds struct {
-	Cobalt   float64
-	Lithium  float64
-	Nickel   float64
-	Lead     float64
+	Cobalt  float64
+	Lithium float64
+	Nickel  float64
+	Lead    float64
 }
 
 // hardCodedThresholds returns the default EU 2031 minima used when the DB
@@ -75,12 +74,14 @@ func hardCodedThresholds() recycledThresholds {
 }
 
 // recycledContentWarning is dated so activation is not blocked before the
-// Art. 8 floors apply (minima 18 Aug 2031; disclosure 18 Aug 2028).
-func recycledContentWarning(metal string, declared, min float64) string {
+// Art. 8 floors apply. LMT uses 2033/2036; other in-scope categories 2028/2031.
+func recycledContentWarning(metal string, declared, min float64, cat models.BatteryCategory) string {
+	disclosure := art8DisclosureDate(cat)
+	minima := art8MinimaDate(cat)
 	if declared <= 0 {
-		return fmt.Sprintf("Recycled %s content not declared (EU minimum ≥%.1f%% applies from 18 Aug 2031; disclosure from 18 Aug 2028)", metal, min)
+		return fmt.Sprintf("Recycled %s content not declared (EU minimum ≥%.1f%% applies from %s; disclosure from %s)", metal, min, minima, disclosure)
 	}
-	return fmt.Sprintf("Recycled %s content %.1f%% is below EU minimum %.1f%% (applies from 18 Aug 2031; disclosure from 18 Aug 2028)", metal, declared, min)
+	return fmt.Sprintf("Recycled %s content %.1f%% is below EU minimum %.1f%% (applies from %s; disclosure from %s)", metal, declared, min, minima, disclosure)
 }
 
 // getRecycledThresholds queries the database for active compliance rules.
@@ -146,13 +147,15 @@ func ValidateEUTenant(tenant *models.Tenant) []compliance.Gap {
 		addMissing("tenant.address",
 			"Manufacturer address is required for EU DPP", euBatRegRef)
 	}
-	if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
-		addMissing("tenant.eu_authorized_representative_name",
-			"EU Authorized Representative name is mandatory for non-EU manufacturers", euBatRegRef)
-	}
-	if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
-		addMissing("tenant.eu_authorized_representative_address",
-			"EU Authorized Representative address is mandatory", euBatRegRef)
+	if !tenantEstablishedInEUEEA(tenant) {
+		if tenant.BatteryProfile.EUAuthorizedRepresentativeName == "" {
+			addMissing("tenant.eu_authorized_representative_name",
+				"EU Authorized Representative name is mandatory for manufacturers not established in the EU/EEA", euBatRegRef)
+		}
+		if tenant.BatteryProfile.EUAuthorizedRepresentativeAddress == "" {
+			addMissing("tenant.eu_authorized_representative_address",
+				"EU Authorized Representative address is mandatory for manufacturers not established in the EU/EEA", euBatRegRef)
+		}
 	}
 	if tenant.BatteryProfile.EUContactEmail == "" {
 		addMissing("tenant.eu_contact_email",
@@ -214,7 +217,7 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	gaps = append(gaps, tenantGaps...)
 
 	// ----------------------------------------------------------------
-	// Battery category classification (EU 2023/1542 Art. 2)
+	// Battery category classification (EU 2023/1542 Art. 3)
 	// ----------------------------------------------------------------
 
 	if batch.Specs.BatteryCategory == "" {
@@ -226,51 +229,58 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 			euBatRegRef)
 	}
 
+	cat := batch.Specs.BatteryCategory
+	capacity := batch.Specs.Capacity
+
 	// ----------------------------------------------------------------
-	// Carbon footprint declaration (Art. 7)
-	// Must come from the platform's carbon calculator — free-text not accepted.
+	// Carbon footprint (Art. 7) — screening estimate only.
+	// Never an activation ERROR in 2026: delegated/implementing acts are
+	// not in force, and Commission 71-point guidance does not require CF
+	// in the Feb 2027 passport. Portable / SLI / industrial ≤2 kWh: N/A.
 	// ----------------------------------------------------------------
 
-	if len(batch.CarbonFootprintResult) == 0 {
-		addMissing("batch.carbon_footprint_result",
-			"Carbon footprint result is mandatory — use the carbon calculator (free-text values are not accepted)", euArt7Ref)
+	if art7Applies(cat, capacity) && len(batch.CarbonFootprintResult) == 0 {
+		addWarning("batch.carbon_footprint_result",
+			"Screening estimate not attached. Optional in 2026 — not a PEFCR Art. 7 declaration and not required in the February 2027 passport (Commission guidance). Free-text carbon_footprint is display-only.",
+			euArt7Ref)
 	}
 
 	// ----------------------------------------------------------------
 	// Material composition / critical raw materials (Art. 8)
+	// Recycled-% floors are warnings with category-correct dates.
+	// Missing composition is a 2026 data-quality WARNING, not an ERROR.
 	// ----------------------------------------------------------------
 
 	if batch.Specs.MaterialComposition == nil {
-		addMissing("batch.specs.material_composition",
-			"Material composition (critical raw material percentages) is mandatory", euArt8Ref)
+		addWarning("batch.specs.material_composition",
+			"Material composition (critical raw material percentages) is not declared", euArt8Ref)
 	} else {
 		mc := batch.Specs.MaterialComposition
 		if mc.CobaltPct <= 0 && mc.LithiumPct <= 0 && mc.NickelPct <= 0 &&
 			mc.ManganesePct <= 0 && mc.GraphitePct <= 0 && mc.LeadPct <= 0 {
-			addMissing("batch.specs.material_composition",
-				"Material composition must contain non-zero values for at least one critical raw material", euArt8Ref)
+			addWarning("batch.specs.material_composition",
+				"Material composition has no non-zero critical raw material percentages", euArt8Ref)
 		}
 
-		// Recycled-content minima (Art. 8) are not in force until 18 Aug 2031
-		// (disclosure from 18 Aug 2028). Below-floor values are warnings so a
-		// 2026 exporter can activate; missing composition itself stays an error.
-		thresholds := v.getRecycledThresholds(context.Background())
+		if art8Applies(cat, capacity) {
+			thresholds := v.getRecycledThresholds(context.Background())
 
-		if mc.CobaltPct > 0 && mc.RecycledCobaltPct < thresholds.Cobalt {
-			addWarning("batch.specs.material_composition.recycled_cobalt_pct",
-				recycledContentWarning("cobalt", mc.RecycledCobaltPct, thresholds.Cobalt), euArt8Ref)
-		}
-		if mc.LithiumPct > 0 && mc.RecycledLithiumPct < thresholds.Lithium {
-			addWarning("batch.specs.material_composition.recycled_lithium_pct",
-				recycledContentWarning("lithium", mc.RecycledLithiumPct, thresholds.Lithium), euArt8Ref)
-		}
-		if mc.NickelPct > 0 && mc.RecycledNickelPct < thresholds.Nickel {
-			addWarning("batch.specs.material_composition.recycled_nickel_pct",
-				recycledContentWarning("nickel", mc.RecycledNickelPct, thresholds.Nickel), euArt8Ref)
-		}
-		if mc.LeadPct > 0 && mc.RecycledLeadPct < thresholds.Lead {
-			addWarning("batch.specs.material_composition.recycled_lead_pct",
-				recycledContentWarning("lead", mc.RecycledLeadPct, thresholds.Lead), euArt8Ref)
+			if mc.CobaltPct > 0 && mc.RecycledCobaltPct < thresholds.Cobalt {
+				addWarning("batch.specs.material_composition.recycled_cobalt_pct",
+					recycledContentWarning("cobalt", mc.RecycledCobaltPct, thresholds.Cobalt, cat), euArt8Ref)
+			}
+			if mc.LithiumPct > 0 && mc.RecycledLithiumPct < thresholds.Lithium {
+				addWarning("batch.specs.material_composition.recycled_lithium_pct",
+					recycledContentWarning("lithium", mc.RecycledLithiumPct, thresholds.Lithium, cat), euArt8Ref)
+			}
+			if mc.NickelPct > 0 && mc.RecycledNickelPct < thresholds.Nickel {
+				addWarning("batch.specs.material_composition.recycled_nickel_pct",
+					recycledContentWarning("nickel", mc.RecycledNickelPct, thresholds.Nickel, cat), euArt8Ref)
+			}
+			if mc.LeadPct > 0 && mc.RecycledLeadPct < thresholds.Lead {
+				addWarning("batch.specs.material_composition.recycled_lead_pct",
+					recycledContentWarning("lead", mc.RecycledLeadPct, thresholds.Lead, cat), euArt8Ref)
+			}
 		}
 	}
 
@@ -316,28 +326,30 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 				fmt.Sprintf("All cell-level components must declare chemistry (%d/%d cells have chemistry)", cellWithChemistry, cellCount),
 				euBatRegRef)
 		}
-		// Aggregate component recycled content and validate against thresholds
-		agg := aggregateComponentRecycledContent(batch.Specs.Components)
-		thresholds := v.getRecycledThresholds(context.Background())
-		if agg.CobaltTotal > 0 && agg.RecycledCobalt < thresholds.Cobalt {
-			addWarning("batch.specs.components.recycled_cobalt_pct",
-				fmt.Sprintf("Component-level aggregated recycled cobalt %.1f%% is below EU minimum %.1f%%", agg.RecycledCobalt, thresholds.Cobalt),
-				euArt8Ref)
-		}
-		if agg.LithiumTotal > 0 && agg.RecycledLithium < thresholds.Lithium {
-			addWarning("batch.specs.components.recycled_lithium_pct",
-				fmt.Sprintf("Component-level aggregated recycled lithium %.1f%% is below EU minimum %.1f%%", agg.RecycledLithium, thresholds.Lithium),
-				euArt8Ref)
-		}
-		if agg.NickelTotal > 0 && agg.RecycledNickel < thresholds.Nickel {
-			addWarning("batch.specs.components.recycled_nickel_pct",
-				fmt.Sprintf("Component-level aggregated recycled nickel %.1f%% is below EU minimum %.1f%%", agg.RecycledNickel, thresholds.Nickel),
-				euArt8Ref)
-		}
-		if agg.LeadTotal > 0 && agg.RecycledLead < thresholds.Lead {
-			addWarning("batch.specs.components.recycled_lead_pct",
-				fmt.Sprintf("Component-level aggregated recycled lead %.1f%% is below EU minimum %.1f%%", agg.RecycledLead, thresholds.Lead),
-				euArt8Ref)
+		if art8Applies(cat, capacity) {
+			agg := aggregateComponentRecycledContent(batch.Specs.Components)
+			thresholds := v.getRecycledThresholds(context.Background())
+			minima := art8MinimaDate(cat)
+			if agg.CobaltTotal > 0 && agg.RecycledCobalt < thresholds.Cobalt {
+				addWarning("batch.specs.components.recycled_cobalt_pct",
+					fmt.Sprintf("Component-level aggregated recycled cobalt %.1f%% is below EU minimum %.1f%% (applies from %s)", agg.RecycledCobalt, thresholds.Cobalt, minima),
+					euArt8Ref)
+			}
+			if agg.LithiumTotal > 0 && agg.RecycledLithium < thresholds.Lithium {
+				addWarning("batch.specs.components.recycled_lithium_pct",
+					fmt.Sprintf("Component-level aggregated recycled lithium %.1f%% is below EU minimum %.1f%% (applies from %s)", agg.RecycledLithium, thresholds.Lithium, minima),
+					euArt8Ref)
+			}
+			if agg.NickelTotal > 0 && agg.RecycledNickel < thresholds.Nickel {
+				addWarning("batch.specs.components.recycled_nickel_pct",
+					fmt.Sprintf("Component-level aggregated recycled nickel %.1f%% is below EU minimum %.1f%% (applies from %s)", agg.RecycledNickel, thresholds.Nickel, minima),
+					euArt8Ref)
+			}
+			if agg.LeadTotal > 0 && agg.RecycledLead < thresholds.Lead {
+				addWarning("batch.specs.components.recycled_lead_pct",
+					fmt.Sprintf("Component-level aggregated recycled lead %.1f%% is below EU minimum %.1f%% (applies from %s)", agg.RecycledLead, thresholds.Lead, minima),
+					euArt8Ref)
+			}
 		}
 	} else if batch.Specs.BatteryCategory == models.BatteryCategoryEV || batch.Specs.BatteryCategory == models.BatteryCategoryLMT || batch.Specs.BatteryCategory == models.BatteryCategoryIndustrial {
 		// EV, LMT, and Industrial batteries typically have sub-assemblies;
@@ -348,8 +360,16 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	}
 
 	// ----------------------------------------------------------------
-	// Supplier risk profiling (EU 2023/1542 Art. 11 — Supply chain due diligence)
+	// Supplier risk profiling (Ch. VII / Art. 48 — not Art. 11)
+	// Before 18 Aug 2027 these are warnings only. Silent skip if no
+	// component supplier_id (do not invent a due-diligence programme).
 	// ----------------------------------------------------------------
+
+	ddError := dueDiligenceInForce(time.Now())
+	addDD := addWarning
+	if ddError {
+		addDD = addError
+	}
 
 	if v.repo != nil {
 		var supplierUUIDs []uuid.UUID
@@ -379,30 +399,30 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 					key := suid.String()
 					if prof, ok := profileMap[key]; ok {
 						if prof.OverallScore > 70 {
-							addError("batch.specs.components.supplier_risk",
-								fmt.Sprintf("Supplier %s has extreme risk score (%d/100). Country tier %d. Minerals: %v.",
+							addDD("batch.specs.components.supplier_risk",
+								fmt.Sprintf("Supplier %s has extreme risk score (%d/100). Country tier %d. Minerals: %v. Chapter VII due diligence applies from 18 Aug 2027.",
 									key, prof.OverallScore, prof.CountryRiskTier, prof.MineralRiskFlags),
-								euArt11Ref)
+								euArt48Ref)
 						} else if prof.OverallScore > 40 {
 							addWarning("batch.specs.components.supplier_risk",
 								fmt.Sprintf("Supplier %s has elevated risk score (%d/100). Country tier %d.",
 									key, prof.OverallScore, prof.CountryRiskTier),
-								euArt11Ref)
+								euArt48Ref)
 						}
 						if prof.RMAPValid != nil && !*prof.RMAPValid {
-							addError("batch.specs.components.supplier_rmap",
-								fmt.Sprintf("Supplier %s does not have a valid RMAP audit.", key),
-								euArt11Ref)
+							addDD("batch.specs.components.supplier_rmap",
+								fmt.Sprintf("Supplier %s does not have a valid RMAP audit. Chapter VII due diligence applies from 18 Aug 2027.", key),
+								euArt48Ref)
 						}
 						if prof.NextAuditDue != nil && time.Now().After(*prof.NextAuditDue) {
-							addError("batch.specs.components.supplier_audit_overdue",
-								fmt.Sprintf("Supplier %s audit is overdue (due %s).", key, prof.NextAuditDue.Format("2006-01-02")),
-								euArt11Ref)
+							addDD("batch.specs.components.supplier_audit_overdue",
+								fmt.Sprintf("Supplier %s audit is overdue (due %s). Chapter VII due diligence applies from 18 Aug 2027.", key, prof.NextAuditDue.Format("2006-01-02")),
+								euArt48Ref)
 						}
 					} else {
-						addError("batch.specs.components.supplier_risk",
-							fmt.Sprintf("Supplier %s has no risk profile. Run due diligence assessment.", key),
-							euArt11Ref)
+						addDD("batch.specs.components.supplier_risk",
+							fmt.Sprintf("Supplier %s has no risk profile. Chapter VII due diligence applies from 18 Aug 2027 — not an activation blocker before that date.", key),
+							euArt48Ref)
 					}
 				}
 			}
@@ -410,12 +430,12 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 	}
 
 	// ----------------------------------------------------------------
-	// Overall recycled content percentage — soft warning
+	// Overall recycled content percentage — soft warning when Art. 8 applies
 	// ----------------------------------------------------------------
 
-	if batch.Specs.RecycledContentPct == nil || *batch.Specs.RecycledContentPct <= 0 {
+	if art8Applies(cat, capacity) && (batch.Specs.RecycledContentPct == nil || *batch.Specs.RecycledContentPct <= 0) {
 		addWarning("batch.specs.recycled_content_pct",
-			"Overall recycled content percentage not declared (recommended for Art. 8 disclosure)", euArt8Ref)
+			fmt.Sprintf("Overall recycled content percentage not declared (Art. 8 disclosure from %s)", art8DisclosureDate(cat)), euArt8Ref)
 	}
 
 	criticalFailures := len(missing) + len(errors)
@@ -436,14 +456,14 @@ func (v *EUValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenant) 
 
 // aggregatedRecycledContent holds weighted recycled content across all components.
 type aggregatedRecycledContent struct {
-	CobaltTotal    float64
-	RecycledCobalt float64
-	LithiumTotal   float64
+	CobaltTotal     float64
+	RecycledCobalt  float64
+	LithiumTotal    float64
 	RecycledLithium float64
-	NickelTotal    float64
-	RecycledNickel float64
-	LeadTotal      float64
-	RecycledLead   float64
+	NickelTotal     float64
+	RecycledNickel  float64
+	LeadTotal       float64
+	RecycledLead    float64
 }
 
 // aggregateComponentRecycledContent computes weighted-average recycled content

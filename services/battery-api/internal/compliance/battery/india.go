@@ -23,8 +23,9 @@ const (
 	indiaAIS038Ref = "AIS-038 Rev.2 (battery safety for EVs)"
 	indiaPLIRef    = "PLI Scheme Phase II — NITI Aayog DVA ≥50%"
 	indiaBWMRef    = "Battery Waste Management Rules 2022 (EPR)"
-	indiaBISRef    = "BIS CRS IS 16046 (mandatory lithium-ion certification)"
+	indiaBISRef    = "BIS CRS IS 16046 (portable sealed secondary cells/batteries)"
 	indiaCustoms   = "Customs Act 1962 / Foreign Trade Policy"
+	indiaUN38Ref   = "UN Manual of Tests and Criteria Part III 38.3"
 )
 
 // indiaBaseCheckpoints counts the hard rules that always run regardless of
@@ -38,10 +39,9 @@ func isTractionBattery(cat models.BatteryCategory) bool {
 	return cat == models.BatteryCategoryEV || cat == models.BatteryCategoryLMT
 }
 
-// isCertificateValid returns true if the certificate has been uploaded and
-// has not been rejected. PENDING is acceptable because the certificate may
-// still be under admin review.
-func isCertificateValid(path, status string) bool {
+// isCertificateUploaded returns true if a PDF path is present and has not
+// been rejected. PENDING means uploaded, not registry-verified.
+func isCertificateUploaded(path, status string) bool {
 	if path == "" {
 		return false
 	}
@@ -124,47 +124,69 @@ func (v *IndiaValidator) Validate(specs json.RawMessage) (compliance.Result, err
 // during onboarding to preview activation readiness.
 // Returns the list of compliance gaps found.
 func ValidateIndiaTenant(tenant *models.Tenant) []compliance.Gap {
+	return indiaTenantGaps(tenant, "")
+}
+
+// indiaTenantGaps applies India producer-duty checks. Category gates BIS
+// (portable CRS only) and MoRTH (EV/LMT traction only). Empty category:
+// EPR+IEC still required for an India-market tenant; BIS/MoRTH are warnings.
+func indiaTenantGaps(tenant *models.Tenant, cat models.BatteryCategory) []compliance.Gap {
 	var gaps []compliance.Gap
 
-	addMissing := func(field, msg, regulation string) {
+	add := func(field, msg, regulation, severity string) {
 		gaps = append(gaps, compliance.Gap{
 			Field:      field,
 			Market:     indiaMarket,
 			Regulation: regulation,
 			Message:    msg,
-			Severity:   "ERROR",
+			Severity:   severity,
 		})
 	}
 
 	tenant.EnsureBatteryProfile()
 
 	if tenant.BatteryProfile.EPRRegistrationNumber == "" {
-		addMissing("tenant.epr_registration_number",
-			"EPR registration number is mandatory under BWM Rules 2022", indiaBWMRef)
-	}
-	if tenant.BatteryProfile.BISRNumber == "" {
-		addMissing("tenant.bis_r_number",
-			"BIS R-Number (CRS IS 16046) is mandatory for lithium-ion batteries", indiaBISRef)
+		add("tenant.epr_registration_number",
+			"EPR registration number is required for batteries placed on the Indian market (BWM Rules 2022). Filing stays on the CPCB portal.",
+			indiaBWMRef, "ERROR")
 	}
 	if tenant.BatteryProfile.IECCode == "" {
-		addMissing("tenant.iec_code",
-			"Import Export Code (IEC) is required for India market operations", "DGFT IEC Regulations")
-	}
-	if tenant.BatteryProfile.MorthManufacturerCode == "" {
-		addMissing("tenant.morth_manufacturer_code",
-			"MoRTH manufacturer code is required for vehicle battery registration", "MoRTH Notification S.O. 3400(E)")
+		add("tenant.iec_code",
+			"Import Export Code (IEC) is required for India market operations", "DGFT IEC Regulations", "ERROR")
 	}
 
-	// Certificate upload verification
-	if tenant.BatteryProfile.EPRRegistrationNumber != "" &&
-		!isCertificateValid(tenant.BatteryProfile.EPRCertificatePath, tenant.BatteryProfile.EPRStatus) {
-		addMissing("tenant.epr_certificate",
-			"EPR certificate PDF must be uploaded and verified to activate batches", indiaBWMRef)
+	if cat == models.BatteryCategoryPortable {
+		if tenant.BatteryProfile.BISRNumber == "" {
+			add("tenant.bis_r_number",
+				"BIS R-Number (CRS IS 16046) is required for portable sealed secondary cells/batteries. CRS does not schedule EV/industrial/SLI packs.",
+				indiaBISRef, "ERROR")
+		}
+	} else if tenant.BatteryProfile.BISRNumber == "" {
+		add("tenant.bis_r_number",
+			"BIS CRS IS 16046 applies to portable sealed secondary cells/batteries, not EV/industrial/SLI as a general sale rule.",
+			indiaBISRef, "WARNING")
 	}
-	if tenant.BatteryProfile.BISRNumber != "" &&
-		!isCertificateValid(tenant.BatteryProfile.BISCertificatePath, tenant.BatteryProfile.BISStatus) {
-		addMissing("tenant.bis_certificate",
-			"BIS certificate PDF must be uploaded and verified to activate batches", indiaBISRef)
+
+	if isTractionBattery(cat) {
+		if tenant.BatteryProfile.MorthManufacturerCode == "" {
+			add("tenant.morth_manufacturer_code",
+				"MoRTH manufacturer code is required for EV/LMT traction batteries", "MoRTH Notification S.O. 3400(E)", "ERROR")
+		}
+	} else if tenant.BatteryProfile.MorthManufacturerCode == "" {
+		add("tenant.morth_manufacturer_code",
+			"MoRTH manufacturer code applies to vehicle traction batteries (EV/LMT), not portable/stationary/SLI.",
+			"MoRTH Notification S.O. 3400(E)", "WARNING")
+	}
+
+	if tenant.BatteryProfile.EPRRegistrationNumber != "" &&
+		!isCertificateUploaded(tenant.BatteryProfile.EPRCertificatePath, tenant.BatteryProfile.EPRStatus) {
+		add("tenant.epr_certificate",
+			"EPR certificate PDF must be uploaded (not registry-verified by this platform)", indiaBWMRef, "ERROR")
+	}
+	if cat == models.BatteryCategoryPortable && tenant.BatteryProfile.BISRNumber != "" &&
+		!isCertificateUploaded(tenant.BatteryProfile.BISCertificatePath, tenant.BatteryProfile.BISStatus) {
+		add("tenant.bis_certificate",
+			"BIS certificate PDF must be uploaded (not registry-verified by this platform)", indiaBISRef, "ERROR")
 	}
 	return gaps
 }
@@ -212,7 +234,8 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// Tenant-level India compliance credentials
 	// ----------------------------------------------------------------
 
-	tenantGaps := ValidateIndiaTenant(tenant)
+	cat := batch.Specs.BatteryCategory
+	tenantGaps := indiaTenantGaps(tenant, cat)
 	for _, g := range tenantGaps {
 		if g.Severity == "ERROR" {
 			missing = append(missing, g.Field)
@@ -226,22 +249,22 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// PLI certificate — batch-dependent check (kept in ValidateBatch)
 	// ----------------------------------------------------------------
 	if batch.PLICompliant &&
-		!isCertificateValid(tenant.BatteryProfile.PLICertificatePath, tenant.BatteryProfile.PLIStatus) {
+		!isCertificateUploaded(tenant.BatteryProfile.PLICertificatePath, tenant.BatteryProfile.PLIStatus) {
 		addMissing("tenant.pli_certificate",
-			"PLI certificate PDF must be uploaded and verified to claim PLI compliance", indiaPLIRef)
+			"PLI certificate PDF must be uploaded to claim PLI compliance (not registry-verified by this platform)", indiaPLIRef)
 	}
 
 	// ----------------------------------------------------------------
-	// Test date validation — legal declarations required for India market
+	// Test date validation — legal declarations for India market
 	// ----------------------------------------------------------------
 
-	if batch.Specs.BISCertificateIssueDate == "" {
+	if cat == models.BatteryCategoryPortable && batch.Specs.BISCertificateIssueDate == "" {
 		addMissing("batch.specs.bis_certificate_issue_date",
-			"BIS certificate issue date is required for India compliance", indiaBISRef)
+			"BIS certificate issue date is required for portable CRS (IS 16046)", indiaBISRef)
 	}
 	if batch.Specs.UN383TestDate == "" {
-		addMissing("batch.specs.un38_3_test_date",
-			"UN38.3 test date is required for lithium-ion battery transport safety", indiaAIS156Ref)
+		addWarning("batch.specs.un38_3_test_date",
+			"UN 38.3 test date is recommended before lithium transport — it is a transport classification, not a digital-passport duty", indiaUN38Ref)
 	}
 	if batch.Specs.IEC62133TestDate == "" {
 		addMissing("batch.specs.iec_62133_test_date",
@@ -261,7 +284,7 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 		ref   string
 	}{
 		{"batch.specs.bis_certificate_issue_date", batch.Specs.BISCertificateIssueDate, "BIS certificate issue", indiaBISRef},
-		{"batch.specs.un38_3_test_date", batch.Specs.UN383TestDate, "UN38.3 test", indiaAIS156Ref},
+		{"batch.specs.un38_3_test_date", batch.Specs.UN383TestDate, "UN38.3 test", indiaUN38Ref},
 		{"batch.specs.iec_62133_test_date", batch.Specs.IEC62133TestDate, "IEC 62133 test", "IEC 62133"},
 		{"batch.specs.msds_issue_date", batch.Specs.MSDSIssueDate, "MSDS issue", "MSDS"},
 	} {
@@ -322,7 +345,6 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	// portable / SLI. Empty category: warn, do not block.
 	// ----------------------------------------------------------------
 
-	cat := batch.Specs.BatteryCategory
 	if cat == "" {
 		addWarning("batch.specs.battery_category",
 			"Set battery category so AIS type-approval can be applied (required for EV/LMT traction packs)", indiaAIS156Ref)
@@ -386,8 +408,8 @@ func (v *IndiaValidator) ValidateBatch(batch *models.Batch, tenant *models.Tenan
 	score := compliance.ScoreFromCheckpoints(hardCheckpoints, criticalFailures)
 
 	return compliance.Result{
-		Valid:    criticalFailures == 0,
-		Score:    score,
+		Valid: criticalFailures == 0,
+		Score: score,
 		PerMarket: map[string]compliance.MarketScore{
 			indiaMarket: {Score: score, Valid: criticalFailures == 0, Gaps: gaps},
 		},
