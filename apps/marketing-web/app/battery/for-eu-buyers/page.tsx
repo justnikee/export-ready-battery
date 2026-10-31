@@ -8,7 +8,7 @@ import EUBuyerMandateForm from "@/components/sections/eu-buyer-mandate-form";
 export const metadata: Metadata = {
   title: "Require Digital Battery Passports from your Indian Suppliers | Anviora Battery",
   description:
-    "EU Battery Regulation 2023/1542 makes Digital Battery Passports mandatory from February 2027. Verify a supplier's passport or mandate Anviora for your Indian battery supply chain.",
+    "From 18 February 2027, LMT, industrial >2 kWh, and EV batteries need a passport. Scan a sample record or ask us to onboard your Indian pack supplier.",
   alternates: { canonical: "/battery/for-eu-buyers" },
 };
 

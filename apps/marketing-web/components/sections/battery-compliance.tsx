@@ -3,13 +3,11 @@
 import { motion } from "framer-motion";
 
 const timeline = [
-  { date: "Aug 2024", label: "CE marking mandatory on ALL batteries", current: false },
-  { date: "Feb 2025", label: "Carbon footprint declaration (EV batteries)", current: false },
-  { date: "Feb 2026", label: "Carbon footprint expands to industrial >2kWh", current: false },
-  { date: "Feb 2027", label: "Battery Passport MANDATORY", current: true, danger: true },
-  { date: "Aug 2027", label: "Due diligence obligations active", current: false },
-  { date: "Aug 2028", label: "Recycled content disclosure mandatory", current: false },
-  { date: "2031", label: "Hard minimum recycled content targets", current: false },
+  { date: "18 Feb 2027", label: "Passport for LMT, industrial >2 kWh, EV (Art. 77). QR on all batteries (Art. 13).", current: true, danger: true },
+  { date: "18 Feb 2027", label: "Art. 11 removability (portable / LMT) is product design — not a software tick.", current: false },
+  { date: "18 Aug 2027", label: "Chapter VII due diligence (Art. 48). Not a Feb 2027 passport field.", current: false },
+  { date: "18 Aug 2028", label: "Art. 8 recycled-content documentation (LMT from 2033). Minima 2031 / LMT 2036.", current: false },
+  { date: "Art. 7", label: "Carbon clocks wait on Commission acts — calendar dates are not free-standing.", current: false },
 ];
 
 export default function BatteryCompliance() {
@@ -29,9 +27,9 @@ export default function BatteryCompliance() {
               February 2027. The deadline that won&apos;t move.
             </h2>
             <p className="text-[16px] leading-[1.65] text-text-muted text-pretty mb-4">
-              On 18 February 2027 the EU Battery Passport becomes mandatory — no
-              passport, no EU market. Your buyers will ask for upstream proof before
-              they place the order.
+              On 18 February 2027 the buyer will ask for a QR-linked record on LMT,
+              large industrial, and EV packs. That is identity and a structured page —
+              not carbon class and not a CPCB stamp.
             </p>
             <p className="text-[16px] leading-[1.65] text-slate-950 font-semibold">
               Anviora Battery gets you ready instead of scrambling.

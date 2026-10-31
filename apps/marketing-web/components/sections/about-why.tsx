@@ -11,17 +11,17 @@ const MOMENTS = [
   {
     num: "02",
     heading: "The existing tools are built for Europe, not for India",
-    body: "Every DPP platform we found was designed for European manufacturers, priced in euros, and assumed your compliance infrastructure already existed. There was nothing that started from a BIS certificate and a Tally-connected ERP.",
+    body: "Every DPP platform we found was designed for European manufacturers, priced in euros, and assumed your compliance infrastructure already existed. There was little that started from the PDFs a Coimbatore pack house already has.",
   },
   {
     num: "03",
     heading: "India's own compliance is just as fragmented",
-    body: "BIS, CPCB EPR, DGFT TRACE, BWM Rules, PLI incentive claims — these are five separate systems with five separate data requirements. Manufacturers were managing all of them in spreadsheets and WhatsApp threads.",
+    body: "BIS licences, CPCB EPR, UN 38.3, AIS type-approval, and export paperwork sit in different portals and WhatsApp threads. The factory cannot see, in one place, what the EU buyer will scan.",
   },
   {
     num: "04",
     heading: "We decided to build the missing infrastructure",
-    body: "A single platform that starts with Indian compliance (BIS, EPR, UN38.3) and builds up to EU compliance (Carbon footprint, Battery Passport, Due Diligence) — because that's the actual journey an Indian exporter takes.",
+    body: "A lot record that starts with papers you already have (UN 38.3, BIS if it applies, EPR number) and issues serials and a public QR the German buyer can open without an account. Carbon class and CPCB filing are not that first job.",
   },
 ];
 

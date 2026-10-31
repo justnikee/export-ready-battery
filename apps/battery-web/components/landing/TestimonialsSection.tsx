@@ -34,7 +34,7 @@ const testimonials = [
     company: "GreenTech Batteries",
     location: "Singapore",
     rating: 5,
-    metric: "100% audit pass rate",
+    metric: "Illustrative quote — not a production reference",
     initials: "DC",
   },
 ];

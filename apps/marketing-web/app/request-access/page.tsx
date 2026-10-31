@@ -186,7 +186,7 @@ export default function RequestAccessPage() {
         >
           <div className="mb-8 border-b border-black/10 pb-6">
             <p className="text-black/80 font-medium text-[15px] leading-relaxed">
-              Anviora is built for Indian manufacturers. We verify every application to ensure compliance data security.
+              Built for Indian pack exporters. A walkthrough of serials, QR, and a public sample page — not a certification.
             </p>
           </div>
 
@@ -287,7 +287,7 @@ export default function RequestAccessPage() {
               >
                 <option value="">Select product type</option>
                 <option value="battery">Battery / Energy Storage</option>
-                <option value="textile">Textile / Apparel</option>
+                <option value="other">Other</option>
                 <option value="both">Both</option>
               </select>
               {errors.productType && (

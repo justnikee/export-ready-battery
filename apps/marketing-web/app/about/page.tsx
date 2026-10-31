@@ -10,7 +10,7 @@ import AboutCTA from "@/components/sections/about-cta";
 export const metadata: Metadata = {
   title: "About Anviora — Building the Identity Layer for Indian Exports",
   description:
-    "We are building the compliance infrastructure that lets Indian manufacturers compete on global terms. Every battery. Every textile. Every product — verified.",
+    "Anviora issues EU-scannable battery records for Indian pack manufacturers — serials, QR, a public page, and an India certificate vault.",
   alternates: { canonical: "/about" },
 };
 

@@ -4,8 +4,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Check, FileText, QrCode, Zap, ShieldCheck, CheckCircle2, AlertTriangle, Eye, Lock, RefreshCw, Server } from "lucide-react";
 
 export default function Platform() {
-  const carbonClasses = ["A", "B", "C", "D", "E"];
-
   const parsedFields = [
     { label: "Chemistry", value: "LFP" },
     { label: "Nominal voltage", value: "3.2 V" },
@@ -16,8 +14,8 @@ export default function Platform() {
   const assembleFields = [
     { label: "Identity & manufacturer", pct: 100 },
     { label: "Materials & composition", pct: 100 },
-    { label: "Carbon footprint", pct: 80 },
-    { label: "Supply chain due diligence", pct: 64 },
+    { label: "Carbon estimate (optional)", pct: 40 },
+    { label: "Due diligence (from Aug 2027)", pct: 20 },
   ];
 
   return (
@@ -38,7 +36,7 @@ export default function Platform() {
             </h2>
 
             <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[640px] mx-auto">
-              Ingest Indian supplier certificates and automatically output verified EU digital battery passports with complete carbon and supply chain traceability.
+              Upload the PDFs you already have. We issue serials, a public QR page, and a certificate vault. That is not a notified-body stamp and not a CPCB filing.
             </p>
           </div>
 
@@ -59,7 +57,7 @@ export default function Platform() {
                 AI Certificate Extraction
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Drop in raw BIS registrations, EPR approvals, UN38.3 transport reports, IEC 62133 safety certs, and MSDS PDFs. Anviora&apos;s OCR engine extracts 100+ raw parameters into structured JSON in seconds.
+                Drop in UN 38.3, MSDS, DoC, and BIS/EPR PDFs when you have them. Extraction is an aid — you still review the fields. We do not verify licences against CPCB or BIS.
               </p>
             </div>
 
@@ -74,10 +72,10 @@ export default function Platform() {
                 </span>
               </div>
               <h3 className="font-sans text-text text-[21px] font-bold tracking-[-0.03em] mb-3">
-                Live India &amp; EU Regulation Engine
+                Category-correct activation checklist
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Cross-checks extracted battery metrics against active Indian CPCB &amp; BIS rules alongside EU Battery Regulation 2023/1542 mandates — generating a live readiness score that flags missing fields before shipment approval.
+                Flags missing fields for this lot and this category. Warnings for duties not yet in force. A score is not a legal clearance.
               </p>
             </div>
 
@@ -92,10 +90,10 @@ export default function Platform() {
                 </span>
               </div>
               <h3 className="font-sans text-text text-[21px] font-bold tracking-[-0.03em] mb-3">
-                Automated W3C Passport Builder
+                Lot → serials → public page
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Aggregates cell chemistry, nominal capacity, lifecycle metrics, and supplier documentation into a version-controlled, cryptographically signed W3C Verifiable Credential tied to the battery serial number.
+                House serials, printable QR to /p/{"{uuid}"}, hash-chained lifecycle. Optional W3C credential is extra — the scan page is the product.
               </p>
             </div>
 
@@ -110,10 +108,10 @@ export default function Platform() {
                 </span>
               </div>
               <h3 className="font-sans text-text text-[21px] font-bold tracking-[-0.03em] mb-3">
-                Calculated EU Carbon <span className="whitespace-nowrap">Class A–E</span>
+                Carbon screening estimate
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Automates lifecycle carbon accounting across raw material extraction, cell manufacturing, and grid energy mix to assign mandatory EU performance classes (Class A through E) per manufactured battery batch.
+                Optional kg CO₂e per kWh from a bill of materials. Not PEFCR, not Article 7, not a Commission A–G class. Useful for internal talk; not a legal declaration.
               </p>
             </div>
 
@@ -128,10 +126,10 @@ export default function Platform() {
                 </span>
               </div>
               <h3 className="font-sans text-text text-[21px] font-bold tracking-[-0.03em] mb-3">
-                Multi-Tier Buyer &amp; Customs Portals
+                Public page, partner link, regulator key
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Generate dynamic QR-coded public landing pages and buyer-specific portals. European importers verify compliance in one click while you retain full governance over proprietary supplier &amp; material data.
+                Three access tiers on our host. The importer scans without an account. That is not a customs portal and not the EU DPP Registry.
               </p>
             </div>
 
@@ -149,7 +147,7 @@ export default function Platform() {
                 Automated Expiry &amp; Risk Warnings
               </h3>
               <p className="font-sans text-[14px] leading-[22px] text-text-muted text-pretty">
-                Tracks periodic renewal windows for BIS registrations, UN38.3 test validity, and supplier declarations — sending automated 30, 7, and 1-day alerts before regulatory lapses stall customs clearance.
+                Reminder dates on certificates you stored. A reminder is not a renewed licence and does not clear a shipment.
               </p>
             </div>
 

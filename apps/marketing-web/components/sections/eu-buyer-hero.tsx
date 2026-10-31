@@ -23,10 +23,10 @@ export default function EUBuyerHero() {
             Require Digital Battery Passports from your Indian suppliers.
           </h1>
           <p className="mt-5 text-[16px] sm:text-[17px] leading-[1.6] text-[#131313] max-w-[600px] mx-auto">
-            EU Battery Regulation 2023/1542 makes a Digital Battery Passport mandatory
-            from February 2027. Anviora is already used by Indian battery manufacturers
-            to issue and maintain them — verify any passport below, or tell us which
-            suppliers you want to mandate it for.
+            From 18 February 2027, LMT, industrial batteries above 2 kWh, and EV
+            batteries placed on the EU market need a passport. We onboard the Indian
+            pack supplier and issue a public scan page. We do not have production
+            customers to name yet — ask for a live sample instead.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-7">
             <a

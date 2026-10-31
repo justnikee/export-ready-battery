@@ -36,7 +36,7 @@ export default function PricingCTA() {
               Still Have Questions?
             </h2>
             <p className="text-[16px] leading-[1.65] text-white/85 mb-8 text-pretty font-normal">
-              Talk to our compliance team. We&apos;ll calculate your exact passport requirements and help you pick the right plan.
+              Ask for a walkthrough of one SKU. We will not certify your battery or file CPCB.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <a

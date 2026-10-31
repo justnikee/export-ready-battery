@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Request Access | Anviora",
   description:
-    "Request early access to Anviora's Digital Product Passport platform for Indian battery and textile exporters.",
+    "Request a walkthrough of Anviora battery records for Indian pack exporters.",
   alternates: { canonical: "/request-access" },
 };
 

@@ -95,7 +95,7 @@ export default function EUBuyerMandateForm() {
             Mandate your Indian suppliers
           </h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#131313] text-center">
-            Tell us who you buy from in India — we'll reach out to them directly and help them onboard.
+            Name the Indian pack suppliers you want on a scannable record. We will reach out. We do not replace your notified body.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">

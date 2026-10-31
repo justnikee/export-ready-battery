@@ -9,9 +9,9 @@ import BatteryDual from "@/components/sections/battery-dual";
 import BatteryCTA from "@/components/sections/battery-cta";
 
 export const metadata: Metadata = {
-  title: "Anviora Battery — Digital Product Passports for Battery Manufacturers",
+  title: "Anviora Battery — serials, QR, and a public record",
   description:
-    "Generate EU-compliant Battery Passports, track BIS certificates, and verify every cell from factory to recycler. Built for Indian battery exporters.",
+    "Issue EU-scannable battery records for Indian pack exporters. LMT, industrial >2 kWh, and EV from 18 February 2027. We are not a notified body.",
   alternates: { canonical: "/battery" },
 };
 

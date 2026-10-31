@@ -33,16 +33,16 @@ export default function BatteryHero() {
                 BATTERY DPP
               </span>
               <span className="font-mono text-[12px] font-medium tracking-wide">
-                EU 2023/1542 & BIS IS 16046
+                LMT · industrial &gt;2 kWh · EV — 18 Feb 2027
               </span>
             </div>
 
             <h1 className="font-heading font-semibold text-[clamp(32px,4.8vw,64px)] leading-[0.96] tracking-[-0.04em] text-black mb-4">
-              The identity layer <span className="block">for every battery you ship.</span>
+              Serials and a public QR <span className="block">for the packs the EU will scan.</span>
             </h1>
 
             <p className="text-[15px] sm:text-[17px] leading-[1.6] text-black/85 font-medium max-w-[500px] text-pretty">
-              EU Battery Regulation 2023/1542. BIS IS 16046. UN38.3. Carbon footprint. One platform, one verifiable record — from cell to recycler.
+              Create a lot, attach the PDFs you already have, mint serials, print labels. The buyer opens the page with no login. We are not a notified body and we do not file CPCB.
             </p>
 
             {/* Inline countdown */}

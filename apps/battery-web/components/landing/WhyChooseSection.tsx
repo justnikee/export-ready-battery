@@ -11,9 +11,9 @@ const benefits = [
     description:
       "Generate EU Battery Passports and validate BIS certification automatically. Eliminates 40+ hours of manual paperwork per bill-of-lading cycle.",
     features: [
-      "EU 2023/1542 Art 77 auto-validation",
-      "BIS IS 16046 real-time verification",
-      "JRC carbon footprint classification (A-G)",
+      "Art. 77 passport for LMT / industrial >2 kWh / EV",
+      "BIS/EPR numbers stored — not registry-filed",
+      "Carbon screening estimate, not PEFCR",
     ],
   },
   {
@@ -123,9 +123,7 @@ export function WhyChooseSection() {
           className="mt-12 text-center"
         >
           <p className="text-sm text-muted-light">
-            Trusted by{" "}
-            <span className="font-semibold text-gray-900">50+ manufacturers</span>{" "}
-            across India and Europe — from EV producers to consumer electronics exporters
+            Built for mid-size Indian pack assemblers exporting LMT or industrial packs to the EU — not a production-user count.
           </p>
         </motion.div>
       </div>

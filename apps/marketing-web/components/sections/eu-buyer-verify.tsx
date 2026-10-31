@@ -70,7 +70,7 @@ export default function EUBuyerVerify() {
             Verify a battery passport
           </h2>
           <p className="mt-3 text-[15px] leading-[1.6] text-[#131313] text-center">
-            Paste a passport link from a supplier's QR code to check its live compliance status.
+            Paste a public /p/{"{uuid}"} link. This looks up our record — it is not EU customs or the Commission registry.
           </p>
 
           <form onSubmit={handleVerify} className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -102,7 +102,7 @@ export default function EUBuyerVerify() {
             <div className="mt-6 p-5 rounded-2xl bg-paper">
               <div className="flex items-center gap-2 text-crew-green">
                 <CheckCircle size={18} />
-                <span className="font-semibold text-sm">Passport verified</span>
+                <span className="font-semibold text-sm">Record found</span>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -125,7 +125,7 @@ export default function EUBuyerVerify() {
                 </div>
                 {result.carbon_performance_class && (
                   <div>
-                    <div className="text-crew-muted text-xs">Carbon Class</div>
+                    <div className="text-crew-muted text-xs">Internal carbon band (not a legal class)</div>
                     <div className="font-semibold text-crew-ink">{result.carbon_performance_class}</div>
                   </div>
                 )}

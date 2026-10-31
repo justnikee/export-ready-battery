@@ -5,7 +5,7 @@ import { getAllCategories, getAllTags, getPublishedPosts } from "@/lib/blog";
 const staticRoutes = [
   "",
   "/battery",
-  "/textile",
+  "/battery/for-eu-buyers",
   "/pricing",
   "/about",
   "/request-access",

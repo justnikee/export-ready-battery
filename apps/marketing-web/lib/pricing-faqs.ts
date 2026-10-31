@@ -13,7 +13,7 @@ export const faqs = [
   },
   {
     q: "Do you offer discounts for MSMEs?",
-    a: "Yes. We participate in the DGFT TRACE scheme, which can reimburse up to 75% of your platform cost. We help you file the paperwork.",
+    a: "Ask us about a 90-day pilot with credits included. DGFT TRACE is a separate, optional reimbursement of eligible testing and certification costs — not of this software, and we do not file TRACE for you.",
   },
   {
     q: "Is there an annual discount?",

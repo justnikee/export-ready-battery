@@ -7,30 +7,30 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 export const metadata: Metadata = {
   title: "EU Battery Regulation 2023/1542 — What It Requires | Anviora",
   description:
-    "A plain-English guide to EU Battery Regulation 2023/1542: the Feb 2027 Battery Passport deadline, carbon footprint declarations, recycled content rules, and due diligence obligations for exporters.",
+    "A plain-English guide to EU Battery Regulation 2023/1542: who needs a battery passport on 18 February 2027, what the QR is for, and which duties come later.",
   alternates: { canonical: "/compliance/eu-battery-regulation" },
 };
 
 const requirements = [
   {
-    article: "Art. 7",
-    title: "Carbon footprint declaration",
-    body: "Every EV and industrial battery (>2kWh) needs a calculated carbon footprint value and A–G performance class, using a JRC-aligned methodology — not a free-text estimate.",
-  },
-  {
-    article: "Art. 8",
-    title: "Recycled content",
-    body: "Minimum recycled cobalt, lithium, nickel and lead content, tracked via book-and-claim mass-balance accounting — both at the battery level and aggregated across your supply chain.",
-  },
-  {
-    article: "Art. 11",
-    title: "Supply chain due diligence",
-    body: "From August 2027, manufacturers above a size threshold must document supplier risk — sourcing, human rights, environmental impact — with audit trails, not self-declarations.",
-  },
-  {
     article: "Art. 77",
-    title: "The Battery Passport itself",
-    body: "A QR-linked digital record covering manufacturer identity, chemistry, carbon footprint, recycled content, and performance data, in a tiered structure (public / partner / regulator access).",
+    title: "The battery passport",
+    body: "From 18 February 2027 each LMT battery, each industrial battery above 2 kWh, and each EV battery placed on the EU market or put into service needs an electronic record. Portable and SLI batteries are outside that duty. Commission guidance maps 71 data points; carbon, recycled %, and due diligence are not to be filled in that passport on day one.",
+  },
+  {
+    article: "Art. 13",
+    title: "QR on every battery",
+    body: "From the same date all batteries carry a QR. For the three passport categories it opens the Art. 77 record. For others it opens labelling, the EU DoC, and waste information — not a full passport.",
+  },
+  {
+    article: "Art. 7",
+    title: "Carbon footprint (later)",
+    body: "Applies to EV, rechargeable industrial >2 kWh, and LMT — not portable or SLI. Each clock is the later of a calendar date and 12 or 18 months after Commission methodology and format acts. Those acts were still drafts as of August 2026. A five-input calculator is not a PEFCR declaration.",
+  },
+  {
+    article: "Art. 11 vs 48",
+    title: "Removability is not due diligence",
+    body: "Article 11 is product design: portable batteries removable by the end-user, LMT by an independent professional, from 18 February 2027. Supply-chain due diligence is Chapter VII / Article 48, from 18 August 2027, with a EUR 40 million exclusion.",
   },
 ];
 
@@ -63,7 +63,7 @@ export default function EUBatteryRegulationPage() {
               EU Battery Regulation 2023/1542, explained.
             </h1>
             <p className="text-[15px] sm:text-[17px] leading-[1.6] text-black/85 font-medium max-w-[640px]">
-              The EU&apos;s Battery Regulation replaces the old Battery Directive with binding, product-level requirements — carbon footprint, recycled content, due diligence, and a mandatory Digital Battery Passport.
+              The Batteries Regulation is a stack of dates. February 2027 is identity, QR, and a structured record for certain large batteries — not carbon class, not CPCB, not Bitcoin.
             </p>
           </div>
         </div>
@@ -98,10 +98,10 @@ export default function EUBatteryRegulationPage() {
       <section className="py-[72px]">
         <div className="max-w-[860px] mx-auto px-6 text-center">
           <h2 className="font-heading text-[clamp(26px,3.4vw,36px)] font-semibold tracking-[-0.02em] text-black mb-4">
-            Anviora Battery generates the passport this regulation requires.
+            Anviora issues the record the buyer will scan.
           </h2>
           <p className="text-[16px] leading-[1.6] text-black/80 max-w-[560px] mx-auto mb-7">
-            Carbon footprint calculation, recycled-content mass balance, supplier due diligence, and the passport itself — one platform, mapped directly to Art. 7/8/11/77.
+            Serials, QR, a public page, and a certificate vault. We do not replace a notified body, file CPCB, or assign a legal carbon class.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a

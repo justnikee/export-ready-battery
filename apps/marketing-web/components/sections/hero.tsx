@@ -5,13 +5,12 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 const tickerItems = [
-  "EU 2023/1542 READY",
-  "W3C VERIFIABLE CREDENTIALS",
-  "OPENTIMESTAMPS ANCHORED",
-  "BIS & CPCB COMPLIANT",
-  "ZERO TELEMETRY LEAK",
-  "AUTOMATED DGFT TRACE",
-  "100% AUDIT PROOF",
+  "SERIALS AND QR FOR EACH PACK",
+  "PUBLIC PASSPORT PAGE — NO LOGIN",
+  "LMT · INDUSTRIAL >2 KWH · EV",
+  "PASSPORT DUTY 18 FEB 2027",
+  "INDIA CERTIFICATE VAULT",
+  "NOT A NOTIFIED BODY",
 ];
 
 export default function Hero() {
@@ -80,9 +79,9 @@ export default function Hero() {
             transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="font-heading font-semibold text-[clamp(32px,5.2vw,84px)] leading-[0.96] tracking-[-0.04em] text-black max-w-[1140px]"
           >
-            <span className="block sm:inline-block">Every Battery Deserves </span>
+            <span className="block sm:inline-block">EU-scannable records </span>
             <span className="block sm:inline-block">
-              a <span className="animate-text-glitch">Digital Identity.</span>
+              for <span className="animate-text-glitch">Indian pack exporters.</span>
             </span>
           </motion.h1>
 
@@ -93,7 +92,7 @@ export default function Hero() {
             transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="mt-4 sm:mt-6 max-w-[640px] text-[15px] sm:text-[18px] leading-[1.6] text-black/85 font-medium text-pretty"
           >
-            Anviora turns your battery specs, supplier records, and test data into verifiable Digital Product Passports — seamlessly meeting both Indian compliance mandates and EU export regulations.
+            Serials, QR, a public page, and an India certificate vault — at a price a mid-size factory can pay. From 18 February 2027, LMT, industrial batteries above 2 kWh, and EV batteries placed on the EU market need a battery passport. We help you issue that record. We are not your notified body and we do not file CPCB.
           </motion.p>
 
           {/* CTA Buttons (Sharp Solid Styling) */}

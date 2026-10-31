@@ -70,7 +70,7 @@ function CarbonVisual() {
             <div className="text-[11px] text-crew-muted mt-1">kg CO₂e / kWh</div>
           </div>
           <div className="text-[11px] text-crew-muted text-right">
-            JRC-aligned<br />methodology
+            Screening<br />estimate
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -86,7 +86,7 @@ function CarbonVisual() {
           ))}
         </div>
         <div className="mt-3 text-[11px] font-medium text-crew-coral">
-          Performance class B — ready for Annex II declaration
+          Internal band B — not a Commission class
         </div>
       </Card>
     </Panel>
@@ -125,12 +125,12 @@ function RenewalVisual() {
   );
 }
 
-/* 4 — Bitcoin anchoring */
+/* 4 — Optional OpenTimestamps */
 function AnchorVisual() {
   return (
     <div className="rounded-none border border-slate-800 bg-slate-950 p-5 font-mono text-[12px] leading-relaxed text-white shadow-md">
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bitcoin Anchor</span>
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">OpenTimestamps</span>
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
       </div>
       <div className="text-slate-400 text-[10.5px] uppercase tracking-wider mb-0.5">certificate</div>
@@ -271,7 +271,7 @@ function SupplierVisual() {
             </div>
           ))}
         </div>
-        <div className="mt-3 text-[11px] text-crew-muted">CMRT upload accepted · Art. 11 evidence pack ready</div>
+        <div className="mt-3 text-[11px] text-crew-muted">CMRT upload — Ch. VII from Aug 2027, not Art. 11</div>
       </Card>
     </Panel>
   );
@@ -349,9 +349,9 @@ const features = [
     visual: <ParseVisual />,
   },
   {
-    title: "A–G carbon class, calculated.",
+    title: "A screening estimate, labelled as such.",
     description:
-      "Enter your bill of materials. We calculate kg CO₂e per kWh using JRC-aligned methodology and return your performance class — ready for EU Annex II declarations, with third-party verification workflows built in.",
+      "Enter a bill of materials and we return a kg CO₂e per kWh screening figure. It is not PEFCR, not an Article 7 declaration, and not a Commission performance class.",
     visual: <CarbonVisual />,
   },
   {
@@ -361,33 +361,33 @@ const features = [
     visual: <RenewalVisual />,
   },
   {
-    title: "Anchored to Bitcoin. Provable forever.",
+    title: "Optional timestamp on a certificate hash.",
     description:
-      "Every certificate hash is anchored to the Bitcoin blockchain via OpenTimestamps — a free, open protocol, no wallet or crypto knowledge required. Anyone can independently verify a certificate existed at a given time, permanently, without trusting Anviora's servers.",
+      "You can send a certificate SHA-256 to OpenTimestamps. That proves a hash existed at a calendar time. It is not the passport, not a Bitcoin company, and not required to issue serials.",
     visual: <AnchorVisual />,
   },
   {
-    title: "Track every gram of recycled content.",
+    title: "A mass-balance ledger you own.",
     description:
-      "EU Article 8 requires book-and-claim accounting for recycled cobalt, lithium, nickel and lead. Our mass-balance ledger tracks incoming, allocated and balance amounts — audit-ready, with no negative balances.",
+      "Article 8 recycled-content documentation is 2028 (LMT later). The in-app ledger is tenant bookkeeping, not a certified mass-balance audit.",
     visual: <MassBalanceVisual />,
   },
   {
-    title: "File your DGFT claims automatically.",
+    title: "An internal export-claim tracker.",
     description:
-      "Anviora turns the same data into RoDTEP, duty-drawback and interest-equalization claim documents — an export incentive that can reimburse up to 75% of your platform cost.",
+      "Draft RoDTEP / drawback worksheets from lot data. This is not DGFT TRACE, not ICEGATE, and not reimbursement of SaaS fees.",
     visual: <DgftVisual />,
   },
   {
-    title: "Know a battery's health, anywhere in the world.",
+    title: "In-life SoH when you have data.",
     description:
-      "Fleet Health and BMS Telemetry monitoring track state-of-health, thermal events, and recall status across every unit you've shipped — so you catch a failing pack before your buyer's warranty claim does.",
+      "Factory-gate state of health starts at 100%. Later updates need lifecycle or telemetry you send us. There is no OEM BMS connector in the box.",
     visual: <FleetVisual />,
   },
   {
-    title: "Vet your suppliers, not just your own paperwork.",
+    title: "CMRT and supplier files, when you need them.",
     description:
-      "EU Article 11 due diligence isn't optional past August 2027. Anviora runs OECD-aligned supplier risk scoring and accepts CMRT (Conflict Minerals Reporting Template) uploads directly, so your supply-chain evidence is ready before an auditor asks for it.",
+      "Article 11 is removability of portable and LMT batteries. Due diligence is Chapter VII from 18 August 2027. CMRT uploads are your records, not a notified-body policy audit.",
     visual: <SupplierVisual />,
   },
   {
@@ -397,9 +397,9 @@ const features = [
     visual: <VcVisual />,
   },
   {
-    title: "Built for how Indian manufacturers actually run finance.",
+    title: "Optional Tally on the factory LAN.",
     description:
-      "A native Tally sync pulls bills of materials, supplier invoices, and GST-linked transactions straight into Anviora — plus API keys and webhooks for teams who want to build their own integrations.",
+      "A Growth-gated XML client can poll Tally Prime on the factory network. Cloud Anviora cannot see localhost:9000. API keys and webhooks are the path for ERP.",
     visual: <TallyVisual />,
   },
 ];
@@ -414,10 +414,10 @@ export default function BatteryFeatures() {
             END-TO-END CAPABILITIES
           </div>
           <h2 className="font-heading text-text text-[clamp(32px,4.5vw,52px)] font-bold tracking-[-0.035em] leading-[1.08] mb-4 text-balance">
-            Everything you need for complete compliance.
+            The issuance spine — and the extras, labelled honestly.
           </h2>
           <p className="text-[16px] leading-[1.65] text-text-muted text-pretty">
-            From automated PDF certificate parsing to Bitcoin blockchain anchoring and native Tally sync — built specifically for battery manufacturers.
+            Create a lot, attach PDFs, mint serials, print QR, ship. Bitcoin and Tally are optional side doors, not the product.
           </p>
         </div>
 
@@ -480,7 +480,7 @@ export default function BatteryFeatures() {
           >
             <div className="flex-1 max-w-[540px]">
               <span className="font-mono text-xs font-bold text-amber-300 bg-white/15 border border-white/20 px-2.5 py-0.5 rounded-none mb-4 inline-block">
-                [04] BLOCKCHAIN ANCHOR
+                [04] OPTIONAL TIMESTAMP
               </span>
               <h3 className="font-heading text-[clamp(24px,3vw,34px)] font-bold tracking-[-0.03em] leading-tight text-white mb-4">
                 {features[3].title}

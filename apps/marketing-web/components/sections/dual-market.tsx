@@ -23,19 +23,19 @@ function EUFlagSvg({ size = 20 }: { size?: number }) {
 }
 
 const indiaItems = [
-  { code: "BIS IS 16046 / 16047", title: "Mandatory Cell & Pack Safety Certification", badge: "BIS VERIFIED" },
-  { code: "CPCB EPR FILING", title: "Extended Producer Responsibility Target Return", badge: "CPCB CLEARED" },
-  { code: "BWM RULES 2022", title: "Battery Waste Management Recycling & Recovery", badge: "COMPLIANT" },
-  { code: "DGFT TRACE CLAIMS", title: "Export Incentive & Duty Drawback Verification", badge: "AUTOMATED" },
-  { code: "BATCH QR TRACEABILITY", title: "Serialized Production Batch QR & Custom Portals", badge: "ACTIVE QR" },
+  { code: "BIS CRS", title: "Store IS 16046 R-numbers and PDFs for portable cells — we do not issue the licence", badge: "VAULT" },
+  { code: "CPCB EPR", title: "Keep EPR numbers and export a Form 3 CSV helper — filing stays on the CPCB portal", badge: "LEDGER" },
+  { code: "BWM RULES", title: "Track producer records; recycled-content floors start FY 2027-28", badge: "RECORDS" },
+  { code: "UN 38.3", title: "Hold the transport test report next to the lot — not a passport duty", badge: "DOCUMENT" },
+  { code: "PACK QR", title: "Serials and printable labels your warehouse can scan", badge: "ACTIVE QR" },
 ];
 
 const euItems = [
-  { code: "EU REG 2023/1542", title: "Mandatory Digital Battery Passport Credential", badge: "ART. 77 MANDATE" },
-  { code: "EU CE MARKING", title: "Declaration of Conformity & Safety Dossier", badge: "DOC VERIFIED" },
-  { code: "CARBON CLASS A–E", title: "Lifecycle Carbon Footprint & Energy Mix Audit", badge: "ANNEX II AUDIT" },
-  { code: "CMRT DUE DILIGENCE", title: "Supply Chain Conflict Mineral & Risk Audit", badge: "ART. 48 AUDIT" },
-  { code: "PUBLIC W3C QR", title: "Cryptographically Signed Verifiable Credential", badge: "W3C SIGNED" },
+  { code: "ART. 77", title: "Passport for LMT, industrial >2 kWh, and EV packs from 18 Feb 2027", badge: "PASSPORT" },
+  { code: "ART. 13", title: "QR on all batteries from the same date; full passport only for the three categories", badge: "QR" },
+  { code: "ART. 7", title: "Optional screening estimate — not PEFCR, not a Commission class", badge: "ESTIMATE" },
+  { code: "ART. 48", title: "Due diligence from 18 Aug 2027 — not a Feb 2027 passport field", badge: "LATER" },
+  { code: "PUBLIC PAGE", title: "Buyer scans /p/{uuid} with no Anviora login", badge: "NO LOGIN" },
 ];
 
 function Column({
@@ -106,10 +106,10 @@ function Column({
             <Zap size={15} className="text-emerald-700" />
           )}
           {isEu
-            ? "EU Customs Verification Ready (Art. 77/78)"
-            : "Native Tally Prime Auto-Sync & GST Claims"}
+            ? "Public / partner / regulator views — not the EU registry"
+            : "Certificate vault — not a CPCB or BIS filing"}
         </span>
-        <span className="font-semibold uppercase tracking-wider text-emerald-700">100% COVERAGE</span>
+        <span className="font-semibold uppercase tracking-wider text-emerald-700">RECORDS, NOT FILINGS</span>
       </div>
     </div>
   );
@@ -129,13 +129,13 @@ export default function DualMarket() {
             </div>
 
             <h2 className="font-heading text-text text-[clamp(36px,5vw,60px)] font-semibold tracking-[-0.035em] leading-[1.05] text-balance">
-              Compliant in India.
+              India papers you already have.
               <br />
-              Cleared for Europe. Single Data Engine.
+              An EU-scannable record for the buyer.
             </h2>
 
             <p className="text-[14px] leading-[22px] text-text-muted text-pretty max-w-[680px] mx-auto">
-              Enter cell chemistry, carbon accounting, EPR filings, and supplier declarations once. Anviora automatically synchronizes Indian CPCB/BIS registrations with mandatory EU 2023/1542 battery passport credentials.
+              One lot record: category, certificates, serials, QR. India numbers live next to the EU scan page. We store evidence. We do not file CPCB, issue BIS, or assign a legal carbon class.
             </p>
           </div>
 
@@ -156,7 +156,7 @@ export default function DualMarket() {
           </div>
 
           <p className="mt-10 lg:mt-12 text-center text-[15px] font-medium text-text text-pretty">
-            The only platform engineered for Indian battery exporters — zero manual re-entry, native ERP sync, 100% audit-ready.
+            Built for Indian pack assemblers who already export, or are contracted to export, LMT or industrial packs above 2 kWh to the EU.
           </p>
         </div>
       </div>

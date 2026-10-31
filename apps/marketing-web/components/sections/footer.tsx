@@ -20,10 +20,6 @@ const footerNav: Record<string, FooterLink[]> = {
     { label: "Twitter (X)", href: "https://x.com", external: true },
     { label: "LinkedIn", href: "https://linkedin.com", external: true },
   ],
-  Legal: [
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Privacy Policy", href: "/privacy" },
-  ],
 };
 
 export default function Footer() {
@@ -54,8 +50,8 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Minimalist Link Columns (Products, Connect, Legal) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 md:gap-16">
+          {/* Minimalist Link Columns (Products and Connect) */}
+          <div className="grid grid-cols-2 gap-10 md:gap-16">
             {Object.entries(footerNav).map(([section, links]) => (
               <div key={section} className="space-y-4">
                 <h4 className="text-[11px] font-mono font-bold tracking-[0.18em] uppercase text-emerald-950">
