@@ -55,7 +55,7 @@ const FIELDS_TO_CONFIGURE = [
   {
     key: "compliance_docs",
     label: "Compliance Certificates",
-    desc: "EPR, BIS, and PLI documentation",
+    desc: "EPR, BIS, PLI, and Declaration of Conformity documents",
   },
 ];
 
@@ -64,7 +64,7 @@ export function DataVisibility({
   onChange,
   title = "Data Visibility Configuration",
   description = "Control who can access different categories of data on your Battery Passports",
-  note = "Public data is visible to anyone scanning the passport QR code. Partner data requires a valid Data Access Token.",
+  note = "These controls restrict optional detail and document access; they do not certify regulatory compliance. Basic product identity, rated capacity, safety information, and manufacturer identity remain public. Unconfigured categories require partner access.",
   fields = FIELDS_TO_CONFIGURE,
 }: DataVisibilityProps) {
   const handleLevelChange = (fieldKey: string, level: string) => {

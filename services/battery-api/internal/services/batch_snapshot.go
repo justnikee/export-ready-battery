@@ -7,8 +7,9 @@ import (
 	"github.com/anvayalabs/battery-api/internal/models"
 )
 
-// BatchSnapshot captures immutable batch + tenant compliance data at passport creation time.
+// BatchSnapshot captures immutable batch + tenant compliance data at issuance time. Draft passports are provisional until activation.
 type BatchSnapshot struct {
+	SnapshotVersion        int                 `json:"snapshot_version"`
 	BatchID                string              `json:"batch_id"`
 	BatchName              string              `json:"batch_name"`
 	ModelName              string              `json:"model_name,omitempty"`
@@ -28,15 +29,21 @@ type BatchSnapshot struct {
 	BISNumber              string              `json:"bis_number,omitempty"`
 	EPRNumber              string              `json:"epr_number,omitempty"`
 
-	// PLI Audit Trail — captures how DVA was verified at passport creation time.
+	// PLI Audit Trail — captures how DVA was verified at issuance time. Draft passports are provisional until activation.
 	// DVASource "AUDITED" means a CA-certified value; "ESTIMATED" is system-calculated.
 	DVASource               string   `json:"dva_source,omitempty"`
 	AuditedDomesticValueAdd *float64 `json:"audited_domestic_value_add,omitempty"`
 	PLICertificateURL       string   `json:"pli_certificate_url,omitempty"`
 
 	// Compliance state captured at passport creation (may be 0 if engine not yet finished).
-	ComplianceScore float64              `json:"compliance_score"`
-	ComplianceGaps  json.RawMessage      `json:"compliance_gaps,omitempty"`
+	ComplianceScore float64         `json:"compliance_score"`
+	ComplianceGaps  json.RawMessage `json:"compliance_gaps,omitempty"`
+
+	CEMarking                   bool   `json:"ce_marking"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class"`
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable"`
+	NotifiedBodyNumber          string `json:"notified_body_number"`
+	DeclarationOfConformityPath string `json:"declaration_of_conformity_path"`
 
 	Tenant     TenantSnapshot `json:"tenant"`
 	SnapshotAt time.Time      `json:"snapshot_at"`
@@ -60,29 +67,44 @@ type TenantSnapshot struct {
 // BuildBatchSnapshot builds a JSON snapshot for embedding in passports.
 func BuildBatchSnapshot(batch *models.Batch, tenant *models.Tenant) (json.RawMessage, error) {
 	tenant.EnsureBatteryProfile()
+	specs := batch.Specs
+	if specs.CarbonFootprint == "" {
+		specs.CarbonFootprint = models.StoredCarbonFootprintDescription(batch.CarbonFootprintResult)
+	}
+	var customsDate *time.Time
+	if parsed, err := time.Parse("2006-01-02", batch.Specs.CustomsDate); err == nil {
+		customsDate = &parsed
+	}
 	snapshot := BatchSnapshot{
-		BatchID:                batch.ID.String(),
-		BatchName:              batch.BatchName,
-		ModelName:              batch.ModelName,
-		ProductType:            batch.ProductType,
-		TemplateVariant:        models.ResolvePassportTemplateVariantForBatch(batch),
-		MarketRegion:           batch.MarketRegion,
-		Specs:                  batch.Specs,
-		ManufacturingStartDate: batch.ManufacturingStartDate,
-		ManufacturingEndDate:   batch.ManufacturingEndDate,
-		CellSource:             batch.Specs.CellSource,
-		BillOfEntryNo:          batch.Specs.BillOfEntryNo,
-		CountryOfOrigin:        batch.Specs.CountryOfOrigin,
-		DomesticValueAdd:       batch.DomesticValueAdd,
-		PLICompliant:           batch.PLICompliant,
-		HSNCode:                batch.Specs.HSNCode,
-		BISNumber:              batch.Specs.BISNumber,
-		EPRNumber:              batch.Specs.EPRNumber,
-		DVASource:               batch.Specs.DVASource,
-		AuditedDomesticValueAdd: batch.Specs.AuditedDomesticValueAdd,
-		PLICertificateURL:       batch.Specs.PLICertificateURL,
-		ComplianceScore:        batch.ComplianceScore,
-		ComplianceGaps:         batch.ComplianceGaps,
+		SnapshotVersion:             2,
+		BatchID:                     batch.ID.String(),
+		BatchName:                   batch.BatchName,
+		ModelName:                   batch.ModelName,
+		ProductType:                 batch.ProductType,
+		TemplateVariant:             models.ResolvePassportTemplateVariantForBatch(batch),
+		MarketRegion:                batch.MarketRegion,
+		Specs:                       specs,
+		ManufacturingStartDate:      batch.ManufacturingStartDate,
+		ManufacturingEndDate:        batch.ManufacturingEndDate,
+		CellSource:                  batch.Specs.CellSource,
+		BillOfEntryNo:               batch.Specs.BillOfEntryNo,
+		CountryOfOrigin:             batch.Specs.CountryOfOrigin,
+		CustomsDate:                 customsDate,
+		DomesticValueAdd:            batch.DomesticValueAdd,
+		PLICompliant:                batch.PLICompliant,
+		HSNCode:                     batch.Specs.HSNCode,
+		BISNumber:                   batch.Specs.BISNumber,
+		EPRNumber:                   batch.Specs.EPRNumber,
+		DVASource:                   batch.Specs.DVASource,
+		AuditedDomesticValueAdd:     batch.Specs.AuditedDomesticValueAdd,
+		PLICertificateURL:           batch.Specs.PLICertificateURL,
+		ComplianceScore:             batch.ComplianceScore,
+		ComplianceGaps:              batch.ComplianceGaps,
+		CEMarking:                   batch.CEMarking,
+		CarbonPerformanceClass:      batch.CarbonPerformanceClass,
+		RemovableAndReplaceable:     batch.RemovableAndReplaceable,
+		NotifiedBodyNumber:          batch.NotifiedBodyNumber,
+		DeclarationOfConformityPath: batch.DeclarationOfConformityPath,
 		Tenant: TenantSnapshot{
 			TenantID:                          tenant.ID.String(),
 			CompanyName:                       tenant.CompanyName,

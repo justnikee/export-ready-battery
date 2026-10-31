@@ -2122,3 +2122,12 @@ func (m *MockRepository) QueryTextChunks(ctx context.Context, query string, limi
 	}
 	return args.Get(0).([]*models.AIRegulationChunk), args.Error(1)
 }
+
+func (m *MockRepository) ActivateBatchAtomic(ctx context.Context, batchID, tenantID uuid.UUID, prepare PrepareIssuance) (int, error) {
+	args := m.Called(ctx, batchID, tenantID, prepare)
+	return args.Int(0), args.Error(1)
+}
+func (m *MockRepository) InsertPassportsAtomic(ctx context.Context, batchID, tenantID uuid.UUID, expectedStatus string, passports []*models.Passport, events []*models.PassportEvent, prepare PrepareIssuance) (int, error) {
+	args := m.Called(ctx, batchID, tenantID, expectedStatus, passports, events, prepare)
+	return args.Int(0), args.Error(1)
+}

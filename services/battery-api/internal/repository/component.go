@@ -11,41 +11,41 @@ import (
 
 // Component represents a single node in the battery BOM hierarchy.
 type Component struct {
-	ID                   uuid.UUID  `db:"id" json:"id"`
-	TenantID             uuid.UUID  `db:"tenant_id" json:"tenant_id"`
-	BatchID              *uuid.UUID `db:"batch_id" json:"batch_id,omitempty"`
-	ParentID             *uuid.UUID `db:"parent_id" json:"parent_id,omitempty"`
-	ComponentType        string     `db:"component_type" json:"component_type"`
-	HierarchyLevel       int        `db:"hierarchy_level" json:"hierarchy_level"`
-	Name                 string     `db:"name" json:"name"`
-	ModelNumber          *string    `db:"model_number" json:"model_number,omitempty"`
-	SerialNumber         *string    `db:"serial_number" json:"serial_number,omitempty"`
-	LotNumber            *string    `db:"lot_number" json:"lot_number,omitempty"`
-	DateOfManufacture    *time.Time `db:"date_of_manufacture" json:"date_of_manufacture,omitempty"`
-	Manufacturer         *string    `db:"manufacturer" json:"manufacturer,omitempty"`
-	ManufacturerAddress  *string    `db:"manufacturer_address" json:"manufacturer_address,omitempty"`
-	ManufacturerEmail    *string    `db:"manufacturer_email" json:"manufacturer_email,omitempty"`
-	CountryOfOrigin      *string    `db:"country_of_origin" json:"country_of_origin,omitempty"`
-	Chemistry            *string    `db:"chemistry" json:"chemistry,omitempty"`
-	CobaltPct            *float64   `db:"cobalt_pct" json:"cobalt_pct,omitempty"`
-	LithiumPct           *float64   `db:"lithium_pct" json:"lithium_pct,omitempty"`
-	NickelPct            *float64   `db:"nickel_pct" json:"nickel_pct,omitempty"`
-	ManganesePct         *float64   `db:"manganese_pct" json:"manganese_pct,omitempty"`
-	GraphitePct          *float64   `db:"graphite_pct" json:"graphite_pct,omitempty"`
-	LeadPct              *float64   `db:"lead_pct" json:"lead_pct,omitempty"`
-	RecycledCobaltPct    *float64   `db:"recycled_cobalt_pct" json:"recycled_cobalt_pct,omitempty"`
-	RecycledLithiumPct   *float64   `db:"recycled_lithium_pct" json:"recycled_lithium_pct,omitempty"`
-	RecycledNickelPct    *float64   `db:"recycled_nickel_pct" json:"recycled_nickel_pct,omitempty"`
-	RecycledLeadPct      *float64   `db:"recycled_lead_pct" json:"recycled_lead_pct,omitempty"`
-	WeightKg             *float64   `db:"weight_kg" json:"weight_kg,omitempty"`
-	DimensionsMm         *string    `db:"dimensions_mm" json:"dimensions_mm,omitempty"`
-	CEMarking            bool       `db:"ce_marking" json:"ce_marking"`
-	BISNumber            *string    `db:"bis_number" json:"bis_number,omitempty"`
-	HazardousLead        bool       `db:"hazardous_lead" json:"hazardous_lead"`
-	HazardousMercury     bool       `db:"hazardous_mercury" json:"hazardous_mercury"`
-	HazardousCadmium     bool       `db:"hazardous_cadmium" json:"hazardous_cadmium"`
-	CreatedAt            time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time  `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID  `db:"id" json:"id"`
+	TenantID            uuid.UUID  `db:"tenant_id" json:"tenant_id"`
+	BatchID             *uuid.UUID `db:"batch_id" json:"batch_id,omitempty"`
+	ParentID            *uuid.UUID `db:"parent_id" json:"parent_id,omitempty"`
+	ComponentType       string     `db:"component_type" json:"component_type"`
+	HierarchyLevel      int        `db:"hierarchy_level" json:"hierarchy_level"`
+	Name                string     `db:"name" json:"name"`
+	ModelNumber         *string    `db:"model_number" json:"model_number,omitempty"`
+	SerialNumber        *string    `db:"serial_number" json:"serial_number,omitempty"`
+	LotNumber           *string    `db:"lot_number" json:"lot_number,omitempty"`
+	DateOfManufacture   *time.Time `db:"date_of_manufacture" json:"date_of_manufacture,omitempty"`
+	Manufacturer        *string    `db:"manufacturer" json:"manufacturer,omitempty"`
+	ManufacturerAddress *string    `db:"manufacturer_address" json:"manufacturer_address,omitempty"`
+	ManufacturerEmail   *string    `db:"manufacturer_email" json:"manufacturer_email,omitempty"`
+	CountryOfOrigin     *string    `db:"country_of_origin" json:"country_of_origin,omitempty"`
+	Chemistry           *string    `db:"chemistry" json:"chemistry,omitempty"`
+	CobaltPct           *float64   `db:"cobalt_pct" json:"cobalt_pct,omitempty"`
+	LithiumPct          *float64   `db:"lithium_pct" json:"lithium_pct,omitempty"`
+	NickelPct           *float64   `db:"nickel_pct" json:"nickel_pct,omitempty"`
+	ManganesePct        *float64   `db:"manganese_pct" json:"manganese_pct,omitempty"`
+	GraphitePct         *float64   `db:"graphite_pct" json:"graphite_pct,omitempty"`
+	LeadPct             *float64   `db:"lead_pct" json:"lead_pct,omitempty"`
+	RecycledCobaltPct   *float64   `db:"recycled_cobalt_pct" json:"recycled_cobalt_pct,omitempty"`
+	RecycledLithiumPct  *float64   `db:"recycled_lithium_pct" json:"recycled_lithium_pct,omitempty"`
+	RecycledNickelPct   *float64   `db:"recycled_nickel_pct" json:"recycled_nickel_pct,omitempty"`
+	RecycledLeadPct     *float64   `db:"recycled_lead_pct" json:"recycled_lead_pct,omitempty"`
+	WeightKg            *float64   `db:"weight_kg" json:"weight_kg,omitempty"`
+	DimensionsMm        *string    `db:"dimensions_mm" json:"dimensions_mm,omitempty"`
+	CEMarking           bool       `db:"ce_marking" json:"ce_marking"`
+	BISNumber           *string    `db:"bis_number" json:"bis_number,omitempty"`
+	HazardousLead       bool       `db:"hazardous_lead" json:"hazardous_lead"`
+	HazardousMercury    bool       `db:"hazardous_mercury" json:"hazardous_mercury"`
+	HazardousCadmium    bool       `db:"hazardous_cadmium" json:"hazardous_cadmium"`
+	CreatedAt           time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time  `db:"updated_at" json:"updated_at"`
 }
 
 // ComponentTreeNode is a Component with its children loaded recursively.
@@ -172,6 +172,14 @@ func (r *Repository) ListComponentsByBatch(ctx context.Context, batchID, tenantI
 // --- Tree query ---
 
 func (r *Repository) GetComponentTreeByBatch(ctx context.Context, batchID, tenantID uuid.UUID) ([]*ComponentTreeNode, error) {
+	return getComponentTree(ctx, r.db.Pool, batchID, tenantID)
+}
+
+type componentQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func getComponentTree(ctx context.Context, q componentQuerier, batchID, tenantID uuid.UUID) ([]*ComponentTreeNode, error) {
 	// Fetch all components for this batch
 	query := `SELECT id, tenant_id, batch_id, parent_id, component_type, hierarchy_level, name, model_number,
 		serial_number, lot_number, date_of_manufacture,
@@ -181,7 +189,7 @@ func (r *Repository) GetComponentTreeByBatch(ctx context.Context, batchID, tenan
 		weight_kg, dimensions_mm, ce_marking, bis_number,
 		hazardous_lead, hazardous_mercury, hazardous_cadmium, created_at, updated_at
 		FROM components WHERE batch_id = $1 AND tenant_id = $2 ORDER BY hierarchy_level, name`
-	rows, err := r.db.Pool.Query(ctx, query, batchID, tenantID)
+	rows, err := q.Query(ctx, query, batchID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list components for tree: %w", err)
 	}

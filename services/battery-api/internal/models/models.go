@@ -221,19 +221,19 @@ type Batch struct {
 
 // BatchSpec holds the common specifications stored as JSONB
 type BatchSpec struct {
-	Chemistry         string `json:"chemistry"`
-	NominalVoltage    string `json:"voltage"`  // String for flexibility (e.g., "3.7V")
-	Capacity          string `json:"capacity"` // String for flexibility (e.g., "5000mAh")
-	Manufacturer      string `json:"manufacturer"`
-	ManufacturerEmail string `json:"manufacturer_email,omitempty"` // Compliance contact email
-	Weight            string `json:"weight"`                       // String for flexibility (e.g., "500g")
-	Recyclable        bool   `json:"recyclable"`                   // Is the battery recyclable?
-	CarbonFootprint   string `json:"carbon_footprint"`             // e.g., "10 kg CO2e"
+	Chemistry           string `json:"chemistry"`
+	NominalVoltage      string `json:"voltage"`  // String for flexibility (e.g., "3.7V")
+	Capacity            string `json:"capacity"` // String for flexibility (e.g., "5000mAh")
+	Manufacturer        string `json:"manufacturer"`
+	ManufacturerEmail   string `json:"manufacturer_email,omitempty"`     // Compliance contact email
+	Weight              string `json:"weight"`                           // String for flexibility (e.g., "500g")
+	Recyclable          bool   `json:"recyclable"`                       // Is the battery recyclable?
+	CarbonFootprint     string `json:"carbon_footprint"`                 // e.g., "10 kg CO2e"
 	CountryOfOrigin     string `json:"country_of_origin"`                // pack manufacturing origin
 	CellCountryOfOrigin string `json:"cell_country_of_origin,omitempty"` // import cell origin (distinct from pack)
 	MaterialProfile     string `json:"material_profile,omitempty"`
 	LotSize             string `json:"lot_size,omitempty"`
-	ProductionStage   string `json:"production_stage,omitempty"`
+	ProductionStage     string `json:"production_stage,omitempty"`
 
 	// Financials (India PLI) stored in JSONB to avoid schema change
 	SalePriceINR  float64 `json:"sale_price_inr,omitempty"`
@@ -1379,6 +1379,7 @@ type UploadCSVResponse struct {
 
 // PassportWithSpecs combines passport data with batch specs for the public page
 type PassportWithSpecs struct {
+	BatchStatus            string       `json:"batch_status"`
 	Passport               *Passport    `json:"passport"`
 	BatchName              string       `json:"batch_name"`
 	ModelName              string       `json:"model_name,omitempty"`
@@ -1522,11 +1523,11 @@ type RegulationGapCount struct {
 
 // ActionFeedItem represents a priority action needed by a tenant.
 type ActionFeedItem struct {
-	Type      string     `json:"type"`       // e.g. "CERT_EXPIRY", "SUPPLIER_AUDIT", "EPR_SHORTFALL", "UNSIGNED_DOC", "VERIFICATION_FAILURE"
-	Title     string     `json:"title"`      // Description of the action
-	BatchID   *uuid.UUID `json:"batch_id"`   // Associated batch ID if any
-	Severity  string     `json:"severity"`   // "ERROR" or "WARNING"
-	DueDate   *time.Time `json:"due_date"`   // Due date or expiration date
+	Type     string     `json:"type"`     // e.g. "CERT_EXPIRY", "SUPPLIER_AUDIT", "EPR_SHORTFALL", "UNSIGNED_DOC", "VERIFICATION_FAILURE"
+	Title    string     `json:"title"`    // Description of the action
+	BatchID  *uuid.UUID `json:"batch_id"` // Associated batch ID if any
+	Severity string     `json:"severity"` // "ERROR" or "WARNING"
+	DueDate  *time.Time `json:"due_date"` // Due date or expiration date
 }
 
 // DGFTValueSummary represents financial analytics for DGFT claims.

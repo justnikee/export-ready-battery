@@ -13,6 +13,7 @@ import (
 
 	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
+	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/repository"
 	"github.com/anvayalabs/battery-api/internal/services"
 	"github.com/google/uuid"
@@ -307,7 +308,7 @@ func (h *Handler) ViewDocument(w http.ResponseWriter, r *http.Request) {
 	signedURL, err := h.storageService.CreateSignedURLForBucket(r.Context(), complianceDocsBucket, storagePath, 1*time.Hour)
 	if err != nil {
 		// Legacy: stored value may be a full Supabase URL with a different path shape
-		signedURL, err = resolveFreshBucketURL(r.Context(), h.storageService, stored)
+		signedURL, err = resolveFreshBucketURL(r.Context(), h.storageService, tenantID, stored)
 		if err != nil || signedURL == "" {
 			slog.Error("Failed to sign certificate for view", "error", err, "tenant_id", tenantID, "doc_type", documentType)
 			respondError(w, http.StatusNotFound, "Certificate file not found")
@@ -607,7 +608,7 @@ func (h *Handler) GetBatchDocumentURL(w http.ResponseWriter, r *http.Request) {
 		storedURL = batch.DeclarationOfConformityPath
 	}
 
-	freshURL, err := h.resolveFreshDocumentURL(r.Context(), storedURL)
+	freshURL, err := h.resolveBatchDocumentURL(r.Context(), tenantID, docType, storedURL)
 	if err != nil {
 		slog.Error("Failed to resolve document URL", "error", err, "batch_id", id, "type", docType)
 		respondError(w, http.StatusInternalServerError, "Failed to generate document URL")
@@ -650,7 +651,22 @@ func (h *Handler) GetPublicPassportDocumentURL(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	freshURL, err := h.resolveFreshDocumentURL(r.Context(), passportWithSpecs.DeclarationOfConformityPath)
+	if !models.CanIssueProductionIdentifiers(passportWithSpecs.BatchStatus) {
+		respondError(w, http.StatusNotFound, "Passport not published")
+		return
+	}
+
+	if passportWithSpecs.Tenant == nil {
+		respondError(w, http.StatusNotFound, "Document not found")
+		return
+	}
+	tier := h.detectAccessTier(r, passportUUID, passportWithSpecs.Tenant.ID, string(passportWithSpecs.MarketRegion))
+	dc := models.ParseDisplayConfig(passportWithSpecs.Tenant.DataVisibility)
+	if !dc.IsFieldVisible("compliance_docs", tier) {
+		respondError(w, http.StatusNotFound, "Document not found")
+		return
+	}
+	freshURL, err := h.resolveBatchDocumentURL(r.Context(), passportWithSpecs.Tenant.ID, "doc", models.BuildPublicView(passportWithSpecs).DeclarationOfConformityPath)
 	if err != nil {
 		slog.Error("Failed to resolve document URL", "error", err, "passport_uuid", passportUUID)
 		respondError(w, http.StatusInternalServerError, "Failed to generate document URL")
@@ -664,32 +680,22 @@ func (h *Handler) GetPublicPassportDocumentURL(w http.ResponseWriter, r *http.Re
 	respondJSON(w, http.StatusOK, map[string]interface{}{"url": freshURL})
 }
 
-// resolveFreshDocumentURL re-signs storedURL if it's a Supabase object URL in
-// the compliance-docs bucket, returning a new 1-hour signed URL. If storedURL
-// doesn't look like a compliance-docs object URL (e.g. a legacy/external
-// public URL), it's returned unchanged. Returns "" if storedURL is empty.
-func (h *Handler) resolveFreshDocumentURL(ctx context.Context, storedURL string) (string, error) {
-	return resolveFreshBucketURL(ctx, h.storageService, storedURL)
-}
-
-// resolveFreshBucketURL is the storage-service-agnostic core of
-// resolveFreshDocumentURL, usable by handlers (like AuthHandler) that don't
-// embed a *Handler. The compliance-docs bucket is private — any URL naively
-// built as a "public" URL (e.g. the logo, uploaded via the same bucket) 404s
-// unless re-signed on every read. This is that re-signing, shared in one place.
-func resolveFreshBucketURL(ctx context.Context, storageService *services.StorageService, storedURL string) (string, error) {
+func resolveFreshBucketURL(ctx context.Context, storageService *services.StorageService, tenantID uuid.UUID, storedURL string) (string, error) {
 	if storedURL == "" {
 		return "", nil
 	}
 	if storageService == nil {
-		return storedURL, nil
+		return "", fmt.Errorf("document storage unavailable or reference invalid")
 	}
 
 	storagePath, ok := storageService.ExtractStoragePath(storedURL, complianceDocsBucket)
 	if !ok {
-		return storedURL, nil
+		return "", fmt.Errorf("document storage unavailable or reference invalid")
 	}
 
+	if tenantID == uuid.Nil || !strings.HasPrefix(storagePath, tenantID.String()+"/") || strings.Contains(storagePath, "..") || strings.ContainsAny(storagePath, "%\\?#") {
+		return "", fmt.Errorf("invalid tenant document reference")
+	}
 	return storageService.CreateSignedURLForBucket(ctx, complianceDocsBucket, storagePath, 1*time.Hour)
 }
 

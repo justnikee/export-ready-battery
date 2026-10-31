@@ -115,3 +115,10 @@ Do not start textile work (`apps/textile-web`, `services/textile-api`). Battery 
 
 - Root/planning `docs/*` drift — verify against code.
 - When fixing a backlog item, mark it in `memory/backlog.md` and refresh `memory/CURRENT.md`.
+
+## 10. Issuance and privacy (ADR 030)
+
+- HTTP passport creation must use `InsertPassportsAtomic`; activation must use `ActivateBatchAtomic`. No separate handler debit/refund/status sequence. Tenant-then-batch lock order; issuance callbacks perform no DB/network calls.
+- Draft snapshots are provisional; finalize on activation. Never rewrite an already-issued snapshot to repair a draft-era error. Draft passports are not public.
+- Batch attachment writes and signing reads validate tenant and staging document purpose. Persist canonical keys; do not pass through arbitrary legacy URLs.
+- Saved visibility categories must be enforced on server responses and document endpoints. Defaults match the PARTNER setting; do not silently expose unconfigured categories.

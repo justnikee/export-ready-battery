@@ -50,11 +50,11 @@ type PublicPassportView struct {
 	Tenant *PublicTenantView `json:"tenant"`
 
 	// Batch context
-	BatchName    string       `json:"batch_name"`
-	ModelName    string       `json:"model_name,omitempty"`
-	ProductType  ProductType  `json:"product_type"`
-	TemplateVariant string    `json:"template_variant,omitempty"`
-	MarketRegion MarketRegion `json:"market_region"`
+	BatchName       string       `json:"batch_name"`
+	ModelName       string       `json:"model_name,omitempty"`
+	ProductType     ProductType  `json:"product_type"`
+	TemplateVariant string       `json:"template_variant,omitempty"`
+	MarketRegion    MarketRegion `json:"market_region"`
 
 	// Manufacturing window
 	ManufacturingStartDate *time.Time `json:"manufacturing_start_date,omitempty"`
@@ -71,12 +71,12 @@ type PublicPassportView struct {
 	CustomsDate      *time.Time `json:"customs_date,omitempty"`
 
 	// EU Battery Regulation 2023/1542 compliance fields (public)
-	BatteryPassportID           string  `json:"battery_passport_id,omitempty"`
-	CEMarking                   bool    `json:"ce_marking,omitempty"`
-	CarbonPerformanceClass      string  `json:"carbon_performance_class,omitempty"`
-	RemovableAndReplaceable     bool    `json:"removable_and_replaceable,omitempty"`
-	NotifiedBodyNumber          string  `json:"notified_body_number,omitempty"`
-	DeclarationOfConformityPath string  `json:"declaration_of_conformity_path,omitempty"`
+	BatteryPassportID           string `json:"battery_passport_id,omitempty"`
+	CEMarking                   bool   `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool   `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string `json:"declaration_of_conformity_path,omitempty"`
 
 	// Access tier metadata
 	AccessTier AccessTier `json:"access_tier"`
@@ -102,14 +102,14 @@ type PublicSpecsView struct {
 	ExpectedLifetimeCycles *int                 `json:"expected_lifetime_cycles,omitempty"`
 	RecycledContentPct     *float64             `json:"recycled_content_pct,omitempty"`
 	// EU Battery Regulation structured fields (public)
-	BatteryCategory        BatteryCategory      `json:"battery_category,omitempty"`
-	PerformanceSpec        *PerformanceSpec     `json:"performance_spec,omitempty"`
+	BatteryCategory BatteryCategory  `json:"battery_category,omitempty"`
+	PerformanceSpec *PerformanceSpec `json:"performance_spec,omitempty"`
 	// India compliance identifiers (from batch specs)
-	BISNumber              string               `json:"bis_number,omitempty"`
-	EPRNumber              string               `json:"epr_number,omitempty"`
+	BISNumber string `json:"bis_number,omitempty"`
+	EPRNumber string `json:"epr_number,omitempty"`
 
 	// Bill of Materials — nested component hierarchy (EU 2023/1542 Art 77)
-	Components             []Component          `json:"components,omitempty"`
+	Components []Component `json:"components,omitempty"`
 }
 
 // PublicTenantView is the consumer-safe subset of Tenant
@@ -129,28 +129,29 @@ type PublicTenantView struct {
 }
 
 type publicViewBatchSnapshot struct {
-	BatchName              string              `json:"batch_name"`
-	ModelName              string              `json:"model_name,omitempty"`
-	ProductType            ProductType         `json:"product_type"`
-	TemplateVariant        string              `json:"template_variant,omitempty"`
-	MarketRegion           MarketRegion        `json:"market_region"`
-	Specs                  *BatchSpec          `json:"specs,omitempty"`
-	ManufacturingStartDate *time.Time          `json:"manufacturing_start_date,omitempty"`
-	ManufacturingEndDate   *time.Time          `json:"manufacturing_end_date,omitempty"`
-	CellSource             string              `json:"cell_source,omitempty"`
-	DomesticValueAdd       float64             `json:"domestic_value_add,omitempty"`
-	PLICompliant           bool                `json:"pli_compliant,omitempty"`
-	HSNCode                string              `json:"hsn_code,omitempty"`
-	DVASource              string              `json:"dva_source,omitempty"`
-	BillOfEntryNo          string              `json:"bill_of_entry_no,omitempty"`
-	CountryOfOrigin        string              `json:"country_of_origin,omitempty"`
-	CustomsDate            *time.Time          `json:"customs_date,omitempty"`
+	SnapshotVersion        int          `json:"snapshot_version"`
+	BatchName              string       `json:"batch_name"`
+	ModelName              string       `json:"model_name,omitempty"`
+	ProductType            ProductType  `json:"product_type"`
+	TemplateVariant        string       `json:"template_variant,omitempty"`
+	MarketRegion           MarketRegion `json:"market_region"`
+	Specs                  *BatchSpec   `json:"specs,omitempty"`
+	ManufacturingStartDate *time.Time   `json:"manufacturing_start_date,omitempty"`
+	ManufacturingEndDate   *time.Time   `json:"manufacturing_end_date,omitempty"`
+	CellSource             string       `json:"cell_source,omitempty"`
+	DomesticValueAdd       float64      `json:"domestic_value_add,omitempty"`
+	PLICompliant           bool         `json:"pli_compliant,omitempty"`
+	HSNCode                string       `json:"hsn_code,omitempty"`
+	DVASource              string       `json:"dva_source,omitempty"`
+	BillOfEntryNo          string       `json:"bill_of_entry_no,omitempty"`
+	CountryOfOrigin        string       `json:"country_of_origin,omitempty"`
+	CustomsDate            *time.Time   `json:"customs_date,omitempty"`
 	// EU Battery Regulation 2023/1542 compliance fields
-	CEMarking                   bool    `json:"ce_marking,omitempty"`
-	CarbonPerformanceClass      string  `json:"carbon_performance_class,omitempty"`
-	RemovableAndReplaceable     bool    `json:"removable_and_replaceable,omitempty"`
-	NotifiedBodyNumber          string  `json:"notified_body_number,omitempty"`
-	DeclarationOfConformityPath string  `json:"declaration_of_conformity_path,omitempty"`
+	CEMarking                   bool                  `json:"ce_marking,omitempty"`
+	CarbonPerformanceClass      string                `json:"carbon_performance_class,omitempty"`
+	RemovableAndReplaceable     bool                  `json:"removable_and_replaceable,omitempty"`
+	NotifiedBodyNumber          string                `json:"notified_body_number,omitempty"`
+	DeclarationOfConformityPath string                `json:"declaration_of_conformity_path,omitempty"`
 	Tenant                      *publicTenantSnapshot `json:"tenant,omitempty"`
 }
 
@@ -239,11 +240,11 @@ func BuildPublicView(full *PassportWithSpecs) *PublicPassportView {
 		StateOfHealth:          p.StateOfHealth,
 		LastSOHUpdateTimestamp: p.LastSOHUpdateTimestamp,
 
-		BatchName:    full.BatchName,
-		ModelName:    full.ModelName,
-		ProductType:  full.ProductType,
+		BatchName:       full.BatchName,
+		ModelName:       full.ModelName,
+		ProductType:     full.ProductType,
 		TemplateVariant: resolveVariantForPassportWithSpecs(full),
-		MarketRegion: full.MarketRegion,
+		MarketRegion:    full.MarketRegion,
 
 		ManufacturingStartDate: full.ManufacturingStartDate,
 		ManufacturingEndDate:   full.ManufacturingEndDate,
@@ -428,11 +429,30 @@ func applySnapshotOverrides(view *PublicPassportView, raw json.RawMessage) {
 	if snapshot.DeclarationOfConformityPath != "" {
 		view.DeclarationOfConformityPath = snapshot.DeclarationOfConformityPath
 	}
+	// V2 issuance snapshots are complete, including intentional zero/empty
+	// values. Legacy sparse snapshots retain their previous fallback behavior.
+	if snapshot.SnapshotVersion >= 2 {
+		view.BatchName, view.ModelName = snapshot.BatchName, snapshot.ModelName
+		view.ManufacturingStartDate, view.ManufacturingEndDate = snapshot.ManufacturingStartDate, snapshot.ManufacturingEndDate
+		view.CellSource, view.DomesticValueAdd, view.PLICompliant = snapshot.CellSource, snapshot.DomesticValueAdd, snapshot.PLICompliant
+		view.HSNCode, view.DVASource, view.BillOfEntryNo, view.CountryOfOrigin = snapshot.HSNCode, snapshot.DVASource, snapshot.BillOfEntryNo, snapshot.CountryOfOrigin
+		view.CustomsDate = snapshot.CustomsDate
+		view.CEMarking, view.CarbonPerformanceClass = snapshot.CEMarking, snapshot.CarbonPerformanceClass
+		view.RemovableAndReplaceable, view.NotifiedBodyNumber = snapshot.RemovableAndReplaceable, snapshot.NotifiedBodyNumber
+		view.DeclarationOfConformityPath = snapshot.DeclarationOfConformityPath
+	}
 	if snapshot.Specs != nil {
 		view.Specs = buildPublicSpecsView(snapshot.Specs)
 	}
 	if snapshot.Tenant != nil {
+		live := view.Tenant
 		view.Tenant = buildPublicTenantViewFromSnapshot(snapshot.Tenant)
+		if live != nil {
+			view.Tenant.SupportEmail = live.SupportEmail
+			view.Tenant.BISCertificatePath = live.BISCertificatePath
+			view.Tenant.EPRCertificatePath = live.EPRCertificatePath
+			view.Tenant.PLICertificatePath = live.PLICertificatePath
+		}
 	}
 }
 
@@ -496,6 +516,30 @@ func ApplyDisplayConfigToPublicView(view *PublicPassportView, dc DisplayConfig) 
 	}
 	tier := view.AccessTier
 
+	if !dc.IsFieldVisible("battery_composition", tier) {
+		view.Specs.Chemistry = ""
+		view.Specs.MaterialComposition = nil
+		view.Specs.MaterialProfile = ""
+		view.Specs.Components = nil // components also contain chemistry/material data
+	}
+	if !dc.IsFieldVisible("supply_chain", tier) {
+		view.Specs.Components = nil
+		view.Specs.CountryOfOrigin = ""
+		view.CellSource, view.BillOfEntryNo, view.CountryOfOrigin, view.DVASource = "", "", "", ""
+		view.CustomsDate = nil
+		view.DomesticValueAdd = 0
+	}
+	if !dc.IsFieldVisible("lifecycle_metrics", tier) {
+		view.Specs.ExpectedLifetimeCycles = nil
+		view.Specs.PerformanceSpec = nil
+		view.StateOfHealth, view.LastSOHUpdateTimestamp = nil, nil
+	}
+	if !dc.IsFieldVisible("compliance_docs", tier) {
+		view.DeclarationOfConformityPath = ""
+		if view.Tenant != nil {
+			view.Tenant.BISCertificatePath, view.Tenant.EPRCertificatePath, view.Tenant.PLICertificatePath = "", "", ""
+		}
+	}
 	if !dc.IsFieldVisible("manufacturer_address", tier) {
 		fa := dc.FieldVisibility["manufacturer_address"]
 		if fa.Redacted {
@@ -517,6 +561,14 @@ func ApplyDisplayConfigToPartnerView(view *PartnerPassportView, dc DisplayConfig
 	// have the correct AccessTier set to PARTNER, so fields accessible to
 	// PARTNER or PUBLIC will remain visible.
 	ApplyDisplayConfigToPublicView(&view.PublicPassportView, dc)
+	if !dc.IsFieldVisible("supply_chain", view.AccessTier) {
+		view.SupplyChainProvenance = nil
+	}
+	if !dc.IsFieldVisible("lifecycle_metrics", view.AccessTier) {
+		view.CycleCount, view.LastTemperature, view.LastVoltage, view.LastTelemetryAt = nil, nil, nil, nil
+		view.RepairEvents, view.ReplacementEvents = nil, nil
+		view.ShippedAt, view.InstalledAt, view.ReturnedAt, view.RecycledAt = nil, nil, nil, nil
+	}
 }
 
 // resolveVariantForPassportWithSpecs safely resolves the template variant from

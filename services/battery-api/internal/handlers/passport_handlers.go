@@ -41,6 +41,11 @@ func (h *Handler) GetPassport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !models.CanIssueProductionIdentifiers(passportWithSpecs.BatchStatus) {
+		respondError(w, http.StatusNotFound, "Passport not published")
+		return
+	}
+
 	tenantID := uuid.Nil
 	if passportWithSpecs.Tenant != nil {
 		tenantID = passportWithSpecs.Tenant.ID
@@ -131,18 +136,15 @@ func (h *Handler) ResolvePassport(w http.ResponseWriter, r *http.Request) {
 // signTenantCertPathsInPlace mutates the tenant profile cert paths to short-lived
 // signed URLs for private compliance-docs objects (S-10).
 func (h *Handler) signTenantCertPathsInPlace(ctx context.Context, tenant *models.Tenant) {
-	if tenant == nil || h.storageService == nil {
+	if tenant == nil || tenant.BatteryProfile == nil {
 		return
 	}
-	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.EPRCertificatePath); err == nil && u != "" {
-		tenant.BatteryProfile.EPRCertificatePath = u
-	}
-	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.BISCertificatePath); err == nil && u != "" {
-		tenant.BatteryProfile.BISCertificatePath = u
-	}
-	if u, err := resolveFreshBucketURL(ctx, h.storageService, tenant.BatteryProfile.PLICertificatePath); err == nil && u != "" {
-		tenant.BatteryProfile.PLICertificatePath = u
-	}
+	uEPR, _ := resolveFreshBucketURL(ctx, h.storageService, tenant.ID, tenant.BatteryProfile.EPRCertificatePath)
+	tenant.BatteryProfile.EPRCertificatePath = uEPR
+	uBIS, _ := resolveFreshBucketURL(ctx, h.storageService, tenant.ID, tenant.BatteryProfile.BISCertificatePath)
+	tenant.BatteryProfile.BISCertificatePath = uBIS
+	uPLI, _ := resolveFreshBucketURL(ctx, h.storageService, tenant.ID, tenant.BatteryProfile.PLICertificatePath)
+	tenant.BatteryProfile.PLICertificatePath = uPLI
 }
 
 // detectAccessTier determines the caller's access level from request headers.

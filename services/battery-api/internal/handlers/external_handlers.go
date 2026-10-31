@@ -231,16 +231,6 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Fetch component tree for BOM embedding in passport snapshot (EU Art 77)
-	componentTree, _ := h.repo.GetComponentTreeByBatch(r.Context(), batchID, tenantID)
-	batch.Specs.Components = convertComponentTree(componentTree)
-
-	snapshot, err := services.BuildBatchSnapshot(batch, tenant)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to build batch snapshot")
-		return
-	}
-
 	actor := "api"
 	actorType := "SYSTEM"
 	ownerIdentifier := resolveOwnerIdentifier(tenant)
@@ -301,7 +291,6 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 			CreatedAt:              now,
 			StateOfHealth:          factorySoH,
 			LastSOHUpdateTimestamp: factorySoHAt,
-			BatchSnapshot:          snapshot,
 			CurrentOwnerIdentifier: ownerIdentifier,
 		}
 		if history, err := services.BuildInitialOwnershipHistory(ownerIdentifier, actor, "API", passports[i].CreatedAt); err == nil {
@@ -316,10 +305,10 @@ func (h *Handler) ExternalCreatePassports(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	created, err := h.repo.CreatePassportsWithEvents(r.Context(), passports, events)
+	created, err := h.repo.InsertPassportsAtomic(r.Context(), batchID, tenantID, batch.Status, passports, events, h.snapshotPreparer(r.Context()))
 	if err != nil {
 		slog.Error("External API: Failed to create passports with audit events", "error", err)
-		respondError(w, http.StatusInternalServerError, "Failed to create passports")
+		respondIssuanceError(w, err)
 		return
 	}
 

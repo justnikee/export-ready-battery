@@ -15,6 +15,7 @@
 ## Now
 
 **Billing (2026-10-25):** Passport credits survive plan expiry; plan-only features still expire. Razorpay verify and webhook now validate captured provider records and share atomic, idempotent fulfillment. See [ADR 032](decisions/032-credits-plan-term-and-payment-fulfillment.md) and the [session](sessions/2026-10-25-billing-credit-and-payment-fix.md). API tests/vet and web tests/typecheck pass. Live provider sandbox checkout and UI verification remain before production rollout.
+**Demo P1 branch (31 Oct):** Tenant document checks, visibility enforcement, atomic issuance, and draft-publication fixes are isolated in `codex/demo-p1-privacy-issuance`. API tests/vet, disposable PostgreSQL issuance regressions, battery-web tests/typecheck pass. Manual runtime walkthrough remains before merge. See [ADR 030](decisions/030-atomic-issuance-and-passport-privacy.md).
 
 1. **Prod login (2026-09-01):** Google `/login?error=oauth_session` + `/battery/*` email 404s. Code fix in tree; **needs Google Console redirect URI + Vercel + Oracle deploy** — see [sessions/2026-09-01-login-oauth-session.md](sessions/2026-09-01-login-oauth-session.md).
 2. **Primary audit track complete:** S-01…S-15 + P-01…P-08.

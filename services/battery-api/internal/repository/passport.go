@@ -278,8 +278,8 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		       COALESCE(bp.epr_registration_number, ''), COALESCE(bp.bis_r_number, ''),
 		       COALESCE(bp.epr_certificate_path, ''), COALESCE(bp.bis_certificate_path, ''), COALESCE(bp.pli_certificate_path, ''),
 		       COALESCE(bp.eu_authorized_representative_name, ''), COALESCE(bp.eu_authorized_representative_address, ''), COALESCE(bp.eu_contact_email, ''),
-		       t.id,
-		       b.carbon_footprint_result
+		       t.id, t.data_visibility,
+		       b.carbon_footprint_result, COALESCE(b.status, 'DRAFT')
 		FROM public.passports p
 		JOIN public.batches b ON p.batch_id = b.id
 		JOIN public.tenants t ON b.tenant_id = t.id
@@ -288,6 +288,7 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	`
 
 	passport := &models.Passport{}
+	var batchStatus string
 	var batchName string
 	var modelName string
 	var productType models.ProductType
@@ -376,7 +377,9 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 		&tenant.BatteryProfile.EUAuthorizedRepresentativeAddress,
 		&tenant.BatteryProfile.EUContactEmail,
 		&tenant.ID,
+		&tenant.DataVisibility,
 		&carbonFootprintResultJSON,
+		&batchStatus,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -393,16 +396,8 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	}
 
 	// If carbon_footprint was not manually entered but a calculator result exists, derive it.
-	if specs.CarbonFootprint == "" && len(carbonFootprintResultJSON) > 0 {
-		var cr struct {
-			TotalKgCO2e  float64 `json:"total_kg_co2e"`
-			PerKWhKgCO2e float64 `json:"per_kwh_kg_co2e"`
-		}
-		if err := json.Unmarshal(carbonFootprintResultJSON, &cr); err != nil {
-			slog.Warn("failed to parse carbon_footprint_result JSON", "error", err, "payload", string(carbonFootprintResultJSON))
-		} else if cr.TotalKgCO2e > 0 {
-			specs.CarbonFootprint = fmt.Sprintf("%.2f kg CO₂e (%.3f kg CO₂e/kWh)", cr.TotalKgCO2e, cr.PerKWhKgCO2e)
-		}
+	if specs.CarbonFootprint == "" {
+		specs.CarbonFootprint = models.StoredCarbonFootprintDescription(carbonFootprintResultJSON)
 	}
 
 	if len(batchSnapshotJSON) > 0 {
@@ -435,23 +430,24 @@ func (r *Repository) GetPassportWithSpecs(ctx context.Context, id uuid.UUID) (*m
 	passport.OwnerID = ownerID
 
 	return &models.PassportWithSpecs{
-		Passport:               passport,
-		BatchName:              batchName,
-		ModelName:              modelName,
-		ProductType:            productType,
-		Specs:                  specs,
-		MarketRegion:           marketRegion,
-		Tenant:                 tenant,
-		ManufacturingStartDate: manufacturingStartDate,
-		ManufacturingEndDate:   manufacturingEndDate,
-		CellSource:             cellSource,
-		BillOfEntryNo:          billOfEntry,
-		CountryOfOrigin:        countryOrigin,
-		DomesticValueAdd:       domesticValueAdd,
-		PLICompliant:           pliCompliant,
-		CustomsDate:            customsDate,
-		HSNCode:                hsnCode,
-		DVASource:              dvaSource,
+		BatchStatus:                 batchStatus,
+		Passport:                    passport,
+		BatchName:                   batchName,
+		ModelName:                   modelName,
+		ProductType:                 productType,
+		Specs:                       specs,
+		MarketRegion:                marketRegion,
+		Tenant:                      tenant,
+		ManufacturingStartDate:      manufacturingStartDate,
+		ManufacturingEndDate:        manufacturingEndDate,
+		CellSource:                  cellSource,
+		BillOfEntryNo:               billOfEntry,
+		CountryOfOrigin:             countryOrigin,
+		DomesticValueAdd:            domesticValueAdd,
+		PLICompliant:                pliCompliant,
+		CustomsDate:                 customsDate,
+		HSNCode:                     hsnCode,
+		DVASource:                   dvaSource,
 		BatteryPassportID:           passport.BatteryPassportID,
 		CEMarking:                   ceMarking,
 		CarbonPerformanceClass:      carbonPerformanceClass,
