@@ -47,6 +47,7 @@ describe("getPageTitles", () => {
     const titles = getPageTitles(config);
     expect(titles["batches"]).toBe("Batches");
     expect(titles["models"]).toBe("Models");
+    expect(titles["traceability"]).toBe("Traceability");
     expect(titles["compliance"]).toBe("India Compliance");
   });
 });
