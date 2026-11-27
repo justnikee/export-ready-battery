@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import SupplierCacheCleanup from "./supplier-cache-cleanup";
 
 export const metadata: Metadata = {
   title: "Supplier Portal — ExportReady",
@@ -21,18 +22,7 @@ export default function SupplierLayout({
   return (
     <>
       {children}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw-supplier.js')
-                  .catch(err => console.log('SW registration failed', err));
-              });
-            }
-          `,
-        }}
-      />
+      <SupplierCacheCleanup />
     </>
   );
 }

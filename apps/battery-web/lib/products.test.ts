@@ -46,6 +46,7 @@ describe("getPageTitles", () => {
     const config = getProductConfig("battery");
     const titles = getPageTitles(config);
     expect(titles["batches"]).toBe("Batches");
+    expect(titles["models"]).toBe("Models");
     expect(titles["compliance"]).toBe("India Compliance");
   });
 });

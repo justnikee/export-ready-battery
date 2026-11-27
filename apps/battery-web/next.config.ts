@@ -94,6 +94,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/sw-supplier.js",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
+      },
+      {
         // Apply static security headers to all routes
         source: "/(.*)",
         headers: securityHeaders,

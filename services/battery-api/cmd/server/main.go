@@ -389,6 +389,14 @@ func main() {
 	mux.Handle("POST /api/v1/admin/signup-requests/{id}/reject", authMiddleware.Protect(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.RejectSignupRequest))))
 	mux.Handle("GET /api/v1/admin/signup-requests", authMiddleware.Protect(middleware.RequireRole("OWNER", "ADMIN")(http.HandlerFunc(h.ListSignupRequests))))
 
+	protectModelRead := func(inner http.Handler) http.Handler {
+		return authMiddleware.ProtectWorkspace(inner, repo.GetActiveMembershipRole)
+	}
+	protectModelWrite := func(inner http.Handler) http.Handler {
+		return protectModelRead(middleware.RequireWrite(h.RequireOnboardingComplete(inner)))
+	}
+	h.RegisterBatteryModelRoutes(mux, protectModelRead, protectModelWrite)
+
 	mux.Handle("POST /api/v1/batches", protectWriteOnboard(http.HandlerFunc(h.CreateBatch)))
 	mux.Handle("POST /api/v1/batches/validate", protectWriteOnboard(http.HandlerFunc(h.ValidateBatchCreation)))
 	mux.Handle("GET /api/v1/batches", authMiddleware.Protect(http.HandlerFunc(h.ListBatches)))

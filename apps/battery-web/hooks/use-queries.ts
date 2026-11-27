@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Batch } from '@/lib/types'
+import { getBatteryModel, listBatteryModels } from '@/lib/api/battery-models'
 import { getFleetStats, getFleetWorstHealth, getFleetEvents, getFleetGeo, getFleetThermalEvents } from '@/lib/api/fleet'
 
 // Query keys factory for consistent cache management
@@ -8,6 +9,10 @@ export const queryKeys = {
     batches: (tenantId: string, productType?: string, page?: number, limit?: number) =>
         ['batches', tenantId, productType, page, limit] as const,
     batch: (id: string) => ['batch', id] as const,
+    batteryModels: (tenantId: string, page?: number) =>
+        page === undefined ? ['batteryModels', tenantId] as const : ['batteryModels', tenantId, page] as const,
+    batteryModel: (tenantId: string, modelId: string, page?: number) =>
+        page === undefined ? ['batteryModel', tenantId, modelId] as const : ['batteryModel', tenantId, modelId, page] as const,
     dashboardStats: (tenantId: string) => ['dashboardStats', tenantId] as const,
     templates: (tenantId: string, productType?: string) => ['templates', tenantId, productType] as const,
     analytics: {
@@ -24,6 +29,25 @@ export const queryKeys = {
     correctiveActions: () => ['correctiveActions'] as const,
     suppliers: () => ['suppliers'] as const,
     supplierDDStats: (supplierIds: string[]) => ['supplierDDStats', supplierIds] as const,
+}
+
+export function useBatteryModels(tenantId: string, page: number) {
+    return useQuery({
+        queryKey: queryKeys.batteryModels(tenantId, page),
+        queryFn: () => listBatteryModels(page),
+        enabled: Boolean(tenantId),
+    })
+}
+
+export function useBatteryModel(tenantId: string, modelId: string, page: number) {
+    return useQuery({
+        queryKey: queryKeys.batteryModel(tenantId, modelId, page),
+        queryFn: () => getBatteryModel(modelId, page),
+        enabled: Boolean(tenantId && modelId),
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        retry: false,
+    })
 }
 
 // Batches hooks. Backend paginates server-side (page/limit, default limit 50,

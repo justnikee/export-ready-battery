@@ -2,6 +2,7 @@ import {
   Activity,
   BookOpen,
   Box,
+  Layers3,
   Building2,
   Calculator,
   ClipboardCheck,
@@ -208,6 +209,7 @@ const BATTERY_CONFIG: ProductConfig = {
     {
       label: "Production",
       items: [
+        { name: "Models", dashboardSubpath: "models", icon: Layers3 },
         { name: "Batches", dashboardSubpath: "batches", icon: Box },
         { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
         { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },

@@ -256,3 +256,12 @@ func (r *Repository) CreateTeamAuditLog(ctx context.Context, log *models.TeamAud
 	}
 	return nil
 }
+
+// GetActiveMembershipRole resolves the current role for a workspace identity.
+func (r *Repository) GetActiveMembershipRole(ctx context.Context, tenantID, userID uuid.UUID) (string, error) {
+	var role string
+	err := r.db.Pool.QueryRow(ctx, `
+		SELECT role FROM public.team_members
+		WHERE tenant_id = $1 AND user_id = $2 AND status = 'ACTIVE'`, tenantID, userID).Scan(&role)
+	return role, err
+}
