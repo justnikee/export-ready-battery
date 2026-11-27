@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { CreateBatchWizard } from "@/components/batches/create-batch-wizard";
 import { TemplatesDialog } from "@/components/batches/templates-dialog";
@@ -48,6 +49,7 @@ import type { Batch } from "@/lib/types";
 
 import { BatchesListSkeleton } from "@/components/batches/BatchesListSkeleton";
 import { dashboardPathFromPathname } from "@/lib/routes";
+import { canWrite } from "@/lib/rbac";
 
 // Types
 type FilterType = "ALL" | "DRAFT" | "ACTIVE" | "ARCHIVED";
@@ -189,7 +191,7 @@ export default function BatchesPage() {
     <div className="min-h-screen bg-sidebar p-6">
       <div className="w-full mx-auto space-y-6">
         {/* Page Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl text-foreground tracking-tight">
               Production Batches
@@ -198,7 +200,12 @@ export default function BatchesPage() {
               Manage battery production runs and passport generation
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {canWrite(user?.role) && (
+              <Button variant="outline" asChild>
+                <Link href={dashboardPathFromPathname(pathname, "batches/component-lot-import")}>Import component lots</Link>
+              </Button>
+            )}
             <TemplatesDialog />
             <BulkImportDialog onImported={fetchBatches} />
             <CreateBatchWizard onBatchCreated={fetchBatches} />

@@ -3,11 +3,13 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/anvayalabs/battery-api/internal/models"
 )
@@ -484,6 +486,59 @@ func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("failed to delete batch: %w", err)
 	}
 	return nil
+}
+
+var ErrBatchNotEmptyDraft = errors.New("batch is not an empty draft")
+var ErrBatchHasLotAssignments = errors.New("batch has component lot assignments")
+
+// DeleteEmptyDraftBatch removes an owned draft with no passport, quota or lot assignment history.
+func (r *Repository) DeleteEmptyDraftBatch(ctx context.Context, batchID, tenantID uuid.UUID) (string, error) {
+	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx)
+
+	name, err := deleteEmptyDraftBatchTx(ctx, tx, batchID, tenantID)
+	if err != nil {
+		return "", err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func deleteEmptyDraftBatchTx(ctx context.Context, tx pgx.Tx, batchID, tenantID uuid.UUID) (string, error) {
+	if err := lockBatchForWrite(ctx, tx, batchID, tenantID); err != nil {
+		return "", err
+	}
+
+	// Check for dependent records in a new statement after waiting for the locks.
+	// READ COMMITTED sees inserts committed by a preceding lock holder.
+	var name string
+	err := tx.QueryRow(ctx, `
+		DELETE FROM public.batches AS b
+		WHERE b.id = $1 AND b.tenant_id = $2 AND b.status = $3 AND b.deleted_at IS NULL
+		  AND NOT EXISTS (SELECT 1 FROM public.passports AS p WHERE p.batch_id = b.id)
+		  AND NOT EXISTS (SELECT 1 FROM public.transactions AS t WHERE t.batch_id = b.id)
+		RETURNING b.batch_name`, batchID, tenantID, models.BatchStatusDraft).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrBatchNotEmptyDraft
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" && pgErr.ConstraintName == "lot_assignments_batch_fk" {
+		return "", ErrBatchHasLotAssignments
+	}
+	return name, err
+}
+
+func lockBatchForWrite(ctx context.Context, tx pgx.Tx, batchID, tenantID uuid.UUID) error {
+	var id uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT id FROM public.tenants WHERE id=$1 FOR UPDATE`, tenantID).Scan(&id); err != nil {
+		return err
+	}
+	return tx.QueryRow(ctx, `SELECT id FROM public.batches WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL FOR UPDATE`, batchID, tenantID).Scan(&id)
 }
 
 // UpdateBatchMetadata updates the domestic_value_add of a batch.

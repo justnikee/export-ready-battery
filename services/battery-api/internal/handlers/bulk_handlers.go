@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/anvayalabs/battery-api/internal/limits"
 	"github.com/anvayalabs/battery-api/internal/middleware"
@@ -135,7 +137,7 @@ func (h *Handler) ArchiveBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteDraftBatch handles DELETE /api/v1/batches/{id}/draft
-// Only allows deletion of DRAFT batches with no passports
+// Deletes only an empty draft without passport, quota or traceability history.
 func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 	batchIDStr := r.PathValue("id")
 	batchID, err := uuid.Parse(batchIDStr)
@@ -156,38 +158,28 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify batch belongs to tenant
-	batch, err := h.repo.GetBatch(r.Context(), batchID, tenantID)
-	if err != nil {
+	batchName, err := h.repo.DeleteEmptyDraftBatch(r.Context(), batchID, tenantID)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		respondError(w, http.StatusNotFound, "Batch not found")
 		return
-	}
-
-	// Only DRAFT batches can be deleted
-	if batch.Status != "DRAFT" {
-		respondError(w, http.StatusForbidden, "Only DRAFT batches can be deleted. Use archive for ACTIVE batches.")
+	case errors.Is(err, repository.ErrBatchHasLotAssignments):
+		respondError(w, http.StatusForbidden, "This draft has component lot assignments and cannot be deleted.")
 		return
-	}
-
-	// Check if batch has any passports
-	if batch.TotalPassports > 0 {
-		respondError(w, http.StatusForbidden, "Cannot delete batch with existing passports. Remove passports first or archive the batch.")
+	case errors.Is(err, repository.ErrBatchNotEmptyDraft):
+		respondError(w, http.StatusForbidden, "Only draft batches without passport or quota history can be deleted. Reload to see the current batch state.")
 		return
-	}
-
-	// Safe to hard delete - no legal artifacts created
-	_, err = h.repo.DeleteBatchWithPassports(r.Context(), batchID)
-	if err != nil {
+	case err != nil:
 		slog.Error("Failed to delete draft batch", "error", err)
 		respondError(w, http.StatusInternalServerError, "Failed to delete draft batch")
 		return
 	}
 
-	slog.Info("Deleted draft batch", "batch_name", batch.BatchName, "tenant", tenantIDStr[:8])
+	slog.Info("Deleted draft batch", "batch_id", batchID, "tenant_id", tenantID)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"batch_id":   batchID,
-		"batch_name": batch.BatchName,
+		"batch_name": batchName,
 		"message":    "Draft batch deleted successfully.",
 	})
 }

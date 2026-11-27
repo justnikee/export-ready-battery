@@ -32,6 +32,8 @@ type RepositoryInterface interface {
 	CreateBatteryModelDraft(ctx context.Context, tenantID, modelID uuid.UUID) (models.BatteryModelRevision, error)
 	UpdateBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID uuid.UUID, version int, specs models.ModelRevisionSpecs) (models.BatteryModelRevision, error)
 	ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error)
+	// component_lots.go
+	ProcessComponentLotImport(ctx context.Context, tenantID, actorID uuid.UUID, input models.ComponentLotImportInput) (models.ComponentLotImportResult, error)
 	// batch.go
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
@@ -41,6 +43,7 @@ type RepositoryInterface interface {
 	ListAllBatches(ctx context.Context, productType models.ProductType, limit, offset int) ([]*models.Batch, error)
 	GetBatchesChartData(ctx context.Context, tenantID uuid.UUID, limit int) ([]*models.BatchChartData, error)
 	DeleteBatch(ctx context.Context, id uuid.UUID) error
+	DeleteEmptyDraftBatch(ctx context.Context, batchID, tenantID uuid.UUID) (string, error)
 	UpdateBatchMetadata(ctx context.Context, id uuid.UUID, domesticValue *float64) error
 	PatchBatchDraft(ctx context.Context, id uuid.UUID, tenantID uuid.UUID, req models.PatchBatchRequest) error
 	SetBatchStatus(ctx context.Context, batchID uuid.UUID, status string) error
