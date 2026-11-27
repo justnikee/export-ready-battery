@@ -12,11 +12,15 @@ export interface BulkImportResult {
   errors: { row: number; field?: string; message: string }[];
 }
 
+type BulkImportResponse = Omit<BulkImportResult, "errors"> & {
+  errors: BulkImportResult["errors"] | null;
+};
+
 export const bulkImportBatches = async (file: File): Promise<BulkImportResult> => {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await api.post("/batches/bulk-import", formData, {
+  const { data } = await api.post<BulkImportResponse>("/batches/bulk-import", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return response.data;
+  return { ...data, errors: data.errors ?? [] };
 };

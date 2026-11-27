@@ -297,52 +297,14 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optional column indices
-	idx := func(name string) (int, bool) {
-		i, ok := headerMap[name]
-		return i, ok
-	}
-	chemistryIdx, _ := idx("chemistry")
-	voltageIdx, _ := idx("voltage")
-	capacityIdx, _ := idx("capacity")
-	manufacturerIdx, _ := idx("manufacturer")
-	weightIdx, _ := idx("weight")
-	countryOfOriginIdx, _ := idx("country_of_origin")
-	marketRegionIdx, _ := idx("market_region")
-	cellSourceIdx, _ := idx("cell_source")
-	lotSizeIdx, _ := idx("lot_size")
-	productionStageIdx, _ := idx("production_stage")
-	hsnCodeIdx, _ := idx("hsn_code")
-	bisNumberIdx, _ := idx("bis_number")
-	eprNumberIdx, _ := idx("epr_number")
-	billOfEntryIdx, _ := idx("bill_of_entry_no")
-	customsDateIdx, _ := idx("customs_date")
-	salePriceIdx, _ := idx("sale_price_inr")
-	importCostIdx, _ := idx("import_cost_inr")
-	cellCostDomesticIdx, _ := idx("cell_cost_domestic_inr")
-	cellCostImportedIdx, _ := idx("cell_cost_imported_inr")
-	bmsCostDomesticIdx, _ := idx("bms_cost_domestic_inr")
-	bmsCostImportedIdx, _ := idx("bms_cost_imported_inr")
-	casingCostDomesticIdx, _ := idx("casing_cost_domestic_inr")
-	casingCostImportedIdx, _ := idx("casing_cost_imported_inr")
-	labourOverheadIdx, _ := idx("labour_overhead_cost_inr")
-	pliCompliantIdx, _ := idx("pli_compliant")
-	domesticValueAddIdx, _ := idx("domestic_value_add")
-	batteryCategoryIdx, _ := idx("battery_category")
-	mfgStartIdx, _ := idx("manufacturing_start_date")
-	mfgEndIdx, _ := idx("manufacturing_end_date")
-
 	type importError struct {
 		Row     int    `json:"row"`
 		Field   string `json:"field,omitempty"`
 		Message string `json:"message"`
 	}
 
-	var (
-		created int
-		failed  int
-		errors  []importError
-	)
+	var created, failed int
+	rowErrors := []importError{}
 
 	const maxRows = 500
 	rowNum := 1 // header is row 1
@@ -353,7 +315,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			errors = append(errors, importError{Row: rowNum + 1, Message: "CSV parse error: " + err.Error()})
+			rowErrors = append(rowErrors, importError{Row: rowNum + 1, Message: "CSV parse error: " + err.Error()})
 			failed++
 			rowNum++
 			continue
@@ -361,7 +323,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		rowNum++
 
 		if rowNum > maxRows+1 {
-			errors = append(errors, importError{Row: rowNum, Message: fmt.Sprintf("Exceeded maximum row limit (%d)", maxRows)})
+			rowErrors = append(rowErrors, importError{Row: rowNum, Message: fmt.Sprintf("Exceeded maximum row limit (%d)", maxRows)})
 			failed++
 			break
 		}
@@ -369,20 +331,21 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		batchName := strings.TrimSpace(record[batchNameIdx])
 		modelName := strings.TrimSpace(record[modelNameIdx])
 		if batchName == "" || modelName == "" {
-			errors = append(errors, importError{Row: rowNum, Message: "batch_name and model_name are required"})
+			rowErrors = append(rowErrors, importError{Row: rowNum, Message: "batch_name and model_name are required"})
 			failed++
 			continue
 		}
 
-		get := func(idx int, has bool) string {
-			if !has || idx >= len(record) {
+		get := func(column string) string {
+			idx, ok := headerMap[column]
+			if !ok || idx >= len(record) {
 				return ""
 			}
 			return strings.TrimSpace(record[idx])
 		}
 
-		getFloat := func(idx int, has bool) float64 {
-			s := get(idx, has)
+		getFloat := func(column string) float64 {
+			s := get(column)
 			if s == "" {
 				return 0
 			}
@@ -390,59 +353,59 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 			return v
 		}
 
-		getBool := func(idx int, has bool) bool {
-			s := strings.ToLower(get(idx, has))
+		getBool := func(column string) bool {
+			s := strings.ToLower(get(column))
 			return s == "true" || s == "1" || s == "yes"
 		}
 
-		marketRegion := models.MarketRegion(get(marketRegionIdx, marketRegionIdx >= 0))
+		marketRegion := models.MarketRegion(get("market_region"))
 		if marketRegion == "" {
 			marketRegion = defaultMarket
 		}
 		if !marketRegion.IsValid() {
-			errors = append(errors, importError{Row: rowNum, Message: fmt.Sprintf("Invalid market_region: %s", marketRegion)})
+			rowErrors = append(rowErrors, importError{Row: rowNum, Message: fmt.Sprintf("Invalid market_region: %s", marketRegion)})
 			failed++
 			continue
 		}
 
 		var mfgStart, mfgEnd *time.Time
-		if s := get(mfgStartIdx, mfgStartIdx >= 0); s != "" {
+		if s := get("manufacturing_start_date"); s != "" {
 			if t, err := time.Parse("2006-01-02", s); err == nil {
 				mfgStart = &t
 			}
 		}
-		if s := get(mfgEndIdx, mfgEndIdx >= 0); s != "" {
+		if s := get("manufacturing_end_date"); s != "" {
 			if t, err := time.Parse("2006-01-02", s); err == nil {
 				mfgEnd = &t
 			}
 		}
 
 		specs := models.BatchSpec{
-			Chemistry:             get(chemistryIdx, chemistryIdx >= 0),
-			NominalVoltage:        get(voltageIdx, voltageIdx >= 0),
-			Capacity:              get(capacityIdx, capacityIdx >= 0),
-			Manufacturer:          get(manufacturerIdx, manufacturerIdx >= 0),
-			Weight:                get(weightIdx, weightIdx >= 0),
-			CountryOfOrigin:       get(countryOfOriginIdx, countryOfOriginIdx >= 0),
-			LotSize:               get(lotSizeIdx, lotSizeIdx >= 0),
-			ProductionStage:       get(productionStageIdx, productionStageIdx >= 0),
-			CellSource:            get(cellSourceIdx, cellSourceIdx >= 0),
-			HSNCode:               get(hsnCodeIdx, hsnCodeIdx >= 0),
-			BISNumber:             get(bisNumberIdx, bisNumberIdx >= 0),
-			EPRNumber:             get(eprNumberIdx, eprNumberIdx >= 0),
-			BillOfEntryNo:         get(billOfEntryIdx, billOfEntryIdx >= 0),
-			CustomsDate:           get(customsDateIdx, customsDateIdx >= 0),
-			SalePriceINR:          getFloat(salePriceIdx, salePriceIdx >= 0),
-			ImportCostINR:         getFloat(importCostIdx, importCostIdx >= 0),
-			CellCostDomesticINR:   getFloat(cellCostDomesticIdx, cellCostDomesticIdx >= 0),
-			CellCostImportedINR:   getFloat(cellCostImportedIdx, cellCostImportedIdx >= 0),
-			BMSCostDomesticINR:    getFloat(bmsCostDomesticIdx, bmsCostDomesticIdx >= 0),
-			BMSCostImportedINR:    getFloat(bmsCostImportedIdx, bmsCostImportedIdx >= 0),
-			CasingCostDomesticINR: getFloat(casingCostDomesticIdx, casingCostDomesticIdx >= 0),
-			CasingCostImportedINR: getFloat(casingCostImportedIdx, casingCostImportedIdx >= 0),
-			LabourOverheadCostINR: getFloat(labourOverheadIdx, labourOverheadIdx >= 0),
-			DomesticValueAdd:      getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0),
-			BatteryCategory:       models.BatteryCategory(get(batteryCategoryIdx, batteryCategoryIdx >= 0)),
+			Chemistry:             get("chemistry"),
+			NominalVoltage:        get("voltage"),
+			Capacity:              get("capacity"),
+			Manufacturer:          get("manufacturer"),
+			Weight:                get("weight"),
+			CountryOfOrigin:       get("country_of_origin"),
+			LotSize:               get("lot_size"),
+			ProductionStage:       get("production_stage"),
+			CellSource:            get("cell_source"),
+			HSNCode:               get("hsn_code"),
+			BISNumber:             get("bis_number"),
+			EPRNumber:             get("epr_number"),
+			BillOfEntryNo:         get("bill_of_entry_no"),
+			CustomsDate:           get("customs_date"),
+			SalePriceINR:          getFloat("sale_price_inr"),
+			ImportCostINR:         getFloat("import_cost_inr"),
+			CellCostDomesticINR:   getFloat("cell_cost_domestic_inr"),
+			CellCostImportedINR:   getFloat("cell_cost_imported_inr"),
+			BMSCostDomesticINR:    getFloat("bms_cost_domestic_inr"),
+			BMSCostImportedINR:    getFloat("bms_cost_imported_inr"),
+			CasingCostDomesticINR: getFloat("casing_cost_domestic_inr"),
+			CasingCostImportedINR: getFloat("casing_cost_imported_inr"),
+			LabourOverheadCostINR: getFloat("labour_overhead_cost_inr"),
+			DomesticValueAdd:      getFloat("domestic_value_add"),
+			BatteryCategory:       models.BatteryCategory(get("battery_category")),
 		}
 
 		createReq := models.CreateBatchRequest{
@@ -452,7 +415,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 			ProductType:  jwtProductType,
 			Specs:        specs,
 			MarketRegion: marketRegion,
-			PLICompliant: getBool(pliCompliantIdx, pliCompliantIdx >= 0),
+			PLICompliant: getBool("pli_compliant"),
 			// DomesticValueAdd is recomputed server-side for ESTIMATED DVA.
 			DomesticValueAdd: 0,
 			CellSource:       specs.CellSource,
@@ -479,10 +442,10 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		validation := validator.Validate(r.Context(), createReq, tenant)
 		if !validation.Valid {
 			if len(validation.Errors) == 0 {
-				errors = append(errors, importError{Row: rowNum, Message: "validation failed"})
+				rowErrors = append(rowErrors, importError{Row: rowNum, Message: "validation failed"})
 			} else {
 				for _, ve := range validation.Errors {
-					errors = append(errors, importError{
+					rowErrors = append(rowErrors, importError{
 						Row:     rowNum,
 						Field:   ve.Field,
 						Message: ve.Message,
@@ -494,7 +457,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Mirror CreateBatch India DVA recompute for ESTIMATED mode.
-		domesticValueAdd := getFloat(domesticValueAddIdx, domesticValueAddIdx >= 0)
+		domesticValueAdd := getFloat("domestic_value_add")
 		if marketRegion == models.MarketRegionIndia && jwtProductType == models.ProductTypeBattery {
 			domesticValueAdd = services.CalculateEstimatedDVA(specs)
 			if createReq.CellSource == "IMPORTED" {
@@ -516,7 +479,7 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 			ManufacturingEndDate:   mfgEnd,
 		})
 		if err != nil {
-			errors = append(errors, importError{Row: rowNum, Message: "DB error: " + err.Error()})
+			rowErrors = append(rowErrors, importError{Row: rowNum, Message: "DB error: " + err.Error()})
 			failed++
 			continue
 		}
@@ -528,6 +491,6 @@ func (h *Handler) BulkImportBatches(w http.ResponseWriter, r *http.Request) {
 		"total":   created + failed,
 		"created": created,
 		"failed":  failed,
-		"errors":  errors,
+		"errors":  rowErrors,
 	})
 }
