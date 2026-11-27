@@ -17,6 +17,7 @@ import {
   Newspaper,
   Radio,
   Scale,
+  ScanLine,
   Send,
   Settings,
   Shield,
@@ -211,6 +212,7 @@ const BATTERY_CONFIG: ProductConfig = {
       items: [
         { name: "Models", dashboardSubpath: "models", icon: Layers3 },
         { name: "Batches", dashboardSubpath: "batches", icon: Box },
+        { name: "Traceability", dashboardSubpath: "traceability", icon: ScanLine },
         { name: "Dispatch", dashboardSubpath: "dispatch", icon: Send },
         { name: "Lifecycle", dashboardSubpath: "lifecycle", icon: Activity },
         { name: "Templates", dashboardSubpath: "templates", icon: LayoutTemplate },

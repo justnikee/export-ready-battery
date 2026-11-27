@@ -32,6 +32,11 @@ type RepositoryInterface interface {
 	CreateBatteryModelDraft(ctx context.Context, tenantID, modelID uuid.UUID) (models.BatteryModelRevision, error)
 	UpdateBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID uuid.UUID, version int, specs models.ModelRevisionSpecs) (models.BatteryModelRevision, error)
 	ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error)
+	// traceability.go
+	FindTracePacks(ctx context.Context, tenantID uuid.UUID, serial string, limit, offset int) ([]models.TracePack, error)
+	GetTracePack(ctx context.Context, tenantID, packID uuid.UUID, limit, offset int) (models.TracePack, []models.TracePackLot, error)
+	FindTraceLots(ctx context.Context, tenantID uuid.UUID, lotCode string, limit, offset int) ([]models.TraceLot, error)
+	GetTraceLot(ctx context.Context, tenantID, lotID uuid.UUID, limit, offset int) (models.TraceLot, []models.TraceLotImpact, error)
 	// component_lots.go
 	ProcessComponentLotImport(ctx context.Context, tenantID, actorID uuid.UUID, input models.ComponentLotImportInput) (models.ComponentLotImportResult, error)
 	// batch.go

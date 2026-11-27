@@ -136,6 +136,30 @@ func (m *MockRepository) GetBatchesChartData(ctx context.Context, tenantID uuid.
 	return args.Get(0).([]*models.BatchChartData), args.Error(1)
 }
 
+func (m *MockRepository) FindTracePacks(ctx context.Context, tenantID uuid.UUID, serial string, limit, offset int) ([]models.TracePack, error) {
+	args := m.Called(ctx, tenantID, serial, limit, offset)
+	items, _ := args.Get(0).([]models.TracePack)
+	return items, args.Error(1)
+}
+
+func (m *MockRepository) GetTracePack(ctx context.Context, tenantID, packID uuid.UUID, limit, offset int) (models.TracePack, []models.TracePackLot, error) {
+	args := m.Called(ctx, tenantID, packID, limit, offset)
+	items, _ := args.Get(1).([]models.TracePackLot)
+	return args.Get(0).(models.TracePack), items, args.Error(2)
+}
+
+func (m *MockRepository) FindTraceLots(ctx context.Context, tenantID uuid.UUID, lotCode string, limit, offset int) ([]models.TraceLot, error) {
+	args := m.Called(ctx, tenantID, lotCode, limit, offset)
+	items, _ := args.Get(0).([]models.TraceLot)
+	return items, args.Error(1)
+}
+
+func (m *MockRepository) GetTraceLot(ctx context.Context, tenantID, lotID uuid.UUID, limit, offset int) (models.TraceLot, []models.TraceLotImpact, error) {
+	args := m.Called(ctx, tenantID, lotID, limit, offset)
+	items, _ := args.Get(1).([]models.TraceLotImpact)
+	return args.Get(0).(models.TraceLot), items, args.Error(2)
+}
+
 func (m *MockRepository) ProcessComponentLotImport(ctx context.Context, tenantID, actorID uuid.UUID, input models.ComponentLotImportInput) (models.ComponentLotImportResult, error) {
 	args := m.Called(ctx, tenantID, actorID, input)
 	return args.Get(0).(models.ComponentLotImportResult), args.Error(1)
