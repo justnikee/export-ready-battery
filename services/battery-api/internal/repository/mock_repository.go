@@ -2117,3 +2117,40 @@ func (m *MockRepository) QueryTextChunks(ctx context.Context, query string, limi
 	}
 	return args.Get(0).([]*models.AIRegulationChunk), args.Error(1)
 }
+
+func (m *MockRepository) GetActiveMembershipRole(ctx context.Context, tenantID, userID uuid.UUID) (string, error) {
+	args := m.Called(ctx, tenantID, userID)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockRepository) CreateBatteryModel(ctx context.Context, tenantID uuid.UUID, code, name string) (models.BatteryModel, error) {
+	args := m.Called(ctx, tenantID, code, name)
+	return args.Get(0).(models.BatteryModel), args.Error(1)
+}
+
+func (m *MockRepository) ListBatteryModels(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]models.BatteryModel, int, error) {
+	args := m.Called(ctx, tenantID, limit, offset)
+	items, _ := args.Get(0).([]models.BatteryModel)
+	return items, args.Int(1), args.Error(2)
+}
+
+func (m *MockRepository) GetBatteryModel(ctx context.Context, tenantID, modelID uuid.UUID, limit, offset int) (models.BatteryModel, []models.BatteryModelRevision, int, error) {
+	args := m.Called(ctx, tenantID, modelID, limit, offset)
+	revisions, _ := args.Get(1).([]models.BatteryModelRevision)
+	return args.Get(0).(models.BatteryModel), revisions, args.Int(2), args.Error(3)
+}
+
+func (m *MockRepository) CreateBatteryModelDraft(ctx context.Context, tenantID, modelID uuid.UUID) (models.BatteryModelRevision, error) {
+	args := m.Called(ctx, tenantID, modelID)
+	return args.Get(0).(models.BatteryModelRevision), args.Error(1)
+}
+
+func (m *MockRepository) UpdateBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID uuid.UUID, version int, specs models.ModelRevisionSpecs) (models.BatteryModelRevision, error) {
+	args := m.Called(ctx, tenantID, modelID, revisionID, version, specs)
+	return args.Get(0).(models.BatteryModelRevision), args.Error(1)
+}
+
+func (m *MockRepository) ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error) {
+	args := m.Called(ctx, tenantID, modelID, revisionID, actorID, version)
+	return args.Get(0).(models.BatteryModelRevision), args.Error(1)
+}

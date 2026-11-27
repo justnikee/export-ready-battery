@@ -25,6 +25,13 @@ type RepositoryInterface interface {
 	IncrementUsage(ctx context.Context, keyID uuid.UUID, endpoint string) (int, error)
 	CleanupOldUsage(ctx context.Context) error
 
+	// battery_models.go
+	CreateBatteryModel(ctx context.Context, tenantID uuid.UUID, code, name string) (models.BatteryModel, error)
+	ListBatteryModels(ctx context.Context, tenantID uuid.UUID, limit, offset int) ([]models.BatteryModel, int, error)
+	GetBatteryModel(ctx context.Context, tenantID, modelID uuid.UUID, limit, offset int) (models.BatteryModel, []models.BatteryModelRevision, int, error)
+	CreateBatteryModelDraft(ctx context.Context, tenantID, modelID uuid.UUID) (models.BatteryModelRevision, error)
+	UpdateBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID uuid.UUID, version int, specs models.ModelRevisionSpecs) (models.BatteryModelRevision, error)
+	ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error)
 	// batch.go
 	CreateBatch(ctx context.Context, req CreateBatchRequest) (*models.Batch, error)
 	GetBatch(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*models.Batch, error)
@@ -172,6 +179,7 @@ type RepositoryInterface interface {
 	CountTeamMembers(ctx context.Context, tenantID uuid.UUID) (int, error)
 	CreateTeamMember(ctx context.Context, member *models.TeamMember) error
 	GetTeamMembers(ctx context.Context, tenantID uuid.UUID) ([]*models.TeamMember, error)
+	GetActiveMembershipRole(ctx context.Context, tenantID, userID uuid.UUID) (string, error)
 	GetTeamMemberByToken(ctx context.Context, token string) (*models.TeamMember, error)
 	GetTeamMemberByEmail(ctx context.Context, tenantID uuid.UUID, email string) (*models.TeamMember, error)
 	// GetUserIDByEmail returns the identity (users.id) for an email, if one exists.

@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/anvayalabs/battery-api/internal/services"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // ContextKey type for context values
@@ -55,6 +58,18 @@ func (a *Auth) WithTenantRateLimit(trl *TenantRateLimiter) *Auth {
 //  2. Cookie supplier_token                 (supplier portal HttpOnly, S-05)
 //  3. Cookie auth_token                     (manufacturer HttpOnly from login/refresh)
 func (a *Auth) Protect(next http.Handler) http.Handler {
+	return a.protect(next, nil)
+}
+
+type workspaceRoleLookup func(context.Context, uuid.UUID, uuid.UUID) (string, error)
+
+// ProtectWorkspace verifies the current workspace membership and only
+// accepts manufacturer access credentials on routes that opt in.
+func (a *Auth) ProtectWorkspace(next http.Handler, getRole workspaceRoleLookup) http.Handler {
+	return a.protect(next, getRole)
+}
+
+func (a *Auth) protect(next http.Handler, getRole workspaceRoleLookup) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tokenString string
 		authHeader := r.Header.Get("Authorization")
@@ -66,7 +81,7 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 			}
 		}
 
-		if tokenString == "" {
+		if tokenString == "" && getRole == nil {
 			if c, err := r.Cookie("supplier_token"); err == nil && c.Value != "" {
 				tokenString = c.Value
 			}
@@ -94,10 +109,38 @@ func (a *Auth) Protect(next http.Handler) http.Handler {
 			return
 		}
 
-		// Add claims to request context (including role for RBAC)
+		role := claims.Role
+		if getRole != nil {
+			tenantID, tenantErr := uuid.Parse(claims.TenantID)
+			userID, userErr := uuid.Parse(claims.UserID)
+			// The existing issuer sets a JWT ID on refresh tokens and a supplier
+			// identity on supplier tokens. Neither is a workspace access token.
+			if tenantErr != nil || userErr != nil || tenantID == uuid.Nil || userID == uuid.Nil ||
+				claims.SupplierID != "" || claims.Role == RoleSupplier || claims.ID != "" ||
+				claims.Issuer != "anvayalabs-battery" || claims.ExpiresAt == nil {
+				http.Error(w, `{"error":"workspace access token required"}`, http.StatusUnauthorized)
+				return
+			}
+
+			role, err = getRole(r.Context(), tenantID, userID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, `{"error":"membership is no longer active"}`, http.StatusUnauthorized)
+				return
+			}
+			if err != nil {
+				http.Error(w, `{"error":"membership verification unavailable"}`, http.StatusServiceUnavailable)
+				return
+			}
+			if role != RoleViewer && !CanWriteRole(role) {
+				http.Error(w, `{"error":"insufficient workspace role"}`, http.StatusForbidden)
+				return
+			}
+		}
+
+		// Add verified claims and the applicable role to request context.
 		ctx := context.WithValue(r.Context(), TenantIDKey, claims.TenantID)
 		ctx = context.WithValue(ctx, EmailKey, claims.Email)
-		ctx = context.WithValue(ctx, RoleKey, claims.Role)
+		ctx = context.WithValue(ctx, RoleKey, role)
 		ctx = context.WithValue(ctx, ProductTypeKey, string(claims.ProductType))
 		if claims.UserID != "" {
 			ctx = context.WithValue(ctx, UserIDKey, claims.UserID)
@@ -152,10 +195,10 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 // VIEWER is intentionally excluded. Supplier portal uses role "supplier" and must
 // not use this middleware on general tenant routes (would escalate suppliers).
 const (
-	RoleOwner  = "OWNER"
-	RoleAdmin  = "ADMIN"
-	RoleMember = "MEMBER"
-	RoleViewer = "VIEWER"
+	RoleOwner    = "OWNER"
+	RoleAdmin    = "ADMIN"
+	RoleMember   = "MEMBER"
+	RoleViewer   = "VIEWER"
 	RoleSupplier = "supplier"
 )
 
