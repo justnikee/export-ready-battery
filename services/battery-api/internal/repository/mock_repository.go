@@ -136,6 +136,16 @@ func (m *MockRepository) GetBatchesChartData(ctx context.Context, tenantID uuid.
 	return args.Get(0).([]*models.BatchChartData), args.Error(1)
 }
 
+func (m *MockRepository) ProcessComponentLotImport(ctx context.Context, tenantID, actorID uuid.UUID, input models.ComponentLotImportInput) (models.ComponentLotImportResult, error) {
+	args := m.Called(ctx, tenantID, actorID, input)
+	return args.Get(0).(models.ComponentLotImportResult), args.Error(1)
+}
+
+func (m *MockRepository) DeleteEmptyDraftBatch(ctx context.Context, batchID, tenantID uuid.UUID) (string, error) {
+	args := m.Called(ctx, batchID, tenantID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockRepository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
