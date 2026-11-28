@@ -1,0 +1,148 @@
+name: Oracle battery API upload limit
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Inspect or apply the battery API Nginx limit
+        type: choice
+        options: [inspect, apply]
+        default: inspect
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: oracle-battery-upload-limit
+  cancel-in-progress: false
+
+jobs:
+  configure-nginx:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect or update the battery API Nginx site
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          NGINX_LIMIT_MODE: ${{ inputs.mode }}
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          envs: NGINX_LIMIT_MODE
+          script: |
+            sudo -n python3 - "$NGINX_LIMIT_MODE" <<'PY'
+            import os
+            from pathlib import Path
+            import re
+            import shutil
+            import subprocess
+            import sys
+            import tempfile
+
+            host = "130.210.34.184.nip.io"
+            upstream = re.compile(r"http://(?:127\.0\.0\.1|localhost):8080/?")
+            config_token = re.compile(r"#[^\n]*|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|\$\{[^}]+\}|[{};]|[^\s{};#]+")
+
+            def server_blocks(source):
+                depth, statement, server = 0, [], None
+                for token in config_token.finditer(source):
+                    value = token.group()
+                    if value.startswith("#"):
+                        continue
+                    if value == "{":
+                        if len(statement) == 1 and statement[0].group() == "server":
+                            server = (depth + 1, token.end(), [])
+                        statement = []
+                        depth += 1
+                    elif value == ";":
+                        if server and statement:
+                            server[2].append((depth - server[0], statement))
+                        statement = []
+                    elif value == "}":
+                        if server and depth == server[0]:
+                            yield server[1], server[2]
+                            server = None
+                        statement = []
+                        depth -= 1
+                    else:
+                        statement.append(token)
+
+            def directives(entries, name):
+                return [(depth, tokens[1:]) for depth, tokens in entries if tokens[0].group() == name]
+
+            def args(tokens):
+                return [token.group().strip("\"'") for token in tokens]
+
+            def find_target(config):
+                files = re.findall(r"(?m)^# configuration file (/etc/nginx/[^\n]+):$", config)
+                candidates = []
+                for path in sorted({Path(file).resolve(strict=True) for file in files}):
+                    if not path.is_file() or not path.is_relative_to("/etc/nginx"):
+                        continue
+                    source = path.read_bytes().decode()
+                    for opening, entries in server_blocks(source):
+                        names = {name for depth, tokens in directives(entries, "server_name") if depth == 0 for name in args(tokens)}
+                        tls = any(depth == 0 and tokens and args(tokens)[0].rsplit(":", 1)[-1] == "443"
+                                  for depth, tokens in directives(entries, "listen"))
+                        if host not in names or not tls:
+                            continue
+                        routes = [args(tokens) for _, tokens in directives(entries, "proxy_pass")]
+                        if names != {host} or not routes or any(len(route) != 1 or not upstream.fullmatch(route[0]) for route in routes):
+                            sys.exit("The named TLS server is not exclusively configured for the battery API.")
+                        includes = [args(tokens) for _, tokens in directives(entries, "include")]
+                        if any(include != ["/etc/letsencrypt/options-ssl-nginx.conf"] for include in includes):
+                            sys.exit("The battery API server has an include that needs inspection before editing.")
+                        limits = directives(entries, "client_max_body_size")
+                        if any(depth != 0 or len(tokens) != 1 for depth, tokens in limits) or len(limits) > 1:
+                            sys.exit("The battery API server has a nested or ambiguous request-body limit.")
+                        candidates.append((path, source, opening, limits[0][1][0] if limits else None))
+                if len(candidates) != 1:
+                    sys.exit(f"Expected exactly one matching battery API TLS server, found {len(candidates)}.")
+                return candidates[0]
+
+            def write_atomic(path, content, metadata):
+                with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".battery-api-nginx-", delete=False) as temp:
+                    staged = Path(temp.name)
+                    try:
+                        temp.write(content.encode())
+                        temp.flush()
+                        os.fchown(temp.fileno(), metadata.st_uid, metadata.st_gid)
+                        os.fchmod(temp.fileno(), metadata.st_mode & 0o777)
+                        os.fsync(temp.fileno())
+                        os.replace(staged, path)
+                    finally:
+                        staged.unlink(missing_ok=True)
+
+            mode = sys.argv[1]
+            if mode not in {"inspect", "apply"}:
+                sys.exit("Expected inspect or apply.")
+            active_config = subprocess.check_output(["nginx", "-T"], text=True)
+            path, source, opening, limit = find_target(active_config)
+            print(f"Battery API TLS site: {path}; server limit: {limit.group() if limit else 'inherited'}", flush=True)
+            if mode == "inspect" or (limit and limit.group().lower() == "10m"):
+                sys.exit(0)
+            updated = (source[:limit.start()] + "10m" + source[limit.end():] if limit else
+                       source[:opening] + "\n    client_max_body_size 10m;" + source[opening:])
+
+            backup_dir = Path(tempfile.mkdtemp(prefix="battery-api-nginx-", dir="/var/backups"))
+            backup = backup_dir / path.name
+            shutil.copy2(path, backup)
+            metadata = path.stat()
+            if path.read_bytes().decode() != source:
+                sys.exit("The site changed during inspection. Rerun against the current configuration.")
+            write_atomic(path, updated, metadata)
+            try:
+                subprocess.run(["nginx", "-t"], check=True)
+                subprocess.run(["systemctl", "reload", "nginx"], check=True)
+                subprocess.run(["curl", "--fail", "--silent", "--show-error", "--max-time", "5", "--retry", "5",
+                                "--retry-connrefused", "--resolve", f"{host}:443:127.0.0.1", "--output", "/dev/null",
+                                f"https://{host}/api/v1/health"], check=True)
+            except (subprocess.CalledProcessError, OSError):
+                write_atomic(path, source, metadata)
+                subprocess.run(["nginx", "-t"], check=True)
+                subprocess.run(["systemctl", "reload", "nginx"], check=True)
+                sys.exit(f"Restored the previous Nginx configuration. Backup: {backup}")
+            print(f"Battery API request-body limit is 10 MiB. Backup: {backup}")
+            PY
