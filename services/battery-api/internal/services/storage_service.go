@@ -107,6 +107,73 @@ func (s *StorageService) EnsureBucket(ctx context.Context, bucket string) error 
 	return nil
 }
 
+// VerifyPrivateBucket requires explicit private bucket metadata. Unlike EnsureBucket,
+// it checks with the provider every time so a public configuration fails closed.
+func (s *StorageService) VerifyPrivateBucket(ctx context.Context, bucket string) error {
+	checkURL := fmt.Sprintf("%s/storage/v1/bucket/%s", strings.TrimRight(s.supabaseURL, "/"), bucket)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, checkURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bucket check returned status %d", resp.StatusCode)
+	}
+
+	var metadata struct {
+		Public *bool `json:"public"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&metadata); err != nil ||
+		metadata.Public == nil || *metadata.Public {
+		return fmt.Errorf("bucket privacy could not be verified")
+	}
+	return nil
+}
+
+// DownloadPrivateFileFromBucket reads an object with service credentials and bounds
+// memory use to the caller's upload limit. The caller must authorize the object first.
+func (s *StorageService) DownloadPrivateFileFromBucket(ctx context.Context, bucket, key string, maxBytes int64) ([]byte, error) {
+	if err := s.VerifyPrivateBucket(ctx, bucket); err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(s.supabaseURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "storage/v1/object/authenticated", bucket, key)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.serviceRoleKey)
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("private object download returned status %d", resp.StatusCode)
+	}
+	if resp.ContentLength > maxBytes {
+		return nil, fmt.Errorf("private object exceeds download limit")
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("private object exceeds download limit")
+	}
+	return data, nil
+}
+
 // UploadFile uploads data to the default bucket in Supabase Storage.
 func (s *StorageService) UploadFile(ctx context.Context, data []byte, filePath string, contentType string) error {
 	return s.UploadFileToBucket(ctx, s.bucketName, filePath, data, contentType)

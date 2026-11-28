@@ -1853,16 +1853,8 @@ func (m *MockRepository) GetSupplierDocumentByID(ctx context.Context, id uuid.UU
 	return args.Get(0).(*models.SupplierDocument), args.Error(1)
 }
 
-func (m *MockRepository) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) {
-	args := m.Called(ctx, supplierID, status)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.SupplierDocument), args.Error(1)
-}
-
-func (m *MockRepository) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) {
-	args := m.Called(ctx, tenantID, status)
+func (m *MockRepository) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string, supplierID *uuid.UUID) ([]models.SupplierDocument, error) {
+	args := m.Called(ctx, tenantID, status, supplierID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -2187,4 +2179,17 @@ func (m *MockRepository) UpdateBatteryModelDraft(ctx context.Context, tenantID, 
 func (m *MockRepository) ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error) {
 	args := m.Called(ctx, tenantID, modelID, revisionID, actorID, version)
 	return args.Get(0).(models.BatteryModelRevision), args.Error(1)
+}
+
+func (m *MockRepository) GetSupplierDocumentForDownload(ctx context.Context, tenantID, documentID uuid.UUID, supplierID *uuid.UUID) (*models.SupplierDocument, error) {
+	args := m.Called(ctx, tenantID, documentID, supplierID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.SupplierDocument), args.Error(1)
+}
+
+func (m *MockRepository) GetActiveSupplierCompanyName(ctx context.Context, tenantID, supplierID uuid.UUID) (string, error) {
+	args := m.Called(ctx, tenantID, supplierID)
+	return args.String(0), args.Error(1)
 }

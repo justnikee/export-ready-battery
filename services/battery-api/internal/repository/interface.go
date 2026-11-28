@@ -383,8 +383,9 @@ type RepositoryInterface interface {
 	// Supplier Documents
 	CreateSupplierDocument(ctx context.Context, doc *models.SupplierDocument) error
 	GetSupplierDocumentByID(ctx context.Context, id uuid.UUID) (*models.SupplierDocument, error)
-	ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error)
-	ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error)
+	ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string, supplierID *uuid.UUID) ([]models.SupplierDocument, error)
+	GetSupplierDocumentForDownload(ctx context.Context, tenantID, documentID uuid.UUID, supplierID *uuid.UUID) (*models.SupplierDocument, error)
+	GetActiveSupplierCompanyName(ctx context.Context, tenantID, supplierID uuid.UUID) (string, error)
 	UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error
 
 	// supplier_risk_profiles.go

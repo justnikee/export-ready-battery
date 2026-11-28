@@ -14,6 +14,7 @@ import (
 	"github.com/anvayalabs/battery-api/internal/repository"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // ============================================================================
@@ -1310,10 +1311,7 @@ func (f *fakeTeamRepo) CreateSupplierDocument(ctx context.Context, doc *models.S
 func (f *fakeTeamRepo) GetSupplierDocumentByID(ctx context.Context, id uuid.UUID) (*models.SupplierDocument, error) {
 	return nil, nil
 }
-func (f *fakeTeamRepo) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) {
-	return nil, nil
-}
-func (f *fakeTeamRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) {
+func (f *fakeTeamRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string, supplierID *uuid.UUID) ([]models.SupplierDocument, error) {
 	return nil, nil
 }
 func (f *fakeTeamRepo) UpdateSupplierDocumentStatus(ctx context.Context, id uuid.UUID, status, reviewerNotes string, reviewedBy uuid.UUID) error {
@@ -1379,3 +1377,10 @@ func (f *fakeTeamRepo) SetAIParseCache(ctx context.Context, entry *models.AIPars
 	return nil
 }
 
+func (f *fakeTeamRepo) GetActiveSupplierCompanyName(context.Context, uuid.UUID, uuid.UUID) (string, error) {
+	return "", pgx.ErrNoRows
+}
+
+func (f *fakeTeamRepo) GetSupplierDocumentForDownload(context.Context, uuid.UUID, uuid.UUID, *uuid.UUID) (*models.SupplierDocument, error) {
+	return nil, pgx.ErrNoRows
+}

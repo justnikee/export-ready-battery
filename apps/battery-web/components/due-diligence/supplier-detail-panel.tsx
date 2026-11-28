@@ -12,7 +12,9 @@ import {
   Circle,
   Clock,
 } from "lucide-react";
-import { useSupplierRisk, useSupplierCMRTReports, useDueDiligenceAssessments } from "@/hooks/use-queries";
+import { useSupplierRisk, useSupplierCMRTReports, useDueDiligenceAssessments, useManufacturerSupplierDocuments } from "@/hooks/use-queries";
+import { useAuth } from "@/context/auth-context";
+import { SupplierDocumentDownload } from "@/components/due-diligence/supplier-document-download";
 import CorrectiveActionsDashboard from "@/components/due-diligence/corrective-actions-dashboard";
 import type { Supplier } from "@/components/due-diligence/supplier-list";
 
@@ -31,6 +33,9 @@ interface SupplierDetailPanelProps {
 }
 
 export default function SupplierDetailPanel({ supplier, onOpenWizard, onOpenCMRT }: SupplierDetailPanelProps) {
+  const { user } = useAuth();
+  const { data: documents = [], isLoading: documentsLoading, isError: documentsError } =
+    useManufacturerSupplierDocuments(user?.tenant_id, supplier.id);
   const { data: riskProfile } = useSupplierRisk(supplier.id);
   const { data: assessments = [] } = useDueDiligenceAssessments(supplier.id);
   const { data: cmrtData } = useSupplierCMRTReports(supplier.id);
@@ -107,6 +112,29 @@ export default function SupplierDetailPanel({ supplier, onOpenWizard, onOpenCMRT
           })}
         </div>
       </div>
+
+      <section className="space-y-2 border-b border-border p-4">
+        <h3 className="text-sm font-medium">Supplier documents</h3>
+        {documentsLoading ? (
+          <p className="text-xs text-muted-foreground">Loading documents…</p>
+        ) : documentsError ? (
+          <p className="text-xs text-muted-foreground">Could not load supplier documents.</p>
+        ) : documents.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No documents uploaded yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {documents.map((doc) => (
+              <li key={doc.id} className="flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{doc.file_name || doc.doc_type}</p>
+                  <p className="text-muted-foreground">{doc.status}</p>
+                </div>
+                <SupplierDocumentDownload document={doc} scope="manufacturer" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* CMRT Reports */}
       <div className="p-4 border-b border-border space-y-2">

@@ -37,13 +37,13 @@ func (c *RiskCalculator) ComputeProfile(ctx context.Context, supplierID, tenantI
 	countryTier := GetCountryRiskTier(countryCode)
 
 	// 2. Mineral risk flags — derived from supplier documents
-	mineralFlags := c.deriveMineralFlags(ctx, supplierID)
+	mineralFlags := c.deriveMineralFlags(ctx, supplierID, tenantID)
 
 	// 3. RMAP validity — check latest approved audit_report document
 	rmapValid := c.checkRMAPValidity(ctx, supplierID, tenantID)
 
 	// 4. Audit dates
-	lastAudit, nextAudit := c.deriveAuditDates(ctx, supplierID)
+	lastAudit, nextAudit := c.deriveAuditDates(ctx, supplierID, tenantID)
 
 	// 5. Overall score (0–100, lower is better)
 	score := calculateOverallScore(countryTier, mineralFlags, rmapValid, lastAudit, nextAudit)
@@ -83,8 +83,8 @@ func (c *RiskCalculator) ComputeProfile(ctx context.Context, supplierID, tenantI
 }
 
 // deriveMineralFlags scans supplier documents for mineral-related uploads.
-func (c *RiskCalculator) deriveMineralFlags(ctx context.Context, supplierID uuid.UUID) []string {
-	docs, err := c.repo.ListSupplierDocuments(ctx, supplierID, "")
+func (c *RiskCalculator) deriveMineralFlags(ctx context.Context, supplierID, tenantID uuid.UUID) []string {
+	docs, err := c.repo.ListTenantSupplierDocuments(ctx, tenantID, "", &supplierID)
 	if err != nil {
 		return nil
 	}
@@ -115,7 +115,7 @@ func (c *RiskCalculator) deriveMineralFlags(ctx context.Context, supplierID uuid
 
 // checkRMAPValidity returns true if supplier has an approved audit_report document.
 func (c *RiskCalculator) checkRMAPValidity(ctx context.Context, supplierID, tenantID uuid.UUID) bool {
-	docs, err := c.repo.ListSupplierDocuments(ctx, supplierID, "approved")
+	docs, err := c.repo.ListTenantSupplierDocuments(ctx, tenantID, "approved", &supplierID)
 	if err != nil {
 		return false
 	}
@@ -128,8 +128,8 @@ func (c *RiskCalculator) checkRMAPValidity(ctx context.Context, supplierID, tena
 }
 
 // deriveAuditDates extracts audit dates from supplier documents.
-func (c *RiskCalculator) deriveAuditDates(ctx context.Context, supplierID uuid.UUID) (*time.Time, *time.Time) {
-	docs, err := c.repo.ListSupplierDocuments(ctx, supplierID, "approved")
+func (c *RiskCalculator) deriveAuditDates(ctx context.Context, supplierID, tenantID uuid.UUID) (*time.Time, *time.Time) {
+	docs, err := c.repo.ListTenantSupplierDocuments(ctx, tenantID, "approved", &supplierID)
 	if err != nil || len(docs) == 0 {
 		return nil, nil
 	}

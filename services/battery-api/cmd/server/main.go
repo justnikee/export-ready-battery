@@ -452,18 +452,21 @@ func main() {
 	mux.Handle("POST /api/v1/suppliers/invitations", featWriteOnboard(services.FeatureDueDiligence, http.HandlerFunc(h.InviteSupplier)))
 	mux.Handle("GET /api/v1/suppliers", feat(services.FeatureDueDiligence, http.HandlerFunc(h.ListSuppliers)))
 	mux.Handle("PUT /api/v1/suppliers/{id}/status", featWriteOnboard(services.FeatureDueDiligence, http.HandlerFunc(h.UpdateSupplierStatus)))
-	mux.Handle("GET /api/v1/supplier-documents", authMiddleware.Protect(http.HandlerFunc(h.ListTenantSupplierDocuments)))
+	mux.Handle("GET /api/v1/supplier-documents", protectWorkspaceRead(http.HandlerFunc(h.ListTenantSupplierDocuments)))
+	mux.Handle("POST /api/v1/supplier-documents/{id}/download", protectWorkspaceRead(http.HandlerFunc(h.DownloadTenantSupplierDocument)))
 	mux.Handle("PUT /api/v1/supplier-documents/{id}/status", protectWriteOnboard(http.HandlerFunc(h.ReviewSupplierDocument)))
 	// Supplier auth (rate-limited like other auth endpoints)
 	mux.Handle("POST /api/v1/suppliers/accept", authRateLimiter.Limit(http.HandlerFunc(h.AcceptSupplierInvitation)))
 	mux.Handle("POST /api/v1/supplier/login", authRateLimiter.Limit(http.HandlerFunc(h.SupplierLogin)))
+	mux.Handle("POST /api/v1/supplier/session", authMiddleware.ProtectSupplier(http.HandlerFunc(h.SupplierSession)))
 	// S-05: clear HttpOnly supplier_token cookie (no auth so expired sessions can clear)
 	mux.Handle("POST /api/v1/supplier/logout", authRateLimiter.Limit(http.HandlerFunc(h.SupplierLogout)))
 	// Supplier-scoped actions — JWT via Authorization Bearer and/or supplier_token cookie
-	mux.Handle("GET /api/v1/supplier/batches", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierBatches)))
+	mux.Handle("GET /api/v1/supplier/batches", authMiddleware.ProtectSupplier(http.HandlerFunc(h.ListSupplierBatches)))
 	// External suppliers are not tenant-onboarded; role=supplier is the gate (not RequireOnboardingComplete).
-	mux.Handle("POST /api/v1/supplier/documents", authMiddleware.Protect(middleware.RequireRole("supplier")(http.HandlerFunc(h.UploadSupplierDocument))))
-	mux.Handle("GET /api/v1/supplier/documents", authMiddleware.Protect(http.HandlerFunc(h.ListSupplierDocuments)))
+	mux.Handle("POST /api/v1/supplier/documents", authMiddleware.ProtectSupplier(http.HandlerFunc(h.UploadSupplierDocument)))
+	mux.Handle("GET /api/v1/supplier/documents", authMiddleware.ProtectSupplier(http.HandlerFunc(h.ListSupplierDocuments)))
+	mux.Handle("POST /api/v1/supplier/documents/{id}/download", authMiddleware.ProtectSupplier(http.HandlerFunc(h.DownloadSupplierDocument)))
 
 	// ============================================
 	// DUE DILIGENCE ROUTES (Protected)

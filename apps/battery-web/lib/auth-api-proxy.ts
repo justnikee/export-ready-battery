@@ -17,7 +17,19 @@ export async function proxyAuthToBatteryApi(
   pathSegments: string[],
 ): Promise<NextResponse> {
   const dest = `${batteryApiOrigin()}/api/v1/auth/${pathSegments.join("/")}${req.nextUrl.search}`;
+  return proxyCookieRequest(req, dest);
+}
 
+export async function proxySupplierAuthToBatteryApi(
+  req: NextRequest,
+  action: "login" | "logout" | "session",
+): Promise<NextResponse> {
+  const res = await proxyCookieRequest(req, `${batteryApiOrigin()}/api/v1/supplier/${action}`);
+  res.headers.set("Cache-Control", "private, no-store");
+  return res;
+}
+
+async function proxyCookieRequest(req: NextRequest, dest: string): Promise<NextResponse> {
   const headers = new Headers();
   const cookie = req.headers.get("cookie");
   if (cookie) {

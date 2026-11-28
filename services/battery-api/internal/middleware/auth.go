@@ -58,7 +58,7 @@ func (a *Auth) WithTenantRateLimit(trl *TenantRateLimiter) *Auth {
 //  2. Cookie supplier_token                 (supplier portal HttpOnly, S-05)
 //  3. Cookie auth_token                     (manufacturer HttpOnly from login/refresh)
 func (a *Auth) Protect(next http.Handler) http.Handler {
-	return a.protect(next, nil)
+	return a.protect(next, nil, false)
 }
 
 type workspaceRoleLookup func(context.Context, uuid.UUID, uuid.UUID) (string, error)
@@ -66,10 +66,15 @@ type workspaceRoleLookup func(context.Context, uuid.UUID, uuid.UUID) (string, er
 // ProtectWorkspace verifies the current workspace membership and only
 // accepts manufacturer access credentials on routes that opt in.
 func (a *Auth) ProtectWorkspace(next http.Handler, getRole workspaceRoleLookup) http.Handler {
-	return a.protect(next, getRole)
+	return a.protect(next, getRole, false)
 }
 
-func (a *Auth) protect(next http.Handler, getRole workspaceRoleLookup) http.Handler {
+// ProtectSupplier accepts only supplier sessions on supplier-only routes.
+func (a *Auth) ProtectSupplier(next http.Handler) http.Handler {
+	return a.protect(next, nil, true)
+}
+
+func (a *Auth) protect(next http.Handler, getRole workspaceRoleLookup, supplierOnly bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var tokenString string
 		authHeader := r.Header.Get("Authorization")
@@ -87,7 +92,7 @@ func (a *Auth) protect(next http.Handler, getRole workspaceRoleLookup) http.Hand
 			}
 		}
 
-		if tokenString == "" {
+		if tokenString == "" && !supplierOnly {
 			if c, err := r.Cookie("auth_token"); err == nil && c.Value != "" {
 				tokenString = c.Value
 			}
@@ -106,6 +111,12 @@ func (a *Auth) protect(next http.Handler, getRole workspaceRoleLookup) http.Hand
 				return
 			}
 			http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
+			return
+		}
+
+		if supplierOnly && (claims.Role != RoleSupplier || claims.SupplierID == "" ||
+			claims.UserID != "" || claims.ID != "" || claims.Issuer != "anvayalabs-battery" || claims.ExpiresAt == nil) {
+			http.Error(w, `{"error":"supplier access token required"}`, http.StatusUnauthorized)
 			return
 		}
 
