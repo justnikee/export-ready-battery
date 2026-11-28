@@ -24,5 +24,7 @@ const (
 	MaxTallyImportBytes    int64 = MaxRequestBodyBytes
 )
 
+const MaxReleaseEvidenceBytes int64 = 5 << 20
+
 // MaxRequestBodyMB is for user-facing error strings.
 const MaxRequestBodyMB = int(MaxRequestBodyBytes >> 20)

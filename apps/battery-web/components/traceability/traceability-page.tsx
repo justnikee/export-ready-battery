@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ReleaseEvidencePanel } from "@/components/release-evidence/release-evidence-panel";
 import { useAuth } from "@/context/auth-context";
 import { queryKeys } from "@/hooks/use-queries";
 import { findTraceLots, findTracePacks, getTraceLot, getTracePack, type TraceEvidence } from "@/lib/api/traceability";
@@ -164,6 +165,7 @@ function PackDetails({ workspace, id, select }: { workspace: string; id: string;
         ))}
       </Records> : <p>No lot links are recorded for this pack on this page.</p>}
       <Pagination page={page} hasMore={lots.has_more} onPage={setPage} />
+      <ReleaseEvidencePanel key={id} workspace={workspace} kind="pack" id={id} />
     </section>
   );
 }

@@ -12,6 +12,8 @@ export const queryKeys = {
     batch: (id: string) => ['batch', id] as const,
     traceability: (tenantId: string, kind: string, value: string, page: number) =>
         ['traceability', tenantId, kind, value, page] as const,
+    releaseEvidence: (workspace: string, kind?: "batch" | "pack", id?: string, page?: number) =>
+        kind === undefined ? ['releaseEvidence', workspace] as const : ['releaseEvidence', workspace, kind, id, page] as const,
     batteryModels: (tenantId: string, page?: number) =>
         page === undefined ? ['batteryModels', tenantId] as const : ['batteryModels', tenantId, page] as const,
     batteryModel: (tenantId: string, modelId: string, page?: number) =>

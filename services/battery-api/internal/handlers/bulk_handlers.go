@@ -166,6 +166,9 @@ func (h *Handler) DeleteDraftBatch(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, repository.ErrBatchHasLotAssignments):
 		respondError(w, http.StatusForbidden, "This draft has component lot assignments and cannot be deleted.")
 		return
+	case errors.Is(err, repository.ErrBatchHasReleaseEvidence):
+		respondError(w, http.StatusForbidden, "This draft has release evidence and cannot be deleted.")
+		return
 	case errors.Is(err, repository.ErrBatchNotEmptyDraft):
 		respondError(w, http.StatusForbidden, "Only draft batches without passport or quota history can be deleted. Reload to see the current batch state.")
 		return

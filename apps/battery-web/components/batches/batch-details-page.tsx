@@ -7,6 +7,8 @@ import { useAuth } from "@/context/auth-context";
 import { DownloadLabelsDialog } from "@/components/batches/DownloadLabelsDialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BatchDetailSkeleton } from "@/components/batches/BatchDetailSkeleton";
+import { ReleaseEvidencePanel } from "@/components/release-evidence/release-evidence-panel";
+import { canWrite } from "@/lib/rbac";
 import { clsx } from "clsx";
 
 import { useBatchDetail } from "./detail/hooks/useBatchDetail";
@@ -23,7 +25,7 @@ import { ComponentsTab } from "./detail/tabs/ComponentsTab";
 import { RegistryVerificationsTab } from "./detail/tabs/RegistryVerificationsTab";
 import type { MarketRegion } from "./detail/types";
 
-type LegacyTab = "overview" | "passports" | "compliance" | "downloads" | "components" | "registry";
+type LegacyTab = "overview" | "passports" | "compliance" | "downloads" | "components" | "registry" | "release-evidence";
 
 export default function BatchDetailsPage() {
   const params = useParams();
@@ -223,7 +225,7 @@ export default function BatchDetailsPage() {
 
         {/* ── TABS ── */}
         <div className="relative bg-muted rounded-md">
-          <div className="flex border-b border-border px-4">
+          <div className="flex overflow-x-auto border-b border-border px-4">
             {[
               { id: "overview", label: "Overview" },
               { id: "passports", label: `Passports (${passportCount})` },
@@ -231,12 +233,13 @@ export default function BatchDetailsPage() {
               { id: "downloads", label: "Downloads" },
               { id: "components", label: "Components" },
               { id: "registry", label: "Registry" },
+              { id: "release-evidence", label: "Release evidence" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as LegacyTab)}
                 className={clsx(
-                  "px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px",
+                  "px-4 py-3 whitespace-nowrap text-sm font-medium border-b-2 transition-colors -mb-px",
                   activeTab === tab.id
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
@@ -247,6 +250,15 @@ export default function BatchDetailsPage() {
             ))}
           </div>
           <div className="p-6">
+            {activeTab === "release-evidence" && user && (
+              <ReleaseEvidencePanel
+                key={`${user.tenant_id}:${user.id}:${batch.id}`}
+                workspace={`${user.tenant_id}:${user.id}`}
+                kind="batch"
+                id={batch.id}
+                writable={canWrite(user.role)}
+              />
+            )}
             {activeTab === "overview" && (
               <OverviewTab
                 batch={batch}
