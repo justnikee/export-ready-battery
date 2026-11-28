@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import { inviteSupplier } from "@/lib/api/suppliers";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
   const [search, setSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [invitation, setInvitation] = useState<{ link: string; emailSent: boolean } | null>(null);
   const [inviteForm, setInviteForm] = useState({
     email: "",
     company_name: "",
@@ -60,11 +62,17 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
     }
     setInviting(true);
     try {
-      await api.post("/suppliers/invitations", inviteForm);
-      toast.success("Supplier invited successfully");
-      setInviteOpen(false);
+      const { invitation_token, email_sent } = await inviteSupplier(inviteForm);
       setInviteForm({ email: "", company_name: "", contact_phone: "", country: "" });
       onChanged();
+      if (invitation_token) {
+        const link = new URL("/supplier/accept", window.location.origin);
+        link.searchParams.set("token", invitation_token);
+        setInvitation({ link: link.href, emailSent: email_sent === true });
+      } else {
+        setInviteOpen(false);
+        toast.error("The invitation was saved, but the link is unavailable.");
+      }
     } catch {
       toast.error("Failed to invite supplier");
     } finally {
@@ -72,10 +80,20 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
     }
   };
 
-  const copyInviteLink = (id: string) => {
-    const link = `${window.location.origin}/supplier/accept?token=${id}`;
-    navigator.clipboard.writeText(link);
-    toast.success("Invitation link copied to clipboard");
+  const copyInviteLink = async () => {
+    if (!invitation) return;
+    try {
+      await navigator.clipboard.writeText(invitation.link);
+      toast.success("Invitation link copied");
+    } catch {
+      toast.error("Could not copy the invitation link");
+    }
+  };
+
+  const setInviteDialogOpen = (open: boolean) => {
+    if (inviting && !open) return;
+    setInviteOpen(open);
+    if (!open) setInvitation(null);
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -142,12 +160,6 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
                   <span className="truncate">{s.email}</span>
                 </div>
                 <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                  {s.status === "invited" && (
-                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => copyInviteLink(s.id)}>
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copy Link
-                    </Button>
-                  )}
                   {s.status !== "blocked" ? (
                     <Button
                       size="sm"
@@ -172,34 +184,54 @@ export default function SupplierList({ suppliers, loading, selectedId, onSelect,
       </div>
 
       {/* INVITE DIALOG */}
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={inviteOpen} onOpenChange={setInviteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite Supplier</DialogTitle>
-            <DialogDescription>Send an invitation to an upstream supplier to join your portal.</DialogDescription>
+            <DialogTitle>{invitation ? "Invitation created" : "Invite Supplier"}</DialogTitle>
+            <DialogDescription>
+              {invitation
+                ? (invitation.emailSent ? "Invitation email sent. You can also copy the link now." : "Copy the link now to share it directly with your supplier.")
+                : "Send an invitation to an upstream supplier to join your portal."}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleInvite} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="invite-email">Email *</Label>
-              <Input id="invite-email" type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="supplier@example.com" required />
+          {invitation ? (
+            <div className="space-y-4">
+              {!invitation.emailSent && (
+                <p role="alert" className="text-sm text-destructive">The invitation email could not be sent.</p>
+              )}
+              <Input readOnly value={invitation.link} aria-label="Invitation link" />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setInviteDialogOpen(false)}>Done</Button>
+                <Button type="button" onClick={copyInviteLink}>
+                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  Copy link
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="invite-company">Company Name *</Label>
-              <Input id="invite-company" value={inviteForm.company_name} onChange={(e) => setInviteForm({ ...inviteForm, company_name: e.target.value })} placeholder="Amara Raja Cells Ltd" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="invite-phone">Contact Phone</Label>
-              <Input id="invite-phone" value={inviteForm.contact_phone} onChange={(e) => setInviteForm({ ...inviteForm, contact_phone: e.target.value })} placeholder="+91 98765 43210" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="invite-country">Country</Label>
-              <Input id="invite-country" value={inviteForm.country} onChange={(e) => setInviteForm({ ...inviteForm, country: e.target.value })} placeholder="IN" />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={inviting}>{inviting ? "Inviting..." : "Send Invitation"}</Button>
-            </DialogFooter>
-          </form>
+          ) : (
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-email">Email *</Label>
+                <Input id="invite-email" type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="supplier@example.com" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-company">Company Name *</Label>
+                <Input id="invite-company" value={inviteForm.company_name} onChange={(e) => setInviteForm({ ...inviteForm, company_name: e.target.value })} placeholder="Amara Raja Cells Ltd" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-phone">Contact Phone</Label>
+                <Input id="invite-phone" value={inviteForm.contact_phone} onChange={(e) => setInviteForm({ ...inviteForm, contact_phone: e.target.value })} placeholder="+91 98765 43210" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-country">Country</Label>
+                <Input id="invite-country" value={inviteForm.country} onChange={(e) => setInviteForm({ ...inviteForm, country: e.target.value })} placeholder="IN" />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" disabled={inviting} onClick={() => setInviteDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={inviting}>{inviting ? "Inviting..." : "Send Invitation"}</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

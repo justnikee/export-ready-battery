@@ -2,18 +2,25 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"html"
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/anvayalabs/battery-api/internal/models"
+	"github.com/google/uuid"
 )
+
+var ErrEmailDeliveryDisabled = errors.New("email delivery is disabled")
 
 // EmailService handles sending transactional emails
 type EmailService struct {
@@ -27,11 +34,11 @@ type EmailService struct {
 }
 
 // NewEmailService creates a new email service instance (simple constructor for auth)
-// This is used for password reset emails which just log to console in dev mode
+// This constructor leaves delivery disabled.
 func NewEmailService(baseURL string) *EmailService {
 	return &EmailService{
 		baseURL:      baseURL,
-		enabled:      false, // Console logging mode for password reset
+		enabled:      false,
 		templatesDir: getTemplatesDir(),
 		client:       &http.Client{Timeout: 30 * time.Second},
 	}
@@ -126,8 +133,7 @@ func (e *EmailService) SendPasswordResetEmail(toEmail, resetToken string, produc
 	resetLink := e.productLink(productType, "reset-password", resetToken)
 
 	if !e.enabled {
-		// Log to console in development
-		slog.Info("Password reset link generated (mock)", "to", toEmail, "link", resetLink)
+		slog.Info("Password reset email skipped; delivery disabled")
 		return nil
 	}
 
@@ -207,13 +213,13 @@ If you did not try to register, you can ignore this email. Your account was not 
 }
 
 // SendVerificationEmail sends an email with a link to verify the user's email address.
-// In dev mode (enabled=false), the link is logged to console.
+// When disabled, no verification email is sent.
 func (e *EmailService) SendVerificationEmail(toEmail, verificationToken string, productType models.ProductType) error {
 	productType = normalizeProductType(productType)
 	verifyLink := e.productLink(productType, "verify-email", verificationToken)
 
 	if !e.enabled {
-		slog.Info("Email verification link generated (mock)", "to", toEmail, "link", verifyLink)
+		slog.Info("Verification email skipped; delivery disabled")
 		return nil
 	}
 
@@ -273,7 +279,7 @@ func (e *EmailService) SendMagicLinkOTP(toEmail, action, otp string) error {
 	subject := fmt.Sprintf("%s verification code - AnvayaLabs", actionTitle)
 
 	if !e.enabled {
-		slog.Info("Magic link OTP (mock)", "to", toEmail, "action", action, "otp", otp)
+		slog.Info("Magic link OTP email skipped; delivery disabled")
 		return nil
 	}
 
@@ -465,6 +471,10 @@ func (e *EmailService) SendAnvayaLabs(toEmail, subject, htmlContent string) erro
 
 // sendEmail sends an email via Resend API
 func (e *EmailService) sendEmail(to, subject, html, plainText string) error {
+	return e.sendEmailWithContext(context.Background(), to, subject, html, plainText)
+}
+
+func (e *EmailService) sendEmailWithContext(ctx context.Context, to, subject, html, plainText string) error {
 	reqBody := ResendEmailRequest{
 		From:    fmt.Sprintf("%s <%s>", e.fromName, e.fromEmail),
 		To:      []string{to},
@@ -478,7 +488,7 @@ func (e *EmailService) sendEmail(to, subject, html, plainText string) error {
 		return fmt.Errorf("failed to marshal email request: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -492,56 +502,54 @@ func (e *EmailService) sendEmail(to, subject, html, plainText string) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return errors.New("could not reach the email provider")
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		var errResp map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errResp)
-		return fmt.Errorf("resend API error (%d): %v", resp.StatusCode, errResp)
+	// Provider error details can echo email content or authorization material.
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("email provider returned HTTP %d", resp.StatusCode)
 	}
 
 	var result ResendEmailResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || strings.TrimSpace(result.ID) == "" {
+		return errors.New("invalid email provider response")
 	}
 
-	slog.Info("Email sent", "to", to, "resend_id", result.ID)
+	slog.Info("Email provider accepted message")
 	return nil
 }
 
 // AlertEmailData contains data for alert notification emails.
 type AlertEmailData struct {
-	CompanyName string
-	AlertTitle  string
-	AlertType   string
-	Severity    string
-	Message     string
+	CompanyName  string
+	AlertTitle   string
+	AlertType    string
+	Severity     string
+	Message      string
 	DashboardURL string
 }
 
 // SupplierInvitationData contains data for the supplier invitation email template.
 type SupplierInvitationData struct {
-	CompanyName   string
-	TenantName    string
-	AcceptLink    string
+	CompanyName     string
+	TenantName      string
+	AcceptLink      string
 	PortalLoginLink string
 }
 
 // SendSupplierInvitationEmail sends a supplier portal invitation email.
-func (e *EmailService) SendSupplierInvitationEmail(toEmail, tenantName, companyName, token string) error {
-	acceptLink := fmt.Sprintf("%s/supplier/accept?token=%s", e.baseURL, token)
-	portalLink := fmt.Sprintf("%s/supplier/login", e.baseURL)
-
+func (e *EmailService) SendSupplierInvitationEmail(ctx context.Context, toEmail, tenantName, companyName, token string, tenantID uuid.UUID) error {
 	if !e.enabled {
-		slog.Info("Supplier invitation email (mock)", "to", toEmail, "tenant", tenantName, "link", acceptLink)
-		return nil
+		return ErrEmailDeliveryDisabled
 	}
+
+	acceptLink := e.frontendPageURL("supplier/accept") + "?" + url.Values{"token": {token}}.Encode()
+	portalLink := e.frontendPageURL("supplier/login") + "?" + url.Values{"tenant_id": {tenantID.String()}}.Encode()
 
 	subject := fmt.Sprintf("You're invited to join %s's supplier portal on AnvayaLabs", tenantName)
 
-	html := fmt.Sprintf(`<!DOCTYPE html>
+	emailHTML := fmt.Sprintf(`<!DOCTYPE html>
 <html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a">
 <div style="text-align:center;margin-bottom:24px;">
 <h2 style="margin:0 0 8px 0;color:#059669;">AnvayaLabs Supplier Portal</h2>
@@ -562,9 +570,9 @@ func (e *EmailService) SendSupplierInvitationEmail(toEmail, tenantName, companyN
 <a href="%s" style="display:inline-block;padding:12px 24px;background:#059669;color:#fff;text-decoration:none;border-radius:6px;font-weight:500;">Accept Invitation</a>
 </div>
 <p style="font-size:13px;color:#64748b;">Or copy this link: %s</p>
-<p style="font-size:13px;color:#64748b;">This invitation expires in 30 days. If you already have an account, you can <a href="%s">log in here</a>.</p>
+<p style="font-size:13px;color:#64748b;">If you already activated your account, you can <a href="%s">log in here</a>.</p>
 <p style="font-size:12px;color:#94a3b8;margin-top:32px;">© 2026 AnvayaLabs</p>
-</body></html>`, tenantName, companyName, acceptLink, acceptLink, portalLink)
+</body></html>`, html.EscapeString(tenantName), html.EscapeString(companyName), html.EscapeString(acceptLink), html.EscapeString(acceptLink), html.EscapeString(portalLink))
 
 	plainText := fmt.Sprintf(`You've been invited to join %s's supplier portal on AnvayaLabs.
 
@@ -573,12 +581,12 @@ Company: %s
 Accept your invitation:
 %s
 
-This invitation expires in 30 days. If you already have an account, log in at:
+If you already activated your account, log in at:
 %s
 
 © 2026 AnvayaLabs`, tenantName, companyName, acceptLink, portalLink)
 
-	return e.sendEmail(toEmail, subject, html, plainText)
+	return e.sendEmailWithContext(ctx, toEmail, subject, emailHTML, plainText)
 }
 
 // DocumentReviewData contains data for the document review notification email.
