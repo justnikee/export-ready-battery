@@ -2193,3 +2193,23 @@ func (m *MockRepository) GetActiveSupplierCompanyName(ctx context.Context, tenan
 	args := m.Called(ctx, tenantID, supplierID)
 	return args.String(0), args.Error(1)
 }
+
+func (m *MockRepository) CheckReleaseEvidenceBatch(ctx context.Context, tenantID, batchID uuid.UUID) error {
+	return m.Called(ctx, tenantID, batchID).Error(0)
+}
+
+func (m *MockRepository) AppendReleaseEvidence(ctx context.Context, tenantID uuid.UUID, evidence models.ReleaseEvidenceRevision, expected int) error {
+	return m.Called(ctx, tenantID, evidence, expected).Error(0)
+}
+
+func (m *MockRepository) ListReleaseEvidence(ctx context.Context, tenantID, subjectID uuid.UUID, byPack bool, limit, offset int) ([]models.ReleaseEvidenceRevision, error) {
+	args := m.Called(ctx, tenantID, subjectID, byPack, limit, offset)
+	items, _ := args.Get(0).([]models.ReleaseEvidenceRevision)
+	return items, args.Error(1)
+}
+
+func (m *MockRepository) GetReleaseEvidenceDownload(ctx context.Context, tenantID, revisionID uuid.UUID) (models.ReleaseEvidenceRevision, error) {
+	args := m.Called(ctx, tenantID, revisionID)
+	item, _ := args.Get(0).(models.ReleaseEvidenceRevision)
+	return item, args.Error(1)
+}

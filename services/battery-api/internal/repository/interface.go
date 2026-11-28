@@ -32,6 +32,11 @@ type RepositoryInterface interface {
 	CreateBatteryModelDraft(ctx context.Context, tenantID, modelID uuid.UUID) (models.BatteryModelRevision, error)
 	UpdateBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID uuid.UUID, version int, specs models.ModelRevisionSpecs) (models.BatteryModelRevision, error)
 	ReleaseBatteryModelDraft(ctx context.Context, tenantID, modelID, revisionID, actorID uuid.UUID, version int) (models.BatteryModelRevision, error)
+	// release_evidence.go
+	CheckReleaseEvidenceBatch(ctx context.Context, tenantID, batchID uuid.UUID) error
+	AppendReleaseEvidence(ctx context.Context, tenantID uuid.UUID, evidence models.ReleaseEvidenceRevision, expected int) error
+	ListReleaseEvidence(ctx context.Context, tenantID, subjectID uuid.UUID, byPack bool, limit, offset int) ([]models.ReleaseEvidenceRevision, error)
+	GetReleaseEvidenceDownload(ctx context.Context, tenantID, revisionID uuid.UUID) (models.ReleaseEvidenceRevision, error)
 	// traceability.go
 	FindTracePacks(ctx context.Context, tenantID uuid.UUID, serial string, limit, offset int) ([]models.TracePack, error)
 	GetTracePack(ctx context.Context, tenantID, packID uuid.UUID, limit, offset int) (models.TracePack, []models.TracePackLot, error)

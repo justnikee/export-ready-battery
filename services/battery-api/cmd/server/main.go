@@ -398,6 +398,7 @@ func main() {
 	h.RegisterBatteryModelRoutes(mux, protectWorkspaceRead, protectWorkspaceWrite)
 	h.RegisterComponentLotImportRoutes(mux, protectWorkspaceWrite)
 	h.RegisterTraceabilityRoutes(mux, protectWorkspaceRead)
+	h.RegisterReleaseEvidenceRoutes(mux, protectWorkspaceRead, protectWorkspaceWrite)
 
 	mux.Handle("POST /api/v1/batches", protectWriteOnboard(http.HandlerFunc(h.CreateBatch)))
 	mux.Handle("POST /api/v1/batches/validate", protectWriteOnboard(http.HandlerFunc(h.ValidateBatchCreation)))

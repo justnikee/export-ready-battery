@@ -490,8 +490,9 @@ func (r *Repository) DeleteBatch(ctx context.Context, id uuid.UUID) error {
 
 var ErrBatchNotEmptyDraft = errors.New("batch is not an empty draft")
 var ErrBatchHasLotAssignments = errors.New("batch has component lot assignments")
+var ErrBatchHasReleaseEvidence = errors.New("batch has release evidence")
 
-// DeleteEmptyDraftBatch removes an owned draft with no passport, quota or lot assignment history.
+// DeleteEmptyDraftBatch removes an owned draft with no passport, quota, lot assignment or release evidence history.
 func (r *Repository) DeleteEmptyDraftBatch(ctx context.Context, batchID, tenantID uuid.UUID) (string, error) {
 	tx, err := r.db.Pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
@@ -527,8 +528,13 @@ func deleteEmptyDraftBatchTx(ctx context.Context, tx pgx.Tx, batchID, tenantID u
 		return "", ErrBatchNotEmptyDraft
 	}
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23503" && pgErr.ConstraintName == "lot_assignments_batch_fk" {
-		return "", ErrBatchHasLotAssignments
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		switch pgErr.ConstraintName {
+		case "lot_assignments_batch_fk":
+			return "", ErrBatchHasLotAssignments
+		case "release_evidence_batch_fk":
+			return "", ErrBatchHasReleaseEvidence
+		}
 	}
 	return name, err
 }
