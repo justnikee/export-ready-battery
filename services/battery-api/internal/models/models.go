@@ -405,7 +405,7 @@ type SupplierDocument struct {
 	BatchID       *string    `db:"batch_id" json:"batch_id,omitempty"`
 	ComponentID   *string    `db:"component_id" json:"component_id,omitempty"`
 	DocType       string     `db:"doc_type" json:"doc_type"` // coc, audit_report, provenance, msds, test_report, other
-	FileURL       string     `db:"file_url" json:"file_url"`
+	FileURL       string     `db:"file_url" json:"-"`
 	FileName      string     `db:"file_name" json:"file_name,omitempty"`
 	FileSize      int        `db:"file_size" json:"file_size,omitempty"`
 	Status        string     `db:"status" json:"status"` // pending, approved, rejected

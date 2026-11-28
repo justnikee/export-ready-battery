@@ -137,22 +137,10 @@ func (f *fakeSupplierRepo) GetSupplierDocumentByID(ctx context.Context, id uuid.
 	return nil, errors.New("not found")
 }
 
-func (f *fakeSupplierRepo) ListSupplierDocuments(ctx context.Context, supplierID uuid.UUID, status string) ([]models.SupplierDocument, error) {
+func (f *fakeSupplierRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string, supplierID *uuid.UUID) ([]models.SupplierDocument, error) {
 	var out []models.SupplierDocument
 	for _, d := range f.docs {
-		if d.SupplierID == supplierID.String() {
-			if status == "" || d.Status == status {
-				out = append(out, *d)
-			}
-		}
-	}
-	return out, nil
-}
-
-func (f *fakeSupplierRepo) ListTenantSupplierDocuments(ctx context.Context, tenantID uuid.UUID, status string) ([]models.SupplierDocument, error) {
-	var out []models.SupplierDocument
-	for _, d := range f.docs {
-		if d.TenantID == tenantID.String() {
+		if d.TenantID == tenantID.String() && (supplierID == nil || d.SupplierID == supplierID.String()) {
 			if status == "" || d.Status == status {
 				out = append(out, *d)
 			}

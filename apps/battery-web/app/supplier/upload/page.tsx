@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -17,36 +17,14 @@ const DOC_TYPES = [
   { value: "other", label: "Other" },
 ];
 
-interface BatchSummary {
-  id: string;
-  batch_name: string;
-  product_name: string;
-  status: string;
-}
+const selectClassName =
+  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:text-muted-foreground";
 
 export default function SupplierUploadPage() {
   const [docType, setDocType] = useState("coc");
-  const [batchId, setBatchId] = useState("");
-  const [batches, setBatches] = useState<BatchSummary[]>([]);
-  const [batchesLoading, setBatchesLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchBatches = async () => {
-      try {
-        // Cookie / in-memory token only — never localStorage (S-05).
-        const res = await supplierApi.get("/supplier/batches");
-        setBatches(res.data.batches || []);
-      } catch {
-        toast.error("Failed to load batches");
-      } finally {
-        setBatchesLoading(false);
-      }
-    };
-    fetchBatches();
-  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -68,16 +46,12 @@ export default function SupplierUploadPage() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("doc_type", docType);
-      if (batchId) {
-        formData.append("batch_id", batchId);
-      }
 
       await supplierApi.post("/supplier/documents", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Document uploaded successfully");
       setFile(null);
-      setBatchId("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch {
       toast.error("Failed to upload document");
@@ -87,10 +61,10 @@ export default function SupplierUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F5F3]">
-      <header className="bg-white border-b px-4 py-3 flex items-center gap-2 sticky top-0 z-10">
+    <div className="min-h-screen bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]">
+      <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card px-4 py-3 text-card-foreground">
         <Button size="sm" variant="ghost" asChild>
-          <Link href="/supplier/dashboard">
+          <Link href="/supplier/dashboard" aria-label="Back to supplier documents">
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
@@ -101,16 +75,16 @@ export default function SupplierUploadPage() {
         <div className="space-y-1">
           <h1 className="text-lg font-semibold">Upload Document</h1>
           <p className="text-sm text-muted-foreground">
-            Share certificates and provenance files with your buyer
+            Send certificates and supporting files to your buyer for review.
           </p>
         </div>
 
-        <div className="space-y-4 bg-white border rounded-md p-4">
+        <div className="space-y-5 rounded-md border border-border bg-card p-4 text-card-foreground sm:p-5">
           <div className="space-y-1.5">
             <Label htmlFor="doc_type">Document type</Label>
             <select
               id="doc_type"
-              className="w-full h-9 border rounded-md px-2 text-sm bg-transparent"
+              className={selectClassName}
               value={docType}
               onChange={(e) => setDocType(e.target.value)}
             >
@@ -123,41 +97,24 @@ export default function SupplierUploadPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="batch_id">Batch (optional)</Label>
-            <select
-              id="batch_id"
-              className="w-full h-9 border rounded-md px-2 text-sm bg-transparent"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              disabled={batchesLoading}
-            >
-              <option value="">— None —</option>
-              {batches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.batch_name || b.product_name || b.id}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>File (max 5MB)</Label>
+            <Label htmlFor="supplier-file">File (max 5 MB)</Label>
             <input
+              id="supplier-file"
               ref={fileInputRef}
               type="file"
-              className="block w-full text-sm"
+              className="block w-full min-w-0 rounded-md border border-input bg-background p-1 text-sm text-foreground file:mr-3 file:cursor-pointer file:rounded-sm file:border-0 file:bg-muted file:px-3 file:py-2 file:font-medium file:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               onChange={handleFileSelect}
             />
             {file ? (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <FileText className="w-3 h-3" />
-                {file.name}
+              <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                <FileText className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 break-all">{file.name}</span>
               </p>
             ) : null}
           </div>
 
           <Button
-            className="w-full gap-2"
+            className="w-full gap-2 disabled:bg-muted disabled:text-foreground/75 disabled:opacity-100"
             onClick={handleUpload}
             disabled={uploading || !file}
           >

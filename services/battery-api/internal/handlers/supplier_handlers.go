@@ -5,13 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	supplierpkg "github.com/anvayalabs/battery-api/internal/compliance/supplier"
@@ -20,6 +19,8 @@ import (
 	"github.com/anvayalabs/battery-api/internal/models"
 	"github.com/anvayalabs/battery-api/internal/services"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ============================================================================
@@ -269,6 +270,20 @@ func (h *Handler) SupplierLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// SupplierSession restores the existing access token from a live supplier cookie.
+func (h *Handler) SupplierSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	cookie, err := r.Cookie(supplierCookieName)
+	if err != nil || cookie.Value == "" || r.Header.Get("Authorization") != "" {
+		respondError(w, http.StatusUnauthorized, "supplier cookie required")
+		return
+	}
+	if _, _, _, ok := h.requireActiveSupplier(w, r); !ok {
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"token": cookie.Value})
+}
+
 // SupplierLogout handles POST /api/v1/supplier/logout — clears the HttpOnly supplier session cookie.
 func (h *Handler) SupplierLogout(w http.ResponseWriter, r *http.Request) {
 	clearSupplierCookie(w)
@@ -339,17 +354,17 @@ func (h *Handler) UpdateSupplierStatus(w http.ResponseWriter, r *http.Request) {
 // UploadSupplierDocument handles POST /api/v1/supplier/documents
 // Supplier-only: upload CoC, audit report, or provenance file.
 func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request) {
-	supplierIDStr := middleware.GetSupplierID(r.Context())
-	if supplierIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "supplier authentication required")
+	supplierID, tenantID, companyName, ok := h.requireActiveSupplier(w, r)
+	if !ok {
 		return
 	}
-	tenantIDStr := middleware.GetTenantID(r.Context())
-
-	supplierID, _ := uuid.Parse(supplierIDStr)
-	tenantID, _ := uuid.Parse(tenantIDStr)
 
 	if !parseMultipartForm(w, r, limits.MaxSupplierDocBytes) {
+		return
+	}
+	// A workspace invitation does not assign the supplier to production records.
+	if r.Form.Has("batch_id") || r.Form.Has("component_id") {
+		respondError(w, http.StatusForbidden, "Supplier uploads cannot link to batches or components")
 		return
 	}
 
@@ -394,57 +409,64 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	filename := fmt.Sprintf("%s_%s_%s", docType, time.Now().Format("20060102_150405"), filepath.Base(header.Filename))
-	filename = strings.ReplaceAll(filename, " ", "_")
-	storagePath := fmt.Sprintf("%s/supplier-docs/%s/%s", tenantID.String(), supplierID.String(), filename)
+	documentID := uuid.New()
+	storagePath := supplierDocumentPrefix(tenantID, supplierID) + documentID.String()
+
+	if err := h.storageService.EnsureBucket(r.Context(), complianceDocsBucket); err != nil {
+		storageUnavailable(w)
+		return
+	}
+	if err := h.storageService.VerifyPrivateBucket(r.Context(), complianceDocsBucket); err != nil {
+		storageUnavailable(w)
+		return
+	}
 
 	if err := h.storageService.UploadFileToBucket(r.Context(), complianceDocsBucket, storagePath, fileBytes, contentType); err != nil {
-		slog.Error("Failed to upload supplier document to storage", "error", err, "supplier_id", supplierIDStr, "tenant_id", tenantIDStr)
+		slog.Error("Failed to upload supplier document to storage", "error", err, "supplier_id", supplierID, "tenant_id", tenantID)
 		respondError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
 		return
 	}
 
-	publicURL := h.storageService.PublicURL(complianceDocsBucket, storagePath)
-
-	var batchID, componentID *string
-	if b := r.FormValue("batch_id"); b != "" {
-		batchID = &b
-	}
-	if c := r.FormValue("component_id"); c != "" {
-		componentID = &c
-	}
-
+	now := time.Now()
 	doc := &models.SupplierDocument{
-		ID:          uuid.New().String(),
-		SupplierID:  supplierIDStr,
-		TenantID:    tenantIDStr,
-		BatchID:     batchID,
-		ComponentID: componentID,
-		DocType:     docType,
-		FileURL:     publicURL,
-		FileName:    header.Filename,
-		FileSize:    int(header.Size),
-		Status:      "pending",
-		UploadedAt:  time.Now(),
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:         documentID.String(),
+		SupplierID: supplierID.String(),
+		TenantID:   tenantID.String(),
+		DocType:    docType,
+		FileURL:    storagePath,
+		FileName:   header.Filename,
+		FileSize:   int(header.Size),
+		Status:     "pending",
+		UploadedAt: now,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 
 	if err := h.repo.CreateSupplierDocument(r.Context(), doc); err != nil {
-		_ = h.storageService.DeleteFileFromBucket(r.Context(), complianceDocsBucket, storagePath)
-		slog.Error("Failed to create supplier document record", "error", err)
+		denied := errors.Is(err, pgx.ErrNoRows)
+		var dbErr *pgconn.PgError
+		// A transport error can leave the insert outcome unknown. Keep the file
+		// for reconciliation unless PostgreSQL confirmed the write did not happen.
+		if denied || errors.As(err, &dbErr) {
+			cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
+			cleanupErr := h.storageService.DeleteFileFromBucket(cleanupCtx, complianceDocsBucket, storagePath)
+			cancel()
+			if cleanupErr != nil {
+				slog.Error("Failed to remove unrecorded supplier upload", "document_id", documentID)
+			}
+		}
+		if denied {
+			respondError(w, http.StatusForbidden, "Supplier access is unavailable")
+			return
+		}
+		slog.Error("Failed to create supplier document record", "error", err, "document_id", documentID)
 		respondError(w, http.StatusInternalServerError, "Failed to save document record")
 		return
 	}
 
 	// Send alert to tenant
 	if h.alertService != nil {
-		supplierUUID, _ := uuid.Parse(supplierIDStr)
-		supplier, _ := h.repo.GetSupplierByID(r.Context(), supplierUUID)
-		if supplier != nil {
-			tenantUUID, _ := uuid.Parse(tenantIDStr)
-			_ = h.alertService.CreateSupplierDocumentAlert(r.Context(), tenantUUID, supplier.ID, supplier.CompanyName, doc.DocType)
-		}
+		_ = h.alertService.CreateSupplierDocumentAlert(r.Context(), tenantID, supplierID.String(), companyName, doc.DocType)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -455,67 +477,49 @@ func (h *Handler) UploadSupplierDocument(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// ListSupplierBatches handles GET /api/v1/supplier/batches
-// Supplier-only: list batches for their tenant (to link documents).
-func (h *Handler) ListSupplierBatches(w http.ResponseWriter, r *http.Request) {
-	supplierIDStr := middleware.GetSupplierID(r.Context())
-	if supplierIDStr == "" {
+func (h *Handler) requireActiveSupplier(w http.ResponseWriter, r *http.Request) (supplierID, tenantID uuid.UUID, companyName string, ok bool) {
+	supplierID, supplierErr := uuid.Parse(middleware.GetSupplierID(r.Context()))
+	tenantID, tenantErr := uuid.Parse(middleware.GetTenantID(r.Context()))
+	if supplierErr != nil || tenantErr != nil || supplierID == uuid.Nil || tenantID == uuid.Nil {
 		respondError(w, http.StatusUnauthorized, "supplier authentication required")
-		return
+		return uuid.Nil, uuid.Nil, "", false
 	}
-
-	supplierUUID, _ := uuid.Parse(supplierIDStr)
-	supplier, err := h.repo.GetSupplierByID(r.Context(), supplierUUID)
+	name, err := h.repo.GetActiveSupplierCompanyName(r.Context(), tenantID, supplierID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		respondError(w, http.StatusForbidden, "Supplier access is unavailable")
+		return uuid.Nil, uuid.Nil, "", false
+	}
 	if err != nil {
-		respondError(w, http.StatusUnauthorized, "invalid supplier")
+		slog.Error("Failed to check supplier access", "error", err)
+		respondError(w, http.StatusServiceUnavailable, "Supplier access is unavailable")
+		return uuid.Nil, uuid.Nil, "", false
+	}
+	return supplierID, tenantID, name, true
+}
+
+// ListSupplierBatches preserves the legacy response for older portal clients.
+// There are no supplier-specific batch assignments in the current upload flow.
+func (h *Handler) ListSupplierBatches(w http.ResponseWriter, r *http.Request) {
+	if _, _, _, ok := h.requireActiveSupplier(w, r); !ok {
 		return
 	}
-
-	tenantID, _ := uuid.Parse(supplier.TenantID)
-	batches, _, err := h.repo.ListBatches(r.Context(), tenantID, models.ProductTypeBattery, 100, 0)
-	if err != nil {
-		slog.Error("failed to list supplier batches", "error", err)
-		respondError(w, http.StatusInternalServerError, "failed to list batches")
-		return
-	}
-
-	// Return lightweight batch info
-	type batchSummary struct {
-		ID        string `json:"id"`
-		BatchName string `json:"batch_name"`
-		ModelName string `json:"model_name"`
-		Status    string `json:"status"`
-	}
-
-	var results []batchSummary
-	for _, b := range batches {
-		results = append(results, batchSummary{
-			ID:        b.ID.String(),
-			BatchName: b.BatchName,
-			ModelName: b.ModelName,
-			Status:    b.Status,
-		})
-	}
-
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"batches": results,
-		"total":   len(results),
+		"batches": []any{},
+		"total":   0,
 	})
 }
 
 // ListSupplierDocuments handles GET /api/v1/supplier/documents
 // Supplier-only: list their own uploads.
 func (h *Handler) ListSupplierDocuments(w http.ResponseWriter, r *http.Request) {
-	supplierIDStr := middleware.GetSupplierID(r.Context())
-	if supplierIDStr == "" {
-		respondError(w, http.StatusUnauthorized, "supplier authentication required")
+	w.Header().Set("Cache-Control", "private, no-store")
+	supplierID, tenantID, _, ok := h.requireActiveSupplier(w, r)
+	if !ok {
 		return
 	}
 
-	supplierID, _ := uuid.Parse(supplierIDStr)
 	status := r.URL.Query().Get("status")
-
-	docs, err := h.repo.ListSupplierDocuments(r.Context(), supplierID, status)
+	docs, err := h.repo.ListTenantSupplierDocuments(r.Context(), tenantID, status, &supplierID)
 	if err != nil {
 		slog.Error("failed to list supplier documents", "error", err)
 		respondError(w, http.StatusInternalServerError, "failed to list documents")
@@ -531,15 +535,25 @@ func (h *Handler) ListSupplierDocuments(w http.ResponseWriter, r *http.Request) 
 // ListTenantSupplierDocuments handles GET /api/v1/supplier-documents
 // Tenant-only: review all supplier uploads.
 func (h *Handler) ListTenantSupplierDocuments(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
 	tenantIDStr := middleware.GetTenantID(r.Context())
 	tenantID, err := uuid.Parse(tenantIDStr)
-	if err != nil {
+	if err != nil || tenantID == uuid.Nil {
 		respondError(w, http.StatusUnauthorized, "invalid tenant")
 		return
 	}
 
-	status := r.URL.Query().Get("status")
-	docs, err := h.repo.ListTenantSupplierDocuments(r.Context(), tenantID, status)
+	query := r.URL.Query()
+	var supplierID *uuid.UUID
+	if query.Has("supplier_id") {
+		id, err := uuid.Parse(query.Get("supplier_id"))
+		if err != nil || id == uuid.Nil {
+			respondError(w, http.StatusBadRequest, "invalid supplier_id")
+			return
+		}
+		supplierID = &id
+	}
+	docs, err := h.repo.ListTenantSupplierDocuments(r.Context(), tenantID, query.Get("status"), supplierID)
 	if err != nil {
 		slog.Error("failed to list tenant supplier documents", "error", err)
 		respondError(w, http.StatusInternalServerError, "failed to list documents")

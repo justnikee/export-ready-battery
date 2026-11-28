@@ -1,3 +1,4 @@
+import { listManufacturerSupplierDocuments } from "@/lib/api/supplier-documents"
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Batch } from '@/lib/types'
@@ -30,6 +31,7 @@ export const queryKeys = {
     ddAssessments: (id: string) => ['ddAssessments', id] as const,
     correctiveActions: () => ['correctiveActions'] as const,
     suppliers: () => ['suppliers'] as const,
+    supplierDocuments: (tenantId: string, supplierId: string) => ['supplierDocuments', tenantId, supplierId] as const,
     supplierDDStats: (supplierIds: string[]) => ['supplierDDStats', supplierIds] as const,
 }
 
@@ -380,6 +382,14 @@ export interface Supplier {
     status: "invited" | "active" | "blocked";
     invited_at: string;
     accepted_at?: string;
+}
+
+export function useManufacturerSupplierDocuments(tenantId: string | undefined, supplierId: string) {
+    return useQuery({
+        queryKey: queryKeys.supplierDocuments(tenantId || '', supplierId),
+        queryFn: () => listManufacturerSupplierDocuments(supplierId),
+        enabled: Boolean(tenantId && supplierId),
+    })
 }
 
 export function useSuppliers() {

@@ -4,21 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import supplierApi, { supplierLogout } from "@/lib/supplier-api";
+import { supplierLogout } from "@/lib/supplier-api";
+import { listOwnSupplierDocuments, type SupplierDocument } from "@/lib/api/supplier-documents";
+import { SupplierDocumentDownload } from "@/components/due-diligence/supplier-document-download";
 import { Upload, FileText, LogOut, Clock, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 
-interface SupplierDoc {
-  id: string;
-  doc_type: string;
-  file_name: string;
-  status: "pending" | "approved" | "rejected";
-  uploaded_at: string;
-  reviewer_notes?: string;
-}
-
 export default function SupplierDashboardPage() {
-  const [docs, setDocs] = useState<SupplierDoc[]>([]);
+  const [docs, setDocs] = useState<SupplierDocument[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,8 +21,7 @@ export default function SupplierDashboardPage() {
   const fetchDocs = async () => {
     try {
       // Cookie and/or in-memory Bearer — never localStorage (S-05).
-      const res = await supplierApi.get("/supplier/documents");
-      setDocs(res.data.documents || []);
+      setDocs(await listOwnSupplierDocuments());
     } catch {
       toast.error("Failed to load documents");
     } finally {
@@ -119,7 +111,10 @@ export default function SupplierDashboardPage() {
                     ) : null}
                   </div>
                 </div>
-                {statusBadge(doc.status)}
+                <div className="flex items-center gap-2">
+                  {statusBadge(doc.status)}
+                  <SupplierDocumentDownload document={doc} scope="supplier" />
+                </div>
               </li>
             ))}
           </ul>

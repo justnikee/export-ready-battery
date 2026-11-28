@@ -2,9 +2,11 @@ import axios from "axios";
 import {
   clearSupplierSession,
   getSupplierAccessToken,
+  restoreSupplierAccessToken,
   setSupplierAccessToken,
 } from "@/lib/supplier-session";
 import { getApiV1Base } from "@/lib/api-origin";
+import { prepareSupplierCache } from "@/lib/supplier-cache";
 
 const baseURL = getApiV1Base();
 
@@ -12,7 +14,7 @@ const baseURL = getApiV1Base();
  * Axios instance for the supplier portal.
  * - withCredentials: true so the HttpOnly supplier_token cookie is stored/sent
  * - Authorization: Bearer from in-memory token when present (faster path)
- * - Cookie alone is enough after reload (middleware reads supplier_token)
+ * - After reload, the same-origin session route restores the in-memory token.
  */
 const supplierApi = axios.create({
   baseURL,
@@ -20,8 +22,15 @@ const supplierApi = axios.create({
   timeout: 30000,
 });
 
-supplierApi.interceptors.request.use((config) => {
-  const token = getSupplierAccessToken();
+supplierApi.interceptors.request.use(async (config) => {
+  await prepareSupplierCache();
+  const token = getSupplierAccessToken() ?? await restoreSupplierAccessToken(async () => {
+    const { data } = await axios.post<{ token: string }>(`${baseURL}/supplier-auth?action=session`, {}, {
+      withCredentials: true,
+      timeout: 30000,
+    });
+    return data.token;
+  });
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -62,9 +71,10 @@ export async function supplierLogin(
   password: string,
   tenantId: string,
 ): Promise<SupplierLoginResult> {
-  const { data } = await supplierApi.post<SupplierLoginResult>(
-    "/supplier/login",
+  const { data } = await axios.post<SupplierLoginResult>(
+    `${baseURL}/supplier-auth?action=login`,
     { email, password, tenant_id: tenantId },
+    { withCredentials: true, timeout: 30000 },
   );
   // Memory only — cookie is set by the API (HttpOnly).
   setSupplierAccessToken(data.token);
@@ -72,8 +82,9 @@ export async function supplierLogin(
 }
 
 export async function supplierLogout(): Promise<void> {
+  clearSupplierSession();
   try {
-    await supplierApi.post("/supplier/logout");
+    await axios.post(`${baseURL}/supplier-auth?action=logout`, {}, { withCredentials: true, timeout: 30000 });
   } catch {
     // Still clear local session if network fails.
   }
