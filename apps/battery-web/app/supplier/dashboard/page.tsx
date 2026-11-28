@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -13,25 +13,37 @@ import Link from "next/link";
 export default function SupplierDashboardPage() {
   const [docs, setDocs] = useState<SupplierDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const privateContent = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    fetchDocs();
+    void fetchDocs();
   }, []);
 
   const fetchDocs = async () => {
+    setLoading(true);
+    setLoadFailed(false);
     try {
       // Cookie and/or in-memory Bearer — never localStorage (S-05).
       setDocs(await listOwnSupplierDocuments());
     } catch {
-      toast.error("Failed to load documents");
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await supplierLogout();
-    window.location.href = "/supplier/login";
+    setLoggingOut(true);
+    try {
+      await supplierLogout();
+      if (privateContent.current) privateContent.current.hidden = true;
+      window.location.replace("/supplier/login");
+    } catch {
+      toast.error("Could not log out. Check your connection and try again.");
+      setLoggingOut(false);
+    }
   };
 
   const statusIcon = (status: string) => {
@@ -66,17 +78,22 @@ export default function SupplierDashboardPage() {
           <Button size="sm" variant="outline" asChild>
             <Link href="/supplier/upload">Upload</Link>
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleLogout}>
+          <Button size="sm" variant="ghost" onClick={handleLogout} disabled={loggingOut}>
             <LogOut className="w-4 h-4 mr-1" />
-            Logout
+            {loggingOut ? "Logging out…" : "Logout"}
           </Button>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <main ref={privateContent} className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         <h1 className="text-lg font-semibold text-[#37322F]">Your documents</h1>
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : loadFailed ? (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground" role="alert">Could not load documents.</p>
+            <Button size="sm" variant="outline" onClick={fetchDocs}>Try again</Button>
+          </div>
         ) : docs.length === 0 ? (
           <div className="rounded-md border bg-white p-6 text-center space-y-2">
             <FileText className="w-8 h-8 mx-auto text-muted-foreground" />

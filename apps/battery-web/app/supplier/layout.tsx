@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import SupplierCacheCleanup from "./supplier-cache-cleanup";
+import SupplierPortalSession from "./supplier-portal-session";
 
 export const metadata: Metadata = {
   title: "Supplier Portal — ExportReady",
@@ -19,10 +19,5 @@ export default function SupplierLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      {children}
-      <SupplierCacheCleanup />
-    </>
-  );
+  return <SupplierPortalSession>{children}</SupplierPortalSession>;
 }
