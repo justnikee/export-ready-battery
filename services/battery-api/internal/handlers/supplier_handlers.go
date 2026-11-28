@@ -107,7 +107,7 @@ func (h *Handler) InviteSupplier(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.CreateSupplier(r.Context(), supplier); err != nil {
-		slog.Error("failed to create supplier", "error", err)
+		slog.Error("failed to create supplier", "tenant_id", tenantID)
 		respondError(w, http.StatusInternalServerError, "failed to invite supplier")
 		return
 	}
@@ -122,28 +122,44 @@ func (h *Handler) InviteSupplier(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Send invitation email
-	if h.emailService != nil {
-		tenant, err := h.repo.GetTenant(r.Context(), tenantID)
-		if err == nil && tenant != nil {
-			tenantName := tenant.CompanyName
-			if tenantName == "" {
-				tenantName = "Your Buyer"
-			}
-			if emailErr := h.emailService.SendSupplierInvitationEmail(supplier.Email, tenantName, supplier.CompanyName, supplier.InvitationToken); emailErr != nil {
-				slog.Error("failed to send supplier invitation email", "error", emailErr, "supplier_email", supplier.Email)
-			}
+	deliveryErr := h.sendSupplierInvitation(r.Context(), tenantID, supplier)
+	message := "Invitation email sent."
+	if deliveryErr != nil {
+		message = "Invitation created, but the email could not be sent. Copy the invitation link and share it with your supplier."
+		reason := "delivery_failed"
+		if errors.Is(deliveryErr, services.ErrEmailDeliveryDisabled) {
+			reason = "delivery_disabled"
 		}
+		slog.Warn("Supplier invitation email unavailable", "tenant_id", tenantID, "supplier_id", supplier.ID, "reason", reason)
 	}
 
+	w.Header().Set("Cache-Control", "private, no-store")
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"id":               supplier.ID,
 		"email":            supplier.Email,
 		"company_name":     supplier.CompanyName,
 		"status":           supplier.Status,
 		"invitation_token": supplier.InvitationToken,
-		"message":          "Supplier invited successfully. Invitation email sent.",
+		"email_sent":       deliveryErr == nil,
+		"message":          message,
 	})
+}
+
+func (h *Handler) sendSupplierInvitation(ctx context.Context, tenantID uuid.UUID, supplier *models.Supplier) error {
+	if h.emailService == nil {
+		return services.ErrEmailDeliveryDisabled
+	}
+	tenant, err := h.repo.GetTenant(ctx, tenantID)
+	if err != nil || tenant == nil {
+		return errors.New("could not load the buyer workspace")
+	}
+	tenantName := tenant.CompanyName
+	if tenantName == "" {
+		tenantName = "Your Buyer"
+	}
+	emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	return h.emailService.SendSupplierInvitationEmail(emailCtx, supplier.Email, tenantName, supplier.CompanyName, supplier.InvitationToken, tenantID)
 }
 
 // AcceptSupplierInvitation handles POST /api/v1/suppliers/accept
