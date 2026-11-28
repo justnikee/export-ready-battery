@@ -9,6 +9,17 @@
 let supplierAccessToken: string | null = null;
 let sessionVersion = 0;
 let restoring: Promise<string | null> | undefined;
+let sessionChannel: BroadcastChannel | undefined;
+
+export function getSupplierSessionChannel(): BroadcastChannel | undefined {
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+  try {
+    return sessionChannel ??= new BroadcastChannel("anviora-supplier-session");
+  } catch {
+    // Browser restrictions on messaging do not affect the result of the auth request.
+    return;
+  }
+}
 
 export function getSupplierAccessToken(): string | null {
   return supplierAccessToken;

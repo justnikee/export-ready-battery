@@ -2,6 +2,7 @@ import axios from "axios";
 import {
   clearSupplierSession,
   getSupplierAccessToken,
+  getSupplierSessionChannel,
   restoreSupplierAccessToken,
   setSupplierAccessToken,
 } from "@/lib/supplier-session";
@@ -78,17 +79,14 @@ export async function supplierLogin(
   );
   // Memory only — cookie is set by the API (HttpOnly).
   setSupplierAccessToken(data.token);
+  getSupplierSessionChannel()?.postMessage("changed");
   return data;
 }
 
 export async function supplierLogout(): Promise<void> {
+  await axios.post(`${baseURL}/supplier-auth?action=logout`, {}, { withCredentials: true, timeout: 30000 });
   clearSupplierSession();
-  try {
-    await axios.post(`${baseURL}/supplier-auth?action=logout`, {}, { withCredentials: true, timeout: 30000 });
-  } catch {
-    // Still clear local session if network fails.
-  }
-  clearSupplierSession();
+  getSupplierSessionChannel()?.postMessage("changed");
 }
 
 export default supplierApi;
